@@ -2,7 +2,7 @@ import type { ChromeCopy } from "./chrome.js";
 
 export const CHROME_DE: ChromeCopy = {
     skipToContent: "Zum Inhalt springen",
-    brandHomeAriaLabel: "Nutrition MCP Startseite",
+    brandHomeAriaLabel: "Nutrition MCP – Startseite",
 
     nav: {
         how: "So funktioniert's",
@@ -11,8 +11,8 @@ export const CHROME_DE: ChromeCopy = {
         examples: "Beispiele",
         liveStats: "Live-Statistiken",
         liveStatsBadgeLabel: {
-            one: "neuer Mahlzeiten-Eintrag seit dem Öffnen",
-            other: "neue Mahlzeiten-Einträge seit dem Öffnen",
+            one: "neuer Mahlzeiten-Eintrag, seit du die Seite geöffnet hast",
+            other: "neue Mahlzeiten-Einträge, seit du die Seite geöffnet hast",
         },
         faq: "FAQ",
     },
@@ -38,19 +38,7 @@ export const CHROME_DE: ChromeCopy = {
     closeMenuAriaLabel: "Menü schließen",
 
     menu: {
-        howSmall: "3 Schritte",
-        installSmall: "unter einer Minute",
-        toolsSmall: "36 Werkzeuge",
-        examplesSmall: "Live-Demos",
-        liveStatsSmall: "seit dem Öffnen",
-        alternatives: "Alternativen",
-        alternativesSmall: "App-Wechsel",
-        support: "Unterstützung",
-        contact: "Kontakt",
         github: "GitHub",
-        privacy: "Datenschutz",
-        terms: "Bedingungen",
-        connectInMinute: "In einer Minute verbinden",
     },
 
     footer: {
@@ -63,12 +51,12 @@ export const CHROME_DE: ChromeCopy = {
         contact: "Kontakt",
         privacyPolicy: "Datenschutzerklärung",
         termsOfService: "Nutzungsbedingungen",
-        note: "Kostenlos und quelloffen. Ernährungswerte sind Schätzungen, kein medizinischer Rat.",
+        note: "Kostenlos und Open Source. Nährwerte sind Schätzungen, keine medizinische Beratung.",
     },
 
     consent: {
         title: "Analyse-Cookies.",
-        body: "Mit deiner Erlaubnis zeigen uns Google Analytics und Microsoft Clarity, welche Seiten helfen und wo Leute hängen bleiben. Ohne deine Zustimmung wird nichts geladen.",
+        body: "Mit deiner Erlaubnis zählt Google Analytics die Besuche und Microsoft Clarity hält Klicks und Scrollen in Sitzungsaufzeichnungen fest, damit wir sehen, welche Seiten weiterhelfen und wo es hakt. Beides wird erst geladen, wenn du zustimmst.",
         accept: "Akzeptieren",
         reject: "Ablehnen",
         settings: "Cookie-Einstellungen",

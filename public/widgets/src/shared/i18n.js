@@ -69,6 +69,13 @@ function setLocaleFrom(data, api) {
     );
 }
 
+// The locale's glyph for a body-weight unit code ("kg" | "lb" from the
+// payload), e.g. "кг" in uk; an unknown code is printed as sent.
+function weightUnit(code) {
+    const units = T.macros && T.macros.units;
+    return (units && units[code]) || code;
+}
+
 // Fill {placeholders} in a translated template string, e.g.
 // tpl(T.macros.byMealTitle, { label: "Protein" }) -> "Protein by meal".
 function tpl(s, vars) {

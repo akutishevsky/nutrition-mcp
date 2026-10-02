@@ -122,6 +122,8 @@
             /*@i18n@*/
             /*@include shared/i18n.js@*/
 
+            /*@include shared/date.js@*/
+
             /*@include shared/bridge.js@*/
 
             const RANGES = [7, 14, 30];
@@ -130,18 +132,6 @@
                 const d = new Date(date + "T00:00:00Z");
                 d.setUTCDate(d.getUTCDate() + delta);
                 return d.toISOString().slice(0, 10);
-            }
-
-            // "2026-07-11" → "11 Jul". Parsed by parts, not by Date: the string
-            // is already a local calendar day and re-reading it through a
-            // timezone is how it slips by one. Reuses
-            // T.nutritionSummary.months (identical Jan..Dec shape) rather than
-            // its own MONTHS array.
-            function shortDay(iso) {
-                const p = String(iso).split("-");
-                const m = Number(p[1]);
-                if (!m || m < 1 || m > 12) return String(iso);
-                return `${Number(p[2])} ${T.nutritionSummary.months[m - 1]}`;
             }
 
             // ---- Sample data so the file renders on its own (browser preview) ----
@@ -261,8 +251,8 @@
                     .join("");
 
                 const label = tpl(T.weightTrends.chartAriaLabel, {
-                    from: shortDay(days[0].date),
-                    to: shortDay(days[n - 1].date),
+                    from: shortDate(days[0].date),
+                    to: shortDate(days[n - 1].date),
                     latest: `${w1(weights[n - 1])} ${unit}`,
                 });
 
@@ -299,7 +289,7 @@
                     // inside a 30-day range are a one-day change, and
                     // "−1.0 kg in 30 d" claims a month-long trend that was
                     // never measured.
-                    delta = `<div class="wdelta" style="color:${color}">${tpl(T.weightTrends.sinceDate, { change: `${signed(change)} ${esc(unit)}`, date: shortDay(slice[0].date) })}</div>`;
+                    delta = `<div class="wdelta" style="color:${color}">${tpl(T.weightTrends.sinceDate, { change: `${signed(change)} ${esc(unit)}`, date: shortDate(slice[0].date) })}</div>`;
                 } else {
                     delta = `<div class="wdelta" style="color:var(--text-dim)">${esc(T.weightTrends.needTwo)}</div>`;
                 }
@@ -316,8 +306,8 @@
                 const n = slice.length;
                 // A single day is its own span — "11 Jul → 11 Jul" reads like
                 // a bug.
-                const from = shortDay(slice[0].date);
-                const to = shortDay(slice[n - 1].date);
+                const from = shortDate(slice[0].date);
+                const to = shortDate(slice[n - 1].date);
                 const span = `${plural(T.weightTrends.weighIns, n)} · ${from === to ? from : `${from} → ${to}`}`;
 
                 let right;
@@ -379,7 +369,7 @@
             function paint() {
                 const root = document.getElementById("root");
                 const data = STATE.data;
-                const unit = data.unit || "kg";
+                const unit = weightUnit(data.unit || "kg");
                 const target = data.target ?? null;
                 const all = data.days
                     .slice()
@@ -438,8 +428,12 @@
 
             initWidget({
                 name: "weight-trends-widget",
-                loading:
-                    '<div class="empty"><div class="big">⚖️</div><div>Loading your weight trends…</div></div>',
+                // A function: bridge.js calls it with the strings for the
+                // browser language, since the payload's locale isn't known yet.
+                loading: (strings) =>
+                    '<div class="empty"><div class="big">⚖️</div><div>' +
+                    esc(strings.weightTrends.loading) +
+                    "</div></div>",
                 coerce,
                 render,
                 sample: SAMPLE,

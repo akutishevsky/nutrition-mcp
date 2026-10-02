@@ -38,26 +38,14 @@ export const CHROME_IT: ChromeCopy = {
     closeMenuAriaLabel: "Chiudi il menu",
 
     menu: {
-        howSmall: "3 passaggi",
-        installSmall: "meno di un minuto",
-        toolsSmall: "36 strumenti",
-        examplesSmall: "demo live",
-        liveStatsSmall: "da quando hai aperto la pagina",
-        alternatives: "Alternative",
-        alternativesSmall: "cambio app",
-        support: "Supporto",
-        contact: "Contatti",
         github: "GitHub",
-        privacy: "Privacy",
-        terms: "Termini",
-        connectInMinute: "Connetti in un minuto",
     },
 
     footer: {
         tools: "Strumenti",
         troubleshooting: "Risoluzione dei problemi",
         alternatives: "Alternative",
-        howIBuiltThis: "Come l'ho costruito",
+        howIBuiltThis: "Come l'ho realizzato",
         demo: "Demo",
         github: "GitHub",
         contact: "Contatti",
@@ -68,7 +56,7 @@ export const CHROME_IT: ChromeCopy = {
 
     consent: {
         title: "Cookie analitici.",
-        body: "Con il tuo permesso, Google Analytics e Microsoft Clarity ci mostrano quali pagine sono utili e dove le persone si bloccano. Non si carica nulla finché non accetti.",
+        body: "Con il tuo consenso, Google Analytics conta le visite e Microsoft Clarity salva clic e scorrimento come registrazioni di sessione, così capiamo quali pagine sono utili e dove le persone si bloccano. Nessuno dei due si carica finché non accetti.",
         accept: "Accetta",
         reject: "Rifiuta",
         settings: "Impostazioni cookie",

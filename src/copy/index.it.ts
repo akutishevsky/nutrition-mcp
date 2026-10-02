@@ -1,2468 +1,843 @@
 // Italian (it) translation of the landing page copy. See src/copy/index.ts
 // for the full field-by-field documentation of this shape; this file
-// mirrors its structure exactly. Decorative widget-mockup HTML blocks
-// (hero chips/chat, the seven "try saying" slides) keep every class,
-// data attribute, inline style, SVG path and numeric/data value byte-
-// identical to the English source — only human-readable text nodes
-// (dialogue, widget chrome labels) are translated, per the localization
-// brief. Product UI element names quoted in the install steps (e.g.
-// "Customize", "Connectors", "Create app") are left in English since
-// they are literal button/menu labels in Claude's and ChatGPT's own
-// interfaces, which this pass could not verify are localized into
-// Italian; translating them risked giving incorrect instructions.
+// mirrors its structure exactly. The trusted-HTML fields (install steps and
+// notes, why.noteHtml, faq[].visibleHtml) keep every <strong>/<code>/<a> tag
+// of the English source; every other field is plain text. The demo
+// conversations are structured: `photo`, `card`, `meal.type`, `from`,
+// `link`, `cards` and the `toolNotes` keys are copied verbatim from the
+// English source, and every figure the cards draw is kept as written.
+// Product UI element names quoted in the install steps (e.g. "Customize",
+// "Connectors", "Create app") are left in English since they are literal
+// button/menu labels in Claude's and ChatGPT's own interfaces, which this
+// pass could not verify are localized into Italian; translating them risked
+// giving incorrect instructions. Thousands separators follow CLDR's Italian
+// convention — none in a four-digit figure ("2000", "1830"), a dot from
+// five digits on ("12.040") — matching what the widget cards render.
+// Terminology kept consistent with src/copy/chrome.it.ts and
+// src/copy/tools.it.ts: protein → proteine, carbs → carboidrati, fat →
+// grassi, fiber → fibre, sugar → zuccheri, caffeine → caffeina, meal →
+// pasto, goal → obiettivo, trend → andamento, timezone → fuso orario, log
+// (verb) → registrare, tools → strumenti.
 
 import type { IndexDoc } from "./index.js";
 
-const HERO_CHIPS_HTML_IT = `
-                            <span class="chip chip-1"
-                                ><i style="--c: var(--cal)"></i
-                                ><b>+340</b> kcal</span
-                            >
-                            <span class="chip chip-2"
-                                ><i style="--c: #8b5cf6"></i
-                                ><b>20 g</b> proteine</span
-                            >
-                            <span class="chip chip-3"
-                                ><i style="--c: #10b981"></i
-                                ><b>30 g</b> carboidrati</span
-                            >
-                            <span class="chip chip-4"
-                                ><i style="--c: #0ea5e9"></i
-                                ><b>500 ml</b> acqua</span
-                            >`;
-const HERO_CHAT_HTML_IT = `
-                                <div class="cw-header">
-                                    <span class="cw-avatar"
-                                        ><i class="fa-solid fa-apple-whole"></i
-                                    ></span>
-                                    <span class="cw-title">Nutrition MCP</span>
-                                    <span class="cw-status">online</span>
-                                </div>
-                                <div class="cw-body">
-                                    <div class="chat-thread">
-                                        <div class="msg msg-user">
-                                            Due uova, pane integrale tostato e un caffè per colazione
-                                        </div>
-
-                                        <div class="msg msg-ai">
-                                            <div class="wdg">
-                                                <div class="wdg-head">
-                                                    <div class="wdg-title">
-                                                        Pasto registrato
-                                                    </div>
-                                                    <div class="wdg-sub">
-                                                        Due uova, toast e caffè · colazione
-                                                    </div>
-                                                    <div
-                                                        class="wdg-meta wdg-kcal"
-                                                    >
-                                                        +340 kcal
-                                                    </div>
-                                                </div>
-                                                <div class="wdg-strip">
-                                                    <div class="wdg-srow">
-                                                        <div class="wdg-cal">
-                                                            <div
-                                                                class="wdg-gauge"
-                                                            >
-                                                                <div
-                                                                    class="wdg-ring"
-                                                                    style="
-                                                                        --c: var(
-                                                                            --cal
-                                                                        );
-                                                                        --p: 16;
-                                                                    "
-                                                                ></div>
-                                                                <div
-                                                                    class="wdg-rc"
-                                                                >
-                                                                    <span
-                                                                        class="wdg-rp"
-                                                                        style="
-                                                                            color: var(
-                                                                                --cal
-                                                                            );
-                                                                        "
-                                                                        >16%</span
-                                                                    >
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-caltxt"
-                                                            >
-                                                                <div
-                                                                    class="wdg-callab"
-                                                                >
-                                                                    Calorie di oggi
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-calline"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-calval"
-                                                                    >
-                                                                        340<span
-                                                                            class="wdg-calgoal"
-                                                                            >/
-                                                                            2.100</span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-calleft"
-                                                                    >
-                                                                        1.760
-                                                                        kcal rimanenti
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="wdg-grids">
-                                                            <div
-                                                                class="wdg-mgrid"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >Proteine</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >20<span
-                                                                                class="wdg-msub"
-                                                                                >/150</span
-                                                                            ></span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 13.3%;
-                                                                                background: var(
-                                                                                    --pro
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >Carboidrati</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >30<span
-                                                                                class="wdg-msub"
-                                                                                >/220</span
-                                                                            ></span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 13.6%;
-                                                                                background: var(
-                                                                                    --car
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >Grassi</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >15<span
-                                                                                class="wdg-msub"
-                                                                                >/70</span
-                                                                            ></span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 21.4%;
-                                                                                background: var(
-                                                                                    --fat
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-mgrid wdg-lim wdg-sec"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >Zuccheri</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >2.5</span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 5.6%;
-                                                                                background: var(
-                                                                                    --sug
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mcap"
-                                                                    >
-                                                                        limite 45 g
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >Caffeina</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >95</span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 23.8%;
-                                                                                background: var(
-                                                                                    --caf
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mcap"
-                                                                    >
-                                                                        limite 400 mg
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mtile"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtop"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-mkey"
-                                                                            >Fibre</span
-                                                                        >
-                                                                        <span
-                                                                            class="wdg-mnum"
-                                                                            >3.4</span
-                                                                        >
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mbar"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mfill"
-                                                                            style="
-                                                                                width: 11.3%;
-                                                                                background: var(
-                                                                                    --fib
-                                                                                );
-                                                                            "
-                                                                        ></div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mcap"
-                                                                    >
-                                                                        su 30 g
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-mhint"
-                                                                aria-hidden="true"
-                                                            >
-                                                                Tocca una metrica per vedere i pasti che la riguardano
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            Fatto — aggiunto alla colazione: due uova, toast e un caffè. Sono circa 340 kcal (20g proteine, 30g carboidrati, 15g grassi, 3.4g fibre), più 95mg di caffeina dal caffè.
-                                        </div>
-
-                                        <div class="msg msg-user">
-                                            Come sta andando il mio peso?
-                                        </div>
-
-                                        <div class="msg msg-ai">
-                                            <div class="wdg">
-                                                <div class="wdg-head wdg-mid">
-                                                    <div class="wdg-title">
-                                                        Peso
-                                                    </div>
-                                                    <div
-                                                        class="wdg-seg"
-                                                        aria-hidden="true"
-                                                    >
-                                                        <span
-                                                            class="wdg-seg-btn wdg-on"
-                                                            >7</span
-                                                        >
-                                                        <span
-                                                            class="wdg-seg-btn"
-                                                            >14</span
-                                                        >
-                                                        <span
-                                                            class="wdg-seg-btn"
-                                                            >30</span
-                                                        >
-                                                    </div>
-                                                </div>
-                                                <div class="wdg-wmain">
-                                                    <div class="wdg-wnow">
-                                                        <div class="wdg-wtag">
-                                                            Ultimo
-                                                        </div>
-                                                        <div class="wdg-wval">
-                                                            74.5<span
-                                                                class="wdg-wunit"
-                                                                >kg</span
-                                                            >
-                                                        </div>
-                                                        <div
-                                                            class="wdg-wdelta"
-                                                            style="
-                                                                color: var(
-                                                                    --accent
-                                                                );
-                                                            "
-                                                        >
-                                                            −0.6 kg dal 5 lug
-                                                        </div>
-                                                    </div>
-                                                    <svg
-                                                        class="wdg-wchart"
-                                                        viewBox="0 0 300 62"
-                                                        role="img"
-                                                        aria-label="Peso dal 5 lug all'11 lug, ultimo 74.5 kg"
-                                                    >
-                                                        <line
-                                                            class="wdg-goalline"
-                                                            x1="5"
-                                                            y1="50.4"
-                                                            x2="295"
-                                                            y2="50.4"
-                                                        />
-                                                        <path
-                                                            d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1 L295.0 57 L5.0 57 Z"
-                                                            fill="var(--accent)"
-                                                            opacity="0.16"
-                                                        />
-                                                        <path
-                                                            d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1"
-                                                            fill="none"
-                                                            stroke="var(--accent)"
-                                                            stroke-width="2"
-                                                            stroke-linejoin="round"
-                                                            stroke-linecap="round"
-                                                        />
-                                                        <circle
-                                                            cx="5.0"
-                                                            cy="13.6"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="53.3"
-                                                            cy="15.4"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="101.7"
-                                                            cy="18.9"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="150.0"
-                                                            cy="17.1"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="198.3"
-                                                            cy="22.4"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="246.7"
-                                                            cy="20.6"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                        <circle
-                                                            cx="295.0"
-                                                            cy="24.1"
-                                                            r="2.6"
-                                                            fill="var(--accent)"
-                                                        />
-                                                    </svg>
-                                                </div>
-                                                <div class="wdg-sec wdg-wfoot">
-                                                    <span
-                                                        >7 pesate · 5 lug → 11 lug</span
-                                                    >
-                                                    <span
-                                                        ><b>Obiettivo 73.0 kg</b> ·
-                                                        1.5 kg da perdere</span
-                                                    >
-                                                </div>
-                                            </div>
-                                            Hai perso 0.6 kg questa settimana e sei a 1.5 kg dal tuo obiettivo di 73 kg — la tua media a 7 giorni è in calo, un ottimo andamento.
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="cw-input">
-                                    <span class="cw-field"
-                                        >Scrivi a Nutrition…</span
-                                    >
-                                    <span class="cw-send"
-                                        ><i class="fa-solid fa-arrow-up"></i
-                                    ></span>
-                                </div>`;
-const SLIDE_1_HTML_IT = `
-                                            <div class="msg msg-user">
-                                                Registra una burrito bowl di pollo per pranzo
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                <div class="wdg">
-                                                    <div class="wdg-head">
-                                                        <div class="wdg-title">
-                                                            Pasto registrato
-                                                        </div>
-                                                        <div class="wdg-sub">
-                                                            Burrito bowl di pollo · pranzo
-                                                        </div>
-                                                        <div
-                                                            class="wdg-meta wdg-kcal"
-                                                        >
-                                                            +650 kcal
-                                                        </div>
-                                                    </div>
-                                                    <div class="wdg-strip">
-                                                        <div class="wdg-srow">
-                                                            <div
-                                                                class="wdg-cal"
-                                                            >
-                                                                <div
-                                                                    class="wdg-gauge"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-ring"
-                                                                        style="
-                                                                            --c: var(
-                                                                                --cal
-                                                                            );
-                                                                            --p: 47;
-                                                                        "
-                                                                    ></div>
-                                                                    <div
-                                                                        class="wdg-rc"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-rp"
-                                                                            style="
-                                                                                color: var(
-                                                                                    --cal
-                                                                                );
-                                                                            "
-                                                                            >47%</span
-                                                                        >
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-caltxt"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-callab"
-                                                                    >
-                                                                        Calorie di oggi
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-calline"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-calval"
-                                                                        >
-                                                                            990<span
-                                                                                class="wdg-calgoal"
-                                                                                >/
-                                                                                2.100</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-calleft"
-                                                                        >
-                                                                            1.110
-                                                                            kcal rimanenti
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-grids"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mgrid"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Proteine</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >62<span
-                                                                                    class="wdg-msub"
-                                                                                    >/150</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 41.3%;
-                                                                                    background: var(
-                                                                                        --pro
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Carboidrati</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >98<span
-                                                                                    class="wdg-msub"
-                                                                                    >/220</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 44.5%;
-                                                                                    background: var(
-                                                                                        --car
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Grassi</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >37<span
-                                                                                    class="wdg-msub"
-                                                                                    >/70</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 52.9%;
-                                                                                    background: var(
-                                                                                        --fat
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mgrid wdg-lim wdg-sec"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Zuccheri</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >6.5</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 14.4%;
-                                                                                    background: var(
-                                                                                        --sug
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            limite 45 g
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Caffeina</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >95</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 23.8%;
-                                                                                    background: var(
-                                                                                        --caf
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            limite 400 mg
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Fibre</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >15.4</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 51.3%;
-                                                                                    background: var(
-                                                                                        --fib
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            su 30 g
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mhint"
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    Tocca una metrica per vedere i pasti che la riguardano
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            class="wdg-wrow wdg-sec"
-                                                        >
-                                                            <span
-                                                                class="wdg-wlab"
-                                                                ><span
-                                                                    class="wdg-dot"
-                                                                    style="
-                                                                        background: var(
-                                                                            --wat
-                                                                        );
-                                                                    "
-                                                                ></span
-                                                                >Acqua</span
-                                                            >
-                                                            <div
-                                                                class="wdg-mbar"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mfill"
-                                                                    style="
-                                                                        width: 48%;
-                                                                        background: var(
-                                                                            --wat
-                                                                        );
-                                                                    "
-                                                                ></div>
-                                                            </div>
-                                                            <span
-                                                                class="wdg-wnum"
-                                                                >1.2<span
-                                                                    class="wdg-wsub"
-                                                                    >/2.5
-                                                                    L</span
-                                                                ></span
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                Fatto — aggiunta una burrito bowl di pollo al pranzo, circa 650 kcal (42g proteine, 68g carboidrati, 22g grassi) e 12g di fibre dai fagioli.
-                                            </div>`;
-const SLIDE_2_HTML_IT = `
-                                            <div
-                                                class="msg-img"
-                                                aria-hidden="true"
-                                            >
-                                                <svg
-                                                    viewBox="0 0 220 150"
-                                                    class="chat-photo"
-                                                    role="img"
-                                                    aria-label="Foto di un piatto di cena"
-                                                >
-                                                    <rect
-                                                        width="220"
-                                                        height="150"
-                                                        fill="#efe9df"
-                                                    />
-                                                    <ellipse
-                                                        cx="110"
-                                                        cy="82"
-                                                        rx="72"
-                                                        ry="52"
-                                                        fill="#fbfaf7"
-                                                    />
-                                                    <ellipse
-                                                        cx="110"
-                                                        cy="82"
-                                                        rx="72"
-                                                        ry="52"
-                                                        fill="none"
-                                                        stroke="#e6e0d3"
-                                                        stroke-width="2.5"
-                                                    />
-                                                    <ellipse
-                                                        cx="110"
-                                                        cy="82"
-                                                        rx="58"
-                                                        ry="41"
-                                                        fill="none"
-                                                        stroke="#efe9df"
-                                                        stroke-width="1.5"
-                                                    />
-                                                    <ellipse
-                                                        cx="136"
-                                                        cy="64"
-                                                        rx="28"
-                                                        ry="19"
-                                                        fill="#f3efe6"
-                                                    />
-                                                    <ellipse
-                                                        cx="136"
-                                                        cy="64"
-                                                        rx="28"
-                                                        ry="19"
-                                                        fill="none"
-                                                        stroke="#e7e1d4"
-                                                        stroke-width="1"
-                                                    />
-                                                    <g fill="#ffffff">
-                                                        <circle
-                                                            cx="126"
-                                                            cy="60"
-                                                            r="1.6"
-                                                        />
-                                                        <circle
-                                                            cx="138"
-                                                            cy="58"
-                                                            r="1.6"
-                                                        />
-                                                        <circle
-                                                            cx="146"
-                                                            cy="66"
-                                                            r="1.6"
-                                                        />
-                                                        <circle
-                                                            cx="132"
-                                                            cy="70"
-                                                            r="1.6"
-                                                        />
-                                                        <circle
-                                                            cx="142"
-                                                            cy="68"
-                                                            r="1.6"
-                                                        />
-                                                    </g>
-                                                    <g
-                                                        transform="rotate(-16 86 92)"
-                                                    >
-                                                        <rect
-                                                            x="58"
-                                                            y="80"
-                                                            width="56"
-                                                            height="26"
-                                                            rx="9"
-                                                            fill="#e0916b"
-                                                        />
-                                                        <rect
-                                                            x="64"
-                                                            y="86"
-                                                            width="44"
-                                                            height="3"
-                                                            rx="1.5"
-                                                            fill="#edb293"
-                                                        />
-                                                        <rect
-                                                            x="64"
-                                                            y="92"
-                                                            width="44"
-                                                            height="3"
-                                                            rx="1.5"
-                                                            fill="#edb293"
-                                                        />
-                                                        <rect
-                                                            x="64"
-                                                            y="98"
-                                                            width="44"
-                                                            height="3"
-                                                            rx="1.5"
-                                                            fill="#edb293"
-                                                        />
-                                                    </g>
-                                                    <g>
-                                                        <rect
-                                                            x="128"
-                                                            y="98"
-                                                            width="4"
-                                                            height="12"
-                                                            rx="2"
-                                                            fill="#9ab98a"
-                                                        />
-                                                        <circle
-                                                            cx="124"
-                                                            cy="98"
-                                                            r="10"
-                                                            fill="#5f8f4e"
-                                                        />
-                                                        <circle
-                                                            cx="136"
-                                                            cy="95"
-                                                            r="8.5"
-                                                            fill="#6fa35d"
-                                                        />
-                                                        <circle
-                                                            cx="133"
-                                                            cy="105"
-                                                            r="7.5"
-                                                            fill="#537f44"
-                                                        />
-                                                        <circle
-                                                            cx="121"
-                                                            cy="106"
-                                                            r="6.5"
-                                                            fill="#6a9a58"
-                                                        />
-                                                    </g>
-                                                </svg>
-                                            </div>
-                                            <div class="msg msg-user">
-                                                Ecco la mia cena — cosa contiene?
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                Sembra salmone alla griglia con riso e broccoli — registrato a cena, circa 540 kcal (38g proteine, 45g carboidrati, 20g grassi).
-                                            </div>`;
-const SLIDE_3_HTML_IT = `
-                                            <div
-                                                class="msg-img"
-                                                aria-hidden="true"
-                                            >
-                                                <svg
-                                                    viewBox="0 0 220 150"
-                                                    class="chat-photo"
-                                                    role="img"
-                                                    aria-label="Foto di un codice a barre di un prodotto"
-                                                >
-                                                    <rect
-                                                        width="220"
-                                                        height="150"
-                                                        fill="#efe9df"
-                                                    />
-                                                    <rect
-                                                        x="40"
-                                                        y="32"
-                                                        width="140"
-                                                        height="86"
-                                                        rx="12"
-                                                        fill="#ffffff"
-                                                        stroke="#e6e0d3"
-                                                        stroke-width="2"
-                                                    />
-                                                    <g>
-                                                        <rect
-                                                            x="53"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="58.6"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="62.2"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="66.8"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="70.39999999999999"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="73.99999999999999"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="79.59999999999998"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="84.19999999999997"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="87.79999999999997"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="92.39999999999996"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="95.99999999999996"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="101.59999999999995"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="105.19999999999995"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="108.79999999999994"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="113.39999999999993"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="117.99999999999993"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="121.59999999999992"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="127.19999999999992"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="130.79999999999993"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="135.39999999999992"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="138.99999999999991"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="142.5999999999999"
-                                                            y="50"
-                                                            width="2"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="147.1999999999999"
-                                                            y="50"
-                                                            width="3"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                        <rect
-                                                            x="152.7999999999999"
-                                                            y="50"
-                                                            width="1"
-                                                            height="44"
-                                                            fill="#2b2b2b"
-                                                        />
-                                                    </g>
-                                                    <text
-                                                        x="110"
-                                                        y="108"
-                                                        text-anchor="middle"
-                                                        font-family="ui-monospace, monospace"
-                                                        font-size="10"
-                                                        letter-spacing="2"
-                                                        fill="#9a9a9f"
-                                                    >
-                                                        0 12345 67890
-                                                    </text>
-                                                </svg>
-                                            </div>
-                                            <div class="msg msg-user">
-                                                Registra questo
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai step-ask">
-                                                Trovato — yogurt greco Chobani, 1 tazza: 120 kcal, 15g proteine. A quale pasto lo aggiungo?
-                                                <div class="meal-pick">
-                                                    <span class="meal-chip"
-                                                        >Colazione</span
-                                                    >
-                                                    <span class="meal-chip"
-                                                        >Pranzo</span
-                                                    >
-                                                    <span class="meal-chip"
-                                                        >Cena</span
-                                                    >
-                                                    <span
-                                                        class="meal-chip meal-pick-target"
-                                                        >Spuntino</span
-                                                    >
-                                                </div>
-                                            </div>
-                                            <div class="msg msg-ai step-done">
-                                                <div class="wdg">
-                                                    <div class="wdg-head">
-                                                        <div class="wdg-title">
-                                                            Pasto registrato
-                                                        </div>
-                                                        <div class="wdg-sub">
-                                                            Yogurt greco Chobani, 1 tazza · spuntino
-                                                        </div>
-                                                        <div
-                                                            class="wdg-meta wdg-kcal"
-                                                        >
-                                                            +120 kcal
-                                                        </div>
-                                                    </div>
-                                                    <div class="wdg-strip">
-                                                        <div class="wdg-srow">
-                                                            <div
-                                                                class="wdg-cal"
-                                                            >
-                                                                <div
-                                                                    class="wdg-gauge"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-ring"
-                                                                        style="
-                                                                            --c: var(
-                                                                                --cal
-                                                                            );
-                                                                            --p: 73;
-                                                                        "
-                                                                    ></div>
-                                                                    <div
-                                                                        class="wdg-rc"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-rp"
-                                                                            style="
-                                                                                color: var(
-                                                                                    --cal
-                                                                                );
-                                                                            "
-                                                                            >73%</span
-                                                                        >
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-caltxt"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-callab"
-                                                                    >
-                                                                        Calorie di oggi
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-calline"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-calval"
-                                                                        >
-                                                                            1.540<span
-                                                                                class="wdg-calgoal"
-                                                                                >/
-                                                                                2.100</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-calleft"
-                                                                        >
-                                                                            560
-                                                                            kcal rimanenti
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-grids"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mgrid"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Proteine</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >98<span
-                                                                                    class="wdg-msub"
-                                                                                    >/150</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 65.3%;
-                                                                                    background: var(
-                                                                                        --pro
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Carboidrati</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >150<span
-                                                                                    class="wdg-msub"
-                                                                                    >/220</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 68.2%;
-                                                                                    background: var(
-                                                                                        --car
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Grassi</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >52<span
-                                                                                    class="wdg-msub"
-                                                                                    >/70</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 74.3%;
-                                                                                    background: var(
-                                                                                        --fat
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mgrid wdg-lim wdg-sec"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Zuccheri</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >28.4</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 63.1%;
-                                                                                    background: var(
-                                                                                        --sug
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            limite 45 g
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Caffeina</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >95</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 23.8%;
-                                                                                    background: var(
-                                                                                        --caf
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            limite 400 mg
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Fibre</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >19.2</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 64%;
-                                                                                    background: var(
-                                                                                        --fib
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            su 30 g
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mhint"
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    Tocca una metrica per vedere i pasti che la riguardano
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                Registrato tra gli spuntini — 120 kcal, 15g proteine, 9g zuccheri.
-                                            </div>`;
-const SLIDE_4_HTML_IT = `
-                                            <div class="msg msg-user">
-                                                Imposta il mio fuso orario su New York
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                Fatto — i tuoi giorni ora cambiano a mezzanotte, ora della East Coast USA, così i totali di oggi restano corretti ovunque tu sia.
-                                            </div>`;
-const SLIDE_5_HTML_IT = `
-                                            <div class="msg msg-user">
-                                                Come sto andando con le proteine oggi?
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                Sei a 118g del tuo obiettivo di 150g — te ne mancano 32g. Una tazza di yogurt greco o un petto di pollo ti basterebbero per arrivarci.
-                                            </div>`;
-const SLIDE_6_HTML_IT = `
-                                            <div class="msg msg-user">
-                                                Mostrami i miei andamenti di questa settimana
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                <div class="wdg">
-                                                    <div
-                                                        class="wdg-head wdg-mid"
-                                                    >
-                                                        <div class="wdg-title">
-                                                            Andamenti
-                                                        </div>
-                                                        <div
-                                                            class="wdg-seg"
-                                                            aria-hidden="true"
-                                                        >
-                                                            <span
-                                                                class="wdg-seg-btn wdg-on"
-                                                                >7</span
-                                                            >
-                                                            <span
-                                                                class="wdg-seg-btn"
-                                                                >14</span
-                                                            >
-                                                            <span
-                                                                class="wdg-seg-btn"
-                                                                >30</span
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                    <div class="wdg-chart">
-                                                        <div class="wdg-chead">
-                                                            <span
-                                                                class="wdg-ctitle"
-                                                                >Calorie al giorno</span
-                                                            >
-                                                            <span
-                                                                class="wdg-cmeta"
-                                                                >7/7 giorni registrati</span
-                                                            >
-                                                        </div>
-                                                        <svg
-                                                            viewBox="0 0 480 54"
-                                                            role="img"
-                                                            aria-label="Calorie al giorno negli ultimi 7 giorni"
-                                                        >
-                                                            <line
-                                                                class="wdg-axis"
-                                                                x1="8"
-                                                                y1="50"
-                                                                x2="472"
-                                                                y2="50"
-                                                            />
-                                                            <line
-                                                                class="wdg-goalline"
-                                                                x1="8"
-                                                                y1="11.7"
-                                                                x2="472"
-                                                                y2="11.7"
-                                                            />
-                                                            <path
-                                                                d="M8.0 50 L8.0 13.2 L85.3 14.7 L162.7 11.9 L240.0 15.7 L317.3 13.4 L394.7 14.4 L472.0 14.2 L472.0 50 Z"
-                                                                fill="var(--cal)"
-                                                                opacity="0.16"
-                                                            />
-                                                            <path
-                                                                d="M8.0 13.2 L85.3 14.7 L162.7 11.9 L240.0 15.7 L317.3 13.4 L394.7 14.4 L472.0 14.2"
-                                                                fill="none"
-                                                                stroke="var(--cal)"
-                                                                stroke-width="2"
-                                                                stroke-linejoin="round"
-                                                                stroke-linecap="round"
-                                                            />
-                                                            <circle
-                                                                cx="8.0"
-                                                                cy="13.2"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="85.3"
-                                                                cy="14.7"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="162.7"
-                                                                cy="11.9"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="240.0"
-                                                                cy="15.7"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="317.3"
-                                                                cy="13.4"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="394.7"
-                                                                cy="14.4"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                            <circle
-                                                                cx="472.0"
-                                                                cy="14.2"
-                                                                r="2.2"
-                                                                fill="var(--cal)"
-                                                            />
-                                                        </svg>
-                                                        <div class="wdg-tdates">
-                                                            <span>07-05</span
-                                                            ><span>07-11</span>
-                                                        </div>
-                                                    </div>
-                                                    <div
-                                                        class="wdg-strip wdg-sec"
-                                                    >
-                                                        <div class="wdg-srow">
-                                                            <div
-                                                                class="wdg-cal"
-                                                            >
-                                                                <div
-                                                                    class="wdg-gauge"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-ring"
-                                                                        style="
-                                                                            --c: var(
-                                                                                --cal
-                                                                            );
-                                                                            --p: 94;
-                                                                        "
-                                                                    ></div>
-                                                                    <div
-                                                                        class="wdg-rc"
-                                                                    >
-                                                                        <span
-                                                                            class="wdg-rp"
-                                                                            style="
-                                                                                color: var(
-                                                                                    --cal
-                                                                                );
-                                                                            "
-                                                                            >94%</span
-                                                                        >
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-caltxt"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-callab"
-                                                                    >
-                                                                        Media 7 giorni · tutti i giorni
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-calline"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-calval"
-                                                                        >
-                                                                            1.980<span
-                                                                                class="wdg-calgoal"
-                                                                                >/
-                                                                                2.100</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-calleft"
-                                                                        >
-                                                                            120
-                                                                            kcal in meno
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div
-                                                                class="wdg-grids"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mgrid"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Proteine</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >148<span
-                                                                                    class="wdg-msub"
-                                                                                    >/150</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 98.7%;
-                                                                                    background: var(
-                                                                                        --pro
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Carboidrati</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >205<span
-                                                                                    class="wdg-msub"
-                                                                                    >/220</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 93.2%;
-                                                                                    background: var(
-                                                                                        --car
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Grassi</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >66<span
-                                                                                    class="wdg-msub"
-                                                                                    >/70</span
-                                                                                ></span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 94.3%;
-                                                                                    background: var(
-                                                                                        --fat
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div
-                                                                    class="wdg-mgrid wdg-lim wdg-sec"
-                                                                >
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Zuccheri</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >38.2</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 84.9%;
-                                                                                    background: var(
-                                                                                        --sug
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            limite 45 g
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Caffeina</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >180</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 45%;
-                                                                                    background: var(
-                                                                                        --caf
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            limite 400 mg
-                                                                        </div>
-                                                                    </div>
-                                                                    <div
-                                                                        class="wdg-mtile"
-                                                                    >
-                                                                        <div
-                                                                            class="wdg-mtop"
-                                                                        >
-                                                                            <span
-                                                                                class="wdg-mkey"
-                                                                                >Fibre</span
-                                                                            >
-                                                                            <span
-                                                                                class="wdg-mnum"
-                                                                                >26.8</span
-                                                                            >
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mbar"
-                                                                        >
-                                                                            <div
-                                                                                class="wdg-mfill"
-                                                                                style="
-                                                                                    width: 89.3%;
-                                                                                    background: var(
-                                                                                        --fib
-                                                                                    );
-                                                                                "
-                                                                            ></div>
-                                                                        </div>
-                                                                        <div
-                                                                            class="wdg-mcap"
-                                                                        >
-                                                                            su 30 g
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            class="wdg-wrow wdg-sec"
-                                                        >
-                                                            <span
-                                                                class="wdg-wlab"
-                                                                ><span
-                                                                    class="wdg-dot"
-                                                                    style="
-                                                                        background: var(
-                                                                            --wat
-                                                                        );
-                                                                    "
-                                                                ></span
-                                                                >Acqua</span
-                                                            >
-                                                            <div
-                                                                class="wdg-mbar"
-                                                            >
-                                                                <div
-                                                                    class="wdg-mfill"
-                                                                    style="
-                                                                        width: 84%;
-                                                                        background: var(
-                                                                            --wat
-                                                                        );
-                                                                    "
-                                                                ></div>
-                                                            </div>
-                                                            <span
-                                                                class="wdg-wnum"
-                                                                >2.1<span
-                                                                    class="wdg-wsub"
-                                                                    >/2.5
-                                                                    L</span
-                                                                ></span
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                Stai facendo una media di 1.980 kcal al giorno — 120 sotto l'obiettivo, con zuccheri e caffeina comodamente entro i limiti. Le fibre sono a una media di 26.8 g, appena sotto il tuo obiettivo di 30 g.
-                                            </div>`;
-const SLIDE_7_HTML_IT = `
-                                            <div class="msg msg-user">
-                                                Registra il mio peso, 74.5 kg
-                                            </div>
-                                            <div
-                                                class="typing"
-                                                aria-hidden="true"
-                                            >
-                                                <span></span><span></span
-                                                ><span></span>
-                                            </div>
-                                            <div class="msg msg-ai">
-                                                <div class="wdg">
-                                                    <div
-                                                        class="wdg-head wdg-mid"
-                                                    >
-                                                        <div class="wdg-title">
-                                                            Peso
-                                                        </div>
-                                                        <div
-                                                            class="wdg-seg"
-                                                            aria-hidden="true"
-                                                        >
-                                                            <span
-                                                                class="wdg-seg-btn wdg-on"
-                                                                >7</span
-                                                            >
-                                                            <span
-                                                                class="wdg-seg-btn"
-                                                                >14</span
-                                                            >
-                                                            <span
-                                                                class="wdg-seg-btn"
-                                                                >30</span
-                                                            >
-                                                        </div>
-                                                    </div>
-                                                    <div class="wdg-wmain">
-                                                        <div class="wdg-wnow">
-                                                            <div
-                                                                class="wdg-wtag"
-                                                            >
-                                                                Ultimo
-                                                            </div>
-                                                            <div
-                                                                class="wdg-wval"
-                                                            >
-                                                                74.5<span
-                                                                    class="wdg-wunit"
-                                                                    >kg</span
-                                                                >
-                                                            </div>
-                                                            <div
-                                                                class="wdg-wdelta"
-                                                                style="
-                                                                    color: var(
-                                                                        --accent
-                                                                    );
-                                                                "
-                                                            >
-                                                                −0.6 kg dal 5 lug
-                                                            </div>
-                                                        </div>
-                                                        <svg
-                                                            class="wdg-wchart"
-                                                            viewBox="0 0 300 62"
-                                                            role="img"
-                                                            aria-label="Peso dal 5 lug all'11 lug, ultimo 74.5 kg"
-                                                        >
-                                                            <line
-                                                                class="wdg-goalline"
-                                                                x1="5"
-                                                                y1="50.4"
-                                                                x2="295"
-                                                                y2="50.4"
-                                                            />
-                                                            <path
-                                                                d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1 L295.0 57 L5.0 57 Z"
-                                                                fill="var(--accent)"
-                                                                opacity="0.16"
-                                                            />
-                                                            <path
-                                                                d="M5.0 13.6 L53.3 15.4 L101.7 18.9 L150.0 17.1 L198.3 22.4 L246.7 20.6 L295.0 24.1"
-                                                                fill="none"
-                                                                stroke="var(--accent)"
-                                                                stroke-width="2"
-                                                                stroke-linejoin="round"
-                                                                stroke-linecap="round"
-                                                            />
-                                                            <circle
-                                                                cx="5.0"
-                                                                cy="13.6"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="53.3"
-                                                                cy="15.4"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="101.7"
-                                                                cy="18.9"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="150.0"
-                                                                cy="17.1"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="198.3"
-                                                                cy="22.4"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="246.7"
-                                                                cy="20.6"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                            <circle
-                                                                cx="295.0"
-                                                                cy="24.1"
-                                                                r="2.6"
-                                                                fill="var(--accent)"
-                                                            />
-                                                        </svg>
-                                                    </div>
-                                                    <div
-                                                        class="wdg-sec wdg-wfoot"
-                                                    >
-                                                        <span
-                                                            >7 pesate · 5 lug → 11 lug</span
-                                                        >
-                                                        <span
-                                                            ><b
-                                                                >Obiettivo 73.0 kg</b
-                                                            >
-                                                            · 1.5 kg da perdere</span
-                                                        >
-                                                    </div>
-                                                </div>
-                                                Registrato — stai andando verso il tuo obiettivo.
-                                            </div>`;
-
 export const INDEX_IT: IndexDoc = {
-    title: "Nutrition MCP — Tracker di pasti e macro con l'IA per Claude e ChatGPT",
+    title: "Nutrition MCP — Contacalorie e macro per Claude e ChatGPT",
     metaDescription:
-        "Registra pasti, macro, peso e storico alimentare parlando con Claude o ChatGPT. Server MCP gratuito per la registrazione dei pasti con l'IA, la scansione di codici a barre, il conteggio delle calorie, il monitoraggio del peso e della dieta.",
+        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con codici a barre, peso ed esportazione completa dei dati.",
     ogDescription:
-        "Registra pasti, macro, peso e storico alimentare parlando con Claude o ChatGPT. Server MCP gratuito per la registrazione dei pasti con l'IA, la scansione di codici a barre e il monitoraggio del peso.",
+        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con codici a barre, peso ed esportazione completa dei dati.",
     keywords:
-        "tracker nutrizionale, registro pasti, server MCP, Claude AI, ChatGPT, conta calorie, tracker macro, scanner codice a barre, registrazione pasti, diario alimentare, tracker peso, registro peso, nutrizione IA, Model Context Protocol",
-
-    chatChrome: {
-        brand: "Nutrition MCP",
-        status: "online",
-        inputPlaceholder: "Scrivi a Nutrition…",
-    },
+        "tracker nutrizionale, registro pasti, server MCP, Claude AI, ChatGPT, conta calorie, contacalorie AI, app calorie, tracker macro, scanner codice a barre, registrazione pasti, diario alimentare, tracker peso, registro peso, nutrizione IA, Model Context Protocol",
 
     hero: {
-        eyebrow: "Gratuito · Open source · OAuth 2.0",
-        titleBeforeEm: "Traccia la tua alimentazione ",
+        titleBeforeEm: "Tieni traccia di ciò che mangi ",
         titleEm: "parlando",
         titleAfterEm: " con la tua IA.",
-        lead: "Collega Claude o ChatGPT, poi dì semplicemente cosa hai mangiato. Calorie e macro, registrate automaticamente.",
+        lead: "Collega Claude o ChatGPT, poi di' semplicemente cosa hai mangiato. Calorie e macro si registrano da sole.",
         ctaPrimary: "Installazione rapida",
         ctaSecondary: "Sostienici",
-        chipsHtml: HERO_CHIPS_HTML_IT,
-        chatHtml: HERO_CHAT_HTML_IT,
+        moreExamples: "Altri esempi",
+        chat: {
+            photoAlt:
+                "Foto: una smoothie bowl con banana, frutti di bosco e granola sopra, e accanto un americano",
+            pauseLabel: "Metti in pausa la demo",
+            replayLabel: "Riavvia la demo",
+            exchanges: [
+                {
+                    photo: true,
+                    userText: "colazione + americano",
+                    aiText: "Una smoothie bowl, fatta in casa a quanto pare. L'hai già mangiata in due versioni: con granola e miele, oppure solo con la frutta. Questa qual è?",
+                },
+                {
+                    userText: "granola e miele, un cucchiaio bello pieno",
+                    aiText: "Ok. E l'americano era singolo o doppio? Con un po' di latte?",
+                },
+                {
+                    userText: "doppio, un goccio di latte d'avena",
+                    aiText: "Quindi: la bowl con una manciata di granola e 1 cucchiaio di miele, e un americano doppio con un goccio di latte d'avena. Circa 480 kcal e 21 g di proteine. Lo registro?",
+                },
+                {
+                    userText: "sì",
+                    aiText: "Colazione registrata: 480 kcal, 21 g di proteine e 126 mg di caffeina. Sei già a 51 g di zuccheri sui 60 g del tuo limite.",
+                    card: "meal-logged",
+                    meal: {
+                        description:
+                            "Smoothie bowl (1 scodella: yogurt greco, banana, frutti di bosco) con granola (1 manciata) e miele (1 cucchiaio); americano doppio con un goccio di latte d'avena",
+                        type: "breakfast",
+                    },
+                },
+                {
+                    userText:
+                        "pranzo: gli avanzi del saltato al wok di ieri sera, stessa porzione. e una bottiglietta d'acqua da 500 ml",
+                    aiText: "Pranzo registrato, come ieri sera: 620 kcal e 54 g di proteine, più 500 ml d'acqua.",
+                    meal: {
+                        description:
+                            "Avanzi di saltato al wok (1 porzione, come ieri sera)",
+                        type: "lunch",
+                    },
+                },
+                {
+                    userText:
+                        "spuntino: ho rubato 6 patatine fritte a mio figlio. non giudicarmi",
+                    aiText: "Nessun giudizio. Circa 50 kcal, le ho registrate come spuntino.",
+                    meal: {
+                        description:
+                            "Patatine fritte (6, dal piatto di mio figlio)",
+                        type: "snack",
+                    },
+                },
+                {
+                    userText: "cosa mi resta per cena?",
+                    aiText: "Ti restano 850 kcal e 84 g di proteine. Con gli zuccheri sei a 59 g sui 60 g del tuo limite.",
+                    card: "nutrition-summary",
+                },
+                {
+                    userText: "e il peso come va?",
+                    aiText: "Hai perso 1,4 kg dall'11 feb, da 80,2 a 78,8 kg. Mancano 3,8 kg al tuo obiettivo di 75 kg.",
+                    card: "weight-trends",
+                },
+            ],
+        },
     },
 
     how: {
-        eyebrow: "Come funziona",
         title: "Tre passaggi. Nessuna app da imparare.",
         steps: [
             {
-                title: "Connetti una volta",
-                body: "Funziona con qualsiasi client IA che supporti i server MCP remoti — Claude, ChatGPT e altri. Nessuna installazione, nessuna chiave API.",
+                title: "Collega una volta sola",
+                body: "Funziona con qualsiasi client IA che supporti i server MCP remoti: Claude, ChatGPT e altri. Niente da installare, nessuna chiave API.",
             },
             {
-                title: "Dì semplicemente cosa hai mangiato",
-                body: "Descrivilo con parole tue — oppure invia una foto del tuo pasto, uno screenshot da un'app di consegna cibo o un codice a barre (il prodotto viene cercato online). Macro registrate automaticamente.",
+                title: "Di' semplicemente cosa hai mangiato",
+                body: "Descrivilo a parole tue, oppure invia una foto del piatto, uno screenshot di un'app di consegne a domicilio o un codice a barre (il prodotto viene cercato online). Le macro si registrano da sole.",
             },
             {
-                title: "Traccia e rivedi",
-                body: "Chiedi riepiloghi giornalieri, andamenti settimanali, progressi verso gli obiettivi, oppure esporta tutto ciò che hai registrato in file CSV — completamente gratis.",
+                title: "Monitora e rivedi",
+                body: "Chiedi riepiloghi giornalieri, andamenti settimanali, progressi verso gli obiettivi, oppure esporta tutto ciò che hai registrato in file CSV. Tutto gratis.",
             },
         ],
+        counter: "{n} / 3",
     },
 
     install: {
-        eyebrow: "Installazione rapida",
-        title: "Connettiti in meno di un minuto",
-        sub: "Funziona con qualsiasi client MCP che supporti OAuth 2.0 con PKCE. Al primo collegamento crei un account con Google oppure con email e password; accedi allo stesso modo per ritrovare i tuoi dati.",
+        title: "Collegalo in meno di un minuto",
+        sub: "Funziona con qualsiasi client MCP che supporti OAuth 2.0 con PKCE. Al primo collegamento crei un account con Google oppure con email e password; per ritrovare i tuoi dati, accedi sempre allo stesso modo.",
+        copyAriaLabel: "Copia l'URL del server",
+        tabsLabel: "Scegli il tuo client IA",
         claude: {
             cta: "Aggiungi a Claude",
             steps: [
                 "Nella pagina della directory clicca su <strong>Connect</strong>, poi continua con Google oppure accedi con email e password.",
                 "Fatto. Funziona subito e compare automaticamente anche nelle tue app iOS e Android.",
             ],
-            note: "Funziona con ogni piano Claude, incluso quello gratuito. Per aggiungerlo a mano, usa Customize → Connectors → Add custom connector con https://nutrition-mcp.com/mcp.",
+            note: "Funziona con tutti i piani Claude, anche quello gratuito. Se preferisci aggiungerlo a mano, vai su Customize → Connectors → Add custom connector e inserisci https://nutrition-mcp.com/mcp.",
         },
         chatgpt: {
             steps: [
                 "Apri <strong>ChatGPT sul web</strong> → <strong>Settings</strong> → <strong>Apps</strong>.",
                 "Clicca su <strong>Create app</strong> in fondo al popup. Se non lo vedi, attiva <strong>Developer mode</strong> in <strong>Advanced settings</strong>.",
                 "Dagli un nome, ad esempio <strong>Nutrition</strong>.",
-                'Alla voce <strong>Connection</strong>, incolla <span class="copy-url"><code>https://nutrition-mcp.com/mcp</code><button class="copy-mini" type="button" data-copy="https://nutrition-mcp.com/mcp" aria-label="Copia l\'URL del server"><i class="fa-solid fa-copy"></i></button></span>.',
-                "Alla voce <strong>Authentication</strong>, scegli <strong>OAuth</strong> — lascia tutto il resto invariato.",
-                'Seleziona <strong>"I understand and want to continue"</strong>.',
+                "Alla voce <strong>Connection</strong>, incolla <code>https://nutrition-mcp.com/mcp</code>.",
+                "Alla voce <strong>Authentication</strong>, scegli <strong>OAuth</strong> e lascia tutto il resto com'è.",
+                'Spunta <strong>"I understand and want to continue"</strong>.',
                 "Clicca su <strong>Create</strong>.",
-                "Clicca su <strong>Sign in with Nutrition</strong> — si apre la pagina di accesso; continua con Google oppure accedi con email e password.",
+                "Clicca su <strong>Sign in with Nutrition</strong>: si apre la pagina di accesso, dove puoi continuare con Google oppure accedere con email e password.",
                 "Fatto. Funziona subito e compare automaticamente anche nelle tue app iOS e Android.",
             ],
         },
         other: {
-            note: "Aggiungi la configurazione qui sopra al tuo client (Cursor, VS Code, Claude Code e altri). Windsurf usa <code>serverUrl</code> invece di <code>url</code>. In Claude Code, esegui <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Il tuo client gestisce automaticamente l'accesso OAuth.",
+            note: "Aggiungi la configurazione qui sopra al tuo client (Cursor, VS Code, Claude Code e altri). Windsurf usa <code>serverUrl</code> invece di <code>url</code>. In Claude Code, esegui <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code>. Il tuo client gestisce l'accesso OAuth in automatico.",
         },
         otherTabLabel: "Altri client",
     },
 
     onboarding: {
-        eyebrow: "Onboarding",
-        title: "Configura una volta sola — o inizia subito a parlare",
-        sub: "È del tutto facoltativo — Nutrition MCP funziona non appena ti connetti. Se vuoi, questi tre rapidi passaggi lo rendono più preciso, ma puoi anche passare direttamente alla registrazione.",
+        title: "Configura una volta sola, o inizia subito a parlare",
+        sub: "Non è obbligatorio: Nutrition MCP funziona appena lo colleghi. Se vuoi, questi tre rapidi passaggi lo rendono più preciso, ma puoi anche passare subito alla registrazione.",
+        justSay: "Basta dire ",
         steps: [
-            '<strong>Imposta il tuo fuso orario</strong> — così i giorni cambiano alla tua mezzanotte locale e i totali di oggi restano corretti ovunque tu sia. <span class="step-say">Dì semplicemente <q>Imposta il mio fuso orario su New York</q>.</span>',
-            '<strong>Imposta i tuoi obiettivi</strong> — target giornalieri di calorie, macro e acqua, oltre a un peso obiettivo facoltativo e alla tua unità di peso preferita (kg o lb), per monitorare i tuoi progressi. <span class="step-say">Dì semplicemente <q>Imposta il mio obiettivo giornaliero a 2.000 calorie e 150g di proteine</q>.</span>',
-            '<strong>Imposta la tua lingua</strong> — la lingua in cui vengono mostrati i widget in chat (dashboard, grafici), non ciò che l\'IA ti scrive. <span class="step-say">Dì semplicemente <q>Mostra i miei widget in tedesco</q>.</span>',
-            '<strong>Inizia a registrare</strong> — dì semplicemente cosa hai mangiato, invia una foto o scansiona un codice a barre. Tutto qui. <span class="step-say">Dì semplicemente <q>Ho mangiato porridge con frutti di bosco a colazione</q>.</span>',
+            {
+                title: "Imposta il tuo fuso orario",
+                body: "così il giorno cambia alla tua mezzanotte locale e i totali di oggi restano corretti ovunque tu sia.",
+                say: "Imposta il mio fuso orario su New York",
+            },
+            {
+                title: "Imposta i tuoi obiettivi",
+                body: "obiettivi giornalieri di calorie, macro e acqua, più un peso obiettivo facoltativo e l'unità di peso che preferisci (kg o lb), per seguire i tuoi progressi.",
+                say: "Imposta il mio obiettivo giornaliero a 2000 calorie e 150 g di proteine",
+            },
+            {
+                title: "Imposta la tua lingua",
+                body: "la lingua dei widget in chat (dashboard, grafici), non quella in cui ti risponde l'IA.",
+                say: "Mostra i miei widget in tedesco",
+            },
+            {
+                title: "Inizia a registrare",
+                body: "basta dire cosa hai mangiato, inviare una foto o scansionare un codice a barre. Tutto qui.",
+                say: "A colazione ho mangiato porridge con frutti di bosco",
+            },
         ],
-        note: "Tutto questo è facoltativo. Puoi farlo ora, più tardi o mai — inizia semplicemente a registrare e imposta queste opzioni quando vuoi.",
+        note: "È tutto facoltativo. Puoi farlo ora, più tardi o mai: inizia pure a registrare e imposta queste opzioni quando vuoi.",
         toolsCta: {
-            heading: "Curioso di scoprire cosa può fare davvero?",
-            body: "Sfoglia tutti i 36 strumenti — registrazione, codici a barre, acqua, peso, obiettivi e andamenti — con una descrizione e un esempio di richiesta per ciascuno.",
+            heading: "Vuoi sapere cosa sa fare davvero?",
+            body: "Sfoglia tutti i 36 strumenti (registrazione, codici a barre, acqua, peso, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
             arrow: "Esplora gli strumenti",
         },
     },
 
-    try: {
-        eyebrow: "Prova a dire",
-        title: "Parlaci e basta.",
-        sub: "Alcune delle cose che puoi fare — semplicemente parlando.",
+    examples: {
+        title: "Ti basta parlare.",
+        sub: "Alcune delle cose che puoi fare, semplicemente parlando.",
         prevLabel: "Esempio precedente",
         nextLabel: "Esempio successivo",
-        exampleLabel: "Esempio",
+        pickerLabel: "Scegli un esempio",
+        carouselLabel: "Esempi",
+        carouselRoleDescription: "carosello",
+        threadLabel: "Conversazione",
+        moreToolsLabel: "Usa anche",
+        toolLinkLabel:
+            "{tool} nella pagina degli strumenti (si apre in una nuova scheda)",
+        photoMealAlt:
+            "Foto: una scodella di borscht con un cucchiaio di panna acida e aneto, e accanto una fetta di pane di segale",
+        photoPackageAlt:
+            "Foto: il codice a barre su un vasetto di yogurt greco bianco, numero 2001234567893",
         slides: [
-            { html: SLIDE_1_HTML_IT },
-            { html: SLIDE_2_HTML_IT },
-            { html: SLIDE_3_HTML_IT },
-            { html: SLIDE_4_HTML_IT },
-            { html: SLIDE_5_HTML_IT },
-            { html: SLIDE_6_HTML_IT },
-            { html: SLIDE_7_HTML_IT },
+            {
+                id: "log-meal",
+                title: "Registra a parole tue",
+                description:
+                    "Dillo come lo racconteresti a un amico. Se manca la porzione o non è chiaro di quale pasto si tratta, te lo chiede prima di stimare. Fibre e zuccheri finiscono in ogni voce, la caffeina in tutto ciò che ne contiene, e “verso le 7” diventa le 07:00 nel tuo fuso orario.",
+                toolNotes: {
+                    log_meal:
+                        "Salva la colazione con macro, fibre, zuccheri e la caffeina del caffè",
+                    log_water:
+                        "Aggiunge i 500 ml delle 07:00 al totale d'acqua di oggi",
+                    get_current_time:
+                        "Ricava la data di oggi perché “verso le 7” diventi le 07:00",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "porridge con mirtilli e un caffè a colazione",
+                    },
+                    {
+                        from: "ai",
+                        text: "Quanto era grande la scodella, e il porridge l'hai fatto con latte o con acqua? Hai messo qualcosa nel caffè?",
+                    },
+                    {
+                        from: "user",
+                        text: "scodella normale, col latte. caffè amaro",
+                    },
+                    {
+                        from: "ai",
+                        text: "Colazione registrata: circa 320 kcal, 11 g di proteine e 6 g di fibre. Con il caffè sei a 95 mg sui 400 mg del tuo limite di caffeina.",
+                    },
+                    {
+                        from: "user",
+                        text: "ah, e verso le 7 ho bevuto tipo mezzo litro d'acqua, prima di correre",
+                    },
+                    {
+                        from: "ai",
+                        text: "Aggiunti 500 ml d'acqua alle 07:00 di stamattina.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: [
+                    "Porridge con latte e mirtilli (1 scodella) e caffè amaro (1 tazza)",
+                ],
+            },
+            {
+                id: "photo-meal",
+                title: "Fotografa il piatto",
+                description:
+                    "Una foto è l'inizio di una conversazione, non una stima alla cieca. Ti chiede se il pasto era fatto in casa o al ristorante, cerca nelle tue registrazioni passate ciò che la foto non mostra, ti chiede quanto ne hai mangiato con misure semplici e registra solo dopo che hai approvato il riepilogo.",
+                toolNotes: {
+                    search_meals:
+                        "Trova il borscht che hai già preso da Tsybulya e cosa conteneva",
+                    log_meal:
+                        "Lo registra col nome del ristorante, dopo il tuo sì",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        photo: "meal",
+                        text: "pranzo",
+                    },
+                    {
+                        from: "ai",
+                        text: "Sembra un borscht con panna acida e una fetta di pane di segale. Fatto in casa o al ristorante? Se al ristorante, quale?",
+                    },
+                    {
+                        from: "user",
+                        text: "Tsybulya, a Podil, Kiev",
+                    },
+                    {
+                        from: "ai",
+                        text: "Hai già registrato il borscht di Tsybulya due volte, sempre di manzo con panna acida e una fetta di pane di segale, circa 520 kcal. Anche oggi lo stesso? E hai finito la scodella e il pane?",
+                    },
+                    {
+                        from: "user",
+                        text: "lo stesso, finito tutto, anche il pane",
+                    },
+                    {
+                        from: "ai",
+                        text: "Quindi: borscht di manzo con panna acida (1 scodella, finita) e pane di segale (1 fetta) da Tsybulya, Podil, Kiev. Come l'ultima volta: circa 520 kcal e 24 g di proteine, valori stimati e non dati ufficiali. Lo registro?",
+                    },
+                    {
+                        from: "user",
+                        text: "sì",
+                    },
+                    {
+                        from: "ai",
+                        text: "Registrato. Sono 520 delle tue 2000 kcal di oggi, ne restano 1480.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 6,
+                    },
+                ],
+                cardMeals: [
+                    "Borscht di manzo con panna acida (1 scodella, finita) e pane di segale (1 fetta) da Tsybulya, Podil, Kiev",
+                ],
+            },
+            {
+                id: "scan-barcode",
+                title: "Scansiona un codice a barre",
+                description:
+                    "Fotografa la confezione: le cifre sotto il codice a barre vengono cercate su Open Food Facts, poi ti chiede quanto ne hai consumato. Open Food Facts non riporta la caffeina, quindi quella si ricava dall'etichetta o da valori tipici; se mancano fibre o zuccheri, vengono stimati invece di restare vuoti.",
+                toolNotes: {
+                    lookup_barcode:
+                        "Recupera da Open Food Facts i valori in etichetta e il Nutri-Score del vasetto",
+                    log_meal:
+                        "Registra il vasetto intero a colazione, calcolato dai valori per 100 g",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        photo: "package",
+                        text: "l'ho mangiato a colazione. va bene?",
+                    },
+                    {
+                        from: "ai",
+                        text: "È un vasetto da 150 g di yogurt greco bianco (0% di grassi): 87 kcal, 15 g di proteine e 5 g di zuccheri, e Open Food Facts gli dà Nutri-Score A. Hai mangiato tutto il vasetto?",
+                    },
+                    {
+                        from: "user",
+                        text: "tutto il vasetto",
+                    },
+                    {
+                        from: "ai",
+                        text: "Registrato a colazione: 87 kcal, 15 g di proteine e 5 g di zuccheri. Ti mancano ancora 145 g di proteine per oggi.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: ["Yogurt greco bianco 0% (vasetto da 150 g)"],
+            },
+            {
+                id: "goals-progress",
+                title: "Fissa obiettivi, fai il punto",
+                description:
+                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
+                toolNotes: {
+                    set_nutrition_goals:
+                        "Salva gli obiettivi di calorie e proteine e un limite di caffeina di 400 mg",
+                    get_goal_progress:
+                        "Mostra in un widget in chat la giornata di oggi rispetto a ogni obiettivo e limite",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "voglio asciugarmi un po'. impostami 2000 kcal e 160 g di proteine. e qual è un limite di caffeina sensato? praticamente vivo di caffè",
+                    },
+                    {
+                        from: "ai",
+                        text: "Per gli adulti sani l'EFSA e la FDA indicano fino a 400 mg al giorno, circa quattro tazze di caffè filtrato, e in gravidanza l'EFSA consiglia 200 mg. Il limite lo decidi tu: metto 400?",
+                    },
+                    {
+                        from: "user",
+                        text: "sì, 400",
+                    },
+                    {
+                        from: "ai",
+                        text: "Fatto: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto rimane com'era: 220 g di carboidrati, 70 g di grassi, 30 g di fibre, 2,5 L d'acqua, il tuo limite di 60 g di zuccheri e il tuo peso obiettivo di 75 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "ci sta ancora un dolce stasera?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Sei a 1540 kcal su 2000 e a 104 g di proteine su 160, quindi ti mancano 460 kcal e 56 g di proteine. Gli zuccheri sono a 40 g sui 60 g del tuo limite e la caffeina a 130 mg su 400: entrambi sotto il limite.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "goal-progress",
+                        after: 4,
+                    },
+                ],
+            },
+            {
+                id: "review-week",
+                title: "Rivedi la settimana",
+                description:
+                    "Chiedi com'è andata la settimana e in chat si apre il widget degli andamenti, con la media di calorie e macro rispetto ai tuoi obiettivi e quanti giorni hai registrato. Passa tra 7, 14 e 30 giorni senza una nuova richiesta. Può dirti anche le tue serie di giorni consecutivi e i giorni in linea con l'obiettivo.",
+                toolNotes: {
+                    get_trends:
+                        "Calcola le medie degli ultimi 7, 14 e 30 giorni e apre il widget degli andamenti",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "come sono andate le ultime due settimane? ho l'impressione di aver fatto un po' a caso",
+                    },
+                    {
+                        from: "ai",
+                        text: "Hai registrato 13 giorni su 14, gli ultimi 10 di fila, e 9 di questi sono rimasti entro il 10% del tuo obiettivo di 2000 kcal. In media sei a 1830 kcal al giorno, ma il conto include come zero il giorno che hai saltato.",
+                    },
+                    {
+                        from: "user",
+                        text: "e gli zuccheri?",
+                    },
+                    {
+                        from: "ai",
+                        text: "In media 52 g al giorno, sotto il tuo limite di 60 g, ma l'hai superato in 4 giorni su 13.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "trends",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "weight-trend",
+                title: "Tieni d'occhio il peso",
+                description:
+                    "Registra una pesata in kg o lb e guarda l'andamento al di là delle oscillazioni quotidiane: media smussata, variazione nel mese e quanto manca all'obiettivo. Un valore impossibile, come una virgola dimenticata, viene bloccato prima di essere salvato.",
+                toolNotes: {
+                    log_weight: "Salva la pesata di stamattina: 78,4 kg",
+                    get_weight_trends:
+                        "Smussa 30 giorni con medie mobili e calcola la distanza dall'obiettivo",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "stamattina 78,4 kg. come sto andando?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Salvati 78,4 kg. Hai perso 1,8 kg dall'11 febbraio (eri a 80,2 kg) e la tua media a 7 giorni è di 78,7 kg. Mancano 3,4 kg al tuo obiettivo di 75 kg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "weight-trends",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "meal-patterns",
+                title: "Scopri le tue abitudini",
+                description:
+                    "Chiedi quando mangi di più e mette a confronto le tue registrazioni: giorni feriali e weekend, giorni con e senza colazione, pranzi abbondanti, cene presto e cene tardi. Segnala anche i giorni insoliti e riporta abitudini, non cause.",
+                toolNotes: {
+                    get_meal_patterns:
+                        "Confronta su 30 giorni colazione sì o no, orario di cena e weekend",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "mangio di più nei giorni in cui salto la colazione? ho questa sensazione",
+                    },
+                    {
+                        from: "ai",
+                        text: "Un po', sì. Hai registrato 28 degli ultimi 30 giorni e hai saltato la colazione in 6. In quei giorni la media è di 2215 kcal e 88 g di proteine, contro 1940 kcal e 123 g nei 22 giorni con colazione.",
+                    },
+                    {
+                        from: "user",
+                        text: "e le cene tardi? nei giorni di palestra non mangio prima delle 9 di sera",
+                    },
+                    {
+                        from: "ai",
+                        text: "Si notano anche quelle: i 9 giorni con cena alle 20 o più tardi hanno una media di 2165 kcal, contro 1920 negli altri 19. Sono abitudini che emergono dalle tue registrazioni, non la prova che una delle due ne sia la causa.",
+                    },
+                    {
+                        from: "user",
+                        text: "e nel weekend?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Quasi nessuna differenza: nel weekend la media è di 2010 kcal, nei giorni feriali di 1993.",
+                    },
+                ],
+            },
+            {
+                id: "track-drinks",
+                title: "Registra anche i drink",
+                description:
+                    "L'alcol resta nascosto finché non attivi il monitoraggio. Scegli drink standard USA o unità alcoliche britanniche, e ogni bevanda viene convertita in grammi di alcol in base a quantità e gradazione. Se poi lo disattivi, l'alcol torna nascosto, ma non viene cancellato.",
+                toolNotes: {
+                    set_alcohol_tracking:
+                        "Attiva il monitoraggio dell'alcol, in grammi accanto alle unità britanniche",
+                    log_meal:
+                        "Registra la pinta con il suo alcol in grammi di etanolo (568 ml × 4% × 0,789)",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "puoi contare anche quello che bevo? sto cercando di ridurre un po'",
+                    },
+                    {
+                        from: "ai",
+                        text: "Certo. Mostro l'alcol in drink standard USA o in unità britanniche?",
+                    },
+                    {
+                        from: "user",
+                        text: "unità britanniche, vivo a Manchester",
+                    },
+                    {
+                        from: "ai",
+                        text: "Monitoraggio dell'alcol attivo, in grammi accanto alle unità britanniche.",
+                    },
+                    {
+                        from: "user",
+                        text: "ho bevuto una pinta di lager a cena",
+                    },
+                    {
+                        from: "ai",
+                        text: "Che gradazione aveva? Le lager di solito stanno tra il 4 e il 5%, e la trovi indicata sulla spina o sulla lattina.",
+                    },
+                    {
+                        from: "user",
+                        text: "4% credo",
+                    },
+                    {
+                        from: "ai",
+                        text: "Registrata come cena: una pinta da 568 ml al 4% contiene 17,9 g di alcol, pari a 2,3 unità britanniche, circa 180 kcal.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 6,
+                    },
+                ],
+                cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
+            },
+            {
+                id: "import-history",
+                title: "Porta qui il tuo storico",
+                description:
+                    "Arrivi da MyFitnessPal, Cronometer, Lose It! o MacroFactor? L'importatore si apre in chat, legge la tua esportazione e ne abbina le colonne nel browser, non salva nulla finché non confermi l'anteprima e non duplica i pasti se reimporti lo stesso file con lo stesso fuso orario. Se il fuso orario non è impostato, si sistema prima quello, così ogni pasto finisce nel giorno giusto.",
+                toolNotes: {
+                    get_profile:
+                        "Mostra che l'account non ha ancora un fuso orario impostato",
+                    set_timezone:
+                        "Imposta America/Chicago così i pasti usano l'ora locale",
+                    start_meal_import:
+                        "Apre in chat l'importatore per il tuo file esportato",
+                    bulk_import_meals:
+                        "Salva le righe confermate in blocchi da massimo 50, saltando quelle già importate",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "sto passando da MyFitnessPal. puoi portare qui il mio diario alimentare? ho già l'esportazione",
+                    },
+                    {
+                        from: "ai",
+                        text: "Prima di aprire l'importatore: il tuo account non ha un fuso orario impostato, quindi le date della tua esportazione verrebbero lette in UTC e i pasti potrebbero finire nel giorno sbagliato. Vuoi impostarlo prima? In che fuso orario ti trovi?",
+                    },
+                    {
+                        from: "user",
+                        text: "chicago",
+                    },
+                    {
+                        from: "ai",
+                        text: "Fuso orario impostato su America/Chicago, e l'importatore è aperto qui sopra: scegli lì il file esportato da MyFitnessPal. Viene letto direttamente nel browser, e non si salva nulla finché non confermi l'anteprima.",
+                    },
+                    {
+                        from: "user",
+                        text: "ha abbinato le colonne ma su nome alimento dice “non presente in questo file”?",
+                    },
+                    {
+                        from: "ai",
+                        text: "È normale con MyFitnessPal: la sua esportazione ha una riga per ogni pasto di ogni giorno, con i totali ma senza i nomi degli alimenti. Le righe senza nome dell'alimento vengono etichettate con l'app da cui provengono, e calorie e macro arrivano così come sono.",
+                    },
+                    {
+                        from: "user",
+                        text: "603 pasti. dice che verranno inseriti a mezzogiorno?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Esatto: l'esportazione ha le date ma non gli orari dei pasti, quindi ognuno viene messo a mezzogiorno, ora locale. Così ogni pasto resta nel giorno giusto a Chicago; solo che non vedrai a che ora hai mangiato davvero.",
+                    },
+                    {
+                        from: "user",
+                        text: "fatto! è arrivato tutto?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Tutto: 603 pasti importati e nessun errore.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "import-meals",
+                        after: 2,
+                        step: "file",
+                    },
+                ],
+            },
+            {
+                id: "export-data",
+                title: "Porta via i tuoi dati",
+                description:
+                    "Con una sola richiesta raccoglie tutto ciò che è conservato su di te (pasti, acqua, pesate, obiettivi, impostazioni del profilo, dati dell'account, telemetria di utilizzo e app collegate) in uno ZIP di file CSV con un README. Gli orari sono nel tuo fuso orario, e meals.csv si reimporta direttamente.",
+                toolNotes: {
+                    export_all_data:
+                        "Crea uno ZIP con otto file CSV e un README, scaricabile da un link valido 60 minuti",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "la mia dietista vuole vedere il mio diario alimentare. me lo puoi esportare in un foglio di calcolo?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Fatto. Lo ZIP contiene 1204 pasti, 318 voci d'acqua e 64 pesate, più i tuoi obiettivi nutrizionali, le impostazioni del profilo, i dati dell'account, la telemetria di utilizzo degli strumenti e le app collegate. Il tuo diario alimentare è il file meals.csv al suo interno.",
+                        link: "Scarica l'esportazione (link valido 60 minuti)",
+                    },
+                ],
+            },
         ],
     },
 
     stats: {
-        eyebrow: "Tracciato finora, insieme",
-        title: "Un registro alimentare globale in crescita",
-        factsTitle: "Valori nutrizionali",
-        servingPrefix: "Porzione ",
-        servingBold: "tutti, finora",
+        title: "Da qualche parte è colazione, altrove è già cena.",
+        sub: "Statistiche nutrizionali in tempo reale da tutti gli account Nutrition MCP (calorie, pasti registrati, macro e peso perso), aggiornate ogni cinque secondi.",
         liveLabel: "Live",
-        calLabel: "Calorie ",
-        calSmall: "tracciate, in totale",
-        calCaption: "Calorie tracciate",
-        rowFoodLogs: "Pasti registrati",
-        rowProtein: "Proteine",
-        rowCarbs: "Carboidrati",
-        rowFat: "Grassi",
-        unitGroupLabel: "Unità di peso",
-        unitKgLabel: "Chilogrammi (kg)",
-        unitLbLabel: "Libbre (lb)",
-        foot: "Totali di tutti gli account, aggiornati man mano che i pasti vengono registrati. I dati individuali non vengono mai mostrati.",
-        mapPrefix: "Registrato in",
-        mapSuffix: "fusi orari nel mondo",
+        unitGroupLabel: "Unità",
+        unitMetricLabel: "Metrico",
+        unitImperialLabel: "Imperiale",
+        unitKgLabel: "Metrico (kg)",
+        unitLbLabel: "Imperiale (lb)",
+        refreshBefore: "Si aggiorna ogni 5 s · prossimo tra ",
+        refreshAfter: "s",
+        sinceOpenLabel: "da quando hai aperto la pagina",
+        calCaption: "Calorie registrate",
+        cards: {
+            foodLogs: "Pasti registrati",
+            protein: "Proteine registrate",
+            carbs: "Carboidrati registrati",
+            fat: "Grassi registrati",
+            weightLost: "Peso perso dal 2 luglio 2026",
+            water: "Acqua registrata",
+        },
+        foodLogsUnit: { one: "pasto", other: "pasti" },
+        timezonesAfter:
+            " fusi orari · ognuno cambia giorno alla propria mezzanotte",
+        mapNote: "dimensione del punto = quota di profili",
         mapAriaLabel:
-            "Mappa del mondo che mostra i fusi orari in cui viene usato Nutrition MCP",
+            "Mappa del mondo con i fusi orari impostati nei profili; ognuno compare solo quando lo usano almeno tre profili",
+        foot: "Totali di tutti gli account, aggiornati man mano che si registrano pasti. I dati dei singoli utenti non vengono mai mostrati.",
     },
 
     features: {
-        eyebrow: "Tutto, semplicemente chattando",
-        title: "Cosa puoi tracciare",
+        title: "Cosa puoi monitorare",
         cards: [
             {
-                icon: "fa-solid fa-utensils",
-                title: "Pasti in linguaggio naturale",
-                body: "Descrivi cosa hai mangiato — la tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e caffeina in milligrammi, e lo registra.",
+                title: "Pasti a parole tue",
+                body: "Descrivi cosa hai mangiato: la tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e caffeina in milligrammi, e registra tutto.",
             },
             {
-                icon: "fa-solid fa-barcode",
                 title: "Scansiona un codice a barre",
-                body: "Fotografa o digita il codice a barre di un prodotto e recupera macro, fibre e zuccheri da Open Food Facts, calcolati in base a quanto ne hai mangiato.",
+                body: "Fotografa o digita il codice a barre di un prodotto e ottieni macro, fibre e zuccheri da Open Food Facts, calcolati in base a quanto ne hai mangiato.",
             },
             {
-                icon: "fa-solid fa-bullseye",
                 title: "Obiettivi e progressi",
-                body: "Imposta target giornalieri di calorie, macro, fibre e acqua — oltre a limiti di zuccheri, caffeina e alcol da non superare — e controlla i progressi in tempo reale.",
+                body: "Imposta obiettivi giornalieri di calorie, macro, fibre e acqua, più limiti da non superare per zuccheri, caffeina e alcol, e segui i progressi in tempo reale.",
             },
             {
-                icon: "fa-solid fa-chart-area",
                 title: "Riepiloghi e andamenti",
-                body: "Riepiloghi giornalieri e settimanali, andamenti a 7/14/30 giorni, serie di giorni consecutivi e pattern ricorrenti nei pasti.",
+                body: "Riepiloghi giornalieri e settimanali, andamenti a 7/14/30 giorni, serie di giorni consecutivi e abitudini alimentari ricorrenti.",
             },
             {
-                icon: "fa-solid fa-glass-water",
                 title: "Registrazione dell'acqua",
-                body: "Tieni traccia dell'idratazione in millilitri insieme ai tuoi pasti e rivedila giorno per giorno.",
+                body: "Tieni traccia dell'idratazione in millilitri insieme ai pasti e rivedila giorno per giorno.",
             },
             {
-                icon: "fa-solid fa-weight-scale",
                 title: "Monitoraggio del peso",
-                body: "Registra il tuo peso corporeo in kg o lb, visualizza gli andamenti a 7/14/30 giorni e monitora i progressi verso un peso obiettivo.",
+                body: "Registra il tuo peso corporeo in kg o lb, visualizza gli andamenti a 7/14/30 giorni e segui i progressi verso un peso obiettivo.",
             },
             {
-                icon: "fa-solid fa-clock-four",
                 title: "Fuso orario intelligente",
-                body: "I giorni cambiano al tuo orario locale, ovunque tu sia nel mondo.",
+                body: "Il giorno cambia secondo la tua ora locale, ovunque tu sia nel mondo.",
             },
             {
-                icon: "fa-solid fa-file-import",
                 title: "Importa da un'altra app",
-                body: "Porta il tuo storico pasti da MyFitnessPal, Cronometer, Lose It! o MacroFactor — oppure da qualsiasi altro CSV, mappando tu stesso le colonne. Confermi cosa viene aggiunto prima che venga salvato qualsiasi cosa.",
+                body: "Porta qui il tuo storico pasti da MyFitnessPal, Cronometer, Lose It! o MacroFactor, oppure da qualsiasi altro CSV abbinando tu le colonne. Prima che venga salvato qualcosa, confermi cosa verrà aggiunto.",
             },
             {
-                icon: "fa-solid fa-file-csv",
-                title: "Esporta e possiedi i tuoi dati",
-                body: "Porta via tutto ciò che conserviamo su di te — pasti, acqua, peso, obiettivi e profilo, oltre ai dati del tuo account, alla telemetria di utilizzo e alle app collegate — come un unico ZIP di file CSV. Per ora, i pasti sono l'unica parte che può essere reimportata. Elimina il tuo account e i tuoi dati quando vuoi.",
+                title: "Esporta i tuoi dati: restano tuoi",
+                body: "Porta via tutto ciò che conserviamo su di te (pasti, acqua, peso, obiettivi e profilo, oltre ai dati dell'account, alla telemetria di utilizzo e alle app collegate) in un unico ZIP di file CSV. Per ora i pasti sono l'unica parte che si può reimportare. Puoi eliminare account e dati quando vuoi.",
             },
         ],
     },
 
     why: {
-        eyebrow: "Perché Nutrition MCP",
-        title: "Parlare batte il tocco.",
-        sub: "Scansiona un codice a barre o dì semplicemente cosa hai mangiato — niente ricerche nei database, nessuna app separata da aprire.",
+        title: "Meglio parlare che digitare.",
+        sub: "Scansiona un codice a barre o di' semplicemente cosa hai mangiato: niente ricerche nei database, nessuna app in più da aprire.",
         oldHeading: "App tradizionali",
         oldItems: [
             "Cerca ogni alimento in un database",
             "Correggi a mano le voci sbagliate del database",
-            "Un'altra app, un altro account, un altro paywall",
+            "L'ennesima app da aprire, spesso a pagamento",
             "Registrazione manuale e noiosa",
         ],
         newHeading: "Nutrition MCP",
         newItems: [
-            "Descrivi i pasti con parole tue",
+            "Descrivi i pasti a parole tue",
             "Calorie e macro stimate per te",
             "Funziona dentro Claude o ChatGPT, gratis",
             "Chiedi andamenti, riepiloghi e obiettivi",
         ],
         noteHtml:
-            'Stai passando da un\'app specifica? Scopri come Nutrition MCP si confronta con <a href="/alternatives" data-link="alternatives">MyFitnessPal, Cronometer e altri tracker</a>.',
+            'Arrivi da un\'app in particolare? Scopri come Nutrition MCP si confronta con <a href="/alternatives" data-link="alternatives">MyFitnessPal, Cronometer e altri contacalorie</a>.',
     },
 
     trust: [
         {
-            label: "Privato per impostazione predefinita",
-            small: "Solo tu puoi vedere i tuoi dati.",
+            label: "Privacy di serie",
+            small: "I tuoi dati non vengono mai venduti, condivisi o usati per la pubblicità.",
         },
         { label: "Open source", small: "Verificalo o ospitalo tu stesso." },
         {
             label: "Esporta quando vuoi",
-            small: "Ogni tabella in CSV, in un unico ZIP.",
+            small: "Tutto ciò che conserviamo, in CSV dentro un unico ZIP.",
         },
         { label: "Elimina all'istante", small: "Rimuovi account e dati." },
     ],
 
     support: {
-        eyebrow: "Supporto",
-        title: "Aiutaci a tenerlo attivo.",
-        sub: "Nutrition MCP è gratuito e senza pubblicità. Patreon copre le spese di server e database.",
-        updatesTitle: "Le ultime novità da Patreon",
-        updatesNote: "Gratuito da leggere — nessun abbonamento necessario.",
+        title: "Aiutaci a tenerlo in vita.",
+        sub: "Nutrition MCP è gratuito e senza pubblicità. Patreon copre i costi di server e database.",
+        updatesTitle: "Le ultime da Patreon",
+        updatesBadge: "Gratis",
+        updatesNote: "Si legge gratis, senza abbonamento.",
         updatesPrevLabel: "Aggiornamento precedente",
         updatesNextLabel: "Aggiornamento successivo",
         updatesDotLabel: "Aggiornamento",
+        postLinkLabel: "Leggi su Patreon",
         free: {
             tier: "Membro gratuito",
             price: "$0",
-            desc: "Resta aggiornato — ricevi notizie e aggiornamenti sul server, i nuovi strumenti e cosa sta arrivando.",
+            desc: "Resta aggiornato: novità sul server, sui nuovi strumenti e su ciò che sta per arrivare.",
             cta: "Segui su Patreon",
         },
         paid: {
             tier: "Membro sostenitore",
             price: "Paga quanto vuoi",
-            desc: "Contribuisci alle spese di hosting e database per mantenere il server gratuito e online per tutti.",
+            desc: "Se Nutrition MCP ti è utile, puoi aiutare a coprire i costi di hosting e database. Tutti hanno accesso alle stesse funzioni, sostenitori compresi, e resta gratuito per tutti.",
             cta: "Diventa un sostenitore",
         },
     },
 
     cta: {
-        title: "Inizia a tracciare in meno di un minuto.",
-        sub: "Gratuito e open source — funziona con l'IA che già usi.",
+        title: "Inizia a registrare i pasti in meno di un minuto.",
+        sub: "Gratuito e open source, funziona con l'IA che usi già.",
         primary: "Installazione rapida",
         secondary: "Metti una stella su GitHub",
     },
 
     contact: {
-        eyebrow: "Contatti",
         title: "Domande o feedback?",
-        sub: "Hai trovato un bug, vuoi una nuova funzione o hai solo una domanda? Scrivimi direttamente — leggo ogni messaggio.",
+        sub: "Hai trovato un bug, vorresti una nuova funzione o hai solo una domanda? Scrivimi direttamente: leggo ogni messaggio.",
         cta: "Invia un'email",
     },
 
     faqSection: {
-        eyebrow: "FAQ",
         title: "Domande frequenti",
     },
     faq: [
         {
             question: "Cos'è Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP è un server Model Context Protocol (MCP) gratuito che ti permette di tracciare pasti, calorie, macro e storico nutrizionale attraverso una conversazione naturale con Claude o ChatGPT. Invece di digitare in un'app tradizionale, dici alla tua IA cosa hai mangiato e lei registra tutto per te.",
+                "Nutrition MCP è un server Model Context Protocol (MCP) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contacalorie e tracker delle macro. Invece di cercare in un database di alimenti, dici alla tua IA cosa hai mangiato e lei registra calorie, macro, fibre, zuccheri e caffeina nel tuo diario alimentare.",
         },
         {
             question: "Cos'è il Model Context Protocol (MCP)?",
             visibleHtml:
-                "Il Model Context Protocol è uno standard aperto che permette ad assistenti IA come Claude e ChatGPT di collegarsi a strumenti e fonti di dati esterne. Un server MCP fornisce funzionalità specifiche — in questo caso, il tracciamento nutrizionale — che l'IA può usare durante una conversazione. Pensalo come un sistema di plugin per gli assistenti IA.",
+                "Il Model Context Protocol è uno standard aperto che permette ad assistenti IA come Claude e ChatGPT di collegarsi a strumenti e fonti di dati esterne. Un server MCP offre funzionalità specifiche (in questo caso, il monitoraggio dell'alimentazione) che l'IA può usare durante una conversazione. Immaginalo come un sistema di plugin per gli assistenti IA.",
+        },
+        {
+            question: "Come si contano le calorie con Claude o ChatGPT?",
+            visibleHtml:
+                "Collega Nutrition MCP una volta sola (in Claude dalla directory dei connettori, in ChatGPT come app personalizzata con l'URL del server) e accedi. Poi di' alla tua IA cosa hai mangiato a parole tue, mostrale una foto del pasto o dalle il codice a barre di un prodotto. La tua IA stima calorie, proteine, carboidrati, grassi, fibre e zuccheri, e Nutrition MCP salva la voce nel tuo diario alimentare. Chiedi in qualsiasi momento i totali di oggi, gli andamenti settimanali o i progressi verso i tuoi obiettivi.",
         },
         {
             question: "Funziona con ChatGPT?",
             visibleHtml:
-                "Sì. In ChatGPT sul web, apri Settings → Apps, crea un'app personalizzata con l'URL del server usando OAuth, e accedi. Funziona con ogni piano ChatGPT.",
+                "Sì. In ChatGPT sul web, apri Settings → Apps, crea un'app personalizzata con l'URL del server usando OAuth, e accedi. Per creare un'app personalizzata serve la modalità sviluppatore (Developer mode) di ChatGPT, che OpenAI offre su alcuni piani ChatGPT.",
             jsonLdText:
-                "Sì. In ChatGPT sul web, apri Settings → Apps, crea un'app personalizzata con l'URL del server https://nutrition-mcp.com/mcp usando OAuth, e accedi. Funziona con ogni piano ChatGPT.",
+                "Sì. In ChatGPT sul web, apri Settings → Apps, crea un'app personalizzata con l'URL del server https://nutrition-mcp.com/mcp usando OAuth, e accedi. Per creare un'app personalizzata serve la modalità sviluppatore (Developer mode) di ChatGPT, che OpenAI offre su alcuni piani ChatGPT.",
         },
         {
             question: "Quali altri client sono supportati?",
             visibleHtml:
-                "Qualsiasi client MCP che supporti OAuth 2.0 con PKCE — tra cui Claude.ai, le app desktop e mobile di Claude, Claude Code, Cursor, Windsurf e VS Code.",
+                "Qualsiasi client MCP che supporti OAuth 2.0 con PKCE, tra cui Claude.ai, le app desktop e mobile di Claude, Claude Code, Cursor, Windsurf e VS Code.",
         },
         {
-            question: "Posso ospitarlo io stesso (self-host)?",
+            question: "Posso ospitarlo io stesso (self-hosting)?",
             visibleHtml:
-                'Sì. Nutrition MCP è open source (licenza MIT). Puoi eseguire una tua istanza con un tuo progetto Supabase — il <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">repository GitHub</a> include una guida completa al self-hosting e un Dockerfile.',
+                'Sì. Nutrition MCP è open source (licenza MIT). Puoi far girare una tua istanza con un tuo progetto Supabase: il <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">repository GitHub</a> include una guida completa al self-hosting e un Dockerfile.',
         },
         {
             question: "Nutrition MCP è gratuito?",
             visibleHtml:
-                "Sì, è completamente gratuito — nessun piano premium, pubblicità o costi nascosti. Ti serve solo un account Claude o ChatGPT per connetterti. Le donazioni su Patreon aiutano a coprire i costi del server.",
+                "Sì, è completamente gratuito: niente piani a pagamento, niente pubblicità, nessun costo nascosto. Ti servono un'app di IA che supporti i connettori MCP, come Claude o ChatGPT, e un account Nutrition MCP gratuito, che crei la prima volta che ti colleghi. Le donazioni volontarie su Patreon aiutano a coprire i costi del server e non sbloccano nulla.",
         },
         {
-            question: "Cosa posso tracciare?",
+            question: "Cosa posso monitorare?",
             visibleHtml:
-                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e acqua per ogni voce — descritti con parole tue o recuperati dal codice a barre di un prodotto tramite Open Food Facts. Viene tracciata anche la caffeina, in milligrammi, l'unità usata da ogni etichetta, e non aggiunge calorie. Anche l'alcol viene tracciato, in grammi di etanolo puro, una volta che lo attivi. Puoi anche registrare il tuo peso corporeo in kg o lb e monitorare gli andamenti verso un peso obiettivo. Visualizza riepiloghi giornalieri, interroga i pasti per intervallo di date, aggiorna o elimina voci passate, imposta obiettivi e monitora gli andamenti nel tempo.",
+                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
         },
         {
-            question: "Traccia l'alcol?",
+            question: "Quanto sono precisi i conteggi delle calorie?",
             visibleHtml:
-                "Solo se lo attivi — il tracciamento dell'alcol è disattivato per impostazione predefinita. Una volta attivato, i drink vengono registrati in grammi di etanolo puro e mostrati come drink standard USA o unità britanniche, a tua scelta. Niente viene dedotto automaticamente per te: l'alcol arriva solo da un drink che registri o da una colonna alcol in un file che importi. Disattivarlo di nuovo nasconde l'alcol da pasti, obiettivi e riepiloghi e impedisce all'importatore di leggere le colonne dell'alcol — non è un interruttore di eliminazione, e la tua esportazione CSV include sempre ciò che hai registrato.",
+                "Sono stime. Per un pasto che descrivi o fotografi, i valori li stima la tua IA; per un codice a barre, provengono dai dati dell'etichetta del prodotto su Open Food Facts, che la tua IA ricalcola in base alla quantità che hai consumato. Entrambi possono essere sbagliati, quindi verifica tutto ciò che conta: puoi correggere o eliminare qualsiasi voce semplicemente chiedendolo. Nutrition MCP è uno strumento di registrazione, non un consiglio medico o dietetico: consulta un medico o un dietista prima di prendere decisioni sulla tua salute, soprattutto se sei in gravidanza, hai una patologia o hai sofferto di disturbi alimentari.",
+        },
+        {
+            question: "Registra anche l'alcol?",
+            visibleHtml:
+                "Sì, se lo attivi: il monitoraggio dell'alcol è disattivato per impostazione predefinita, e l'alcol resta nascosto da pasti, obiettivi e riepiloghi finché non lo attivi. Da quel momento i drink vengono mostrati in grammi di etanolo puro e come drink standard USA o unità alcoliche britanniche, a tua scelta. Niente viene dedotto in automatico: l'alcol viene salvato solo quando registri un drink o importi un file con una colonna alcol, e un drink che registri viene salvato anche a monitoraggio disattivato. Se lo disattivi di nuovo, l'alcol torna nascosto e l'importatore smette di leggere le colonne dell'alcol: non serve a cancellare nulla, e la tua esportazione include sempre ciò che hai registrato. Per rimuovere un valore di alcol, elimina il pasto a cui appartiene.",
         },
         {
             question:
                 "Posso importare il mio storico da MyFitnessPal o un'altra app?",
             visibleHtml:
-                "Sì. Chiedi di importare il tuo storico e si apre un importatore nella chat: scegli il CSV esportato dalla tua vecchia app, controlli come vengono mappate le colonne e vedi cosa verrà aggiunto prima di confermare. Le esportazioni di MyFitnessPal, Cronometer, Lose It! e MacroFactor vengono riconosciute automaticamente, mentre qualsiasi altro CSV funziona mappando tu stesso le colonne. Il file viene letto dal tuo browser, quindi l'IA non riscrive mai le tue righe. Nei client senza pannelli in chat puoi invece incollare la tua esportazione — e importare lo stesso file due volte non crea duplicati.",
+                "Sì. Chiedi di importare il tuo storico e si apre un importatore nella chat: scegli il CSV esportato dalla tua vecchia app, controlli come vengono abbinate le colonne e vedi cosa verrà aggiunto prima di confermare. Le esportazioni di MyFitnessPal, Cronometer, Lose It! e MacroFactor vengono riconosciute automaticamente, mentre qualsiasi altro CSV funziona abbinando tu le colonne. Il file lo legge il tuo browser, quindi l'IA non ricopia mai le tue righe. Nei client senza pannelli in chat puoi invece incollare la tua esportazione, e reimportare lo stesso file non crea duplicati, purché nel frattempo tu non abbia cambiato fuso orario.",
         },
         {
             question: "I miei dati sono privati?",
             visibleHtml:
-                "I tuoi dati sono conservati in modo sicuro e collegati al tuo account personale. Solo tu puoi accedere al tuo storico nutrizionale, tramite la tua sessione autenticata. Nutrition MCP non vende né condivide i tuoi dati, e puoi eliminare il tuo account e tutti i dati in qualsiasi momento.",
+                'I dati che registri sono conservati nell\'UE e collegati al tuo account, a cui accedi tramite le app di IA che colleghi. Nutrition MCP non vende mai i tuoi dati, non li condivide mai con terze parti e non li usa mai per pubblicità; la home page mostra solo totali anonimi dell\'intero sito. Ciò che la tua IA legge tramite gli strumenti viene inviato al fornitore di quella IA, secondo gli accordi tra te e quel fornitore. Puoi esportare tutto ciò che conserviamo su di te, o eliminare il tuo account e tutti i suoi dati, in qualsiasi momento: i dettagli sono nell\'<a href="/privacy" data-link="privacy">informativa sulla privacy</a>.',
         },
     ],
 };

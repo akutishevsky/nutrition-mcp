@@ -25,6 +25,7 @@ import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
 import { ALT_PAGES, LOCALES, PAGE_ROUTES } from "./routes.js";
 import { createTtlCache } from "./ttl-cache.js";
+import { createStarCounter } from "./github-stars.js";
 import { isHttpsRequest } from "./url.js";
 
 const app = new Hono();
@@ -70,7 +71,7 @@ app.use("*", async (c, next) => {
     if (!c.res.headers.get("Content-Security-Policy")) {
         c.header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.google.com https://*.googletagmanager.com https://api.github.com https://*.clarity.ms https://c.bing.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-ancestors 'none'",
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-ancestors 'none'",
         );
     }
     c.header("Referrer-Policy", "no-referrer");
@@ -314,6 +315,20 @@ app.get("/api/patreon-posts", async (c) => {
     }
 });
 
+// The project's GitHub star count for the [data-gh-stars] badges site.js
+// fills on every page. Fetched server-side (src/github-stars.ts) so no
+// visitor's browser contacts GitHub — the privacy policy relies on that.
+// `stars` is null until GitHub has answered once; the badge stays hidden.
+const getGithubStars = createStarCounter();
+
+app.get("/api/github-stars", async (c) => {
+    const stars = await getGithubStars();
+    return c.json({ stars }, 200, {
+        "Cache-Control":
+            stars === null ? "public, max-age=300" : "public, max-age=3600",
+    });
+});
+
 // Static world-map data (land dot-matrix + projected timezone coords) for the
 // landing page. Generated offline; safe to cache aggressively.
 app.get("/map-data.json", async (c) => {
@@ -323,22 +338,27 @@ app.get("/map-data.json", async (c) => {
     });
 });
 
-// Static images (social card + touch icon)
-app.get("/og.png", async (c) => {
-    return c.body(await Bun.file("./public/og.png").arrayBuffer(), 200, {
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=86400",
-    });
-});
-app.get("/apple-touch-icon.png", async (c) => {
-    return c.body(
-        await Bun.file("./public/apple-touch-icon.png").arrayBuffer(),
-        200,
-        {
+// Static images (social card + the "Plugged Apple" icon set). The PNG icons
+// are also advertised as the MCP server icon (src/mcp.ts), so their paths are
+// public contracts: keep them stable.
+for (const name of [
+    "og.png",
+    "apple-touch-icon.png",
+    "icon-192.png",
+    "icon-512.png",
+]) {
+    app.get(`/${name}`, async (c) => {
+        return c.body(await Bun.file(`./public/${name}`).arrayBuffer(), 200, {
             "Content-Type": "image/png",
             "Cache-Control": "public, max-age=86400",
-        },
-    );
+        });
+    });
+}
+app.get("/favicon.svg", async (c) => {
+    return c.body(await Bun.file("./public/favicon.svg").text(), 200, {
+        "Content-Type": "image/svg+xml",
+        "Cache-Control": "public, max-age=86400",
+    });
 });
 
 // SEO crawl files

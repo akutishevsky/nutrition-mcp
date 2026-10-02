@@ -41,7 +41,9 @@
         var dark = effectiveTheme() === "dark";
         body.classList.toggle("is-dark", dark);
         if (metaTheme)
-            metaTheme.setAttribute("content", dark ? "#0d1210" : "#fbfbf9");
+            // THEME_COLOR_DARK / THEME_COLOR_LIGHT in scripts/site-partials.ts
+            // (the --bg token in each theme).
+            metaTheme.setAttribute("content", dark ? "#0b0d12" : "#f7f7f9");
         var mode = selectedMode();
         doc.querySelectorAll("[data-theme-set]").forEach(function (btn) {
             btn.setAttribute(
@@ -62,8 +64,6 @@
     doc.querySelectorAll("[data-theme-set]").forEach(function (btn) {
         btn.addEventListener("click", function () {
             setTheme(btn.getAttribute("data-theme-set"));
-            var disclosure = btn.closest("details");
-            if (disclosure) disclosure.open = false;
         });
     });
     // Only meaningful in System mode — with an override on <body> the OS
@@ -143,7 +143,7 @@
             // otherwise run first and close it before this check.
             if (
                 body.classList.contains("menu-open") ||
-                doc.querySelector(".lang-switch[open], .theme-switch[open]")
+                doc.querySelector(".lang-switch[open]")
             )
                 return;
             root.setAttribute("data-consent", reopened.prev);
@@ -215,31 +215,11 @@
         initConsent();
     } catch (e) {}
 
-    /* ---------- header: compact on scroll + reading progress ---------- */
-    var head = doc.getElementById("site-head");
-    var ticking = false;
-    function onScroll() {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(function () {
-            ticking = false;
-            var y = window.scrollY || 0;
-            if (head) {
-                head.classList.toggle("scrolled", y > 8);
-                var max = root.scrollHeight - window.innerHeight;
-                head.style.setProperty(
-                    "--progress",
-                    max > 0 ? Math.min(1, y / max).toFixed(4) : 0,
-                );
-            }
-            updateParallax(y);
-        });
-    }
-    window.addEventListener("scroll", onScroll, { passive: true });
-
     /* ---------- mobile menu ---------- */
     var menuBtn = doc.getElementById("menu-btn");
     var menu = doc.getElementById("site-menu");
+    // The sticky header: left out of setInert() and measured by openMenu().
+    var head = doc.getElementById("site-head");
     // The button's two accessible names come out of the markup, which the
     // generator wrote in this page's language. This one script is served to
     // all nine locales, so naming either state here would be English on
@@ -283,6 +263,13 @@
         menuBtn.setAttribute("aria-expanded", "true");
         setMenuLabel(closeMenuLabel);
         body.classList.add("menu-open");
+        // The sheet is fixed under the sticky header and pads its top for a
+        // header at the viewport's top edge. menu-open takes the consent
+        // banner out of the flow (styles.css), which lifts the header there
+        // whenever the page is near the top; anywhere the header still sits
+        // lower, the sheet pads by that much more so no row hides behind it.
+        var top = head ? Math.max(0, head.getBoundingClientRect().top) : 0;
+        menu.style.setProperty("--menu-top", Math.round(top) + "px");
         setInert(true);
         doc.addEventListener("keydown", onMenuKey);
     }
@@ -331,19 +318,86 @@
             var a = e.target.closest("a");
             if (a) closeMenu(false);
         });
-        // Leaving the phone layout with the sheet open would strand the
-        // inert flags, so close on the way out. Matches styles.css's
-        // .head-nav/.site-menu breakpoint.
-        var wide = window.matchMedia("(min-width: 1120px)");
-        wide.addEventListener("change", function (ev) {
-            if (ev.matches && menuBtn.getAttribute("aria-expanded") === "true")
-                closeMenu(false);
+    }
+    // Leaving the phone layout with the sheet open would strand the inert
+    // flags, so close on the way out. "The phone layout" is wherever the
+    // hamburger is showing: under 1060px (styles.css), or wider when the
+    // nav does not fit its pill (html.nav-tight, fitNav below) — so this
+    // asks the button rather than a fixed media query.
+    function closeMenuIfWide() {
+        if (
+            menuBtn &&
+            menuBtn.getAttribute("aria-expanded") === "true" &&
+            getComputedStyle(menuBtn).display === "none"
+        )
+            closeMenu(false);
+    }
+
+    /* ---------- primary nav: fit check + sliding active pill ---------- */
+    // The design shows the nav from 1060px, but translated labels run far
+    // longer than the English ones ("Statystyki na żywo"), and the nav
+    // scrolls sideways with its scrollbar hidden rather than wrap, which
+    // would silently clip the last items. So whenever it overflows its
+    // pill, html.nav-tight hands the page to the hamburger instead.
+    // Removed before measuring, since with it set the nav is not displayed.
+    var headNav = doc.querySelector(".head-nav");
+    var navInd = headNav && headNav.querySelector(".nav-ind");
+    // The ink pill under the active link: the scroll-spy's .active link on
+    // the landing page, else the link marked aria-current="page". It is a
+    // child of .head-nav (position: relative), so offsetLeft is already in
+    // its coordinates — and it scrolls with the links if the nav ever does.
+    function placeInd() {
+        if (!headNav || !navInd) return;
+        var a =
+            headNav.querySelector("a.active") ||
+            headNav.querySelector('a[aria-current="page"]');
+        var shown = a && a.offsetWidth > 0;
+        headNav.style.setProperty("--ind-x", (shown ? a.offsetLeft : 0) + "px");
+        headNav.style.setProperty(
+            "--ind-w",
+            (shown ? a.offsetWidth : 0) + "px",
+        );
+        headNav.style.setProperty("--ind-o", shown ? "1" : "0");
+        // The first placement jumps; only later moves slide.
+        if (shown && !headNav.classList.contains("ind-ready"))
+            requestAnimationFrame(function () {
+                headNav.classList.add("ind-ready");
+            });
+    }
+    function fitNav() {
+        if (!headNav) return;
+        root.classList.remove("nav-tight");
+        if (
+            getComputedStyle(headNav).display !== "none" &&
+            headNav.scrollWidth > headNav.clientWidth + 1
+        )
+            root.classList.add("nav-tight");
+        placeInd();
+        closeMenuIfWide();
+    }
+    var fitQueued = false;
+    function queueFit() {
+        if (fitQueued) return;
+        fitQueued = true;
+        requestAnimationFrame(function () {
+            fitQueued = false;
+            fitNav();
         });
     }
+    window.addEventListener("resize", queueFit);
+    if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(queueFit);
+    fitNav();
 
     /* ---------- scroll-spy for same-page sections ---------- */
     var spyLinks = Array.prototype.filter.call(
         doc.querySelectorAll(".head-nav a[href*='#']"),
+        function (a) {
+            var url = new URL(a.href, location.href);
+            return url.pathname === location.pathname && url.hash.length > 1;
+        },
+    );
+    var menuSpyLinks = Array.prototype.filter.call(
+        doc.querySelectorAll(".menu-nav a[href*='#']"),
         function (a) {
             var url = new URL(a.href, location.href);
             return url.pathname === location.pathname && url.hash.length > 1;
@@ -367,9 +421,21 @@
                 Object.keys(byId).forEach(function (id) {
                     if (!found && visible[id]) found = byId[id];
                 });
+                var foundHash = found
+                    ? new URL(found.href, location.href).hash
+                    : null;
                 spyLinks.forEach(function (a) {
                     a.classList.toggle("active", a === found);
                 });
+                // The sheet's copies of the same links light up too.
+                menuSpyLinks.forEach(function (a) {
+                    a.classList.toggle(
+                        "active",
+                        !!foundHash &&
+                            new URL(a.href, location.href).hash === foundHash,
+                    );
+                });
+                placeInd();
             },
             { rootMargin: "-40% 0px -55% 0px", threshold: 0 },
         );
@@ -399,41 +465,6 @@
             );
             reveals.forEach(function (el) {
                 io.observe(el);
-            });
-        }
-    }
-
-    /* ---------- hero parallax + card tilt ---------- */
-    var stage = doc.querySelector(".hero-stage");
-    var layers = stage ? stage.querySelectorAll(".depth") : [];
-    var card = stage ? stage.querySelector(".hero-card") : null;
-    function updateParallax(y) {
-        if (!stage || reduceMotion.matches || !layers.length) return;
-        // Only while the hero is on screen; past it the work is wasted.
-        if (y > window.innerHeight * 1.3) return;
-        for (var i = 0; i < layers.length; i++) {
-            var d = parseFloat(layers[i].getAttribute("data-depth") || "0");
-            layers[i].style.setProperty("--py", (y * d).toFixed(1) + "px");
-        }
-    }
-    if (stage && card && !reduceMotion.matches) {
-        var fine = window.matchMedia("(hover: hover) and (pointer: fine)");
-        if (fine.matches) {
-            var rect = null;
-            stage.addEventListener("pointerenter", function () {
-                rect = stage.getBoundingClientRect();
-            });
-            stage.addEventListener("pointermove", function (e) {
-                if (!rect) rect = stage.getBoundingClientRect();
-                var px = (e.clientX - rect.left) / rect.width - 0.5;
-                var py = (e.clientY - rect.top) / rect.height - 0.5;
-                card.style.setProperty("--ry", (px * 8).toFixed(2) + "deg");
-                card.style.setProperty("--rx", (-py * 8).toFixed(2) + "deg");
-            });
-            stage.addEventListener("pointerleave", function () {
-                card.style.setProperty("--ry", "0deg");
-                card.style.setProperty("--rx", "0deg");
-                rect = null;
             });
         }
     }
@@ -471,11 +502,10 @@
     });
 
     /* ---------- header disclosures (light-dismiss for the <details>) ---------- */
-    // The language and theme switchers, which sit next to each other and
-    // are the same control twice over.
-    var disclosures = [].slice.call(
-        doc.querySelectorAll(".lang-switch, .theme-switch"),
-    );
+    // The language switcher (the theme control beside it is a plain
+    // segmented button group, not a disclosure). Kept as a list so a
+    // second disclosure only has to be added to the selector.
+    var disclosures = [].slice.call(doc.querySelectorAll(".lang-switch"));
     if (disclosures.length) {
         doc.addEventListener("click", function (e) {
             disclosures.forEach(function (d) {
@@ -514,11 +544,9 @@
     // then never moved.
     var badgeEls = doc.querySelectorAll("[data-live-badge]");
     if (badgeEls.length) {
-        // Capped low on purpose: the badge is anchored by its left edge and
-        // grows rightward into a fixed reserved margin (.nav-has-badge in
-        // styles.css), so the cap is what bounds that reserve. Three
-        // characters is also as much as fits beside the label without
-        // crowding the next nav item.
+        // Capped low on purpose: the badge sits inline after the label and
+        // widens its nav item, and three characters is as much as fits
+        // there without crowding the next item.
         var NAV_BADGE_MAX = 99;
         var BADGE_BASE_KEY = "live-base";
         // The landing page polls every 5s because its figures are on screen
@@ -563,38 +591,14 @@
             );
         }
 
-        // .nav-has-badge (the nav item / menu label the badge is pinned to)
-        // used to permanently reserve enough margin for the worst case
-        // ("99+"), which left a dead gap next to it whenever the real count
-        // was shorter — nearly always. Instead, --badge-reserve is measured
-        // off the badge's actual box each time it changes, so the reserve
-        // tracks the current digit count rather than the max possible one.
-        function updateBadgeReserve(b) {
-            var host = b.closest(".nav-has-badge");
-            if (!host) return; // the hamburger's decorative badge has none
-            if (b.hidden) {
-                host.style.removeProperty("--badge-reserve");
-                return;
-            }
-            // Deferred a frame so the text just written above has already
-            // resized the badge's box before it's measured.
-            requestAnimationFrame(function () {
-                var overflow =
-                    b.getBoundingClientRect().right -
-                    host.getBoundingClientRect().right;
-                host.style.setProperty(
-                    "--badge-reserve",
-                    (overflow > 0 ? overflow + 4 : 0) + "px",
-                );
-            });
-        }
-
         function setNavBadge(n) {
             var text = n > NAV_BADGE_MAX ? NAV_BADGE_MAX + "+" : badgeInt(n);
             badgeEls.forEach(function (b) {
                 if (n <= 0) {
-                    b.hidden = true;
-                    updateBadgeReserve(b);
+                    if (!b.hidden) {
+                        b.hidden = true;
+                        queueFit();
+                    }
                     return;
                 }
                 var num = b.querySelector(".nav-badge-n");
@@ -612,6 +616,9 @@
                 )
                     return;
                 num.textContent = text;
+                // "99+" carries its own plus; styles.css drops the leading
+                // "+" (.nav-badge-n::before) on a capped badge.
+                b.classList.toggle("capped", n > NAV_BADGE_MAX);
                 if (vh && label) vh.textContent = label;
                 b.hidden = false;
                 // Restart the pop so a second arrival is noticed too, not
@@ -619,7 +626,9 @@
                 b.classList.remove("pop");
                 void b.offsetWidth;
                 b.classList.add("pop");
-                updateBadgeReserve(b);
+                // The inline badge widens the nav item it sits in, which can
+                // tip the nav into overflow and move the active pill.
+                queueFit();
             });
         }
 
@@ -701,9 +710,35 @@
         }
     }
 
-    onScroll();
-    // Lets CSS run the load choreography (hero underline etc.).
-    requestAnimationFrame(function () {
-        body.classList.add("is-ready");
-    });
+    // ---------- live GitHub star count ----------
+    // Every [data-gh-stars] badge on the page (every GitHub button but the
+    // header's icon) ships hidden and is shown only once a count arrives.
+    // The count comes from our own /api/github-stars, which asks GitHub
+    // server-side and caches it, so the visitor's browser never contacts
+    // GitHub. Without script, or with no count yet, the badge stays hidden.
+    var ghEls = doc.querySelectorAll("[data-gh-stars]");
+    if (ghEls.length && window.fetch) {
+        var ghLocale = root.lang || "en";
+        fetch("/api/github-stars")
+            .then(function (r) {
+                return r.ok ? r.json() : null;
+            })
+            .then(function (d) {
+                var n = d && d.stars;
+                if (typeof n !== "number" || !isFinite(n) || n < 0) return;
+                var t =
+                    n >= 1000
+                        ? (Math.floor(n / 100) / 10).toLocaleString(ghLocale, {
+                              minimumFractionDigits: 1,
+                              maximumFractionDigits: 1,
+                          }) + "k"
+                        : Math.round(n).toLocaleString(ghLocale);
+                ghEls.forEach(function (el) {
+                    var num = el.querySelector("[data-gh-stars-n]");
+                    if (num) num.textContent = t;
+                    el.hidden = false;
+                });
+            })
+            .catch(function () {});
+    }
 })();

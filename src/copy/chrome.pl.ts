@@ -11,10 +11,10 @@ export const CHROME_PL: ChromeCopy = {
         examples: "Przykłady",
         liveStats: "Statystyki na żywo",
         liveStatsBadgeLabel: {
-            one: "nowy wpis jedzenia od otwarcia strony",
-            few: "nowe wpisy jedzenia od otwarcia strony",
-            many: "nowych wpisów jedzenia od otwarcia strony",
-            other: "nowych wpisów jedzenia od otwarcia strony",
+            one: "nowy posiłek zapisany od otwarcia strony",
+            few: "nowe posiłki zapisane od otwarcia strony",
+            many: "nowych posiłków zapisanych od otwarcia strony",
+            other: "nowych posiłków zapisanych od otwarcia strony",
         },
         faq: "FAQ",
     },
@@ -25,7 +25,7 @@ export const CHROME_PL: ChromeCopy = {
         footer: "Stopka",
     },
 
-    githubAriaLabel: "Repozytorium na GitHub",
+    githubAriaLabel: "Repozytorium na GitHubie",
     changeLanguageAriaLabel: "Zmień język",
     languageTitle: "Język",
     theme: {
@@ -40,19 +40,7 @@ export const CHROME_PL: ChromeCopy = {
     closeMenuAriaLabel: "Zamknij menu",
 
     menu: {
-        howSmall: "3 kroki",
-        installSmall: "poniżej minuty",
-        toolsSmall: "36 narzędzi",
-        examplesSmall: "przykłady na żywo",
-        liveStatsSmall: "od otwarcia strony",
-        alternatives: "Alternatywy",
-        alternativesSmall: "zmiana aplikacji",
-        support: "Wsparcie",
-        contact: "Kontakt",
         github: "GitHub",
-        privacy: "Prywatność",
-        terms: "Regulamin",
-        connectInMinute: "Połącz się w minutę",
     },
 
     footer: {
@@ -65,12 +53,12 @@ export const CHROME_PL: ChromeCopy = {
         contact: "Kontakt",
         privacyPolicy: "Polityka prywatności",
         termsOfService: "Regulamin",
-        note: "Darmowy i open source. Wartości odżywcze są szacunkowe, nie stanowią porady medycznej.",
+        note: "Darmowy projekt open source. Wartości odżywcze są szacunkowe i nie stanowią porady medycznej.",
     },
 
     consent: {
         title: "Analityczne pliki cookie.",
-        body: "Za Twoją zgodą Google Analytics i Microsoft Clarity pokazują nam, które strony pomagają i gdzie ludzie utykają. Nic się nie wczyta, dopóki nie wyrazisz zgody.",
+        body: "Za Twoją zgodą Google Analytics zlicza odwiedziny, a Microsoft Clarity rejestruje kliknięcia i przewijanie w postaci nagrań sesji, abyśmy wiedzieli, które strony są pomocne, a gdzie użytkownicy się gubią. Żadne z nich nie uruchomi się, dopóki nie wyrazisz zgody.",
         accept: "Akceptuj",
         reject: "Odrzuć",
         settings: "Ustawienia plików cookie",

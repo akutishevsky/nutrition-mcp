@@ -140,23 +140,11 @@ export interface ChromeCopy {
     openMenuAriaLabel: string;
     closeMenuAriaLabel: string;
 
-    /** The mobile slide-out menu — nav items repeat nav.* concepts with a
-     * trailing <small> hint, plus items the desktop nav omits. */
+    /** The mobile slide-out menu. Its nav rows reuse nav.*; the only
+     * string of its own is the GitHub link in its foot. */
     menu: {
-        howSmall: string;
-        installSmall: string;
-        toolsSmall: string;
-        examplesSmall: string;
-        liveStatsSmall: string;
-        alternatives: string;
-        alternativesSmall: string;
-        support: string;
-        contact: string;
         /** The GitHub text link (distinct from the header's icon-button aria-label). */
         github: string;
-        privacy: string;
-        terms: string;
-        connectInMinute: string;
     };
 
     footer: {
@@ -235,19 +223,7 @@ export const CHROME_EN: ChromeCopy = {
     closeMenuAriaLabel: "Close menu",
 
     menu: {
-        howSmall: "3 steps",
-        installSmall: "under a minute",
-        toolsSmall: "36 tools",
-        examplesSmall: "live demos",
-        liveStatsSmall: "since you opened",
-        alternatives: "Alternatives",
-        alternativesSmall: "switching apps",
-        support: "Support",
-        contact: "Contact",
         github: "GitHub",
-        privacy: "Privacy",
-        terms: "Terms",
-        connectInMinute: "Connect in a minute",
     },
 
     footer: {
@@ -265,7 +241,7 @@ export const CHROME_EN: ChromeCopy = {
 
     consent: {
         title: "Analytics cookies.",
-        body: "With your permission, Google Analytics and Microsoft Clarity show us which pages help and where people get stuck. Nothing loads until you accept.",
+        body: "With your permission, Google Analytics counts visits and Microsoft Clarity records clicks and scrolling as session replays, so we can see which pages help and where people get stuck. Neither loads until you accept.",
         accept: "Accept",
         reject: "Reject",
         settings: "Cookie settings",

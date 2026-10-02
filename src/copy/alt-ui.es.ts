@@ -3,134 +3,138 @@ import type { AltUiCopy } from "./alt-ui.js";
 export const ALT_UI_ES: AltUiCopy = {
     breadcrumbHome: "Inicio",
     breadcrumbAlternatives: "Alternativas",
+    breadcrumbAriaLabel: "Ruta de navegación",
     ctaQuickInstall: "Instalación rápida",
-    ctaClosingTitle: "Controla tu nutrición dentro de la IA que ya usas.",
+    ctaClosingTitle: "Controla tu nutrición desde la IA que ya usas.",
     disclaimerAppHtml:
-        "{app} es una marca comercial de su respectivo propietario. Nutrition MCP es un proyecto independiente y de código abierto, y no está afiliado a {app} ni cuenta con su patrocinio o respaldo. Las comparaciones reflejan información disponible públicamente en el momento de su redacción y pueden cambiar.",
+        "{app} es una marca comercial de su respectivo propietario. Nutrition MCP es un proyecto independiente y de código abierto, y no está afiliado a {app} ni cuenta con su patrocinio o respaldo. Las comparaciones reflejan la información disponible públicamente en el momento de su redacción y pueden cambiar.",
     disclaimerHubHtml:
-        "{apps} y otros nombres de producto son marcas comerciales de sus respectivos propietarios. Nutrition MCP es un proyecto independiente y de código abierto, y no está afiliado a ellos ni cuenta con su respaldo. Las comparaciones reflejan información disponible públicamente en el momento de su redacción y pueden cambiar.",
+        "{apps} y otros nombres de producto son marcas comerciales de sus respectivos propietarios. Nutrition MCP es un proyecto independiente y de código abierto, y no está afiliado a ellos ni cuenta con su respaldo. Las comparaciones reflejan la información disponible públicamente en el momento de su redacción y pueden cambiar.",
 
     app: {
         heroEyebrow: "Alternativa a {app}",
         heroTitleHtml: "¿Buscas un servidor <em>MCP de {app}</em>?",
         heroLead:
-            "{app} no tiene uno, así que no puedes usarlo dentro de Claude o ChatGPT. Nutrition MCP hace el mismo trabajo por conversación, y es gratis y de código abierto.",
+            "{app} no publica ninguno que puedas conectar, así que no puedes llevar tu diario de {app} desde Claude o ChatGPT. Nutrition MCP hace lo mismo con solo conversar, y es gratis y de código abierto.",
         ctaConnect: "Conéctate en menos de un minuto",
         ctaSeeComparison: "Ver la comparación",
 
         answerEyebrow: "La respuesta corta",
-        answerTitle: "No, {app} no tiene servidor MCP.",
+        answerTitle:
+            "No: {app} no tiene ningún servidor MCP oficial y público.",
         answerBodyHtml:
-            "El Model Context Protocol (MCP) es el estándar abierto que permite a asistentes de IA como Claude y ChatGPT conectarse a herramientas externas. {app} no publica un servidor MCP, así que no hay ninguna forma oficial de registrar comida en él desde tu IA. Si buscaste &ldquo;{app} MCP&rdquo; o &ldquo;conectar {app} a Claude,&rdquo; lo que realmente buscas es un registro de nutrición que viva <em>dentro</em> de tu IA — eso es exactamente lo que es Nutrition MCP.",
+            "El Model Context Protocol (MCP) es el estándar abierto que permite a asistentes de IA como Claude y ChatGPT conectarse a herramientas externas. {app} no publica ningún servidor MCP público, así que no hay ninguna forma oficial de registrar comidas en tu diario de {app} desde tu IA. Si buscaste «{app} MCP» o «conectar {app} a Claude», lo que de verdad buscas es un registro nutricional que funcione <em>dentro</em> de tu IA, y eso es justo Nutrition MCP.",
 
-        insteadEyebrow: "Lo que obtienes en su lugar",
-        insteadTitle: "El mismo seguimiento, solo con hablar",
+        insteadEyebrow: "Lo que obtienes a cambio",
+        insteadTitle: "El mismo seguimiento, con solo hablar",
         features: [
             {
-                title: "Comidas en lenguaje sencillo",
-                body: "Di &ldquo;avena con plátano y mantequilla de maní&rdquo; — tu IA estima las calorías y los macros, fibra, azúcares totales y cafeína incluidos, y lo registra. Sin buscar en ninguna base de datos.",
+                title: "Comidas con tus propias palabras",
+                body: "Di «avena con plátano y mantequilla de maní» y tu IA estima las calorías y los macros (fibra, azúcares totales y cafeína incluidos) y lo registra. Sin buscar en ninguna base de datos.",
             },
             {
-                title: "Escaneo de código de barras — gratis",
-                body: "Envía el código de barras de un producto y obtén los macros de la etiqueta desde Open Food Facts — fibra y azúcar también, cuando la etiqueta los indica. Sin suscripción Premium para desbloquearlo.",
+                title: "Escaneo de códigos de barras, gratis",
+                body: "Envía el código de barras de un producto y obtén los macros de la etiqueta desde Open Food Facts, también la fibra y el azúcar cuando la etiqueta los indica. Gratis para todos y sin suscripción.",
             },
             {
-                title: "Peso &amp; objetivos",
-                body: "Registra tu peso corporal en kg o lb, define objetivos de calorías, macros, fibra, azúcar, cafeína y agua — la fibra como meta a alcanzar, el azúcar y la cafeína como límites que no superar — y sigue la tendencia hacia un peso objetivo. El seguimiento de alcohol también está disponible, opcional y desactivado a menos que lo actives.",
+                title: "Peso y objetivos",
+                body: "Registra tu peso en kg o lb; fija objetivos de calorías, macros, fibra, azúcar, cafeína y agua (la fibra como mínimo que alcanzar; el azúcar y la cafeína como límites que no superar) y sigue tu tendencia hacia un peso objetivo. También puedes registrar el alcohol: es opcional y está desactivado hasta que lo actives.",
             },
             {
-                title: "Resúmenes &amp; tendencias",
-                body: "Pide totales diarios, tendencias semanales, rachas y patrones de comida recurrentes — directamente en el chat.",
+                title: "Resúmenes y tendencias",
+                body: "Pide totales diarios, tendencias semanales, rachas y patrones de comidas que se repiten, directamente en el chat.",
             },
             {
-                title: "Importa &amp; controla tus datos",
-                body: "Importa tu historial de comidas desde la exportación CSV de otra app — analizada en tu navegador, no por la IA. Sácalo todo de nuevo cuando quieras: un ZIP con tus comidas, agua, peso, objetivos y perfil, además del registro de tu cuenta, la telemetría de uso y las apps conectadas, como archivos CSV. Por ahora, las comidas son la única parte que se puede volver a importar. O elimina tu cuenta, con la misma facilidad.",
+                title: "Importa y controla tus datos",
+                body: "Importa tu historial de comidas desde la exportación CSV de otra app: el archivo se analiza en tu navegador, no lo procesa la IA. Llévatelo todo cuando quieras: un ZIP con tus comidas, agua, peso, objetivos y perfil, además de los datos de tu cuenta, la telemetría de uso y las apps conectadas, en archivos CSV. Por ahora, las comidas son lo único que se puede volver a importar. O elimina tu cuenta, igual de fácil.",
             },
             {
-                title: "Código abierto &amp; gratis",
-                body: "Con licencia MIT y autoalojable — sin anuncios, sin muro de pago, sin ventas adicionales. Audita el código o ejecuta tu propia instancia.",
+                title: "Código abierto y gratis",
+                body: "Con licencia MIT y autoalojable: sin anuncios, sin muro de pago, sin ventas adicionales. Revisa el código o ejecuta tu propia instancia.",
             },
         ],
 
         compareEyebrow: "{app} vs. Nutrition MCP",
-        compareTitle: "Cómo se comparan",
+        otherComparisonsLabel: "Otras comparaciones:",
+        compareTitle: "Cara a cara",
         pros: [
-            "Creado como servidor MCP — vive dentro de Claude &amp; ChatGPT",
-            "Describe las comidas en lenguaje sencillo; calorías, macros, fibra, azúcar &amp; cafeína estimados para ti",
-            "Escaneo de código de barras, tendencias, importación &amp; exportación CSV — todo gratis",
-            "Sin app aparte, sin anuncios, código abierto",
+            "Creado como servidor MCP: funciona dentro de Claude y ChatGPT",
+            "Describe tus comidas con tus palabras y obtén una estimación de calorías, macros, fibra, azúcar y cafeína",
+            "Escaneo de códigos de barras, tendencias, importación y exportación CSV: todo gratis",
+            "Sin app aparte, sin anuncios, de código abierto",
         ],
 
-        movingEyebrow: "Cambiando desde {app}",
+        movingEyebrow: "Si vienes de {app}",
 
         importEyebrow: "Tu historial de {app}",
         importSub:
-            "Pide importar y un importador se abre directamente en el chat: elige tu exportación, mapea las columnas, previsualiza lo que se añadirá y confirma. El archivo se lee en tu navegador — la IA nunca ve las filas. En clientes sin paneles integrados en el chat, pega tu exportación en su lugar.",
+            "Pide importar y se abre un importador directamente en el chat: elige tu exportación, asigna las columnas, revisa lo que se añadirá y confirma. El archivo se lee en tu navegador: la IA nunca ve las filas. Si tu cliente no muestra paneles en el chat, pega la exportación directamente.",
 
         switchEyebrow: "Cómo cambiarte",
         switchSub:
-            "Funciona con cualquier cliente MCP compatible con OAuth 2.0 con PKCE. En la primera conexión creas una cuenta con Google o con un correo y una contraseña.",
+            "Funciona con cualquier cliente MCP compatible con OAuth 2.0 con PKCE. La primera vez que te conectas, creas una cuenta con Google o con correo y contraseña.",
         installSteps: [
-            'Abre <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener">Nutrition MCP en el directorio de Claude</a>.',
-            "Haz clic en <strong>Conectar</strong> e inicia sesión con Google o con un correo y una contraseña.",
-            "Empieza a registrar diciendo lo que comiste.",
+            'Abre <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener noreferrer">Nutrition MCP en el directorio de Claude</a>.',
+            "Haz clic en <strong>Conectar</strong> e inicia sesión con Google o con correo y contraseña.",
+            "Empieza a registrar: solo di lo que comiste.",
         ],
         installNoteTemplate:
-            "¿Usas ChatGPT u otro cliente en su lugar? La {link} cubre ChatGPT, Cursor, VS Code, Claude Code y más.",
+            "¿Usas ChatGPT u otro cliente? La {link} explica cómo conectarlo en ChatGPT, Cursor, VS Code, Claude Code y más.",
         installLinkText: "guía de instalación completa",
 
-        faqEyebrow: "FAQ",
-        faqTitleTemplate: "Preguntas sobre {app} &amp; MCP",
+        faqEyebrow: "Preguntas frecuentes",
+        faqTitleTemplate: "Preguntas sobre {app} y MCP",
         faq: {
-            mcpQ: "¿Tiene {app} servidor MCP?",
-            mcpA: "No. {app} no ofrece un servidor del Model Context Protocol (MCP), así que no hay ninguna forma oficial de conectarlo a Claude, ChatGPT u otros asistentes de IA. Nutrition MCP es una alternativa gratuita y de código abierto, creada como servidor MCP desde cero, para que puedas registrar comidas y macros directamente dentro de tu IA.",
+            mcpQ: "¿{app} tiene un servidor MCP?",
+            mcpA: "Oficialmente, no. {app} no publica ningún servidor público del Model Context Protocol (MCP), así que no hay ninguna forma oficial de registrar en tu diario de {app} desde Claude, ChatGPT u otros clientes MCP. Existen algunos servidores no oficiales creados por la comunidad, pero {app} no los desarrolla ni les da soporte. Nutrition MCP es distinto: un registro nutricional gratuito y de código abierto, creado desde cero como servidor MCP, con su propia cuenta, que puede importar tu exportación CSV de {app}.",
             connectQ: "¿Cómo conecto {app} a Claude?",
             connectA:
-                "No existe un conector oficial de {app} para Claude, porque {app} no tiene servidor MCP ni integración MCP pública. La opción más cercana es Nutrition MCP, un servidor MCP gratuito que aparece en el directorio de Claude: ábrelo en https://claude.ai/directory/nutrition-mcp, haz clic en Conectar, inicia sesión y empieza a registrar por conversación.",
+                "No existe un conector oficial de {app} para Claude, porque {app} no publica ningún servidor MCP público. Una opción es Nutrition MCP, un servidor MCP gratuito que figura en el directorio de Claude: ábrelo en https://claude.ai/directory/nutrition-mcp, haz clic en Conectar, inicia sesión y empieza a registrar conversando.",
             goodAltQ: "¿Es Nutrition MCP una buena alternativa a {app}?",
             goodAltA:
-                "Si quieres controlar calorías, macros — fibra, azúcares totales y cafeína incluidos —, agua y peso sin abrir una app aparte ni buscar en una base de datos de alimentos, sí. En vez de navegar por una base de datos, describes lo que comiste en lenguaje sencillo, envías una foto o escaneas un código de barras, y tu IA lo registra — completamente gratis y de código abierto.",
+                "Si quieres controlar calorías, macros (fibra, azúcares totales y cafeína incluidos), agua y peso sin abrir una app aparte ni buscar en una base de datos de alimentos, sí. En vez de ir tocando pantallas en una base de datos, describes con tus palabras lo que comiste, envías una foto o escaneas un código de barras, y tu IA lo registra. Totalmente gratis y de código abierto.",
             importQ: "¿Puedo importar mis datos de {app}?",
-            readExportQ: "¿Lee la IA mi archivo de exportación al importar?",
+            readExportQ: "¿La IA lee mi archivo de exportación al importar?",
             readExportA:
-                "No cuando se abre el importador. Analiza el CSV en tu navegador y te muestra qué se añadirá antes de escribir nada: cuántas comidas, el total de calorías, cualquier cosa que tuviera que marcar, y las propias filas — un archivo largo muestra las primeras junto con un recuento del resto en vez de cada línea. Solo se envían las filas que confirmas, y viajan como datos estructurados en lugar de pasar por la respuesta de la IA, así que ninguna fila puede transcribirse mal ni inventarse en el camino. Cada fila también lleva una huella de contenido, así que volver a ejecutar el mismo archivo informa que esas comidas ya están registradas en vez de duplicarlas, siempre que tu zona horaria no haya cambiado entretanto. Si tu cliente no puede mostrar paneles integrados en el chat, la alternativa es pegar la exportación — la IA sí la lee por ese camino, así que prefiere el importador cuando puedas elegir.",
-            freeQ: "¿Es gratis Nutrition MCP?",
+                "No, si usas el importador. El importador analiza el CSV en tu navegador y te muestra lo que se añadirá antes de guardar nada: cuántas comidas, el total de calorías, lo que haya tenido que señalar y las propias filas (en un archivo largo verás las primeras y cuántas quedan, no todas las líneas). Solo se envían las filas que confirmas, y van como datos estructurados en lugar de pasar por la respuesta de la IA, así que ninguna fila puede copiarse mal ni inventarse por el camino. Además, cada fila lleva una huella de contenido: si vuelves a pasar el mismo archivo, verás que esas comidas ya están registradas en vez de duplicarse, siempre que tu zona horaria no haya cambiado entretanto. Si tu cliente no puede mostrar paneles en el chat, la alternativa es pegar la exportación; en ese caso la IA sí la lee, así que, si puedes elegir, mejor usa el importador.",
+            freeQ: "¿Nutrition MCP es gratis?",
             freeAFallback:
-                "Sí. Nutrition MCP es completamente gratis, sin nivel premium, anuncios ni funciones detrás de un muro de pago — a diferencia de apps que ponen algunas funciones tras una suscripción. Solo necesitas una cuenta de Claude o ChatGPT para conectarte.",
+                "Sí. Nutrition MCP es completamente gratis: sin plan premium, sin anuncios y sin funciones de pago, a diferencia de las apps que reservan algunas funciones para la suscripción. Necesitas una app de IA compatible con MCP, como Claude o ChatGPT, y una cuenta gratuita de Nutrition MCP, que creas con Google o con correo y contraseña la primera vez que te conectas.",
         },
         importFallbackNote:
-            " En clientes sin paneles integrados en el chat puedes pegar tu exportación en su lugar.",
+            " Si tu cliente no muestra paneles en el chat, puedes pegar la exportación directamente.",
 
         ctaClosingSub:
-            "Gratis y de código abierto — sin cuenta de {app}, sin app que abrir.",
+            "Gratis y de código abierto. Sin cuenta de {app} y sin otra app que abrir.",
         ctaOtherAlternatives: "Otras alternativas",
     },
 
     hub: {
         heroEyebrow: "Alternativas MCP",
-        heroTitleHtml: "Tu app de nutrición no tiene <em>servidor MCP</em>.",
+        heroTitleHtml:
+            "Tu app de nutrición no tiene un <em>servidor MCP</em> oficial.",
         heroLead:
-            "Apps como MyFitnessPal, Cronometer y Lose It! no pueden conectarse a Claude o ChatGPT. Nutrition MCP es la forma gratuita y de código abierto de controlar comidas, macros y peso hablando con tu IA.",
+            "Apps como MyFitnessPal, Cronometer y Lose It! no ofrecen ninguna forma oficial de llevar tu diario desde Claude o ChatGPT. Nutrition MCP es una forma gratuita y de código abierto de controlar comidas, macros y peso hablando con tu IA, y además importa tu historial.",
         ctaSeeExamples: "Ver ejemplos",
 
-        appsEyebrow: "Cambiando desde…",
-        appsTitle: "Elige tu app actual",
+        appsEyebrow: "¿Vienes de…?",
+        appsTitle: "Elige la app que usas ahora",
         appsSub:
-            "Descubre cómo se compara Nutrition MCP con el tracker que usas hoy — y cómo trasladar tu registro, y tu historial existente, a tu IA.",
+            "Descubre cómo se compara Nutrition MCP con la app que usas hoy y cómo trasladar a tu IA tanto el registro diario como tu historial.",
         noAppNote:
-            "¿No ves tu app? Casi con toda seguridad tampoco tiene servidor MCP — Nutrition MCP funciona igual sin importar desde dónde te cambies.",
-        requestComparisonLinkText: "Solicita una comparación",
+            "¿No ves tu app? La mayoría de las apps de nutrición tampoco publican un servidor MCP oficial, y Nutrition MCP funciona igual vengas de donde vengas.",
+        requestComparisonLinkText: "Pide una comparación",
 
         importEyebrow: "Trae tu historial",
         importTitle: "No tienes que empezar de cero",
         importSub:
-            "El motivo habitual por el que la gente no se cambia son los años ya registrados. Pide importar y un importador se abre directamente en el chat: elige tu exportación, mapea las columnas, previsualiza lo que se añadirá y confirma — o pega la exportación si tu cliente no tiene paneles integrados en el chat.",
+            "Lo que suele retener a la gente son los años que ya tiene registrados. Pide importar y se abre un importador directamente en el chat: elige tu exportación, asigna las columnas, revisa lo que se añadirá y confirma. Si tu cliente no tiene paneles en el chat, pega la exportación directamente.",
         importBody: [
-            "El archivo se analiza en tu navegador, no lo lee la IA — así que las filas no pueden transcribirse mal al entrar, y ves las comidas exactas antes de que se escriba ninguna. Las exportaciones de MyFitnessPal, Cronometer, Lose It! y MacroFactor tienen sus columnas reconocidas por nombre; cualquier otro CSV también funciona, solo tienes que apuntar el mapeador a cada columna una vez. Lo que se transfiere es la fecha y la hora, el alimento, la comida, calorías, proteína, carbohidratos, grasa, fibra, azúcares totales y cafeína en miligramos — y también alcohol, si antes has activado su seguimiento.",
-            "Las partes complicadas de los archivos de exportación reales están cubiertas: fechas DD/MM/AAAA y MM/DD/AAAA, energía en kilojulios además de kilocalorías, archivos europeos delimitados por punto y coma cuyos números usan coma decimal, campos entre comillas con saltos de línea dentro, filas de totales al final y marcas de fila eliminada. Los encabezados de columna tampoco tienen que estar en inglés — se reconocen el Kalorien o Ballaststoffe de una exportación alemana, y fibra, azúcar y cafeína también se emparejan en español, francés, italiano y neerlandés. Cuando un archivo es realmente ambiguo — 05/06 podría ser mayo o junio — el importador muestra su lectura junto a una fila de tu propio archivo y te pide que la confirmes en vez de adivinar. Y cada fila lleva una huella de contenido, así que volver a importar el mismo archivo informa que las comidas ya están registradas en vez de duplicarlas, siempre que tu zona horaria no haya cambiado entretanto.",
+            "El archivo lo analiza tu navegador, no lo lee la IA, así que ninguna fila puede copiarse mal al entrar, y ves exactamente qué comidas se añadirán antes de que se guarde ninguna. En las exportaciones de MyFitnessPal, Cronometer, Lose It! y MacroFactor, las columnas se reconocen por su nombre; cualquier otro CSV también sirve: solo tienes que asignar cada columna una vez. Se transfieren la fecha y la hora, el alimento, la comida, las calorías, la proteína, los carbohidratos, la grasa, la fibra, los azúcares totales y la cafeína en miligramos, y también el alcohol, si antes has activado su seguimiento.",
+            "Las complicaciones de los archivos de exportación reales están resueltas: fechas DD/MM/AAAA y MM/DD/AAAA, energía en kilojulios además de kilocalorías, archivos europeos separados por punto y coma con coma decimal, campos entre comillas con saltos de línea dentro, filas de totales al final y marcas de fila eliminada. Los encabezados tampoco tienen que estar en inglés: se reconocen Kalorien o Ballaststoffe en una exportación alemana, y la fibra, el azúcar y la cafeína también se identifican en español, francés, italiano y neerlandés. Cuando un archivo es ambiguo de verdad (05/06 puede ser mayo o junio), el importador muestra cómo lo interpreta junto a una fila de tu propio archivo y te pide que lo confirmes en vez de adivinar. Y cada fila lleva una huella de contenido, así que si vuelves a importar el mismo archivo, verás que esas comidas ya están registradas en vez de duplicarse, siempre que tu zona horaria no haya cambiado entretanto.",
         ],
 
-        ctaSub: "Gratis y de código abierto — funciona con Claude, ChatGPT y cualquier cliente MCP.",
+        ctaSub: "Gratis y de código abierto. Funciona con Claude, ChatGPT y cualquier cliente MCP.",
         ctaStarGithub: "Danos una estrella en GitHub",
     },
 };

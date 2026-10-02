@@ -6,16 +6,18 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_DE: ToolsDoc = {
     meta: {
-        title: "Werkzeug-Referenz: Alle 36 Werkzeuge",
+        title: "36 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
         description:
-            "Alle 36 Werkzeuge, die der Nutrition-MCP-Server deiner KI gibt — Mahlzeiten erfassen, Barcodes scannen, deine Historie aus einer anderen App importieren, Wasser und Gewicht verfolgen, Ziele festlegen und Trends auswerten. Vollständige Referenz mit Beschreibungen und Beispielsätzen.",
+            "Alle 36 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser und Gewicht tracken.",
         ogDescription:
-            "Alle 36 Werkzeuge, die der Nutrition-MCP-Server deiner KI gibt, inklusive eines CSV-Importers für deine Historie aus einer anderen App — mit Beschreibungen und Beispielsätzen.",
+            "Alle 36 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – inklusive CSV-Importer für deinen Verlauf aus einer anderen App, mit Beschreibungen und Beispielsätzen.",
     },
     hero: {
         eyebrow: "Referenz",
-        title: "Alles, was deine KI kann",
-        lead: "Du rufst diese Werkzeuge nie selbst auf — du sprichst einfach, und der Assistent wählt das richtige Werkzeug. Hier ist die vollständige Liste, die der Nutrition-MCP-Server bereitstellt, mit dem, was jedes tut, und einem Satz, der es auslöst.",
+        titleBeforeEm: "Alles, was deine KI ",
+        titleEm: "kann",
+        titleAfterEm: "",
+        lead: "Du rufst diese Werkzeuge nie selbst auf – du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und der wählt das passende Werkzeug. Hier findest du jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt – jeweils mit Beschreibung und einem Beispielsatz, der es auslöst.",
         countBold: "36 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
@@ -24,31 +26,31 @@ export const TOOLS_DE: ToolsDoc = {
             pillLabel: "Erfassen",
             title: "Essen & Mahlzeiten erfassen",
             description:
-                "Der Kern — halte fest, was du gegessen hast, egal wie du es beschreibst.",
+                "Das Herzstück – halte fest, was du gegessen hast, egal wie du es beschreibst.",
         },
         "reviewing-your-meals": {
-            pillLabel: "Auswerten",
-            title: "Deine Mahlzeiten durchsehen",
+            pillLabel: "Rückblick",
+            title: "Deine Mahlzeiten im Rückblick",
             description:
-                "Sieh dir an, was du erfasst hast — einen Tag oder einen ganzen Zeitraum auf einmal.",
+                "Sieh dir an, was du erfasst hast – einen Tag oder einen ganzen Zeitraum auf einmal.",
         },
         water: {
             pillLabel: "Wasser",
-            title: "Wasser",
+            title: "Wasser-Tracking",
             description:
-                "Verfolge deine Flüssigkeitszufuhr neben deinem Essen.",
+                "Behalte deine Flüssigkeitszufuhr neben dem Essen im Blick.",
         },
         weight: {
             pillLabel: "Gewicht",
-            title: "Gewicht",
+            title: "Gewichts-Tracking",
             description:
-                "Erfasse Wiegungen, sieh sie dir an und beobachte den Trend zu deinem Ziel.",
+                "Erfasse Messungen, sieh sie dir an und verfolge den Trend Richtung Zielgewicht.",
         },
         "goals-progress": {
             pillLabel: "Ziele",
             title: "Ziele & Fortschritt",
             description:
-                "Leg Ziele fest und sieh, wie jeder Tag im Vergleich abschneidet.",
+                "Leg Ziele fest und sieh, wie jeder Tag dabei abschneidet.",
         },
         "insights-trends": {
             pillLabel: "Einblicke",
@@ -60,7 +62,7 @@ export const TOOLS_DE: ToolsDoc = {
             pillLabel: "Einstellungen",
             title: "Einstellungen & Konto",
             description:
-                "Einstellungen, die alles genau halten, plus volle Kontrolle über deine Daten.",
+                "Einstellungen, damit alle Werte stimmen, plus volle Kontrolle über deine Daten.",
         },
     },
     badges: {
@@ -78,12 +80,13 @@ export const TOOLS_DE: ToolsDoc = {
         parametersLabel: "Parameter",
         requiredLabel: "erforderlich",
         optionalLabel: "optional",
-        trySayingLabel: "Probier zu sagen",
+        trySayingLabel: "Sag zum Beispiel",
+        categoriesLabel: "Werkzeugkategorien",
     },
     tools: {
         log_meal: {
             description:
-                "Erfasse, was du gegessen hast, mit Kalorien und Makros — plus Ballaststoffe, Gesamtzucker, Alkohol und Koffein, wenn die Zahlen vorliegen. Beschreib es in normaler Sprache — die KI schätzt die Zahlen, fragt bei Unklarheit nach der Portionsgröße und kann vorab Angaben von einem Barcode oder aus dem Web holen.",
+                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus Ballaststoffen, Gesamtzucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen.",
             params: {
                 description: "Was gegessen wurde",
                 meal_type: "Frühstück, Mittagessen, Abendessen oder Snack",
@@ -92,58 +95,59 @@ export const TOOLS_DE: ToolsDoc = {
                 carbs_g: "Kohlenhydrate in Gramm",
                 fat_g: "Fett in Gramm",
                 fiber_g:
-                    "Ballaststoffe in Gramm. Die KI wird angewiesen, dies bei jeder Mahlzeit auszufüllen und bei fehlender Etikettenangabe aus den Zutaten zu schätzen, denn ein leeres Feld ist keine Null — es lässt den ganzen Tag aus deinem Ballaststoff-Durchschnitt herausfallen",
+                    "Ballaststoffe in Gramm. Die KI soll das bei jeder Mahlzeit ausfüllen und den Wert aus den Zutaten schätzen, wenn kein Etikett ihn nennt, denn ein leeres Feld ist keine Null – es nimmt den ganzen Tag aus deinem Ballaststoffdurchschnitt heraus",
                 sugar_g:
-                    '<b>Gesamt</b>zucker in Gramm — die Zahl, die ein Etikett unter „Zucker" angibt, einschließlich des natürlich in Obst und Milch enthaltenen Zuckers, nicht nur zugesetzter Zucker. Wird bei jeder Mahlzeit unter den gleichen Bedingungen wie Ballaststoffe ausgefüllt',
+                    "<b>Gesamt</b>zucker in Gramm – der Wert, der auf dem Etikett unter „davon Zucker“ steht, inklusive des natürlichen Zuckers in Obst und Milch, nicht nur zugesetzter Zucker. Wird bei jeder Mahlzeit nach denselben Regeln ausgefüllt wie Ballaststoffe",
                 alcohol_g:
-                    "Gramm <b>reinen Alkohols</b>, nicht die Menge des Getränks und nicht sein Alkoholgehalt in Prozent — die KI errechnet es aus Menge und Stärke (ein 330-ml-Bier mit 5 % ergibt 13 g)",
+                    "Gramm <b>reinen Alkohols</b>, nicht die Menge des Getränks und nicht sein Alkoholgehalt in Prozent – die KI errechnet den Wert aus Menge und Stärke (ein 330-ml-Bier mit 5 % sind 13 g)",
                 caffeine_mg:
-                    "Koffein in <b>Milligramm</b>, nicht Gramm — das einzige Feld hier, das nicht in Gramm ist, weil so jedes Etikett und jede Richtlinie es angibt (ein gebrühter Kaffee hat etwa 95 mg, ein Espresso 63 mg, eine Dose Cola 34 mg). Koffein liefert keine Kalorien. Anders als Ballaststoffe und Zucker wird es nur bei Dingen gesendet, die tatsächlich Koffein enthalten — eine erfasste 0 würde eine Koffein-Zeile in deinem Dashboard für einen Nährstoff anzeigen, den du nie konsumierst",
+                    "Koffein in <b>Milligramm</b>, nicht Gramm – das einzige Feld hier, das nicht in Gramm angegeben wird, weil jedes Etikett und jede Empfehlung Koffein so angibt (ein Filterkaffee hat etwa 95 mg, ein Espresso 63 mg, eine Dose Cola 34 mg). Koffein liefert keine Kalorien. Anders als Ballaststoffe und Zucker wird es nur bei Dingen gesendet, die tatsächlich Koffein enthalten – eine erfasste 0 würde in deinem Dashboard eine Koffein-Zeile für einen Nährstoff anzeigen, den du gar nicht zu dir nimmst",
                 logged_at:
-                    "Wann du es gegessen hast, falls nicht jetzt — erlaubt das nachträgliche Erfassen",
+                    "Wann du es gegessen hast, falls nicht gerade eben – so lässt sich etwas nachträglich erfassen",
                 notes: "Zusätzliche Notizen",
             },
             example:
-                "Erfasse eine Chicken-Burrito-Bowl mit extra Guacamole zum Mittagessen",
+                "Trag eine Chicken-Burrito-Bowl mit extra Guacamole als Mittagessen ein",
             photoHint:
-                "…oder mach einfach ein Foto von deinem Teller — die KI benennt jedes Gericht, schätzt Portionen in alltäglichen Maßen (ein Glas, eine Handvoll), prüft, wie du es früher erfasst hast, und bestätigt mit dir, bevor sie es erfasst.",
+                "…oder mach einfach ein Foto von deinem Teller – die KI benennt jedes Gericht, schätzt die Portionen in Alltagsmaßen (ein Glas, eine Handvoll), schaut nach, wie du es früher erfasst hast, und holt sich deine Bestätigung, bevor sie es einträgt.",
         },
         lookup_barcode: {
             description:
-                "Ruf die Nährwertangaben eines verpackten Produkts anhand seines Barcodes (8–14-stelliger EAN/UPC) von Open Food Facts ab. Du kannst die Ziffern eintippen oder sie von einem Foto der Verpackung ablesen lassen; das Ergebnis kann dann erfasst werden, skaliert auf die gegessene Menge.",
+                "Hol dir die Nährwertangaben eines verpackten Produkts per Barcode (8- bis 14-stelliger EAN/UPC-Code) von Open Food Facts, dazu Nutri-Score und NOVA-Gruppe (Verarbeitungsgrad), sofern Open Food Facts sie kennt. Du kannst die Ziffern eintippen oder von einem Foto der Verpackung ablesen lassen; das Ergebnis lässt sich dann erfassen, umgerechnet auf die Menge, die du gegessen hast.",
             params: {},
-            example: "Scanne diesen Barcode: 3017620422003",
+            example: "Scann diesen Barcode: 3017620422003",
             photoHint:
-                "…oder schick ein Foto der Verpackung — die KI liest die Barcode-Ziffern davon ab.",
+                "…oder schick ein Foto der Verpackung – die KI liest die Barcode-Ziffern davon ab.",
         },
         start_meal_import: {
             description:
-                "Öffne einen Importer im Chat, um deine Historie aus einer anderen App zu übernehmen — wähl die Datei, die du aus MyFitnessPal, Cronometer, Lose It! oder MacroFactor exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Zucker und Koffein zu — plus Alkohol, falls du die Alkohol-Erfassung aktiviert hast — und sieh dir an, was hinzugefügt wird, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, nichts wird gespeichert, bis du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
+                "Öffne im Chat einen Importer, um deinen Verlauf aus einer anderen App zu übernehmen: Wähl die CSV, die du aus MyFitnessPal, Cronometer, Lose It!, MacroFactor oder einem anderen Tracker exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Zucker und Koffein zu – plus Alkohol, falls du die Alkohol-Erfassung eingeschaltet hast – und prüf in der Vorschau, was dazukommt, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, gespeichert wird erst, wenn du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
             params: {},
-            example: "Importiere meine Mahlzeiten-Historie aus MyFitnessPal",
+            example: "Importier meinen Mahlzeiten-Verlauf aus MyFitnessPal",
         },
         bulk_import_meals: {
             description:
-                "Füge eine Reihe vergangener Mahlzeiten auf einmal hinzu — bis zu 50 pro Aufruf — statt sie einzeln zu erfassen. Der Importer oben schreibt darüber, und die KI kann es direkt für Mahlzeitendaten nutzen, die du in den Chat eingefügt hast. Jede Zeile wird zuerst geprüft, und alles, was nicht passt, wird zeilenweise gemeldet, sodass ein erneutes Senden derselben Zeilen sicher ist und nichts verdoppelt, was bereits erfasst ist — solange sich deine Zeitzone zwischendurch nicht geändert hat.",
+                "Füge viele vergangene Mahlzeiten auf einmal hinzu – bis zu 50 pro Aufruf –, statt sie einzeln zu erfassen. Der Importer oben speichert über dieses Werkzeug, und die KI kann es auch direkt für Mahlzeitendaten nutzen, die du in den Chat eingefügt hast. Jede Zeile wird vorab geprüft, und was nicht passt, wird Zeile für Zeile gemeldet. Dieselben Zeilen erneut zu senden ist daher sicher und verdoppelt nichts, was schon erfasst ist – solange sich deine Zeitzone zwischendurch nicht geändert hat.",
             params: {
-                meals: "Die zu importierenden Zeilen, in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann eine Uhrzeit, einen Mahlzeitentyp, eine Beschreibung, Notizen und dieselben Zahlen wie eine erfasste Mahlzeit tragen: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
+                meals: "Die zu importierenden Zeilen in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann Uhrzeit, Mahlzeitentyp, Beschreibung, Notizen und dieselben Werte wie eine erfasste Mahlzeit enthalten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
                 expected_row_count:
-                    "Wie viele Zeilen dieser Aufruf trägt, gezählt aus der Quelldatei, damit eine verlorene Zeile auffällt",
+                    "Wie viele Zeilen dieser Aufruf enthält, gezählt in der Quelldatei, damit eine verlorene Zeile auffällt",
                 expected_total_kcal:
-                    "Kalorien-Gesamtsumme aus der Quelldatei, abgeglichen mit dem, was ankommt",
-                dry_run: "Melde, was passieren würde, ohne etwas zu schreiben",
+                    "Kaloriensumme aus der Quelldatei, die mit dem abgeglichen wird, was ankommt",
+                dry_run:
+                    "Nur melden, was passieren würde, ohne etwas zu speichern",
                 on_error:
-                    "Importiere die gültigen Zeilen und melde den Rest, oder schreibe nichts, falls eine Zeile fehlschlägt",
+                    "Gültige Zeilen importieren und den Rest melden – oder gar nichts speichern, sobald eine Zeile fehlschlägt",
                 source_app: "Aus welcher App die Datei stammt",
             },
             example:
-                "Hier sind die Mahlzeiten der letzten Woche aus meiner alten App — trag sie alle ein",
+                "Hier sind meine Mahlzeiten von letzter Woche, kopiert aus meiner alten App – trag alle ein",
         },
         update_meal: {
             description:
-                "Ändere die Details einer bereits erfassten Mahlzeit — ihre Beschreibung, jeden Makro-, Ballaststoff-, Zucker-, Alkohol- oder Koffeinwert, die Uhrzeit oder Notizen. So wird auch eine Lücke nachträglich gefüllt: Ist eine Mahlzeit ohne Ballaststoffe oder Zucker erfasst worden, weist der Server darauf hin, und die KI trägt es hier nach, sobald du zustimmst.",
+                "Ändere eine bereits erfasste Mahlzeit – Beschreibung, beliebige Makros, Ballaststoffe, Zucker, Alkohol oder Koffein, Uhrzeit oder Notizen. Darüber werden auch Lücken nachgetragen: Wurde eine Mahlzeit ohne Ballaststoffe oder Zucker erfasst, weist der Server darauf hin, und die KI trägt die Werte hier nach, sobald du zustimmst.",
             params: {
-                id: "UUID der zu aktualisierenden Mahlzeit",
+                id: "UUID der zu ändernden Mahlzeit",
                 description: "",
                 calories: "",
                 protein_g: "",
@@ -158,7 +162,7 @@ export const TOOLS_DE: ToolsDoc = {
                 notes: "",
             },
             example:
-                "Das Mittagessen waren eigentlich 600 Kalorien, nicht 500 — korrigier das",
+                "Das Mittagessen hatte eigentlich 600 Kalorien, nicht 500 – korrigier das",
         },
         delete_meal: {
             description:
@@ -166,56 +170,58 @@ export const TOOLS_DE: ToolsDoc = {
             params: {
                 id: "UUID der zu löschenden Mahlzeit",
             },
-            example: "Lösch den Snack, den ich heute Nachmittag erfasst habe",
+            example:
+                "Lösch den Snack, den ich heute Nachmittag eingetragen habe",
         },
         search_meals: {
             description:
-                'Durchsuche deine vergangenen Mahlzeiten nach Stichwort und sieh sie gruppiert nach wiederkehrenden Varianten — wie oft jede erfasst wurde, wann zuletzt, und ihre typischen Kalorien. So gleicht die KI ein Foto deines Tellers damit ab, wie du diese Mahlzeit tatsächlich früher erfasst hast, und so funktioniert „erfasse mein übliches Frühstück".',
+                "Durchsuche deine bisherigen Mahlzeiten nach Stichwort, gruppiert nach den Varianten, die bei dir immer wiederkehren – wie oft jede erfasst wurde, wann zuletzt und mit wie vielen Kalorien typischerweise. So gleicht die KI ein Foto deines Tellers damit ab, wie du diese Mahlzeit bisher tatsächlich erfasst hast, und so funktioniert „trag mein übliches Frühstück ein“.",
             params: {
                 queries:
-                    "Alternative Stichwörter für das Lebensmittel, in jeder Sprache, in der du erfasst hast",
-                days: "Wie weit zurückgeschaut wird (Standard ein Jahr)",
-                limit: "Maximal zu analysierende Einträge",
+                    "Alternative Suchbegriffe für das Lebensmittel, in jeder Sprache, in der du schon erfasst hast",
+                days: "Wie weit zurückgesucht wird (Standard: ein Jahr)",
+                limit: "Maximale Anzahl ausgewerteter Einträge",
             },
-            example: "Erfasse mein übliches Frühstück",
+            example: "Trag mein übliches Frühstück ein",
         },
         get_meals_today: {
-            description: "Sieh alle Mahlzeiten, die du heute erfasst hast.",
+            description:
+                "Sieh dir alle Mahlzeiten an, die du heute erfasst hast.",
             params: {
-                detail: "<code>compact</code> (Standard) für eine Zeile pro Mahlzeit samt ihrer ID oder <code>full</code>, um Notizen und genaue Uhrzeiten mitzuliefern",
+                detail: "<code>compact</code> (Standard) für eine Zeile pro Mahlzeit samt ID oder <code>full</code> inklusive Notizen und genauer Uhrzeiten",
             },
             example: "Was habe ich heute gegessen?",
         },
         get_meals_by_date: {
             description:
-                "Sieh alle Mahlzeiten, die du an einem bestimmten Tag erfasst hast.",
+                "Sieh dir alle Mahlzeiten an, die du an einem bestimmten Tag erfasst hast.",
             params: {
                 date: "Datum im Format JJJJ-MM-TT",
-                detail: "<code>compact</code> (Standard) für eine Zeile pro Mahlzeit samt ihrer ID oder <code>full</code>, um Notizen und genaue Uhrzeiten mitzuliefern",
+                detail: "<code>compact</code> (Standard) für eine Zeile pro Mahlzeit samt ID oder <code>full</code> inklusive Notizen und genauer Uhrzeiten",
             },
             example: "Zeig mir alles, was ich am 4. Juli gegessen habe",
         },
         get_meals_by_date_range: {
             description:
-                "Ruf alle Mahlzeiten zwischen zwei Daten auf einmal ab — praktisch, um eine Woche oder einen Monat auszuwerten. Ein Aufruf deckt bis zu 31 Tage ab; für längere Zeiträume liefern Trends und Zusammenfassungen Tagessummen.",
+                "Ruf alle Mahlzeiten zwischen zwei Daten auf einmal ab – praktisch, um auf eine Woche oder einen Monat zurückzublicken. Ein Aufruf deckt bis zu 31 Tage ab; für längere Zeiträume liefern Trends und Übersichten Tagessummen.",
             params: {
                 start_date: "Startdatum (JJJJ-MM-TT)",
                 end_date:
-                    "Enddatum (JJJJ-MM-TT), höchstens 31 Tage einschließlich des Starttags",
-                detail: "<code>compact</code> (Standard) für eine Zeile pro Mahlzeit samt ihrer ID oder <code>full</code>, um Notizen und genaue Uhrzeiten mitzuliefern",
+                    "Enddatum (JJJJ-MM-TT), höchstens 31 Tage inklusive Starttag",
+                detail: "<code>compact</code> (Standard) für eine Zeile pro Mahlzeit samt ID oder <code>full</code> inklusive Notizen und genauer Uhrzeiten",
             },
-            example: "List meine Mahlzeiten von Montag bis Freitag auf",
+            example: "Liste meine Mahlzeiten von Montag bis Freitag auf",
         },
         export_all_data: {
             description:
-                "Exportiere alles, was der Dienst über dich speichert, als ein einziges ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Nutzungsdatensätze der Werkzeuge), connections.csv (deine verbundenen KI-Apps, ohne Tokens) und eine README.txt, die die Spalten, die Einheiten und das, was nicht enthalten ist, erklärt — mit demselben privaten Link, 60 Minuten gültig. Mahlzeiten sind bisher der einzige Teil, der sich zurück importieren lässt.",
+                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps, ohne Tokens) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
             params: {},
             example:
-                "Exportier alle meine Daten — Mahlzeiten, Wasser, Gewicht und Ziele",
+                "Exportier alle meine Daten – Mahlzeiten, Wasser, Gewicht und Ziele",
         },
         log_water: {
             description:
-                "Erfasse einen Flüssigkeitseintrag. Gib ihn in jeder Einheit an — Tassen, Unzen, Liter — er wird für dich in Milliliter umgerechnet.",
+                "Erfasse einen Wasser-Eintrag. Die Menge kannst du in jeder Einheit angeben – Tassen, Unzen, Liter –, sie wird für dich in Milliliter umgerechnet.",
             params: {
                 amount_ml: "Menge in Millilitern (ganze Zahl, &gt; 0).",
             },
@@ -223,13 +229,13 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_water_today: {
             description:
-                "Sieh die heutige Gesamt-Wassermenge und jeden Eintrag.",
+                "Sieh dir deine heutige Wassermenge insgesamt und jeden einzelnen Eintrag an.",
             params: {},
             example: "Wie viel Wasser hatte ich heute?",
         },
         get_water_by_date: {
             description:
-                "Sieh deine Wassermenge und Einträge für einen bestimmten Tag.",
+                "Sieh dir deine Wassermenge und die Einträge für einen bestimmten Tag an.",
             params: {
                 date: "Datum im Format JJJJ-MM-TT",
             },
@@ -245,85 +251,87 @@ export const TOOLS_DE: ToolsDoc = {
         },
         log_weight: {
             description:
-                "Erfasse eine Körpergewichts-Messung in kg oder lb. Mehrere Wiegungen pro Tag sind kein Problem, und der Server speichert es kanonisch, sodass deine Einheiten-Einstellung die Zahl nie verfälscht.",
+                "Erfasse dein Körpergewicht in kg oder lb. Mehrere Messungen pro Tag sind kein Problem, und der Server speichert den Wert einheitlich, sodass deine Einheiten-Einstellung die Zahl nie verfälscht.",
             params: {
-                weight: "Körpergewichtswert, in `unit` (&gt; 0).",
+                weight: "Körpergewicht in <code>unit</code> (&gt; 0).",
             },
-            example: "Erfasse mein Gewicht — heute Morgen 74,2 kg",
+            example: "Trag mein Gewicht ein – heute Morgen 74,2 kg",
         },
         update_weight: {
             description:
-                "Korrigiere eine bestehende Wiegung — den Wert, den Zeitstempel oder ihre Notizen.",
+                "Korrigiere eine bestehende Messung – den Wert, den Zeitstempel oder die Notizen.",
             params: {
-                id: "UUID des zu aktualisierenden Gewichts-Eintrags",
-                weight: "Neuer Gewichtswert, in `unit`.",
+                id: "UUID des zu ändernden Gewichtseintrags",
+                weight: "Neuer Gewichtswert in <code>unit</code>.",
                 logged_at: "ISO-8601-Zeitstempel",
                 notes: "",
             },
-            example: "Korrigier die heutige Morgen-Wiegung auf 73,8 kg",
+            example: "Korrigier die Messung von heute Morgen auf 73,8 kg",
         },
         delete_weight: {
-            description: "Entferne einen Gewichts-Eintrag.",
+            description: "Entferne einen Gewichtseintrag.",
             params: {
-                id: "UUID des zu löschenden Gewichts-Eintrags",
+                id: "UUID des zu löschenden Gewichtseintrags",
             },
-            example: "Lösch den heutigen Gewichts-Eintrag",
+            example: "Lösch den heutigen Gewichtseintrag",
         },
         get_weight_today: {
             description:
-                "Sieh die heutigen Wiegungen, angezeigt in deiner bevorzugten Einheit.",
+                "Sieh dir die heutigen Messungen an, angezeigt in deiner bevorzugten Einheit.",
             params: {},
             example: "Was habe ich heute gewogen?",
         },
         get_weight_by_date: {
-            description: "Sieh deine Wiegungen für einen bestimmten Tag.",
+            description:
+                "Sieh dir deine Messungen für einen bestimmten Tag an.",
             params: {
                 date: "Datum im Format JJJJ-MM-TT",
             },
-            example: "Was war mein Gewicht am 1.?",
+            example: "Wie viel habe ich am 1. gewogen?",
         },
         get_weight_by_date_range: {
             description:
-                "Ruf jede Wiegung zwischen zwei Daten ab, gruppiert nach Tag mit dem Durchschnitt jedes Tages.",
+                "Ruf alle Messungen zwischen zwei Daten ab, gruppiert nach Tag mit dem jeweiligen Tagesdurchschnitt.",
             params: {
                 start_date: "Startdatum (JJJJ-MM-TT)",
                 end_date: "Enddatum (JJJJ-MM-TT)",
             },
-            example: "Zeig meine Wiegungen der letzten zwei Wochen",
+            example: "Zeig mir meine Messungen der letzten zwei Wochen",
         },
         get_weight_trends: {
             description:
-                "Sieh deinen Gewichtstrend über ein Zeitfenster: letzte Messung, Gesamtveränderung, 7/14/30-Tage-Durchschnitte, Min/Max und Fortschritt zu deinem Zielgewicht.",
+                "Sieh dir deinen Gewichtstrend über einen Zeitraum an: letzte Messung, Gesamtveränderung, gleitende 7/14/30-Tage-Durchschnitte, Min./Max. und Fortschritt zu deinem Zielgewicht.",
             params: {
-                days: "Fenstergröße in Tagen (Standard 30, maximal 365).",
+                days: "Zeitraum in Tagen (Standard 30, maximal 365).",
             },
             example: "Wie entwickelt sich mein Gewicht diesen Monat?",
         },
         set_weight_unit: {
             description:
-                "Wähl, ob Gewichte in kg oder lb angezeigt und eingegeben werden. Gespeicherte Werte sind davon nicht betroffen — nur Anzeige und Standard-Auswertung ändern sich.",
+                "Wähl, ob Gewichte in kg oder lb angezeigt und eingegeben werden. Gespeicherte Werte bleiben unverändert – es ändert sich nur die Anzeige und wie Eingaben ohne Einheit gelesen werden.",
             params: {},
-            example: "Verwende ab jetzt Pfund für mein Gewicht",
+            example: "Zeig mein Gewicht ab jetzt in lb an",
         },
         set_nutrition_goals: {
             description:
-                "Leg deine täglichen Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Alkohol, Koffein und Wasser fest, plus optional ein Ziel-Körpergewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; Zucker, Alkohol und Koffein sind Grenzwerte, die du unterschreiten willst, und der Fortschritt wird entsprechend formuliert. Aktualisiert werden nur die genannten Felder; der Rest bleibt unverändert.",
+                "Leg deine täglichen Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Alkohol, Koffein und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; Zucker, Alkohol und Koffein sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
             params: {
                 daily_calories:
-                    "Tägliches Kalorienziel (kcal). Null zum Löschen.",
+                    "Tägliches Kalorienziel (kcal). Zum Löschen „null“ angeben.",
                 daily_protein_g:
-                    "Tägliches Proteinziel (Gramm). Null zum Löschen.",
+                    "Tägliches Proteinziel (Gramm). Zum Löschen „null“ angeben.",
                 daily_carbs_g:
-                    "Tägliches Kohlenhydratziel (Gramm). Null zum Löschen.",
-                daily_fat_g: "Tägliches Fettziel (Gramm). Null zum Löschen.",
+                    "Tägliches Kohlenhydratziel (Gramm). Zum Löschen „null“ angeben.",
+                daily_fat_g:
+                    "Tägliches Fettziel (Gramm). Zum Löschen „null“ angeben.",
                 daily_fiber_g:
-                    "Tägliches Ballaststoffziel (Gramm), ein Minimum, das erreicht werden soll. Null zum Löschen.",
+                    "Tägliches Ballaststoffziel (Gramm), ein Minimum, das du erreichen willst. Zum Löschen „null“ angeben.",
                 daily_sugar_g:
-                    "Tägliches Limit für <b>Gesamt</b>zucker (Gramm), ein Maximum, das unterschritten werden soll. Gesamtzucker umfasst den natürlich in Obst und Milch enthaltenen Zucker, daher liegen öffentliche Empfehlungen zu zugesetztem Zucker deutlich niedriger. Null zum Löschen.",
+                    "Tägliches Limit für <b>Gesamt</b>zucker (Gramm), ein Maximum, unter dem du bleiben willst. Gesamtzucker umfasst auch den natürlichen Zucker in Obst und Milch, daher liegen offizielle Empfehlungen für zugesetzten Zucker deutlich niedriger. Zum Löschen „null“ angeben.",
                 daily_alcohol_g:
-                    "Tägliches Alkohol-Limit in Gramm <b>reinen Alkohols</b>, ein Maximum, das unterschritten werden soll. Ein US-Standard-Drink sind 14 g, eine UK-Einheit 7,9 g. Null zum Löschen.",
+                    "Tägliches Alkohol-Limit in Gramm <b>reinen Alkohols</b>, ein Maximum, unter dem du bleiben willst. Ein US-Standard-Drink entspricht 14 g, eine UK-Einheit 7,9 g. Zum Löschen „null“ angeben.",
                 daily_caffeine_mg:
-                    "Tägliches Koffein-Limit in <b>Milligramm</b>, ein Maximum, das unterschritten werden soll. Die EFSA- und FDA-Obergrenze für gesunde Erwachsene liegt bei 400 mg pro Tag (etwa vier gebrühte Kaffees) und bei 200 mg in der Schwangerschaft. 0 ist ein echtes Limit und bedeutet gar keins. Null zum Löschen.",
+                    "Tägliches Koffein-Limit in <b>Milligramm</b>, ein Maximum, unter dem du bleiben willst. EFSA und FDA setzen die Obergrenze für gesunde Erwachsene bei 400 mg pro Tag an (etwa vier Tassen Filterkaffee); in der Schwangerschaft nennt die EFSA 200 mg. 0 ist ein echtes Limit und bedeutet: gar kein Koffein. Zum Löschen „null“ angeben.",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -332,94 +340,93 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Sieh deine aktuellen täglichen Kalorien- und Makro-Ziele, ein eventuelles Ballaststoffziel sowie Zucker- oder Koffein-Limit und — falls du Alkohol erfasst — dein Alkohol-Limit.",
+                "Sieh dir deine aktuellen Tagesziele für Kalorien und Makros an, ein eventuelles Ballaststoffziel, Zucker- oder Koffein-Limit und – falls du Alkohol erfasst – dein Alkohol-Limit.",
             params: {},
-            example: "Was sind meine täglichen Ziele?",
+            example: "Was sind meine Tagesziele?",
         },
         get_goal_progress: {
             description:
-                "Sieh, wie die heutige Aufnahme im Vergleich zu deinen Zielen abschneidet — Aufnahme-vs-Ziel-Ringe plus Fortschritt beim Körpergewicht. Tipp auf einen Makro-Ring, um zu sehen, welche Mahlzeiten dazu beigetragen haben.",
+                "Sieh, wo du heute im Vergleich zu deinen Zielen stehst – Ringe für Ist- gegen Zielwert plus dein Fortschritt beim Körpergewicht. Tipp auf einen Makro-Ring, um zu sehen, welche Mahlzeiten dazu beigetragen haben.",
             params: {},
-            example: "Wie stehe ich heute im Vergleich zu meinen Zielen da?",
+            example: "Wie sieht's heute mit meinen Zielen aus?",
         },
         get_nutrition_summary: {
             description:
-                "Ruf tägliche Ernährungssummen über einen Datumsbereich als interaktives Dashboard ab: Makro-Kacheln im Vergleich zu Zielen und eine Aufschlüsselung nach Tag. Ein Aufruf deckt bis zu 92 Tage ab; für längere Zeiträume liefern Trends gleitende Durchschnitte.",
+                "Ruf die täglichen Nährwertsummen für einen Zeitraum als interaktives Dashboard ab: Makro-Kacheln im Vergleich zu deinen Zielen und eine Aufschlüsselung nach Tagen. Ein Aufruf deckt bis zu 92 Tage ab; für längere Zeiträume liefern Trends gleitende Durchschnitte.",
             params: {
                 start_date: "Startdatum (JJJJ-MM-TT)",
                 end_date:
-                    "Enddatum (JJJJ-MM-TT), höchstens 92 Tage einschließlich des Starttags",
+                    "Enddatum (JJJJ-MM-TT), höchstens 92 Tage inklusive Starttag",
             },
             example: "Gib mir eine Übersicht über die letzte Woche",
         },
         get_trends: {
             description:
-                "Gleitende 7/14/30-Tage-Durchschnitte, Schwankungsbreite, Erfassungsserien, Kaloriendurchschnitte nach Wochentag sowie deine besten und schlechtesten Tage nach Kalorien — vorberechnet, damit die KI sie nur noch erzählen muss.",
+                "Gleitende 7/14/30-Tage-Durchschnitte, Schwankungen, Erfassungsserien, Kaloriendurchschnitte nach Wochentag sowie deine besten und schlechtesten Tage nach Kalorien – vorberechnet, damit die KI sie nur noch wiedergeben muss.",
             params: {
-                days: "Fenstergröße in Tagen (Standard 30, maximal 365).",
+                days: "Zeitraum in Tagen (Standard 30, maximal 365).",
             },
             example:
                 "Wie sehen meine Kalorien- und Makro-Trends der letzten 30 Tage aus?",
         },
         get_meal_patterns: {
             description:
-                "Zeig Verhaltensmuster auf: wie oft du jeden Mahlzeitentyp isst, den Frühstückseffekt, kalorienreiche Mittagessen, späte Abendessen, Wochentag vs. Wochenende und auffällige Tage.",
+                "Erkenne Muster in deinem Essverhalten: wie oft du welchen Mahlzeitentyp isst, den Frühstückseffekt, kalorienreiche Mittagessen, späte Abendessen, Werktage vs. Wochenende und Ausreißertage.",
             params: {
-                days: "Fenstergröße in Tagen (Standard 30, minimal 7, maximal 365).",
+                days: "Zeitraum in Tagen (Standard 30, mindestens 7, maximal 365).",
             },
             example:
-                "Gibt es Muster darin, wie ich esse — wie späte Abendessen oder ausgelassenes Frühstück?",
+                "Gibt es Muster in meinem Essverhalten – etwa späte Abendessen oder ausgelassenes Frühstück?",
         },
         get_profile: {
             description:
-                "Sieh deine aktuellen Einstellungen auf einen Blick: Zeitzone (plus lokales Datum und Uhrzeit), Widget-Sprache, bevorzugte Gewichtseinheit, ob In-Chat-Widgets angezeigt werden und ob die Alkohol-Erfassung aktiviert ist.",
+                "Sieh deine aktuellen Einstellungen auf einen Blick: Zeitzone (plus lokales Datum und Uhrzeit), Widget-Sprache, bevorzugte Gewichtseinheit, ob In-Chat-Widgets angezeigt werden und ob die Alkohol-Erfassung eingeschaltet ist.",
             params: {},
             example: "Welche Einstellungen habe ich gerade?",
         },
         set_timezone: {
             description:
-                "Leg deine IANA-Zeitzone fest, damit der Tag um deine lokale Mitternacht wechselt — eine um 23 Uhr erfasste Mahlzeit zählt zu diesem Tag, nicht zum nächsten UTC-Tag.",
+                "Leg deine IANA-Zeitzone fest, damit der Tag um Mitternacht deiner Ortszeit wechselt – eine um 23 Uhr erfasste Mahlzeit zählt zu diesem Tag, nicht zum nächsten UTC-Tag.",
             params: {},
-            example: "Ich bin in Berlin — stell meine Zeitzone ein",
+            example: "Ich bin in Berlin – stell meine Zeitzone ein",
         },
         set_language: {
             description:
-                "Leg die Sprache der In-Chat-Widgets fest — die Dashboards und Diagramme, nicht das, was die KI dir zurückschreibt.",
+                "Leg die Sprache der In-Chat-Widgets fest – also der Dashboards und Diagramme, nicht der Antworten der KI.",
             params: {
-                locale: "ISO-639-1-Code, z. B. <code>de</code>, <code>uk</code>. Unterstützt: Englisch, Deutsch, Spanisch, Französisch, Niederländisch, Polnisch, Italienisch, Ukrainisch.",
+                locale: "ISO-639-1-Code, z. B. <code>de</code>, <code>ja</code>. Unterstützt: Englisch, Deutsch, Spanisch, Französisch, Niederländisch, Polnisch, Italienisch, Ukrainisch, Japanisch.",
             },
             example: "Zeig meine Widgets auf Deutsch an",
         },
         get_current_time: {
             description:
-                'Prüf das aktuelle Datum und die Uhrzeit in deiner Zeitzone, plus den UTC-Zeitpunkt. Manche Apps sagen dem Assistenten nicht, wie spät es ist — so findet er ohne Nachfrage heraus, was „heute Morgen" oder „heute" bedeutet (Standard UTC, falls keine Zeitzone eingestellt ist).',
+                "Frag das aktuelle Datum und die Uhrzeit in deiner Zeitzone ab, dazu den Zeitpunkt in UTC. Manche Apps verraten dem Assistenten nicht, wie spät es ist – so findet er ohne Rückfrage heraus, was „heute Morgen“ oder „heute“ bedeutet (Standard ist UTC, wenn keine Zeitzone eingestellt ist).",
             params: {},
             example: "Wie spät ist es gerade bei mir?",
         },
         set_widget_display: {
             description:
-                "Schalte die visuellen In-Chat-Widgets ein oder aus — die Dashboards, Ziel-Ringe und Trend-Diagramme. Ausgeschaltet antworten dieselben Werkzeuge nur mit Text und Daten. Standardmäßig aktiviert; die Änderung gilt für neue Unterhaltungen.",
+                "Schalte die visuellen In-Chat-Widgets ein oder aus – Dashboards, Ziel-Ringe und Trend-Diagramme. Sind sie aus, antworten dieselben Werkzeuge nur mit Text und Daten. Standardmäßig eingeschaltet; die Änderung gilt für neue Unterhaltungen.",
             params: {
                 enabled:
-                    "true zum Anzeigen der Widgets, false für reine Textantworten",
+                    "true zeigt Widgets an, false liefert reine Textantworten",
             },
             example: "Schalt die Widgets aus",
         },
         set_alcohol_tracking: {
             description:
-                "Schalte die Alkohol-Erfassung ein oder aus und wähl, ob Getränke in US-Standard-Drinks oder UK-Einheiten gezählt werden. Standardmäßig ausgeschaltet, du musst also aktiv danach fragen. Schaltest du es wieder aus, wird Alkohol in Mahlzeiten, Zielen und Fortschritt ausgeblendet, und der Datei-Importer liest die Alkohol-Spalte einer Datei nicht mehr — nichts bereits Erfasstes wird gelöscht, dein CSV-Export enthält es weiterhin, und es taucht wieder auf, wenn du es erneut einschaltest. Die Änderung gilt ab deiner nächsten Nachricht, ohne dass etwas neu gestartet werden muss.",
+                "Schalte die Alkohol-Erfassung ein oder aus und wähl, ob Getränke in US-Standard-Drinks oder UK-Einheiten gezählt werden. Standardmäßig ist sie aus, du musst sie also ausdrücklich anfordern. Schaltest du sie wieder aus, wird Alkohol in Mahlzeiten, Zielen und Fortschritt ausgeblendet, und der Datei-Importer liest die Alkohol-Spalte einer Datei nicht mehr ein – bereits Erfasstes wird nicht gelöscht, dein CSV-Export enthält es weiterhin, und es taucht wieder auf, sobald du sie erneut einschaltest. Die Änderung gilt ab deiner nächsten Nachricht, ohne Neustart.",
             params: {
                 enabled:
-                    "true, um Alkohol in Mahlzeiten, Zielen und Fortschritt anzuzeigen, false, um es auszublenden",
+                    "true zeigt Alkohol in Mahlzeiten, Zielen und Fortschritt an, false blendet ihn aus",
                 drink_unit:
-                    "Welcher Standard-Drink neben den Gramm angezeigt wird: <code>us</code> (14 g pro Drink) oder <code>uk</code> (7,9 g pro Einheit). Standard <code>us</code>; gespeichert werden tatsächlich Gramm reinen Alkohols.",
+                    "Welcher Standard-Drink neben den Gramm angezeigt wird: <code>us</code> (14 g pro Drink) oder <code>uk</code> (7,9 g pro Einheit). Standard ist <code>us</code>; gespeichert wird immer die Menge in Gramm reinen Alkohols.",
             },
-            example:
-                "Fang an, meinen Alkoholkonsum zu erfassen, in UK-Einheiten",
+            example: "Erfass ab jetzt auch meinen Alkohol, in UK-Einheiten",
         },
         delete_account: {
             description:
-                "Lösch dein Nutrition-MCP-Konto und alle Daten, die es über dich speichert, dauerhaft. Das ist unumkehrbar — die KI bestätigt immer zuerst mit dir.",
+                "Lösch dein Nutrition-MCP-Konto und alle Daten, die es über dich speichert, endgültig. Das lässt sich nicht rückgängig machen, deshalb tut das Werkzeug ohne ausdrückliche Bestätigung nichts, und die KI wird gebeten, sich diese Bestätigung vorher bei dir zu holen.",
             params: {},
             example: "Lösch mein Konto und alle meine Daten",
         },
@@ -429,78 +436,79 @@ export const TOOLS_DE: ToolsDoc = {
         title: "Fehlerbehebung",
         description:
             "Etwas funktioniert nicht? Für die meisten Probleme gibt es eine schnelle Lösung.",
+        stillStuck: "Kommst du nicht weiter?",
         items: {
             "cannot-connect": {
                 question:
-                    "Der Connector verbindet sich nicht oder fragt immer wieder nach der Anmeldung",
+                    "Der Connector verbindet sich nicht oder will ständig, dass ich mich anmelde",
                 answerHtml:
-                    "Entferne den Connector und füge ihn mit genau <code>https://nutrition-mcp.com/mcp</code> erneut hinzu — der Teil <code>/mcp</code> ist Pflicht. In Claude öffnest du <strong>Customize</strong> → <strong>Connectors</strong>, trennst Nutrition und verbindest es neu; in ChatGPT gehst du über <strong>Settings</strong> → <strong>Apps</strong>. Melde dich mit derselben E-Mail-Adresse und demselben Passwort oder demselben Google-Konto an wie zuvor: Deine Daten gehören zu deinem Konto, nicht zur Verbindung, deshalb geht beim erneuten Verbinden nichts verloren. Einmal verbunden, bleibt die Verbindung bestehen, solange du sie mindestens alle 90 Tage nutzt; funktioniert sie nicht mehr, hilft es, dich auf dieselbe Weise neu zu verbinden.",
+                    "Entferne den Connector und füge ihn mit genau dieser Adresse wieder hinzu: <code>https://nutrition-mcp.com/mcp</code> – das <code>/mcp</code> am Ende ist Pflicht. In Claude öffnest du <strong>Customize</strong> → <strong>Connectors</strong>, trennst Nutrition und verbindest es neu; in ChatGPT gehst du über <strong>Settings</strong> → <strong>Apps</strong>. Melde dich mit derselben E-Mail-Adresse und demselben Passwort oder demselben Google-Konto an wie zuvor: Deine Daten gehören zu deinem Konto, nicht zur Verbindung, beim erneuten Verbinden geht also nichts verloren. Ist die Verbindung einmal eingerichtet, bleibt sie bestehen, solange du sie mindestens alle 90 Tage nutzt; funktioniert sie nicht mehr, verbinde sie einfach auf dieselbe Weise neu.",
             },
             "session-expired": {
                 question: 'Die Anmeldeseite zeigt {"error":"session_expired"}',
                 answerHtml:
-                    "Die Anmeldeseite ist nur 10 Minuten gültig und wird außerdem zurückgesetzt, wenn der Server für ein Update neu startet. Geh zurück zur Anmeldeseite und lade sie neu, oder starte die Verbindung erneut in deiner KI-App, und melde dich dann ohne lange Pause an. Steht dort stattdessen <code>session_mismatch</code>, wurde die Anmeldung in einem anderen Browser abgeschlossen als dem, in dem sie begonnen hat: Starte erneut in deiner KI-App und schließ die Anmeldung im selben Browser ab.",
+                    "Die Anmeldeseite ist nur 10 Minuten gültig und verfällt außerdem, wenn der Server für ein Update neu startet. Geh zurück zur Anmeldeseite und lade sie neu oder starte die Verbindung in deiner KI-App erneut, und melde dich dann zügig an. Steht dort stattdessen <code>session_mismatch</code>, wurde die Anmeldung in einem anderen Browser abgeschlossen als in dem, in dem sie geöffnet wurde: Starte erneut in deiner KI-App und schließ die Anmeldung im selben Browser ab.",
             },
             "cannot-sign-in": {
                 question:
                     "Ich kann mich nicht anmelden oder habe mein Passwort vergessen",
                 answerHtml:
-                    'Nutz <strong>Anmelden</strong> für ein Konto, das du schon hast: Eine falsche E-Mail-Adresse oder ein falsches Passwort zeigt dort „Falsche E-Mail-Adresse oder falsches Passwort“ und legt nie ein neues Konto an. <strong>Konto erstellen</strong> ist nur für deinen ersten Besuch. Prüf die E-Mail-Adresse auf Tippfehler. Hast du dein Konto mit <strong>Weiter mit Google</strong> erstellt, nutz wieder diesen Button. Selbst zurücksetzen kannst du dein Passwort noch nicht: Schreib von der Adresse deines Kontos an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>, dann setze ich es für dich zurück.',
+                    'Nutz <strong>Anmelden</strong> für ein Konto, das du schon hast: Eine falsche E-Mail-Adresse oder ein falsches Passwort zeigt dort „Falsche E-Mail-Adresse oder falsches Passwort“ und legt nie ein neues Konto an. <strong>Konto erstellen</strong> ist nur für deinen ersten Besuch. Prüf die E-Mail-Adresse auf Tippfehler. Hast du dein Konto mit <strong>Weiter mit Google</strong> erstellt, nutz wieder diesen Button. Selbst zurücksetzen kannst du dein Passwort noch nicht: Schreib von der E-Mail-Adresse deines Kontos an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>, dann setze ich es für dich zurück.',
             },
             "history-missing": {
                 question:
                     "Ich habe mich neu verbunden und mein Verlauf ist weg",
                 answerHtml:
-                    'Jede E-Mail-Adresse ist ein eigenes Konto. Meldest du dich mit einer anderen E-Mail-Adresse an, beginnt ein leeres Konto — gelöscht wurde nichts. Trenn die Verbindung und melde dich mit der Adresse an, die du ursprünglich verwendet hast. Wenn du nicht sicher bist, welche das war, schreib an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                    'Jede E-Mail-Adresse ist ein eigenes Konto. Meldest du dich mit einer anderen an, beginnst du mit einem leeren Konto – gelöscht wurde nichts. Trenn die Verbindung und melde dich mit der Adresse an, die du ursprünglich verwendet hast. Weißt du nicht mehr genau, welche das war, schreib an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
             },
             "tools-not-used": {
-                question: "Die KI antwortet, erfasst aber nichts",
+                question: "Die KI antwortet, trägt aber nichts ein",
                 answerHtml:
-                    'Stell sicher, dass der Connector für diese Unterhaltung eingeschaltet ist — in Claude findest du das im Werkzeug-Menü im Eingabefeld — und frag direkt, zum Beispiel „erfasse mein Frühstück in Nutrition". Fragt deine App nach der Erlaubnis, ein Werkzeug zu verwenden, stimm zu.',
+                    "Prüf, ob der Connector für diese Unterhaltung eingeschaltet ist – in Claude siehst du das im Werkzeug-Menü des Eingabefelds – und frag direkt, zum Beispiel „trag mein Frühstück in Nutrition ein“. Fragt deine App um Erlaubnis, ein Werkzeug zu verwenden, stimm zu.",
             },
             "wrong-day": {
                 question: "Meine Mahlzeiten landen am falschen Tag",
                 answerHtml:
-                    'Tage werden in deiner Zeitzone gezählt, und wenn du nie eine festgelegt hast, gilt UTC. Frag „welche Zeitzone habe ich eingestellt?" (<a href="#get_profile"><code>get_profile</code></a>) und, falls sie falsch ist, „stell meine Zeitzone auf Europe/Berlin" (<a href="#set_timezone"><code>set_timezone</code></a>). Danach wird alles, was du erfasst hast, nach deinem lokalen Tag gruppiert, auch ältere Einträge. Die einzige Ausnahme ist ein Eintrag, dem du eine bestimmte Uhrzeit gegeben hast, während die Zeitzone falsch war: Er behält den Zeitpunkt, mit dem er gespeichert wurde, und kann deshalb weiterhin eine Stunde oder einen Tag danebenliegen — bitte die KI, ihn auf das richtige Datum und die richtige Uhrzeit zu verschieben (<a href="#update_meal"><code>update_meal</code></a>). Leg deine Zeitzone auch fest, bevor du deinen Verlauf importierst: Importierte Mahlzeiten behalten den Zeitpunkt, mit dem sie gespeichert wurden, und importierst du die Datei einer anderen App nach einer Änderung der Zeitzone noch einmal, werden sie ein zweites Mal hinzugefügt. Ein Nutrition-MCP-Export wird erkannt und nicht verdoppelt.',
+                    'Tage werden in deiner Zeitzone gezählt, und hast du nie eine festgelegt, gilt UTC. Frag „welche Zeitzone habe ich eingestellt?“ (<a href="#get_profile"><code>get_profile</code></a>) und, falls sie falsch ist, „stell meine Zeitzone auf Europe/Berlin“ (<a href="#set_timezone"><code>set_timezone</code></a>). Danach wird alles, was du erfasst hast, nach deinem lokalen Tag gruppiert, auch ältere Einträge. Die einzige Ausnahme ist ein Eintrag, dem du eine bestimmte Uhrzeit gegeben hast, während die Zeitzone falsch war: Er behält den Zeitpunkt, mit dem er gespeichert wurde, und kann deshalb weiterhin um eine Stunde oder einen Tag danebenliegen – bitte die KI, ihn auf das richtige Datum und die richtige Uhrzeit zu verschieben (<a href="#update_meal"><code>update_meal</code></a>). Leg deine Zeitzone auch fest, bevor du deinen Verlauf importierst: Importierte Mahlzeiten behalten den Zeitpunkt, mit dem sie gespeichert wurden, und importierst du die Datei einer anderen App nach einer Änderung der Zeitzone noch einmal, werden sie ein zweites Mal hinzugefügt. Ein Nutrition-MCP-Export wird erkannt und nicht verdoppelt.',
             },
             "no-widgets": {
                 question: "Ich sehe nur Text, keine Diagramme oder Karten",
                 answerHtml:
-                    'Die visuellen Karten brauchen eine App, die interaktive MCP-Apps-Panels unterstützt, etwa Claude oder ChatGPT; andere Clients bekommen dieselben Informationen als Text. Hast du die Widgets ausgeschaltet, bitte darum, sie wieder einzuschalten (<a href="#set_widget_display"><code>set_widget_display</code></a>), und starte eine neue Unterhaltung — ein offener Chat behält die alte Einstellung, bis er sich neu verbindet. Die kleine Karte nach dem Erfassen einer Mahlzeit erscheint erst, wenn du Tagesziele festgelegt hast (<a href="#set_nutrition_goals"><code>set_nutrition_goals</code></a>).',
+                    'Die visuellen Karten brauchen eine App, die interaktive MCP-Apps-Panels unterstützt, etwa Claude oder ChatGPT; andere Clients erhalten dieselben Informationen als Text. Hast du die Widgets ausgeschaltet, bitte die KI, sie wieder einzuschalten (<a href="#set_widget_display"><code>set_widget_display</code></a>), und starte eine neue Unterhaltung – ein offener Chat behält die alte Einstellung, bis er sich neu verbindet. Die kleine Karte nach dem Erfassen einer Mahlzeit erscheint erst, wenn du Tagesziele festgelegt hast (<a href="#set_nutrition_goals"><code>set_nutrition_goals</code></a>).',
             },
             "import-problems": {
                 question:
                     "Der Importer öffnet sich nicht oder meldet, dass er nicht speichern kann",
                 answerHtml:
-                    'Das Importer-Panel braucht eine App, die interaktive Panels anzeigt, und eingeschaltete Widgets. Steht dort <em>Dieser Host erlaubt dieser Ansicht nicht, in dein Protokoll zu schreiben</em>, oder erscheint es gar nicht, bitte die KI, die Datei selbst zu importieren: Häng die CSV an oder füge sie ein, dann nutzt sie <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>. Das prüft jede Zeile und überspringt Duplikate, erneutes Senden ist also sicher, solange sich deine Zeitzone zwischendurch nicht geändert hat. Leg deine Zeitzone vor dem ersten Import fest: Importierst du die Datei einer anderen App nach einer Änderung erneut, werden die Zeilen noch einmal hinzugefügt. Nutzt du das Importer-Panel und soll eine Alkohol-Spalte übernommen werden, schalte vorher die Alkohol-Erfassung ein — das Panel überspringt diese Spalte, solange die Erfassung aus ist, und ein späterer erneuter Import füllt sie nicht nach.',
+                    'Das Importer-Panel braucht eine App, die interaktive Panels anzeigt, und eingeschaltete Widgets. Steht dort <em>Dieser Host erlaubt dieser Ansicht nicht, in dein Ernährungstagebuch zu schreiben</em> oder erscheint es gar nicht, bitte die KI, die Datei selbst zu importieren: Häng die CSV an oder füge sie ein, dann nutzt die KI <a href="#bulk_import_meals"><code>bulk_import_meals</code></a>. Dabei wird jede Zeile geprüft, und Duplikate werden übersprungen – erneutes Senden ist also sicher, solange sich deine Zeitzone zwischendurch nicht geändert hat. Leg deine Zeitzone vor dem ersten Import fest: Importierst du die Datei einer anderen App nach einer Änderung erneut, werden die Zeilen noch einmal hinzugefügt. Nutzt du das Importer-Panel und willst eine Alkohol-Spalte übernehmen, schalte vorher die Alkohol-Erfassung ein – das Panel überspringt diese Spalte, solange die Erfassung aus ist, und ein späterer erneuter Import trägt sie nicht nach.',
             },
             "rate-limited": {
                 question:
-                    'Ich sehe „Rate limit exceeded" oder „Too many failed authentication attempts"',
+                    "Ich sehe „Rate limit exceeded“ oder „Too many failed authentication attempts“",
                 answerHtml:
-                    "Jedes Konto kann 60 Anfragen pro Minute stellen, und jeder Werkzeugaufruf zählt als mindestens eine. Warte die Anzahl Sekunden ab, die die Meldung nennt, und mach dann weiter. Willst du viele Mahlzeiten nachtragen, nutz den Importer, statt sie einzeln zu erfassen. Die Anmeldeseiten erlauben 30 Anfragen pro Minute und Netzwerk. Nach 20 abgelehnten Verbindungsversuchen in Folge aus einem Netzwerk — meist ein alter, getrennter Connector, der es immer noch versucht — werden Verbindungen aus diesem Netzwerk für 5 Minuten pausiert, und weitere Pausen werden länger, bis höchstens eine Stunde. Entfernst du den alten Connector und fügst ihn neu hinzu, hören die Versuche auf.",
+                    "Jedes Konto kann 60 Anfragen pro Minute stellen, und jeder Werkzeugaufruf zählt als mindestens eine. Warte so viele Sekunden, wie die Meldung angibt, und mach dann weiter. Willst du viele Mahlzeiten nachtragen, nutz den Importer, statt sie einzeln zu erfassen. Die Anmeldeseiten erlauben 30 Anfragen pro Minute und Netzwerk. Nach 20 abgelehnten Verbindungsversuchen in Folge aus einem Netzwerk – meist ein alter, getrennter Connector, der es immer wieder versucht – werden Verbindungen aus diesem Netzwerk für 5 Minuten pausiert; wiederholte Pausen werden länger und dauern höchstens eine Stunde. Entfernst du den alten Connector und fügst ihn neu hinzu, hören die Versuche auf.",
             },
             "barcode-not-found": {
                 question:
-                    "Ein Barcode wird nicht gefunden oder seine Werte wirken falsch",
+                    "Ein Barcode wird nicht gefunden, oder die Werte wirken falsch",
                 answerHtml:
-                    "Barcode-Daten stammen von Open Food Facts, einer Community-Datenbank, daher fehlen manche Produkte und manche Einträge sind veraltet. Prüf, ob alle 8–14 Ziffern unter dem Barcode richtig gelesen wurden. Ist das Produkt nicht dabei, kann die KI anhand des Namens oder eines Fotos der Nährwerttabelle schätzen, und du kannst jeden Wert danach korrigieren. Das Produkt auf openfoodfacts.org einzutragen, hilft allen. Open Food Facts hat keine Koffeindaten, deshalb kommt Koffein vom Etikett oder aus typischen Mengen.",
+                    "Barcode-Daten stammen von Open Food Facts, einer von der Community gepflegten Datenbank – deshalb fehlen manche Produkte, und manche Einträge sind veraltet. Prüf, ob alle 8–14 Ziffern unter dem Barcode richtig gelesen wurden. Ist das Produkt nicht dabei, kann die KI anhand des Namens oder eines Fotos der Nährwerttabelle schätzen, und du kannst jeden Wert danach korrigieren. Wer das Produkt auf openfoodfacts.org einträgt, hilft allen. Open Food Facts hat keine Koffeindaten, deshalb stammt Koffein vom Etikett oder aus typischen Mengen.",
             },
             "export-link": {
-                question: "Mein Export-Downloadlink funktioniert nicht",
+                question: "Der Download-Link meines Exports funktioniert nicht",
                 answerHtml:
-                    'Export-Links laufen nach 60 Minuten ab, und jeder neue Export ersetzt die vorherige Datei. Fordere einen neuen Export an (<a href="#export_all_data"><code>export_all_data</code></a>) und lade ihn sofort herunter. Meldet der Export 0 Mahlzeiten, obwohl du deinen Verlauf erwartet hast, bist du wahrscheinlich mit einer anderen E-Mail-Adresse angemeldet — siehe <a href="#history-missing">Verlauf ist weg</a>.',
+                    'Export-Links laufen nach 60 Minuten ab, und jeder neue Export ersetzt die vorherige Datei. Fordere einen neuen Export an (<a href="#export_all_data"><code>export_all_data</code></a>) und lade ihn gleich herunter. Meldet der Export 0 Mahlzeiten, obwohl du deinen Verlauf erwartet hast, bist du wahrscheinlich mit einer anderen E-Mail-Adresse angemeldet – siehe <a href="#history-missing">Verlauf ist weg</a>.',
             },
             "delete-account": {
                 question: "Wie lösche ich mein Konto?",
                 answerHtml:
-                    'Bitte die KI, dein Nutrition-MCP-Konto zu löschen (<a href="#delete_account"><code>delete_account</code></a>). Sie fragt dich nach einer Bestätigung und löscht dann dauerhaft deine Mahlzeiten, Wasser, Gewicht, Ziele, Einstellungen, die Aufzeichnung darüber, welche Werkzeuge deine KI-App verwendet hat, eine eventuelle Exportdatei, deine Anmeldedaten und das Konto selbst. Das lässt sich nicht rückgängig machen, exportiere deine Daten also vorher, wenn du eine Kopie willst. Entferne danach den Connector aus deiner App. Meldest du dich später mit derselben E-Mail-Adresse wieder an, entsteht ein neues, leeres Konto.',
+                    'Bitte die KI, dein Nutrition-MCP-Konto zu löschen (<a href="#delete_account"><code>delete_account</code></a>). Sie bittet dich um Bestätigung und löscht dann endgültig deine Mahlzeiten, Wasser- und Gewichtseinträge, Ziele, Einstellungen, die Aufzeichnung darüber, welche Werkzeuge deine KI-App verwendet hat, eine eventuelle Exportdatei, deine Anmeldedaten und das Konto selbst. Das lässt sich nicht rückgängig machen – exportiere deine Daten also vorher, wenn du eine Kopie behalten willst. Entferne danach den Connector aus deiner App. Meldest du dich später mit derselben E-Mail-Adresse wieder an, wird ein neues, leeres Konto angelegt.',
             },
             "report-a-problem": {
                 question:
                     "Wie melde ich einen Fehler oder ein Sicherheitsproblem?",
                 answerHtml:
-                    'Melde Fehler über <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: Schreib, welche App du nutzt (Claude, ChatGPT, …), was du gefragt hast, was passiert ist und ungefähr wann. Gib nie dein Passwort an. Bitte melde Sicherheitsprobleme nicht öffentlich, sondern privat über die <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">private Schwachstellenmeldung auf GitHub</a> oder per E-Mail, wie es die <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">Sicherheitsrichtlinie</a> beschreibt. Für alles andere schreib an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                    'Melde Fehler über <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: Schreib dazu, welche App du nutzt (Claude, ChatGPT, …), was du gefragt hast, was passiert ist und ungefähr wann. Gib nie dein Passwort an. Sicherheitsprobleme bitte nicht öffentlich melden, sondern vertraulich über die <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">private Schwachstellenmeldung auf GitHub</a> oder per E-Mail, wie in der <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">Sicherheitsrichtlinie</a> beschrieben. Für alles andere schreib an <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
             },
         },
     },

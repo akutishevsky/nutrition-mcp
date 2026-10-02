@@ -9,134 +9,138 @@ import type { AltUiCopy } from "./alt-ui.js";
 export const ALT_UI_DE: AltUiCopy = {
     breadcrumbHome: "Startseite",
     breadcrumbAlternatives: "Alternativen",
+    breadcrumbAriaLabel: "Brotkrümelnavigation",
     ctaQuickInstall: "Schnell installieren",
     ctaClosingTitle: "Erfasse deine Ernährung in der KI, die du schon nutzt.",
     disclaimerAppHtml:
-        "{app} ist eine Marke des jeweiligen Eigentümers. Nutrition MCP ist ein unabhängiges, quelloffenes Projekt und steht in keiner Verbindung zu {app}, wird von ihm nicht unterstützt oder gesponsert. Die Vergleiche spiegeln öffentlich verfügbare Informationen zum Zeitpunkt der Erstellung wider und können sich ändern.",
+        "{app} ist eine Marke des jeweiligen Inhabers. Nutrition MCP ist ein unabhängiges Open-Source-Projekt und steht in keiner Verbindung zu {app}; es wird von {app} weder unterstützt noch gesponsert. Die Vergleiche geben öffentlich verfügbare Informationen zum Zeitpunkt der Erstellung wieder und können sich ändern.",
     disclaimerHubHtml:
-        "{apps} und andere Produktnamen sind Marken ihrer jeweiligen Eigentümer. Nutrition MCP ist ein unabhängiges, quelloffenes Projekt und steht in keiner Verbindung zu ihnen und wird nicht von ihnen unterstützt. Die Vergleiche spiegeln öffentlich verfügbare Informationen zum Zeitpunkt der Erstellung wider und können sich ändern.",
+        "{apps} und andere Produktnamen sind Marken ihrer jeweiligen Inhaber. Nutrition MCP ist ein unabhängiges Open-Source-Projekt, steht in keiner Verbindung zu ihnen und wird von ihnen nicht unterstützt. Die Vergleiche geben öffentlich verfügbare Informationen zum Zeitpunkt der Erstellung wieder und können sich ändern.",
 
     app: {
         heroEyebrow: "{app}-Alternative",
-        heroTitleHtml: "Auf der Suche nach einem <em>{app} MCP</em>-Server?",
+        heroTitleHtml: "Du suchst einen <em>{app} MCP</em>-Server?",
         heroLead:
-            "{app} hat keinen — du kannst es also nicht in Claude oder ChatGPT nutzen. Nutrition MCP erledigt dieselbe Aufgabe im Gespräch, und das kostenlos und quelloffen.",
+            "{app} bietet keinen an, den du verbinden kannst – dein {app}-Tagebuch lässt sich also nicht aus Claude oder ChatGPT heraus führen. Nutrition MCP erledigt dasselbe im Gespräch, kostenlos und Open Source.",
         ctaConnect: "In unter einer Minute verbinden",
         ctaSeeComparison: "Zum Vergleich",
 
-        answerEyebrow: "Die kurze Antwort",
-        answerTitle: "Nein, {app} hat keinen MCP-Server.",
+        answerEyebrow: "Kurz gesagt",
+        answerTitle:
+            "Nein – {app} hat keinen offiziellen, öffentlichen MCP-Server.",
         answerBodyHtml:
-            'Das Model Context Protocol (MCP) ist der offene Standard, der es KI-Assistenten wie Claude und ChatGPT erlaubt, sich mit externen Werkzeugen zu verbinden. {app} veröffentlicht keinen MCP-Server, es gibt also keinen offiziellen Weg, darüber aus deiner KI heraus Essen zu erfassen. Wenn du nach „{app} MCP" oder „{app} mit Claude verbinden" gesucht hast, bist du eigentlich auf der Suche nach einem Ernährungs-Tracker, der <em>direkt in</em> deiner KI lebt — genau das ist Nutrition MCP.',
+            "Das Model Context Protocol (MCP) ist der offene Standard, über den sich KI-Assistenten wie Claude und ChatGPT mit externen Werkzeugen verbinden. {app} bietet keinen öffentlichen MCP-Server an, es gibt also keinen offiziellen Weg, aus deiner KI heraus Essen in dein {app}-Tagebuch einzutragen. Wenn du nach „{app} MCP“ oder „{app} mit Claude verbinden“ gesucht hast, suchst du eigentlich einen Ernährungs-Tracker, der <em>direkt in</em> deiner KI läuft – und genau das ist Nutrition MCP.",
 
         insteadEyebrow: "Was du stattdessen bekommst",
-        insteadTitle: "Dasselbe Tracking, einfach durch Reden",
+        insteadTitle: "Dasselbe Tracking – einfach im Gespräch",
         features: [
             {
-                title: "Mahlzeiten in normaler Sprache",
-                body: 'Sag „Haferflocken mit Banane und Erdnussbutter" — deine KI schätzt Kalorien und Makros, inklusive Ballaststoffe, Gesamtzucker und Koffein, und erfasst es. Keine Datenbanksuche.',
+                title: "Mahlzeiten in eigenen Worten",
+                body: "Sag „Haferflocken mit Banane und Erdnussbutter“ – deine KI schätzt Kalorien und Makros samt Ballaststoffen, Gesamtzucker und Koffein und erfasst die Mahlzeit. Keine Datenbanksuche.",
             },
             {
-                title: "Barcode scannen — kostenlos",
-                body: "Schick einen Produkt-Barcode und hol die Etikett-Makros von Open Food Facts — auch Ballaststoffe und Zucker, wenn das Etikett sie listet. Kein Premium-Abo nötig, um es freizuschalten.",
+                title: "Barcode-Scan – kostenlos",
+                body: "Schick einen Produkt-Barcode, und die Makros laut Etikett kommen von Open Food Facts – auch Ballaststoffe und Zucker, sofern das Etikett sie angibt. Kostenlos für alle, ohne Abo.",
             },
             {
                 title: "Gewicht &amp; Ziele",
-                body: "Erfasse dein Körpergewicht in kg oder lb, leg Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Koffein und Wasser fest — Ballaststoffe als Zielwert, den du erreichen willst, Zucker und Koffein als Grenzwerte, die du unterschreiten willst — und verfolge Trends zu einem Zielgewicht. Alkohol-Tracking gibt es auch, opt-in und standardmäßig ausgeschaltet, bis du es aktivierst.",
+                body: "Erfasse dein Körpergewicht in kg oder lb und leg Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Koffein und Wasser fest – Ballaststoffe als Ziel, das du erreichen willst, Zucker und Koffein als Limits, unter denen du bleiben willst – und verfolge deinen Trend in Richtung Zielgewicht. Auch Alkohol lässt sich erfassen – per Opt-in und standardmäßig aus, bis du es einschaltest.",
             },
             {
                 title: "Übersichten &amp; Trends",
-                body: "Frag nach Tagessummen, Wochentrends, Serien und wiederkehrenden Essgewohnheiten — direkt im Chat.",
+                body: "Frag nach Tagessummen, Wochentrends, Serien und wiederkehrenden Essgewohnheiten – direkt im Chat.",
             },
             {
-                title: "Import &amp; Eigentum an deinen Daten",
-                body: "Importier deine Mahlzeiten-Historie aus dem CSV-Export einer anderen App — geparst in deinem Browser, nicht von der KI. Nimm jederzeit alles wieder mit heraus: ein ZIP mit deinen Mahlzeiten, Wasser, Gewicht, Zielen und deinem Profil, dazu deinem Kontodatensatz, der Nutzungs-Telemetrie und deinen verbundenen Apps, als CSV-Dateien. Mahlzeiten sind bisher der einzige Teil, der wieder importiert werden kann. Oder lösch dein Konto, genauso einfach.",
+                title: "Import &amp; volle Kontrolle über deine Daten",
+                body: "Importier deinen Mahlzeiten-Verlauf aus dem CSV-Export einer anderen App – eingelesen in deinem Browser, nicht von der KI. Nimm jederzeit alles wieder mit: ein ZIP mit deinen Mahlzeiten, Wasser, Gewicht, Zielen und deinem Profil, dazu deinen Kontodaten, der Nutzungs-Telemetrie und deinen verbundenen Apps, als CSV-Dateien. Bisher lassen sich nur Mahlzeiten wieder importieren. Oder lösch dein Konto – genauso einfach.",
             },
             {
-                title: "Quelloffen &amp; kostenlos",
-                body: "MIT-lizenziert und selbst hostbar — keine Werbung, keine Bezahlschranke, kein Upselling. Prüf den Code oder betreib deine eigene Instanz.",
+                title: "Open Source &amp; kostenlos",
+                body: "MIT-lizenziert und selbst hostbar – keine Werbung, keine Bezahlschranke, kein Upselling. Prüf den Code oder betreib deine eigene Instanz.",
             },
         ],
 
         compareEyebrow: "{app} vs. Nutrition MCP",
-        compareTitle: "Wie sie im Vergleich abschneiden",
+        otherComparisonsLabel: "Weitere Vergleiche:",
+        compareTitle: "Der direkte Vergleich",
         pros: [
-            "Als MCP-Server gebaut — läuft direkt in Claude &amp; ChatGPT",
-            "Mahlzeiten in normaler Sprache beschreiben; Kalorien, Makros, Ballaststoffe, Zucker &amp; Koffein werden für dich geschätzt",
-            "Barcode-Scan, Trends, CSV-Import &amp; -Export — alles kostenlos",
-            "Keine separate App, keine Werbung, quelloffen",
+            "Als MCP-Server gebaut – läuft direkt in Claude &amp; ChatGPT",
+            "Mahlzeiten in eigenen Worten beschreiben – Kalorien, Makros, Ballaststoffe, Zucker &amp; Koffein werden für dich geschätzt",
+            "Barcode-Scan, Trends, CSV-Import &amp; -Export – alles kostenlos",
+            "Keine separate App, keine Werbung, Open Source",
         ],
 
-        movingEyebrow: "Wechsel von {app}",
+        movingEyebrow: "Umstieg von {app}",
 
-        importEyebrow: "Deine {app}-Historie",
+        importEyebrow: "Dein {app}-Verlauf",
         importSub:
-            "Bitte um den Import, und ein Importer öffnet sich direkt im Chat: Wähl deinen Export, ordne die Spalten zu, sieh eine Vorschau, was hinzugefügt wird, und bestätige. Die Datei wird in deinem Browser gelesen — die KI sieht die Zeilen nie. In Clients ohne In-Chat-Panels fügst du deinen Export stattdessen ein.",
+            "Sag, dass du importieren willst, und direkt im Chat öffnet sich ein Importer: Wähl deinen Export, ordne die Spalten zu, prüf in der Vorschau, was dazukommt, und bestätige. Die Datei wird in deinem Browser eingelesen – die KI sieht die Zeilen nie. In Clients ohne In-Chat-Panels fügst du deinen Export stattdessen ein.",
 
         switchEyebrow: "So wechselst du",
         switchSub:
-            "Funktioniert mit jedem MCP-Client, der OAuth 2.0 mit PKCE unterstützt. Bei der ersten Verbindung erstellst du ein Konto mit Google oder einer E-Mail-Adresse und einem Passwort.",
+            "Funktioniert mit jedem MCP-Client, der OAuth 2.0 mit PKCE unterstützt. Beim ersten Verbinden legst du ein Konto an – mit Google oder mit E-Mail-Adresse und Passwort.",
         installSteps: [
-            'Öffne <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener">Nutrition MCP im Claude-Verzeichnis</a>.',
+            'Öffne <a href="https://claude.ai/directory/nutrition-mcp" target="_blank" rel="noopener noreferrer">Nutrition MCP im Claude-Verzeichnis</a>.',
             "Klick auf <strong>Connect</strong> und melde dich mit Google oder mit E-Mail und Passwort an.",
-            "Leg los, indem du sagst, was du gegessen hast.",
+            "Leg los: Sag einfach, was du gegessen hast.",
         ],
         installNoteTemplate:
-            "Nutzt du stattdessen ChatGPT oder einen anderen Client? Die {link} deckt ChatGPT, Cursor, VS Code, Claude Code und mehr ab.",
+            "Du nutzt stattdessen ChatGPT oder einen anderen Client? Die {link} deckt ChatGPT, Cursor, VS Code, Claude Code und mehr ab.",
         installLinkText: "vollständige Installationsanleitung",
 
         faqEyebrow: "FAQ",
-        faqTitleTemplate: "{app} &amp; MCP-Fragen",
+        faqTitleTemplate: "Fragen zu {app} &amp; MCP",
         faq: {
             mcpQ: "Hat {app} einen MCP-Server?",
-            mcpA: "Nein. {app} bietet keinen Model Context Protocol (MCP) Server an, es gibt also keinen offiziellen Weg, es mit Claude, ChatGPT oder anderen KI-Assistenten zu verbinden. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die von Grund auf als MCP-Server gebaut wurde, sodass du Mahlzeiten und Makros direkt in deiner KI erfassen kannst.",
+            mcpA: "Keinen offiziellen. {app} bietet keinen öffentlichen MCP-Server (Model Context Protocol) an, es gibt also keinen offiziellen Weg, aus Claude, ChatGPT oder anderen MCP-Clients heraus etwas in dein {app}-Tagebuch einzutragen. Es gibt einige inoffizielle Server aus der Community; sie stammen nicht von {app} und werden von {app} nicht unterstützt. Nutrition MCP ist etwas anderes: ein kostenloser Open-Source-Tracker, von Grund auf als MCP-Server gebaut, mit eigenem Konto, der deinen {app}-CSV-Export importieren kann.",
             connectQ: "Wie verbinde ich {app} mit Claude?",
             connectA:
-                "Es gibt keinen offiziellen {app}-Connector für Claude, weil {app} weder einen MCP-Server noch eine öffentliche MCP-Integration hat. Die nächstliegende Option ist Nutrition MCP, ein kostenloser MCP-Server, der im Claude-Verzeichnis gelistet ist: Öffne ihn unter https://claude.ai/directory/nutrition-mcp, klick auf Connect, melde dich an, und erfasse im Gespräch.",
+                "Es gibt keinen offiziellen {app}-Connector für Claude, weil {app} keinen öffentlichen MCP-Server anbietet. Eine Möglichkeit ist Nutrition MCP, ein kostenloser MCP-Server aus dem Claude-Verzeichnis: Öffne ihn unter https://claude.ai/directory/nutrition-mcp, klick auf Connect, melde dich an und erfasse ab dann alles im Gespräch.",
             goodAltQ: "Ist Nutrition MCP eine gute {app}-Alternative?",
             goodAltA:
-                "Wenn du Kalorien, Makros — inklusive Ballaststoffe, Gesamtzucker und Koffein —, Wasser und Gewicht erfassen willst, ohne eine separate App zu öffnen oder eine Lebensmitteldatenbank zu durchsuchen, dann ja. Statt dich durch eine Datenbank zu tippen, beschreibst du in normaler Sprache, was du gegessen hast, schickst ein Foto oder scannst einen Barcode, und deine KI erfasst es — komplett kostenlos und quelloffen.",
+                "Ja, wenn du Kalorien, Makros (samt Ballaststoffen, Gesamtzucker und Koffein), Wasser und Gewicht erfassen willst, ohne eine separate App zu öffnen oder eine Lebensmitteldatenbank zu durchsuchen. Statt dich durch eine Datenbank zu tippen, beschreibst du in eigenen Worten, was du gegessen hast, schickst ein Foto oder scannst einen Barcode, und deine KI erfasst es – komplett kostenlos und Open Source.",
             importQ: "Kann ich meine {app}-Daten importieren?",
-            readExportQ: "Liest die KI meine Exportdatei, wenn ich importiere?",
+            readExportQ: "Liest die KI beim Import meine Exportdatei?",
             readExportA:
-                "Nicht, wenn sich der Importer öffnet. Er parst die CSV in deinem Browser und zeigt dir, was hinzugefügt wird, bevor irgendetwas geschrieben wird: wie viele Mahlzeiten, die Kalorien-Summe, alles, was er markieren musste, und die Zeilen selbst — bei einer langen Datei werden die ersten davon plus eine Anzahl der restlichen gelistet statt jeder Zeile. Nur die Zeilen, die du bestätigst, werden gesendet, und zwar als strukturierte Daten statt über die Antwort der KI, sodass keine Zeile unterwegs vertippt oder erfunden werden kann. Jede Zeile trägt außerdem einen Inhalts-Fingerabdruck, sodass ein erneuter Lauf derselben Datei diese Mahlzeiten als bereits erfasst meldet, statt sie zu verdoppeln, solange sich deine Zeitzone zwischendurch nicht geändert hat. Kann dein Client keine In-Chat-Panels anzeigen, ist der Fallback, den Export einzufügen — die KI liest ihn auf diesem Weg tatsächlich, bevorzuge also den Importer, wenn du die Wahl hast.",
+                "Nicht, wenn sich der Importer öffnet. Er liest die CSV in deinem Browser ein und zeigt dir, was dazukommt, bevor irgendetwas gespeichert wird: wie viele Mahlzeiten, die Kaloriensumme, alles, was er markieren musste, und die Zeilen selbst – bei einer langen Datei die ersten davon plus die Anzahl der übrigen statt jeder einzelnen Zeile. Übertragen werden nur die Zeilen, die du bestätigst, und zwar als strukturierte Daten statt über die Antwort der KI, sodass unterwegs keine Zeile vertippt oder erfunden werden kann. Außerdem trägt jede Zeile einen Inhalts-Fingerabdruck: Importierst du dieselbe Datei noch einmal, werden diese Mahlzeiten als bereits erfasst gemeldet statt verdoppelt – solange sich deine Zeitzone zwischendurch nicht geändert hat. Kann dein Client keine In-Chat-Panels anzeigen, bleibt als Ausweg, den Export einzufügen – auf diesem Weg liest die KI ihn tatsächlich, nimm also lieber den Importer, wenn du die Wahl hast.",
             freeQ: "Ist Nutrition MCP kostenlos?",
             freeAFallback:
-                "Ja. Nutrition MCP ist komplett kostenlos, ohne Premium-Stufe, Werbung oder Bezahlschranken — anders als Apps, die manche Funktionen hinter ein Abo packen. Du brauchst nur ein Claude- oder ChatGPT-Konto, um dich zu verbinden.",
+                "Ja. Nutrition MCP ist komplett kostenlos – ohne Premium-Version, Werbung oder Funktionen hinter einer Bezahlschranke, anders als Apps, die manche Funktionen nur im Abo anbieten. Du brauchst eine KI-App mit MCP-Unterstützung, etwa Claude oder ChatGPT, und ein kostenloses Nutrition-MCP-Konto, das du beim ersten Verbinden mit Google oder mit E-Mail und Passwort anlegst.",
         },
         importFallbackNote:
             " In Clients ohne In-Chat-Panels kannst du deinen Export stattdessen einfügen.",
 
         ctaClosingSub:
-            "Kostenlos und quelloffen — kein {app}-Konto, keine App zu öffnen.",
+            "Kostenlos und Open Source – kein {app}-Konto, keine zusätzliche App.",
         ctaOtherAlternatives: "Weitere Alternativen",
     },
 
     hub: {
         heroEyebrow: "MCP-Alternativen",
-        heroTitleHtml: "Deine Ernährungs-App hat keinen <em>MCP-Server</em>.",
+        heroTitleHtml:
+            "Deine Ernährungs-App hat keinen offiziellen <em>MCP-Server</em>.",
         heroLead:
-            "Apps wie MyFitnessPal, Cronometer und Lose It! lassen sich nicht mit Claude oder ChatGPT verbinden. Nutrition MCP ist der kostenlose, quelloffene Weg, Mahlzeiten, Makros und Gewicht zu erfassen, indem du mit deiner KI sprichst.",
+            "Apps wie MyFitnessPal, Cronometer und Lose It! bieten keinen offiziellen Weg, dein Tagebuch aus Claude oder ChatGPT heraus zu führen. Mit Nutrition MCP – kostenlos und Open Source – erfasst du Mahlzeiten, Makros und Gewicht, indem du einfach mit deiner KI sprichst. Deinen bisherigen Verlauf kannst du importieren.",
         ctaSeeExamples: "Beispiele ansehen",
 
-        appsEyebrow: "Wechsel von …",
+        appsEyebrow: "Umstieg von …",
         appsTitle: "Wähl deine aktuelle App",
         appsSub:
-            "Sieh dir an, wie Nutrition MCP im Vergleich zu dem Tracker abschneidet, den du heute nutzt — und wie du dein Erfassen und deine bestehende Historie in deine KI überträgst.",
+            "Sieh dir an, wie Nutrition MCP im Vergleich zu deinem jetzigen Tracker abschneidet – und wie du samt deinem bisherigen Verlauf in deine KI umziehst.",
         noAppNote:
-            "Siehst du deine App nicht? Sie hat mit ziemlicher Sicherheit auch keinen MCP-Server — Nutrition MCP funktioniert unabhängig davon gleich, wovon du wechselst.",
+            "Deine App ist nicht dabei? Die meisten Ernährungs-Apps bieten ebenfalls keinen offiziellen MCP-Server an – Nutrition MCP funktioniert gleich, egal von welcher App du wechselst.",
         requestComparisonLinkText: "Vergleich anfragen",
 
-        importEyebrow: "Deine Historie mitbringen",
+        importEyebrow: "Deinen Verlauf mitnehmen",
         importTitle: "Du musst nicht bei null anfangen",
         importSub:
-            "Der übliche Grund, warum Leute bleiben, sind die Jahre, die schon erfasst sind. Bitte um den Import, und ein Importer öffnet sich direkt im Chat: Wähl deinen Export, ordne die Spalten zu, sieh eine Vorschau, was hinzugefügt wird, und bestätige — oder füge den Export ein, wenn dein Client keine In-Chat-Panels hat.",
+            "Meist bleibt man wegen der Jahre an Einträgen, die schon drinstecken. Sag, dass du importieren willst, und direkt im Chat öffnet sich ein Importer: Wähl deinen Export, ordne die Spalten zu, prüf in der Vorschau, was dazukommt, und bestätige – oder füg den Export ein, wenn dein Client keine In-Chat-Panels hat.",
         importBody: [
-            "Die Datei wird in deinem Browser geparst, nicht von der KI gelesen — die Zeilen können also auf dem Weg hinein nicht vertippt werden, und du siehst die genauen Mahlzeiten, bevor auch nur eine geschrieben wird. Exporte von MyFitnessPal, Cronometer, Lose It! und MacroFactor werden anhand ihrer Spaltennamen erkannt; jede andere CSV funktioniert auch, du zeigst dem Mapper nur einmal jede Spalte. Was mitkommt, sind Datum und Uhrzeit, Lebensmittel, Mahlzeit, Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Koffein in Milligramm — und ebenso Alkohol, wenn du die Alkohol-Erfassung vorher aktiviert hast.",
-            "Die unangenehmen Seiten echter Exportdateien werden abgedeckt: Daten im Format TT.MM.JJJJ und MM/TT/JJJJ, Energie in Kilojoule ebenso wie in Kilokalorien, semikolon-getrennte europäische Dateien, deren Zahlen Komma-Dezimalstellen verwenden, in Anführungszeichen gesetzte Felder mit Zeilenumbrüchen darin, abschließende Summenzeilen und Flags für gelöschte Zeilen. Spaltenüberschriften müssen auch nicht englisch sein — Kalorien oder Ballaststoffe aus einem deutschen Export werden erkannt, und Ballaststoffe, Zucker und Koffein werden auch auf Spanisch, Französisch, Italienisch und Niederländisch zugeordnet. Wo eine Datei wirklich mehrdeutig ist — 05/06 könnte Mai oder Juni sein —, zeigt dir der Importer seine Lesart neben einer Zeile aus deiner eigenen Datei und bittet dich um Bestätigung, statt zu raten. Und jede Zeile trägt einen Inhalts-Fingerabdruck, sodass ein erneuter Import derselben Datei die Mahlzeiten als bereits erfasst meldet, statt sie zu verdoppeln, solange sich deine Zeitzone zwischendurch nicht geändert hat.",
+            "Die Datei wird in deinem Browser eingelesen, nicht von der KI – so kann beim Übertragen keine Zeile vertippt werden, und du siehst die genauen Mahlzeiten, bevor auch nur eine davon gespeichert wird. Exporte von MyFitnessPal, Cronometer, Lose It! und MacroFactor werden an ihren Spaltennamen erkannt; jede andere CSV funktioniert auch, du ordnest jede Spalte nur einmal zu. Übernommen werden Datum und Uhrzeit, Lebensmittel, Mahlzeitentyp, Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Koffein in Milligramm – und auch Alkohol, wenn du die Alkohol-Erfassung vorher eingeschaltet hast.",
+            "Der Importer kommt mit den Tücken echter Exportdateien zurecht: Datumsangaben im Format TT.MM.JJJJ und MM/TT/JJJJ, Energie in Kilojoule ebenso wie in Kilokalorien, europäische Dateien mit Semikolon als Trennzeichen und Komma als Dezimalzeichen, Felder in Anführungszeichen mit Zeilenumbrüchen darin, Summenzeilen am Ende und Markierungen für gelöschte Zeilen. Auch die Spaltenüberschriften müssen nicht auf Englisch sein – Kalorien oder Ballaststoffe aus einem deutschen Export werden erkannt, und Ballaststoffe, Zucker und Koffein werden auch auf Spanisch, Französisch, Italienisch und Niederländisch zugeordnet. Wo eine Datei wirklich mehrdeutig ist – 05/06 kann Mai oder Juni sein –, zeigt dir der Importer seine Lesart neben einer Zeile aus deiner eigenen Datei und lässt dich bestätigen, statt zu raten. Und jede Zeile trägt einen Inhalts-Fingerabdruck: Importierst du dieselbe Datei erneut, werden die Mahlzeiten als bereits erfasst gemeldet statt verdoppelt – solange sich deine Zeitzone zwischendurch nicht geändert hat.",
         ],
 
-        ctaSub: "Kostenlos und quelloffen — funktioniert mit Claude, ChatGPT und jedem MCP-Client.",
-        ctaStarGithub: "Stern auf GitHub geben",
+        ctaSub: "Kostenlos und Open Source – funktioniert mit Claude, ChatGPT und jedem MCP-Client.",
+        ctaStarGithub: "Auf GitHub einen Stern geben",
     },
 };

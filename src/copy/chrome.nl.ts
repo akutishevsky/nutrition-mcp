@@ -1,15 +1,15 @@
 import type { ChromeCopy } from "./chrome.js";
 
 export const CHROME_NL: ChromeCopy = {
-    skipToContent: "Naar de inhoud",
-    brandHomeAriaLabel: "Nutrition MCP startpagina",
+    skipToContent: "Direct naar de inhoud",
+    brandHomeAriaLabel: "Startpagina van Nutrition MCP",
 
     nav: {
         how: "Hoe het werkt",
         install: "Installeren",
         tools: "Tools",
         examples: "Voorbeelden",
-        liveStats: "Live statistieken",
+        liveStats: "Live-statistieken",
         liveStatsBadgeLabel: {
             one: "nieuwe voedingslog sinds je de pagina opende",
             other: "nieuwe voedingslogs sinds je de pagina opende",
@@ -33,24 +33,12 @@ export const CHROME_NL: ChromeCopy = {
         light: "Licht",
         dark: "Donker",
     },
-    connectCta: "Verbind",
+    connectCta: "Verbinden",
     openMenuAriaLabel: "Menu openen",
     closeMenuAriaLabel: "Menu sluiten",
 
     menu: {
-        howSmall: "3 stappen",
-        installSmall: "binnen een minuut",
-        toolsSmall: "36 tools",
-        examplesSmall: "live demo's",
-        liveStatsSmall: "sinds je de pagina opende",
-        alternatives: "Alternatieven",
-        alternativesSmall: "van app wisselen",
-        support: "Steun",
-        contact: "Contact",
         github: "GitHub",
-        privacy: "Privacy",
-        terms: "Voorwaarden",
-        connectInMinute: "Verbind binnen een minuut",
     },
 
     footer: {
@@ -68,7 +56,7 @@ export const CHROME_NL: ChromeCopy = {
 
     consent: {
         title: "Analytische cookies.",
-        body: "Met je toestemming laten Google Analytics en Microsoft Clarity ons zien welke pagina's helpen en waar mensen vastlopen. Er laadt niets tot je akkoord gaat.",
+        body: "Met je toestemming telt Google Analytics bezoeken en neemt Microsoft Clarity klikken en scrollgedrag op als sessie-opnames, zodat we kunnen zien welke pagina's nuttig zijn en waar mensen vastlopen. Geen van beide wordt geladen voordat je akkoord gaat.",
         accept: "Accepteren",
         reject: "Weigeren",
         settings: "Cookie-instellingen",

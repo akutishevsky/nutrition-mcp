@@ -36,10 +36,12 @@ import { WIDGET_STRINGS_UK } from "./widgets.uk.js";
 import { WIDGET_STRINGS_JA } from "./widgets.ja.js";
 
 /** A count-sensitive string, selected at render time via Intl.PluralRules.
- * "one"/"other" are always carried; "few"/"many" only where a string has
- * been given them (so far the summary's "N more meals" lines in Polish and
- * Ukrainian): the widget's plural() helper falls back to "other" for any
- * category a value doesn't have. A pragmatic simplification, consistent with the rest of
+ * "one"/"other" are always carried; "few"/"many" are carried by Polish and
+ * Ukrainian, whose integers land in one/few/many (never "other", which CLDR
+ * keeps for fractions there). Their "other" repeats "many", because plural()
+ * also falls back to "other" when Intl.PluralRules is unavailable, and the
+ * genitive plural is the safest single form. plural() falls back to "other"
+ * for any category a value doesn't have. A pragmatic simplification, consistent with the rest of
  * this codebase's translations being AI-generated with no human review pass
  * — see the TRANSLATION_NOTICE in src/routes.ts. Every form still receives
  * the actual {n}, so the number itself is always correct even where the
@@ -84,6 +86,19 @@ export interface WidgetStrings {
         /** Prefix before a floor's figure, e.g. "of 160 g". */
         ofPrefix: string;
         drinkLabels: { us: string; uk: string };
+        /** Unit glyphs the strip prints, keyed by the MACROS entry's unit
+         * code (shared/macros.js); "L" is the water line's litres. kg/lb are
+         * the weight unit code the weight-trends and goal-progress widgets
+         * print beside a body weight (weightUnit() in shared/i18n.js). */
+        units: {
+            kcal: string;
+            g: string;
+            mg: string;
+            ml: string;
+            L: string;
+            kg: string;
+            lb: string;
+        };
         /** A limit metric with nothing recorded at all. */
         noneLogged: string;
         /** Default label above the calorie ring/figure when a widget doesn't
@@ -124,6 +139,16 @@ export interface WidgetStrings {
          * true count, so there may or may not be more. No placeholder.
          */
         moreMealsMaybe: string;
+    };
+
+    /** shared/bridge.js — text the host bridge itself paints, around
+     * every widget rather than inside one. */
+    bridge: {
+        /** Footer under every painted widget. */
+        settingsFooter: string;
+        /** On-screen notice when ui/initialize never succeeds. Shown before
+         * any payload locale is known, so picked from the browser language. */
+        connectFailed: string;
     };
 
     /** templates/nutrition-summary.html's own top matter. */
@@ -171,6 +196,10 @@ export interface WidgetStrings {
     /** templates/goal-progress.html's own top matter (the weight row; the
      * strip above it is shared/macros.js). */
     goalProgress: {
+        /** Loading line shown before the first tool result arrives —
+         * before the payload's locale is known, so shared/bridge.js picks
+         * it from the browser language. */
+        loading: string;
         title: string;
         /** No data at all for the requested date. */
         empty: string;
@@ -213,6 +242,10 @@ export interface WidgetStrings {
     /** templates/trends.html's own top matter (the toggle header and chart;
      * the strip below is shared/macros.js). */
     trends: {
+        /** Loading line shown before the first tool result arrives —
+         * before the payload's locale is known, so shared/bridge.js picks
+         * it from the browser language. */
+        loading: string;
         title: string;
         empty: string;
         /** The word after a floor-metric AVERAGE that fell short of its target, e.g. "124 kcal under". Distinct from macros.floorUnder (live "still left to eat today" framing, wrong for a historical average) and macros.ceilingUnder (safety-margin-before-a-limit framing in several locales, wrong for a shortfall). */
@@ -232,6 +265,10 @@ export interface WidgetStrings {
 
     /** templates/weight-trends.html's own top matter. No macro strip here. */
     weightTrends: {
+        /** Loading line shown before the first tool result arrives —
+         * before the payload's locale is known, so shared/bridge.js picks
+         * it from the browser language. */
+        loading: string;
         title: string;
         empty: string;
         /** A selected range with no weigh-ins in it. Placeholder: {range}. */
@@ -267,6 +304,10 @@ export interface WidgetStrings {
      * audience); and api.updateModelContext's finished-import summary, which
      * is model-facing text like every tool's `content`, not UI. */
     importMeals: {
+        /** Loading line shown before the first tool result arrives —
+         * before the payload's locale is known, so shared/bridge.js picks
+         * it from the browser language. */
+        loading: string;
         stepFile: string;
         stepMap: string;
         stepPreview: string;
@@ -343,24 +384,36 @@ export interface WidgetStrings {
         mealsToImport: PluralForms;
         /** Template. Placeholder: {kcal}. */
         kcalTotal: string;
-        /** Template. Placeholder: {n}. */
-        rowsSkipped: string;
+        /** Placeholder: {n}. */
+        rowsSkipped: PluralForms;
         batchCount: PluralForms;
         /** Template. Placeholders: {format}, {conversion}. */
         datesReadAs: string;
         energyConvertedNote: string;
         energyReadAsKcal: string;
-        /** Template. Placeholders: {n}, {format}, {sample}. */
-        badDatesWarning: string;
+        /** Placeholders: {n}, {format}, {sample}. */
+        badDatesWarning: PluralForms;
         /** Template. Placeholders: {line}, {value}. */
         badDateSample: string;
-        /** Template. Placeholder: {n}. */
-        noTimeWarning: string;
+        /** Placeholder: {n}. */
+        noTimeWarning: PluralForms;
         /** "N date(s) have [too many meals]" — count of dates that had to be
          * split across import batches. Placeholder: {n}. */
         splitDatesCount: PluralForms;
         /** Template. Placeholders: {max}, {date}. */
         splitDatesWarning: string;
+        /** Preview-table column headers for the nutrient columns, keyed by
+         * the row field. Short on purpose (the table scrolls sideways); the
+         * full name from macros.labels rides along as the header's title. */
+        tableAbbr: {
+            protein_g: string;
+            carbs_g: string;
+            fat_g: string;
+            fiber_g: string;
+            sugar_g: string;
+            alcohol_g: string;
+            caffeine_mg: string;
+        };
         tableLine: string;
         tableWhen: string;
         tableMeal: string;
@@ -369,30 +422,30 @@ export interface WidgetStrings {
         noNameFallback: string;
         /** Template. Placeholders: {shown}, {total}. */
         showingRows: string;
-        /** Template. Placeholder: {n}. */
-        checkingRows: string;
-        /** Template. Placeholder: {n}. */
-        importingRows: string;
+        /** Placeholder: {n}. */
+        checkingRows: PluralForms;
+        /** Placeholder: {n}. */
+        importingRows: PluralForms;
         /** Template. Placeholders: {label}, {done}, {total}. */
         batchProgress: string;
         /** Template. Placeholders: {a}, {b}, {msg}. */
         rowsRange: string;
         preflightFailed: string;
-        /** Template. Placeholders: {n}, {line}, {message}. */
-        rowsWouldFail: string;
+        /** Placeholders: {n}, {line}, {message}. */
+        rowsWouldFail: PluralForms;
         importingEllipsis: string;
-        /** Template. Placeholder: {n}. */
-        importButton: string;
+        /** Placeholder: {n}. */
+        importButton: PluralForms;
         backToMapping: string;
         importCompleteHeading: string;
-        /** Template. Placeholder: {n}. */
-        resultMealsImported: string;
-        /** Template. Placeholder: {n}. */
-        resultAlreadyLogged: string;
-        /** Template. Placeholder: {n}. */
-        resultFailed: string;
-        /** Template. Placeholder: {n}. */
-        resultSkipped: string;
+        /** Placeholder: {n}. */
+        resultMealsImported: PluralForms;
+        /** Placeholder: {n}. */
+        resultAlreadyLogged: PluralForms;
+        /** Placeholder: {n}. */
+        resultFailed: PluralForms;
+        /** Placeholder: {n}. */
+        resultSkipped: PluralForms;
         restartButton: string;
         /** Template. Placeholder: {msg}. */
         couldNotReadFile: string;
@@ -423,6 +476,15 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         limitPrefix: "limit",
         ofPrefix: "of",
         drinkLabels: { us: "US drinks", uk: "UK units" },
+        units: {
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            ml: "ml",
+            L: "L",
+            kg: "kg",
+            lb: "lb",
+        },
         noneLogged: "none logged",
         caloriesToday: "Calories today",
         caloriesOn: "Calories · {date}",
@@ -441,6 +503,11 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             other: "+ {n} or more smaller meals",
         },
         moreMealsMaybe: "+ possibly more smaller meals",
+    },
+    bridge: {
+        settingsFooter:
+            "You can enable or disable these widgets anytime — just ask to update your settings.",
+        connectFailed: "This view could not connect to its host.",
     },
     nutritionSummary: {
         title: "Nutrition summary",
@@ -473,6 +540,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         ],
     },
     goalProgress: {
+        loading: "Loading your goal progress…",
         title: "Goal progress",
         empty: "No goal progress to show.",
         nothingLoggedFor: "Nothing logged yet for {date}.",
@@ -498,6 +566,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         addedKcal: "+{kcal} kcal",
     },
     trends: {
+        loading: "Loading your trends…",
         title: "Trends",
         empty: "No meals or water logged in this range yet.",
         avgUnder: "under",
@@ -508,6 +577,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         avgAllDays: "{range}-day avg · all days",
     },
     weightTrends: {
+        loading: "Loading your weight trends…",
         title: "Weight",
         empty: "No weight logged in this range yet.",
         rangeEmpty: "No weigh-ins in the last {range} days. Try a wider range.",
@@ -525,6 +595,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         noTarget: "No target set",
     },
     importMeals: {
+        loading: "Preparing import…",
         stepFile: "File",
         stepMap: "Map columns",
         stepPreview: "Preview",
@@ -602,22 +673,38 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             other: "{n} meals to import",
         },
         kcalTotal: "{kcal} kcal total",
-        rowsSkipped: "{n} rows skipped",
+        rowsSkipped: {
+            one: "{n} row skipped",
+            other: "{n} rows skipped",
+        },
         batchCount: { one: "{n} batch", other: "{n} batches" },
         datesReadAs: "Dates read as {format}; energy {conversion}.",
         energyConvertedNote: "converted from kJ to kcal",
         energyReadAsKcal: "read as kcal",
-        badDatesWarning:
-            "{n} row(s) were skipped because their date could not be read as {format}{sample}. Go back and set the date format that matches your file.",
+        badDatesWarning: {
+            one: "{n} row was skipped because its date could not be read as {format}{sample}. Go back and set the date format that matches your file.",
+            other: "{n} rows were skipped because their date could not be read as {format}{sample}. Go back and set the date format that matches your file.",
+        },
         badDateSample: " (e.g. line {line}: {value})",
-        noTimeWarning:
-            "{n} row(s) have a date but no time — they will be logged at midday.",
+        noTimeWarning: {
+            one: "{n} row has a date but no time — it will be logged at midday.",
+            other: "{n} rows have a date but no time — they will be logged at midday.",
+        },
         splitDatesCount: {
             one: "{n} date has",
             other: "{n} dates have",
         },
         splitDatesWarning:
             " more than {max} meals (e.g. {date}) and had to be split across separate import batches. If that date contains two entries with the exact same food, meal type and macros, one of them may be skipped as a duplicate instead of imported.",
+        tableAbbr: {
+            protein_g: "P",
+            carbs_g: "C",
+            fat_g: "F",
+            fiber_g: "Fib",
+            sugar_g: "Sug",
+            alcohol_g: "Alc",
+            caffeine_mg: "Caf",
+        },
         tableLine: "Line",
         tableWhen: "When",
         tableMeal: "Meal",
@@ -625,20 +712,44 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         tableProblem: "Problem",
         noNameFallback: "(no name — will be labelled by meal)",
         showingRows: "Showing {shown} of {total} rows",
-        checkingRows: "Checking {n} rows…",
-        importingRows: "Importing {n} rows…",
+        checkingRows: {
+            one: "Checking {n} row…",
+            other: "Checking {n} rows…",
+        },
+        importingRows: {
+            one: "Importing {n} row…",
+            other: "Importing {n} rows…",
+        },
         batchProgress: "{label} (batch {done} of {total})",
         rowsRange: "Rows {a}–{b}: {msg}",
         preflightFailed: "Preflight check failed.",
-        rowsWouldFail: "{n} row(s) would fail, e.g. line {line}: {message}",
+        rowsWouldFail: {
+            one: "{n} row would fail, e.g. line {line}: {message}",
+            other: "{n} rows would fail, e.g. line {line}: {message}",
+        },
         importingEllipsis: "Importing…",
-        importButton: "Import {n} meals",
+        importButton: {
+            one: "Import {n} meal",
+            other: "Import {n} meals",
+        },
         backToMapping: "Back to mapping",
         importCompleteHeading: "Import complete",
-        resultMealsImported: "{n} meals imported",
-        resultAlreadyLogged: ", {n} already logged",
-        resultFailed: ", {n} failed",
-        resultSkipped: ", {n} skipped",
+        resultMealsImported: {
+            one: "{n} meal imported",
+            other: "{n} meals imported",
+        },
+        resultAlreadyLogged: {
+            one: ", {n} already logged",
+            other: ", {n} already logged",
+        },
+        resultFailed: {
+            one: ", {n} failed",
+            other: ", {n} failed",
+        },
+        resultSkipped: {
+            one: ", {n} skipped",
+            other: ", {n} skipped",
+        },
         restartButton: "Import another file",
         couldNotReadFile: "Could not read that file: {msg}",
         noDataRows: "No data rows found in that file.",
