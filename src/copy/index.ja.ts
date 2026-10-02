@@ -203,6 +203,7 @@ export const INDEX_JA: IndexDoc = {
         nextLabel: "次の例",
         pickerLabel: "例を選択",
         carouselLabel: "使用例",
+        carouselRoleDescription: "カルーセル",
         threadLabel: "会話",
         moreToolsLabel: "あわせて使うツール",
         toolLinkLabel: "ツールページの{tool}（新しいタブで開きます）",

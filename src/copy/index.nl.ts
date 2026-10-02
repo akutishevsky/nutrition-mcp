@@ -187,6 +187,7 @@ export const INDEX_NL: IndexDoc = {
         nextLabel: "Volgend voorbeeld",
         pickerLabel: "Kies een voorbeeld",
         carouselLabel: "Voorbeelden",
+        carouselRoleDescription: "carrousel",
         threadLabel: "Gesprek",
         moreToolsLabel: "Gebruikt ook",
         toolLinkLabel: "{tool} op de toolspagina (opent in een nieuw tabblad)",

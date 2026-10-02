@@ -598,7 +598,7 @@ ${tabs}
                         <button class="lp-round" type="button" data-ex-dir="next" aria-label="${esc(e.nextLabel)}"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
                     </div>
                 </div>
-                <div class="lp-ex-box" id="try-carousel" role="region" aria-roledescription="carousel" aria-label="${esc(e.carouselLabel)}" style="${roleStyle(EX_META[e.slides[0]!.id].color)}">
+                <div class="lp-ex-box" id="try-carousel" role="region" aria-roledescription="${esc(e.carouselRoleDescription)}" aria-label="${esc(e.carouselLabel)}" style="${roleStyle(EX_META[e.slides[0]!.id].color)}">
                     <span class="lp-ex-blob" aria-hidden="true"></span>
 ${panels}
                 </div>

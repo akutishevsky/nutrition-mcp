@@ -193,6 +193,7 @@ export const INDEX_UK: IndexDoc = {
         nextLabel: "Наступний приклад",
         pickerLabel: "Обери приклад",
         carouselLabel: "Приклади",
+        carouselRoleDescription: "карусель",
         threadLabel: "Розмова",
         moreToolsLabel: "Також використовує",
         toolLinkLabel:

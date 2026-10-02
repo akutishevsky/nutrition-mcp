@@ -270,6 +270,9 @@ export interface IndexDoc {
         pickerLabel: string;
         /** aria-label of the carousel region, e.g. "Examples". */
         carouselLabel: string;
+        /** aria-roledescription of the carousel region, e.g. "carousel".
+         * Screen readers announce it in place of the generic "region". */
+        carouselRoleDescription: string;
         /** Accessible name of each chat window's scrolling conversation. */
         threadLabel: string;
         /** Small heading over the secondary tool chips, e.g. "Also uses". */
@@ -572,6 +575,7 @@ const INDEX_EN: IndexDoc = {
         nextLabel: "Next example",
         pickerLabel: "Pick an example",
         carouselLabel: "Examples",
+        carouselRoleDescription: "carousel",
         threadLabel: "Conversation",
         moreToolsLabel: "Also uses",
         toolLinkLabel: "{tool} on the Tools page (opens in a new tab)",
