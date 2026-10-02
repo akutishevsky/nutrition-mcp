@@ -53,8 +53,10 @@ interface Totals {
 
 /** 14 days of the "Review the week" account, oldest first: date, kcal,
  * protein, carbs, fat, fiber, sugar, caffeine, water ml. 25 Feb was not
- * logged. The slide's reply quotes the averages these produce (1,830 kcal
- * over all 14 days, 1,970 over the 13 logged, sugar 52 g, over 60 g on 4). */
+ * logged. The slide's reply quotes what get_trends({days: 14}) prints for
+ * them: 13 of 14 days logged, a 10-day streak, 9 days within ±10% of the
+ * 2,000 kcal target, 1,830 kcal as a calendar-day average (the unlogged day
+ * counts as zero), sugar 52 g over the 13 days with data, over 60 g on 4. */
 const TRENDS_DAYS: [
     string,
     number,
@@ -116,10 +118,20 @@ export type DemoCardId =
 /** A meal-logged card's figures: the day's totals right after the log, which
  * on these demo days is the meal itself. */
 const MEAL_CARDS: Partial<
-    Record<DemoCardId, { date: string; totals: Totals; drink?: "uk" }>
+    Record<
+        DemoCardId,
+        {
+            date: string;
+            /** log_meal's meal_type, which the widget prints in its header. */
+            type: "breakfast" | "lunch" | "dinner" | "snack";
+            totals: Totals;
+            drink?: "uk";
+        }
+    >
 > = {
     "hero-meal": {
         date: "2026-03-08",
+        type: "breakfast",
         totals: {
             kcal: 480,
             pro: 21,
@@ -133,6 +145,7 @@ const MEAL_CARDS: Partial<
     },
     "log-meal": {
         date: "2026-03-15",
+        type: "breakfast",
         totals: {
             kcal: 320,
             pro: 11,
@@ -146,6 +159,7 @@ const MEAL_CARDS: Partial<
     },
     "photo-meal": {
         date: "2026-03-16",
+        type: "lunch",
         totals: {
             kcal: 520,
             pro: 24,
@@ -159,6 +173,7 @@ const MEAL_CARDS: Partial<
     },
     "scan-barcode": {
         date: "2026-03-17",
+        type: "lunch",
         totals: {
             kcal: 139,
             pro: 0,
@@ -166,12 +181,15 @@ const MEAL_CARDS: Partial<
             fat: 0,
             fib: 0,
             sug: 35,
-            caf: 33,
+            // Open Food Facts carries no caffeine: log_meal's typical 34 mg
+            // per 355 ml cola, scaled to the 330 ml can.
+            caf: 32,
             water: 0,
         },
     },
     "track-drinks": {
         date: "2026-03-19",
+        type: "dinner",
         drink: "uk",
         totals: {
             kcal: 180,
@@ -296,7 +314,7 @@ function sumTotals(rows: Totals[], water: number): Totals {
     return { ...t, water };
 }
 
-/** The "Set goals, check in" day (13 Mar): four meals, three glasses of
+/** The "Set goals, check in" day (20 Feb): four meals, three glasses of
  * water, 1,540 kcal and 104 g protein, sugar 40 g, caffeine 130 mg. */
 const GOALS_DAY_MEALS: Totals[] = [
     {
@@ -340,11 +358,15 @@ function mealLoggedPayload(id: DemoCardId, meal: string, locale: string) {
         action: "logged",
         date: d.date,
         drink_unit: d.drink ?? null,
-        water_unit: "l",
         locale,
-        // meal_type is left out of the header: the widget prints the
-        // server's English enum ("lunch") verbatim, untranslated.
-        logged_meal: { description: meal, meal_type: null, ...logged },
+        // The widget prints the server's English meal_type enum ("lunch") in
+        // its header verbatim, untranslated, so only the English page shows
+        // it; translated pages leave it out rather than mix in English.
+        logged_meal: {
+            description: meal,
+            meal_type: locale === "en" ? d.type : null,
+            ...logged,
+        },
         has_goals: true,
         goals: GOALS_ITEM,
         totals: t,
@@ -374,7 +396,6 @@ function summaryPayload(locale: string, dayMeals: HeroMeal[]) {
         logged_days: 1,
         days_in_range: 1,
         drink_unit: null,
-        water_unit: "l",
         locale,
         goals: GOALS_ITEM,
         averages: totalsItem(t),
@@ -394,19 +415,18 @@ function summaryPayload(locale: string, dayMeals: HeroMeal[]) {
 function goalProgressPayload(locale: string) {
     const t = sumTotals(GOALS_DAY_MEALS, 1500);
     return {
-        date: "2026-03-13",
+        date: "2026-02-20",
         meal_count: GOALS_DAY_MEALS.length,
         water_entries: 3,
         drink_unit: null,
-        water_unit: "l",
         locale,
         goals: GOALS_ITEM,
         totals: totalsItem(t),
         weight: {
-            current: 78.4,
+            current: 79.6,
             target: TARGET_KG,
             unit: "kg",
-            logged_on: "2026-03-12",
+            logged_on: "2026-02-20",
         },
         meals: GOALS_DAY_MEALS.map((m, i) => mealRow(`meal ${i + 1}`, m)),
     };
@@ -417,7 +437,6 @@ function trendsPayload(locale: string) {
         end_date: TRENDS_DAYS[TRENDS_DAYS.length - 1]![0],
         default_range: 14,
         drink_unit: null,
-        water_unit: "l",
         locale,
         goals: GOALS_ITEM,
         days: TRENDS_DAYS.map(
@@ -476,8 +495,15 @@ function importPayload(locale: string) {
         today: "2026-03-20",
         max_rows_per_call: 50,
         import_tool_name: "bulk_import_meals",
-        known_source_apps: ["myfitnesspal", "cronometer"],
-        // The reply just set it, so the importer opens without the UTC note.
+        known_source_apps: [
+            "myfitnesspal",
+            "cronometer",
+            "loseit",
+            "macrofactor",
+        ],
+        widgets_enabled: true,
+        // set_timezone ran just before start_meal_import, so the importer
+        // opens in Chicago without the UTC note.
         tz_configured: true,
         drink_unit: null,
         locale,
@@ -520,11 +546,13 @@ export function renderCard(
             return card(
                 "goal-progress",
                 goalProgressPayload(locale),
-                "2026-03-13",
+                "2026-02-20",
             );
         case "review-week":
-            // Asked the day after the fortnight closed.
-            return card("trends", trendsPayload(locale), "2026-03-08");
+            // Asked on the evening of the fortnight's last day (7 Mar is
+            // logged), so get_trends' default end_date is today and the
+            // window is exactly 22 Feb – 7 Mar.
+            return card("trends", trendsPayload(locale), "2026-03-07");
         case "import-file":
             return card("import-meals", importPayload(locale), "2026-03-20");
         default: {

@@ -116,20 +116,19 @@ export type ExampleSlideId =
  * can. */
 export type ExamplePhoto = "meal" | "package";
 
-/** A file an ai reply hands over, drawn by the generator as a download chip
- * under the reply: a zip icon, the archive's real file name and
- * `examples.downloadExpires`. A picture of the link, never a working one. */
-export type ExampleDownload = "export-zip";
-
-/** One bubble of an example conversation, in the order it is shown. `from`,
- * `photo` and `download` are STRUCTURE — copy them verbatim; `text` is the
- * only translated field. A photo turn is always the user's; its `text` is
- * the caption sent with the picture, and the picture's accessible name comes
- * from `examples.photoMealAlt` / `photoPackageAlt`. */
+/** One bubble of an example conversation, in the order it is shown. `from`
+ * and `photo` are STRUCTURE — copy them verbatim; `text` and `link` are
+ * translated. A photo turn is always the user's; its `text` is the caption
+ * sent with the picture, and the picture's accessible name comes from
+ * `examples.photoMealAlt` / `photoPackageAlt`. `link` is the label of a link
+ * the reply passes on (export_all_data's download URL — a text-only tool, so
+ * a real chat shows a link in the reply, never a file card), drawn
+ * underlined on its own line at the end of the bubble: a picture of a link,
+ * never a working one. */
 export type ExampleMessage =
     | { from: "user"; text: string; photo?: undefined }
     | { from: "user"; photo: ExamplePhoto; text: string }
-    | { from: "ai"; text: string; download?: ExampleDownload };
+    | { from: "ai"; text: string; link?: string };
 
 /** The widgets an example slide can show. */
 export type ExampleWidget =
@@ -143,7 +142,10 @@ export type ExampleWidget =
  * copy it verbatim. */
 export interface ExampleCardRef {
     kind: ExampleWidget;
-    /** Index into `messages` of the ai reply the card follows. */
+    /** Index into `messages` of the USER turn whose request makes the tool
+     * call. The card is drawn right after it and above the ai reply that
+     * follows, because a host renders the widget at the tool call, before the
+     * text the assistant writes once it has read the result. */
     after: number;
     /** Which importer screen; set exactly when `kind` is `import-meals`.
      * Only the first screen ("file") is drawn on this page. */
@@ -279,9 +281,6 @@ export interface IndexDoc {
         /** Accessible names of the two photo-turn pictures. */
         photoMealAlt: string;
         photoPackageAlt: string;
-        /** The note on the download chip, e.g. "Expires in 60 minutes". Keep
-         * the 60: it is export_all_data's real link lifetime. */
-        downloadExpires: string;
         /** 10 slides, in English's order (see ExampleSlide.id). */
         slides: ExampleSlide[];
     };
@@ -580,13 +579,12 @@ const INDEX_EN: IndexDoc = {
             "Photo: a bowl of borscht with a spoonful of sour cream and dill, and a slice of rye bread beside it",
         photoPackageAlt:
             "Photo: the barcode on a can of Coca-Cola, number 5449000000996",
-        downloadExpires: "Expires in 60 minutes",
         slides: [
             {
                 id: "log-meal",
                 title: "Log in plain words",
                 description:
-                    "Say it the way you'd tell a friend. If the portion or which meal it was is missing, it asks before estimating. Fiber and sugar go on every entry, caffeine on anything that has some, and “this morning” lands in your timezone.",
+                    "Say it the way you'd tell a friend. If the portion or which meal it was is missing, it asks before estimating. Fiber and sugar go on every entry, caffeine on anything that has some, and “around 7” lands at 07:00 in your timezone.",
                 toolNotes: {
                     log_meal:
                         "Saves breakfast with macros, fiber, sugar and the coffee's caffeine",
@@ -624,7 +622,7 @@ const INDEX_EN: IndexDoc = {
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 3,
+                        after: 2,
                     },
                 ],
                 cardMeals: [
@@ -658,7 +656,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "You've logged borscht at Tsybulya twice before, both times the beef version with sour cream. Same again? And did you finish the bowl and the bread?",
+                        text: "You've logged borscht at Tsybulya twice before, both times beef with sour cream and a slice of rye, about 520 kcal. Same again? And did you finish the bowl and the bread?",
                     },
                     {
                         from: "user",
@@ -666,7 +664,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "So: beef borscht with sour cream (1 bowl, finished) and rye bread (1 slice) at Tsybulya, Podil, Kyiv. About 520 kcal and 24 g protein, estimated, not published figures. Log it as lunch?",
+                        text: "So: beef borscht with sour cream (1 bowl, finished) and rye bread (1 slice) at Tsybulya, Podil, Kyiv. Same as last time: about 520 kcal and 24 g protein, estimates rather than published figures. Log it?",
                     },
                     {
                         from: "user",
@@ -674,13 +672,13 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Logged lunch: 520 kcal · 24 g protein · 43 g carbs · 27 g fat · 7 g fiber · 10 g sugar.",
+                        text: "Logged. That's 520 of your 2,000 kcal for today, 1,480 to go.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 7,
+                        after: 6,
                     },
                 ],
                 cardMeals: [
@@ -694,9 +692,9 @@ const INDEX_EN: IndexDoc = {
                     "Photograph the package: the digits under the barcode are looked up in Open Food Facts, and it asks how much you had. Open Food Facts carries no caffeine, so that comes from the label or typical amounts; a missing fiber or sugar figure is estimated rather than left blank.",
                 toolNotes: {
                     lookup_barcode:
-                        "Pulls the can's label figures from Open Food Facts",
+                        "Pulls the can's label figures, Nutri-Score and NOVA group from Open Food Facts",
                     log_meal:
-                        "Logs the whole can with lunch, caffeine included",
+                        "Logs the whole can as lunch, with a typical caffeine figure",
                 },
                 messages: [
                     {
@@ -706,7 +704,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "That's a 330 ml can of Coca-Cola: 139 kcal and 35 g of sugar, per Open Food Facts. Did you have the whole can?",
+                        text: "That's a 330 ml can of Coca-Cola: 139 kcal and 35 g of sugar, and Open Food Facts rates it Nutri-Score E and NOVA 4, ultra-processed. Did you have the whole can?",
                     },
                     {
                         from: "user",
@@ -714,13 +712,13 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Logged with lunch: 139 kcal, 35 g sugar, and 33 mg caffeine from the can's label, since Open Food Facts doesn't list caffeine. As for how bad: that sugar is over half your 60 g daily limit on its own, and Open Food Facts rates it Nutri-Score E and NOVA 4, ultra-processed.",
+                        text: "Logged as lunch: 139 kcal, 35 g sugar and about 32 mg caffeine, a typical amount for a 330 ml cola, since Open Food Facts doesn't list caffeine. The sugar alone puts you at 35 of your 60 g daily limit.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 3,
+                        after: 2,
                     },
                 ],
                 cardMeals: ["Coca-Cola (330 ml can)"],
@@ -729,12 +727,12 @@ const INDEX_EN: IndexDoc = {
                 id: "goals-progress",
                 title: "Set goals, check in",
                 description:
-                    "Set targets to reach, like calories and protein, and limits to stay under for sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see each figure against its goal, and what's left to go.",
+                    "Set targets to reach, like calories and protein, and limits to stay under for sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see what's left to reach each target and where you stand against each limit.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Saves calorie and protein targets and a 400 mg caffeine limit",
                     get_goal_progress:
-                        "Shows today against each goal and what's left to go",
+                        "Shows today against each target and limit in a card in the chat",
                 },
                 messages: [
                     {
@@ -751,7 +749,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 30 g fiber, 2.5 L water and your 60 g sugar limit.",
+                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 30 g fiber, 2.5 L water, your 60 g sugar limit and your 75 kg target weight.",
                     },
                     {
                         from: "user",
@@ -759,13 +757,13 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "You're at 1,540 kcal and 104 g protein, so 460 kcal and 56 g protein to go. Sugar is the tighter one: 40 of your 60 g limit, so 20 g left. Caffeine is at 130 of 400 mg.",
+                        text: "You're at 1,540 of 2,000 kcal and 104 of 160 g protein, so 460 kcal and 56 g protein to go. Sugar is at 40 g of your 60 g limit, and caffeine at 130 of 400 mg, both under.",
                     },
                 ],
                 cards: [
                     {
                         kind: "goal-progress",
-                        after: 5,
+                        after: 4,
                     },
                 ],
             },
@@ -773,7 +771,7 @@ const INDEX_EN: IndexDoc = {
                 id: "review-week",
                 title: "Review the week",
                 description:
-                    "Ask how the week went and the trends card opens in the chat with your averages and days logged. Switch between 7, 14 and 30 days or tap a nutrient to chart it, with no new request. It can also tell you your streaks and days on target.",
+                    "Ask how the week went and the trends card opens in the chat with your average calories and macros against your goals and how many days you logged. Switch between 7, 14 and 30 days without a new request. It can also tell you your streaks and days on target.",
                 toolNotes: {
                     get_trends:
                         "Averages your last 7, 14 and 30 days and opens the trends card",
@@ -785,7 +783,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Steadier than it feels. You averaged 1,830 kcal a day, 170 under your 2,000, but that counts the one day of the 14 you didn't log as zero. On the 13 days you logged it was about 1,970, with 9 days within 10% of target. And you're on a 10-day logging streak.",
+                        text: "You logged 13 of the 14 days, the last 10 in a row, and 9 of them landed within 10% of your 2,000 kcal target. Calories averaged 1,830 a day, but that counts the day you skipped as zero.",
                     },
                     {
                         from: "user",
@@ -793,13 +791,13 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "That's the one to watch. It averaged 52 g and went over your 60 g limit on 4 of the 13 days.",
+                        text: "It averaged 52 g a day, under your 60 g limit, but went over it on 4 of the 13 days.",
                     },
                 ],
                 cards: [
                     {
                         kind: "trends",
-                        after: 1,
+                        after: 0,
                     },
                 ],
             },
@@ -821,7 +819,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "784 kg is outside the plausible body-weight range (20–500 kg), so nothing was saved. Did you mean 78.4 kg?",
+                        text: "784 kg is outside the plausible body-weight range (20–500 kg), so nothing was saved. Did you mean 78.4 kg, or 784 lb?",
                     },
                     {
                         from: "user",
@@ -829,13 +827,13 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Saved 78.4 kg. You're down 1.8 kg since 11 Feb, about 0.4 kg a week, and your 7-day average is 78.7 kg. 3.4 kg to go to your 75 kg target.",
+                        text: "Saved 78.4 kg. You're down 1.8 kg since 11 Feb (from 80.2 kg), and your 7-day average is 78.7 kg. 3.4 kg to go to your 75 kg target.",
                     },
                 ],
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 3,
+                        after: 2,
                     },
                 ],
             },
@@ -855,7 +853,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "A little, yes. You logged 28 of the last 30 days and skipped breakfast on 6. Those days averaged 2,215 kcal, against 1,940 on the 22 days with breakfast, and about 35 g less protein.",
+                        text: "A little, yes. You logged 28 of the last 30 days and skipped breakfast on 6. Those days averaged 2,215 kcal and 88 g protein, against 1,940 kcal and 123 g on the 22 days with breakfast.",
                     },
                     {
                         from: "user",
@@ -884,7 +882,7 @@ const INDEX_EN: IndexDoc = {
                     set_alcohol_tracking:
                         "Turns alcohol on, shown in grams alongside UK units",
                     log_meal:
-                        "Works out the pint's alcohol from its size and strength",
+                        "Logs the pint with its alcohol as grams of ethanol (568 ml × 4% × 0.789)",
                 },
                 messages: [
                     {
@@ -917,13 +915,13 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Logged with dinner: a 568 ml pint at 4% is 17.9 g of alcohol, 2.3 UK units, about 180 kcal.",
+                        text: "Logged as a dinner entry: a 568 ml pint at 4% is 17.9 g of alcohol, 2.3 UK units, about 180 kcal.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 7,
+                        after: 6,
                     },
                 ],
                 cardMeals: ["Lager, 4% (1 pint, 568 ml)"],
@@ -932,12 +930,15 @@ const INDEX_EN: IndexDoc = {
                 id: "import-history",
                 title: "Bring your history",
                 description:
-                    "Moving from MyFitnessPal, Cronometer, Lose It! or MacroFactor? The importer opens in the chat, reads and maps your export in the browser, saves nothing until you confirm a preview, and doesn't double a meal if you import the same file again with the same timezone. It flags a missing timezone before you start.",
+                    "Moving from MyFitnessPal, Cronometer, Lose It! or MacroFactor? The importer opens in the chat, reads and maps your export in the browser, saves nothing until you confirm a preview, and doesn't double a meal if you import the same file again with the same timezone. If your timezone isn't set, that's sorted out first, so every meal lands on the right day.",
                 toolNotes: {
-                    start_meal_import:
-                        "Opens the in-chat importer for your export file",
+                    get_profile: "Shows the account has no timezone set yet",
                     set_timezone:
                         "Sets America/Chicago so meals land in local time",
+                    start_meal_import:
+                        "Opens the in-chat importer for your export file",
+                    bulk_import_meals:
+                        "Saves the confirmed rows in batches of up to 50, skipping any already imported",
                 },
                 messages: [
                     {
@@ -946,7 +947,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "The importer is open below. One thing before you pick the file: your account has no timezone set, so times would be read as UTC. Where are you based?",
+                        text: "Before I open the importer: your account has no timezone set, so the dates in your export would be read as UTC and meals could land on the wrong day. Want to set it first? Which timezone are you in?",
                     },
                     {
                         from: "user",
@@ -954,7 +955,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Set to America/Chicago. Now pick the Nutrition-Summary CSV from your MyFitnessPal export. It's read right in your browser, and nothing is saved until you confirm the preview.",
+                        text: "Timezone set to America/Chicago, and the importer is open above: pick your MyFitnessPal export file there. It's read right in your browser, and nothing is saved until you confirm the preview.",
                     },
                     {
                         from: "user",
@@ -962,11 +963,11 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "That's normal for MyFitnessPal: its export has one row per meal per day, with the totals but no food names. Each meal gets labelled by its meal type instead, with its calories and macros intact.",
+                        text: "That's normal for MyFitnessPal: its export has one row per meal per day, with totals but no food names. Rows without a food name are labelled with the app they came from, and their calories and macros come through as they are.",
                     },
                     {
                         from: "user",
-                        text: "603 meals. it says they'll go in at noon?",
+                        text: "603 meals. it says they'll be logged at midday?",
                     },
                     {
                         from: "ai",
@@ -984,7 +985,7 @@ const INDEX_EN: IndexDoc = {
                 cards: [
                     {
                         kind: "import-meals",
-                        after: 3,
+                        after: 2,
                         step: "file",
                     },
                 ],
@@ -1005,24 +1006,8 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Here you go: one ZIP with 1,204 meals, 318 water entries and 64 weight entries, plus your goals, profile settings, account details, tool-usage telemetry and app connections. Your food log is meals.csv inside, which opens in Excel or Google Sheets.",
-                        download: "export-zip",
-                    },
-                    {
-                        from: "user",
-                        text: "can i just send her the link?",
-                    },
-                    {
-                        from: "ai",
-                        text: "Better to download it and send her the file. The link stops working after 60 minutes, and anyone who has it can open your whole export — weight, account details and settings included, not just meals.",
-                    },
-                    {
-                        from: "user",
-                        text: "good to know. could i restore from it later if i needed to?",
-                    },
-                    {
-                        from: "ai",
-                        text: "Your meals, yes. meals.csv uses the importer's own column names, so it goes straight back in, and meals already in your log are recognised and skipped, so nothing doubles. The other files are for your records only; they can't be imported back.",
+                        text: "Done. The ZIP has 1,204 meals, 318 water entries and 64 weight entries, plus your nutrition goals, profile settings, account details, tool-usage telemetry and app connections. Your food log is meals.csv inside.",
+                        link: "Download your export (link valid for 60 minutes)",
                     },
                 ],
             },

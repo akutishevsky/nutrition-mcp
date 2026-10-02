@@ -78,11 +78,7 @@ html.js .lp-thread > * { animation: nm-msg .7s var(--ease-out) both; }
 .lp-typing span:nth-child(3) { animation-delay: .4s; }
 .lp-caret { display: inline-block; width: 2px; height: 14px; background: var(--acc); margin-left: 2px; vertical-align: -2px; animation: nm-blink 1s steps(1) infinite; }
 .lp-card-slot { align-self: stretch; width: 100%; }
-.lp-dl { align-self: flex-start; display: flex; align-items: center; gap: 12px; padding: 12px 16px 12px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; font-size: 13px; color: var(--ink); }
-.lp-dl > span:first-child { flex: none; width: 38px; height: 38px; border-radius: 12px; background: color-mix(in srgb, var(--sug) 18%, transparent); color: var(--sug-icon); display: grid; place-items: center; font-size: 15px; }
-.lp-dl b { display: block; font-family: var(--mono); font-size: 13px; }
-.lp-dl small { color: var(--ink3); font-size: 13px; }
-.lp-dl > i { margin-left: 6px; color: var(--ink2); }
+.lp-msg-link { display: block; margin-top: 6px; color: var(--acc-txt); text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
 
 /* ---------- demo widget cards ----------
    Each card is the real widget in a shadow root (scripts/widget-static.ts),

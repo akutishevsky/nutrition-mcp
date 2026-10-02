@@ -73,8 +73,6 @@ const REPO_URL = "https://github.com/akutishevsky/nutrition-mcp";
 const PATREON_URL =
     "https://patreon.com/akutishevskyi?utm_medium=unknown&amp;utm_source=join_link&amp;utm_campaign=creatorshare_creator&amp;utm_content=copyLink";
 const CONTACT_EMAIL = "anton@nutrition-mcp.com";
-/** The archive export_all_data writes (src/export.ts). */
-const EXPORT_FILE_NAME = "nutrition-mcp-export.zip";
 
 // ---------------------------------------------------------------- helpers
 
@@ -207,7 +205,12 @@ const EX_META: Record<
     "import-history": {
         icon: "fa-solid fa-file-import",
         color: "caf",
-        tools: ["start_meal_import", "set_timezone"],
+        tools: [
+            "get_profile",
+            "set_timezone",
+            "start_meal_import",
+            "bulk_import_meals",
+        ],
     },
     "export-data": {
         icon: "fa-solid fa-box-archive",
@@ -305,6 +308,16 @@ function assertExamples(doc: IndexDoc, locale: SiteLocale): void {
             throw new Error(
                 `${locale}: ${s.id} toolNotes must be exactly ${want.join(", ")}`,
             );
+        // A host renders a widget at its tool call, so a card sits between
+        // the user turn that asked and the ai reply that reads the result.
+        for (const c of s.cards ?? [])
+            if (
+                s.messages[c.after]?.from !== "user" ||
+                s.messages[c.after + 1]?.from !== "ai"
+            )
+                throw new Error(
+                    `${locale}: ${s.id} card must follow a user turn and precede an ai reply (after: ${c.after})`,
+                );
     }
 }
 
@@ -500,10 +513,12 @@ function exampleMessage(m: ExampleMessage, doc: IndexDoc): string {
         return `<div class="lp-msg-photo"><div role="img" aria-label="${esc(alt)}">${svg}</div>${m.text ? `<p>${esc(m.text)}</p>` : ""}</div>`;
     }
     if (m.from === "user") return `<div class="lp-msg-u">${esc(m.text)}</div>`;
-    const bubble = `<div class="lp-msg-a">${esc(m.text)}</div>`;
-    if (m.from === "ai" && m.download === "export-zip")
-        return `${bubble}<div class="lp-dl"><span aria-hidden="true"><i class="fa-solid fa-file-zipper"></i></span><span><b>${EXPORT_FILE_NAME}</b><small>${esc(e.downloadExpires)}</small></span><i class="fa-solid fa-download" aria-hidden="true"></i></div>`;
-    return bubble;
+    // A link the reply passes on (export_all_data's download URL) is part of
+    // the reply's text, as a host renders it — not a file card under it.
+    const link = m.link
+        ? `<span class="lp-msg-link">${esc(m.link)}</span>`
+        : "";
+    return `<div class="lp-msg-a">${esc(m.text)}${link}</div>`;
 }
 
 function exampleThread(
