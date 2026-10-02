@@ -27,6 +27,7 @@ import {
     EMAIL_OFF_CLOSE,
     THEME_COLOR_LIGHT,
     ICON_LINKS,
+    OG_IMAGE_META,
 } from "./site-partials.js";
 import {
     PRIVACY,
@@ -647,11 +648,7 @@ ${s.blocks.map((b) => renderBlock(b, locale)).join("\n")}
         <meta property="og:description" content="${esc(doc.ogDescription)}" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="${url}" />
-        <meta property="og:image" content="${SITE}/og.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="${SITE}/og.png" />
+${OG_IMAGE_META}
         <meta name="twitter:title" content="${title}" />
         <meta name="twitter:description" content="${esc(doc.ogDescription)}" />
 ${localeHead(locale, suffix)}
