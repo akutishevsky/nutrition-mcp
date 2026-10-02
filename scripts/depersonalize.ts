@@ -207,7 +207,7 @@ const PERSONAL_SWEEP_RULES: Rule[] = [
  */
 const FAQ_PATREON_RULE: Rule = {
     name: "FAQ Patreon donation sentence (any locale)",
-    find: /(?<=[.。])[ \t]?[^.。<>"\n]*\bPatreon\b[^.。<>"\n]*[.。]/g,
+    find: /(?<=[.。])[ \t]?[^.。<>"\n]*\bPatreon\p{L}*[^.。<>"\n]*[.。]/gu,
     replace: "",
 };
 
@@ -219,7 +219,7 @@ const FAQ_PATREON_RULE: Rule = {
  */
 const TERMS_PATREON_RULE: Rule = {
     name: "terms: Patreon -> [YOUR DONATION PAGE]",
-    find: /\bPatreon\b/g,
+    find: /\bPatreon\p{L}*/gu,
     replace: "[YOUR DONATION PAGE]",
 };
 
@@ -648,10 +648,19 @@ for (const f of await Array.fromAsync(
 )) {
     if (!scanned.has(f)) scanned.set(f, await Bun.file(f).text());
 }
+// The brand word in served copy or JSON-LD, inflected forms included (Polish
+// "na Patreonie"): a donation sentence or link label a rule above missed.
+// Case-sensitive and checked under public/ only, so the lowercase
+// `patreon` class names in page CSS and the server's own Patreon code
+// (src/index.ts) aren't mistaken for copy.
+const PUBLIC_PERSONAL_TOKENS: RegExp[] = [/\bPatreon\p{L}*/u];
 const residue: string[] = [];
 for (const [path, text] of scanned) {
+    const tokens = path.startsWith("public/")
+        ? [...PERSONAL_TOKENS, ...PUBLIC_PERSONAL_TOKENS]
+        : PERSONAL_TOKENS;
     text.split("\n").forEach((line, i) => {
-        for (const token of PERSONAL_TOKENS) {
+        for (const token of tokens) {
             const m = line.match(token);
             if (m) residue.push(`${path}:${i + 1}: ${m[0]}`);
         }
