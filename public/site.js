@@ -218,6 +218,8 @@
     /* ---------- mobile menu ---------- */
     var menuBtn = doc.getElementById("menu-btn");
     var menu = doc.getElementById("site-menu");
+    // The sticky header: left out of setInert() and measured by openMenu().
+    var head = doc.getElementById("site-head");
     // The button's two accessible names come out of the markup, which the
     // generator wrote in this page's language. This one script is served to
     // all nine locales, so naming either state here would be English on
