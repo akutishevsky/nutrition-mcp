@@ -2,7 +2,7 @@ import type { ChromeCopy } from "./chrome.js";
 
 export const CHROME_DE: ChromeCopy = {
     skipToContent: "Zum Inhalt springen",
-    brandHomeAriaLabel: "Nutrition-MCP-Startseite",
+    brandHomeAriaLabel: "Nutrition MCP – Startseite",
 
     nav: {
         how: "So funktioniert's",

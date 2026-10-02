@@ -307,7 +307,7 @@ async function renderLangSwitcher(
         .map((l) => {
             const name = escapeHtml(LOCALE_NAMES[l]);
             const current = l === locale ? ' aria-current="page"' : "";
-            return `                    <a href="${escapeHtml(authorizeUrl(session, l))}" lang="${HTML_LANG[l]}" hreflang="${HTML_LANG[l]}" aria-label="${name}" title="${name}"${current}>${HTML_LANG[l].toUpperCase()}</a>`;
+            return `                    <a href="${escapeHtml(authorizeUrl(session, l))}" lang="${HTML_LANG[l]}" hreflang="${HTML_LANG[l]}" aria-label="${name} (${HTML_LANG[l].toUpperCase()})" title="${name}"${current}>${HTML_LANG[l].toUpperCase()}</a>`;
         })
         .join("\n");
     const menu = `<div class="menu-group">
@@ -319,7 +319,7 @@ ${menuItems}
     const header = `<details class="lang-switch">
                         <summary
                             class="icon-btn"
-                            aria-label="${escapeHtml(c.changeLanguageAriaLabel)}"
+                            aria-label="${escapeHtml(`${c.changeLanguageAriaLabel} (${HTML_LANG[locale].toUpperCase()})`)}"
                             title="${escapeHtml(c.languageTitle)}"
                         >
                             <i class="fa-solid fa-language" aria-hidden="true"></i><span class="lang-code">${HTML_LANG[locale].toUpperCase()}</span>

@@ -626,7 +626,7 @@ ${
         : `                    <details class="lang-switch">
                         <summary
                             class="icon-btn"
-                            aria-label="${esc(c.changeLanguageAriaLabel)}"
+                            aria-label="${esc(`${c.changeLanguageAriaLabel} (${code(locale)})`)}"
                             title="${esc(c.languageTitle)}"
                         >
                             <i class="fa-solid fa-language" aria-hidden="true"></i><span class="lang-code">${code(locale)}</span>
