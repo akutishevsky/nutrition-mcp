@@ -85,16 +85,16 @@ export const ALT_PAGE_META: Partial<Record<SiteLocale, AltPageMeta>> = {
             "Your nutrition app has no official MCP server. Nutrition MCP is a free, open-source alternative that works inside Claude or ChatGPT — and imports your history from a CSV export.",
     },
     de: {
-        appTitle: "{app} MCP-Server? Ernährung in Claude & ChatGPT verfolgen",
+        appTitle: "{app} MCP-Server? Ernährung in Claude & ChatGPT tracken",
         appDesc:
-            "Kein offizieller MCP-Server für {app}? Nutrition MCP erfasst Mahlzeiten und Makros in Claude oder ChatGPT — kostenlos, quelloffen, mit CSV-Import.",
+            "Kein offizieller MCP-Server für {app}? Nutrition MCP erfasst Mahlzeiten und Makros in Claude oder ChatGPT – kostenlos, Open Source, mit CSV-Import.",
         appOgDesc:
-            "{app} hat keinen offiziellen MCP-Server. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die Mahlzeiten, Makros und Gewicht in Claude oder ChatGPT erfasst — und deine {app}-Historie aus einem CSV-Export importiert.",
+            "{app} hat keinen offiziellen MCP-Server. Nutrition MCP ist eine kostenlose Open-Source-Alternative, die Mahlzeiten, Makros und Gewicht in Claude oder ChatGPT erfasst – und deinen {app}-Verlauf aus einem CSV-Export importiert.",
         hubTitle: "MyFitnessPal- & Cronometer-Alternative in Claude & ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer und Lose It! haben keinen offiziellen MCP-Server. Nutrition MCP: kostenlos, quelloffen, für Claude und ChatGPT, mit CSV-Import.",
+            "MyFitnessPal, Cronometer und Lose It! haben keinen offiziellen MCP-Server. Nutrition MCP: kostenlos, Open Source, für Claude und ChatGPT, mit CSV-Import.",
         hubOgDesc:
-            "Deine Ernährungs-App hat keinen offiziellen MCP-Server. Nutrition MCP ist eine kostenlose, quelloffene Alternative, die in Claude oder ChatGPT läuft — und deine Historie aus einem CSV-Export importiert.",
+            "Deine Ernährungs-App hat keinen offiziellen MCP-Server. Nutrition MCP ist eine kostenlose Open-Source-Alternative, die in Claude oder ChatGPT läuft – und deinen Verlauf aus einem CSV-Export importiert.",
     },
     es: {
         appTitle: "¿Servidor MCP para {app}? Nutrición en Claude y ChatGPT",

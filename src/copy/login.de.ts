@@ -2,9 +2,9 @@ import type { LoginClientNotice, LoginDoc, LoginErrors } from "./login.js";
 
 export const LOGIN_DE: LoginDoc = {
     title: "Nutrition MCP",
-    subtitle: "Anmelden, um die Verbindung herzustellen",
+    subtitle: "Zum Verbinden anmelden",
     googleButton: "Weiter mit Google",
-    dividerText: "oder E-Mail verwenden",
+    dividerText: "oder mit E-Mail",
     emailLabel: "E-Mail",
     passwordLabel: "Passwort",
     signInButton: "Anmelden",
@@ -13,13 +13,13 @@ export const LOGIN_DE: LoginDoc = {
     showPasswordLabel: "Passwort anzeigen",
     hidePasswordLabel: "Passwort verbergen",
     consentNote:
-        "Wenn du fortfährst, bestätigst du, mindestens 16 Jahre alt zu sein, stimmst den {terms} und der {privacy} zu und willigst in die Speicherung der von dir erfassten Mahlzeiten, Gewichts- und Alkoholangaben ein, die Gesundheitsdaten sind.",
+        "Wenn du fortfährst, bestätigst du, dass du mindestens 16 Jahre alt bist, stimmst den {terms} und der {privacy} zu und willigst ein, dass wir die von dir erfassten Mahlzeiten-, Gewichts- und Alkoholangaben speichern – das sind Gesundheitsdaten.",
     termsLinkText: "Nutzungsbedingungen",
     privacyLinkText: "Datenschutzerklärung",
     newHereNote:
         "Neu hier? Gib deine E-Mail-Adresse und ein Passwort ein und wähl dann „Konto erstellen“.",
     afterConnectNote:
-        "Speichere dein Passwort nach erfolgreicher Verbindung in deinem Client an einem sicheren Ort und schließe diesen Browser-Tab.",
+        "Sobald die Verbindung in deinem Client steht, speichere dein Passwort irgendwo ab und schließ diesen Browser-Tab.",
 };
 
 export const LOGIN_ERRORS_DE: LoginErrors = {
@@ -31,7 +31,7 @@ export const LOGIN_ERRORS_DE: LoginErrors = {
     signInFailed:
         "Die Anmeldung funktioniert gerade nicht. Bitte versuche es in ein paar Minuten erneut.",
     weakPassword:
-        "Dieses Passwort ist zu schwach. Wähl ein längeres, das Buchstaben, Ziffern und Sonderzeichen mischt.",
+        "Dieses Passwort ist zu schwach. Wähl ein längeres mit einer Mischung aus Buchstaben, Ziffern und Sonderzeichen.",
     passwordTooLong:
         "Dieses Passwort ist zu lang. Wähl eines mit höchstens 72 Zeichen.",
     emailInvalid: "Diese E-Mail-Adresse ist ungültig. Prüf sie auf Tippfehler.",
@@ -42,7 +42,7 @@ export const LOGIN_ERRORS_DE: LoginErrors = {
 export const LOGIN_CLIENT_NOTICE_DE: LoginClientNotice = {
     returnTo: "Nach der Anmeldung wirst du zu {host} zurückgeleitet.",
     unknownHost:
-        "{host} ist kein Assistent, den wir kennen. Fahre nur fort, wenn du die Verbindung selbst von {host} aus gestartet hast.",
+        "{host} ist kein Assistent, den wir kennen. Fahr nur dann fort, wenn du die Verbindung selbst von {host} aus gestartet hast.",
     loopback:
-        "Du wirst zu einem Programm zurückgeleitet, das auf diesem Computer läuft ({host}). Fahre nur fort, wenn du diese Verbindung selbst von dort aus gestartet hast.",
+        "Du wirst zu einem Programm zurückgeleitet, das auf diesem Computer läuft ({host}). Fahr nur dann fort, wenn du diese Verbindung selbst von dort aus gestartet hast.",
 };

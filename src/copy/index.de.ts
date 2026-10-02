@@ -12,18 +12,18 @@
 import type { IndexDoc } from "./index.js";
 
 export const INDEX_DE: IndexDoc = {
-    title: "Nutrition MCP — Kalorien- & Makro-Tracker für Claude & ChatGPT",
+    title: "Nutrition MCP – Kalorien- & Makro-Tracker für Claude & ChatGPT",
     metaDescription:
-        "Mahlzeiten, Kalorien und Makros im Gespräch mit Claude oder ChatGPT erfassen. Kostenloser, quelloffener MCP-Server mit Barcode-Suche, Gewicht und Datenexport.",
+        "Mahlzeiten, Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. Kostenloser Open-Source-MCP-Server mit Barcode-Suche, Gewichtsverlauf und vollem Export.",
     ogDescription:
-        "Mahlzeiten, Kalorien und Makros im Gespräch mit Claude oder ChatGPT erfassen. Kostenloser, quelloffener MCP-Server mit Barcode-Suche, Gewicht und Datenexport.",
+        "Mahlzeiten, Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. Kostenloser Open-Source-MCP-Server mit Barcode-Suche, Gewichtsverlauf und vollem Export.",
     keywords:
-        "Ernährungs-Tracker, Mahlzeiten-Tracker, MCP-Server, Claude AI, ChatGPT, Kalorienzähler, Makro-Tracker, Barcode-Scanner, Essensprotokoll, Diät-Tracker, Gewichts-Tracker, Gewichtsprotokoll, KI-Ernährung, Model Context Protocol",
+        "Ernährungs-Tracker, Mahlzeiten-Tracker, MCP-Server, Claude AI, ChatGPT, Kalorienzähler, Kalorienzähler kostenlos, Makro-Tracker, Barcode-Scanner, Ernährungstagebuch, Essensprotokoll, Diät-Tracker, Gewichts-Tracker, Gewichtsprotokoll, Yazio Alternative, KI-Ernährung, Model Context Protocol",
 
     hero: {
-        titleBeforeEm: "Erfasse deine Ernährung, indem du mit deiner KI ",
-        titleEm: "sprichst",
-        titleAfterEm: ".",
+        titleBeforeEm: "Erfasse deine Ernährung – einfach im ",
+        titleEm: "Gespräch",
+        titleAfterEm: " mit deiner KI.",
         lead: "Verbinde Claude oder ChatGPT und sag einfach, was du gegessen hast. Kalorien und Makros werden automatisch erfasst.",
         ctaPrimary: "Schnell installieren",
         ctaSecondary: "Unterstützen",
@@ -37,7 +37,7 @@ export const INDEX_DE: IndexDoc = {
                 {
                     photo: true,
                     userText: "Frühstück + Americano",
-                    aiText: "Eine Smoothie-Bowl, so wie es aussieht selbst gemacht. Du hattest sie bisher in zwei Varianten: mit Granola und Honig oder nur mit Obst. Welche ist es diesmal?",
+                    aiText: "Eine Smoothie-Bowl, sieht selbst gemacht aus. Die hattest du bisher in zwei Varianten: mit Granola und Honig oder nur mit Obst. Welche ist es diesmal?",
                 },
                 {
                     userText: "Granola und Honig, ein voller Löffel",
@@ -59,7 +59,7 @@ export const INDEX_DE: IndexDoc = {
                 },
                 {
                     userText:
-                        "Mittagessen: Reste von der Wokpfanne von gestern Abend, gleiche Portion. und ne 500-ml-Flasche Wasser",
+                        "Mittagessen: Reste der Wokpfanne von gestern Abend, gleiche Portion. und ne 500-ml-Flasche Wasser",
                     aiText: "Mittagessen erfasst, wie gestern Abend: 620 kcal und 54 g Protein, dazu 500 ml Wasser.",
                     meal: {
                         description:
@@ -69,8 +69,8 @@ export const INDEX_DE: IndexDoc = {
                 },
                 {
                     userText:
-                        "Snack: hab meinem Kind 6 Pommes geklaut. nicht verurteilen",
-                    aiText: "Keine Sorge, ich urteile nicht. Etwa 50 kcal, als Snack erfasst.",
+                        "Snack: hab meinem Kind 6 Pommes geklaut. bitte nicht urteilen",
+                    aiText: "Hier wird nicht geurteilt. Etwa 50 kcal, als Snack erfasst.",
                     meal: {
                         description:
                             "Pommes (6 Stück, vom Teller meines Kindes)",
@@ -79,7 +79,7 @@ export const INDEX_DE: IndexDoc = {
                 },
                 {
                     userText: "was ist noch drin fürs Abendessen?",
-                    aiText: "Noch 850 kcal und 84 g Protein offen. Beim Zucker bist du bei 59 g, dein Limit liegt bei 60 g.",
+                    aiText: "Es bleiben noch 850 kcal und 84 g Protein. Beim Zucker bist du bei 59 g, dein Limit liegt bei 60 g.",
                     card: "nutrition-summary",
                 },
                 {
@@ -92,19 +92,19 @@ export const INDEX_DE: IndexDoc = {
     },
 
     how: {
-        title: "Drei Schritte. Keine App zu lernen.",
+        title: "Drei Schritte. Keine neue App.",
         steps: [
             {
                 title: "Einmal verbinden",
-                body: "Funktioniert mit jedem KI-Client, der Remote-MCP-Server unterstützt — Claude, ChatGPT und mehr. Keine Installation, keine API-Schlüssel.",
+                body: "Funktioniert mit jedem KI-Client, der Remote-MCP-Server unterstützt – Claude, ChatGPT und mehr. Keine Installation, keine API-Schlüssel.",
             },
             {
                 title: "Sag einfach, was du gegessen hast",
-                body: "Beschreib es in normalen Worten — oder schick ein Foto deines Essens, einen Screenshot aus einer Lieferapp oder einen Barcode (das Produkt wird online nachgeschlagen). Makros werden automatisch erfasst.",
+                body: "Beschreib es in eigenen Worten – oder schick ein Foto deines Essens, einen Screenshot aus einer Liefer-App oder einen Barcode (das Produkt wird online nachgeschlagen). Die Makros werden automatisch erfasst.",
             },
             {
                 title: "Erfassen & auswerten",
-                body: "Frag nach Tagesübersichten, wöchentlichen Trends, Zielfortschritt oder exportiere alles, was du erfasst hast, als CSV-Dateien — völlig kostenlos.",
+                body: "Frag nach Tagesübersichten, Wochentrends oder deinem Zielfortschritt – oder exportiere alles, was du erfasst hast, als CSV-Dateien. Komplett kostenlos.",
             },
         ],
         counter: "{n} / 3",
@@ -112,54 +112,54 @@ export const INDEX_DE: IndexDoc = {
 
     install: {
         title: "In unter einer Minute verbunden",
-        sub: "Funktioniert mit jedem MCP-Client, der OAuth 2.0 mit PKCE unterstützt. Bei der ersten Verbindung erstellst du ein Konto mit Google oder einer E-Mail-Adresse und einem Passwort; melde dich auf demselben Weg an, um deine Daten zu behalten.",
+        sub: "Funktioniert mit jedem MCP-Client, der OAuth 2.0 mit PKCE unterstützt. Bei der ersten Verbindung erstellst du ein Konto – mit Google oder mit E-Mail-Adresse und Passwort. Melde dich später auf demselben Weg an, damit du deine Daten behältst.",
         copyAriaLabel: "Server-URL kopieren",
-        tabsLabel: "Wähle deinen KI-Client",
+        tabsLabel: "Wähl deinen KI-Client",
         claude: {
             cta: "Zu Claude hinzufügen",
             steps: [
-                "Klick auf der Verzeichnisseite auf <strong>Connect</strong> und fahre dann mit Google fort oder melde dich mit E-Mail und Passwort an.",
-                "Fertig. Es funktioniert sofort und erscheint automatisch auch in deinen iOS- und Android-Apps.",
+                "Klick auf der Verzeichnisseite auf <strong>Connect</strong> und melde dich dann mit Google oder mit E-Mail und Passwort an.",
+                "Fertig. Es funktioniert sofort und taucht automatisch auch in deinen iOS- und Android-Apps auf.",
             ],
-            note: "Funktioniert mit jedem Claude-Plan, auch mit dem kostenlosen. Um es stattdessen manuell hinzuzufügen, nutze Customize → Connectors → Add custom connector mit https://nutrition-mcp.com/mcp.",
+            note: "Funktioniert mit jedem Claude-Plan, auch mit dem kostenlosen. Wenn du es lieber von Hand hinzufügen willst: Customize → Connectors → Add custom connector mit https://nutrition-mcp.com/mcp.",
         },
         chatgpt: {
             steps: [
-                "Öffne <strong>ChatGPT on the web</strong> → <strong>Settings</strong> → <strong>Apps</strong>.",
-                "Klick unten im Popup auf <strong>Create app</strong>. Falls du es nicht siehst, aktiviere <strong>Developer mode</strong> in den <strong>Advanced settings</strong>.",
-                "Gib ihr einen Namen, zum Beispiel <strong>Nutrition</strong>.",
+                "Öffne <strong>ChatGPT im Web</strong> → <strong>Settings</strong> → <strong>Apps</strong>.",
+                "Klick unten im Pop-up auf <strong>Create app</strong>. Siehst du die Option nicht, aktiviere <strong>Developer mode</strong> unter <strong>Advanced settings</strong>.",
+                "Gib der App einen Namen, zum Beispiel <strong>Nutrition</strong>.",
                 "Füge bei <strong>Connection</strong> <code>https://nutrition-mcp.com/mcp</code> ein.",
-                "Wähl bei <strong>Authentication</strong> <strong>OAuth</strong> — lass alles andere unverändert.",
-                "Aktiviere <strong>„I understand and want to continue“</strong>.",
+                "Wähl bei <strong>Authentication</strong> <strong>OAuth</strong> aus – alles andere lässt du, wie es ist.",
+                "Setz das Häkchen bei <strong>„I understand and want to continue“</strong>.",
                 "Klick auf <strong>Create</strong>.",
-                "Klick auf <strong>Sign in with Nutrition</strong> — die Anmeldeseite öffnet sich; fahre mit Google fort oder melde dich mit E-Mail und Passwort an.",
-                "Fertig. Es funktioniert sofort und erscheint automatisch auch in deinen iOS- und Android-Apps.",
+                "Klick auf <strong>Sign in with Nutrition</strong> – die Anmeldeseite öffnet sich. Melde dich mit Google oder mit E-Mail und Passwort an.",
+                "Fertig. Es funktioniert sofort und taucht automatisch auch in deinen iOS- und Android-Apps auf.",
             ],
         },
         other: {
-            note: "Füge die Konfiguration oben zu deinem Client hinzu (Cursor, VS Code, Claude Code und weitere). Windsurf verwendet <code>serverUrl</code> statt <code>url</code>. Führe in Claude Code <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code> aus. Dein Client übernimmt die OAuth-Anmeldung automatisch.",
+            note: "Füge die Konfiguration oben in deinen Client ein (Cursor, VS Code, Claude Code und weitere). Windsurf verwendet <code>serverUrl</code> statt <code>url</code>. In Claude Code führst du <code>claude mcp add --transport http nutrition https://nutrition-mcp.com/mcp</code> aus. Die OAuth-Anmeldung übernimmt dein Client automatisch.",
         },
         otherTabLabel: "Andere Clients",
     },
 
     onboarding: {
-        title: "Einmal einrichten — oder einfach loslegen",
-        sub: "Das ist völlig optional — Nutrition MCP funktioniert, sobald du verbunden bist. Wenn du willst, machen dich diese drei kurzen Schritte genauer, aber du kannst auch direkt mit dem Erfassen loslegen.",
+        title: "Einmal einrichten – oder einfach drauflosreden",
+        sub: "Das ist komplett optional – Nutrition MCP funktioniert, sobald du verbunden bist. Wenn du willst, sorgen diese drei kurzen Schritte für genauere Werte, du kannst aber auch direkt mit dem Erfassen loslegen.",
         justSay: "Sag einfach ",
         steps: [
             {
                 title: "Zeitzone einstellen",
-                body: "damit der Tag um deine lokale Mitternacht wechselt und die heutigen Werte stimmen, egal wo du bist.",
+                body: "damit der Tag um Mitternacht deiner Ortszeit wechselt und die heutigen Summen stimmen, egal wo du gerade bist.",
                 say: "Stell meine Zeitzone auf New York",
             },
             {
                 title: "Ziele festlegen",
-                body: "tägliche Kalorien-, Makro- und Wasserziele, dazu optional ein Zielgewicht und deine bevorzugte Gewichtseinheit (kg oder lb), um deinen Fortschritt daran zu messen.",
+                body: "tägliche Ziele für Kalorien, Makros und Wasser, dazu optional ein Zielgewicht und deine bevorzugte Gewichtseinheit (kg oder lb), damit du deinen Fortschritt verfolgen kannst.",
                 say: "Setz mein Tagesziel auf 2.000 Kalorien und 150 g Protein",
             },
             {
                 title: "Sprache einstellen",
-                body: "die Sprache, in der In-Chat-Widgets (Dashboards, Diagramme) angezeigt werden, nicht das, was die KI dir zurückschreibt.",
+                body: "in welcher Sprache die Widgets im Chat (Dashboards, Diagramme) angezeigt werden – nicht, in welcher Sprache die KI dir antwortet.",
                 say: "Zeig meine Widgets auf Deutsch an",
             },
             {
@@ -168,17 +168,17 @@ export const INDEX_DE: IndexDoc = {
                 say: "Ich hatte Haferflocken mit Beeren zum Frühstück",
             },
         ],
-        note: "Das alles ist optional. Du kannst es jetzt, später oder nie machen — leg einfach mit dem Erfassen los und stell das ein, wann immer du willst.",
+        note: "Das alles ist optional. Ob jetzt, später oder nie – fang einfach an zu erfassen und stell das ein, wann immer du willst.",
         toolsCta: {
-            heading: "Neugierig, was es wirklich kann?",
-            body: "Sieh dir alle 36 Werkzeuge an — Erfassen, Barcodes, Wasser, Gewicht, Ziele und Trends — jeweils mit Beschreibung und einem Beispielsatz.",
+            heading: "Neugierig, was es alles kann?",
+            body: "Sieh dir alle 36 Werkzeuge an – Erfassen, Barcodes, Wasser, Gewicht, Ziele und Trends –, jeweils mit Beschreibung und Beispielsatz.",
             arrow: "Werkzeuge entdecken",
         },
     },
 
     examples: {
-        title: "Sprich einfach mit ihr.",
-        sub: "Ein paar Dinge, die du einfach so sagen kannst.",
+        title: "Sag's einfach.",
+        sub: "Ein paar Beispiele dafür, was alles geht – einfach im Gespräch.",
         prevLabel: "Vorheriges Beispiel",
         nextLabel: "Nächstes Beispiel",
         pickerLabel: "Beispiel wählen",
@@ -186,7 +186,7 @@ export const INDEX_DE: IndexDoc = {
         threadLabel: "Unterhaltung",
         moreToolsLabel: "Nutzt außerdem",
         toolLinkLabel:
-            "{tool} auf der Werkzeuge-Seite (öffnet in einem neuen Tab)",
+            "{tool} auf der Werkzeugseite (öffnet sich in einem neuen Tab)",
         photoMealAlt:
             "Foto: ein Teller Borschtsch mit einem Löffel Schmand und Dill, daneben eine Scheibe Roggenbrot",
         photoPackageAlt:
@@ -195,16 +195,16 @@ export const INDEX_DE: IndexDoc = {
         slides: [
             {
                 id: "log-meal",
-                title: "In normalen Worten erfassen",
+                title: "In eigenen Worten erfassen",
                 description:
-                    "Sag es, wie du es einem Freund erzählen würdest. Fehlen Portion oder Mahlzeit, wird vor dem Schätzen nachgefragt. Ballaststoffe und Zucker stehen in jedem Eintrag, Koffein bei allem, was welches enthält, und „heute Morgen“ gilt in deiner Zeitzone.",
+                    "Sag es so, wie du es Freunden erzählen würdest. Fehlt die Portion oder welche Mahlzeit es war, kommt erst eine Rückfrage, bevor geschätzt wird. Ballaststoffe und Zucker stehen bei jedem Eintrag, Koffein bei allem, was welches enthält, und „heute Morgen“ landet in deiner Zeitzone.",
                 toolNotes: {
                     log_meal:
                         "Speichert das Frühstück mit Makros, Ballaststoffen, Zucker und dem Koffein des Kaffees",
                     log_water:
                         "Zählt die 500 ml um 07:00 zur heutigen Wassermenge",
                     get_current_time:
-                        "Ermittelt das heutige Datum, damit „gegen 7“ auf 07:00 fällt",
+                        "Ermittelt das heutige Datum, damit „gegen 7“ als 07:00 erfasst wird",
                 },
                 messages: [
                     {
@@ -221,7 +221,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Frühstück erfasst: etwa 320 kcal, 11 g Protein und 6 g Ballaststoffe. Mit dem Kaffee bist du bei 95 mg von deinem Koffeinlimit von 400 mg.",
+                        text: "Frühstück erfasst: etwa 320 kcal, 11 g Protein und 6 g Ballaststoffe. Mit dem Kaffee stehst du bei 95 von maximal 400 mg Koffein.",
                     },
                     {
                         from: "user",
@@ -229,7 +229,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "500 ml Wasser um 07:00 heute Morgen hinzugefügt.",
+                        text: "500 ml Wasser für heute Morgen um 07:00 eingetragen.",
                     },
                 ],
                 cards: [
@@ -246,10 +246,10 @@ export const INDEX_DE: IndexDoc = {
                 id: "photo-meal",
                 title: "Foto vom Teller",
                 description:
-                    "Ein Foto startet ein Gespräch, keine Schätzung. Es wird gefragt, ob selbst gekocht oder aus dem Restaurant, in deinen früheren Einträgen nachgesehen, was das Foto nicht zeigt, in einfachen Mengen nach der Portion gefragt — und erst erfasst, wenn du die Zusammenfassung bestätigst.",
+                    "Ein Foto startet ein Gespräch, kein Ratespiel. Es wird gefragt, ob selbst gekocht oder aus dem Restaurant, in deinen früheren Einträgen nachgesehen, was das Foto nicht zeigt, und in einfachen Mengen nach der Portion gefragt – erfasst wird erst, wenn du die Zusammenfassung bestätigst.",
                 toolNotes: {
                     search_meals:
-                        "Findet deinen früheren Borschtsch im Tsybulya und was drin war",
+                        "Findet deinen früheren Borschtsch aus dem Tsybulya und was drin war",
                     log_meal:
                         "Erfasst die Mahlzeit mit dem Namen des Restaurants, sobald du Ja sagst",
                 },
@@ -265,11 +265,11 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "user",
-                        text: "Tsybulya, in Podil in Kyjiw",
+                        text: "Tsybulya, im Podil in Kyjiw",
                     },
                     {
                         from: "ai",
-                        text: "Du hast Borschtsch im Tsybulya schon zweimal erfasst, beide Male die Variante mit Rindfleisch und Schmand. Wieder dasselbe? Und hast du Teller und Brot aufgegessen?",
+                        text: "Du hast Borschtsch im Tsybulya schon zweimal erfasst, beide Male mit Rindfleisch und Schmand. Wieder dasselbe? Und hast du den Teller und das Brot ganz aufgegessen?",
                     },
                     {
                         from: "user",
@@ -277,7 +277,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Also: Borschtsch mit Rindfleisch und Schmand (1 Teller, aufgegessen) und Roggenbrot (1 Scheibe) im Tsybulya, Podil, Kyjiw. Etwa 520 kcal und 24 g Protein, geschätzt, keine veröffentlichten Werte. Als Mittagessen erfassen?",
+                        text: "Also: Borschtsch mit Rindfleisch und Schmand (1 Teller, aufgegessen) und Roggenbrot (1 Scheibe) im Tsybulya, Podil, Kyjiw. Etwa 520 kcal und 24 g Protein – geschätzt, keine offiziellen Angaben. Als Mittagessen erfassen?",
                     },
                     {
                         from: "user",
@@ -302,12 +302,12 @@ export const INDEX_DE: IndexDoc = {
                 id: "scan-barcode",
                 title: "Barcode scannen",
                 description:
-                    "Fotografier die Verpackung: Die Ziffern unter dem Barcode werden in Open Food Facts nachgeschlagen, dann wird gefragt, wie viel du hattest. Open Food Facts führt kein Koffein, das kommt deshalb vom Etikett oder aus typischen Mengen; fehlen Ballaststoffe oder Zucker, werden sie geschätzt statt leer gelassen.",
+                    "Fotografier die Verpackung: Die Ziffern unter dem Barcode werden in Open Food Facts nachgeschlagen, dann kommt die Frage, wie viel du hattest. Open Food Facts führt kein Koffein, deshalb kommt es vom Etikett oder aus typischen Mengen; fehlen Ballaststoffe oder Zucker, werden sie geschätzt statt leer gelassen.",
                 toolNotes: {
                     lookup_barcode:
-                        "Holt die Nährwerte vom Etikett der Dose aus Open Food Facts",
+                        "Holt die Etikettwerte der Dose aus Open Food Facts",
                     log_meal:
-                        "Erfasst die ganze Dose zum Mittagessen, Koffein inklusive",
+                        "Erfasst die ganze Dose zum Mittagessen, inklusive Koffein",
                 },
                 messages: [
                     {
@@ -325,7 +325,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Zum Mittagessen erfasst: 139 kcal, 35 g Zucker und 33 mg Koffein laut Etikett der Dose, weil Open Food Facts kein Koffein listet. Und wie schlimm: Allein dieser Zucker ist mehr als die Hälfte deines Tageslimits von 60 g, und Open Food Facts stuft die Dose mit Nutri-Score E und NOVA 4 ein, also hochverarbeitet.",
+                        text: "Zum Mittagessen erfasst: 139 kcal, 35 g Zucker und 33 mg Koffein laut Etikett der Dose, da Open Food Facts kein Koffein angibt. Und wie schlimm? Allein dieser Zucker ist mehr als die Hälfte deines Tageslimits von 60 g, und Open Food Facts stuft die Dose mit Nutri-Score E und NOVA 4 als hochverarbeitet ein.",
                     },
                 ],
                 cards: [
@@ -338,23 +338,23 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 id: "goals-progress",
-                title: "Ziele setzen, Stand abfragen",
+                title: "Ziele setzen, Stand checken",
                 description:
-                    "Leg Ziele wie Kalorien und Protein fest, dazu Limits für Zucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Frag dann nach einem beliebigen Tag und sieh jeden Wert neben seinem Ziel und was noch fehlt.",
+                    "Leg Ziele fest, die du erreichen willst, etwa Kalorien und Protein, und Limits für Zucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Dann frag nach einem beliebigen Tag und sieh jeden Wert neben seinem Ziel – und was noch fehlt.",
                 toolNotes: {
                     set_nutrition_goals:
-                        "Speichert Kalorien- und Proteinziel und ein Koffeinlimit von 400 mg",
+                        "Speichert Kalorien- und Proteinziel sowie ein Koffeinlimit von 400 mg",
                     get_goal_progress:
                         "Zeigt den heutigen Stand je Ziel und was noch fehlt",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "will ein bisschen abspecken. stell mich auf 2000 kcal und 160 g Protein. und was ist ein vernünftiges Koffeinlimit? ich leb quasi von Kaffee",
+                        text: "will ein bisschen abspecken. stell mir 2000 kcal und 160 g Protein ein. und was ist ein vernünftiges Koffeinlimit? ich leb quasi von Kaffee",
                     },
                     {
                         from: "ai",
-                        text: "Für gesunde Erwachsene setzen EFSA und FDA bis zu 400 mg am Tag an, etwa vier Tassen Filterkaffee; in der Schwangerschaft rät die EFSA zu 200 mg. Das Limit legst du selbst fest; sollen es 400 sein?",
+                        text: "Für gesunde Erwachsene setzen EFSA und FDA bis zu 400 mg am Tag an, etwa vier Tassen Filterkaffee; in der Schwangerschaft rät die EFSA zu 200 mg. Das Limit legst du selbst fest – sollen es 400 sein?",
                     },
                     {
                         from: "user",
@@ -362,7 +362,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Erledigt: 2.000 kcal und 160 g Protein als Ziel, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 30 g Ballaststoffe, 2,5 L Wasser und dein Zuckerlimit von 60 g.",
+                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 30 g Ballaststoffe, 2,5 l Wasser und dein Zuckerlimit von 60 g.",
                     },
                     {
                         from: "user",
@@ -370,7 +370,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Du bist bei 1.540 kcal und 104 g Protein, es fehlen also noch 460 kcal und 56 g Protein. Knapper ist der Zucker: 40 von deinen 60 g Limit, also noch 20 g. Beim Koffein bist du bei 130 von 400 mg.",
+                        text: "Du bist bei 1.540 kcal und 104 g Protein, es fehlen also noch 460 kcal und 56 g Protein. Knapper wird's beim Zucker: 40 von maximal 60 g, bleiben also 20 g. Beim Koffein bist du bei 130 von 400 mg.",
                     },
                 ],
                 cards: [
@@ -382,21 +382,21 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 id: "review-week",
-                title: "Die Woche durchsehen",
+                title: "Wochenrückblick",
                 description:
-                    "Frag, wie die Woche lief, und die Trends-Karte öffnet sich im Chat mit deinen Durchschnitten und erfassten Tagen. Wechsle zwischen 7, 14 und 30 Tagen oder tippe auf einen Nährstoff für seinen Verlauf, ohne neue Anfrage. Serien und Tage im Zielbereich kannst du auch erfragen.",
+                    "Frag, wie die Woche lief, und die Trends-Karte öffnet sich im Chat mit deinen Durchschnittswerten und erfassten Tagen. Wechsle zwischen 7, 14 und 30 Tagen oder tipp auf einen Nährstoff, um seinen Verlauf zu sehen – ohne neue Anfrage. Auch Serien und Tage im Zielbereich kannst du abfragen.",
                 toolNotes: {
                     get_trends:
-                        "Mittelt deine letzten 7, 14 und 30 Tage und öffnet die Trends-Karte",
+                        "Bildet Durchschnitte über deine letzten 7, 14 und 30 Tage und öffnet die Trends-Karte",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "wie liefen die letzten zwei Wochen? fühlt sich ziemlich durcheinander an",
+                        text: "wie liefen die letzten zwei Wochen? fühlt sich ziemlich chaotisch an",
                     },
                     {
                         from: "ai",
-                        text: "Stabiler, als es sich anfühlt. Du lagst im Schnitt bei 1.830 kcal am Tag, 170 unter deinen 2.000, aber dabei zählt der eine von 14 Tagen, den du nicht erfasst hast, als null. An den 13 erfassten Tagen waren es etwa 1.970, und an 9 Tagen lagst du weniger als 10 % neben deinem Ziel. Außerdem erfasst du seit 10 Tagen ohne Lücke.",
+                        text: "Stabiler, als es sich anfühlt. Im Schnitt lagst du bei 1.830 kcal am Tag, 170 unter deinen 2.000 – aber dabei zählt der eine von 14 Tagen, den du nicht erfasst hast, als null. An den 13 erfassten Tagen waren es etwa 1.970, und an 9 Tagen lagst du höchstens 10 % von deinem Ziel entfernt. Außerdem erfasst du seit 10 Tagen lückenlos.",
                     },
                     {
                         from: "user",
@@ -404,7 +404,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Den solltest du im Blick behalten. Im Schnitt waren es 52 g, und an 4 der 13 Tage lagst du über deinem Limit von 60 g.",
+                        text: "Den solltest du im Auge behalten. Im Schnitt waren es 52 g, und an 4 der 13 Tage lagst du über deinem Limit von 60 g.",
                     },
                 ],
                 cards: [
@@ -418,10 +418,10 @@ export const INDEX_DE: IndexDoc = {
                 id: "weight-trend",
                 title: "Gewicht verfolgen",
                 description:
-                    "Erfasse dein Gewicht in kg oder lb und sieh den Trend hinter den Tagesschwankungen: geglätteter Durchschnitt, Veränderung über den Monat, Abstand zum Zielgewicht. Ein unmöglicher Wert, etwa mit vergessenem Komma, wird vor dem Speichern abgefangen.",
+                    "Trag dein Gewicht in kg oder lb ein und sieh den Trend hinter den täglichen Schwankungen: geglätteter Durchschnitt, Veränderung im Monat, Abstand zum Zielgewicht. Ein unmöglicher Wert, etwa mit vergessenem Komma, wird abgefangen, bevor er gespeichert wird.",
                 toolNotes: {
                     log_weight:
-                        "Weist 784 kg als unplausibel ab und speichert dann 78,4 kg",
+                        "Weist 784 kg als unplausibel zurück und speichert dann 78,4 kg",
                     get_weight_trends:
                         "Glättet 30 Tage zu gleitenden Durchschnitten und zeigt den Abstand zum Ziel",
                 },
@@ -436,7 +436,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "user",
-                        text: "haha ja, Komma vergessen. wie ist mein Trend?",
+                        text: "haha ja, Komma vergessen. wie sieht mein Trend aus?",
                     },
                     {
                         from: "ai",
@@ -454,19 +454,19 @@ export const INDEX_DE: IndexDoc = {
                 id: "meal-patterns",
                 title: "Muster erkennen",
                 description:
-                    "Frag, wann du mehr isst, und deine eigenen Einträge werden verglichen: Werktage mit Wochenenden, Tage mit und ohne Frühstück, große Mittagessen, frühes mit spätem Abendessen. Auffällige Tage werden markiert, und du bekommst Muster, keine Ursachen.",
+                    "Frag, wann du mehr isst, und deine eigenen Einträge werden verglichen: Werktage mit Wochenenden, Tage mit und ohne Frühstück, große Mittagessen, frühes mit spätem Abendessen. Auffällige Tage werden ebenfalls markiert – gezeigt werden Muster, keine Ursachen.",
                 toolNotes: {
                     get_meal_patterns:
-                        "Vergleicht Frühstück, Abendessenszeit und Wochenenden über 30 Tage",
+                        "Vergleicht Frühstück, Abendessenszeiten und Wochenenden über 30 Tage",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "esse ich an Tagen ohne Frühstück mehr? fühlt sich so an",
+                        text: "esse ich an Tagen ohne Frühstück mehr? kommt mir so vor",
                     },
                     {
                         from: "ai",
-                        text: "Ein bisschen, ja. Du hast 28 der letzten 30 Tage erfasst und an 6 davon das Frühstück ausgelassen. Diese Tage lagen im Schnitt bei 2.215 kcal, gegenüber 1.940 an den 22 Tagen mit Frühstück, und bei etwa 35 g weniger Protein.",
+                        text: "Ein bisschen, ja. Du hast 28 der letzten 30 Tage erfasst und an 6 davon kein Frühstück gegessen. An diesen Tagen lagst du im Schnitt bei 2.215 kcal, gegenüber 1.940 an den 22 Tagen mit Frühstück, und bei etwa 35 g weniger Protein.",
                     },
                     {
                         from: "user",
@@ -474,7 +474,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Das fällt auch auf: Die 9 Tage mit Abendessen ab 20 Uhr lagen im Schnitt bei 2.165 kcal, gegenüber 1.920 an den anderen 19. Beides sind Muster in deinen Einträgen, kein Beweis, dass eins davon die Ursache ist.",
+                        text: "Das fällt auch auf: An den 9 Tagen mit Abendessen ab 20 Uhr lagst du im Schnitt bei 2.165 kcal, an den anderen 19 bei 1.920. Beides sind Muster in deinen Einträgen, kein Beweis, dass eins davon die Ursache ist.",
                     },
                     {
                         from: "user",
@@ -482,7 +482,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Kaum ein Unterschied: Wochenenden liegen im Schnitt bei 2.010 kcal, Werktage bei 1.993.",
+                        text: "Kaum ein Unterschied: am Wochenende im Schnitt 2.010 kcal, unter der Woche 1.993.",
                     },
                 ],
             },
@@ -493,9 +493,9 @@ export const INDEX_DE: IndexDoc = {
                     "Alkohol bleibt ausgeblendet, bis du die Erfassung einschaltest. Wähl US-Standard-Drinks oder UK-Einheiten, und jedes Getränk wird aus Menge und Alkoholgehalt in Gramm Alkohol umgerechnet. Schaltest du sie später wieder aus, wird Alkohol erneut ausgeblendet, aber nicht gelöscht.",
                 toolNotes: {
                     set_alcohol_tracking:
-                        "Schaltet Alkohol ein, in Gramm und dazu in UK-Einheiten",
+                        "Schaltet Alkohol ein, in Gramm und zusätzlich in UK-Einheiten",
                     log_meal:
-                        "Berechnet den Alkohol des Pints aus Menge und Alkoholgehalt",
+                        "Berechnet den Alkohol im Pint aus Menge und Alkoholgehalt",
                 },
                 messages: [
                     {
@@ -512,7 +512,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Die Alkohol-Erfassung ist an, in Gramm und dazu in UK-Einheiten.",
+                        text: "Die Alkohol-Erfassung ist an – in Gramm und zusätzlich in UK-Einheiten.",
                     },
                     {
                         from: "user",
@@ -528,7 +528,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Zum Abendessen erfasst: Ein Pint mit 568 ml und 4 % sind 17,9 g Alkohol, 2,3 UK-Einheiten, etwa 180 kcal.",
+                        text: "Zum Abendessen erfasst: Ein Pint mit 568 ml und 4 % entspricht 17,9 g Alkohol bzw. 2,3 UK-Einheiten, etwa 180 kcal.",
                     },
                 ],
                 cards: [
@@ -541,14 +541,14 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 id: "import-history",
-                title: "Deine Historie mitnehmen",
+                title: "Deinen Verlauf mitnehmen",
                 description:
-                    "Du wechselst von MyFitnessPal, Cronometer, Lose It! oder MacroFactor? Der Importer öffnet sich im Chat, liest deinen Export im Browser und ordnet ihn zu, speichert nichts, bevor du eine Vorschau bestätigst, und legt keine Mahlzeit doppelt an, wenn du dieselbe Datei bei unveränderter Zeitzone noch einmal importierst. Eine fehlende Zeitzone meldet er, bevor du loslegst.",
+                    "Du wechselst von MyFitnessPal, Cronometer, Lose It! oder MacroFactor? Der Importer öffnet sich im Chat, liest deinen Export im Browser und ordnet ihn zu, speichert nichts, bevor du die Vorschau bestätigst, und legt keine Mahlzeit doppelt an, wenn du dieselbe Datei bei unveränderter Zeitzone erneut importierst. Fehlt eine Zeitzone, meldet er das, bevor du loslegst.",
                 toolNotes: {
                     start_meal_import:
-                        "Öffnet den Importer im Chat für deine Exportdatei",
+                        "Öffnet den Importer für deine Exportdatei im Chat",
                     set_timezone:
-                        "Setzt America/Chicago, damit Mahlzeiten in Ortszeit landen",
+                        "Setzt America/Chicago, damit Mahlzeiten in deiner Ortszeit landen",
                 },
                 messages: [
                     {
@@ -573,15 +573,15 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Das ist bei MyFitnessPal normal: Der Export hat pro Tag eine Zeile je Mahlzeit, mit den Summen, aber ohne Lebensmittelnamen. Jede Mahlzeit wird stattdessen nach ihrer Mahlzeitenart benannt, Kalorien und Makros bleiben erhalten.",
+                        text: "Das ist bei MyFitnessPal normal: Der Export hat pro Tag eine Zeile je Mahlzeit, mit den Summen, aber ohne Lebensmittelnamen. Jede Mahlzeit wird stattdessen nach ihrem Mahlzeitentyp benannt, Kalorien und Makros bleiben erhalten.",
                     },
                     {
                         from: "user",
-                        text: "603 Mahlzeiten. da steht, die werden für die Mittagszeit eingetragen?",
+                        text: "603 Mahlzeiten. da steht, die werden mittags eingetragen?",
                     },
                     {
                         from: "ai",
-                        text: "Genau, der Export hat Datumsangaben, aber keine Uhrzeiten, deshalb wird jede Mahlzeit auf 12 Uhr Ortszeit gesetzt. So landet jede Mahlzeit in Chicago am richtigen Tag; du siehst nur nicht, wann du wirklich gegessen hast.",
+                        text: "Genau, der Export hat Datumsangaben, aber keine Uhrzeiten, deshalb wird jede Mahlzeit auf 12 Uhr Ortszeit gesetzt. So landet jede in Chicago am richtigen Tag – du siehst nur nicht, wann du tatsächlich gegessen hast.",
                     },
                     {
                         from: "user",
@@ -602,9 +602,9 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 id: "export-data",
-                title: "Nimm deine Daten mit",
+                title: "Deine Daten mitnehmen",
                 description:
-                    "Eine Anfrage packt alles, was über dich gespeichert ist — Mahlzeiten, Wasser, Wägungen, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungs-Telemetrie und App-Verbindungen — in ein ZIP aus CSV-Dateien mit README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
+                    "Eine Anfrage packt alles, was über dich gespeichert ist – Mahlzeiten, Wasser, Messungen, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungstelemetrie und App-Verbindungen –, in ein ZIP aus CSV-Dateien samt README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
                 toolNotes: {
                     export_all_data:
                         "Packt acht CSV-Dateien und ein README in ein ZIP hinter einem 60-Minuten-Link",
@@ -612,11 +612,11 @@ export const INDEX_DE: IndexDoc = {
                 messages: [
                     {
                         from: "user",
-                        text: "meine Ernährungsberaterin will mein Ernährungstagebuch sehen. kannst du mir das als Tabelle rausgeben?",
+                        text: "meine Ernährungsberaterin will mein Ernährungstagebuch sehen. kannst du das als Tabelle exportieren?",
                     },
                     {
                         from: "ai",
-                        text: "Bitte schön: ein ZIP mit 1.204 Mahlzeiten, 318 Wasser-Einträgen und 64 Wägungen, dazu deine Ziele, Profileinstellungen, Kontodaten, Telemetrie zur Werkzeugnutzung und App-Verbindungen. Dein Ernährungstagebuch ist die meals.csv darin, die sich in Excel oder Google Sheets öffnen lässt.",
+                        text: "Bitte schön: ein ZIP mit 1.204 Mahlzeiten, 318 Wasser-Einträgen und 64 Gewichtseinträgen, dazu deine Ziele, Profileinstellungen, Kontodaten, Telemetrie zur Werkzeugnutzung und App-Verbindungen. Dein Ernährungstagebuch ist die meals.csv darin; sie lässt sich in Excel oder Google Sheets öffnen.",
                         download: "export-zip",
                     },
                     {
@@ -625,15 +625,15 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Lad es lieber herunter und schick ihr die Datei. Der Link funktioniert nach 60 Minuten nicht mehr, und wer ihn hat, kann deinen ganzen Export öffnen — Gewicht, Kontodaten und Einstellungen inklusive, nicht nur die Mahlzeiten.",
+                        text: "Lad es lieber herunter und schick ihr die Datei. Der Link funktioniert nach 60 Minuten nicht mehr, und wer ihn hat, kann deinen kompletten Export öffnen – inklusive Gewicht, Kontodaten und Einstellungen, nicht nur die Mahlzeiten.",
                     },
                     {
                         from: "user",
-                        text: "gut zu wissen. könnte ich später daraus wiederherstellen, falls nötig?",
+                        text: "gut zu wissen. könnte ich das später zum Wiederherstellen nutzen, falls nötig?",
                     },
                     {
                         from: "ai",
-                        text: "Deine Mahlzeiten ja. meals.csv verwendet die Spaltennamen des Importers und lässt sich deshalb direkt wieder importieren; Mahlzeiten, die schon in deinem Tagebuch stehen, werden erkannt und übersprungen, sodass nichts doppelt vorkommt. Die anderen Dateien sind nur für deine Unterlagen; sie lassen sich nicht wieder importieren.",
+                        text: "Für deine Mahlzeiten ja. meals.csv verwendet die Spaltennamen des Importers und lässt sich deshalb direkt wieder importieren; Mahlzeiten, die schon in deinem Tagebuch stehen, werden erkannt und übersprungen, sodass nichts doppelt vorkommt. Die anderen Dateien sind nur für deine Unterlagen und lassen sich nicht wieder importieren.",
                     },
                 ],
             },
@@ -642,7 +642,7 @@ export const INDEX_DE: IndexDoc = {
 
     stats: {
         title: "Frühstück hier, Abendessen woanders.",
-        sub: "Live-Statistiken über alle Nutrition-MCP-Konten — Kalorien, Mahlzeiten-Einträge, Makros und abgenommenes Gewicht — alle fünf Sekunden aktualisiert.",
+        sub: "Live-Statistiken über alle Nutrition-MCP-Konten – Kalorien, Mahlzeiten-Einträge, Makros und abgenommenes Gewicht –, alle fünf Sekunden aktualisiert.",
         liveLabel: "Live",
         unitGroupLabel: "Einheiten",
         unitMetricLabel: "Metrisch",
@@ -667,78 +667,78 @@ export const INDEX_DE: IndexDoc = {
         mapNote: "Punktgröße = Anteil der Profile",
         mapAriaLabel:
             "Weltkarte der in Profilen eingestellten Zeitzonen; eine Zeitzone erscheint erst, wenn mindestens drei Profile sie nutzen",
-        foot: "Summen über alle Konten, aktualisiert bei jeder erfassten Mahlzeit. Individuelle Daten werden nie angezeigt.",
+        foot: "Summen über alle Konten, aktualisiert mit jeder erfassten Mahlzeit. Daten einzelner Personen werden nie angezeigt.",
     },
 
     features: {
         title: "Was du erfassen kannst",
         cards: [
             {
-                title: "Mahlzeiten in normaler Sprache",
-                body: "Beschreib, was du gegessen hast — deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Koffein in Milligramm und erfasst es.",
+                title: "Mahlzeiten in eigenen Worten",
+                body: "Beschreib, was du gegessen hast – deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Koffein in Milligramm und erfasst alles.",
             },
             {
                 title: "Barcode scannen",
-                body: "Fotografier oder tipp einen Produkt-Barcode ein und hol Makros, Ballaststoffe und Zucker von Open Food Facts — skaliert auf die Menge, die du gegessen hast.",
+                body: "Fotografier einen Produkt-Barcode oder tipp ihn ein und hol dir Makros, Ballaststoffe und Zucker von Open Food Facts – umgerechnet auf die Menge, die du gegessen hast.",
             },
             {
                 title: "Ziele & Fortschritt",
-                body: "Leg tägliche Ziele für Kalorien, Makros, Ballaststoffe und Wasser fest — dazu Grenzwerte für Zucker, Koffein und Alkohol — und verfolg deinen Fortschritt live.",
+                body: "Leg tägliche Ziele für Kalorien, Makros, Ballaststoffe und Wasser fest – dazu Limits für Zucker, Koffein und Alkohol, unter denen du bleiben willst – und verfolg deinen Fortschritt live.",
             },
             {
                 title: "Übersichten & Trends",
-                body: "Tages- und Wochenübersichten, 7/14/30-Tage-Trends, Serien und wiederkehrende Essgewohnheiten.",
+                body: "Tages- und Wochenübersichten, 7/14/30-Tage-Trends, Serien und wiederkehrende Essmuster.",
             },
             {
                 title: "Wasser erfassen",
-                body: "Verfolg deine Flüssigkeitszufuhr in Millilitern neben deinen Mahlzeiten und sieh sie dir tagesweise an.",
+                body: "Erfasse deine Flüssigkeitszufuhr in Millilitern neben deinen Mahlzeiten und sieh sie dir pro Tag an.",
             },
             {
                 title: "Gewichts-Tracking",
-                body: "Erfasse dein Körpergewicht in kg oder lb, sieh dir 7/14/30-Tage-Trends an und verfolg deinen Fortschritt zu einem Zielgewicht.",
+                body: "Erfasse dein Körpergewicht in kg oder lb, sieh dir 7/14/30-Tage-Trends an und verfolg deinen Fortschritt Richtung Zielgewicht.",
             },
             {
-                title: "Zeitzonenbewusst",
-                body: "Der Tag wechselt in deiner lokalen Zeit, egal wo auf der Welt du bist.",
+                title: "Passt sich deiner Zeitzone an",
+                body: "Der Tag wechselt nach deiner Ortszeit, egal wo auf der Welt du bist.",
             },
             {
                 title: "Import aus einer anderen App",
-                body: "Bring deine Mahlzeiten-Historie aus MyFitnessPal, Cronometer, Lose It! oder MacroFactor mit — oder aus jeder anderen CSV, indem du die Spalten selbst zuordnest. Du bestätigst, was hinzugefügt wird, bevor irgendetwas gespeichert wird.",
+                body: "Bring deinen Mahlzeiten-Verlauf aus MyFitnessPal, Cronometer, Lose It! oder MacroFactor mit – oder aus jeder anderen CSV-Datei, deren Spalten du selbst zuordnest. Bevor etwas gespeichert wird, bestätigst du, was hinzugefügt wird.",
             },
             {
-                title: "Export & Eigentum an deinen Daten",
-                body: "Nimm alles mit, was wir über dich speichern — Mahlzeiten, Wasser, Gewicht, Ziele und Profil, dazu deinen Kontodatensatz, die Nutzungs-Telemetrie und deine verbundenen Apps — als ein ZIP mit CSV-Dateien. Mahlzeiten sind bisher der einzige Teil, der wieder importiert werden kann. Lösch dein Konto und deine Daten, wann immer du willst.",
+                title: "Export & volle Kontrolle über deine Daten",
+                body: "Nimm alles mit, was wir über dich speichern – Mahlzeiten, Wasser, Gewicht, Ziele und Profil, dazu deinen Kontodatensatz, die Nutzungstelemetrie und deine verbundenen Apps – als ein ZIP mit CSV-Dateien. Bisher lassen sich nur die Mahlzeiten wieder importieren. Lösch dein Konto und deine Daten, wann immer du willst.",
             },
         ],
     },
 
     why: {
         title: "Reden schlägt Tippen.",
-        sub: "Fotografier einen Barcode oder sag einfach, was du gegessen hast — kein Wühlen in einer Datenbank, keine separate App zu öffnen.",
+        sub: "Fotografier einen Barcode oder sag einfach, was du gegessen hast – kein Suchen in Datenbanken, keine extra App.",
         oldHeading: "Klassische Apps",
         oldItems: [
-            "Für jedes Lebensmittel eine Datenbank durchsuchen",
+            "Jedes Lebensmittel in einer Datenbank suchen",
             "Falsche Datenbankeinträge von Hand korrigieren",
-            "Noch eine App zum Öffnen, oft hinter einer Bezahlschranke",
-            "Mühsames manuelles Erfassen",
+            "Noch eine App mehr, oft hinter einer Bezahlschranke",
+            "Mühsames Eintippen von Hand",
         ],
         newHeading: "Nutrition MCP",
         newItems: [
-            "Mahlzeiten in normaler Sprache beschreiben",
+            "Mahlzeiten in eigenen Worten beschreiben",
             "Kalorien & Makros werden für dich geschätzt",
             "Läuft kostenlos in Claude oder ChatGPT",
-            "Frag nach Trends, Übersichten und Zielen",
+            "Trends, Übersichten und Ziele einfach abfragen",
         ],
         noteHtml:
-            'Wechselst du von einer bestimmten App? Sieh dir an, wie Nutrition MCP im Vergleich zu <a href="/alternatives" data-link="alternatives">MyFitnessPal, Cronometer und anderen Trackern</a> abschneidet.',
+            'Du wechselst von einer bestimmten App? Sieh dir an, wie sich Nutrition MCP im Vergleich zu <a href="/alternatives" data-link="alternatives">MyFitnessPal, Cronometer und anderen Trackern</a> schlägt.',
     },
 
     trust: [
         {
-            label: "Privat per Voreinstellung",
+            label: "Standardmäßig privat",
             small: "Nie verkauft, weitergegeben oder für Werbung genutzt.",
         },
-        { label: "Quelloffen", small: "Selbst prüfen oder hosten." },
+        { label: "Open Source", small: "Selbst prüfen oder hosten." },
         {
             label: "Jederzeit exportieren",
             small: "Alles Gespeicherte als CSV in einem ZIP.",
@@ -747,11 +747,11 @@ export const INDEX_DE: IndexDoc = {
     ],
 
     support: {
-        title: "Hilf mit, es am Laufen zu halten.",
-        sub: "Nutrition MCP ist kostenlos und werbefrei. Patreon deckt die Server- und Datenbankkosten.",
-        updatesTitle: "Neuestes von Patreon",
+        title: "Hilf mit, das Projekt am Laufen zu halten.",
+        sub: "Nutrition MCP ist kostenlos und werbefrei. Patreon deckt die Kosten für Server und Datenbank.",
+        updatesTitle: "Neues auf Patreon",
         updatesBadge: "Kostenlos",
-        updatesNote: "Kostenlos zu lesen — keine Mitgliedschaft nötig.",
+        updatesNote: "Kostenlos lesbar – keine Mitgliedschaft nötig.",
         updatesPrevLabel: "Vorheriges Update",
         updatesNextLabel: "Nächstes Update",
         updatesDotLabel: "Update",
@@ -759,28 +759,28 @@ export const INDEX_DE: IndexDoc = {
         free: {
             tier: "Kostenloses Mitglied",
             price: "0 $",
-            desc: "Bleib auf dem Laufenden — Neuigkeiten und Updates zum Server, neue Werkzeuge und was als Nächstes kommt.",
+            desc: "Bleib auf dem Laufenden: Neuigkeiten und Updates zum Server, neue Werkzeuge und was als Nächstes kommt.",
             cta: "Auf Patreon folgen",
         },
         paid: {
             tier: "Zahlendes Mitglied",
             price: "Zahl, was du willst",
-            desc: "Wenn dir Nutrition MCP hilft, kannst du die Kosten für Hosting und Datenbank mittragen. Alle bekommen dieselben Funktionen, Unterstützer eingeschlossen, und es bleibt für alle kostenlos.",
+            desc: "Wenn dir Nutrition MCP hilft, kannst du dich an den Kosten für Hosting und Datenbank beteiligen. Alle bekommen dieselben Funktionen – Unterstützer eingeschlossen –, und es bleibt für alle kostenlos.",
             cta: "Unterstützer werden",
         },
     },
 
     cta: {
-        title: "Starte in unter einer Minute mit dem Erfassen.",
-        sub: "Kostenlos und quelloffen — funktioniert mit der KI, die du schon nutzt.",
+        title: "In unter einer Minute mit dem Erfassen loslegen.",
+        sub: "Kostenlos und Open Source – funktioniert mit der KI, die du schon nutzt.",
         primary: "Schnell installieren",
-        secondary: "Stern auf GitHub geben",
+        secondary: "Auf GitHub einen Stern geben",
     },
 
     contact: {
         title: "Fragen oder Feedback?",
-        sub: "Einen Bug gefunden, wünschst dir ein Feature oder hast einfach eine Frage? Schreib mir direkt eine E-Mail — ich lese jede Nachricht.",
-        cta: "E-Mail senden",
+        sub: "Einen Bug gefunden, einen Feature-Wunsch oder einfach eine Frage? Schreib mir direkt eine E-Mail – ich lese jede Nachricht.",
+        cta: "E-Mail schreiben",
     },
 
     faqSection: {
@@ -790,17 +790,17 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was ist Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP ist ein kostenloser, quelloffener Model Context Protocol (MCP) Server, der Claude, ChatGPT oder einen anderen MCP-Client zum Kalorienzähler und Makro-Tracker macht. Statt eine Lebensmitteldatenbank zu durchsuchen, sagst du deiner KI, was du gegessen hast, und sie trägt Kalorien, Makros, Ballaststoffe, Zucker und Koffein in dein eigenes Ernährungstagebuch ein.",
+                "Nutrition MCP ist ein kostenloser Open-Source-MCP-Server (Model Context Protocol), der Claude, ChatGPT oder einen anderen MCP-Client in einen Kalorienzähler und Makro-Tracker verwandelt. Statt eine Lebensmitteldatenbank zu durchsuchen, sagst du deiner KI, was du gegessen hast, und sie trägt Kalorien, Makros, Ballaststoffe, Zucker und Koffein in dein eigenes Ernährungstagebuch ein.",
         },
         {
             question: "Was ist das Model Context Protocol (MCP)?",
             visibleHtml:
-                "Das Model Context Protocol ist ein offener Standard, der es KI-Assistenten wie Claude und ChatGPT ermöglicht, sich mit externen Werkzeugen und Datenquellen zu verbinden. Ein MCP-Server stellt bestimmte Fähigkeiten bereit — hier: Ernährungs-Tracking —, die die KI während eines Gesprächs nutzen kann. Man kann es sich wie ein Plugin-System für KI-Assistenten vorstellen.",
+                "Das Model Context Protocol ist ein offener Standard, über den sich KI-Assistenten wie Claude und ChatGPT mit externen Werkzeugen und Datenquellen verbinden können. Ein MCP-Server stellt bestimmte Fähigkeiten bereit – hier das Ernährungs-Tracking –, die die KI während eines Gesprächs nutzen kann. Stell es dir wie ein Plugin-System für KI-Assistenten vor.",
         },
         {
             question: "Wie zähle ich Kalorien mit Claude oder ChatGPT?",
             visibleHtml:
-                "Verbinde Nutrition MCP einmal — in Claude über das Connector-Verzeichnis, in ChatGPT als benutzerdefinierte App mit der Server-URL — und melde dich an. Dann sag deiner KI in eigenen Worten, was du gegessen hast, zeig ihr ein Foto der Mahlzeit oder gib ihr einen Produkt-Barcode. Deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Zucker, und Nutrition MCP speichert den Eintrag in deinem Ernährungstagebuch. Frag jederzeit nach deinen Tagessummen, Wochentrends oder deinem Fortschritt bei deinen Zielen.",
+                "Verbinde Nutrition MCP einmal – in Claude über das Connector-Verzeichnis, in ChatGPT als benutzerdefinierte App mit der Server-URL – und melde dich an. Dann sag deiner KI in eigenen Worten, was du gegessen hast, zeig ihr ein Foto der Mahlzeit oder gib ihr einen Produkt-Barcode. Deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Zucker, und Nutrition MCP speichert den Eintrag in deinem Ernährungstagebuch. Frag jederzeit nach deinen heutigen Summen, Wochentrends oder deinem Fortschritt bei deinen Zielen.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -810,50 +810,50 @@ export const INDEX_DE: IndexDoc = {
             // ChatGPT?" entry.
             question: "Funktioniert es mit ChatGPT?",
             visibleHtml:
-                "Ja. Öffne in ChatGPT im Web Settings → Apps, erstelle eine benutzerdefinierte App mit der Server-URL über OAuth und melde dich an. Für eine benutzerdefinierte App brauchst du den Entwicklermodus (Developer mode) von ChatGPT, den OpenAI in einigen ChatGPT-Tarifen anbietet.",
+                "Ja. Öffne in ChatGPT im Web Settings → Apps, erstelle mit der Server-URL eine benutzerdefinierte App mit OAuth und melde dich an. Dafür brauchst du den Entwicklermodus (Developer mode) von ChatGPT, den OpenAI in einigen ChatGPT-Tarifen anbietet.",
             jsonLdText:
-                "Ja. Öffne in ChatGPT im Web Settings → Apps, erstelle eine benutzerdefinierte App mit der Server-URL https://nutrition-mcp.com/mcp über OAuth und melde dich an. Für eine benutzerdefinierte App brauchst du den Entwicklermodus (Developer mode) von ChatGPT, den OpenAI in einigen ChatGPT-Tarifen anbietet.",
+                "Ja. Öffne in ChatGPT im Web Settings → Apps, erstelle mit der Server-URL https://nutrition-mcp.com/mcp eine benutzerdefinierte App mit OAuth und melde dich an. Dafür brauchst du den Entwicklermodus (Developer mode) von ChatGPT, den OpenAI in einigen ChatGPT-Tarifen anbietet.",
         },
         {
             question: "Welche anderen Clients werden unterstützt?",
             visibleHtml:
-                "Jeder MCP-Client, der OAuth 2.0 mit PKCE unterstützt — darunter Claude.ai, die Claude-Desktop- und -Mobil-Apps, Claude Code, Cursor, Windsurf und VS Code.",
+                "Jeder MCP-Client, der OAuth 2.0 mit PKCE unterstützt – darunter Claude.ai, die Desktop- und Mobil-Apps von Claude, Claude Code, Cursor, Windsurf und VS Code.",
         },
         {
             question: "Kann ich es selbst hosten?",
             visibleHtml:
-                'Ja. Nutrition MCP ist quelloffen (MIT-Lizenz). Du kannst deine eigene Instanz mit deinem eigenen Supabase-Projekt betreiben — das <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub-Repository</a> enthält eine vollständige Anleitung zum Selbst-Hosten und ein Dockerfile.',
+                'Ja. Nutrition MCP ist Open Source (MIT-Lizenz). Du kannst eine eigene Instanz mit deinem eigenen Supabase-Projekt betreiben – das <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub-Repository</a> enthält eine vollständige Anleitung zum Selbsthosten und ein Dockerfile.',
         },
         {
             question: "Ist Nutrition MCP kostenlos?",
             visibleHtml:
-                "Ja, es ist komplett kostenlos — keine kostenpflichtige Stufe, keine Werbung, keine versteckten Kosten. Du brauchst eine KI-App, die MCP-Connectors unterstützt, etwa Claude oder ChatGPT, und ein kostenloses Nutrition-MCP-Konto, das du beim ersten Verbinden anlegst. Freiwillige Spenden auf Patreon helfen, die Serverkosten zu decken, und schalten nichts frei.",
+                "Ja, es ist komplett kostenlos – keine kostenpflichtige Version, keine Werbung, keine versteckten Kosten. Du brauchst eine KI-App, die MCP-Connectors unterstützt, etwa Claude oder ChatGPT, und ein kostenloses Nutrition-MCP-Konto, das du beim ersten Verbinden anlegst. Freiwillige Spenden auf Patreon helfen, die Serverkosten zu decken, und schalten nichts frei.",
         },
         {
             question: "Was kann ich erfassen?",
             visibleHtml:
-                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Wasser für jeden Eintrag — beschrieben in normaler Sprache oder über einen Produkt-Barcode via Open Food Facts abgerufen. Koffein wird ebenfalls erfasst, in Milligramm, der Einheit, die jedes Etikett verwendet, und es liefert keine Kalorien. Auch Alkohol lässt sich erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Du kannst außerdem dein Körpergewicht in kg oder lb erfassen und Trends zu einem Zielgewicht verfolgen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Datumsbereich ab, ändere oder lösche vergangene Einträge, leg Ziele fest und beobachte Trends über die Zeit.",
+                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Wasser für jeden Eintrag – in eigenen Worten beschrieben oder per Produkt-Barcode aus Open Food Facts abgerufen. Auch Koffein wird erfasst, in Milligramm, der Einheit auf jedem Etikett; es liefert keine Kalorien. Alkohol lässt sich ebenfalls erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Außerdem kannst du dein Körpergewicht in kg oder lb erfassen und deinen Trend Richtung Zielgewicht verfolgen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Zeitraum ab, ändere oder lösche frühere Einträge, leg Ziele fest und verfolg Trends über die Zeit.",
         },
         {
             question: "Wie genau sind die Kalorienangaben?",
             visibleHtml:
-                "Es sind Schätzungen. Bei einer Mahlzeit, die du beschreibst oder fotografierst, schätzt deine KI die Werte; bei einem Barcode stammen sie aus den Etikettdaten des Produkts in Open Food Facts, die deine KI auf deine Menge umrechnet. Beides kann falsch sein, also prüf alles, worauf es ankommt — du kannst jeden Eintrag korrigieren oder löschen, indem du einfach danach fragst. Nutrition MCP ist ein Werkzeug zum Erfassen, keine medizinische Beratung und keine Ernährungsberatung: Sprich mit einer Ärztin, einem Arzt oder einer Ernährungsfachkraft, bevor du Entscheidungen über deine Gesundheit triffst, besonders in der Schwangerschaft, bei einer Erkrankung oder wenn du schon einmal eine Essstörung hattest.",
+                "Es sind Schätzungen. Bei einer Mahlzeit, die du beschreibst oder fotografierst, schätzt deine KI die Werte; bei einem Barcode stammen sie aus den Etikettdaten des Produkts in Open Food Facts, die deine KI auf deine Menge umrechnet. Beides kann danebenliegen, also prüf alles, worauf es dir ankommt – du kannst jeden Eintrag korrigieren oder löschen, indem du einfach danach fragst. Nutrition MCP ist ein Werkzeug zum Erfassen, keine medizinische Beratung und keine Ernährungsberatung: Sprich mit einer Ärztin, einem Arzt oder einer Ernährungsfachkraft, bevor du Entscheidungen über deine Gesundheit triffst – besonders in der Schwangerschaft, bei einer Erkrankung oder wenn du schon einmal ein gestörtes Essverhalten hattest.",
         },
         {
             question: "Wird Alkohol erfasst?",
             visibleHtml:
-                "Ja, als Opt-in: Die Alkohol-Erfassung ist standardmäßig ausgeschaltet, und Alkohol bleibt in Mahlzeiten, Zielen und Übersichten ausgeblendet, bis du sie einschaltest. Dann werden Getränke in Gramm reinen Alkohols und wahlweise als US-Standard-Drinks oder UK-Einheiten angezeigt. Nichts leitet Alkohol stellvertretend für dich ab: Er wird nur aus einem Getränk erfasst, das du einträgst, oder aus einer Alkohol-Spalte in einer importierten Datei, und ein eingetragenes Getränk wird auch bei ausgeschalteter Erfassung gespeichert. Schaltest du sie wieder aus, wird Alkohol erneut ausgeblendet, und der Importer liest keine Alkohol-Spalten mehr — das ist kein Löschschalter, und dein Export enthält immer, was du erfasst hast. Um einen Alkoholwert zu entfernen, lösch die Mahlzeit, zu der er gehört.",
+                "Ja, als Opt-in: Die Alkohol-Erfassung ist standardmäßig aus, und Alkohol bleibt in Mahlzeiten, Zielen und Übersichten ausgeblendet, bis du sie einschaltest. Dann werden Getränke in Gramm reinen Alkohols und – je nach Wahl – als US-Standard-Drinks oder UK-Einheiten angezeigt. Alkohol wird nie automatisch ermittelt: Er wird nur aus einem Getränk erfasst, das du einträgst, oder aus einer Alkohol-Spalte in einer importierten Datei, und ein eingetragenes Getränk wird auch bei ausgeschalteter Erfassung gespeichert. Schaltest du sie wieder aus, wird Alkohol erneut ausgeblendet, und der Importer liest keine Alkohol-Spalten mehr – das ist kein Löschschalter, und dein Export enthält immer, was du erfasst hast. Um einen Alkoholwert zu entfernen, lösch die Mahlzeit, zu der er gehört.",
         },
         {
             question:
-                "Kann ich meine Historie aus MyFitnessPal oder einer anderen App importieren?",
+                "Kann ich meinen Verlauf aus MyFitnessPal oder einer anderen App importieren?",
             visibleHtml:
-                "Ja. Bitte um den Import deiner Historie, und ein Importer öffnet sich im Chat: Du wählst die CSV, die deine alte App exportiert hat, prüfst, wie ihre Spalten zugeordnet werden, und siehst, was hinzugefügt wird, bevor du bestätigst. Exporte von MyFitnessPal, Cronometer, Lose It! und MacroFactor werden automatisch erkannt, und jede andere CSV funktioniert, indem du die Spalten selbst zuordnest. Dein Browser liest die Datei, die KI tippt deine Zeilen also nie ab. In Clients ohne In-Chat-Panels kannst du deinen Export stattdessen einfügen — und ein erneuter Import derselben Datei erzeugt keine Duplikate, solange sich deine Zeitzone zwischendurch nicht geändert hat.",
+                "Ja. Sag, dass du deinen Verlauf importieren willst, und im Chat öffnet sich ein Importer: Du wählst die CSV, die deine alte App exportiert hat, prüfst, wie die Spalten zugeordnet werden, und siehst vor dem Bestätigen, was hinzugefügt wird. Exporte von MyFitnessPal, Cronometer, Lose It! und MacroFactor werden automatisch erkannt; jede andere CSV funktioniert, wenn du die Spalten selbst zuordnest. Die Datei liest dein Browser, die KI tippt deine Zeilen also nie ab. In Clients ohne In-Chat-Panels kannst du deinen Export stattdessen einfügen – und wenn du dieselbe Datei erneut importierst, entstehen keine Duplikate, solange sich deine Zeitzone zwischendurch nicht geändert hat.",
         },
         {
             question: "Sind meine Daten privat?",
             visibleHtml:
-                'Deine Einträge werden in der EU gespeichert und mit deinem eigenen Konto verknüpft, auf das du über die KI-Apps zugreifst, die du verbindest. Nutrition MCP verkauft deine Daten nie, gibt sie nie an Dritte weiter und nutzt sie nie für Werbung; die Startseite zeigt nur anonyme Gesamtzahlen über die ganze Website. Was deine KI über die Werkzeuge liest, geht an den Anbieter dieser KI, im Rahmen deiner eigenen Vereinbarung mit ihm. Du kannst jederzeit alles exportieren, was wir über dich speichern, oder dein Konto samt allen Daten löschen — Details stehen in der <a href="/privacy" data-link="privacy">Datenschutzerklärung</a>.',
+                'Deine Einträge werden in der EU gespeichert und mit deinem eigenen Konto verknüpft, auf das du über die verbundenen KI-Apps zugreifst. Nutrition MCP verkauft deine Daten nie, gibt sie nie an Dritte weiter und nutzt sie nie für Werbung; die Startseite zeigt nur anonyme Gesamtzahlen über die ganze Website. Was deine KI über die Werkzeuge liest, geht an den Anbieter dieser KI – im Rahmen deiner eigenen Vereinbarung mit ihm. Du kannst jederzeit alles exportieren, was wir über dich speichern, oder dein Konto samt allen Daten löschen – Details stehen in der <a href="/privacy" data-link="privacy">Datenschutzerklärung</a>.',
         },
     ],
 };

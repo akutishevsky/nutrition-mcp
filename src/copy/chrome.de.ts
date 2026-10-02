@@ -2,7 +2,7 @@ import type { ChromeCopy } from "./chrome.js";
 
 export const CHROME_DE: ChromeCopy = {
     skipToContent: "Zum Inhalt springen",
-    brandHomeAriaLabel: "Nutrition MCP Startseite",
+    brandHomeAriaLabel: "Nutrition-MCP-Startseite",
 
     nav: {
         how: "So funktioniert's",
@@ -11,8 +11,8 @@ export const CHROME_DE: ChromeCopy = {
         examples: "Beispiele",
         liveStats: "Live-Statistiken",
         liveStatsBadgeLabel: {
-            one: "neuer Mahlzeiten-Eintrag seit dem Öffnen",
-            other: "neue Mahlzeiten-Einträge seit dem Öffnen",
+            one: "neuer Mahlzeiten-Eintrag, seit du die Seite geöffnet hast",
+            other: "neue Mahlzeiten-Einträge, seit du die Seite geöffnet hast",
         },
         faq: "FAQ",
     },
@@ -51,12 +51,12 @@ export const CHROME_DE: ChromeCopy = {
         contact: "Kontakt",
         privacyPolicy: "Datenschutzerklärung",
         termsOfService: "Nutzungsbedingungen",
-        note: "Kostenlos und quelloffen. Ernährungswerte sind Schätzungen, kein medizinischer Rat.",
+        note: "Kostenlos und Open Source. Nährwerte sind Schätzungen, keine medizinische Beratung.",
     },
 
     consent: {
         title: "Analyse-Cookies.",
-        body: "Mit deiner Erlaubnis zählt Google Analytics Besuche, und Microsoft Clarity erfasst Klicks und Scrollen in Sitzungsaufzeichnungen, damit wir sehen, welche Seiten helfen und wo Leute hängen bleiben. Keines von beiden wird geladen, bevor du zustimmst.",
+        body: "Mit deiner Erlaubnis zählt Google Analytics die Besuche und Microsoft Clarity hält Klicks und Scrollen in Sitzungsaufzeichnungen fest, damit wir sehen, welche Seiten weiterhelfen und wo es hakt. Beides wird erst geladen, wenn du zustimmst.",
         accept: "Akzeptieren",
         reject: "Ablehnen",
         settings: "Cookie-Einstellungen",
