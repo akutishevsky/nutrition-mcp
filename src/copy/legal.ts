@@ -71,7 +71,7 @@ const PRIVACY_EN: LegalDoc = {
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
     ogDescription:
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
-    lastUpdated: "September 29, 2026",
+    lastUpdated: "October 2, 2026",
     backToHome: "Back to home",
     lead: "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
     documentsLabel: "Legal documents",
@@ -205,7 +205,7 @@ const TERMS_EN: LegalDoc = {
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT. Plain-language terms covering accounts, acceptable use, your data, and liability.",
     ogDescription:
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT.",
-    lastUpdated: "September 29, 2026",
+    lastUpdated: "October 2, 2026",
     backToHome: "Back to home",
     lead: "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT.",
     documentsLabel: "Legal documents",
@@ -401,7 +401,7 @@ const PRIVACY_DE: LegalDoc = {
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wofür wir es nutzen, wo es liegt und wie du dein Konto samt allen Daten jederzeit löschen kannst.",
     ogDescription:
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wofür wir es nutzen, wo es liegt und wie du dein Konto samt allen Daten jederzeit löschen kannst.",
-    lastUpdated: "29. September 2026",
+    lastUpdated: "2. Oktober 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -535,7 +535,7 @@ const TERMS_DE: LegalDoc = {
         "Die Bedingungen für die Nutzung von Nutrition MCP – dem kostenlosen Open-Source-Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT. Verständliche Regeln zu Konto, zulässiger Nutzung, deinen Daten und Haftung.",
     ogDescription:
         "Die Bedingungen für die Nutzung von Nutrition MCP – dem kostenlosen Open-Source-Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT.",
-    lastUpdated: "29. September 2026",
+    lastUpdated: "2. Oktober 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {

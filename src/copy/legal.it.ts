@@ -37,7 +37,7 @@ export const PRIVACY_IT: LegalDoc = {
         "Come Nutrition MCP tratta i tuoi dati: cosa conserviamo, come li usiamo, dove si trovano e come eliminare quando vuoi il tuo account e tutto ciò che contiene.",
     ogDescription:
         "Come Nutrition MCP tratta i tuoi dati: cosa conserviamo, come li usiamo, dove si trovano e come eliminare quando vuoi il tuo account e tutto ciò che contiene.",
-    lastUpdated: "29 settembre 2026",
+    lastUpdated: "2 ottobre 2026",
     backToHome: "Torna alla home",
     lead: "Come Nutrition MCP tratta i tuoi dati: cosa conserviamo, come li usiamo, dove si trovano e come eliminare quando vuoi il tuo account e tutto ciò che contiene.",
     documentsLabel: "Documenti legali",
@@ -171,7 +171,7 @@ export const TERMS_IT: LegalDoc = {
         "I termini che regolano l'uso di Nutrition MCP, il tracker nutrizionale e server MCP remoto, gratuito e open source, per Claude e ChatGPT. Termini in linguaggio semplice su account, uso consentito, i tuoi dati e responsabilità.",
     ogDescription:
         "I termini che regolano l'uso di Nutrition MCP, il tracker nutrizionale e server MCP remoto, gratuito e open source, per Claude e ChatGPT.",
-    lastUpdated: "29 settembre 2026",
+    lastUpdated: "2 ottobre 2026",
     backToHome: "Torna alla home",
     lead: "I termini che regolano l'uso di Nutrition MCP, il tracker nutrizionale e server MCP remoto, gratuito e open source, per Claude e ChatGPT.",
     documentsLabel: "Documenti legali",

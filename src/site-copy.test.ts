@@ -556,15 +556,15 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
         ]),
     );
     const expected: Record<SiteLocale, string> = {
-        en: "September 29, 2026",
-        de: "29. September 2026",
-        es: "29 de septiembre de 2026",
-        fr: "29 septembre 2026",
-        nl: "29 september 2026",
-        pl: "29 września 2026",
-        it: "29 settembre 2026",
-        uk: "29 вересня 2026 року",
-        ja: "2026年9月29日",
+        en: "October 2, 2026",
+        de: "2. Oktober 2026",
+        es: "2 de octubre de 2026",
+        fr: "2 octobre 2026",
+        nl: "2 oktober 2026",
+        pl: "2 października 2026",
+        it: "2 ottobre 2026",
+        uk: "2 жовтня 2026 року",
+        ja: "2026年10月2日",
     };
     expect(dates).toEqual(
         Object.fromEntries(

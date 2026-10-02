@@ -18,7 +18,7 @@ export const PRIVACY_NL: LegalDoc = {
     lead: "Hoe Nutrition MCP met je gegevens omgaat: wat we opslaan, waarvoor we het gebruiken, waar het staat en hoe je je account met alles erin op elk moment verwijdert.",
     documentsLabel: "Juridische documenten",
     tocLabel: "Op deze pagina",
-    lastUpdated: "29 september 2026",
+    lastUpdated: "2 oktober 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
         {
@@ -189,7 +189,7 @@ export const TERMS_NL: LegalDoc = {
     lead: "De voorwaarden voor het gebruik van Nutrition MCP, de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT.",
     documentsLabel: "Juridische documenten",
     tocLabel: "Op deze pagina",
-    lastUpdated: "29 september 2026",
+    lastUpdated: "2 oktober 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
         {
