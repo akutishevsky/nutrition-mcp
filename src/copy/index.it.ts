@@ -4,7 +4,7 @@
 // notes, why.noteHtml, faq[].visibleHtml) keep every <strong>/<code>/<a> tag
 // of the English source; every other field is plain text. The demo
 // conversations are structured: `photo`, `card`, `meal.type`, `from`,
-// `download`, `cards` and the `toolNotes` keys are copied verbatim from the
+// `link`, `cards` and the `toolNotes` keys are copied verbatim from the
 // English source, and every figure the cards draw is kept as written.
 // Product UI element names quoted in the install steps (e.g. "Customize",
 // "Connectors", "Create app") are left in English since they are literal
@@ -201,13 +201,12 @@ export const INDEX_IT: IndexDoc = {
             "Foto: una scodella di borscht con un cucchiaio di panna acida e aneto, e accanto una fetta di pane di segale",
         photoPackageAlt:
             "Foto: il codice a barre su una lattina di Coca-Cola, numero 5449000000996",
-        downloadExpires: "Scade tra 60 minuti",
         slides: [
             {
                 id: "log-meal",
                 title: "Registra a parole tue",
                 description:
-                    "Dillo come lo racconteresti a un amico. Se manca la porzione o non è chiaro di quale pasto si tratta, te lo chiede prima di stimare. Fibre e zuccheri finiscono in ogni voce, la caffeina in tutto ciò che ne contiene, e “stamattina” segue il tuo fuso orario.",
+                    "Dillo come lo racconteresti a un amico. Se manca la porzione o non è chiaro di quale pasto si tratta, te lo chiede prima di stimare. Fibre e zuccheri finiscono in ogni voce, la caffeina in tutto ciò che ne contiene, e “verso le 7” diventa le 07:00 nel tuo fuso orario.",
                 toolNotes: {
                     log_meal:
                         "Salva la colazione con macro, fibre, zuccheri e la caffeina del caffè",
@@ -245,7 +244,7 @@ export const INDEX_IT: IndexDoc = {
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 3,
+                        after: 2,
                     },
                 ],
                 cardMeals: [
@@ -279,7 +278,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Hai già registrato il borscht di Tsybulya due volte, sempre la versione di manzo con panna acida. Anche oggi lo stesso? E hai finito la scodella e il pane?",
+                        text: "Hai già registrato il borscht di Tsybulya due volte, sempre di manzo con panna acida e una fetta di pane di segale, circa 520 kcal. Anche oggi lo stesso? E hai finito la scodella e il pane?",
                     },
                     {
                         from: "user",
@@ -287,7 +286,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Quindi: borscht di manzo con panna acida (1 scodella, finita) e pane di segale (1 fetta) da Tsybulya, Podil, Kiev. Circa 520 kcal e 24 g di proteine: valori stimati, non dati ufficiali. Lo registro come pranzo?",
+                        text: "Quindi: borscht di manzo con panna acida (1 scodella, finita) e pane di segale (1 fetta) da Tsybulya, Podil, Kiev. Come l'ultima volta: circa 520 kcal e 24 g di proteine, valori stimati e non dati ufficiali. Lo registro?",
                     },
                     {
                         from: "user",
@@ -295,13 +294,13 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Pranzo registrato: 520 kcal · 24 g di proteine · 43 g di carboidrati · 27 g di grassi · 7 g di fibre · 10 g di zuccheri.",
+                        text: "Registrato. Sono 520 delle tue 2000 kcal di oggi, ne restano 1480.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 7,
+                        after: 6,
                     },
                 ],
                 cardMeals: [
@@ -315,9 +314,9 @@ export const INDEX_IT: IndexDoc = {
                     "Fotografa la confezione: le cifre sotto il codice a barre vengono cercate su Open Food Facts, poi ti chiede quanto ne hai consumato. Open Food Facts non riporta la caffeina, quindi quella si ricava dall'etichetta o da valori tipici; se mancano fibre o zuccheri, vengono stimati invece di restare vuoti.",
                 toolNotes: {
                     lookup_barcode:
-                        "Recupera da Open Food Facts i valori in etichetta della lattina",
+                        "Recupera da Open Food Facts i valori in etichetta della lattina, il Nutri-Score e il gruppo NOVA",
                     log_meal:
-                        "Registra la lattina intera con il pranzo, caffeina inclusa",
+                        "Registra la lattina intera come pranzo, con un valore tipico di caffeina",
                 },
                 messages: [
                     {
@@ -327,7 +326,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "È una lattina di Coca-Cola da 330 ml: 139 kcal e 35 g di zuccheri, secondo Open Food Facts. L'hai bevuta tutta?",
+                        text: "È una lattina di Coca-Cola da 330 ml: 139 kcal e 35 g di zuccheri, e Open Food Facts le assegna Nutri-Score E e NOVA 4, cioè ultra-processata. L'hai bevuta tutta?",
                     },
                     {
                         from: "user",
@@ -335,13 +334,13 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Registrata con il pranzo: 139 kcal, 35 g di zuccheri e 33 mg di caffeina presi dall'etichetta della lattina, perché Open Food Facts non riporta la caffeina. Quanto è grave? Già da soli quegli zuccheri superano la metà del tuo limite giornaliero di 60 g, e Open Food Facts le assegna Nutri-Score E e NOVA 4, cioè ultra-processata.",
+                        text: "Registrata come pranzo: 139 kcal, 35 g di zuccheri e circa 32 mg di caffeina, un valore tipico per una cola da 330 ml, perché Open Food Facts non riporta la caffeina. Già solo con gli zuccheri sei a 35 dei 60 g del tuo limite giornaliero.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 3,
+                        after: 2,
                     },
                 ],
                 cardMeals: ["Coca-Cola (lattina da 330 ml)"],
@@ -350,12 +349,12 @@ export const INDEX_IT: IndexDoc = {
                 id: "goals-progress",
                 title: "Fissa obiettivi, fai il punto",
                 description:
-                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi com'è andato un giorno qualsiasi per vedere ogni valore rispetto al suo obiettivo e quanto ti manca.",
+                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
                 toolNotes: {
                     set_nutrition_goals:
-                        "Salva gli obiettivi di kcal e proteine e un limite di caffeina di 400 mg",
+                        "Salva gli obiettivi di calorie e proteine e un limite di caffeina di 400 mg",
                     get_goal_progress:
-                        "Mostra la giornata di oggi rispetto a ogni obiettivo e quanto manca",
+                        "Mostra in un widget in chat la giornata di oggi rispetto a ogni obiettivo e limite",
                 },
                 messages: [
                     {
@@ -372,7 +371,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Fatto: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto non cambia: 220 g di carboidrati, 70 g di grassi, 30 g di fibre, 2,5 L d'acqua e il tuo limite di 60 g di zuccheri.",
+                        text: "Fatto: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto rimane com'era: 220 g di carboidrati, 70 g di grassi, 30 g di fibre, 2,5 L d'acqua, il tuo limite di 60 g di zuccheri e il tuo peso obiettivo di 75 kg.",
                     },
                     {
                         from: "user",
@@ -380,13 +379,13 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Sei a 1540 kcal e 104 g di proteine, quindi ti mancano 460 kcal e 56 g di proteine. Il margine più stretto è sugli zuccheri: sei a 40 dei 60 g del tuo limite, quindi restano 20 g. La caffeina è a 130 mg su 400.",
+                        text: "Sei a 1540 kcal su 2000 e a 104 g di proteine su 160, quindi ti mancano 460 kcal e 56 g di proteine. Gli zuccheri sono a 40 g sui 60 g del tuo limite e la caffeina a 130 mg su 400: entrambi sotto il limite.",
                     },
                 ],
                 cards: [
                     {
                         kind: "goal-progress",
-                        after: 5,
+                        after: 4,
                     },
                 ],
             },
@@ -394,7 +393,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "review-week",
                 title: "Rivedi la settimana",
                 description:
-                    "Chiedi com'è andata la settimana e in chat si apre il widget degli andamenti con le tue medie e i giorni registrati. Passa tra 7, 14 e 30 giorni o tocca un nutriente per vederne il grafico, senza nuove richieste. Può dirti anche le tue serie di giorni consecutivi e i giorni in linea con l'obiettivo.",
+                    "Chiedi com'è andata la settimana e in chat si apre il widget degli andamenti, con la media di calorie e macro rispetto ai tuoi obiettivi e quanti giorni hai registrato. Passa tra 7, 14 e 30 giorni senza una nuova richiesta. Può dirti anche le tue serie di giorni consecutivi e i giorni in linea con l'obiettivo.",
                 toolNotes: {
                     get_trends:
                         "Calcola le medie degli ultimi 7, 14 e 30 giorni e apre il widget degli andamenti",
@@ -406,7 +405,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Più costante di quanto sembri. In media sei a 1830 kcal al giorno, 170 sotto le tue 2000, ma il conto include come zero l'unico giorno su 14 che non hai registrato. Nei 13 giorni registrati eri intorno alle 1970, con 9 giorni entro il 10% dall'obiettivo. E registri da 10 giorni di fila.",
+                        text: "Hai registrato 13 giorni su 14, gli ultimi 10 di fila, e 9 di questi sono rimasti entro il 10% del tuo obiettivo di 2000 kcal. In media sei a 1830 kcal al giorno, ma il conto include come zero il giorno che hai saltato.",
                     },
                     {
                         from: "user",
@@ -414,13 +413,13 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Quelli sono da tenere d'occhio. In media 52 g, e hai superato il tuo limite di 60 g in 4 giorni su 13.",
+                        text: "In media 52 g al giorno, sotto il tuo limite di 60 g, ma l'hai superato in 4 giorni su 13.",
                     },
                 ],
                 cards: [
                     {
                         kind: "trends",
-                        after: 1,
+                        after: 0,
                     },
                 ],
             },
@@ -442,7 +441,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "784 kg è fuori dall'intervallo plausibile per un peso corporeo (20–500 kg), quindi non ho salvato nulla. Intendevi 78,4 kg?",
+                        text: "784 kg è fuori dall'intervallo plausibile per un peso corporeo (20–500 kg), quindi non ho salvato nulla. Intendevi 78,4 kg o 784 lb?",
                     },
                     {
                         from: "user",
@@ -450,13 +449,13 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Salvati 78,4 kg. Hai perso 1,8 kg dall'11 feb, circa 0,4 kg a settimana, e la tua media a 7 giorni è di 78,7 kg. Mancano 3,4 kg al tuo obiettivo di 75 kg.",
+                        text: "Salvati 78,4 kg. Hai perso 1,8 kg dall'11 febbraio (eri a 80,2 kg) e la tua media a 7 giorni è di 78,7 kg. Mancano 3,4 kg al tuo obiettivo di 75 kg.",
                     },
                 ],
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 3,
+                        after: 2,
                     },
                 ],
             },
@@ -476,11 +475,11 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Un po', sì. Hai registrato 28 degli ultimi 30 giorni e hai saltato la colazione in 6. In quei giorni la media è di 2215 kcal, contro 1940 nei 22 giorni con colazione, e circa 35 g di proteine in meno.",
+                        text: "Un po', sì. Hai registrato 28 degli ultimi 30 giorni e hai saltato la colazione in 6. In quei giorni la media è di 2215 kcal e 88 g di proteine, contro 1940 kcal e 123 g nei 22 giorni con colazione.",
                     },
                     {
                         from: "user",
-                        text: "e le cene tardi? nei giorni di palestra non mangio prima delle 9",
+                        text: "e le cene tardi? nei giorni di palestra non mangio prima delle 9 di sera",
                     },
                     {
                         from: "ai",
@@ -505,7 +504,7 @@ export const INDEX_IT: IndexDoc = {
                     set_alcohol_tracking:
                         "Attiva il monitoraggio dell'alcol, in grammi accanto alle unità britanniche",
                     log_meal:
-                        "Calcola l'alcol della pinta da quantità e gradazione",
+                        "Registra la pinta con il suo alcol in grammi di etanolo (568 ml × 4% × 0,789)",
                 },
                 messages: [
                     {
@@ -530,7 +529,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Che gradazione aveva? Le lager di solito stanno tra il 4 e il 5%, e lo trovi scritto sulla spina o sulla lattina.",
+                        text: "Che gradazione aveva? Le lager di solito stanno tra il 4 e il 5%, e la trovi indicata sulla spina o sulla lattina.",
                     },
                     {
                         from: "user",
@@ -538,13 +537,13 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Registrata con la cena: una pinta da 568 ml al 4% contiene 17,9 g di alcol, pari a 2,3 unità britanniche, circa 180 kcal.",
+                        text: "Registrata come cena: una pinta da 568 ml al 4% contiene 17,9 g di alcol, pari a 2,3 unità britanniche, circa 180 kcal.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 7,
+                        after: 6,
                     },
                 ],
                 cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
@@ -553,12 +552,16 @@ export const INDEX_IT: IndexDoc = {
                 id: "import-history",
                 title: "Porta qui il tuo storico",
                 description:
-                    "Arrivi da MyFitnessPal, Cronometer, Lose It! o MacroFactor? L'importatore si apre in chat, legge la tua esportazione e ne abbina le colonne nel browser, non salva nulla finché non confermi l'anteprima e non duplica i pasti se reimporti lo stesso file con lo stesso fuso orario. Prima di iniziare, ti avvisa se manca il fuso orario.",
+                    "Arrivi da MyFitnessPal, Cronometer, Lose It! o MacroFactor? L'importatore si apre in chat, legge la tua esportazione e ne abbina le colonne nel browser, non salva nulla finché non confermi l'anteprima e non duplica i pasti se reimporti lo stesso file con lo stesso fuso orario. Se il fuso orario non è impostato, si sistema prima quello, così ogni pasto finisce nel giorno giusto.",
                 toolNotes: {
-                    start_meal_import:
-                        "Apre in chat l'importatore per il tuo file esportato",
+                    get_profile:
+                        "Mostra che l'account non ha ancora un fuso orario impostato",
                     set_timezone:
                         "Imposta America/Chicago così i pasti usano l'ora locale",
+                    start_meal_import:
+                        "Apre in chat l'importatore per il tuo file esportato",
+                    bulk_import_meals:
+                        "Salva le righe confermate in blocchi da massimo 50, saltando quelle già importate",
                 },
                 messages: [
                     {
@@ -567,15 +570,15 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "L'importatore è aperto qui sotto. Prima di scegliere il file, una cosa: il tuo account non ha un fuso orario impostato, quindi gli orari verrebbero letti in UTC. Dove ti trovi?",
+                        text: "Prima di aprire l'importatore: il tuo account non ha un fuso orario impostato, quindi le date della tua esportazione verrebbero lette in UTC e i pasti potrebbero finire nel giorno sbagliato. Vuoi impostarlo prima? In che fuso orario ti trovi?",
                     },
                     {
                         from: "user",
-                        text: "Chicago",
+                        text: "chicago",
                     },
                     {
                         from: "ai",
-                        text: "Fatto, America/Chicago. Ora scegli il CSV Nutrition-Summary dalla tua esportazione di MyFitnessPal. Viene letto direttamente nel browser, e non si salva nulla finché non confermi l'anteprima.",
+                        text: "Fuso orario impostato su America/Chicago, e l'importatore è aperto qui sopra: scegli lì il file esportato da MyFitnessPal. Viene letto direttamente nel browser, e non si salva nulla finché non confermi l'anteprima.",
                     },
                     {
                         from: "user",
@@ -583,7 +586,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "È normale con MyFitnessPal: la sua esportazione ha una riga per ogni pasto di ogni giorno, con i totali ma senza i nomi degli alimenti. Al loro posto, ogni pasto viene etichettato con il suo tipo, con calorie e macro intatte.",
+                        text: "È normale con MyFitnessPal: la sua esportazione ha una riga per ogni pasto di ogni giorno, con i totali ma senza i nomi degli alimenti. Le righe senza nome dell'alimento vengono etichettate con l'app da cui provengono, e calorie e macro arrivano così come sono.",
                     },
                     {
                         from: "user",
@@ -605,7 +608,7 @@ export const INDEX_IT: IndexDoc = {
                 cards: [
                     {
                         kind: "import-meals",
-                        after: 3,
+                        after: 2,
                         step: "file",
                     },
                 ],
@@ -626,24 +629,8 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Ecco qui: uno ZIP con 1204 pasti, 318 registrazioni d'acqua e 64 pesate, più i tuoi obiettivi, le impostazioni del profilo, i dati dell'account, la telemetria di utilizzo degli strumenti e le app collegate. Il tuo diario alimentare è il file meals.csv al suo interno, che si apre con Excel o Google Sheets.",
-                        download: "export-zip",
-                    },
-                    {
-                        from: "user",
-                        text: "posso mandarle direttamente il link?",
-                    },
-                    {
-                        from: "ai",
-                        text: "Meglio scaricarlo e mandarle il file. Il link smette di funzionare dopo 60 minuti, e chiunque lo abbia può aprire tutta la tua esportazione: peso, dati dell'account e impostazioni compresi, non solo i pasti.",
-                    },
-                    {
-                        from: "user",
-                        text: "buono a sapersi. più avanti potrei ripristinare i dati da lì, se servisse?",
-                    },
-                    {
-                        from: "ai",
-                        text: "I pasti sì. meals.csv usa gli stessi nomi di colonna dell'importatore, quindi si reimporta direttamente: i pasti già presenti nel tuo diario vengono riconosciuti e saltati, così non si duplica niente. Gli altri file servono solo come archivio personale e non si possono reimportare.",
+                        text: "Fatto. Lo ZIP contiene 1204 pasti, 318 voci d'acqua e 64 pesate, più i tuoi obiettivi nutrizionali, le impostazioni del profilo, i dati dell'account, la telemetria di utilizzo degli strumenti e le app collegate. Il tuo diario alimentare è il file meals.csv al suo interno.",
+                        link: "Scarica l'esportazione (link valido 60 minuti)",
                     },
                 ],
             },

@@ -191,13 +191,12 @@ export const INDEX_DE: IndexDoc = {
             "Foto: ein Teller Borschtsch mit einem Löffel Schmand und Dill, daneben eine Scheibe Roggenbrot",
         photoPackageAlt:
             "Foto: der Barcode auf einer Dose Coca-Cola, Nummer 5449000000996",
-        downloadExpires: "Läuft in 60 Minuten ab",
         slides: [
             {
                 id: "log-meal",
                 title: "In eigenen Worten erfassen",
                 description:
-                    "Sag es so, wie du es Freunden erzählen würdest. Fehlt die Portion oder welche Mahlzeit es war, kommt erst eine Rückfrage, bevor geschätzt wird. Ballaststoffe und Zucker stehen bei jedem Eintrag, Koffein bei allem, was welches enthält, und „heute Morgen“ landet in deiner Zeitzone.",
+                    "Sag es so, wie du es Freunden erzählen würdest. Fehlt die Portion oder welche Mahlzeit es war, kommt erst eine Rückfrage, bevor geschätzt wird. Ballaststoffe und Zucker stehen bei jedem Eintrag, Koffein bei allem, was welches enthält, und „gegen 7“ landet in deiner Zeitzone auf 07:00.",
                 toolNotes: {
                     log_meal:
                         "Speichert das Frühstück mit Makros, Ballaststoffen, Zucker und dem Koffein des Kaffees",
@@ -235,7 +234,7 @@ export const INDEX_DE: IndexDoc = {
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 3,
+                        after: 2,
                     },
                 ],
                 cardMeals: [
@@ -269,7 +268,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Du hast Borschtsch im Tsybulya schon zweimal erfasst, beide Male mit Rindfleisch und Schmand. Wieder dasselbe? Und hast du den Teller und das Brot ganz aufgegessen?",
+                        text: "Du hast Borschtsch im Tsybulya schon zweimal erfasst, beide Male mit Rindfleisch, Schmand und einer Scheibe Roggenbrot, etwa 520 kcal. Wieder dasselbe? Und hast du den Teller und das Brot ganz aufgegessen?",
                     },
                     {
                         from: "user",
@@ -277,7 +276,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Also: Borschtsch mit Rindfleisch und Schmand (1 Teller, aufgegessen) und Roggenbrot (1 Scheibe) im Tsybulya, Podil, Kyjiw. Etwa 520 kcal und 24 g Protein – geschätzt, keine offiziellen Angaben. Als Mittagessen erfassen?",
+                        text: "Also: Borschtsch mit Rindfleisch und Schmand (1 Teller, aufgegessen) und Roggenbrot (1 Scheibe) im Tsybulya, Podil, Kyjiw. Wie beim letzten Mal etwa 520 kcal und 24 g Protein – Schätzwerte, keine veröffentlichten Angaben. Soll ich das erfassen?",
                     },
                     {
                         from: "user",
@@ -285,13 +284,13 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Mittagessen erfasst: 520 kcal · 24 g Protein · 43 g Kohlenhydrate · 27 g Fett · 7 g Ballaststoffe · 10 g Zucker.",
+                        text: "Erfasst. Das sind 520 deiner 2.000 kcal für heute, es bleiben noch 1.480.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 7,
+                        after: 6,
                     },
                 ],
                 cardMeals: [
@@ -305,9 +304,9 @@ export const INDEX_DE: IndexDoc = {
                     "Fotografier die Verpackung: Die Ziffern unter dem Barcode werden in Open Food Facts nachgeschlagen, dann kommt die Frage, wie viel du hattest. Open Food Facts führt kein Koffein, deshalb kommt es vom Etikett oder aus typischen Mengen; fehlen Ballaststoffe oder Zucker, werden sie geschätzt statt leer gelassen.",
                 toolNotes: {
                     lookup_barcode:
-                        "Holt die Etikettwerte der Dose aus Open Food Facts",
+                        "Holt die Etikettwerte, den Nutri-Score und die NOVA-Gruppe der Dose aus Open Food Facts",
                     log_meal:
-                        "Erfasst die ganze Dose zum Mittagessen, inklusive Koffein",
+                        "Erfasst die ganze Dose zum Mittagessen, mit einem typischen Koffeinwert",
                 },
                 messages: [
                     {
@@ -317,7 +316,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Das ist eine 330-ml-Dose Coca-Cola: 139 kcal und 35 g Zucker, laut Open Food Facts. Hattest du die ganze Dose?",
+                        text: "Das ist eine 330-ml-Dose Coca-Cola: 139 kcal und 35 g Zucker, und Open Food Facts bewertet sie mit Nutri-Score E und NOVA 4 (hochverarbeitet). Hattest du die ganze Dose?",
                     },
                     {
                         from: "user",
@@ -325,13 +324,13 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Zum Mittagessen erfasst: 139 kcal, 35 g Zucker und 33 mg Koffein laut Etikett der Dose, da Open Food Facts kein Koffein angibt. Und wie schlimm? Allein dieser Zucker ist mehr als die Hälfte deines Tageslimits von 60 g, und Open Food Facts stuft die Dose mit Nutri-Score E und NOVA 4 als hochverarbeitet ein.",
+                        text: "Zum Mittagessen erfasst: 139 kcal, 35 g Zucker und etwa 32 mg Koffein – ein typischer Wert für 330 ml Cola, da Open Food Facts kein Koffein angibt. Allein der Zucker macht schon 35 g deines Tageslimits von 60 g aus.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 3,
+                        after: 2,
                     },
                 ],
                 cardMeals: ["Coca-Cola (330-ml-Dose)"],
@@ -340,12 +339,12 @@ export const INDEX_DE: IndexDoc = {
                 id: "goals-progress",
                 title: "Ziele setzen, Stand checken",
                 description:
-                    "Leg Ziele fest, die du erreichen willst, etwa Kalorien und Protein, und Limits für Zucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Dann frag nach einem beliebigen Tag und sieh jeden Wert neben seinem Ziel – und was noch fehlt.",
+                    "Leg Ziele fest, die du erreichen willst, etwa Kalorien und Protein, und Limits für Zucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Dann frag nach einem beliebigen Tag und sieh, was dir bei jedem Ziel noch fehlt und wo du bei jedem Limit stehst.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Speichert Kalorien- und Proteinziel sowie ein Koffeinlimit von 400 mg",
                     get_goal_progress:
-                        "Zeigt den heutigen Stand je Ziel und was noch fehlt",
+                        "Zeigt den heutigen Stand je Ziel und Limit in einer Karte im Chat",
                 },
                 messages: [
                     {
@@ -362,7 +361,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 30 g Ballaststoffe, 2,5 l Wasser und dein Zuckerlimit von 60 g.",
+                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 30 g Ballaststoffe, 2,5 l Wasser, dein Zuckerlimit von 60 g und dein Zielgewicht von 75 kg.",
                     },
                     {
                         from: "user",
@@ -370,13 +369,13 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Du bist bei 1.540 kcal und 104 g Protein, es fehlen also noch 460 kcal und 56 g Protein. Knapper wird's beim Zucker: 40 von maximal 60 g, bleiben also 20 g. Beim Koffein bist du bei 130 von 400 mg.",
+                        text: "Du bist bei 1.540 von 2.000 kcal und 104 von 160 g Protein, es fehlen also noch 460 kcal und 56 g Protein. Zucker liegt bei 40 von maximal 60 g, Koffein bei 130 von 400 mg – beides unter dem Limit.",
                     },
                 ],
                 cards: [
                     {
                         kind: "goal-progress",
-                        after: 5,
+                        after: 4,
                     },
                 ],
             },
@@ -384,7 +383,7 @@ export const INDEX_DE: IndexDoc = {
                 id: "review-week",
                 title: "Wochenrückblick",
                 description:
-                    "Frag, wie die Woche lief, und die Trends-Karte öffnet sich im Chat mit deinen Durchschnittswerten und erfassten Tagen. Wechsle zwischen 7, 14 und 30 Tagen oder tipp auf einen Nährstoff, um seinen Verlauf zu sehen – ohne neue Anfrage. Auch Serien und Tage im Zielbereich kannst du abfragen.",
+                    "Frag, wie die Woche lief, und die Trends-Karte öffnet sich im Chat: deine durchschnittlichen Kalorien und Makros im Vergleich zu deinen Zielen und wie viele Tage du erfasst hast. Wechsle zwischen 7, 14 und 30 Tagen, ohne neue Anfrage. Auch deine Serien und Tage im Zielbereich kannst du abfragen.",
                 toolNotes: {
                     get_trends:
                         "Bildet Durchschnitte über deine letzten 7, 14 und 30 Tage und öffnet die Trends-Karte",
@@ -396,7 +395,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Stabiler, als es sich anfühlt. Im Schnitt lagst du bei 1.830 kcal am Tag, 170 unter deinen 2.000 – aber dabei zählt der eine von 14 Tagen, den du nicht erfasst hast, als null. An den 13 erfassten Tagen waren es etwa 1.970, und an 9 Tagen lagst du höchstens 10 % von deinem Ziel entfernt. Außerdem erfasst du seit 10 Tagen lückenlos.",
+                        text: "Du hast 13 der 14 Tage erfasst, die letzten 10 am Stück, und an 9 davon bist du höchstens 10 % von deinem Ziel von 2.000 kcal abgewichen. Im Schnitt waren es 1.830 kcal am Tag, allerdings zählt dabei der Tag ohne Eintrag als null.",
                     },
                     {
                         from: "user",
@@ -404,13 +403,13 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Den solltest du im Auge behalten. Im Schnitt waren es 52 g, und an 4 der 13 Tage lagst du über deinem Limit von 60 g.",
+                        text: "Im Schnitt 52 g am Tag, also unter deinem Limit von 60 g, aber an 4 der 13 Tage lagst du darüber.",
                     },
                 ],
                 cards: [
                     {
                         kind: "trends",
-                        after: 1,
+                        after: 0,
                     },
                 ],
             },
@@ -432,7 +431,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "784 kg liegt außerhalb des plausiblen Bereichs für ein Körpergewicht (20–500 kg), deshalb wurde nichts gespeichert. Meintest du 78,4 kg?",
+                        text: "784 kg liegt außerhalb des plausiblen Bereichs für ein Körpergewicht (20–500 kg), deshalb wurde nichts gespeichert. Meintest du 78,4 kg oder 784 lb?",
                     },
                     {
                         from: "user",
@@ -440,13 +439,13 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "78,4 kg gespeichert. Seit dem 11. Feb. hast du 1,8 kg abgenommen, etwa 0,4 kg pro Woche, und dein 7-Tage-Schnitt liegt bei 78,7 kg. Noch 3,4 kg bis zu deinem Zielgewicht von 75 kg.",
+                        text: "78,4 kg gespeichert. Seit dem 11. Februar hast du 1,8 kg abgenommen (von 80,2 kg), und dein 7-Tage-Schnitt liegt bei 78,7 kg. Noch 3,4 kg bis zu deinem Zielgewicht von 75 kg.",
                     },
                 ],
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 3,
+                        after: 2,
                     },
                 ],
             },
@@ -466,7 +465,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Ein bisschen, ja. Du hast 28 der letzten 30 Tage erfasst und an 6 davon kein Frühstück gegessen. An diesen Tagen lagst du im Schnitt bei 2.215 kcal, gegenüber 1.940 an den 22 Tagen mit Frühstück, und bei etwa 35 g weniger Protein.",
+                        text: "Ein bisschen, ja. Du hast 28 der letzten 30 Tage erfasst und an 6 davon kein Frühstück gegessen. An diesen Tagen lagst du im Schnitt bei 2.215 kcal und 88 g Protein, an den 22 Tagen mit Frühstück bei 1.940 kcal und 123 g.",
                     },
                     {
                         from: "user",
@@ -495,7 +494,7 @@ export const INDEX_DE: IndexDoc = {
                     set_alcohol_tracking:
                         "Schaltet Alkohol ein, in Gramm und zusätzlich in UK-Einheiten",
                     log_meal:
-                        "Berechnet den Alkohol im Pint aus Menge und Alkoholgehalt",
+                        "Erfasst das Pint mit seinem Alkoholgehalt in Gramm reinen Alkohols (568 ml × 4 % × 0,789)",
                 },
                 messages: [
                     {
@@ -534,7 +533,7 @@ export const INDEX_DE: IndexDoc = {
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 7,
+                        after: 6,
                     },
                 ],
                 cardMeals: ["Lagerbier, 4 % (1 Pint, 568 ml)"],
@@ -543,12 +542,16 @@ export const INDEX_DE: IndexDoc = {
                 id: "import-history",
                 title: "Deinen Verlauf mitnehmen",
                 description:
-                    "Du wechselst von MyFitnessPal, Cronometer, Lose It! oder MacroFactor? Der Importer öffnet sich im Chat, liest deinen Export im Browser und ordnet ihn zu, speichert nichts, bevor du die Vorschau bestätigst, und legt keine Mahlzeit doppelt an, wenn du dieselbe Datei bei unveränderter Zeitzone erneut importierst. Fehlt eine Zeitzone, meldet er das, bevor du loslegst.",
+                    "Du wechselst von MyFitnessPal, Cronometer, Lose It! oder MacroFactor? Der Importer öffnet sich im Chat, liest deinen Export im Browser und ordnet ihn zu, speichert nichts, bevor du die Vorschau bestätigst, und legt keine Mahlzeit doppelt an, wenn du dieselbe Datei bei unveränderter Zeitzone erneut importierst. Ist noch keine Zeitzone eingestellt, wird das zuerst geklärt, damit jede Mahlzeit am richtigen Tag landet.",
                 toolNotes: {
-                    start_meal_import:
-                        "Öffnet den Importer für deine Exportdatei im Chat",
+                    get_profile:
+                        "Zeigt, dass im Konto noch keine Zeitzone eingestellt ist",
                     set_timezone:
                         "Setzt America/Chicago, damit Mahlzeiten in deiner Ortszeit landen",
+                    start_meal_import:
+                        "Öffnet den Importer für deine Exportdatei im Chat",
+                    bulk_import_meals:
+                        "Speichert die bestätigten Zeilen in Paketen von bis zu 50 und überspringt bereits importierte",
                 },
                 messages: [
                     {
@@ -557,7 +560,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Der Importer ist unten geöffnet. Eins noch, bevor du die Datei auswählst: In deinem Konto ist keine Zeitzone eingestellt, Uhrzeiten würden also als UTC gelesen. Wo wohnst du?",
+                        text: "Bevor ich den Importer öffne: In deinem Konto ist keine Zeitzone eingestellt, die Datumsangaben in deinem Export würden also als UTC gelesen, und Mahlzeiten könnten am falschen Tag landen. Willst du sie zuerst einstellen? In welcher Zeitzone bist du?",
                     },
                     {
                         from: "user",
@@ -565,7 +568,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Auf America/Chicago gesetzt. Wähl jetzt die Nutrition-Summary-CSV aus deinem MyFitnessPal-Export. Sie wird direkt in deinem Browser gelesen, und gespeichert wird erst, wenn du die Vorschau bestätigst.",
+                        text: "Zeitzone auf America/Chicago gesetzt, und der Importer ist oben geöffnet: Wähl dort deine MyFitnessPal-Exportdatei aus. Sie wird direkt in deinem Browser gelesen, und gespeichert wird erst, wenn du die Vorschau bestätigst.",
                     },
                     {
                         from: "user",
@@ -573,7 +576,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Das ist bei MyFitnessPal normal: Der Export hat pro Tag eine Zeile je Mahlzeit, mit den Summen, aber ohne Lebensmittelnamen. Jede Mahlzeit wird stattdessen nach ihrem Mahlzeitentyp benannt, Kalorien und Makros bleiben erhalten.",
+                        text: "Das ist bei MyFitnessPal normal: Der Export hat pro Tag eine Zeile je Mahlzeit, mit den Summen, aber ohne Lebensmittelnamen. Zeilen ohne Lebensmittelnamen werden mit der App beschriftet, aus der sie stammen, und Kalorien und Makros werden unverändert übernommen.",
                     },
                     {
                         from: "user",
@@ -595,7 +598,7 @@ export const INDEX_DE: IndexDoc = {
                 cards: [
                     {
                         kind: "import-meals",
-                        after: 3,
+                        after: 2,
                         step: "file",
                     },
                 ],
@@ -604,7 +607,7 @@ export const INDEX_DE: IndexDoc = {
                 id: "export-data",
                 title: "Deine Daten mitnehmen",
                 description:
-                    "Eine Anfrage packt alles, was über dich gespeichert ist – Mahlzeiten, Wasser, Messungen, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungstelemetrie und App-Verbindungen –, in ein ZIP aus CSV-Dateien samt README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
+                    "Eine Anfrage packt alles, was über dich gespeichert ist – Mahlzeiten, Wasser, Gewichtseinträge, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungstelemetrie und App-Verbindungen –, in ein ZIP aus CSV-Dateien samt README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
                 toolNotes: {
                     export_all_data:
                         "Packt acht CSV-Dateien und ein README in ein ZIP hinter einem 60-Minuten-Link",
@@ -616,24 +619,8 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Bitte schön: ein ZIP mit 1.204 Mahlzeiten, 318 Wasser-Einträgen und 64 Gewichtseinträgen, dazu deine Ziele, Profileinstellungen, Kontodaten, Telemetrie zur Werkzeugnutzung und App-Verbindungen. Dein Ernährungstagebuch ist die meals.csv darin; sie lässt sich in Excel oder Google Sheets öffnen.",
-                        download: "export-zip",
-                    },
-                    {
-                        from: "user",
-                        text: "kann ich ihr nicht einfach den Link schicken?",
-                    },
-                    {
-                        from: "ai",
-                        text: "Lad es lieber herunter und schick ihr die Datei. Der Link funktioniert nach 60 Minuten nicht mehr, und wer ihn hat, kann deinen kompletten Export öffnen – inklusive Gewicht, Kontodaten und Einstellungen, nicht nur die Mahlzeiten.",
-                    },
-                    {
-                        from: "user",
-                        text: "gut zu wissen. könnte ich das später zum Wiederherstellen nutzen, falls nötig?",
-                    },
-                    {
-                        from: "ai",
-                        text: "Für deine Mahlzeiten ja. meals.csv verwendet die Spaltennamen des Importers und lässt sich deshalb direkt wieder importieren; Mahlzeiten, die schon in deinem Tagebuch stehen, werden erkannt und übersprungen, sodass nichts doppelt vorkommt. Die anderen Dateien sind nur für deine Unterlagen und lassen sich nicht wieder importieren.",
+                        text: "Erledigt. Das ZIP enthält 1.204 Mahlzeiten, 318 Wasser-Einträge und 64 Gewichtseinträge, dazu deine Ernährungsziele, Profileinstellungen, Kontodaten, Telemetrie zur Werkzeugnutzung und App-Verbindungen. Dein Ernährungstagebuch ist die meals.csv darin.",
+                        link: "Deinen Export herunterladen (Link 60 Minuten gültig)",
                     },
                 ],
             },

@@ -2,8 +2,8 @@
 // for the authoritative shape (`IndexDoc`), the full doc comments on what
 // each field means, and which fields carry trusted HTML. The demo
 // conversations (hero chat and example slides) are structured: only the words
-// translate; `photo`, `card`, `meal.type`, `id`, `from`, `download`, `cards`
-// and the `toolNotes` keys are structure, copied verbatim from English. Every
+// translate (`link` included); `photo`, `card`, `meal.type`, `id`, `from`,
+// `cards` and the `toolNotes` keys are structure, copied verbatim from English. Every
 // figure a widget card draws is quoted unchanged.
 //
 // Terminology kept consistent with tools.fr.ts and alternatives.fr.ts:
@@ -203,18 +203,17 @@ export const INDEX_FR: IndexDoc = {
             "Photo : un bol de bortsch avec une cuillerée de crème fraîche et de l'aneth, et une tranche de pain de seigle à côté",
         photoPackageAlt:
             "Photo : le code-barres d'une canette de Coca-Cola, numéro 5449000000996",
-        downloadExpires: "Expire dans 60 minutes",
         slides: [
             {
                 id: "log-meal",
                 title: "Enregistre avec tes mots",
                 description:
-                    "Dis-le comme tu le raconterais à un ami. S'il manque la portion ou le repas concerné, il pose la question avant d'estimer. Fibres et sucres sur chaque entrée, caféine dès qu'il y en a, et « ce matin » est compris dans ton fuseau horaire.",
+                    "Dis-le comme tu le raconterais à un ami. S'il manque la portion ou le repas concerné, il pose la question avant d'estimer. Fibres et sucres sur chaque entrée, caféine dès qu'il y en a, et « vers 7 h » est placé à 07:00 dans ton fuseau horaire.",
                 toolNotes: {
                     log_meal:
                         "Enregistre le petit-déjeuner avec macros, fibres, sucres et la caféine du café",
                     log_water:
-                        "Ajoute les 500 ml bus à 07:00 au total d'eau du jour",
+                        "Ajoute les 500 ml à 07:00 au total d'eau du jour",
                     get_current_time:
                         "Détermine la date du jour pour placer « vers 7 h » à 07:00",
                 },
@@ -247,7 +246,7 @@ export const INDEX_FR: IndexDoc = {
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 3,
+                        after: 2,
                     },
                 ],
                 cardMeals: [
@@ -281,7 +280,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Tu as déjà enregistré deux fois un bortsch chez Tsybulya, à chaque fois la version au bœuf avec crème fraîche. Pareil cette fois ? Et tu as fini le bol et le pain ?",
+                        text: "Tu as déjà enregistré deux fois un bortsch chez Tsybulya, à chaque fois au bœuf avec crème fraîche et une tranche de pain de seigle, environ 520 kcal. Pareil cette fois ? Et tu as fini le bol et le pain ?",
                     },
                     {
                         from: "user",
@@ -289,7 +288,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Donc : bortsch au bœuf avec crème fraîche (1 bol, fini) et pain de seigle (1 tranche) chez Tsybulya, Podil, Kyiv. Environ 520 kcal et 24 g de protéines, estimés, pas des valeurs publiées. Je l'enregistre en déjeuner ?",
+                        text: "Donc : bortsch au bœuf avec crème fraîche (1 bol, fini) et pain de seigle (1 tranche) chez Tsybulya, Podil, Kyiv. Comme la dernière fois : environ 520 kcal et 24 g de protéines, des estimations, pas des valeurs publiées. Je l'enregistre ?",
                     },
                     {
                         from: "user",
@@ -297,13 +296,13 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Déjeuner enregistré : 520 kcal · 24 g de protéines · 43 g de glucides · 27 g de lipides · 7 g de fibres · 10 g de sucres.",
+                        text: "C'est enregistré. Ça fait 520 kcal sur tes 2 000 du jour, il en reste 1 480.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 7,
+                        after: 6,
                     },
                 ],
                 cardMeals: [
@@ -317,9 +316,9 @@ export const INDEX_FR: IndexDoc = {
                     "Prends l'emballage en photo : les chiffres sous le code-barres sont recherchés dans Open Food Facts, puis il te demande quelle quantité tu as prise. Open Food Facts n'indique pas la caféine : elle vient donc de l'étiquette ou de valeurs courantes. Si les fibres ou les sucres manquent, ils sont estimés plutôt que laissés vides.",
                 toolNotes: {
                     lookup_barcode:
-                        "Récupère les valeurs de l'étiquette dans Open Food Facts",
+                        "Récupère dans Open Food Facts les valeurs de l'étiquette, le Nutri-Score et le groupe NOVA de la canette",
                     log_meal:
-                        "Enregistre la canette entière au déjeuner, caféine comprise",
+                        "Enregistre la canette entière au déjeuner, avec une teneur en caféine courante",
                 },
                 messages: [
                     {
@@ -329,7 +328,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "C'est une canette de Coca-Cola de 330 ml : 139 kcal et 35 g de sucres, d'après Open Food Facts. Tu as bu toute la canette ?",
+                        text: "C'est une canette de Coca-Cola de 330 ml : 139 kcal et 35 g de sucres, et Open Food Facts la classe Nutri-Score E et NOVA 4, ultra-transformée. Tu as bu toute la canette ?",
                     },
                     {
                         from: "user",
@@ -337,27 +336,27 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Enregistré avec le déjeuner : 139 kcal, 35 g de sucres et 33 mg de caféine d'après l'étiquette de la canette, puisqu'Open Food Facts n'indique pas la caféine. Et pour savoir si c'est grave : à eux seuls, ces sucres représentent plus de la moitié de ta limite de 60 g par jour, et Open Food Facts classe la boisson Nutri-Score E et NOVA 4, ultra-transformée.",
+                        text: "Enregistrée au déjeuner : 139 kcal, 35 g de sucres et environ 32 mg de caféine, la teneur courante d'un cola de 330 ml, puisqu'Open Food Facts n'indique pas la caféine. Rien qu'avec ces sucres, tu en es à 35 g sur ta limite de 60 g par jour.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 3,
+                        after: 2,
                     },
                 ],
-                cardMeals: ["Coca-Cola (canette de 330 ml)"],
+                cardMeals: ["Coca-Cola (canette de 330 ml)"],
             },
             {
                 id: "goals-progress",
                 title: "Fixe tes objectifs, fais le point",
                 description:
-                    "Fixe des cibles à atteindre, comme les calories et les protéines, et des limites à ne pas dépasser pour les sucres, l'alcool et la caféine ; seul ce que tu mentionnes change. Ensuite, demande-lui où tu en es pour n'importe quel jour : chaque valeur face à son objectif, et ce qu'il te reste.",
+                    "Fixe des cibles à atteindre, comme les calories et les protéines, et des limites à ne pas dépasser pour les sucres, l'alcool et la caféine ; seul ce que tu mentionnes change. Ensuite, demande-lui où tu en es pour n'importe quel jour : ce qu'il te reste pour chaque cible, et où tu te situes par rapport à chaque limite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Enregistre les cibles de calories et de protéines, et une limite de caféine de 400 mg",
                     get_goal_progress:
-                        "Montre ta journée face à chaque objectif et ce qu'il reste",
+                        "Affiche ta journée face à chaque cible et chaque limite dans une carte du chat",
                 },
                 messages: [
                     {
@@ -374,7 +373,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "C'est fait : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Le reste ne change pas : 220 g de glucides, 70 g de lipides, 30 g de fibres, 2,5 L d'eau et ta limite de 60 g de sucres.",
+                        text: "C'est fait : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Le reste ne change pas : 220 g de glucides, 70 g de lipides, 30 g de fibres, 2,5 L d'eau, ta limite de 60 g de sucres et ton poids cible de 75 kg.",
                     },
                     {
                         from: "user",
@@ -382,13 +381,13 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Tu en es à 1 540 kcal et 104 g de protéines, il te reste donc 460 kcal et 56 g de protéines. Côté sucres, c'est plus serré : 40 sur ta limite de 60 g, soit 20 g de marge. La caféine est à 130 sur 400 mg.",
+                        text: "Tu en es à 1 540 kcal sur 2 000 et à 104 g de protéines sur 160, il te reste donc 460 kcal et 56 g de protéines. Les sucres sont à 40 g sur ta limite de 60 g, et la caféine à 130 sur 400 mg : les deux restent sous la limite.",
                     },
                 ],
                 cards: [
                     {
                         kind: "goal-progress",
-                        after: 5,
+                        after: 4,
                     },
                 ],
             },
@@ -396,7 +395,7 @@ export const INDEX_FR: IndexDoc = {
                 id: "review-week",
                 title: "Fais le bilan de la semaine",
                 description:
-                    "Demande comment s'est passée ta semaine, et la carte des tendances s'ouvre dans le chat avec tes moyennes et les jours enregistrés. Passe de 7 à 14 ou 30 jours, ou touche un nutriment pour afficher sa courbe, sans nouvelle demande. Il peut aussi t'indiquer tes séries et les jours où tu as tenu ton objectif.",
+                    "Demande comment s'est passée ta semaine, et la carte des tendances s'ouvre dans le chat avec tes moyennes de calories et de macros face à tes objectifs, et le nombre de jours enregistrés. Passe de 7 à 14 ou 30 jours sans nouvelle demande. Il peut aussi t'indiquer tes séries et les jours où tu as tenu ton objectif.",
                 toolNotes: {
                     get_trends:
                         "Calcule tes moyennes sur 7, 14 et 30 jours et ouvre la carte des tendances",
@@ -408,7 +407,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Plus régulier que tu ne le crois. Tu es à 1 830 kcal par jour en moyenne, 170 de moins que tes 2 000, mais cette moyenne compte pour zéro le seul jour sur 14 où tu n'as rien enregistré. Sur les 13 jours enregistrés, c'est environ 1 970, avec 9 jours à moins de 10 % de l'objectif. Et tu en es à 10 jours d'enregistrement d'affilée.",
+                        text: "Tu as enregistré 13 jours sur 14, dont les 10 derniers d'affilée, et 9 d'entre eux sont à moins de 10 % de ta cible de 2 000 kcal. Tu es en moyenne à 1 830 kcal par jour, mais cette moyenne compte pour zéro le jour où tu n'as rien enregistré.",
                     },
                     {
                         from: "user",
@@ -416,13 +415,13 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "C'est le point à surveiller : 52 g en moyenne, et ta limite de 60 g dépassée 4 jours sur 13.",
+                        text: "52 g par jour en moyenne, sous ta limite de 60 g, mais tu l'as dépassée 4 jours sur 13.",
                     },
                 ],
                 cards: [
                     {
                         kind: "trends",
-                        after: 1,
+                        after: 0,
                     },
                 ],
             },
@@ -444,7 +443,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "784 kg, c'est hors de la plage plausible pour un poids corporel (20–500 kg) : rien n'a été enregistré. Tu voulais dire 78,4 kg ?",
+                        text: "784 kg, c'est hors de la plage plausible pour un poids corporel (20–500 kg) : rien n'a été enregistré. Tu voulais dire 78,4 kg, ou 784 lb ?",
                     },
                     {
                         from: "user",
@@ -452,13 +451,13 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "78,4 kg enregistrés. Tu as perdu 1,8 kg depuis le 11 février, environ 0,4 kg par semaine, et ta moyenne sur 7 jours est de 78,7 kg. Encore 3,4 kg avant ton objectif de 75 kg.",
+                        text: "78,4 kg enregistrés. Tu as perdu 1,8 kg depuis le 11 février (tu étais à 80,2 kg), et ta moyenne sur 7 jours est de 78,7 kg. Encore 3,4 kg avant ton objectif de 75 kg.",
                     },
                 ],
                 cards: [
                     {
                         kind: "weight-trends",
-                        after: 3,
+                        after: 2,
                     },
                 ],
             },
@@ -478,7 +477,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Un peu, oui. Tu as enregistré 28 des 30 derniers jours et sauté le petit-déjeuner 6 fois. Ces jours-là, tu es en moyenne à 2 215 kcal, contre 1 940 les 22 jours avec petit-déjeuner, et à environ 35 g de protéines en moins.",
+                        text: "Un peu, oui. Tu as enregistré 28 des 30 derniers jours et sauté le petit-déjeuner 6 fois. Ces jours-là, tu es en moyenne à 2 215 kcal et 88 g de protéines, contre 1 940 kcal et 123 g les 22 jours avec petit-déjeuner.",
                     },
                     {
                         from: "user",
@@ -486,7 +485,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Ils ressortent aussi : les 9 jours avec un dîner à 20 h ou plus tard sont en moyenne à 2 165 kcal, contre 1 920 les 19 autres. Ce sont deux tendances dans ton journal, pas la preuve que l'un ou l'autre en est la cause.",
+                        text: "Ils ressortent aussi : les 9 jours avec un dîner à 20 h ou plus tard sont en moyenne à 2 165 kcal, contre 1 920 les 19 autres. Dans les deux cas, c'est une tendance dans ton journal, pas la preuve d'un lien de cause à effet.",
                     },
                     {
                         from: "user",
@@ -507,7 +506,7 @@ export const INDEX_FR: IndexDoc = {
                     set_alcohol_tracking:
                         "Active le suivi de l'alcool, en grammes avec les unités britanniques",
                     log_meal:
-                        "Calcule l'alcool de la pinte selon son volume et son degré",
+                        "Enregistre la pinte avec son alcool en grammes d'éthanol (568 ml × 4 % × 0,789)",
                 },
                 messages: [
                     {
@@ -540,27 +539,31 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Enregistré avec le dîner : une pinte de 568 ml à 4 %, soit 17,9 g d'alcool, 2,3 unités britanniques, environ 180 kcal.",
+                        text: "Enregistrée au dîner : une pinte de 568 ml à 4 %, soit 17,9 g d'alcool, 2,3 unités britanniques, environ 180 kcal.",
                     },
                 ],
                 cards: [
                     {
                         kind: "meal-logged",
-                        after: 7,
+                        after: 6,
                     },
                 ],
-                cardMeals: ["Lager, 4 % (1 pinte, 568 ml)"],
+                cardMeals: ["Lager, 4 % (1 pinte, 568 ml)"],
             },
             {
                 id: "import-history",
                 title: "Importe ton historique",
                 description:
-                    "Tu viens de MyFitnessPal, Cronometer, Lose It! ou MacroFactor ? L'outil d'import s'ouvre dans le chat, lit et associe ton export dans le navigateur, n'enregistre rien tant que tu n'as pas validé l'aperçu, et ne crée pas de doublon si tu réimportes le même fichier avec le même fuseau horaire. S'il manque un fuseau horaire, il te le signale avant de commencer.",
+                    "Tu viens de MyFitnessPal, Cronometer, Lose It! ou MacroFactor ? L'outil d'import s'ouvre dans le chat, lit et associe ton export dans le navigateur, n'enregistre rien tant que tu n'as pas validé l'aperçu, et ne crée pas de doublon si tu réimportes le même fichier avec le même fuseau horaire. Si ton fuseau horaire n'est pas défini, c'est réglé d'abord, pour que chaque repas tombe au bon jour.",
                 toolNotes: {
-                    start_meal_import:
-                        "Ouvre l'outil d'import dans le chat pour ton fichier d'export",
+                    get_profile:
+                        "Montre que le compte n'a pas encore de fuseau horaire",
                     set_timezone:
                         "Règle America/Chicago pour placer les repas à l'heure locale",
+                    start_meal_import:
+                        "Ouvre l'outil d'import dans le chat pour ton fichier d'export",
+                    bulk_import_meals:
+                        "Enregistre les lignes confirmées par lots de 50 au plus, en sautant celles déjà importées",
                 },
                 messages: [
                     {
@@ -569,7 +572,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "L'outil d'import est ouvert ci-dessous. Une chose avant de choisir le fichier : aucun fuseau horaire n'est défini sur ton compte, donc les heures seraient lues en UTC. Tu habites où ?",
+                        text: "Avant d'ouvrir l'outil d'import : aucun fuseau horaire n'est défini sur ton compte, donc les dates de ton export seraient lues en UTC et des repas pourraient tomber le mauvais jour. On le règle d'abord ? Tu es dans quel fuseau horaire ?",
                     },
                     {
                         from: "user",
@@ -577,15 +580,15 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Réglé sur America/Chicago. Choisis maintenant le CSV Nutrition-Summary de ton export MyFitnessPal. Il est lu directement dans ton navigateur, et rien n'est enregistré tant que tu n'as pas confirmé l'aperçu.",
+                        text: "Fuseau horaire réglé sur America/Chicago, et l'outil d'import est ouvert juste au-dessus : choisis-y ton fichier d'export MyFitnessPal. Il est lu directement dans ton navigateur, et rien n'est enregistré tant que tu n'as pas confirmé l'aperçu.",
                     },
                     {
                         from: "user",
-                        text: "il a associé les colonnes, mais pour le nom de l'aliment c'est marqué «{N}pas dans ce fichier{N}» ?",
+                        text: "il a associé les colonnes, mais pour le nom de l'aliment c'est marqué « pas dans ce fichier » ?",
                     },
                     {
                         from: "ai",
-                        text: "C'est normal avec MyFitnessPal : son export a une ligne par repas et par jour, avec les totaux mais sans noms d'aliments. Chaque repas est donc désigné par son type de repas, avec ses calories et ses macros intactes.",
+                        text: "C'est normal avec MyFitnessPal : son export a une ligne par repas et par jour, avec les totaux mais sans noms d'aliments. Les lignes sans nom d'aliment sont désignées par l'app d'où elles viennent, et leurs calories et macros sont reprises telles quelles.",
                     },
                     {
                         from: "user",
@@ -607,7 +610,7 @@ export const INDEX_FR: IndexDoc = {
                 cards: [
                     {
                         kind: "import-meals",
-                        after: 3,
+                        after: 2,
                         step: "file",
                     },
                 ],
@@ -619,7 +622,7 @@ export const INDEX_FR: IndexDoc = {
                     "Une seule demande regroupe tout ce qui est stocké à ton sujet (repas, eau, pesées, objectifs, réglages du profil, données de ton compte, télémétrie d'utilisation et applications connectées) dans un ZIP de fichiers CSV accompagné d'un README. Les horodatages suivent ton fuseau horaire, et meals.csv se réimporte tel quel.",
                 toolNotes: {
                     export_all_data:
-                        "Compresse huit fichiers CSV et un README en un ZIP, accessible par un lien valable 60 minutes",
+                        "Regroupe huit fichiers CSV et un README dans un ZIP, derrière un lien valable 60 minutes",
                 },
                 messages: [
                     {
@@ -628,24 +631,8 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Voilà : un ZIP avec 1 204 repas, 318 entrées d'eau et 64 pesées, plus tes objectifs, les réglages de ton profil, les données de ton compte, la télémétrie d'utilisation des outils et tes applications connectées. Ton journal alimentaire, c'est le fichier meals.csv à l'intérieur, qui s'ouvre dans Excel ou Google Sheets.",
-                        download: "export-zip",
-                    },
-                    {
-                        from: "user",
-                        text: "je peux juste lui envoyer le lien ?",
-                    },
-                    {
-                        from: "ai",
-                        text: "Mieux vaut le télécharger et lui envoyer le fichier. Le lien ne marche plus au bout de 60 minutes, et toute personne qui l'a peut ouvrir tout ton export : poids, données du compte et réglages compris, pas seulement les repas.",
-                    },
-                    {
-                        from: "user",
-                        text: "bon à savoir. et je pourrais tout restaurer à partir de là plus tard, si besoin ?",
-                    },
-                    {
-                        from: "ai",
-                        text: "Tes repas, oui. meals.csv utilise les noms de colonnes de l'outil d'import, donc il se réimporte directement, et les repas déjà présents dans ton journal sont reconnus et ignorés : rien n'est compté deux fois. Les autres fichiers sont juste pour tes archives : ils ne peuvent pas être réimportés.",
+                        text: "C'est prêt. Le ZIP contient 1 204 repas, 318 entrées d'eau et 64 pesées, plus tes objectifs nutritionnels, les réglages de ton profil, les données de ton compte, la télémétrie d'utilisation des outils et tes applications connectées. Ton journal alimentaire, c'est le fichier meals.csv à l'intérieur.",
+                        link: "Télécharger ton export (lien valable 60 minutes)",
                     },
                 ],
             },
