@@ -13,13 +13,13 @@ export const LOGIN_IT: LoginDoc = {
     showPasswordLabel: "Mostra password",
     hidePasswordLabel: "Nascondi password",
     consentNote:
-        "Continuando, confermi di avere almeno 16 anni, accetti i {terms} e l'{privacy} e acconsenti a che conserviamo i pasti, il peso e l'alcol che registri, che sono dati sanitari.",
+        "Continuando confermi di avere almeno 16 anni, accetti i {terms} e l'{privacy} e ci dai il consenso a conservare i pasti, il peso e l'alcol che registri, che sono dati sanitari.",
     termsLinkText: "Termini di servizio",
     privacyLinkText: "Informativa sulla privacy",
     newHereNote:
-        "Prima volta qui? Inserisci la tua email e una password, poi scegli «Crea account».",
+        "Prima volta qui? Inserisci la tua email e una password, poi scegli “Crea account”.",
     afterConnectNote:
-        "Una volta completato il collegamento nel tuo client, salva la password in un posto sicuro e chiudi questa scheda del browser.",
+        "Una volta completato il collegamento nel tuo client, salva la password da qualche parte e chiudi questa scheda del browser.",
 };
 
 export const LOGIN_ERRORS_IT: LoginErrors = {
@@ -27,13 +27,13 @@ export const LOGIN_ERRORS_IT: LoginErrors = {
     googleFailed: "L'accesso con Google non è riuscito. Riprova.",
     invalidCredentials: "Email o password errate.",
     signInFailed:
-        "L'accesso non funziona in questo momento. Riprova tra qualche minuto.",
+        "Al momento non è possibile accedere. Riprova tra qualche minuto.",
     weakPassword:
-        "Questa password è troppo debole. Scegline una più lunga che combini lettere, numeri e simboli.",
+        "Questa password è troppo debole. Scegline una più lunga, con lettere, numeri e simboli.",
     passwordTooLong:
-        "Questa password è troppo lunga. Scegline una di massimo 72 caratteri.",
+        "Questa password è troppo lunga. Scegline una di 72 caratteri al massimo.",
     emailInvalid:
-        "Questo indirizzo email non è valido. Controlla che non ci siano errori di battitura.",
+        "Questo indirizzo email non è valido. Controlla di averlo scritto correttamente.",
     signUpFailed:
         "Non siamo riusciti a creare il tuo account. Riprova più tardi.",
 };
@@ -41,7 +41,7 @@ export const LOGIN_ERRORS_IT: LoginErrors = {
 export const LOGIN_CLIENT_NOTICE_IT: LoginClientNotice = {
     returnTo: "Dopo l'accesso ti riporteremo a {host}.",
     unknownHost:
-        "{host} non è un assistente che conosciamo. Continua solo se la connessione l'hai avviata tu da {host}.",
+        "{host} non è un assistente che conosciamo. Continua solo se hai avviato tu il collegamento da {host}.",
     loopback:
-        "Ti riporteremo a un programma in esecuzione su questo computer ({host}). Continua solo se questa connessione l'hai avviata tu da lì.",
+        "Ti riporteremo a un programma in esecuzione su questo computer ({host}). Continua solo se hai avviato tu questo collegamento da lì.",
 };

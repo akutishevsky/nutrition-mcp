@@ -45,7 +45,7 @@ export const CHROME_IT: ChromeCopy = {
         tools: "Strumenti",
         troubleshooting: "Risoluzione dei problemi",
         alternatives: "Alternative",
-        howIBuiltThis: "Come l'ho costruito",
+        howIBuiltThis: "Come l'ho realizzato",
         demo: "Demo",
         github: "GitHub",
         contact: "Contatti",
@@ -56,7 +56,7 @@ export const CHROME_IT: ChromeCopy = {
 
     consent: {
         title: "Cookie analitici.",
-        body: "Con il tuo permesso, Google Analytics conta le visite e Microsoft Clarity registra clic e scorrimento sotto forma di registrazioni di sessione, così vediamo quali pagine sono utili e dove le persone si bloccano. Nessuno dei due viene caricato finché non accetti.",
+        body: "Con il tuo consenso, Google Analytics conta le visite e Microsoft Clarity salva clic e scorrimento come registrazioni di sessione, così capiamo quali pagine sono utili e dove le persone si bloccano. Nessuno dei due si carica finché non accetti.",
         accept: "Accetta",
         reject: "Rifiuta",
         settings: "Impostazioni cookie",

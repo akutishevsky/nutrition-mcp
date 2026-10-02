@@ -149,14 +149,14 @@ export const ALT_PAGE_META: Partial<Record<SiteLocale, AltPageMeta>> = {
     it: {
         appTitle: "Server MCP per {app}? Conta le calorie in Claude e ChatGPT",
         appDesc:
-            "Nessun server MCP ufficiale per {app}? Nutrition MCP registra pasti e macro in Claude o ChatGPT — gratuito, open source, e importa il tuo export CSV.",
+            "Nessun server MCP ufficiale per {app}? Nutrition MCP registra pasti e macro in Claude o ChatGPT: è gratuito, open source e importa il tuo CSV esportato.",
         appOgDesc:
-            "{app} non ha un server MCP ufficiale. Nutrition MCP è un'alternativa gratuita e open source che registra pasti, macro e peso in Claude o ChatGPT — e importa la tua cronologia {app} da un export CSV.",
+            "{app} non ha un server MCP ufficiale. Nutrition MCP è un'alternativa gratuita e open source che registra pasti, macro e peso in Claude o ChatGPT, e importa il tuo storico di {app} da un'esportazione CSV.",
         hubTitle: "Alternativa a MyFitnessPal e Cronometer in Claude e ChatGPT",
         hubDesc:
-            "MyFitnessPal, Cronometer e Lose It! non hanno un server MCP ufficiale. Nutrition MCP: gratuito, open source, per Claude e ChatGPT, con import CSV.",
+            "MyFitnessPal, Cronometer e Lose It! non hanno un server MCP ufficiale. Nutrition MCP è gratuito, open source, per Claude e ChatGPT, con importazione CSV.",
         hubOgDesc:
-            "La tua app di nutrizione non ha un server MCP ufficiale. Nutrition MCP è un'alternativa gratuita e open source che funziona in Claude o ChatGPT — e importa la tua cronologia da un export CSV.",
+            "La tua app di nutrizione non ha un server MCP ufficiale. Nutrition MCP è un'alternativa gratuita e open source che funziona in Claude o ChatGPT, e importa il tuo storico da un'esportazione CSV.",
     },
     uk: {
         appTitle: "MCP-сервер для {app}? Харчування в Claude та ChatGPT",
