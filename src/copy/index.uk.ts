@@ -135,7 +135,7 @@ export const INDEX_UK: IndexDoc = {
         },
         chatgpt: {
             steps: [
-                `Відкрий <strong>ChatGPT on the web</strong> → <strong>Settings</strong> → <strong>Apps</strong>.`,
+                `Відкрий <strong>вебверсію ChatGPT</strong> → <strong>Settings</strong> → <strong>Apps</strong>.`,
                 `Натисни <strong>Create app</strong> внизу спливного вікна. Якщо такої кнопки немає, увімкни <strong>Developer mode</strong> в <strong>Advanced settings</strong>.`,
                 `Назви його, наприклад, <strong>Nutrition</strong>.`,
                 `У полі <strong>Connection</strong> встав <code>https://nutrition-mcp.com/mcp</code>.`,
