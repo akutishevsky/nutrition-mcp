@@ -50,6 +50,7 @@ import {
     SUMMARY_RANGE_MAX_DAYS,
     WEIGHT_RANGE_MAX_DAYS,
     BODY_MEASUREMENT_RANGE_MAX_DAYS,
+    healthSyncProfileLine,
 } from "./mcp.js";
 import {
     Client,
@@ -1541,7 +1542,34 @@ const db = {
     // What the insert stubs report as `deduplicated`: true stands in for a
     // write whose key matched an existing row.
     dedupe: false,
+    // get_profile's Apple Health sync status, as the health-sync store reads
+    // it through getSupabase(): the link row, and the latest acked date.
+    healthSyncLink: null as Record<string, unknown> | null,
+    healthSyncSentThrough: null as string | null,
 };
+
+/** The two PostgREST reads behind HealthSyncStore.getLinkStatus, and nothing
+ *  else: any other select through this stub has no chain to call. */
+function healthSyncSelect(table: string) {
+    const chain = {
+        eq: () => chain,
+        gt: () => chain,
+        not: () => chain,
+        order: () => chain,
+        limit: async () => ({
+            data:
+                table === "health_sync_days" && db.healthSyncSentThrough
+                    ? [{ date: db.healthSyncSentThrough }]
+                    : [],
+            error: null,
+        }),
+        maybeSingle: async () => ({
+            data: table === "health_sync_links" ? db.healthSyncLink : null,
+            error: null,
+        }),
+    };
+    return chain;
+}
 
 mock.module("./supabase.js", () => ({
     ...actualSupabase,
@@ -1554,6 +1582,7 @@ mock.module("./supabase.js", () => ({
                 if (table === "tool_analytics") db.analyticsRows.push(row);
                 return { error: null };
             },
+            select: () => healthSyncSelect(table),
         }),
     }),
     deleteAllUserData: async () => {
@@ -1743,6 +1772,8 @@ afterAll(() => {
 beforeEach(() => {
     db.profile = { ...PROFILE_BASE };
     db.goals = null;
+    db.healthSyncLink = null;
+    db.healthSyncSentThrough = null;
     db.meals = [];
     db.water = [];
     db.waterByDate = [];
@@ -4994,6 +5025,36 @@ describe("current-time disclosure", () => {
         });
     });
 
+    test("get_profile reports Apple Health sync as not connected", async () => {
+        await withTools(null, async (call) => {
+            expect(textOf(await call("get_profile"))).toContain(
+                "Apple Health sync: not connected.",
+            );
+        });
+    });
+
+    test("get_profile reports a connected Apple Health sync in local time", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.healthSyncLink = {
+            kind: "shortcut",
+            fields: ["energy_kcal"],
+            fallback_tz: "Europe/Kyiv",
+            sync_start_date: "2026-09-26",
+            created_at: "2026-09-26T22:30:00.000Z",
+            last_used_at: "2026-10-02T05:10:00.000Z",
+            last_sync_at: "2026-10-02T05:10:30.000Z",
+            expires_at: "2026-12-31T05:10:00.000Z",
+        };
+        db.healthSyncSentThrough = "2026-10-01";
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_profile"));
+            // 22:30Z on the 26th is already the 27th in Kyiv.
+            expect(text).toContain(
+                "Apple Health sync: connected 2026-09-27, sent through 2026-10-01, last sync 2026-10-02 08:10.",
+            );
+        });
+    });
+
     test("get_current_time answers in the profile's zone, and is measured", async () => {
         db.profile = { ...PROFILE_BASE, timezone: "Asia/Tokyo" };
         await withTools(null, async (call) => {
@@ -6440,4 +6501,62 @@ describe("output schemas are frozen once deployed", () => {
         const html = await getWidgetHtml("nutrition-summary");
         expect(html).toContain(JSON.stringify(MEAL_CONTRIBUTORS_META_KEY));
     });
+});
+
+// ---------- get_profile's Apple Health sync line, and the delete text ----------
+
+describe("healthSyncProfileLine", () => {
+    const link = {
+        kind: "shortcut" as const,
+        fields: ["energy_kcal"],
+        fallback_tz: null,
+        sync_start_date: "2026-09-26",
+        created_at: "2026-09-27T06:00:00.000Z",
+        last_used_at: null,
+        last_sync_at: null,
+        expires_at: "2026-12-26T06:00:00.000Z",
+        sent_through: null,
+    };
+
+    test("says plainly when nothing is connected or the status is unreadable", () => {
+        expect(healthSyncProfileLine(null, "UTC")).toBe(
+            "Apple Health sync: not connected.",
+        );
+        expect(healthSyncProfileLine(undefined, "UTC")).toBe(
+            "Apple Health sync: status unavailable right now.",
+        );
+    });
+
+    test("a link that has not synced yet says so instead of inventing dates", () => {
+        expect(healthSyncProfileLine(link, "America/New_York")).toBe(
+            "Apple Health sync: connected 2026-09-27, sent through nothing yet, last sync never.",
+        );
+    });
+
+    test("describes, never directs", () => {
+        for (const line of [
+            healthSyncProfileLine(null, "UTC"),
+            healthSyncProfileLine(undefined, "UTC"),
+            healthSyncProfileLine(link, "UTC"),
+        ])
+            expect(line).not.toMatch(/\b(call|offer|ask|tell|suggest)\b/i);
+    });
+});
+
+test("delete_account names the Apple Health sync connection and its record", async () => {
+    const server = new McpServer(
+        { name: "t", version: "0.0.0" },
+        { capabilities: { tools: {}, resources: {} } },
+    );
+    registerTools(server, "u1", true, null);
+    const [ct, st] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "c", version: "0.0.0" });
+    await Promise.all([server.connect(st), client.connect(ct)]);
+    const { tools } = await client.listTools();
+    await client.close();
+    await server.close();
+    const desc =
+        tools.find((t) => t.name === "delete_account")?.description ?? "";
+    expect(desc).toContain("Apple Health sync connection");
+    expect(desc).toContain("record of values sent");
 });
