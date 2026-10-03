@@ -200,7 +200,7 @@ Run the shortcut from the **Shortcuts** list (the tile or ▶ in the editor), no
 
 1. Set the first **Text** to `https://nutrition-mcp.com`.
 2. **Share** → **Copy iCloud Link**.
-3. Put the link in `HEALTH_SYNC_SHORTCUT_URL` (`src/health-sync.ts`) and run `bun run gen:all`; the setup page's install button appears.
+3. Set the link as the `HEALTH_SYNC_SHORTCUT_URL` env var on the deploy, scoped to build time (the pages are generated during the build; the Dockerfile passes it through as a build arg), and redeploy; the setup page's install button appears.
 
 ---
 
