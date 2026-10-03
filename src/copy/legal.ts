@@ -71,7 +71,7 @@ const PRIVACY_EN: LegalDoc = {
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
     ogDescription:
         "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
-    lastUpdated: "October 2, 2026",
+    lastUpdated: "October 3, 2026",
     backToHome: "Back to home",
     lead: "How Nutrition MCP handles your data: what we store, how it is used, where it lives, and how to delete your account and everything in it at any time.",
     documentsLabel: "Legal documents",
@@ -91,6 +91,7 @@ const PRIVACY_EN: LegalDoc = {
                     "<strong>Body measurement logs</strong> — which site was measured (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh or calf), the value as you entered it and its unit (cm or in), notes, and timestamps. This is health data, and it is treated exactly like the rest of your logs.",
                     "<strong>Goals</strong> — your daily calorie, protein, carb, fat, fiber, sugar, alcohol, caffeine, and water targets, and your target weight.",
                     "<strong>Profile settings</strong> — your IANA timezone, preferred weight unit, preferred length unit for body measurements, whether alcohol tracking is switched on and which standard drink it is shown in, whether in-chat widgets are enabled, and the language in-chat widgets are shown in.",
+                    "<strong>Apple Health sync</strong> — only if you connect it from the Nutrition MCP Health shortcut on your iPhone: the connection (which daily totals it sends, whether water is included, the date it starts from, the timezone your phone reported, used only while your profile has none, and when it was created, last used and last synced); for each of the last 8 days, the totals already sent to Apple Health and when, so that a day is sent once and afterwards only topped up by what was added; and, while you are connecting, a pending connect request for up to 30 minutes. Alcohol is never sent.",
                     "<strong>Tool-usage telemetry</strong> — for each MCP tool call, which tool ran, whether it succeeded, how long it took, a coarse error category when it failed, the span in days of any date range you asked for, the MCP session id, which revision of the MCP protocol your AI app connected with, and the name and version that app reports for itself (for example &ldquo;claude-ai/1.0&rdquo;) when it sends them. It is linked to your account id. It never includes the content of your logs.",
                     "<strong>Server runtime log</strong> — for each request to the server: the method, path, response status and response time, your IP address with its last part removed, and for MCP requests the protocol revision and the name and version your AI app reports. For each tool call it also records the tool's name, whether it succeeded, how long it took and, when it failed, a short reference code and the error message — which can repeat back a value your AI app sent, such as an invalid date. When your AI app signs in or renews its connection, it records the outcome, the random identifier your AI app was given when it registered with our sign-in service, and the site it asked to be sent back to (for example claude.ai). It is written to our hosting provider's runtime log, does not contain your account id or email address, and is kept only briefly: that log is a rolling buffer that overwrites older lines as new traffic arrives.",
                 ]),
@@ -98,7 +99,7 @@ const PRIVACY_EN: LegalDoc = {
                     "<strong>Alcohol is health data too</strong>, and of a more sensitive kind than a calorie count, so it works differently from everything above. Alcohol tracking is off by default, and we only ever record alcohol when it comes from you — a drink you log, or a column in a file you import. Nothing infers it on your behalf. Switching the setting off does two things: the bulk importer stops reading the alcohol column out of files you upload, and everything else stops showing alcohol in the meals, goals, progress and widgets you see. It is not a delete switch. Alcohol you logged directly is still recorded whether the setting is on or off, anything already stored stays in the database, and all of it still appears in the meals file of any export you take. To actually remove an alcohol figure, delete the meal it belongs to, or delete your account.",
                 ),
                 p(
-                    "We also keep the OAuth access and refresh tokens and authorization codes that let your AI assistant stay connected to your account; how long each one lasts is under &ldquo;How long we keep data&rdquo;. They are stored only as one-way hashes.",
+                    "We also keep the OAuth access and refresh tokens and authorization codes that let your AI assistant stay connected to your account; how long each one lasts is under &ldquo;How long we keep data&rdquo;. They are stored only as one-way hashes. Apple Health sync has an access token of its own, which we also store only as a one-way hash; the shortcut needs the token itself to make its requests, so it is kept in plain text in the shortcut&rsquo;s file on your devices, and in your iCloud Drive when the Shortcuts folder syncs there. Anyone who can read that file can use the sync until you disconnect it.",
                 ),
             ],
         },
@@ -106,13 +107,16 @@ const PRIVACY_EN: LegalDoc = {
             heading: "How we use it",
             blocks: [
                 p(
-                    "Your meal, water, weight, body measurement, and goal data is used solely to provide the nutrition tracking service and, in anonymous aggregate form, the public statistics on the home page. We <strong>never sell it, never share it with third parties, and never use it for advertising</strong> or feed it into any ad or profiling system.",
+                    "Your meal, water, weight, body measurement, and goal data is used solely to provide the nutrition tracking service and, in anonymous aggregate form, the public statistics on the home page. We <strong>never sell it, never share it with third parties, and never use it for advertising</strong> or feed it into any ad or profiling system. Apple Health sync, described below, does not change this: it is a transfer you start yourself, to your own iPhone, and we send nothing to Apple.",
                 ),
                 p(
                     "The home page and the public statistics feed behind it show anonymous site-wide totals — how many meals have been logged, their calories and macros, the water logged and the net weight lost across all accounts — and the timezones set in profiles, which the home page draws as a world map. A timezone appears on the map only once at least three profiles use it, and no figure is linked to a person.",
                 ),
                 p(
                     'When you or your AI assistant look up a barcode, our server sends only the barcode digits to <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> — never your account, email or logs — and keeps the product data it returns in a shared cache that is not linked to any user.',
+                ),
+                p(
+                    "If you connect Apple Health sync, the shortcut on your iPhone asks our server for the daily totals of your finished days — calories, protein, carbs, fat, fiber, sugar, caffeine and, if you chose it, water — and writes them into Apple Health on that iPhone. That happens at your request and on your device: our server only answers the shortcut and sends nothing to Apple. Once the totals are in Apple Health, they are stored and shared there under your own settings and your agreement with Apple, not ours.",
                 ),
                 p(
                     "Two kinds of analytics do exist, and neither touches the content of your logs:",
@@ -144,6 +148,9 @@ const PRIVACY_EN: LegalDoc = {
                     "Sign-in credentials are short-lived by design. The sign-in page's session lasts 10 minutes and is held in the server's memory; it is tied to your browser by a strictly necessary cookie that holds only a random value, expires after the same 10 minutes and is deleted when sign-in finishes. To check your password or Google sign-in we use Supabase Auth, which creates a Supabase sign-in session each time; we never use it and end it immediately. The one-time authorization code handed to your AI app expires after 10 minutes and is deleted as soon as it is used. An access token is valid for 24 hours (the few issued on or before September 27, 2026 expire no later than October 6, 2026); a refresh token is valid for 90 days, and it is deleted the moment it is used to get a new pair. Expired tokens and codes are deleted automatically within an hour. Deleting your account removes all of them immediately.",
                 ),
                 p(
+                    "Apple Health sync is time-limited too. The connection ends once it has gone 90 days without being used, and in any case 365 days after you connected it; after that the shortcut has to be connected again. The record of what was sent keeps only the last 8 days, and a connect request you do not finish lasts 30 minutes. Expired connections, records and requests are deleted automatically within an hour. Choosing Disconnect in the shortcut deletes the connection and its record immediately.",
+                ),
+                p(
                     "Export archives are short-lived. Each new export overwrites the previous one, and the file is deleted automatically once its 60-minute download link has expired — a cleanup runs every ten minutes, so an archive normally stays in storage for no more than about 70 minutes.",
                 ),
             ],
@@ -152,7 +159,7 @@ const PRIVACY_EN: LegalDoc = {
             heading: "Data deletion",
             blocks: [
                 p(
-                    "You can delete your account and all associated data at any time by asking your AI assistant to <strong>delete your account</strong> while connected to the Nutrition MCP server. This action is immediate and irreversible. It removes your meal, water, weight and body measurement logs, goals, profile settings, any export archive still in storage, your tool-usage telemetry, your access tokens, and the account itself. That includes every alcohol figure you ever logged, whether or not alcohol tracking was switched on.",
+                    "You can delete your account and all associated data at any time by asking your AI assistant to <strong>delete your account</strong> while connected to the Nutrition MCP server. This action is immediate and irreversible. It removes your meal, water, weight and body measurement logs, goals, profile settings, any export archive still in storage, your tool-usage telemetry, your access tokens, your Apple Health sync connection and its record of what was sent, and the account itself. That includes every alcohol figure you ever logged, whether or not alcohol tracking was switched on. Totals the shortcut already wrote into Apple Health are on your iPhone, not on our servers; they stay there until you delete them in the Health app.",
                 ),
             ],
         },
@@ -164,7 +171,7 @@ const PRIVACY_EN: LegalDoc = {
                 ),
                 p("Why we are allowed to process it:"),
                 ul([
-                    "<strong>Your account and logs</strong> — to provide the service you signed up for (performance of a contract). Meals, weight, body measurements and alcohol are health data, so we process them on the basis of your explicit consent, given when you create your account and each time you sign in (for an app connected before the sign-in page asked for this consent, by logging the entries until you next sign in), which you can withdraw at any time by deleting the entries or your account.",
+                    "<strong>Your account and logs</strong> — to provide the service you signed up for (performance of a contract). Meals, weight, body measurements and alcohol are health data, so we process them on the basis of your explicit consent, given when you create your account and each time you sign in (for an app connected before the sign-in page asked for this consent, by logging the entries until you next sign in), which you can withdraw at any time by deleting the entries or your account. Apple Health sync rests on the same consent and runs only once you connect it; disconnecting it in the shortcut withdraws that consent for the sync.",
                     "<strong>Tool-usage telemetry and the server runtime log</strong> — our legitimate interest in keeping the service working, fast and secure (finding broken tools, rate-limiting abuse). Neither contains the content of your logs.",
                     "<strong>Website analytics</strong> — your consent, given in the cookie banner and withdrawable at any time with &ldquo;Cookie settings&rdquo; in the footer.",
                 ]),
@@ -172,14 +179,14 @@ const PRIVACY_EN: LegalDoc = {
                     "Your rights, and how to use them — most need no email at all:",
                 ),
                 ul([
-                    "<strong>Access and portability</strong> — ask your AI assistant to export your data. You get a ZIP of CSV files with everything we store about you: your meal, water, weight and body measurement logs, your goals, your settings, your account record (email address, sign-in methods and sign-in dates, and any name or picture Google sent), your tool-usage telemetry, and the connections that keep your AI apps signed in — without the tokens themselves. Not in it: the values we keep only as one-way hashes for security (your password and your connections&rsquo; tokens), internal bookkeeping such as duplicate-detection keys, the server runtime log, which does not contain your account id, and our providers&rsquo; own short-lived logs and rolling backups.",
+                    "<strong>Access and portability</strong> — ask your AI assistant to export your data. You get a ZIP of CSV files with everything we store about you: your meal, water, weight and body measurement logs, your goals, your settings, your account record (email address, sign-in methods and sign-in dates, and any name or picture Google sent), your tool-usage telemetry, the connections that keep your AI apps and Apple Health sync signed in (without the tokens themselves), and the record of the daily totals sent to Apple Health over the last 8 days. Not in it: the values we keep only as one-way hashes for security (your password and your connections&rsquo; tokens), internal bookkeeping such as duplicate-detection keys, the server runtime log, which does not contain your account id, and our providers&rsquo; own short-lived logs and rolling backups.",
                     "<strong>Rectification</strong> — ask your AI assistant to correct or delete any meal, water, weight or body measurement entry, or to change your goals and settings.",
                     "<strong>Erasure</strong> — ask your AI assistant to delete your account, which removes everything at once.",
                     "<strong>Objection and restriction</strong> — email us.",
                     "<strong>Complaint</strong> — you can complain to the data protection authority where you live or work. We would appreciate the chance to fix it first.",
                 ]),
                 p(
-                    "Everything we store stays in the EU region named above. Whatever your AI assistant reads through the tools is sent to that assistant's provider, which may be outside the EU; that happens under your own agreement with them, not ours. Cloudflare (the network every request passes through), Google and Microsoft (website analytics, Google Sign-In) and Google and jsDelivr (the font and icon requests described above) are outside the EU too; where they receive personal data from outside the EU, they rely on the European Commission's standard contractual clauses or the EU–US Data Privacy Framework.",
+                    "Everything we store stays in the EU region named above. Whatever your AI assistant reads through the tools is sent to that assistant's provider, which may be outside the EU; that happens under your own agreement with them, not ours. Cloudflare (the network every request passes through), Google and Microsoft (website analytics, Google Sign-In) and Google and jsDelivr (the font and icon requests described above) are outside the EU too; where they receive personal data from outside the EU, they rely on the European Commission's standard contractual clauses or the EU–US Data Privacy Framework. Apple Health sync adds no transfer of ours: the totals travel from our server to the shortcut on your iPhone, and what Apple Health does with them after that is up to your own Apple settings.",
                 ),
                 p(
                     'The service is not meant for anyone under 16, and the <a href="/terms" data-legal-link="terms">Terms of Service</a> require you to be at least 16. If you believe someone younger has created an account, email us and we will delete it.',
@@ -206,7 +213,7 @@ const TERMS_EN: LegalDoc = {
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT. Plain-language terms covering accounts, acceptable use, your data, and liability.",
     ogDescription:
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT.",
-    lastUpdated: "October 2, 2026",
+    lastUpdated: "October 3, 2026",
     backToHome: "Back to home",
     lead: "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT.",
     documentsLabel: "Legal documents",
@@ -227,7 +234,7 @@ const TERMS_EN: LegalDoc = {
             heading: "The service",
             blocks: [
                 p(
-                    'Nutrition MCP is a free, open-source nutrition tracker that runs as an MCP server, letting AI assistants such as Claude and ChatGPT log meals, water, body weight and body measurements on your behalf. There is no paid tier, no advertising, and no charge for using the service. We accept voluntary donations on Patreon to help cover hosting and database costs; they are a gift, not a purchase, and they buy no features, no tier, and no priority of any kind. The source code is published under the MIT license on <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> and you are free to self-host it.',
+                    'Nutrition MCP is a free, open-source nutrition tracker that runs as an MCP server, letting AI assistants such as Claude and ChatGPT log meals, water, body weight and body measurements on your behalf. Optionally, a shortcut on your iPhone can copy your daily totals into Apple Health. There is no paid tier, no advertising, and no charge for using the service. We accept voluntary donations on Patreon to help cover hosting and database costs; they are a gift, not a purchase, and they buy no features, no tier, and no priority of any kind. The source code is published under the MIT license on <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> and you are free to self-host it.',
                 ),
             ],
         },
@@ -283,7 +290,10 @@ const TERMS_EN: LegalDoc = {
                     'Your logs remain yours. We store and process them to operate the service for you, as described in our <a href="/privacy" data-legal-link="privacy">Privacy Policy</a>. You are responsible for the content you log.',
                 ),
                 p(
-                    "You can export all of your data at any time by asking your AI assistant to export it. The export is a ZIP archive containing CSV files for your meals, water, weight, body measurements, goals, profile settings, account record, tool-usage telemetry and connected AI apps; alcohol is included whether or not alcohol tracking is switched on. The download link we hand back is private and expires after 60 minutes.",
+                    "You can export all of your data at any time by asking your AI assistant to export it. The export is a ZIP archive containing CSV files for your meals, water, weight, body measurements, goals, profile settings, account record, tool-usage telemetry, connected AI apps and Apple Health sync; alcohol is included whether or not alcohol tracking is switched on. The download link we hand back is private and expires after 60 minutes.",
+                ),
+                p(
+                    "If you connect Apple Health sync, your daily totals are written into Apple Health on your iPhone at your request. Once there, they are in your hands and under Apple&rsquo;s terms: disconnecting or deleting your account does not remove them, and because Apple Health cannot lower a value it already holds, a day you later correct downwards is not corrected there — delete those entries in the Health app yourself. Keep the shortcut&rsquo;s file private: it holds the token that lets the shortcut use your account&rsquo;s sync.",
                 ),
                 p(
                     "We also record basic operational telemetry about how the service is used: for every tool call, the tool's name, whether it succeeded, how long it took, a coarse error category when it fails, the length of any date range you asked for, the session id, the MCP protocol revision your AI app connected with, and the name and version that app reports for itself. These rows are linked to your account id. They do not contain what you logged — no food descriptions, no calories, no weights or measurements. We use them to keep the service working and to see which tools are worth improving, and they are deleted along with everything else when you delete your account.",
@@ -305,7 +315,7 @@ const TERMS_EN: LegalDoc = {
             heading: "Third-party services",
             blocks: [
                 p(
-                    "The service depends on third parties: Supabase for database, authentication, and export storage, DigitalOcean for hosting, Cloudflare (through our hosting provider) for the network every request passes through, Open Food Facts for barcode data, and whichever AI assistant you connect from.",
+                    "The service depends on third parties: Supabase for database, authentication, and export storage, DigitalOcean for hosting, Cloudflare (through our hosting provider) for the network every request passes through, Open Food Facts for barcode data, Apple&rsquo;s Shortcuts and Health apps if you connect Apple Health sync, and whichever AI assistant you connect from.",
                 ),
                 p(
                     'Barcode product data &copy; <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> contributors, available under the <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
@@ -402,7 +412,7 @@ const PRIVACY_DE: LegalDoc = {
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wofür wir es nutzen, wo es liegt und wie du dein Konto samt allen Daten jederzeit löschen kannst.",
     ogDescription:
         "Wie Nutrition MCP mit deinen Daten umgeht: was wir speichern, wofür wir es nutzen, wo es liegt und wie du dein Konto samt allen Daten jederzeit löschen kannst.",
-    lastUpdated: "2. Oktober 2026",
+    lastUpdated: "3. Oktober 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -419,6 +429,7 @@ const PRIVACY_DE: LegalDoc = {
                     "<strong>Körpermaß-Einträge</strong> – welche Körperstelle gemessen wurde (Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel oder Wade), der Wert so, wie du ihn eingegeben hast, und seine Einheit (cm oder in), Notizen und Zeitstempel. Das sind Gesundheitsdaten, und wir behandeln sie genauso wie alle deine anderen Einträge.",
                     "<strong>Ziele</strong> – deine täglichen Ziele für Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Zucker, Alkohol, Koffein und Wasser sowie dein Zielgewicht.",
                     "<strong>Profileinstellungen</strong> – deine IANA-Zeitzone, deine bevorzugte Gewichtseinheit, deine bevorzugte Längeneinheit für Körpermaße, ob die Alkohol-Erfassung eingeschaltet ist und in welcher Standardgetränk-Einheit Alkohol angezeigt wird, ob In-Chat-Widgets aktiviert sind und in welcher Sprache sie angezeigt werden.",
+                    "<strong>Synchronisierung mit Apple Health</strong> – nur wenn du sie über den Kurzbefehl Nutrition MCP Health auf deinem iPhone verbindest: die Verbindung (welche Tagessummen sie sendet, ob Wasser dabei ist, ab welchem Datum sie gilt, die Zeitzone, die dein iPhone gemeldet hat und die nur genutzt wird, solange dein Profil keine hat, sowie wann sie erstellt, zuletzt genutzt und zuletzt synchronisiert wurde); für jeden der letzten 8 Tage die bereits an Apple Health gesendeten Summen und deren Zeitpunkt, damit jeder Tag einmal gesendet und danach nur noch um Hinzugekommenes ergänzt wird; und während du die Verbindung herstellst, eine offene Verbindungsanfrage für bis zu 30 Minuten. Alkohol wird nie gesendet.",
                     "<strong>Telemetrie zur Werkzeugnutzung</strong> – für jeden MCP-Werkzeugaufruf: welches Werkzeug ausgeführt wurde, ob der Aufruf erfolgreich war, wie lange er dauerte, bei einem Fehler eine grobe Fehlerkategorie, bei einer Abfrage über einen Zeitraum dessen Länge in Tagen, die MCP-Sitzungs-ID, die Revision des MCP-Protokolls, mit der sich deine KI-App verbunden hat, sowie Name und Version, die diese App von sich angibt (zum Beispiel &bdquo;claude-ai/1.0&ldquo;), sofern sie diese mitsendet. Diese Telemetrie ist mit deiner Konto-ID verknüpft und enthält nie den Inhalt deiner Einträge.",
                     "<strong>Server-Laufzeitprotokoll</strong> – für jede Anfrage an den Server: Methode, Pfad, Antwortstatus und Antwortzeit, deine IP-Adresse ohne ihren letzten Teil sowie bei MCP-Anfragen die Protokollrevision und Name und Version, die deine KI-App angibt. Für jeden Werkzeugaufruf hält es außerdem den Namen des Werkzeugs fest, ob der Aufruf erfolgreich war, wie lange er dauerte und bei einem Fehler einen kurzen Referenzcode und die Fehlermeldung – die einen Wert wiedergeben kann, den deine KI-App gesendet hat, etwa ein ungültiges Datum. Wenn sich deine KI-App anmeldet oder ihre Verbindung erneuert, hält es das Ergebnis fest, die zufällige Kennung, die deine KI-App bei der Registrierung bei unserem Anmeldedienst erhalten hat, und die Website, zu der sie zurückgeleitet werden wollte (zum Beispiel claude.ai). Das Protokoll wird in das Laufzeitprotokoll unseres Hosting-Anbieters geschrieben, enthält weder deine Konto-ID noch deine E-Mail-Adresse und wird nur kurz aufbewahrt: Es ist ein Ringpuffer, in dem neue Anfragen die jeweils ältesten Zeilen überschreiben.",
                 ]),
@@ -426,7 +437,7 @@ const PRIVACY_DE: LegalDoc = {
                     "<strong>Auch Alkoholangaben sind Gesundheitsdaten</strong>, und zwar sensiblere als eine Kalorienzahl. Deshalb gelten für sie andere Regeln als für alles oben Genannte. Die Alkohol-Erfassung ist standardmäßig ausgeschaltet, und wir speichern Alkohol nur, wenn die Angabe von dir stammt – ein Getränk, das du einträgst, oder eine Spalte in einer Datei, die du importierst. Nichts im Dienst leitet ihn für dich ab. Schaltest du die Einstellung aus, hat das zwei Folgen: Der Massenimport liest die Alkoholspalte aus hochgeladenen Dateien nicht mehr aus, und überall sonst wird Alkohol in den Mahlzeiten, Zielen, Fortschritten und Widgets, die du siehst, nicht mehr angezeigt. Gelöscht wird dadurch nichts. Alkohol, den du direkt einträgst, wird weiterhin gespeichert, egal ob die Einstellung ein- oder ausgeschaltet ist; bereits Gespeichertes bleibt in der Datenbank, und all das erscheint weiterhin in der Mahlzeiten-Datei jedes Exports, den du erstellst. Um einen Alkoholwert wirklich zu entfernen, lösche die zugehörige Mahlzeit oder dein Konto.",
                 ),
                 p(
-                    "Außerdem speichern wir die OAuth-Zugriffs- und Refresh-Tokens sowie die Autorisierungscodes, über die dein KI-Assistent mit deinem Konto verbunden bleibt; wie lange sie jeweils gültig sind, steht unter &bdquo;Wie lange wir Daten aufbewahren&ldquo;. Wir speichern sie ausschließlich als Einweg-Hashes.",
+                    "Außerdem speichern wir die OAuth-Zugriffs- und Refresh-Tokens sowie die Autorisierungscodes, über die dein KI-Assistent mit deinem Konto verbunden bleibt; wie lange sie jeweils gültig sind, steht unter &bdquo;Wie lange wir Daten aufbewahren&ldquo;. Wir speichern sie ausschließlich als Einweg-Hashes. Die Synchronisierung mit Apple Health hat ein eigenes Zugriffstoken, das wir ebenfalls nur als Einweg-Hash speichern; der Kurzbefehl braucht das Token selbst für seine Anfragen, deshalb liegt es im Klartext in der Datei des Kurzbefehls auf deinen Geräten und in deinem iCloud Drive, wenn der Kurzbefehle-Ordner dorthin synchronisiert wird. Wer diese Datei lesen kann, kann die Synchronisierung nutzen, bis du sie trennst.",
                 ),
             ],
         },
@@ -434,13 +445,16 @@ const PRIVACY_DE: LegalDoc = {
             heading: "Wofür wir die Daten nutzen",
             blocks: [
                 p(
-                    "Deine Mahlzeiten-, Wasser-, Gewichts-, Körpermaß- und Zieldaten verwenden wir ausschließlich, um den Dienst zur Ernährungserfassung bereitzustellen, und in anonymer, aggregierter Form für die öffentlichen Statistiken auf der Startseite. Wir <strong>verkaufen sie nie, geben sie nie an Dritte weiter und nutzen sie nie für Werbung</strong>; wir speisen sie auch in kein Werbe- oder Profiling-System ein.",
+                    "Deine Mahlzeiten-, Wasser-, Gewichts-, Körpermaß- und Zieldaten verwenden wir ausschließlich, um den Dienst zur Ernährungserfassung bereitzustellen, und in anonymer, aggregierter Form für die öffentlichen Statistiken auf der Startseite. Wir <strong>verkaufen sie nie, geben sie nie an Dritte weiter und nutzen sie nie für Werbung</strong>; wir speisen sie auch in kein Werbe- oder Profiling-System ein. Die unten beschriebene Synchronisierung mit Apple Health ändert daran nichts: Sie ist eine Übertragung, die du selbst auslöst, auf dein eigenes iPhone, und wir senden nichts an Apple.",
                 ),
                 p(
                     "Die Startseite und der öffentliche Statistik-Feed dahinter zeigen anonyme Gesamtwerte über alle Konten hinweg – wie viele Mahlzeiten erfasst wurden, ihre Kalorien und Makronährstoffe, die erfasste Wassermenge und die Netto-Gewichtsabnahme – sowie die in den Profilen eingestellten Zeitzonen, die die Startseite als Weltkarte darstellt. Eine Zeitzone erscheint erst auf der Karte, wenn mindestens drei Profile sie nutzen, und keine Zahl ist mit einer Person verknüpft.",
                 ),
                 p(
                     'Wenn du oder dein KI-Assistent einen Barcode nachschlägt, sendet unser Server nur die Ziffern des Barcodes an <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> – nie dein Konto, deine E-Mail-Adresse oder deine Einträge – und legt die zurückgelieferten Produktdaten in einem gemeinsam genutzten Cache ab, der mit keiner Nutzerin und keinem Nutzer verknüpft ist.',
+                ),
+                p(
+                    "Wenn du die Synchronisierung mit Apple Health verbindest, fragt der Kurzbefehl auf deinem iPhone unseren Server nach den Tagessummen deiner abgeschlossenen Tage – Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Zucker, Koffein und, falls du es gewählt hast, Wasser – und schreibt sie auf diesem iPhone in Apple Health. Das geschieht auf deinen Wunsch und auf deinem Gerät: Unser Server antwortet nur dem Kurzbefehl und sendet nichts an Apple. Sobald die Summen in Apple Health sind, werden sie dort nach deinen eigenen Einstellungen und deiner Vereinbarung mit Apple gespeichert und geteilt, nicht nach unserer.",
                 ),
                 p(
                     "Zwei Arten von Analysen gibt es allerdings, und keine davon berührt den Inhalt deiner Einträge:",
@@ -472,6 +486,9 @@ const PRIVACY_DE: LegalDoc = {
                     "Anmeldedaten sind bewusst kurzlebig. Die Sitzung der Anmeldeseite ist 10 Minuten gültig und wird im Arbeitsspeicher des Servers gehalten; sie ist über ein unbedingt erforderliches Cookie an deinen Browser gebunden, das nur einen Zufallswert enthält, ebenfalls nach 10 Minuten abläuft und gelöscht wird, sobald die Anmeldung abgeschlossen ist. Um dein Passwort oder deine Google-Anmeldung zu prüfen, nutzen wir Supabase Auth, das dabei jedes Mal eine Supabase-Anmeldesitzung anlegt; wir verwenden sie nie und beenden sie sofort. Der einmalige Autorisierungscode, den deine KI-App erhält, läuft nach 10 Minuten ab und wird gelöscht, sobald er verwendet wurde. Ein Zugriffstoken ist 24 Stunden gültig (die wenigen, die bis einschließlich 27. September 2026 ausgestellt wurden, laufen spätestens am 6. Oktober 2026 ab); ein Refresh-Token ist 90 Tage gültig und wird gelöscht, sobald damit ein neues Token-Paar abgerufen wird. Abgelaufene Tokens und Codes werden innerhalb einer Stunde automatisch gelöscht. Wenn du dein Konto löschst, werden sie alle sofort entfernt.",
                 ),
                 p(
+                    "Auch die Synchronisierung mit Apple Health ist zeitlich begrenzt. Die Verbindung endet, sobald sie 90 Tage lang nicht genutzt wurde, und in jedem Fall 365 Tage nachdem du sie hergestellt hast; danach muss der Kurzbefehl neu verbunden werden. Die Aufzeichnung dessen, was gesendet wurde, umfasst nur die letzten 8 Tage, und eine Verbindungsanfrage, die du nicht abschließt, gilt 30 Minuten. Abgelaufene Verbindungen, Aufzeichnungen und Anfragen werden innerhalb einer Stunde automatisch gelöscht. Wählst du im Kurzbefehl &bdquo;Disconnect&ldquo;, werden die Verbindung und ihre Aufzeichnung sofort gelöscht.",
+                ),
+                p(
                     "Exportarchive sind kurzlebig. Jeder neue Export überschreibt den vorherigen, und die Datei wird automatisch gelöscht, sobald ihr Download-Link nach 60 Minuten abgelaufen ist – eine Bereinigung läuft alle zehn Minuten, sodass ein Archiv normalerweise nicht länger als etwa 70 Minuten gespeichert bleibt.",
                 ),
             ],
@@ -480,7 +497,7 @@ const PRIVACY_DE: LegalDoc = {
             heading: "Löschung deiner Daten",
             blocks: [
                 p(
-                    "Du kannst dein Konto und alle zugehörigen Daten jederzeit löschen, indem du deinen KI-Assistenten, während er mit dem Nutrition-MCP-Server verbunden ist, bittest, <strong>dein Konto zu löschen</strong>. Die Löschung erfolgt sofort und ist unwiderruflich. Sie entfernt deine Mahlzeiten-, Wasser-, Gewichts- und Körpermaß-Einträge, Ziele, Profileinstellungen, ein noch gespeichertes Exportarchiv, deine Telemetrie zur Werkzeugnutzung, deine Zugriffstokens und das Konto selbst. Dazu gehört auch jeder Alkoholwert, den du je eingetragen hast, unabhängig davon, ob die Alkohol-Erfassung eingeschaltet war.",
+                    "Du kannst dein Konto und alle zugehörigen Daten jederzeit löschen, indem du deinen KI-Assistenten, während er mit dem Nutrition-MCP-Server verbunden ist, bittest, <strong>dein Konto zu löschen</strong>. Die Löschung erfolgt sofort und ist unwiderruflich. Sie entfernt deine Mahlzeiten-, Wasser-, Gewichts- und Körpermaß-Einträge, Ziele, Profileinstellungen, ein noch gespeichertes Exportarchiv, deine Telemetrie zur Werkzeugnutzung, deine Zugriffstokens, deine Verbindung zur Synchronisierung mit Apple Health samt der Aufzeichnung dessen, was gesendet wurde, und das Konto selbst. Dazu gehört auch jeder Alkoholwert, den du je eingetragen hast, unabhängig davon, ob die Alkohol-Erfassung eingeschaltet war. Summen, die der Kurzbefehl bereits in Apple Health geschrieben hat, liegen auf deinem iPhone, nicht auf unseren Servern; sie bleiben dort, bis du sie in der Health-App löschst.",
                 ),
             ],
         },
@@ -492,7 +509,7 @@ const PRIVACY_DE: LegalDoc = {
                 ),
                 p("Auf welcher Grundlage wir deine Daten verarbeiten dürfen:"),
                 ul([
-                    "<strong>Dein Konto und deine Einträge</strong> – um den Dienst bereitzustellen, für den du dich registriert hast (Vertragserfüllung). Mahlzeiten, Gewicht, Körpermaße und Alkohol sind Gesundheitsdaten. Wir verarbeiten sie daher auf Grundlage deiner ausdrücklichen Einwilligung, die du bei der Kontoerstellung und bei jeder Anmeldung erteilst (bei einer App, die verbunden wurde, bevor die Anmeldeseite nach dieser Einwilligung fragte, indem du bis zu deiner nächsten Anmeldung Einträge vornimmst) und jederzeit widerrufen kannst, indem du die Einträge oder dein Konto löschst.",
+                    "<strong>Dein Konto und deine Einträge</strong> – um den Dienst bereitzustellen, für den du dich registriert hast (Vertragserfüllung). Mahlzeiten, Gewicht, Körpermaße und Alkohol sind Gesundheitsdaten. Wir verarbeiten sie daher auf Grundlage deiner ausdrücklichen Einwilligung, die du bei der Kontoerstellung und bei jeder Anmeldung erteilst (bei einer App, die verbunden wurde, bevor die Anmeldeseite nach dieser Einwilligung fragte, indem du bis zu deiner nächsten Anmeldung Einträge vornimmst) und jederzeit widerrufen kannst, indem du die Einträge oder dein Konto löschst. Die Synchronisierung mit Apple Health beruht auf derselben Einwilligung und läuft erst, wenn du sie verbindest; trennst du sie im Kurzbefehl, widerrufst du diese Einwilligung für die Synchronisierung.",
                     "<strong>Telemetrie zur Werkzeugnutzung und Server-Laufzeitprotokoll</strong> – unser berechtigtes Interesse daran, den Dienst funktionsfähig, schnell und sicher zu halten (fehlerhafte Werkzeuge finden, Missbrauch durch Ratenbegrenzung eindämmen). Keines von beiden enthält den Inhalt deiner Einträge.",
                     "<strong>Website-Analyse</strong> – deine Einwilligung, die du im Cookie-Banner erteilst und jederzeit über &bdquo;Cookie-Einstellungen&ldquo; in der Fußzeile widerrufen kannst.",
                 ]),
@@ -500,14 +517,14 @@ const PRIVACY_DE: LegalDoc = {
                     "Deine Rechte und wie du sie ausübst – für die meisten brauchst du nicht einmal eine E-Mail:",
                 ),
                 ul([
-                    "<strong>Auskunft und Datenübertragbarkeit</strong> – bitte deinen KI-Assistenten, deine Daten zu exportieren. Du erhältst ein ZIP-Archiv mit CSV-Dateien, das alles enthält, was wir über dich speichern: deine Mahlzeiten-, Wasser-, Gewichts- und Körpermaß-Einträge, deine Ziele, deine Einstellungen, deinen Kontodatensatz (E-Mail-Adresse, Anmeldemethoden und Anmeldezeitpunkte sowie gegebenenfalls den Namen oder das Bild, das Google übermittelt hat), deine Telemetrie zur Werkzeugnutzung und die Verbindungen, über die deine KI-Apps angemeldet bleiben – ohne die Tokens selbst. Nicht enthalten sind: die Werte, die wir aus Sicherheitsgründen nur als Einweg-Hashes speichern (dein Passwort und die Tokens deiner Verbindungen), interne Verwaltungsdaten wie Schlüssel zur Duplikaterkennung, das Server-Laufzeitprotokoll, das deine Konto-ID nicht enthält, sowie die kurzlebigen Protokolle und rollierenden Backups unserer Anbieter.",
+                    "<strong>Auskunft und Datenübertragbarkeit</strong> – bitte deinen KI-Assistenten, deine Daten zu exportieren. Du erhältst ein ZIP-Archiv mit CSV-Dateien, das alles enthält, was wir über dich speichern: deine Mahlzeiten-, Wasser-, Gewichts- und Körpermaß-Einträge, deine Ziele, deine Einstellungen, deinen Kontodatensatz (E-Mail-Adresse, Anmeldemethoden und Anmeldezeitpunkte sowie gegebenenfalls den Namen oder das Bild, das Google übermittelt hat), deine Telemetrie zur Werkzeugnutzung, die Verbindungen, über die deine KI-Apps und die Synchronisierung mit Apple Health angemeldet bleiben (ohne die Tokens selbst), sowie die Aufzeichnung der Tagessummen, die in den letzten 8 Tagen an Apple Health gesendet wurden. Nicht enthalten sind: die Werte, die wir aus Sicherheitsgründen nur als Einweg-Hashes speichern (dein Passwort und die Tokens deiner Verbindungen), interne Verwaltungsdaten wie Schlüssel zur Duplikaterkennung, das Server-Laufzeitprotokoll, das deine Konto-ID nicht enthält, sowie die kurzlebigen Protokolle und rollierenden Backups unserer Anbieter.",
                     "<strong>Berichtigung</strong> – bitte deinen KI-Assistenten, einen Mahlzeiten-, Wasser-, Gewichts- oder Körpermaß-Eintrag zu korrigieren oder zu löschen oder deine Ziele und Einstellungen zu ändern.",
                     "<strong>Löschung</strong> – bitte deinen KI-Assistenten, dein Konto zu löschen; damit wird alles auf einmal entfernt.",
                     "<strong>Widerspruch und Einschränkung der Verarbeitung</strong> – schreib uns eine E-Mail.",
                     "<strong>Beschwerde</strong> – du kannst dich bei der Datenschutzaufsichtsbehörde an deinem Wohn- oder Arbeitsort beschweren. Wir wären dir aber dankbar, wenn du uns vorher die Gelegenheit gibst, das Problem zu beheben.",
                 ]),
                 p(
-                    "Alles, was wir speichern, bleibt in der oben genannten EU-Region. Was dein KI-Assistent über die Werkzeuge abruft, wird an den Anbieter dieses Assistenten übermittelt, der seinen Sitz außerhalb der EU haben kann; das geschieht auf Grundlage deiner eigenen Vereinbarung mit diesem Anbieter, nicht unserer. Auch Cloudflare (das Netzwerk, über das jede Anfrage läuft), Google und Microsoft (Website-Analyse, Google Sign-In) sowie Google und jsDelivr (die oben beschriebenen Abrufe von Schriftarten und Icons) sitzen außerhalb der EU; soweit sie personenbezogene Daten außerhalb der EU empfangen, stützen sie sich auf die Standardvertragsklauseln der Europäischen Kommission oder den EU-US-Datenschutzrahmen (EU–US Data Privacy Framework).",
+                    "Alles, was wir speichern, bleibt in der oben genannten EU-Region. Was dein KI-Assistent über die Werkzeuge abruft, wird an den Anbieter dieses Assistenten übermittelt, der seinen Sitz außerhalb der EU haben kann; das geschieht auf Grundlage deiner eigenen Vereinbarung mit diesem Anbieter, nicht unserer. Auch Cloudflare (das Netzwerk, über das jede Anfrage läuft), Google und Microsoft (Website-Analyse, Google Sign-In) sowie Google und jsDelivr (die oben beschriebenen Abrufe von Schriftarten und Icons) sitzen außerhalb der EU; soweit sie personenbezogene Daten außerhalb der EU empfangen, stützen sie sich auf die Standardvertragsklauseln der Europäischen Kommission oder den EU-US-Datenschutzrahmen (EU–US Data Privacy Framework). Die Synchronisierung mit Apple Health fügt keine Übermittlung durch uns hinzu: Die Summen gehen von unserem Server an den Kurzbefehl auf deinem iPhone, und was Apple Health danach damit macht, hängt von deinen eigenen Apple-Einstellungen ab.",
                 ),
                 p(
                     'Der Dienst ist nicht für Personen unter 16 Jahren gedacht, und die <a href="/terms" data-legal-link="terms">Nutzungsbedingungen</a> setzen voraus, dass du mindestens 16 bist. Wenn du glaubst, dass eine jüngere Person ein Konto erstellt hat, schreib uns eine E-Mail, und wir löschen es.',
@@ -537,7 +554,7 @@ const TERMS_DE: LegalDoc = {
         "Die Bedingungen für die Nutzung von Nutrition MCP – dem kostenlosen Open-Source-Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT. Verständliche Regeln zu Konto, zulässiger Nutzung, deinen Daten und Haftung.",
     ogDescription:
         "Die Bedingungen für die Nutzung von Nutrition MCP – dem kostenlosen Open-Source-Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT.",
-    lastUpdated: "2. Oktober 2026",
+    lastUpdated: "3. Oktober 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -555,7 +572,7 @@ const TERMS_DE: LegalDoc = {
             heading: "Der Dienst",
             blocks: [
                 p(
-                    'Nutrition MCP ist ein kostenloser Open-Source-Ernährungs-Tracker, der als MCP-Server läuft und mit dem KI-Assistenten wie Claude und ChatGPT in deinem Namen Mahlzeiten, Wasser, Körpergewicht und Körpermaße erfassen können. Es gibt keinen kostenpflichtigen Tarif, keine Werbung und keine Gebühr für die Nutzung des Dienstes. Wir nehmen freiwillige Spenden auf Patreon an, die helfen, die Kosten für Hosting und Datenbank zu decken; sie sind ein Geschenk, kein Kauf, und mit ihnen erwirbst du keine Funktionen, keinen Tarif und keinerlei Vorrang. Der Quellcode ist unter der MIT-Lizenz auf <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> veröffentlicht, und es steht dir frei, ihn selbst zu hosten.',
+                    'Nutrition MCP ist ein kostenloser Open-Source-Ernährungs-Tracker, der als MCP-Server läuft und mit dem KI-Assistenten wie Claude und ChatGPT in deinem Namen Mahlzeiten, Wasser, Körpergewicht und Körpermaße erfassen können. Optional kann ein Kurzbefehl auf deinem iPhone deine Tagessummen in Apple Health übertragen. Es gibt keinen kostenpflichtigen Tarif, keine Werbung und keine Gebühr für die Nutzung des Dienstes. Wir nehmen freiwillige Spenden auf Patreon an, die helfen, die Kosten für Hosting und Datenbank zu decken; sie sind ein Geschenk, kein Kauf, und mit ihnen erwirbst du keine Funktionen, keinen Tarif und keinerlei Vorrang. Der Quellcode ist unter der MIT-Lizenz auf <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> veröffentlicht, und es steht dir frei, ihn selbst zu hosten.',
                 ),
             ],
         },
@@ -613,7 +630,10 @@ const TERMS_DE: LegalDoc = {
                     'Deine Einträge gehören weiterhin dir. Wir speichern und verarbeiten sie, um den Dienst für dich zu betreiben, wie in unserer <a href="/privacy" data-legal-link="privacy">Datenschutzerklärung</a> beschrieben. Für die Inhalte, die du einträgst, bist du selbst verantwortlich.',
                 ),
                 p(
-                    "Du kannst jederzeit alle deine Daten exportieren, indem du deinen KI-Assistenten darum bittest. Der Export ist ein ZIP-Archiv mit CSV-Dateien zu deinen Mahlzeiten-, Wasser-, Gewichts- und Körpermaß-Einträgen, Zielen, Profileinstellungen, deinem Kontodatensatz, deiner Telemetrie zur Werkzeugnutzung und deinen verbundenen KI-Apps; Alkohol ist enthalten, unabhängig davon, ob die Alkohol-Erfassung eingeschaltet ist. Der Download-Link, den du von uns erhältst, ist privat und läuft nach 60 Minuten ab.",
+                    "Du kannst jederzeit alle deine Daten exportieren, indem du deinen KI-Assistenten darum bittest. Der Export ist ein ZIP-Archiv mit CSV-Dateien zu deinen Mahlzeiten-, Wasser-, Gewichts- und Körpermaß-Einträgen, Zielen, Profileinstellungen, deinem Kontodatensatz, deiner Telemetrie zur Werkzeugnutzung, deinen verbundenen KI-Apps und der Synchronisierung mit Apple Health; Alkohol ist enthalten, unabhängig davon, ob die Alkohol-Erfassung eingeschaltet ist. Der Download-Link, den du von uns erhältst, ist privat und läuft nach 60 Minuten ab.",
+                ),
+                p(
+                    "Wenn du die Synchronisierung mit Apple Health verbindest, werden deine Tagessummen auf deinen Wunsch in Apple Health auf deinem iPhone geschrieben. Dort liegen sie in deiner Hand und unter den Bedingungen von Apple: Trennen oder das Löschen deines Kontos entfernt sie nicht, und weil Apple Health einen bereits vorhandenen Wert nicht verringern kann, wird ein Tag, den du später nach unten korrigierst, dort nicht korrigiert – lösch diese Einträge selbst in der Health-App. Halte die Datei des Kurzbefehls privat: Sie enthält das Token, mit dem der Kurzbefehl die Synchronisierung deines Kontos nutzt.",
                 ),
                 p(
                     "Außerdem erfassen wir grundlegende Betriebstelemetrie darüber, wie der Dienst genutzt wird: für jeden Werkzeugaufruf den Namen des Werkzeugs, ob der Aufruf erfolgreich war, wie lange er dauerte, bei einem Fehler eine grobe Fehlerkategorie, die Länge eines abgefragten Zeitraums, die Sitzungs-ID, die MCP-Protokollrevision, mit der sich deine KI-App verbunden hat, sowie Name und Version, die diese App von sich angibt. Diese Datensätze sind mit deiner Konto-ID verknüpft. Sie enthalten nicht, was du eingetragen hast – keine Lebensmittelbeschreibungen, keine Kalorien, keine Gewichts- oder Körpermaßwerte. Wir nutzen sie, um den Dienst am Laufen zu halten und zu erkennen, bei welchen Werkzeugen sich Verbesserungen lohnen; sie werden zusammen mit allem anderen gelöscht, wenn du dein Konto löschst.",
@@ -635,7 +655,7 @@ const TERMS_DE: LegalDoc = {
             heading: "Dienste Dritter",
             blocks: [
                 p(
-                    "Der Dienst ist auf Dritte angewiesen: Supabase für Datenbank, Authentifizierung und Speicherung der Exporte, DigitalOcean für das Hosting, Cloudflare (über unseren Hosting-Anbieter) für das Netzwerk, über das jede Anfrage läuft, Open Food Facts für Barcode-Daten sowie den KI-Assistenten, über den du dich verbindest.",
+                    "Der Dienst ist auf Dritte angewiesen: Supabase für Datenbank, Authentifizierung und Speicherung der Exporte, DigitalOcean für das Hosting, Cloudflare (über unseren Hosting-Anbieter) für das Netzwerk, über das jede Anfrage läuft, Open Food Facts für Barcode-Daten, die Apps Kurzbefehle und Health von Apple, wenn du die Synchronisierung mit Apple Health verbindest, sowie den KI-Assistenten, über den du dich verbindest.",
                 ),
                 p(
                     'Barcode-Produktdaten &copy; Mitwirkende von <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, verfügbar unter der <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
