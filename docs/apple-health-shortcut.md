@@ -1,34 +1,33 @@
-# Building the Apple Health shortcut
+# Building the Apple Health shortcut (iOS 27)
 
-This is the build sheet for the iOS Shortcut that copies daily totals from Nutrition MCP into Apple Health. It is the only client of the `/api/v1/health-sync/*` endpoints (`src/health-sync-routes.ts`); the server side is described under "Apple Health sync" in `CLAUDE.md`. The finished shortcut is shared from iCloud and linked from the site; nobody but the maintainer needs to build it, but every step is written down so it can be rebuilt, reviewed and changed without guessing.
+This is the step-by-step build guide for the iOS Shortcut that copies daily totals from Nutrition MCP into Apple Health. It is the only client of the `/api/v1/health-sync/*` endpoints (`src/health-sync-routes.ts`); the server side is described under "Apple Health sync" in `CLAUDE.md`. The finished shortcut is shared from iCloud and linked from the site (`HEALTH_SYNC_SHORTCUT_URL` in `src/health-sync.ts`); only the maintainer builds it, but every step is written down so it can be rebuilt, reviewed and changed without guessing.
 
 > **Read this first.**
 >
-> - The shortcut must be named exactly `Nutrition MCP Health` (`HEALTH_SYNC_SHORTCUT_NAME` in `src/health-sync.ts`). The sign-in callback page reopens it with `shortcuts://run-shortcut?name=Nutrition%20MCP%20Health&input=text&text=<claim code>`; any other name and connecting silently stops halfway.
-> - The base URL `https://nutrition-mcp.com` is hard-coded in one Text action at the top. A self-hoster changes that one action and nothing else.
-> - Only **closed** days are ever sent. Day D closes at 05:00 local time on D+1, and each sync looks at the last 7 closed days. Today is never in Health.
-> - Never add a "Delete All Data from Shortcuts" step or suggest it in any text: in Health that button removes every sample any shortcut ever logged, not just ours.
-> - Everything the shortcut shows the user comes from the server's `message` and `notices` strings, apart from the few fixed lines below. The token, the device secret and the claim code are never shown.
-
-Run through the [device checklist](#phase-0-device-checklist) on a real iPhone before relying on any detail marked _(checklist)_.
+> - The shortcut must be named exactly `Nutrition MCP Health` (`HEALTH_SYNC_SHORTCUT_NAME`). The sign-in callback page reopens it with `shortcuts://run-shortcut?name=Nutrition%20MCP%20Health&input=text&text=<claim code>`; any other name and connecting stops halfway.
+> - The base URL is one **Text** action at the top: `https://nutrition-mcp.com` for the published shortcut, or a dev deploy's origin (its `PUBLIC_BASE_URL`) while testing. Nothing else changes between the two.
+> - Only **closed** days are sent. Day D closes at 05:00 local time on D+1, and each sync looks at the last 7 closed days. Today is never in Health.
+> - The connect link works once and for 30 minutes. The server keeps what was sent for 8 days, which is how it knows a day grew (top-up) or shrank (notice only: Health can't lower a value).
+> - Never add a "Delete All Data from Shortcuts" step or suggest it anywhere: in Health it removes every sample any shortcut ever logged.
+> - The token, the device secret and the claim code are never shown to the user.
 
 ---
 
-## 1. The protocol in one page
+## The protocol in one page
 
-Every response is JSON with a top-level `ok` boolean, because a shortcut cannot read the HTTP status. On failure it carries `error` (one of `invalid_token`, `invalid_code`, `expired`, `busy`, `rate_limited`, `unavailable`, `bad_request`, `server_error`) and `message` (text meant to be shown as is), plus `ref` on `server_error` and `unavailable`.
+Every response is JSON with a top-level `ok`, because a shortcut can't read the HTTP status. A reply is a success only when it **contains** `"ok":true` (the server always sends compact JSON); anything else, including a proxy's HTML error page, is a failure. Failures carry `error` (`invalid_token`, `invalid_code`, `expired`, `busy`, `rate_limited`, `unavailable`, `bad_request`, `server_error`) and `message`, text meant to be shown as is.
 
-| Call                                     | Auth         | Body                                                                                                       | Success                                                               |
-| ---------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `POST /api/v1/health-sync/start`         | none         | `{"tz":"Europe/Kyiv","include_water":false,"backfill_days":0}` (all optional; backfill 0–7)                | `{"ok":true,"connect_url":"…","device_secret":"…","expires_in":1800}` |
-| `GET /health-sync/connect/<id>` (Safari) | none         | —                                                                                                          | redirects to the normal sign-in page                                  |
-| `GET /health-sync/callback` (Safari)     | none         | —                                                                                                          | page that reopens the shortcut with the claim code                    |
-| `POST /api/v1/health-sync/claim`         | none         | `{"claim_code":"…","device_secret":"…"}`                                                                   | `{"ok":true,"token":"nmhs_…","site":"https://nutrition-mcp.com"}`     |
-| `GET /api/v1/health-sync/pending`        | Bearer token | — (`?mode=manual` on a run started by hand)                                                                | `{"ok":true,"entries":[…],"notices":[…],"status":{…},…}`              |
-| `POST /api/v1/health-sync/ack`           | Bearer token | `{"entries":[{"entry_id","date","values"}],"done":false}` (at most 20; `"lease_until"` with `"done":true`) | `{"ok":true,"applied":1,"skipped":0}`                                 |
-| `POST /api/v1/health-sync/revoke`        | Bearer token | `{}`                                                                                                       | `{"ok":true}`                                                         |
+| Call                                     | Auth   | Body                                                                                                  | Success                                                                |
+| ---------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `POST /api/v1/health-sync/start`         | none   | `{"tz":"Europe/Kyiv","include_water":false,"backfill_days":0}` (backfill 0–7)                         | `{"ok":true,"connect_url":"…","device_secret":"…","expires_in":1800}`  |
+| `GET /health-sync/connect/<id>` (Safari) | none   | —                                                                                                     | redirects to the normal sign-in page                                   |
+| `GET /health-sync/callback` (Safari)     | none   | —                                                                                                     | page that reopens the shortcut with the claim code                     |
+| `POST /api/v1/health-sync/claim`         | none   | `{"claim_code":"…","device_secret":"…"}`                                                              | `{"ok":true,"token":"nmhs_…","site":"https://nutrition-mcp.com"}`      |
+| `GET /api/v1/health-sync/pending`        | Bearer | — (`?mode=manual` on a run started by hand; any other `mode` is ignored)                              | `{"ok":true,"entries":[…],"notices":[…],"status":{…},"lease_until":…}` |
+| `POST /api/v1/health-sync/ack`           | Bearer | `{"entries":[<entry as sent>],"done":false}`; last one `{"entries":[],"done":true,"lease_until":"…"}` | `{"ok":true,"applied":1,"skipped":0}`                                  |
+| `POST /api/v1/health-sync/revoke`        | Bearer | `{}`                                                                                                  | `{"ok":true}`                                                          |
 
-A `/pending` entry looks like this:
+A `/pending` entry:
 
 ```json
 {
@@ -40,172 +39,185 @@ A `/pending` entry looks like this:
 }
 ```
 
-- `kind` is `initial` (the day's first send, at 12:00:00) or `topup` (what the day grew by since, at 12:01:00, 12:02:00 … up to 12:09:00). The shortcut treats both the same: log every value present, at `sample_local`.
-- A missing key means "nothing to log for that type". The server never sends `0` for a type no meal carried.
-- `/pending` takes a 2-minute per-user lease and returns it as `lease_until`. A second sync during it gets `{"ok":false,"error":"busy"}`; the last ack carries `"done":true` plus that `lease_until` to release it early. A `done` without it, or with a lease that has since lapsed and been taken by another run, releases nothing.
-- The ack echoes the entry's `entry_id`, `date` and `values` exactly as `/pending` sent them. Acks are idempotent: re-sending one is a no-op (`skipped`).
-- An entry offered 3 times without an ack stops being offered and comes back as a notice about Health permissions. Automation runs leave it there; a run started by hand (`?mode=manual`) offers it again, so fixing the permission and choosing **Sync now** delivers it.
-- An ack is applied only for a day `/pending` offered (the last 7 closed days, plus the one that dropped out of that window at 05:00). Anything else is `skipped`.
-- Any other method or path under `/api/v1/health-sync/` answers `{"ok":false,"error":"bad_request","message":"…"}` with a 404 or 405.
-- The server keeps what was acked for 8 days, which is how it knows a day grew (top-up) or shrank (notice only: Health cannot lower a value).
-
-## 2. Files
-
-All in the Shortcuts folder of iCloud Drive (the default location of **Save File** / **Get File**), under one subfolder:
-
-| File                         | Holds                                        | Lifetime                                                      |
-| ---------------------------- | -------------------------------------------- | ------------------------------------------------------------- |
-| `nutrition-mcp/token.txt`    | the `nmhs_…` token                           | until Disconnect, or until the server answers `invalid_token` |
-| `nutrition-mcp/pairing.txt`  | the `device_secret` from `/start`            | deleted right after `/claim`; useless after 30 minutes anyway |
-| `nutrition-mcp/inflight.txt` | the entry being logged right now, as JSON    | written before logging an entry, deleted after its ack        |
-| `nutrition-mcp/status.txt`   | the last `/pending` `status` object, as JSON | overwritten on every sync; read by **Status**                 |
-
-Turn **Ask Where to Save** off on every **Save File**, with **Overwrite If File Exists** on. `token.txt` is a password for this account's sync: it syncs to iCloud Drive with the rest of the folder, and the privacy policy says so.
-
-## 3. Top of the shortcut
-
-1. **Shortcut details** → **Receive** `Text` input from nowhere; **If there's no input:** `Continue` _(checklist: the claim code still arrives through the URL scheme)_. **Show in Share Sheet** off.
-2. **Text** `https://nutrition-mcp.com` → **Set Variable** `BaseURL`.
-3. **Get File** `nutrition-mcp/token.txt`, **Error If Not Found** off → **Set Variable** `Token`.
-4. **If** `Shortcut Input` has any value:
-    - **If** `Shortcut Input` is `auto` → go to [Sync](#5-sync) with `Mode` = `auto`.
-    - **Otherwise** → [Claim](#42-claim-the-connection) (the only other input is the claim code from the callback page).
-5. **Otherwise** (run by hand):
-    - **If** `Token` has no value → [Connect](#41-start-connecting).
-    - **Otherwise** → **Choose from Menu** with `Sync now`, `Status`, `Disconnect`.
-        - `Sync now` → [Sync](#5-sync) with `Mode` = `manual`.
-        - `Status` → [Status](#6-status).
-        - `Disconnect` → [Disconnect](#7-disconnect).
-
-Shortcuts has no subroutines, so "go to" means the block is built inline in that branch. Sync appears twice (auto and manual) plus once more after a claim; build it once, then duplicate the actions. An automation run (`auto`) with no token stops silently: it must never open Safari on its own.
-
-## 4. Connecting
-
-### 4.1 Start connecting
-
-1. **Choose from Menu** "Also send water to Apple Health? Leave this off if your Apple Watch or another app already logs water." → `No` / `Yes`. Set `IncludeWater` to `false` / `true`.
-2. **Choose from Menu** "Which days should be sent?" → `From today` / `Also the last 7 days`. Set `Backfill` to `0` / `7`.
-3. **Get Current Date** → **Format Date** with custom format `VV` → **Set Variable** `PhoneTZ` _(checklist: `VV` yields the IANA name, e.g. `Europe/Kyiv`)_. The server ignores a zone it does not recognise, and uses the profile's timezone over this one whenever the profile has one.
-4. **Get Contents of URL** `BaseURL` + `/api/v1/health-sync/start`, Method `POST`, Request Body `JSON`: `tz` (Text) = `PhoneTZ`, `include_water` (Boolean) = `IncludeWater`, `backfill_days` (Number) = `Backfill`.
-5. **Get Dictionary Value** `ok`. **If** `ok` is `true` _(checklist: how a JSON boolean compares)_:
-    - **Get Dictionary Value** `device_secret` → **Save File** to `nutrition-mcp/pairing.txt`.
-    - **Get Dictionary Value** `connect_url` → **Open URLs**. Safari opens the sign-in page; the user signs in with the same account their AI app uses. The page warns them if they did not start this themselves.
-    - **Stop This Shortcut.**
-6. **Otherwise** → **Show Alert** with the response's `message` (or "Couldn't start connecting. Try again in a minute." when there is none, e.g. a proxy error page), then **Stop This Shortcut**.
-
-The connect link works once and only for 30 minutes. If the user takes longer, the page says so and running the shortcut again starts over.
-
-### 4.2 Claim the connection
-
-After sign-in, the callback page navigates to `shortcuts://run-shortcut?name=Nutrition%20MCP%20Health&input=text&text=<claim code>`, so the shortcut starts again with the claim code as `Shortcut Input`.
-
-1. **Get File** `nutrition-mcp/pairing.txt`, **Error If Not Found** off. If it has no value → **Show Alert** "This iPhone didn't start connecting. Run Nutrition MCP Health and choose to connect again." → **Stop**. (The claim code is useless without the device secret that only the iPhone that called `/start` holds — that pairing is the security property of the whole flow.)
-2. **Get Contents of URL** `BaseURL` + `/api/v1/health-sync/claim`, `POST`, JSON: `claim_code` = `Shortcut Input`, `device_secret` = the file's text.
-3. **If** `ok` is `true`:
-    - **Get Dictionary Value** `site`. **If** it is not exactly `BaseURL` → **Show Alert** "Unexpected server. Nothing was saved." → **Stop**. (Guards against a modified callback pointing the token at another host.)
-    - **Get Dictionary Value** `token` → **Save File** to `nutrition-mcp/token.txt`; set `Token`.
-    - **Delete File** `nutrition-mcp/pairing.txt` (**Confirm Before Deleting** off).
-    - **Show Notification** "Apple Health sync is connected. Your first finished day is ready after 05:00 tomorrow: open Nutrition MCP Health and choose Sync now once then, to allow Apple Health." (or "…the earlier days are being sent now." when a backfill was chosen).
-    - Continue into [Sync](#5-sync) with `Mode` = `manual`. This first run is in the foreground on purpose: iOS shows the Health permission sheet at the first **Log Health Sample**, and the user should allow every type. That only happens when there is something to log, i.e. a backfill was chosen and one of those days has values. With `From today` (or an empty backfill) `/pending` returns no entries, so no sample is logged and no sheet appears; the first write would then come from a background automation. The setup page therefore tells those users to open the shortcut and choose **Sync now** once after 05:00 the next day, which answers the sheet in the foreground. _(Checklist: whether a first Log Health Sample from a background automation prompts at all or just fails.)_
-4. **Otherwise** → **Delete File** `pairing.txt`, **Show Alert** with `message` → **Stop**.
-
-## 5. Sync
-
-`Mode` is `auto` (from an automation: silent unless something needs the user) or `manual` (from the menu or after a claim: always ends with a short result).
-
-### 5.1 Finish an interrupted entry
-
-1. **Get File** `nutrition-mcp/inflight.txt`, **Error If Not Found** off. If it has no value, skip to 5.2.
-2. **Get Dictionary from Input** → `Inflight`. **Get Dictionary Value** `sample_local` → **Get Dates from Input** → `InflightDate`.
-3. **If** `Inflight.values.energy_kcal` has any value:
-    - **Find Health Samples** where Type is `Dietary Energy`, Source is `Shortcuts`, Start Date is `InflightDate`, limit 1 _(checklist: exact-second match)_.
-    - **If** the result has any value → the entry reached Health before the run died: skip logging.
-    - **Otherwise** → log it with the eight blocks in 5.3.
-4. **Otherwise** → log it with the eight blocks in 5.3.
-5. Ack it as in 5.3 step 4, then **Delete File** `inflight.txt`.
-
-On a locked iPhone, Health data is unreadable, so **Find Health Samples** finds nothing and the entry is logged again. A possible duplicate day is accepted over a lost one; the troubleshooting copy tells the user how to delete it.
-
-### 5.2 Ask for pending entries
-
-1. **Get Contents of URL** `BaseURL` + `/api/v1/health-sync/pending`, plus `?mode=manual` when `Mode` is `manual`, Method `GET`, Header `Authorization` = `Bearer ` + `Token`. `manual` is what lets a day that stopped after 3 failed tries be offered again once the user has fixed the Health permission; automations must never send it.
-2. **Get Dictionary Value** `ok`. **If** `ok` is not `true`:
-    - **If** `error` is exactly `invalid_token` → **Delete File** `token.txt`, **Show Notification** "Apple Health sync was disconnected. Run Nutrition MCP Health to connect again." → **Stop**.
-    - **Otherwise** (including no `ok` at all, a proxy's HTML page, `busy`, `rate_limited`, `unavailable`) → **Show Notification** with `message`, or "Sync skipped, will retry." when there is none. Keep the token. **Stop**. `busy` in `auto` mode may stay silent: another run is already syncing.
-3. **Get Dictionary Value** `status` → **Save File** to `nutrition-mcp/status.txt`.
-4. **Get Dictionary Value** `lease_until` → `LeaseUntil`.
-
-### 5.3 Log each entry
-
-**Repeat with Each** item in `entries`:
-
-1. **Save File** the `Repeat Item` (as text, which is its JSON _(checklist)_) to `nutrition-mcp/inflight.txt`.
-2. **Get Dictionary Value** `sample_local` → **Get Dates from Input** → `SampleDate`. The string has no offset, so it is read in the iPhone's own zone, which puts the sample at noon on that calendar day.
-3. Eight hard-coded blocks, one per type, each:
-   **Get Dictionary Value** `values` → **Get Dictionary Value** `<key>` → **If** it has any value → **Log Health Sample** Type `<type>`, Value = it, Unit `<unit>`, Date = `SampleDate`.
-
-    | Key               | Health type    | Unit |
-    | ----------------- | -------------- | ---- |
-    | `energy_kcal`     | Dietary Energy | kcal |
-    | `protein_g`       | Protein        | g    |
-    | `carbohydrates_g` | Carbohydrates  | g    |
-    | `fat_g`           | Total Fat      | g    |
-    | `fiber_g`         | Fiber          | g    |
-    | `sugar_g`         | Sugar          | g    |
-    | `caffeine_mg`     | Caffeine       | mg   |
-    | `water_ml`        | Water          | mL   |
-
-    There is no alcohol block, and there must never be one: the server never sends alcohol.
-
-4. **Text** `{"entries":[` + `Repeat Item` + `],"done":false}` → **Get Contents of URL** `BaseURL` + `/api/v1/health-sync/ack`, `POST`, Header `Authorization` = `Bearer ` + `Token`, Header `Content-Type` = `application/json`, Request Body `File` = that Text. If `ok` is not `true`, send it once more. If it still fails, leave `inflight.txt` in place and stop the loop: the next run finishes this entry first (5.1).
-5. **Delete File** `nutrition-mcp/inflight.txt`.
-
-Each entry is acked on its own rather than in one batch, because `inflight.txt` covers exactly one entry: a run that dies can then leave at most one entry in doubt. A full week is at most 7 entries, well inside the 40-requests-a-minute limit.
-
-### 5.4 Finish
-
-1. **Get Contents of URL** `/ack` with body `{"entries":[],"done":true,"lease_until":"` + `LeaseUntil` + `"}` to release this run's lease. A failure here is harmless: the lease expires on its own after 2 minutes.
-2. **Get Dictionary Value** `notices`. If it has any items → **Combine Text** with new lines → **Show Notification**.
-3. In `manual` mode with no notices → **Show Notification** "Apple Health is up to date through `status.synced_through`." (or "Nothing new to send." when there were no entries). In `auto` mode a clean run shows nothing.
-
-## 6. Status
-
-**Get File** `nutrition-mcp/status.txt` → **Show Result**: "Sent through `synced_through`. The next day is ready at `next_day_ready_at`." With no file yet: "Connected. Nothing has been sent yet." The same status is also available from the AI app: `get_profile` reports when the sync was connected, which day it has sent through and when it last synced.
-
-## 7. Disconnect
-
-1. **Get Contents of URL** `BaseURL` + `/api/v1/health-sync/revoke`, `POST`, Bearer token, JSON body `{}`.
-2. **If** `ok` is `true`, or `error` is `invalid_token` → **Delete File** `token.txt` and `status.txt`, **Show Alert** "Disconnected. What is already in Apple Health stays there." Otherwise **Show Alert** with `message` and keep the token.
-
-Revoking deletes the connection and its 8 days of sent records on the server immediately. Nothing is removed from Apple Health.
-
-## 8. Automations
-
-A shared shortcut does not carry automations, so the setup page walks the user through creating these by hand. Each is a **Personal Automation** in the **Automation** tab, set to **Run Immediately** with **Notify When Run** off where iOS allows it _(checklist)_, and its only action is **Run Shortcut** `Nutrition MCP Health` with input Text `auto`.
-
-- **Primary:** App → `Health` → **Is Opened**. Opening Health is when the user wants it to be current.
-- **Morning catch-up:** Alarm → **Is Stopped** (the wake-up alarm, or any alarm).
-- **Optional:** Charger → **Is Connected**.
-
-Nothing depends on an exact time. Missed runs are absorbed by the lease and by `/pending` always covering the last 7 closed days, so the next run that fires catches up.
+- `initial` is a day's first send (12:00:00); `topup` is what it grew by since (12:01:00 … 12:09:00). The shortcut logs both the same way.
+- A missing key means nothing to log for that type; the server never sends `0` for a type no meal carried.
+- `/pending` takes a 2-minute lease; a second run during it gets `busy`. The final ack with `"done":true` and that `lease_until` releases it early.
+- Acks echo the entry exactly and are idempotent. An entry offered 3 times without an ack stops being offered and becomes a notice about Health permissions; a run with `?mode=manual` (Sync now) offers it again.
 
 ---
 
-## Phase-0 device checklist
+## 0. Before you start
+
+- **Settings → Apps → Shortcuts → Open shortcuts to → Editor**. (Otherwise new shortcuts open in Describe a Shortcut; the ☰ button there also reaches the editor.)
+- In Shortcuts, tap **+**, tap the name → **Rename** → `Nutrition MCP Health`.
+- Add actions from the **Search** bar at the bottom. To use an earlier result, tap a field and pick it from the menu that opens.
+- State lives in **stored content**, not files: **Get Stored Content** (shown in the editor as **Get** _key_), **Store Content**, **Delete Stored Content**. Leave **Global Value** off on every one, so only this shortcut can read them. Keys: `token`, `pairing`, `status`. A key that has never been stored is not in the key menu yet: type its name. (Files in the iCloud Drive Shortcuts folder failed with "the selected location doesn't exist" until that folder existed, which every new user would hit.)
+- `Shortcut Input` only offers "has any value" in an **If**, so it is copied into a text variable `Input` first.
+- On iPhone, a new **If** arrived without **Otherwise**, so every block below is a flat **If … End If** that ends with **Stop This Shortcut**. The Mac editor offers **Otherwise** and **Otherwise if**; using them instead is fine, as long as the order stays: **If** (block A) → **Otherwise if** `InputLength` **is greater than** `20` (block B) → **Otherwise** → **If** `Token` **does not have any value** (block C) → **Otherwise** (block D). Block C's condition is `Token`, never `Input`: under that **Otherwise**, `Input` is always empty.
+- Server replies need a text copy too, like `Shortcut Input`: **Get contents of** returns a dictionary, and an **If** on it only offers "has any value". After every call, keep two variables: `Reply` (the dictionary, for **Get Dictionary Value**) and `ReplyText` (a **Text** action holding **Contents of URL**, for the **contains** / **does not contain** checks).
+- "Show `message`" always means the same three steps: **Get Dictionary Value** `message` in `Reply`, then **Show Alert** (or **Show Notification**) with that **Dictionary Value** as its text, then **Stop This Shortcut**. `message` is the server's own explanation of the failure, written to be shown as is (e.g. "This sign-in link has expired. Run the shortcut again."). Pick `Reply` explicitly in the **Get Dictionary Value**: left on its default it reads **Dictionary**, which is empty.
+- **Run Shortcut** takes its input from the action above it: "**Run Shortcut** `Nutrition MCP Health`, input **Text** `x`" means a **Text** action holding `x`, then **Run Shortcut** with **Nutrition MCP Health** chosen and, under **›**, **Show While Running** off.
+- Anything that must survive to the next run (the token, the pairing secret, the status) goes through **Store Content**. **Set variable** only lives until the run ends: a token put in a variable instead of stored is gone the next time the shortcut opens, and it starts connecting all over again.
+- Several actions end up called **Text** (the base URL, the pending URL, every request body). Wherever a field takes **Text**, click the token and check it highlights the action directly above, or name it with **Set variable**.
+- **Log Health Sample** says "This action is not supported on Mac" and its fields can't be edited there. Build everything else on the Mac if you like, then open the shortcut on the iPhone and fill in each **Log Health Sample**.
+
+## 1. Top
+
+1. **Text** with the base URL → **Set variable** `BaseURL`
+2. **Get Stored Content** `token` → **Set variable** `Token`
+3. **Text** containing **Shortcut Input** → **Set variable** `Input`
+4. **Count** **Characters** in `Input` → **Set variable** `InputLength`. A run started by hand still gives `Input` an empty text that **has any value** counts as a value, so the claim branch is chosen by length: a claim code is always 43 characters, `auto` and `manual` are short.
+5. In the **Receive … from Nowhere** row at the very top, **If there's no input** must be **Continue**. Leave it receiving from **Nowhere** (no Share Sheet).
+
+Then four blocks in this order; only one ever runs.
+
+## 2. Block A — Sync (`Input` is `auto` or `manual`)
+
+1. **If** (**Any** are true): `Input` **is** `auto` / `Input` **is** `manual`
+    1. **If** `Token` **does not have any value** → **Stop This Shortcut** → **End If**
+    2. **Text** `BaseURL` + `/api/v1/health-sync/pending?mode=` + `Input`
+    3. **Get contents of** that Text, **›** → Method **GET**, Header `Authorization` = `Bearer ` (with the space) + `Token` → **Set variable** `Reply` → **Text** [Contents of URL] → **Set variable** `ReplyText`
+    4. **If** `ReplyText` **does not contain** `"ok":true`:
+        - **If** `ReplyText` **contains** `invalid_token` → **Delete Stored Content** `token` → **Show Notification** "Apple Health sync was disconnected. Run Nutrition MCP Health to connect again." → **End If**
+        - **If** `Input` **is** `manual` → **Get Dictionary Value** `message` in `Reply` → **Show Notification** [Dictionary Value] → **End If**
+        - **Stop This Shortcut** → **End If**
+    5. **Get Dictionary Value** `status` in `Reply` → **Store Content** key `status`
+    6. **Get Dictionary Value** `lease_until` in `Reply` → **Set variable** `LeaseUntil`
+    7. **Get Dictionary Value** `entries` in `Reply` → **Repeat with Each**:
+        1. **Get Dictionary Value** `sample_local` in **Repeat Item** → **Get Dates from Input** → **Set variable** `SampleDate`. The string has no offset, so it is read in the phone's zone: noon on that calendar day.
+        2. **Get Dictionary Value** `values` in **Repeat Item** → **Set variable** `Values`
+        3. Eight blocks, one per row — **Get Dictionary Value** `<key>` in `Values` → **If** it **has any value** → **Log Health Sample** Type `<type>`, Value = it, Unit `<unit>`, Date = `SampleDate` → **End If**. Build one, then duplicate it (iPhone: long-press → **Duplicate**; Mac: select the **Get Dictionary Value**, **If**, **Log Health Sample** and **End If**, then ⌘C / ⌘V) and edit the key, type and unit. Set each **Log Health Sample**'s Type, Value (the **Dictionary Value** above it), Unit and Date on the iPhone.
+
+            | key               | Type           | Unit |
+            | ----------------- | -------------- | ---- |
+            | `energy_kcal`     | Dietary Energy | kcal |
+            | `protein_g`       | Protein        | g    |
+            | `carbohydrates_g` | Carbohydrates  | g    |
+            | `fat_g`           | Total Fat      | g    |
+            | `fiber_g`         | Fiber          | g    |
+            | `sugar_g`         | Sugar          | g    |
+            | `caffeine_mg`     | Caffeine       | mg   |
+            | `water_ml`        | Water          | mL   |
+
+            There is no alcohol block, and there must never be one: the server never sends alcohol.
+
+        4. **Text** `{"entries":[` + **Repeat Item** + `],"done":false}`
+        5. **Get contents of** `BaseURL` + `/api/v1/health-sync/ack`, Method **POST**, Headers `Authorization` = `Bearer ` + `Token` and `Content-Type` = `application/json`, Request Body **File** = that Text
+        6. **End Repeat**
+    8. **Text** `{"entries":[],"done":true,"lease_until":"` + `LeaseUntil` + `"}` (no space between `LeaseUntil` and `"}`, or the server won't recognise the lease) → the same **POST** to `/ack` (releases the lease; harmless if it fails, the lease lapses in 2 minutes)
+    9. **Get Dictionary Value** `notices` in `Reply` → **If** it **has any value** → **Combine Text** with **New Lines** → **Show Notification** → **Stop This Shortcut** → **End If**
+    10. **If** `Input` **is** `manual` → **Show Notification** "Apple Health is up to date." → **End If**
+    11. **Stop This Shortcut**
+2. **End If**
+
+Each entry is acked on its own, right after it is logged, so a run that dies leaves at most one entry in doubt; at worst that day is logged twice, and the troubleshooting copy explains how to delete it. A full week is at most 7 entries, well inside the 40-requests-a-minute limit.
+
+## 3. Block B — Claim (`Input` is the code from the sign-in page)
+
+1. **If** `InputLength` **is greater than** `20`
+    1. **Get Stored Content** `pairing` (type the key: it isn't in the menu until block C has stored it once) → **Set variable** `Pairing`
+    2. **If** `Pairing` **does not have any value** → **Show Alert** "This iPhone didn't start connecting. Run Nutrition MCP Health again." → **Stop This Shortcut** → **End If**. (The claim code is useless without the device secret only the iPhone that called `/start` holds; that pairing is the security property of the whole flow.)
+    3. **Get contents of** `BaseURL` + `/api/v1/health-sync/claim`, **POST**, Request Body **JSON**: `claim_code` (Text) = `Input`, `device_secret` (Text) = `Pairing` → **Set variable** `Reply` → **Text** [Contents of URL] → **Set variable** `ReplyText`
+    4. **Delete Stored Content** `pairing`
+    5. **If** `ReplyText` **does not contain** `"ok":true` → **Get Dictionary Value** `message` in `Reply` → **Show Alert** [Dictionary Value] → **Stop This Shortcut** → **End If**
+    6. **Get Dictionary Value** `site` in `Reply` → **Text** [Dictionary Value] → **Set variable** `Site` → **If** `Site` **is not** `BaseURL` → **Show Alert** "Unexpected server. Nothing was saved." → **Stop This Shortcut** → **End If**. (The value goes through a **Text** action so the **If** offers **is not**, the same trick as `Input`. Don't search `ReplyText` for `"site":"https://…"` instead: on the first real claim that check failed although the server sent the right site, most likely because Shortcuts re-serialises the reply and escapes the slashes.)
+    7. **Get Dictionary Value** `token` in `Reply` → **Store Content** (it reads **Store** [Dictionary Value] **as** `token`). Not **Set variable**: see section 0.
+    8. **Show Notification** "Apple Health sync is connected."
+    9. **Run Shortcut** `Nutrition MCP Health`, input **Text** `manual` — the first sync, in the foreground, so iOS shows the Health permission sheet at the first **Log Health Sample**. With `From today` there is nothing to log yet, so the setup page tells those users to choose **Sync now** once after 05:00 the next morning.
+    10. **Stop This Shortcut**
+2. **End If**
+
+## 4. Block C — Connect (started by hand, no token)
+
+1. **If** `Token` **does not have any value**
+    1. **Choose from Menu**, prompt "Also send water to Apple Health? Leave this off if your Apple Watch or another app already logs water.", options **No** and **Yes**. The option names are what the user sees, so never name them `true` / `false`. Inside **No** put **Text** `false`, inside **Yes** **Text** `true`. After **End Menu**, **Set variable** `IncludeWater` to **Menu Result** (the output of the chosen option's last action). A case left empty gives an empty **Menu Result**, and `/start` then answers "include_water must be true or false."
+    2. **Choose from Menu**, prompt "Which days should be sent?", options **From today** (inside: **Text** `0`) and **Also the last 7 days** (inside: **Text** `7`). After **End Menu**, **Set variable** `Backfill` to **Menu Result**.
+    3. **Date** (it defaults to **Current Date**; "Current Date" itself is a variable, not an action, so searching for it finds only **Date**) → **Format Date** on that **Date**, **›** → Date Format **Custom**, format `VV` → **Set variable** `PhoneTZ`. The server ignores a zone it doesn't recognise and prefers the profile's timezone whenever one is set.
+    4. **Get contents of** `BaseURL` + `/api/v1/health-sync/start`, **POST**, Request Body **JSON**: `tz` (Text) = `PhoneTZ`, `include_water` (Boolean) = `IncludeWater`, `backfill_days` (Number) = `Backfill`. Pick each field's type before inserting the variable: the server only accepts a real JSON boolean and number, and answers "include_water must be true or false." or "backfill_days must be a whole number from 0 to 7." otherwise. → **Set variable** `Reply` → **Text** [Contents of URL] → **Set variable** `ReplyText`
+    5. **If** `ReplyText` **does not contain** `"ok":true` → **Get Dictionary Value** `message` in `Reply` → **Show Alert** [Dictionary Value] → **Stop This Shortcut** → **End If**
+    6. **Get Dictionary Value** `device_secret` in `Reply` → **Store Content** key `pairing`
+    7. **Get Dictionary Value** `connect_url` in `Reply` → **Open URLs**. Safari opens the sign-in page; the user signs in with the same account their AI app uses, and the page warns them if they didn't start this themselves.
+    8. **Stop This Shortcut**
+2. **End If**
+
+An automation run (`auto`) never reaches this block: it stops silently in block A when there is no token, and must never open Safari on its own.
+
+## 5. Block D — Menu (started by hand, connected)
+
+**Choose from Menu**, prompt `Nutrition MCP Health`, options **Sync now**, **Status**, **Disconnect**:
+
+- Under **Sync now**:
+    1. **Text** `manual`
+    2. **Run Shortcut** `Nutrition MCP Health` (input: that Text; **Show While Running** off)
+- Under **Status**:
+    1. **Get Stored Content** `status`
+    2. **Get Dictionary Value** `synced_through` in [Stored Content] → **Set variable** `SentThrough`
+    3. **If** `SentThrough` **has any value** → **Show Alert** "Sent through " + `SentThrough`
+    4. **Otherwise** (or a second **If** … **does not have any value**) → **Show Alert** "Connected. Nothing has been sent yet."
+    5. **End If**. The AI app shows the same through `get_profile`.
+- Under **Disconnect**:
+    1. **Get contents of** `BaseURL` + `/api/v1/health-sync/revoke`, **POST**, Header `Authorization` = `Bearer ` + `Token`. No body is needed; the server ignores it.
+    2. **Set variable** `Reply` → **Text** [Contents of URL] → **Set variable** `ReplyText`
+    3. **If** (**Any** are true) `ReplyText` **contains** `"ok":true` / `ReplyText` **contains** `invalid_token` → **Delete Stored Content** `token` → **Delete Stored Content** `status` → **Show Alert** "Disconnected. What is already in Apple Health stays there." `invalid_token` counts as done: the server has already dropped the connection, so the stale token should go too.
+    4. **Otherwise** → **Get Dictionary Value** `message` in `Reply` → **Show Alert** [Dictionary Value]
+    5. **End If**
+
+**End Menu** closes the block. Delete any placeholder **Comment** actions left from building the skeleton.
+
+Revoking deletes the connection and its 8 days of sent records on the server at once. Nothing is removed from Apple Health.
+
+## 6. Automations — a second, tiny shortcut
+
+1. New shortcut **Nutrition MCP Health Auto** whose only action is **Run Shortcut** `Nutrition MCP Health` with input **Text** `auto`. Keeping triggers in their own shortcut means `auto` always arrives the same way, however triggers are set up.
+2. Triggers (in iOS 27 at the top of the shortcut; on a phone that still has an **Automation** tab, there):
+    - App **Health** **Is Opened** — the main one.
+    - Alarm **Is Stopped**.
+    - Charger **Is Connected** — optional.
+3. **Run Immediately**, **Notify When Run** off where offered.
+
+Nothing depends on an exact time: missed runs are absorbed by the lease and by `/pending` always covering the last 7 closed days.
+
+## 7. Test on a dev deploy
+
+Run the shortcut from the **Shortcuts** list (the tile or ▶ in the editor), not from the "Describe a change" screen. Each step below lists what the deploy's runtime log should show; every `/api/v1/health-sync` call writes one `[health-sync] route=… result=…` line next to its `[req]` line.
+
+1. **Base URL.** Set the first **Text** to the dev deploy's origin (its `PUBLIC_BASE_URL`).
+2. **Connect.** ▶ → answer both questions → Safari shows the sign-in page with the Apple Health notice → sign in with a dev account → allow **Open in Shortcuts** → notification "Apple Health sync is connected."
+    - Log: `route=start result=ok`, `route=connect result=ok`, the `/authorize` sign-in, `route=callback result=ok`, `route=claim result=ok`, then the first sync: `route=pending result=ok entries=N notices=N` and `route=ack result=ok entries=0` (the lease release).
+    - "Unexpected server. Nothing was saved." after a successful `route=claim` means the shortcut's own `site` check failed, not the server: see block B step 6. The claim code is spent by then, so connect again from the start.
+3. **Token kept.** ▶ again → the **Sync now / Status / Disconnect** menu. If the water question comes back instead, the token went into a variable rather than **Store Content** (block B step 7).
+4. **Nothing to send yet.** With **From today**, or with no meals on the finished days, **Sync now** gives "Apple Health is up to date." and the log shows `entries=0`. That is correct: today is never sent, and a day only closes at 05:00 local time the next morning. **Status** → "Connected. Nothing has been sent yet."
+5. **Real Health writes.** The server only sends finished days that have data, so give the dev account some first. In chat with the dev connector, backdate a few meals (e.g. "log a 650 kcal lunch yesterday at 13:00 with 40 g protein, 70 g carbs, 20 g fat, 8 g fiber, 12 g sugar", "log a coffee with 95 mg caffeine on <date> at 9:00", "log 500 ml water yesterday"), all within the link's window: from the day it was connected, or 7 days before it with **Also the last 7 days**. Then **Sync now**:
+    - Log: `route=pending result=ok entries=N`, one `route=ack result=ok entries=1` per day, then `route=ack result=ok entries=0`.
+    - iOS asks for Health permission at the first **Log Health Sample**; allow every type. (Every **Log Health Sample** must already be filled in on the iPhone.)
+    - Health → **Browse → Nutrition → Dietary Energy → Show All Data**: one entry per day at 12:00 from Shortcuts. **Status** → "Sent through <last day>".
+6. **Top-up.** Add a snack to one of those days in chat → **Sync now** → that day gets a second entry at 12:01 for the difference (log: `entries=1`).
+7. **Decrease.** Delete a meal from a day that was already sent → **Sync now** → a notification explaining how to correct it in Health, no new entry (log: `entries=0 notices=1`).
+8. **Disconnect.** Menu → **Disconnect** → "Disconnected. What is already in Apple Health stays there." (log: `route=revoke result=ok`); the next ▶ asks the connect questions again.
+9. **Automation.** Open Health with the **Nutrition MCP Health Auto** trigger set up: a `route=pending` line in the log with no notification on the phone (the access log records the path only, so `mode` does not show there).
+
+## 8. Publishing
+
+1. Set the first **Text** to `https://nutrition-mcp.com`.
+2. **Share** → **Copy iCloud Link**.
+3. Put the link in `HEALTH_SYNC_SHORTCUT_URL` (`src/health-sync.ts`) and run `bun run gen:all`; the setup page's install button appears.
+
+---
+
+## Device checklist
 
 On a real iPhone with the current iOS, before the shortcut is shared:
 
-1. Every **Log Health Sample** type and unit in the table in 5.3 exists, and Shortcuts can be granted write access to each, Caffeine and Fiber included.
+1. Every **Log Health Sample** type and unit in the table exists, and Shortcuts can be granted write access to each, Caffeine and Fiber included.
 2. `sample_local` (`yyyy-MM-dd HH:mm:ss`) parses through **Get Dates from Input** in the phone's zone, including on a DST-change date.
-3. **Find Health Samples** matches an exact start date to the second, filtered by source Shortcuts.
-4. Whether a **Log Health Sample** with a denied permission stops the whole run or continues (decides whether the 3-offer stuck notice is the only signal).
-5. **Log Health Sample**, **Get File** and **Save File** work on a locked phone from the Charger automation.
-6. Whether the Health charts refresh when the "Health Is Opened" automation finishes, or only after Health is reopened.
-7. Whether **Notify When Run** can be turned off for Run Immediately automations.
-8. How "has any value" behaves for a missing dictionary key, and how `ok` (a JSON `true`) compares in **If**.
-9. How long 8 log actions × 7 entries plus 9 HTTP calls takes, and whether a background automation is killed before the end.
-10. Two sources writing Dietary Energy are summed in Health (expected; the troubleshooting copy says so).
-11. `shortcuts://run-shortcut?…&input=text&text=…` from Safari reaches the shortcut as `Shortcut Input` with **Receive** set as in section 3, and Safari's "Open in Shortcuts?" prompt appears at most once.
-12. **Format Date** with custom format `VV` returns the IANA zone name.
-13. A **Dictionary** saved with **Save File** or put into **Text** becomes JSON, so the ack body echoes `values` unchanged.
-14. Whether the first **Log Health Sample** run from a background automation, with Health write access never granted, shows the permission sheet, waits, or fails (decides whether the setup page's "run Sync now once after 05:00" step for `From today` is required or only a convenience).
+3. **Run Shortcut** can run `Nutrition MCP Health` from inside itself (Sync now and the claim rely on it). If not, those two branches need their own copy of block A.
+4. **Repeat Item** placed in **Text** becomes JSON, so the ack echoes `values` unchanged. If `/ack` answers `bad_request`, show that Text in an alert to see what was sent.
+5. **Format Date** with custom format `VV` returns the IANA zone name (e.g. `Europe/Kyiv`).
+6. Stored content (Global Value off) persists between runs, is readable by this shortcut only, and survives an iOS update; note whether it syncs to other devices.
+7. `shortcuts://run-shortcut?…&input=text&text=…` from Safari reaches the shortcut as `Shortcut Input`, and Safari's "Open in Shortcuts?" prompt appears at most once.
+8. Whether a **Log Health Sample** with a denied permission stops the whole run or continues (decides whether the 3-offer stuck notice is the only signal).
+9. **Log Health Sample** and stored content work on a locked phone from the Charger trigger.
+10. Whether the first **Log Health Sample** from a background trigger, with Health write access never granted, shows the permission sheet, waits, or fails.
+11. Whether the Health charts refresh when the "Health Is Opened" run finishes, or only after Health is reopened.
+12. How long 8 log actions × 7 entries plus 9 HTTP calls takes, and whether a background run is killed before the end.
+13. Two sources writing Dietary Energy are summed in Health (expected; the troubleshooting copy says so).
