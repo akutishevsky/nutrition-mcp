@@ -68,3 +68,16 @@ test("no runtime log line carries a user id or email", async () => {
     expect(count).toBeGreaterThan(20);
     expect(offenders).toEqual([]);
 });
+
+// A health-sync connect link (/health-sync/connect/<id>) is a live pairing
+// secret for 30 minutes, so the access log prints the path through
+// accessLogPath, which hides the id. src/index.test.ts drives the real app to
+// check the line it prints; this pins that the [req] line goes through it.
+test("the access log line hides a connect link's id", async () => {
+    const src = await Bun.file(`${import.meta.dir}/index.ts`).text();
+    const req = consoleArguments("index.ts", src).filter(({ args }) =>
+        args.includes("[req]"),
+    );
+    expect(req).toHaveLength(1);
+    expect(req[0]!.args).toContain("accessLogPath(path)");
+});

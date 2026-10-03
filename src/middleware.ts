@@ -3,6 +3,7 @@ import { getUserIdByToken } from "./supabase.js";
 import { maskIp } from "./net.js";
 import { resourceMetadataUrl } from "./discovery.js";
 import { getBaseUrl } from "./url.js";
+import { HEALTH_SYNC_TOKEN_PREFIX } from "./health-sync.js";
 
 // Declare the context variables this middleware sets. Without it, c.get/c.set on
 // an untyped `new Hono()` app types its keys as `never`, so index.ts cannot read
@@ -35,13 +36,28 @@ import {
 // only applies when no proxy header is present (e.g. direct local requests), in
 // which case those callers share a single bucket — acceptable since production
 // always sits behind the proxy.
-function getClientIp(c: Context): string {
+export function getClientIp(c: Context): string {
     const forwardedFor = c.req.header("x-forwarded-for");
     if (forwardedFor) {
         const first = forwardedFor.split(",")[0]?.trim();
         if (first) return first;
     }
     return c.req.header("x-real-ip")?.trim() || "unknown";
+}
+
+// Count one failed authentication against the client IP. Shared by /mcp's
+// bearer check and the Apple Health sync API (src/health-sync-routes.ts), so a
+// client failing on either is shed by the same ban.
+export function recordAuthFailure(c: Context): void {
+    const ban = noteAuthFailure(getClientIp(c));
+    // Reaching here means the ban guard let the request through, so a banned
+    // result is necessarily a *newly* tripped ban — log the transition once
+    // rather than on every suppressed request that follows.
+    if (ban.banned) {
+        console.log(
+            `[ban] ${maskIp(c.req.header("x-forwarded-for"))} repeated auth failures on ${c.req.path} — shedding for ${ban.retryAfterSeconds}s`,
+        );
+    }
 }
 
 // Shared 401 path. Every rejection also counts a strike against the client IP so
@@ -51,16 +67,7 @@ function rejectUnauthenticated(
     error: "unauthorized" | "invalid_token",
     description: string,
 ) {
-    const ip = getClientIp(c);
-    const ban = noteAuthFailure(ip);
-    // Reaching here means the ban guard let the request through, so a banned
-    // result is necessarily a *newly* tripped ban — log the transition once
-    // rather than on every suppressed request that follows.
-    if (ban.banned) {
-        console.log(
-            `[ban] ${maskIp(c.req.header("x-forwarded-for"))} repeated auth failures on ${c.req.path} — shedding for ${ban.retryAfterSeconds}s`,
-        );
-    }
+    recordAuthFailure(c);
 
     c.header(
         "WWW-Authenticate",
@@ -86,6 +93,21 @@ export const authenticateBearer = async (c: Context, next: Next) => {
     }
 
     const token = authHeader.substring(7);
+
+    // An Apple Health sync link token is never an MCP credential. The tables
+    // already guarantee that (getUserIdByToken reads oauth_tokens, and link
+    // tokens live only in health_sync_links), but refusing the prefix here
+    // costs nothing and keeps a phone's token from spending a database
+    // round trip at /mcp. The reverse direction is the health-sync router's
+    // own prefix check.
+    if (token.startsWith(HEALTH_SYNC_TOKEN_PREFIX)) {
+        return rejectUnauthenticated(
+            c,
+            "invalid_token",
+            "Token is invalid or expired",
+        );
+    }
+
     const lookup = await getUserIdByToken(token);
 
     if (lookup.status === "unavailable") {
