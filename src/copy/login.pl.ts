@@ -46,4 +46,6 @@ export const LOGIN_CLIENT_NOTICE_PL: LoginClientNotice = {
         "{host} nie jest znanym nam asystentem. Kontynuuj tylko wtedy, gdy to Ty rozpoczynasz połączenie z poziomu {host}.",
     loopback:
         "Wrócisz do programu działającego na tym komputerze ({host}). Kontynuuj tylko wtedy, gdy właśnie z niego rozpoczynasz to połączenie.",
+    healthSync:
+        "Logowanie łączy synchronizację z Apple Health na urządzeniu, na którym otwarto tę stronę. Jeśli nie rozpoczynasz tego właśnie teraz ze skrótu Nutrition MCP na swoim własnym urządzeniu iPhone, zamknij tę stronę.",
 };

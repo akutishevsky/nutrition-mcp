@@ -4,6 +4,7 @@
 // test file never needs mock.module("./supabase.js") — a process-wide mock
 // there is exactly what broke middleware.test.ts on Linux CI once already.
 import { hashSecret } from "./token-hash.js";
+import { HEALTH_SYNC_CLIENT_ID } from "./health-sync.js";
 import {
     consumeAuthCode,
     consumeRefreshToken,
@@ -35,6 +36,10 @@ export interface OAuthClient {
     // redirects are checked against loopback + the legacy snapshot instead.
     redirectUris: string[];
     legacy: boolean;
+    // Set only on a built-in client this server runs itself (see
+    // HEALTH_SYNC_CLIENT). Never read from oauth_clients, so absent on every
+    // registered client and on the legacy one.
+    firstParty?: "health-sync";
 }
 
 export interface NewOAuthClient extends Omit<OAuthClient, "legacy"> {
@@ -118,6 +123,58 @@ export function withLegacyClient(
         // No oauth_clients row to stamp.
         touchClient: (clientId) =>
             clientId === legacy.clientId
+                ? Promise.resolve()
+                : store.touchClient(clientId),
+    };
+}
+
+// The Apple Health sync pairing flow's own client: the server signs a phone
+// in by acting as an OAuth client of itself (src/health-sync-routes.ts), so
+// the whole sign-in — password, Google, the browser-binding cookie, the
+// consent notice — is the same hardened flow every MCP client goes through.
+// Resolved in memory like the legacy client (withFirstPartyClients): it has
+// no oauth_clients row, so the hourly client sweep can never delete it and
+// nothing can register over it (/register mints its own ids). It is public
+// ("none"), and its only accepted redirect is this server's own
+// HEALTH_SYNC_CALLBACK_PATH on the request's own base URL, exact match — see
+// redirectAllowed in src/oauth.ts. Its codes are redeemed by that callback
+// straight from the store, never at /token, which refuses this client.
+//
+// The id itself lives in the pure src/health-sync.ts (which imports nothing
+// from here) and is re-exported so OAuth code keeps one import site.
+export { HEALTH_SYNC_CLIENT_ID };
+export const HEALTH_SYNC_CALLBACK_PATH = "/health-sync/callback";
+
+// The one redirect the health-sync client may use, for a request whose
+// getBaseUrl() is baseUrl.
+export function healthSyncCallbackUrl(baseUrl: string): string {
+    return `${baseUrl}${HEALTH_SYNC_CALLBACK_PATH}`;
+}
+
+export const HEALTH_SYNC_CLIENT: OAuthClient = Object.freeze({
+    clientId: HEALTH_SYNC_CLIENT_ID,
+    secretHash: null,
+    authMethod: "none",
+    // Empty on purpose: its redirect depends on the request's base URL, so
+    // redirectAllowed checks it against healthSyncCallbackUrl instead.
+    redirectUris: [],
+    legacy: false,
+    firstParty: "health-sync",
+}) as OAuthClient;
+
+// Wraps any store so the built-in clients resolve in memory, ahead of the
+// table, exactly as withLegacyClient does for the env client. Applied by the
+// router to whichever store it was given, fake or Supabase.
+export function withFirstPartyClients(store: OAuthStore): OAuthStore {
+    return {
+        ...store,
+        getClient: (clientId) =>
+            clientId === HEALTH_SYNC_CLIENT_ID
+                ? Promise.resolve(HEALTH_SYNC_CLIENT)
+                : store.getClient(clientId),
+        // No oauth_clients row to stamp.
+        touchClient: (clientId) =>
+            clientId === HEALTH_SYNC_CLIENT_ID
                 ? Promise.resolve()
                 : store.touchClient(clientId),
     };
