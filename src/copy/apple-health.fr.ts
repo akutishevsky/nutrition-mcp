@@ -116,7 +116,7 @@ export const APPLE_HEALTH_FR: AppleHealthDoc = {
         title: "Confidentialité et limites",
         items: [
             "Notre serveur conserve la connexion et, pendant 8 jours, un historique des totaux envoyés, afin que chaque journée soit envoyée une fois puis seulement complétée. Les deux figurent dans ton export de données.",
-            "Le raccourci conserve son jeton d'accès dans un fichier du dossier Raccourcis de ton iPhone, qui se trouve aussi dans ton iCloud Drive lorsque ce dossier y est synchronisé. Toute personne pouvant lire ce fichier peut utiliser la synchronisation jusqu'à ce que tu la déconnectes : garde-le donc privé.",
+            "Le raccourci conserve son jeton d'accès dans son propre stockage au sein de l'app Raccourcis sur ton iPhone, et non dans un fichier, et l'app Raccourcis peut le synchroniser avec tes autres appareils via iCloud. Toute personne pouvant exécuter le raccourci sur tes appareils peut utiliser la synchronisation jusqu'à ce que tu la déconnectes : garde-le donc sur des appareils que toi seul utilises.",
             "Nous n'envoyons rien à Apple. Le raccourci demande tes totaux à notre serveur et les écrit dans Santé sur ton iPhone ; à partir de là, ce sont tes propres réglages Apple qui s'appliquent.",
             "Choisis <strong>Disconnect</strong> à tout moment : la connexion et son historique sont supprimés immédiatement. Elle prend aussi fin d'elle-même après 90 jours sans synchronisation, et 365 jours après la connexion. Ce qui est déjà dans Apple Health y reste jusqu'à ce que tu le supprimes.",
         ],

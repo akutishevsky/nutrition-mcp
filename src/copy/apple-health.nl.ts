@@ -121,7 +121,7 @@ export const APPLE_HEALTH_NL: AppleHealthDoc = {
         title: "Privacy en grenzen",
         items: [
             "Onze server bewaart de koppeling en, 8 dagen lang, een overzicht van de verstuurde totalen, zodat elke dag één keer wordt verstuurd en daarna alleen wordt aangevuld. Beide zitten in je gegevensexport.",
-            "De opdracht bewaart haar toegangstoken in een bestand in de map van Opdrachten op je iPhone, en in je iCloud Drive als die map daarheen synchroniseert. Wie dat bestand kan lezen, kan de synchronisatie gebruiken tot je ontkoppelt, dus houd het privé.",
+            "De opdracht bewaart haar toegangstoken in haar eigen opslag in de Opdrachten-app op je iPhone, niet in een bestand, en de Opdrachten-app synchroniseert het mogelijk via iCloud naar je andere apparaten. Wie de opdracht op je apparaten kan uitvoeren, kan de synchronisatie gebruiken tot je ontkoppelt, dus houd haar op apparaten die alleen jij gebruikt.",
             "We sturen niets naar Apple. De opdracht vraagt onze server om je totalen en schrijft ze op je iPhone in Gezondheid; vanaf daar gelden je eigen instellingen bij Apple.",
             "Kies op elk moment <strong>Disconnect</strong> en de koppeling en haar overzicht worden direct verwijderd. Ze vervalt ook vanzelf na 90 dagen zonder synchronisatie, en 365 dagen na het verbinden. Wat al in Apple Health staat, blijft daar tot je het verwijdert.",
         ],

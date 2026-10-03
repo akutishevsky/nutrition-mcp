@@ -123,7 +123,7 @@ export const APPLE_HEALTH_IT: AppleHealthDoc = {
         title: "Privacy e limiti",
         items: [
             "Il nostro server conserva il collegamento e, per 8 giorni, una registrazione dei totali che ha inviato, così che ogni giorno venga inviato una volta e poi solo integrato. Entrambi sono inclusi nell'esportazione dei tuoi dati.",
-            "Il comando rapido conserva il suo token di accesso in un file nella cartella Comandi Rapidi del tuo iPhone, e anche nel tuo iCloud Drive quando quella cartella vi si sincronizza. Chiunque possa leggere quel file può usare la sincronizzazione finché non la scolleghi, quindi tienilo privato.",
+            "Il comando rapido conserva il suo token di accesso nella propria memoria all'interno dell'app Comandi Rapidi del tuo iPhone, non in un file, e l'app Comandi Rapidi può sincronizzarlo con gli altri tuoi dispositivi tramite iCloud. Chiunque possa eseguire il comando rapido sui tuoi dispositivi può usare la sincronizzazione finché non la scolleghi, quindi tienilo solo su dispositivi che usi tu.",
             "Non inviamo nulla ad Apple. Il comando rapido chiede i tuoi totali al nostro server e li scrive in Salute sul tuo iPhone; da lì in poi valgono le tue impostazioni Apple.",
             "Scegli <strong>Disconnect</strong> in qualsiasi momento e il collegamento e la sua registrazione vengono eliminati subito. Termina anche da solo dopo 90 giorni senza sincronizzazione e 365 giorni dopo il collegamento. Ciò che è già in Apple Health resta lì finché non lo elimini.",
         ],
