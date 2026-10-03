@@ -68,7 +68,7 @@ export const PRIVACY_ES: LegalDoc = {
                     'Cuando buscas un código de barras, directamente o a través de tu asistente de IA, nuestro servidor envía solo los dígitos del código a <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> (nunca tu cuenta, tu correo electrónico ni tus registros) y guarda los datos del producto que recibe en una caché compartida que no está vinculada a ningún usuario.',
                 ),
                 p(
-                    "Si conectas la sincronización con Apple Health, el atajo de tu iPhone pide a nuestro servidor los totales diarios de tus días ya cerrados (calorías, proteínas, carbohidratos, grasas, fibra, azúcar, cafeína y, si lo elegiste, agua) y los escribe en Apple Health en ese iPhone. Esto ocurre a petición tuya y en tu dispositivo: nuestro servidor solo responde al atajo y no envía nada a Apple. Una vez que los totales están en Apple Health, se guardan y se comparten allí según tus propios ajustes y tu acuerdo con Apple, no el nuestro.",
+                    "Si conectas la sincronización con Apple Health, el atajo de tu iPhone pide a nuestro servidor los totales diarios de tus días ya cerrados (calorías, proteínas, carbohidratos, grasas, fibra, cafeína y, si lo elegiste, agua) y los escribe en Apple Health en ese iPhone. Esto ocurre a petición tuya y en tu dispositivo: nuestro servidor solo responde al atajo y no envía nada a Apple. Una vez que los totales están en Apple Health, se guardan y se comparten allí según tus propios ajustes y tu acuerdo con Apple, no el nuestro.",
                 ),
                 p(
                     "Sí usamos dos tipos de analítica, y ninguno accede al contenido de tus registros:",

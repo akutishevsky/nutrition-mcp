@@ -82,7 +82,7 @@ export const PRIVACY_IT: LegalDoc = {
                     'Quando tu o il tuo assistente IA cercate un codice a barre, il nostro server invia a <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> solo le cifre del codice a barre (mai il tuo account, la tua email o i tuoi registri) e conserva i dati del prodotto restituiti in una cache condivisa, non collegata ad alcun utente.',
                 ),
                 p(
-                    "Se colleghi la sincronizzazione con Apple Health, il comando rapido sul tuo iPhone chiede al nostro server i totali giornalieri delle giornate concluse (calorie, proteine, carboidrati, grassi, fibre, zuccheri, caffeina e, se l'hai scelto, acqua) e li scrive in Apple Health su quell'iPhone. Avviene su tua richiesta e sul tuo dispositivo: il nostro server risponde solo al comando rapido e non invia nulla ad Apple. Una volta in Apple Health, i totali vi sono conservati e condivisi secondo le tue impostazioni e il tuo accordo con Apple, non il nostro.",
+                    "Se colleghi la sincronizzazione con Apple Health, il comando rapido sul tuo iPhone chiede al nostro server i totali giornalieri delle giornate concluse (calorie, proteine, carboidrati, grassi, fibre, caffeina e, se l'hai scelto, acqua) e li scrive in Apple Health su quell'iPhone. Avviene su tua richiesta e sul tuo dispositivo: il nostro server risponde solo al comando rapido e non invia nulla ad Apple. Una volta in Apple Health, i totali vi sono conservati e condivisi secondo le tue impostazioni e il tuo accordo con Apple, non il nostro.",
                 ),
                 p(
                     "Esistono due tipi di analisi, e nessuno dei due riguarda il contenuto dei tuoi registri:",

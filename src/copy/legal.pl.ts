@@ -68,7 +68,7 @@ export const PRIVACY_PL: LegalDoc = {
                     'Gdy Ty lub Twój asystent AI wyszukujecie kod kreskowy, nasz serwer wysyła do <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> wyłącznie cyfry kodu — nigdy danych Twojego konta, adresu e-mail ani wpisów — a zwrócone dane produktu przechowuje we wspólnej pamięci podręcznej, która nie jest powiązana z żadnym użytkownikiem.',
                 ),
                 p(
-                    "Jeśli połączysz synchronizację z Apple Health, skrót w telefonie iPhone pobiera z naszego serwera sumy dzienne zakończonych dni — kalorie, białko, węglowodany, tłuszcz, błonnik, cukier, kofeinę oraz, jeśli tak wybrano, wodę — i zapisuje je w Apple Health na tym telefonie. Dzieje się to na Twoje życzenie i na Twoim urządzeniu: nasz serwer odpowiada wyłącznie skrótowi i niczego nie wysyła do Apple. Gdy sumy trafią do Apple Health, są tam przechowywane i udostępniane zgodnie z Twoimi ustawieniami i Twoją umową z Apple, a nie naszą.",
+                    "Jeśli połączysz synchronizację z Apple Health, skrót w telefonie iPhone pobiera z naszego serwera sumy dzienne zakończonych dni — kalorie, białko, węglowodany, tłuszcz, błonnik, kofeinę oraz, jeśli tak wybrano, wodę — i zapisuje je w Apple Health na tym telefonie. Dzieje się to na Twoje życzenie i na Twoim urządzeniu: nasz serwer odpowiada wyłącznie skrótowi i niczego nie wysyła do Apple. Gdy sumy trafią do Apple Health, są tam przechowywane i udostępniane zgodnie z Twoimi ustawieniami i Twoją umową z Apple, a nie naszą.",
                 ),
                 p(
                     "Prowadzimy dwa rodzaje analityki i żaden z nich nie obejmuje treści Twoich wpisów:",
