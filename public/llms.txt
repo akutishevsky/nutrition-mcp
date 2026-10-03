@@ -17,7 +17,7 @@ The site is also available in German, Spanish, French, Dutch, Polish, Italian, U
 - [Home](https://nutrition-mcp.com/): What Nutrition MCP is, how it works, install steps for Claude/ChatGPT/Cursor/VS Code, and examples.
 - [Tools reference](https://nutrition-mcp.com/tools): The full list of all 41 MCP tools (log_meal, lookup_barcode, start_meal_import, bulk_import_meals, get_nutrition_summary, log_weight, log_body_measurement, get_trends, and more) with descriptions and example prompts.
 - [Troubleshooting](https://nutrition-mcp.com/tools#troubleshooting): Fixes for connecting and signing in, meals on the wrong day, widgets, the importer, rate limits, barcode lookups, export links, account deletion, and where to report bugs and security issues.
-- [Apple Health sync](https://nutrition-mcp.com/apple-health): Setup guide for the optional Nutrition MCP Health iPhone shortcut, which copies the daily totals of finished days (calories, protein, carbs, fat, fiber, sugar, caffeine, optionally water; never alcohol) into Apple Health: install, connect, automations, everyday use and privacy.
+- [Apple Health sync](https://nutrition-mcp.com/apple-health): Setup guide for the optional Nutrition MCP Health iPhone shortcut, which copies the daily totals of finished days (calories, protein, carbs, fat, fiber, caffeine, optionally water; never alcohol) into Apple Health: install, connect, automations, everyday use and privacy.
 - [Alternatives overview](https://nutrition-mcp.com/alternatives): How Nutrition MCP compares to popular nutrition-tracking apps that publish no official MCP server.
 
 ## App comparisons
