@@ -1,5 +1,6 @@
 import { test, expect, describe } from "bun:test";
 import {
+    shortcutUrlFromEnv,
     HEALTH_SYNC_CLOSE_HOUR,
     HEALTH_SYNC_DEFAULT_FIELDS,
     HEALTH_SYNC_FIELDS,
@@ -1192,5 +1193,29 @@ describe("parseAckBody", () => {
                 ALL,
             ).ok,
         ).toBe(true);
+    });
+});
+
+describe("shortcutUrlFromEnv", () => {
+    test("accepts an iCloud shortcut link", () => {
+        expect(
+            shortcutUrlFromEnv(" https://www.icloud.com/shortcuts/abc123 "),
+        ).toBe("https://www.icloud.com/shortcuts/abc123");
+    });
+    test("anything else is null", () => {
+        for (const raw of [
+            undefined,
+            "",
+            "   ",
+            "not a url",
+            "http://www.icloud.com/shortcuts/abc123",
+            "https://icloud.com/shortcuts/abc123",
+            "https://www.icloud.com/shortcuts/",
+            "https://www.icloud.com/photos/abc123",
+            "https://evil.example/shortcuts/abc123",
+            "shortcuts://import-shortcut?url=x",
+        ]) {
+            expect(shortcutUrlFromEnv(raw)).toBeNull();
+        }
     });
 });

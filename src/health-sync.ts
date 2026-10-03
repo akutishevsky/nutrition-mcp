@@ -45,13 +45,40 @@ export const HEALTH_SYNC_MAX_BACKFILL_DAYS = 7;
 /** The Shortcut's exact name; the callback page runs it by this name. */
 export const HEALTH_SYNC_SHORTCUT_NAME = "Nutrition MCP Health";
 /**
- * The shortcut's public iCloud link (`https://www.icloud.com/shortcuts/…`), the
- * install button on /apple-health (scripts/gen-apple-health.ts). Null until the
- * shortcut is built per docs/apple-health-shortcut.md and shared from iCloud;
- * while it is null the page says the link is coming instead of showing a dead
- * button. Publishing it is: set it here, re-run the generator.
+ * The shortcut's public iCloud link from a raw env value: only an
+ * `https://www.icloud.com/shortcuts/…` link counts, since that is the one
+ * kind iOS opens straight into Shortcuts. Anything else is null.
  */
-export const HEALTH_SYNC_SHORTCUT_URL: string | null = null;
+export function shortcutUrlFromEnv(raw: string | undefined): string | null {
+    const value = raw?.trim();
+    if (!value) return null;
+    try {
+        const url = new URL(value);
+        if (
+            url.protocol === "https:" &&
+            url.hostname === "www.icloud.com" &&
+            url.pathname.startsWith("/shortcuts/") &&
+            url.pathname.length > "/shortcuts/".length
+        ) {
+            return url.toString();
+        }
+    } catch {
+        // fall through
+    }
+    return null;
+}
+/**
+ * The install button on /apple-health (scripts/gen-apple-health.ts), from the
+ * HEALTH_SYNC_SHORTCUT_URL env var. A build-time value, not a runtime one: the
+ * pages are generated during the build, so App Platform must pass it as a
+ * build arg (the Dockerfile declares it). Each deploy links the copy of the
+ * shortcut whose base URL points at it, and a fork that sets nothing shows
+ * "coming soon" rather than sending its users to nutrition-mcp.com. Unset or
+ * not an iCloud shortcut link: null, and the page says the link is coming.
+ */
+export const HEALTH_SYNC_SHORTCUT_URL: string | null = shortcutUrlFromEnv(
+    process.env.HEALTH_SYNC_SHORTCUT_URL,
+);
 /** The built-in first-party OAuth client the connect flow signs in through. */
 export const HEALTH_SYNC_CLIENT_ID = "nutrition-mcp-health-sync";
 /** Every link token starts with this, so a stray OAuth token is told apart
