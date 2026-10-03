@@ -214,7 +214,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps, ohne Tokens) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
+                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps und Apple Health Sync, ohne Tokens), health_sync.csv (was Apple Health Sync in den letzten 8 Tagen gesendet hat) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
             params: {},
             example:
                 "Exportier alle meine Daten – Mahlzeiten, Wasser, Gewicht und Ziele",
@@ -541,6 +541,21 @@ export const TOOLS_DE: ToolsDoc = {
                     "Ein Barcode wird nicht gefunden, oder die Werte wirken falsch",
                 answerHtml:
                     "Barcode-Daten stammen von Open Food Facts, einer von der Community gepflegten Datenbank – deshalb fehlen manche Produkte, und manche Einträge sind veraltet. Prüf, ob alle 8–14 Ziffern unter dem Barcode richtig gelesen wurden. Ist das Produkt nicht dabei, kann die KI anhand des Namens oder eines Fotos der Nährwerttabelle schätzen, und du kannst jeden Wert danach korrigieren. Wer das Produkt auf openfoodfacts.org einträgt, hilft allen. Open Food Facts hat keine Koffeindaten, deshalb stammt Koffein vom Etikett oder aus typischen Mengen.",
+            },
+            "health-sync-yesterday": {
+                question: "Gestern ist noch nicht in Apple Health",
+                answerHtml:
+                    'Die Synchronisierung mit Apple Health sendet nur abgeschlossene Tage. Ein Tag gilt um 05:00 am nächsten Morgen in deiner Zeitzone als abgeschlossen: Gestern kommt also mit der ersten Synchronisierung nach 05:00 heute an, und heute erscheint erst morgen in Health. Eine Synchronisierung läuft, wenn eine Automation des Kurzbefehls auslöst (die Health-App öffnen, deinen Wecker beenden) oder wenn du <strong>Nutrition MCP Health</strong> in der Kurzbefehle-App ausführst und <strong>Sync now</strong> wählst. Ein verpasster Morgen wird von selbst nachgeholt: Jede Synchronisierung schaut über die letzten 7 Tage zurück. Tage richten sich nach der Zeitzone in deinem Profil (<a href="#get_profile"><code>get_profile</code></a>) oder, falls du nie eine festgelegt hast, nach der, die dein iPhone beim Verbinden gemeldet hat (<a href="#wrong-day">Mahlzeiten am falschen Tag</a>). Tage vor dem Verbinden werden nur gesendet, wenn du beim Verbinden gewählt hast, bis zu 7 frühere Tage nachzuholen.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health zeigt mehr als mein Chat",
+                answerHtml:
+                    "Apple Health kann einen Wert ergänzen, aber nie einen bereits vorhandenen verringern. Eine Mahlzeit, die du zu einem bereits gesendeten Tag hinzufügst, folgt als kleiner zusätzlicher Eintrag um 12:01, 12:02 und so weiter, solange der Tag innerhalb der letzten 7 Tage liegt. Löschst oder verkleinerst du eine Mahlzeit, nachdem ihr Tag gesendet wurde, bleibt Health höher, und der Kurzbefehl zeigt einen Hinweis, um wie viel. So behebst du es: Öffne die Health-App, geh zu <strong>Entdecken</strong> → <strong>Ernährung</strong>, öffne den betroffenen Wert, tippe auf <strong>Alle Daten anzeigen</strong>, lösch die Einträge dieses Tages von Kurzbefehle und trag die richtige Summe von Hand ein. Verwende nie <strong>Alle Daten von „Kurzbefehle“ löschen</strong>: Das entfernt auch, was deine anderen Kurzbefehle erfasst haben. Wirkt jeder Tag verdoppelt, schreibt eine andere App dieselben Werte, und Health addiert beide: Schalte eine davon in der Health-App unter <strong>Teilen</strong> → <strong>Apps</strong> aus.",
+            },
+            "health-sync-stopped": {
+                question: "Die Synchronisierung mit Apple Health hat aufgehört",
+                answerHtml:
+                    "Öffne die Kurzbefehle-App und führe <strong>Nutrition MCP Health</strong> von Hand aus: Er sagt dir, was schiefgelaufen ist. Bittet er dich, neu zu verbinden, ist die Verbindung beendet (nach 90 Tagen ohne Synchronisierung, 365 Tage nach dem Verbinden oder nach <strong>Disconnect</strong>): Führ ihn aus, melde dich auf der Seite, die er öffnet, mit demselben Konto an wie in deiner KI-App und schließ das innerhalb von 30 Minuten ab. Synchronisiert er, wenn du ihn ausführst, aber nicht von selbst, prüf, ob seine Automationen im Tab <strong>Automation</strong> der Kurzbefehle-App eingeschaltet und auf <strong>Sofort ausführen</strong> gestellt sind. Meldet ein Hinweis, dass ein Tag Apple Health nicht erreicht hat, erlaube Kurzbefehle in der Health-App unter <strong>Teilen</strong> → <strong>Apps</strong> → <strong>Kurzbefehle</strong>, jeden Ernährungswert zu schreiben, und führ ihn erneut aus. Verbindest du ein neues iPhone, ersetzt das die Verbindung des alten.",
             },
             "export-link": {
                 question: "Der Download-Link meines Exports funktioniert nicht",

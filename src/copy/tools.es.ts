@@ -213,7 +213,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporta en un único ZIP todo lo que el servicio guarda sobre ti: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (tu cuenta de inicio de sesión), telemetry.csv (registros de uso de herramientas), connections.csv (tus apps de IA conectadas, sin ningún token) y un README.txt que explica las columnas, las unidades y lo que no se incluye. Te devuelve un enlace de descarga privado, válido durante 60 minutos. Por ahora, las comidas son lo único que se puede volver a importar.",
+                "Exporta en un único ZIP todo lo que el servicio guarda sobre ti: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (tu cuenta de inicio de sesión), telemetry.csv (registros de uso de herramientas), connections.csv (tus apps de IA conectadas y la sincronización con Apple Health, sin ningún token), health_sync.csv (lo que la sincronización con Apple Health envió en los últimos 8 días) y un README.txt que explica las columnas, las unidades y lo que no se incluye. Te devuelve un enlace de descarga privado, válido durante 60 minutos. Por ahora, las comidas son lo único que se puede volver a importar.",
             params: {},
             example: "Exporta todos mis datos: comidas, agua, peso y objetivos",
         },
@@ -536,6 +536,21 @@ export const TOOLS_ES: ToolsDoc = {
                     "No se encuentra un código de barras, o sus valores parecen incorrectos",
                 answerHtml:
                     "Los datos de los códigos de barras vienen de Open Food Facts, una base de datos colaborativa, así que faltan algunos productos y algunas fichas están desactualizadas. Comprueba que se hayan leído bien los 8–14 dígitos que hay bajo el código de barras. Si el producto no está, la IA puede estimar sus valores a partir del nombre o de una foto de la tabla nutricional, y después puedes corregir cualquier cifra. Si añades el producto en openfoodfacts.org, ayudas a todo el mundo. Open Food Facts no tiene datos de cafeína, así que la cafeína sale de la etiqueta o de cantidades típicas.",
+            },
+            "health-sync-yesterday": {
+                question: "Ayer todavía no está en Apple Health",
+                answerHtml:
+                    'La sincronización con Apple Health solo envía días terminados. Un día se da por terminado a las 05:00 de la mañana siguiente en tu zona horaria, así que ayer llega con la primera sincronización después de las 05:00 de hoy, y hoy no aparece en Salud hasta mañana. Una sincronización se ejecuta cuando salta una de las automatizaciones del atajo (abrir la app Salud, detener tu alarma) o cuando ejecutas <strong>Nutrition MCP Health</strong> en la app Atajos y eliges <strong>Sync now</strong>. Una mañana perdida se recupera sola: cada sincronización revisa los últimos 7 días. Los días siguen la zona horaria de tu perfil (<a href="#get_profile"><code>get_profile</code></a>) o, si nunca configuraste una, la que tu iPhone indicó al conectar (<a href="#wrong-day">comidas en el día equivocado</a>). Los días anteriores a la conexión solo se envían si al conectar elegiste recuperar hasta 7 días previos.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health muestra más que mi chat",
+                answerHtml:
+                    "Apple Health puede sumar a un valor, pero nunca reducir uno que ya tiene. Una comida que añades a un día ya enviado llega como una pequeña entrada extra a las 12:01, 12:02, etc., siempre que el día esté dentro de los últimos 7 días. Si borras o reduces una comida después de que su día se envió, Salud se queda con un valor más alto y el atajo muestra un aviso con la diferencia. Para corregirlo, abre la app Salud, ve a <strong>Explorar</strong> → <strong>Nutrición</strong>, abre el tipo de dato, toca <strong>Mostrar todos los datos</strong>, borra las entradas de ese día que vienen de Atajos e introduce a mano el total correcto. No uses nunca <strong>Eliminar todos los datos de «Atajos»</strong>: también borra lo que registraron tus otros atajos. Si todos los días parecen duplicados, otra app escribe los mismos tipos y Salud suma ambas: desactiva una de ellas en <strong>Compartir</strong> → <strong>Apps</strong> dentro de la app Salud.",
+            },
+            "health-sync-stopped": {
+                question: "La sincronización con Apple Health se ha detenido",
+                answerHtml:
+                    "Abre la app Atajos y ejecuta <strong>Nutrition MCP Health</strong> a mano: te dirá qué ha fallado. Si te pide conectar de nuevo, la conexión ha terminado (tras 90 días sin sincronizar, 365 días después de conectar o tras <strong>Disconnect</strong>): ejecútalo, inicia sesión en la página que abre con la misma cuenta que usas en tu app de IA y termina en menos de 30 minutos. Si sincroniza cuando lo ejecutas pero no por sí solo, comprueba que sus automatizaciones en la pestaña <strong>Automatización</strong> de Atajos estén activadas y configuradas como <strong>Ejecutar inmediatamente</strong>. Si un aviso dice que un día no llegó a Apple Health, permite que Atajos escriba todos los tipos de nutrición en <strong>Compartir</strong> → <strong>Apps</strong> → <strong>Atajos</strong> dentro de la app Salud y vuelve a ejecutarlo. Conectar un iPhone nuevo reemplaza la conexión del anterior.",
             },
             "export-link": {
                 question: "El enlace de descarga de mi exportación no funciona",

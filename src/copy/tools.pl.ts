@@ -202,7 +202,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI, bez żadnych tokenów) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
+                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI i synchronizacja z Apple Health, bez żadnych tokenów), health_sync.csv (to, co synchronizacja z Apple Health wysłała w ciągu ostatnich 8 dni) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
             params: {},
             example:
                 "Wyeksportuj wszystkie moje dane — posiłki, wodę, wagę i cele",
@@ -524,6 +524,21 @@ export const TOOLS_PL: ToolsDoc = {
                     "Kod kreskowy nie zostaje znaleziony albo jego wartości wyglądają na błędne",
                 answerHtml:
                     "Dane kodów kreskowych pochodzą z Open Food Facts, bazy tworzonej przez społeczność, więc niektórych produktów brakuje, a niektóre wpisy są nieaktualne. Upewnij się, że wszystkie cyfry pod kodem kreskowym (od 8 do 14) zostały odczytane poprawnie. Jeśli produktu nie ma w bazie, AI może oszacować wartości na podstawie nazwy albo zdjęcia tabeli wartości odżywczych, a Ty możesz później poprawić dowolną liczbę. Dodanie produktu na openfoodfacts.org pomaga wszystkim. Open Food Facts nie ma danych o kofeinie, więc jej ilość pochodzi z etykiety albo z typowych wartości.",
+            },
+            "health-sync-yesterday": {
+                question: "Wczorajszego dnia jeszcze nie ma w Apple Health",
+                answerHtml:
+                    'Synchronizacja z Apple Health wysyła tylko zakończone dni. Dzień uznaje się za zakończony o 05:00 następnego ranka w Twojej strefie czasowej, więc wczorajszy dzień trafia tam przy pierwszej synchronizacji po 05:00 dzisiaj, a dzisiejszy pojawi się w aplikacji Zdrowie dopiero jutro. Synchronizacja uruchamia się, gdy zadziała jedna z automatyzacji skrótu (otwarcie aplikacji Zdrowie, wyłączenie budzika), albo gdy uruchomisz <strong>Nutrition MCP Health</strong> w aplikacji Skróty i wybierzesz <strong>Sync now</strong>. Pominięty poranek nadrabia się sam: każda synchronizacja sięga 7 ostatnich dni. Dni liczone są w strefie czasowej z Twojego profilu (<a href="#get_profile"><code>get_profile</code></a>), a jeśli nigdy jej nie ustawiono, w tej, którą Twój telefon iPhone zgłosił przy łączeniu (<a href="#wrong-day">posiłki pod złym dniem</a>). Dni sprzed połączenia są wysyłane tylko wtedy, gdy przy łączeniu wybrano nadrobienie do 7 wcześniejszych dni.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health pokazuje więcej niż mój czat",
+                answerHtml:
+                    "Apple Health może dodać coś do wartości, ale nigdy nie obniży wartości, którą już ma. Posiłek dodany do dnia, który został już wysłany, trafia tam jako mały dodatkowy wpis o 12:01, 12:02 i tak dalej, o ile ten dzień mieści się w 7 ostatnich dniach. Jeśli usuniesz lub zmniejszysz posiłek po wysłaniu jego dnia, w aplikacji Zdrowie zostanie wyższa wartość, a skrót pokaże powiadomienie o różnicy. Aby to poprawić, otwórz aplikację Zdrowie, przejdź do <strong>Przeglądaj</strong> → <strong>Odżywianie</strong>, otwórz dany typ, stuknij <strong>Pokaż wszystkie dane</strong>, usuń wpisy z tego dnia pochodzące z aplikacji Skróty i wpisz poprawną sumę ręcznie. Nigdy nie używaj opcji <strong>Usuń wszystkie dane z „Skróty”</strong>: usuwa ona także to, co zapisały Twoje inne skróty. Jeśli każdy dzień wygląda na podwojony, inna aplikacja zapisuje te same typy, a aplikacja Zdrowie je sumuje: wyłącz jedną z nich w <strong>Udostępnianie</strong> → <strong>Aplikacje</strong> w aplikacji Zdrowie.",
+            },
+            "health-sync-stopped": {
+                question: "Synchronizacja z Apple Health przestała działać",
+                answerHtml:
+                    "Otwórz aplikację Skróty i uruchom <strong>Nutrition MCP Health</strong> ręcznie: skrót powie, co poszło nie tak. Jeśli prosi o ponowne połączenie, połączenie wygasło (po 90 dniach bez synchronizacji, 365 dniach od połączenia albo po wybraniu <strong>Disconnect</strong>): uruchom go, zaloguj się na otwartej stronie na to samo konto co w aplikacji AI i dokończ w ciągu 30 minut. Jeśli synchronizuje po ręcznym uruchomieniu, ale nie sam, sprawdź, czy jego automatyzacje na karcie <strong>Automatyzacja</strong> w aplikacji Skróty są włączone i ustawione na <strong>Uruchom natychmiast</strong>. Jeśli powiadomienie mówi, że dzień nie dotarł do Apple Health, pozwól aplikacji Skróty zapisywać każdy typ odżywiania w <strong>Udostępnianie</strong> → <strong>Aplikacje</strong> → <strong>Skróty</strong> w aplikacji Zdrowie, a potem uruchom skrót ponownie. Połączenie nowego telefonu iPhone zastępuje połączenie poprzedniego.",
             },
             "export-link": {
                 question: "Link do pobrania eksportu nie działa",

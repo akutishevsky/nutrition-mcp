@@ -209,7 +209,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps, zonder tokens) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
+                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps en Apple Health-synchronisatie, zonder tokens), health_sync.csv (wat Apple Health-synchronisatie de afgelopen 8 dagen heeft verstuurd) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
             params: {},
             example:
                 "Exporteer al mijn gegevens: maaltijden, water, gewicht en doelen",
@@ -534,6 +534,21 @@ export const TOOLS_NL: ToolsDoc = {
                     "Een barcode wordt niet gevonden, of de waarden lijken niet te kloppen",
                 answerHtml:
                     "Barcodegegevens komen van Open Food Facts, een communitydatabase, dus sommige producten ontbreken en sommige gegevens zijn verouderd. Controleer of alle 8–14 cijfers onder de barcode goed zijn gelezen. Staat het product er niet in, dan kan de AI een schatting maken op basis van de naam of een foto van het voedingsetiket, en je kunt elk getal achteraf corrigeren. Voeg je het product toe op openfoodfacts.org, dan heeft iedereen er wat aan. Open Food Facts heeft geen cafeïnegegevens, dus cafeïne komt van het etiket of wordt geschat op basis van gangbare hoeveelheden.",
+            },
+            "health-sync-yesterday": {
+                question: "Gisteren staat nog niet in Apple Health",
+                answerHtml:
+                    'De synchronisatie met Apple Health stuurt alleen afgeronde dagen. Een dag is afgerond om 05:00 de volgende ochtend in jouw tijdzone, dus gisteren komt binnen met de eerste synchronisatie na 05:00 vandaag, en vandaag verschijnt pas morgen in Gezondheid. Een synchronisatie draait wanneer een van de automatiseringen van de opdracht afgaat (de Gezondheid-app openen, je wekker stoppen) of wanneer je <strong>Nutrition MCP Health</strong> in de Opdrachten-app uitvoert en <strong>Sync now</strong> kiest. Een gemiste ochtend wordt vanzelf ingehaald: elke synchronisatie kijkt terug over de laatste 7 dagen. Dagen volgen de tijdzone in je profiel (<a href="#get_profile"><code>get_profile</code></a>) of, als je er nooit een hebt ingesteld, de tijdzone die je iPhone bij het verbinden doorgaf (<a href="#wrong-day">maaltijden op de verkeerde dag</a>). Dagen van vóór het verbinden worden alleen gestuurd als je bij het verbinden koos om tot 7 eerdere dagen op te halen.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health toont meer dan mijn chat",
+                answerHtml:
+                    "Apple Health kan iets bij een waarde optellen, maar een waarde die het al heeft nooit verlagen. Een maaltijd die je toevoegt aan een dag die al is verstuurd, volgt als een kleine extra invoer om 12:01, 12:02 enzovoort, zolang de dag binnen de laatste 7 dagen valt. Verwijder of verklein je een maaltijd nadat de dag is verstuurd, dan blijft Gezondheid hoger en toont de opdracht een melding met het verschil. Zo los je het op: open de Gezondheid-app, ga naar <strong>Blader</strong> → <strong>Voeding</strong>, open het betreffende type, tik op <strong>Toon alle gegevens</strong>, verwijder de invoer van die dag afkomstig van Opdrachten en voer het juiste totaal met de hand in. Gebruik nooit <strong>Verwijder alle gegevens van ‘Opdrachten’</strong>: dat wist ook wat je andere opdrachten hebben vastgelegd. Lijkt elke dag verdubbeld, dan schrijft een andere app dezelfde types en telt Gezondheid ze op: zet er één uit onder <strong>Deel</strong> → <strong>Apps</strong> in de Gezondheid-app.",
+            },
+            "health-sync-stopped": {
+                question: "De synchronisatie met Apple Health is gestopt",
+                answerHtml:
+                    "Open de Opdrachten-app en voer <strong>Nutrition MCP Health</strong> met de hand uit: de opdracht vertelt wat er misging. Vraagt ze je opnieuw te verbinden, dan is de verbinding beëindigd (na 90 dagen zonder synchronisatie, 365 dagen na het verbinden of na <strong>Disconnect</strong>): voer haar uit, log op de pagina die opent in met hetzelfde account als in je AI-app en rond dat binnen 30 minuten af. Synchroniseert ze als je haar uitvoert, maar niet vanzelf, controleer dan of haar automatiseringen in het tabblad <strong>Automatisering</strong> van Opdrachten aan staan en zijn ingesteld op <strong>Voer direct uit</strong>. Meldt een bericht dat een dag Apple Health niet heeft bereikt, geef Opdrachten dan in de Gezondheid-app onder <strong>Deel</strong> → <strong>Apps</strong> → <strong>Opdrachten</strong> toestemming om elk voedingstype te schrijven en voer haar opnieuw uit. Een nieuwe iPhone verbinden vervangt de verbinding van de oude.",
             },
             "export-link": {
                 question: "Mijn downloadlink voor de export werkt niet",
