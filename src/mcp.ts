@@ -105,6 +105,10 @@ import {
 import { formatAlcohol, isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import { exportAllData } from "./export.js";
 import {
+    createSupabaseHealthSyncStore,
+    type HealthSyncLinkStatus,
+} from "./health-sync-store.js";
+import {
     runImport,
     buildSummaryText,
     serializeImportResult,
@@ -1601,6 +1605,28 @@ export function offNotFoundText(barcode: string): string {
 // a number it was forbidden to show the user for review. That is the widget's
 // choice, announced to the user on screen, not a rule this server enforces — see
 // startImportPayload for the full trade-off.
+/**
+ * get_profile's Apple Health sync line. `undefined` means the status could not
+ * be read (the line says so rather than failing the whole profile), `null`
+ * means no link. Dates and times are local to `tz`, like the rest of the
+ * profile. Describes only: connecting happens from the iPhone shortcut, not
+ * through any tool, so there is nothing here to offer.
+ */
+export function healthSyncProfileLine(
+    status: HealthSyncLinkStatus | null | undefined,
+    tz: string,
+): string {
+    if (status === undefined)
+        return "Apple Health sync: status unavailable right now.";
+    if (status === null) return "Apple Health sync: not connected.";
+    const connected = dateInTz(status.created_at, tz);
+    const sentThrough = status.sent_through ?? "nothing yet";
+    const lastSync = status.last_sync_at
+        ? formatLocalDateTime(status.last_sync_at, tz).slice(0, 16)
+        : "never";
+    return `Apple Health sync: connected ${connected}, sent through ${sentThrough}, last sync ${lastSync}.`;
+}
+
 // Exported for tests: the only way to exercise a tool handler end-to-end
 // (schema coercion, handler, response text) is to register the tools on a real
 // McpServer and call them through a client. Production still reaches this only
@@ -5018,7 +5044,7 @@ export function registerTools(
         {
             title: "Export All Data",
             description:
-                "Export EVERYTHING this server stores about the user — meals, water, weight, body measurements, nutrition goals, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry and the AI-app connections (OAuth grants, without the tokens) — as a single ZIP archive (meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv, telemetry.csv, connections.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
+                "Export EVERYTHING this server stores about the user — meals, water, weight, body measurements, nutrition goals, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
             annotations: {
                 title: "Export All Data",
                 readOnlyHint: false,
@@ -5059,6 +5085,7 @@ export function registerTools(
                         account ? "account details" : "no account record",
                         `${counts.telemetry} tool-usage telemetry ${counts.telemetry === 1 ? "row" : "rows"}`,
                         `${counts.connections} app connection ${counts.connections === 1 ? "record" : "records"}`,
+                        `${counts.healthSync} Apple Health sync ${counts.healthSync === 1 ? "day" : "days"}`,
                     ].join(", ");
                     return {
                         content: [
@@ -5145,7 +5172,21 @@ export function registerTools(
             return withAnalytics(
                 "get_profile",
                 async () => {
-                    const profile = await getProfile(userId);
+                    const [profile, healthSync] = await Promise.all([
+                        getProfile(userId),
+                        // Read beside the profile, and never allowed to fail
+                        // it: the sync status is one line of many, and the
+                        // rest of the profile is what this tool is for.
+                        createSupabaseHealthSyncStore()
+                            .getLinkStatus(userId)
+                            .catch((err: unknown) => {
+                                const ref = newErrorRef();
+                                console.warn(
+                                    `[get_profile] health-sync status error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+                                );
+                                return undefined;
+                            }),
+                    ]);
                     const tz = timezoneFromProfile(profile);
                     const locale = localeFromProfile(profile);
                     const weightUnit = preferredWeightUnitFromProfile(profile);
@@ -5175,6 +5216,7 @@ export function registerTools(
                         alcoholEnabled
                             ? `Alcohol tracking: enabled, displayed in grams alongside ${drinkUnitLabel(drinkUnit)}${preferredDrinkUnitFromProfile(profile) ? "" : " (the default — no preference saved)"}.`
                             : "Alcohol tracking: disabled, so alcohol is hidden from meals, goals and progress. Alcohol already stored is kept, and anything logged with alcohol_g while it is off is still stored. The exception is the file importer, which skips a file's alcohol column while tracking is off and will not backfill it on a later re-import — so tracking has to be on before importing an export whose alcohol the user wants to keep. The user can enable it with set_alcohol_tracking.",
+                        healthSyncProfileLine(healthSync, tz ?? "UTC"),
                     ];
 
                     return {
@@ -5330,7 +5372,7 @@ export function registerTools(
         {
             title: "Delete Nutrition Account",
             description:
-                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals, water, weight, body measurements, goals, settings, exports, usage records and sign-in tokens). Irreversible. Always confirm with the user before calling this tool.",
+                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals, water, weight, body measurements, goals, settings, exports, usage records, sign-in tokens, and the Apple Health sync connection with its record of values sent). Totals already written to Apple Health stay on the user's iPhone. Irreversible. Always confirm with the user before calling this tool.",
             annotations: {
                 title: "Delete Nutrition Account",
                 readOnlyHint: false,

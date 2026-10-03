@@ -675,7 +675,8 @@ ${menuTheme}
 
 /**
  * `currentSuffix` is a PAGE_ROUTES key (e.g. "/privacy") when the current
- * page has a link in this footer (Tools, Alternatives, Privacy, Terms) —
+ * page has a link in this footer (Tools, Apple Health, Alternatives, Privacy,
+ * Terms) —
  * that link gets aria-current="page", matching what every hand-authored
  * legal/tools page already did before it moved to a generator.
  *
@@ -705,6 +706,7 @@ export function footer(
                     <nav class="footer-links" aria-label="${esc(c.landmarks.footer)}">
                         <a href="${p("/tools")}">${esc(c.footer.tools)}</a>
                         <a href="${p("/tools")}#troubleshooting">${esc(c.footer.troubleshooting)}</a>
+                        <a href="${p("/apple-health")}">${esc(c.footer.appleHealth)}</a>
                         <a href="${p("/alternatives")}">${esc(c.footer.alternatives)}</a>
                         <a
                             href="https://medium.com/@akutishevsky/how-i-replaced-myfitnesspal-and-other-apps-with-a-single-mcp-server-56ca5ec7d673"

@@ -525,6 +525,9 @@ export const TROUBLESHOOTING_IDS = [
     "import-problems",
     "rate-limited",
     "barcode-not-found",
+    "health-sync-yesterday",
+    "health-sync-higher",
+    "health-sync-stopped",
     "export-link",
     "delete-account",
     "report-a-problem",
@@ -847,7 +850,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps, without any tokens), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
+                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps and Apple Health sync, without any tokens), health_sync.csv (what Apple Health sync sent over the last 8 days), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
             params: {},
             example: "Export all of my data — meals, water, weight, and goals",
         },
@@ -1158,6 +1161,21 @@ const TOOLS_EN: ToolsDoc = {
                 question: "A barcode isn't found, or its numbers look wrong",
                 answerHtml:
                     "Barcode data comes from Open Food Facts, a community database, so some products are missing and some entries are out of date. Make sure all 8–14 digits under the barcode were read correctly. If the product is not there, the AI can estimate from the name or from a photo of the nutrition label, and you can correct any figure afterwards. Adding the product on openfoodfacts.org helps everyone. Open Food Facts has no caffeine data, so caffeine comes from the label or typical amounts.",
+            },
+            "health-sync-yesterday": {
+                question: "Yesterday isn't in Apple Health yet",
+                answerHtml:
+                    'Apple Health sync sends only finished days. A day counts as finished at 05:00 the next morning in your timezone, so yesterday arrives with the first sync after 05:00 today, and today never shows in Health until tomorrow. A sync runs when one of the shortcut\'s automations fires (opening the Health app, stopping your alarm) or when you run <strong>Nutrition MCP Health</strong> in the Shortcuts app and choose <strong>Sync now</strong>. A missed morning catches up on its own: every sync looks back over the last 7 days. Days follow the timezone on your profile (<a href="#get_profile"><code>get_profile</code></a>), or the one your iPhone reported when you connected if you never set one (<a href="#wrong-day">meals on the wrong day</a>). Days before you connected are only sent if you chose to bring back up to 7 earlier days while connecting.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health shows more than my chat",
+                answerHtml:
+                    "Apple Health can add to a value but can never lower one it already holds. A meal you add to a day that was already sent follows as a small extra entry at 12:01, 12:02 and so on, as long as the day is within the last 7 days. A meal you delete or make smaller after its day was sent leaves Health higher, and the shortcut shows a notice saying by how much. To fix it, open the Health app, go to <strong>Browse</strong> → <strong>Nutrition</strong>, open the type (for example Dietary Energy), tap <strong>Show All Data</strong>, delete that day's entries from Shortcuts and enter the right total by hand. Never use <strong>Delete All Data from Shortcuts</strong>: it also removes what your other shortcuts logged. If every day looks doubled, another app writes the same types too and Health adds the two together: switch one of them off under <strong>Sharing</strong> → <strong>Apps</strong> in the Health app.",
+            },
+            "health-sync-stopped": {
+                question: "Apple Health sync stopped",
+                answerHtml:
+                    "Open the Shortcuts app and run <strong>Nutrition MCP Health</strong> by hand: it says what went wrong. If it asks you to connect again, the connection has ended (after 90 days without a sync, 365 days after connecting, or after <strong>Disconnect</strong>): run it, sign in on the page it opens with the same account as in your AI app, and finish within 30 minutes. If it syncs when you run it but not on its own, check that its automations in the Shortcuts app's <strong>Automation</strong> tab are on and set to <strong>Run Immediately</strong>. If a notice says a day did not reach Apple Health, let Shortcuts write every nutrition type under <strong>Sharing</strong> → <strong>Apps</strong> → <strong>Shortcuts</strong> in the Health app, then run it again. Connecting a new iPhone replaces the old one's connection.",
             },
             "export-link": {
                 question: "My export download link doesn't work",

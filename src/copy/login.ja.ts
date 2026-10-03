@@ -44,4 +44,6 @@ export const LOGIN_CLIENT_NOTICE_JA: LoginClientNotice = {
         "{host}は、本サービスが把握しているアシスタントではありません。ご自身で{host}から接続を始めた場合にのみ、続行してください。",
     loopback:
         "このコンピューター上で動作しているプログラム（{host}）に戻ります。ご自身でこのプログラムから接続を始めた場合にのみ、続行してください。",
+    healthSync:
+        "サインインすると、このページを開いたデバイスで Apple Health との同期が接続されます。ご自身の iPhone の Nutrition MCP ショートカットから今これを始めたのでなければ、このページを閉じてください。",
 };

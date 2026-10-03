@@ -43,4 +43,6 @@ export const LOGIN_CLIENT_NOTICE_FR: LoginClientNotice = {
         "{host} ne fait pas partie des assistants que nous connaissons. Ne continue que si tu as toi-même lancé la connexion depuis {host}.",
     loopback:
         "Nous te renverrons vers un programme qui tourne sur cet ordinateur ({host}). Ne continue que si tu as lancé cette connexion depuis ce programme.",
+    healthSync:
+        "En vous connectant, vous activez la synchronisation avec Apple Health sur l'appareil qui a ouvert cette page. Si vous ne venez pas de lancer cette opération vous-même depuis le raccourci Nutrition MCP sur votre propre iPhone, fermez cette page.",
 };

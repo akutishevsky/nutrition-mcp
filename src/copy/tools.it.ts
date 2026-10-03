@@ -219,7 +219,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate, senza alcun token) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
+                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate e la sincronizzazione con Apple Health, senza alcun token), health_sync.csv (ciò che la sincronizzazione con Apple Health ha inviato negli ultimi 8 giorni) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
             params: {},
             example:
                 "Esporta tutti i miei dati: pasti, acqua, peso e obiettivi",
@@ -544,6 +544,22 @@ export const TOOLS_IT: ToolsDoc = {
                     "Un codice a barre non viene trovato, o i valori sembrano sbagliati",
                 answerHtml:
                     "I dati dei codici a barre vengono da Open Food Facts, un database collaborativo, quindi alcuni prodotti mancano e alcune schede non sono aggiornate. Assicurati che tutte le 8–14 cifre sotto il codice a barre siano state lette correttamente. Se il prodotto non c'è, l'IA può stimare i valori dal nome o da una foto della tabella nutrizionale, e puoi correggere qualsiasi valore in seguito. Aggiungere il prodotto su openfoodfacts.org aiuta tutti. Open Food Facts non ha dati sulla caffeina, quindi la caffeina si ricava dall'etichetta o da quantità tipiche.",
+            },
+            "health-sync-yesterday": {
+                question: "Ieri non è ancora in Apple Health",
+                answerHtml:
+                    'La sincronizzazione con Apple Health invia solo i giorni conclusi. Un giorno si considera concluso alle 05:00 del mattino dopo nel tuo fuso orario, quindi ieri arriva con la prima sincronizzazione dopo le 05:00 di oggi, e oggi compare in Salute solo domani. Una sincronizzazione parte quando scatta una delle automazioni del comando rapido (aprire l\'app Salute, fermare la sveglia) oppure quando esegui <strong>Nutrition MCP Health</strong> nell\'app Comandi Rapidi e scegli <strong>Sync now</strong>. Una mattina saltata si recupera da sola: ogni sincronizzazione guarda indietro agli ultimi 7 giorni. I giorni seguono il fuso orario del tuo profilo (<a href="#get_profile"><code>get_profile</code></a>) oppure, se non ne hai mai impostato uno, quello che il tuo iPhone ha indicato al collegamento (<a href="#wrong-day">pasti nel giorno sbagliato</a>). I giorni precedenti al collegamento vengono inviati solo se, collegandoti, hai scelto di recuperare fino a 7 giorni prima.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health mostra più della mia chat",
+                answerHtml:
+                    "Apple Health può aggiungere a un valore, ma non può mai ridurne uno che ha già. Un pasto che aggiungi a un giorno già inviato arriva come una piccola voce in più alle 12:01, 12:02 e così via, purché il giorno rientri negli ultimi 7 giorni. Se elimini o riduci un pasto dopo che il suo giorno è stato inviato, Salute resta più alto e il comando rapido mostra un avviso con la differenza. Per correggere, apri l'app Salute, vai su <strong>Sfoglia</strong> → <strong>Alimentazione</strong>, apri il tipo di dato, tocca <strong>Mostra tutti i dati</strong>, elimina le voci di quel giorno provenienti da Comandi Rapidi e inserisci a mano il totale corretto. Non usare mai <strong>Elimina tutti i dati da “Comandi Rapidi”</strong>: cancella anche ciò che hanno registrato gli altri tuoi comandi rapidi. Se ogni giorno sembra raddoppiato, un'altra app scrive gli stessi tipi e Salute li somma: disattivane una in <strong>Condivisione</strong> → <strong>App</strong> nell'app Salute.",
+            },
+            "health-sync-stopped": {
+                question:
+                    "La sincronizzazione con Apple Health si è interrotta",
+                answerHtml:
+                    "Apri l'app Comandi Rapidi ed esegui <strong>Nutrition MCP Health</strong> a mano: ti dice cosa non ha funzionato. Se ti chiede di collegarti di nuovo, il collegamento è terminato (dopo 90 giorni senza sincronizzazione, 365 giorni dopo il collegamento o dopo <strong>Disconnect</strong>): eseguilo, accedi nella pagina che apre con lo stesso account che usi nella tua app di IA e completa entro 30 minuti. Se sincronizza quando lo esegui ma non da solo, controlla che le sue automazioni nella scheda <strong>Automazione</strong> di Comandi Rapidi siano attive e impostate su <strong>Esegui immediatamente</strong>. Se un avviso dice che un giorno non ha raggiunto Apple Health, consenti a Comandi Rapidi di scrivere ogni tipo di dato sull'alimentazione in <strong>Condivisione</strong> → <strong>App</strong> → <strong>Comandi Rapidi</strong> nell'app Salute, poi eseguilo di nuovo. Collegare un nuovo iPhone sostituisce il collegamento di quello vecchio.",
             },
             "export-link": {
                 question: "Il link per scaricare l'esportazione non funziona",

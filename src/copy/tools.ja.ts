@@ -222,7 +222,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "本サービスが保存しているあなたのデータを、すべて1つのZIPにまとめてエクスポートし、60分間有効な非公開のダウンロードリンクを返します。中身はmeals.csv、water.csv、weight.csv、body_measurements.csv、goals.csv、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツールの利用記録）、connections.csv（接続中のAIアプリ。トークンは含みません）と、列・単位・含まれないものを説明したREADME.txtです。現時点で再インポートできるのは食事データだけです。",
+                "本サービスが保存しているあなたのデータを、すべて1つのZIPにまとめてエクスポートし、60分間有効な非公開のダウンロードリンクを返します。中身はmeals.csv、water.csv、weight.csv、body_measurements.csv、goals.csv、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツールの利用記録）、connections.csv（接続中のAIアプリとApple Health同期。トークンは含みません）、health_sync.csv（Apple Health同期が直近8日間に送信した内容）と、列・単位・含まれないものを説明したREADME.txtです。現時点で再インポートできるのは食事データだけです。",
             params: {},
             example: "食事・水分・体重・目標、データを全部エクスポートして",
         },
@@ -522,6 +522,21 @@ export const TOOLS_JA: ToolsDoc = {
             "barcode-not-found": {
                 question: "バーコードが見つからない、または数値がおかしい",
                 answerHtml: `バーコードのデータは、コミュニティが運営するデータベースOpen Food Factsから取得しているため、登録されていない商品や、情報が古い商品もあります。バーコードの下の8〜14桁の数字がすべて正しく読み取られているか確認してください。商品が見つからなくても、AIが商品名や栄養成分表示の写真から推定でき、どの数値も後から修正できます。openfoodfacts.orgに商品を登録すると、ほかの人の役にも立ちます。Open Food Factsにはカフェインのデータがないため、カフェインは表示ラベルや一般的な含有量をもとにします。`,
+            },
+            "health-sync-yesterday": {
+                question: "昨日の分がまだApple Healthにない",
+                answerHtml:
+                    'Apple Healthとの同期は、終わった日だけを送ります。1日はタイムゾーンで翌朝05:00に締まるため、昨日の分は今日の05:00以降の最初の同期で届き、今日の分がヘルスケアに表示されるのは明日です。同期は、ショートカットのオートメーションが動いたとき（ヘルスケアAppを開く、アラームを止める）か、ショートカットAppで<strong>Nutrition MCP Health</strong>を実行して<strong>Sync now</strong>を選んだときに行われます。同期しなかった朝の分は自動で取り戻されます。毎回の同期で直近7日間をさかのぼるからです。日付はプロフィールのタイムゾーン（<a href="#get_profile"><code>get_profile</code></a>）、一度も設定していない場合は接続時にiPhoneが伝えたタイムゾーンで区切られます（<a href="#wrong-day">食事が違う日に表示される</a>）。接続より前の日は、接続時に最大7日前までさかのぼることを選んだ場合にだけ送られます。',
+            },
+            "health-sync-higher": {
+                question: "Apple Healthの数値がチャットより多い",
+                answerHtml:
+                    "Apple Healthは値を足すことはできても、すでにある値を減らすことはできません。送信済みの日に食事を追加すると、その日が直近7日間に入っている限り、12:01、12:02…の小さな追加エントリとして届きます。日が送信された後に食事を削除したり減らしたりすると、ヘルスケアの値は高いまま残り、ショートカットがその差を通知します。直すには、ヘルスケアAppで<strong>ブラウズ</strong> → <strong>栄養</strong>を開き、該当する項目で<strong>すべてのデータを表示</strong>をタップし、その日の「ショートカット」からのエントリを削除して、正しい合計を手入力してください。<strong>“ショートカット”からのすべてのデータを削除</strong>は使わないでください。ほかのショートカットが記録したデータも消えます。毎日が2倍に見える場合は、別のAppも同じ項目を書き込んでいて、ヘルスケアが両方を合計しています。ヘルスケアAppの<strong>共有</strong> → <strong>App</strong>でどちらかをオフにしてください。",
+            },
+            "health-sync-stopped": {
+                question: "Apple Healthとの同期が止まった",
+                answerHtml:
+                    "ショートカットAppで<strong>Nutrition MCP Health</strong>を手動で実行してください。何が問題かを表示します。もう一度接続するよう求められたら、接続は終了しています（同期のないまま90日たった、接続から365日たった、または<strong>Disconnect</strong>を選んだ）。実行して、開いたページでAIアプリと同じアカウントでサインインし、30分以内に完了してください。手動なら同期するのに自動では動かない場合は、ショートカットAppの<strong>オートメーション</strong>タブでそのオートメーションがオンで、<strong>すぐに実行</strong>になっているか確認してください。ある日がApple Healthに届かなかったと通知された場合は、ヘルスケアAppの<strong>共有</strong> → <strong>App</strong> → <strong>ショートカット</strong>で、すべての栄養項目への書き込みを許可してから、もう一度実行してください。新しいiPhoneを接続すると、古いiPhoneの接続は置き換えられます。",
             },
             "export-link": {
                 question: "エクスポートのダウンロードリンクが使えない",

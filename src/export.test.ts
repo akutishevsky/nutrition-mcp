@@ -13,13 +13,21 @@ import {
     buildConnectionsCsv,
     buildExportReadme,
     buildGoalsCsv,
+    buildHealthSyncCsv,
     buildMealsCsv,
     buildProfileCsv,
     buildTelemetryCsv,
     buildWaterCsv,
     buildWeightCsv,
     EXPORT_ARCHIVE_FILES,
+    exportAllData,
 } from "./export.js";
+import type {
+    HealthSyncDayRow,
+    HealthSyncLinkStatus,
+    HealthSyncStore,
+} from "./health-sync-store.js";
+import { HEALTH_SYNC_FIELDS } from "./health-sync.js";
 import type { User } from "@supabase/supabase-js";
 import type {
     BodyMeasurementEntry,
@@ -779,6 +787,7 @@ const README_OPTS = {
         bodyMeasurements: 7,
         telemetry: 830,
         connections: 3,
+        healthSync: 6,
     },
 };
 
@@ -799,6 +808,7 @@ test("the README states when, in which zone, and that the zone was chosen", () =
     expect(readme).toContain("7 rows");
     expect(readme).toContain("830 rows");
     expect(readme).toContain("3 rows");
+    expect(readme).toContain("health_sync.csv 6 rows");
 });
 
 test("the README says outright when the zone defaulted to UTC", () => {
@@ -920,6 +930,8 @@ test("account.csv, telemetry.csv and connections.csv are header-only when empty"
         buildAccountCsv(null, "UTC"),
         buildTelemetryCsv([], "UTC"),
         buildConnectionsCsv([], "UTC"),
+        buildConnectionsCsv([], "UTC", null),
+        buildHealthSyncCsv([], "UTC"),
     ]) {
         const rows = parseCsv(csv);
         expect(rows).toHaveLength(1);
@@ -937,6 +949,7 @@ test("no archive file has a token, hash or password column", () => {
         buildAccountCsv(null, "UTC"),
         buildTelemetryCsv([], "UTC"),
         buildConnectionsCsv([], "UTC"),
+        buildHealthSyncCsv([], "UTC"),
     ].flatMap((csv) => parseCsv(csv)[0]!);
     for (const name of headers) expect(name).not.toMatch(SECRET_HEADER);
 });
@@ -1034,7 +1047,12 @@ test("every connection value lands under its own header name", () => {
         redirect_uri: "",
         created_at: "2026-06-20 14:30:00",
         expires_at: "2026-09-18 14:30:00",
+        last_used_at: "",
+        last_sync_at: "",
         timezone: "UTC",
+        synced_fields: "",
+        sync_start_date: "",
+        device_timezone: "",
     });
     expect(fieldsByName(csv, 2)).toEqual({
         kind: "refresh_token",
@@ -1043,7 +1061,12 @@ test("every connection value lands under its own header name", () => {
         redirect_uri: "",
         created_at: "2026-06-20 14:30:00",
         expires_at: "2026-09-18 14:30:00",
+        last_used_at: "",
+        last_sync_at: "",
         timezone: "UTC",
+        synced_fields: "",
+        sync_start_date: "",
+        device_timezone: "",
     });
     expect(fieldsByName(csv, 3).redirect_uri).toBe(
         "https://claude.ai/api/mcp/auth_callback",
@@ -1448,6 +1471,7 @@ test("EXPORT_ARCHIVE_FILES is the archive's real, ordered file list", () => {
         "account.csv",
         "telemetry.csv",
         "connections.csv",
+        "health_sync.csv",
         "README.txt",
     ]);
 });
@@ -1466,7 +1490,8 @@ test("an archive assembled from the builders reads back file for file", () => {
         "profile.csv": buildProfileCsv(profile(), tz),
         "account.csv": buildAccountCsv(authUser(), tz),
         "telemetry.csv": buildTelemetryCsv([telemetryRow()], tz),
-        "connections.csv": buildConnectionsCsv([grant()], tz),
+        "connections.csv": buildConnectionsCsv([grant()], tz, healthLink()),
+        "health_sync.csv": buildHealthSyncCsv([healthDay()], tz),
         "README.txt": buildExportReadme(README_OPTS),
     };
     const entries = readZipEntries(
@@ -1495,6 +1520,7 @@ test("an archive assembled from the builders reads back file for file", () => {
         "account.csv",
         "telemetry.csv",
         "connections.csv",
+        "health_sync.csv",
     ] as const) {
         expect(contents[csv]!.split("\n")[0]).not.toBe("");
     }
@@ -1520,4 +1546,200 @@ test("connections.csv defuses a formula in client-chosen text", () => {
     );
     expect(f.client_name!.startsWith("'=")).toBe(true);
     expect(f.redirect_uri).toBe("https://client.example/cb");
+});
+
+// ---------- Apple Health sync: health_sync.csv and the connections row ----------
+
+function healthLink(
+    over: Partial<HealthSyncLinkStatus> = {},
+): HealthSyncLinkStatus {
+    return {
+        kind: "shortcut",
+        fields: ["energy_kcal", "protein_g", "water_ml"],
+        fallback_tz: "Europe/Kyiv",
+        sync_start_date: "2026-09-26",
+        created_at: "2026-09-27T06:00:00.000Z",
+        last_used_at: "2026-10-02T05:10:00.000Z",
+        last_sync_at: "2026-10-02T05:10:30.000Z",
+        expires_at: "2026-12-31T05:10:00.000Z",
+        sent_through: "2026-10-01",
+        ...over,
+    };
+}
+
+function healthDay(over: Partial<HealthSyncDayRow> = {}): HealthSyncDayRow {
+    return {
+        user_id: "user-1",
+        date: "2026-10-01",
+        timezone: "Europe/Kyiv",
+        sent_values: { energy_kcal: 2140, protein_g: 96.5, water_ml: 1800 },
+        topup_seq: 1,
+        offer_count: 2,
+        notified: { stuck: "2026-10-01:t1" },
+        first_sent_at: "2026-10-02T02:05:00.000Z",
+        last_sent_at: "2026-10-02T09:00:00.000Z",
+        ...over,
+    };
+}
+
+test("the health_sync link is one connections row of its own kind, never its token", () => {
+    const csv = buildConnectionsCsv([grant()], "Europe/Berlin", healthLink());
+    expect(parseCsv(csv)).toHaveLength(3);
+    expect(fieldsByName(csv, 2)).toEqual({
+        kind: "health_sync",
+        client_id: "nutrition-mcp-health-sync",
+        client_name: "Apple Health sync (iOS Shortcut)",
+        redirect_uri: "",
+        created_at: "2026-09-27 08:00:00",
+        expires_at: "2026-12-31 06:10:00",
+        last_used_at: "2026-10-02 07:10:00",
+        last_sync_at: "2026-10-02 07:10:30",
+        timezone: "Europe/Berlin",
+        synced_fields: "energy_kcal protein_g water_ml",
+        sync_start_date: "2026-09-26",
+        // A stored setting, not the render zone of the row's timestamps.
+        device_timezone: "Europe/Kyiv",
+    });
+    expect(csv).not.toMatch(/nmhs_|token_hash/);
+});
+
+test("a never-used, never-synced link leaves those cells empty", () => {
+    const f = fieldsByName(
+        buildConnectionsCsv(
+            [],
+            "UTC",
+            healthLink({
+                last_used_at: null,
+                last_sync_at: null,
+                fallback_tz: null,
+            }),
+        ),
+    );
+    expect(f.kind).toBe("health_sync");
+    expect(f.last_used_at).toBe("");
+    expect(f.last_sync_at).toBe("");
+    expect(f.device_timezone).toBe("");
+});
+
+test("health_sync.csv columns are the date, its zone, every field and the send record", () => {
+    expect(parseCsv(buildHealthSyncCsv([], "UTC"))[0]).toEqual([
+        "date",
+        "timezone",
+        ...HEALTH_SYNC_FIELDS,
+        "topup_seq",
+        "first_sent_at",
+        "last_sent_at",
+    ]);
+    // Alcohol is never sent, so it never gets a column.
+    expect(buildHealthSyncCsv([], "UTC")).not.toContain("alcohol");
+});
+
+test("a health_sync row is rendered in the day's own zone, with absent values empty", () => {
+    // The account is on Berlin; the day was counted in Kyiv and says so.
+    const f = fieldsByName(buildHealthSyncCsv([healthDay()], "Europe/Berlin"));
+    expect(f).toEqual({
+        date: "2026-10-01",
+        timezone: "Europe/Kyiv",
+        energy_kcal: "2140",
+        protein_g: "96.5",
+        // Not sent is not zero.
+        carbohydrates_g: "",
+        fat_g: "",
+        fiber_g: "",
+        sugar_g: "",
+        caffeine_mg: "",
+        water_ml: "1800",
+        topup_seq: "1",
+        first_sent_at: "2026-10-02 05:05:00",
+        last_sent_at: "2026-10-02 12:00:00",
+    });
+});
+
+test("a zero that was sent stays a 0, and an offered-but-unacked day is empty", () => {
+    const csv = buildHealthSyncCsv(
+        [
+            healthDay({ sent_values: { energy_kcal: 0 } }),
+            healthDay({
+                date: "2026-10-02",
+                sent_values: null,
+                topup_seq: 0,
+                first_sent_at: null,
+                last_sent_at: null,
+            }),
+        ],
+        "UTC",
+    );
+    expect(fieldsByName(csv, 1).energy_kcal).toBe("0");
+    const unacked = fieldsByName(csv, 2);
+    for (const f of HEALTH_SYNC_FIELDS) expect(unacked[f]).toBe("");
+    expect(unacked.first_sent_at).toBe("");
+    expect(unacked.last_sent_at).toBe("");
+});
+
+test("a row holding an unknown zone falls back to the account's instead of failing the export", () => {
+    const f = fieldsByName(
+        buildHealthSyncCsv([healthDay({ timezone: "Not/AZone" })], "UTC"),
+    );
+    expect(f.timezone).toBe("UTC");
+    expect(f.first_sent_at).toBe("2026-10-02 02:05:00");
+});
+
+test("the README describes health_sync.csv, its own-zone rows and its retention", () => {
+    const readme = buildExportReadme(README_OPTS);
+    expect(readme).toContain("health_sync.csv 6 rows");
+    expect(readme).toContain("kept for 8 days");
+    expect(readme).toContain('its own "timezone"');
+    expect(readme).toContain("except in health_sync.csv");
+    expect(readme).toContain('kind "health_sync"');
+    expect(readme).toContain("water_ml are millilitres");
+    expect(readme).toContain("Alcohol is never sent");
+    // The token and the bookkeeping are named among what is NOT exported.
+    expect(readme).toContain("the Apple Health sync token");
+    expect(readme).toContain("Apple Health sync connect request");
+});
+
+// exportAllData reads everything else through supabase.ts, which these tests
+// do not stub; it is driven only far enough to prove the health-sync store is
+// consulted and its failure is not swallowed into a partial archive.
+test("exportAllData asks the injected health-sync store and fails loudly with it", async () => {
+    const asked: string[] = [];
+    const store = {
+        getLinkStatus: async (userId: string) => {
+            asked.push(`link:${userId}`);
+            return null;
+        },
+        getDaysForExport: async (userId: string) => {
+            asked.push(`days:${userId}`);
+            throw new Error(
+                "health sync days: result would be truncated (64 of 65)",
+            );
+        },
+    } as unknown as HealthSyncStore;
+    const envBefore = {
+        url: process.env.SUPABASE_URL,
+        key: process.env.SUPABASE_SECRET_KEY,
+    };
+    process.env.SUPABASE_URL ??= "http://supabase.test";
+    process.env.SUPABASE_SECRET_KEY ??= "test-key";
+    // Every other reader is refused here rather than reaching a real project.
+    const fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
+        (async () =>
+            new Response("[]", {
+                status: 200,
+                headers: {
+                    "content-type": "application/json",
+                    "content-range": "*/0",
+                },
+            })) as unknown as typeof fetch,
+    );
+    try {
+        await expect(
+            exportAllData("user-9", { healthSync: store }),
+        ).rejects.toThrow("result would be truncated");
+    } finally {
+        fetchSpy.mockRestore();
+        if (envBefore.url === undefined) delete process.env.SUPABASE_URL;
+        if (envBefore.key === undefined) delete process.env.SUPABASE_SECRET_KEY;
+    }
+    expect(asked.sort()).toEqual(["days:user-9", "link:user-9"]);
 });

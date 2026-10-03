@@ -152,6 +152,9 @@ export interface ChromeCopy {
         /** Links to /tools#troubleshooting; the same words as that
          * section's title (ToolsDoc.troubleshooting.title). */
         troubleshooting: string;
+        /** Links to /apple-health, the Apple Health sync setup guide.
+         * "Apple Health" is Apple's product name; keep it uninflected. */
+        appleHealth: string;
         alternatives: string;
         howIBuiltThis: string;
         demo: string;
@@ -229,6 +232,7 @@ export const CHROME_EN: ChromeCopy = {
     footer: {
         tools: "Tools",
         troubleshooting: "Troubleshooting",
+        appleHealth: "Apple Health",
         alternatives: "Alternatives",
         howIBuiltThis: "How I built this",
         demo: "Demo",

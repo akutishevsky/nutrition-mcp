@@ -219,7 +219,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporte tout ce que le service conserve à ton sujet dans un seul fichier ZIP : meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes apps d'IA connectées, sans aucun jeton) et un README.txt qui explique les colonnes, les unités et ce qui n'est pas inclus. Tu reçois en retour un lien de téléchargement privé, valable 60 minutes. Pour l'instant, seuls les repas peuvent être réimportés.",
+                "Exporte tout ce que le service conserve à ton sujet dans un seul fichier ZIP : meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes apps d'IA connectées et la synchronisation Apple Health, sans aucun jeton), health_sync.csv (ce que la synchronisation Apple Health a envoyé ces 8 derniers jours) et un README.txt qui explique les colonnes, les unités et ce qui n'est pas inclus. Tu reçois en retour un lien de téléchargement privé, valable 60 minutes. Pour l'instant, seuls les repas peuvent être réimportés.",
             params: {},
             example:
                 "Exporte toutes mes données : repas, eau, poids et objectifs",
@@ -543,6 +543,21 @@ export const TOOLS_FR: ToolsDoc = {
                     "Un code-barres est introuvable, ou ses valeurs semblent fausses",
                 answerHtml:
                     "Les données des codes-barres viennent d'Open Food Facts, une base de données collaborative : certains produits y manquent et certaines fiches ne sont plus à jour. Vérifie que les 8 à 14 chiffres sous le code-barres ont tous été lus correctement. Si le produit n'y figure pas, l'IA peut faire une estimation à partir de son nom ou d'une photo de l'étiquette nutritionnelle, et tu peux corriger n'importe quelle valeur ensuite. Ajouter le produit sur openfoodfacts.org aide tout le monde. Open Food Facts ne fournit pas de données sur la caféine : elle provient donc de l'étiquette ou de quantités typiques.",
+            },
+            "health-sync-yesterday": {
+                question: "Hier n'apparaît pas encore dans Apple Health",
+                answerHtml:
+                    "La synchronisation avec Apple Health n'envoie que les journées terminées. Une journée est terminée à 05:00 le lendemain matin dans ton fuseau horaire : hier arrive donc avec la première synchronisation après 05:00 aujourd'hui, et aujourd'hui n'apparaît dans Santé que demain. Une synchronisation se lance quand l'une des automatisations du raccourci se déclenche (ouvrir l'app Santé, arrêter ton alarme) ou quand tu exécutes <strong>Nutrition MCP Health</strong> dans l'app Raccourcis et choisis <strong>Sync now</strong>. Un matin manqué se rattrape tout seul : chaque synchronisation remonte sur les 7 derniers jours. Les journées suivent le fuseau horaire de ton profil (<a href=\"#get_profile\"><code>get_profile</code></a>) ou, si tu n'en as jamais défini, celui que ton iPhone a indiqué à la connexion (<a href=\"#wrong-day\">repas au mauvais jour</a>). Les jours antérieurs à la connexion ne sont envoyés que si tu as choisi, en te connectant, de récupérer jusqu'à 7 jours précédents.",
+            },
+            "health-sync-higher": {
+                question: "Apple Health affiche plus que mon chat",
+                answerHtml:
+                    "Apple Health peut ajouter à une valeur, mais jamais diminuer une valeur qu'il a déjà. Un repas que tu ajoutes à une journée déjà envoyée suit sous forme d'une petite entrée supplémentaire à 12:01, 12:02, etc., tant que la journée fait partie des 7 derniers jours. Si tu supprimes ou réduis un repas après l'envoi de sa journée, Santé reste plus haut et le raccourci affiche un avis indiquant l'écart. Pour corriger, ouvre l'app Santé, va dans <strong>Parcourir</strong> → <strong>Nutrition</strong>, ouvre le type concerné, touche <strong>Afficher toutes les données</strong>, supprime les entrées de ce jour provenant de Raccourcis et saisis le bon total à la main. N'utilise jamais <strong>Supprimer toutes les données de « Raccourcis »</strong> : cela efface aussi ce que tes autres raccourcis ont enregistré. Si chaque journée semble doublée, une autre app écrit les mêmes types et Santé additionne les deux : désactive l'une d'elles dans <strong>Partage</strong> → <strong>Apps</strong> de l'app Santé.",
+            },
+            "health-sync-stopped": {
+                question: "La synchronisation avec Apple Health s'est arrêtée",
+                answerHtml:
+                    "Ouvre l'app Raccourcis et exécute <strong>Nutrition MCP Health</strong> à la main : il te dit ce qui n'a pas marché. S'il te demande de te reconnecter, la connexion a pris fin (après 90 jours sans synchronisation, 365 jours après la connexion ou après <strong>Disconnect</strong>) : exécute-le, connecte-toi sur la page qu'il ouvre avec le même compte que dans ton app d'IA, et termine en moins de 30 minutes. S'il synchronise quand tu l'exécutes mais pas tout seul, vérifie que ses automatisations dans l'onglet <strong>Automatisation</strong> de Raccourcis sont activées et réglées sur <strong>Exécuter immédiatement</strong>. Si un avis indique qu'une journée n'a pas atteint Apple Health, autorise Raccourcis à écrire chaque type de nutrition dans <strong>Partage</strong> → <strong>Apps</strong> → <strong>Raccourcis</strong> de l'app Santé, puis relance-le. Connecter un nouvel iPhone remplace la connexion de l'ancien.",
             },
             "export-link": {
                 question:

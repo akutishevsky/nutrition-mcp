@@ -1,6 +1,7 @@
 import { test, expect, describe, afterEach, spyOn } from "bun:test";
 
 import { app, setShuttingDownForTest } from "./index.js";
+import { _resetBuckets } from "./rate-limit.js";
 
 // The shutdown gate (src/index.ts) exists because closing the MCP handler while
 // Bun.serve keeps accepting turns every in-flight POST /mcp into a 500 that a
@@ -486,5 +487,115 @@ describe("icon files", () => {
         expect(r.status).toBe(200);
         expect(r.headers.get("content-type")).toStartWith(type);
         expect((await r.arrayBuffer()).byteLength).toBeGreaterThan(0);
+    });
+});
+
+// Apple Health sync (src/health-sync-routes.ts) is mounted on the real app,
+// with CORS kept off its paths and its own `ok` envelope on the refusals the
+// app answers before the router. Every request below is refused without a
+// database call (no token, a gate, a body limit, a preflight).
+describe("Apple Health sync routes", () => {
+    afterEach(() => _resetBuckets());
+
+    test("are mounted, answering in the ok envelope", async () => {
+        const r = await app.request("http://x/api/v1/health-sync/pending");
+        expect(r.status).toBe(401);
+        expect(r.headers.get("Cache-Control")).toBe("private, no-store");
+        expect(await r.json()).toMatchObject({
+            ok: false,
+            error: "invalid_token",
+        });
+    });
+
+    test("never reflect an allowed Origin", async () => {
+        for (const [path, method] of [
+            ["/api/v1/health-sync/pending", "GET"],
+            ["/api/v1/health-sync/start", "OPTIONS"],
+            ["/health-sync/connect/short", "GET"],
+            ["/health-sync/callback", "OPTIONS"],
+        ] as const) {
+            const r = await app.request(`http://x${path}`, {
+                method,
+                headers: {
+                    Origin: "http://localhost:3000",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "Authorization",
+                },
+            });
+            expect({
+                path,
+                method,
+                acao: r.headers.get("Access-Control-Allow-Origin"),
+                acah: r.headers.get("Access-Control-Allow-Headers"),
+            }).toEqual({ path, method, acao: null, acah: null });
+        }
+        // The same Origin still gets CORS on /mcp.
+        const mcp = await app.request("http://x/mcp", {
+            method: "OPTIONS",
+            headers: {
+                Origin: "http://localhost:3000",
+                "Access-Control-Request-Method": "POST",
+            },
+        });
+        expect(mcp.headers.get("Access-Control-Allow-Origin")).toBe(
+            "http://localhost:3000",
+        );
+    });
+
+    test("the connect page keeps its own CSP, not the site's analytics one", async () => {
+        const r = await app.request("http://x/health-sync/connect/short");
+        expect(r.status).toBe(404);
+        const csp = r.headers.get("Content-Security-Policy")!;
+        expect(csp).toContain("default-src 'none'");
+        expect(csp).not.toContain("clarity");
+        expect(r.headers.get("Referrer-Policy")).toBe("no-referrer");
+    });
+
+    test("the access log never prints a connect link's id", async () => {
+        const log = spyOn(console, "log").mockImplementation(() => {});
+        const warn = spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            // Not id-shaped, so the route answers without a database call;
+            // the access log runs for every path all the same.
+            const id = "never.in.the.log";
+            const r = await app.request(`http://x/health-sync/connect/${id}`);
+            expect(r.status).toBe(404);
+            const out = [...log.mock.calls, ...warn.mock.calls].map((a) =>
+                a.map(String).join(" "),
+            );
+            expect(out).toContainEqual(
+                expect.stringContaining(
+                    "[req] GET /health-sync/connect/:id 404",
+                ),
+            );
+            for (const line of out) expect(line).not.toContain(id);
+        } finally {
+            log.mockRestore();
+            warn.mockRestore();
+        }
+    });
+
+    test("the shutdown gate answers the API in the envelope", async () => {
+        setShuttingDownForTest(true);
+        const r = await app.request("http://x/api/v1/health-sync/pending");
+        expect(r.status).toBe(503);
+        expect(r.headers.get("Retry-After")).toBe("1");
+        expect(await r.json()).toMatchObject({
+            ok: false,
+            error: "unavailable",
+        });
+    });
+
+    test("the body limit answers the API in the envelope", async () => {
+        const r = await app.request("http://x/api/v1/health-sync/ack", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: "x".repeat(1024 * 1024 + 1),
+        });
+        expect(r.status).toBe(413);
+        expect(await r.json()).toMatchObject({
+            ok: false,
+            error: "bad_request",
+        });
     });
 });

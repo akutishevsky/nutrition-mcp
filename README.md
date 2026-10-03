@@ -21,6 +21,7 @@ A remote MCP server for personal nutrition tracking — log meals with calories,
 - [Development](#development)
     - [Testing and quality](#testing-and-quality)
 - [Connect to Claude.ai](#connect-to-claudeai)
+- [Apple Health sync](#apple-health-sync)
 - [Troubleshooting](#troubleshooting)
 - [API Endpoints](#api-endpoints)
 - [Deploy](#deploy)
@@ -215,6 +216,17 @@ For in-chat widget development (`public/widgets/`), `bun run harness` starts a l
 
 Alternatively, add `https://nutrition-mcp.com/mcp` as a custom connector under **Customize → Connectors**. If you reconnect later, sign in with the same email and password to keep your data.
 
+## Apple Health sync
+
+An optional iOS Shortcut, **Nutrition MCP Health**, copies your daily totals into Apple Health on your iPhone: calories (Dietary Energy), protein, carbohydrates, total fat, fiber, sugar and caffeine, plus water if you opt in when connecting. Alcohol is never sent. There is no app to install and no new MCP tool — your AI app keeps doing the logging, and the shortcut only reads finished days. The setup guide — install link, connecting, automations and everyday use — is at [nutrition-mcp.com/apple-health](https://nutrition-mcp.com/apple-health) (the install link appears there once the shortcut is published); how the shortcut is built is in [docs/apple-health-shortcut.md](docs/apple-health-shortcut.md).
+
+- **Connecting:** run the shortcut on your iPhone. It asks whether to include water and whether to send the last 7 days too, then opens a sign-in page in Safari — sign in with the same account your AI app uses. The page hands control back to the shortcut, which finishes connecting. The connect link works once, for 30 minutes, and only the iPhone that started it can finish it.
+- **What arrives:** only finished days. A day counts as finished at 05:00 the next morning in your timezone, so yesterday appears after 05:00 today and today is never in Health. Each day is one entry per type at 12:00, labelled "Shortcuts". Every sync looks back over the last 7 finished days, so a missed morning catches up by itself.
+- **Later changes:** a meal added to a day that was already sent follows as a small extra entry (12:01, 12:02, …) while the day is within those 7 days. Health cannot lower a value, so a deleted or smaller meal leaves Health higher and the shortcut shows a notice saying how to fix the day by hand.
+- **When it runs:** whenever one of its automations fires — opening the Health app, stopping your alarm, optionally plugging in — or when you choose **Sync now** in the shortcut.
+- **What the server keeps:** the connection, and for 8 days what it sent, so a day is sent once and afterwards only topped up. Both are in your data export (`health_sync.csv`, and a `health_sync` row in `connections.csv`). The connection ends after 90 days without a sync and 365 days after connecting at the latest; **Disconnect** in the shortcut, or deleting your account, removes it at once. Nothing is ever removed from Apple Health — that data is on your iPhone.
+- **Your profile timezone** decides where one day ends. If you never set one, the timezone your iPhone reported when connecting is used. `get_profile` shows whether the sync is connected and which day it has sent through.
+
 ## Troubleshooting
 
 The full version, in 9 languages, is at [nutrition-mcp.com/tools#troubleshooting](https://nutrition-mcp.com/tools#troubleshooting). In short:
@@ -229,6 +241,9 @@ The full version, in 9 languages, is at [nutrition-mcp.com/tools#troubleshooting
 - **Importer won't open or can't save:** ask the AI to import the file itself with `bulk_import_meals` (duplicates are skipped, so re-sending is safe as long as your timezone hasn't changed in between; set it before the first import). If you use the importer panel and want an alcohol column kept, turn alcohol tracking on first; the panel skips it while tracking is off.
 - **"Rate limit exceeded" / "Too many failed authentication attempts":** 60 requests a minute per account, 30 a minute per network on the sign-in pages. After 20 rejected connection attempts in a row, a network is paused for 5 minutes, growing to at most an hour — usually an old connector retrying; remove and re-add it.
 - **Barcode not found or wrong:** data comes from Open Food Facts (8–14 digits, no caffeine data); the AI can estimate from the name or a label photo.
+- **Yesterday isn't in Apple Health yet:** days are sent once they are finished, at 05:00 the next morning in your timezone; the next sync after that (opening Health, stopping your alarm, or **Sync now**) brings it. Every sync covers the last 7 days.
+- **Apple Health shows more than chat:** Health can't lower a value it already has. Delete that day's entries from Shortcuts under Health → Browse → Nutrition → (type) → Show All Data and enter the right total by hand. Never use "Delete All Data from Shortcuts" — it also removes what your other shortcuts logged. If every day looks doubled, another app writes the same types; switch one off under Health → Sharing → Apps.
+- **Apple Health sync stopped:** run **Nutrition MCP Health** by hand to see why. If it asks to connect again (90 days without a sync, 365 days after connecting, or after Disconnect), sign in on the page it opens within 30 minutes. If it only syncs by hand, check its automations are on and set to Run Immediately; if a notice says a day didn't reach Health, allow Shortcuts to write every nutrition type under Health → Sharing → Apps → Shortcuts.
 - **Export link doesn't work:** links expire after 60 minutes and each export replaces the last; ask for a fresh one. An export reporting 0 meals when you expected history usually means you signed in with a different email.
 - **Deleting your account:** `delete_account` permanently removes everything after you confirm; export first if you want a copy.
 - **Reporting a problem:** bugs on [GitHub Issues](https://github.com/akutishevsky/nutrition-mcp/issues) (never include your password); security issues privately, as [SECURITY.md](SECURITY.md) describes.
@@ -251,6 +266,13 @@ The full version, in 9 languages, is at [nutrition-mcp.com/tools#troubleshooting
 | `GET /favicon.ico`                            | Server icon                                                                    |
 | `GET /favicon.svg`                            | Site icon (SVG)                                                                |
 | `GET /api/github-stars`                       | Cached GitHub star count for the site's GitHub buttons                         |
+| `POST /api/v1/health-sync/start`              | Apple Health sync: start connecting from the shortcut (returns a connect link) |
+| `GET /health-sync/connect/:id`                | Apple Health sync: opens the normal sign-in page for that connect request      |
+| `GET /health-sync/callback`                   | Apple Health sync: sign-in callback; hands a claim code back to the shortcut   |
+| `POST /api/v1/health-sync/claim`              | Apple Health sync: exchange claim code + device secret for the sync token      |
+| `GET /api/v1/health-sync/pending`             | Apple Health sync: closed-day totals to log (Bearer `nmhs_…` token)            |
+| `POST /api/v1/health-sync/ack`                | Apple Health sync: record what the shortcut logged (Bearer token)              |
+| `POST /api/v1/health-sync/revoke`             | Apple Health sync: disconnect (Bearer token)                                   |
 | `ALL /mcp`                                    | MCP endpoint (authenticated)                                                   |
 
 ## Deploy

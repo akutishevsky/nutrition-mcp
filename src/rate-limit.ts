@@ -10,6 +10,26 @@ const LIMIT_PER_WINDOW = 60;
 // headroom for legitimate use — even shared NAT'd IPs — while blocking bulk
 // signup/credential-stuffing abuse.
 const AUTH_LIMIT_PER_WINDOW = 30;
+// Per-user limit for the Apple Health sync API (/pending, /ack, /revoke),
+// keyed by user id like LIMIT_PER_WINDOW. A full sync is one /pending, one
+// /ack per entry (at most one entry per day of the 7-day window) and a final
+// done:true /ack — at most 9 requests — so this leaves room for a retried run
+// without letting a looping shortcut hammer the meal reads behind /pending.
+export const HEALTH_SYNC_LIMIT_PER_WINDOW = 40;
+// Process-wide counters for the two unauthenticated health-sync calls. The
+// per-IP auth limiter keys on getClientIp, which trusts a spoofable
+// x-forwarded-for, so a caller rotating that header gets a fresh bucket per
+// request. /start writes a pending row per call, so its counter is a hard cap
+// (60/min is far above real pairing traffic): it bounds those writes, at the
+// accepted price that a flood can hold off new pairings while it lasts (see
+// the /start route). /claim counts only FAILED claims, and is NOT a gate —
+// any caller could fill a global gate and switch pairing off for everyone,
+// while a claim needs two independent 256-bit secrets that no volume of
+// guesses finds. Going over its limit only flags the log line
+// (`alert=claim_failures_high`).
+export const HEALTH_SYNC_START_GLOBAL_LIMIT = 60;
+export const HEALTH_SYNC_CLAIM_FAILURE_GLOBAL_LIMIT = 30;
+const GLOBAL_KEY = "global";
 const SWEEP_INTERVAL_MS = 5 * 60_000;
 
 // Strike-based banning for IPs that keep failing authentication. A sliding
@@ -42,13 +62,22 @@ interface AuthFailureEntry {
 const buckets = new Map<string, number[]>();
 const authBuckets = new Map<string, number[]>();
 const authFailures = new Map<string, AuthFailureEntry>();
+const healthSyncBuckets = new Map<string, number[]>();
+const healthSyncStartBuckets = new Map<string, number[]>();
+const healthSyncClaimFailureBuckets = new Map<string, number[]>();
 
 // Periodically drop buckets whose newest entry is older than the window, so
 // a caller who stops making requests doesn't keep a slot in the Map forever.
 setInterval(() => {
     const now = Date.now();
     const cutoff = now - WINDOW_MS;
-    for (const map of [buckets, authBuckets]) {
+    for (const map of [
+        buckets,
+        authBuckets,
+        healthSyncBuckets,
+        healthSyncStartBuckets,
+        healthSyncClaimFailureBuckets,
+    ]) {
         for (const [key, timestamps] of map) {
             const last = timestamps[timestamps.length - 1];
             if (last == null || last < cutoff) {
@@ -124,6 +153,35 @@ export function checkRateLimit(userId: string): RateLimitResult {
 // Per-IP limiter for the unauthenticated OAuth endpoints.
 export function checkAuthRateLimit(ip: string): RateLimitResult {
     return slidingWindow(authBuckets, ip, AUTH_LIMIT_PER_WINDOW);
+}
+
+// Per-user limiter for the Apple Health sync API, keyed by user id.
+export function checkHealthSyncRateLimit(userId: string): RateLimitResult {
+    return slidingWindow(
+        healthSyncBuckets,
+        userId,
+        HEALTH_SYNC_LIMIT_PER_WINDOW,
+    );
+}
+
+// Process-wide cap on POST /api/v1/health-sync/start. Counts the call.
+export function checkHealthSyncStartGlobalLimit(): RateLimitResult {
+    return slidingWindow(
+        healthSyncStartBuckets,
+        GLOBAL_KEY,
+        HEALTH_SYNC_START_GLOBAL_LIMIT,
+    );
+}
+
+// Record one failed /claim against the process-wide counter. Not a gate: the
+// result only says whether the count is over HEALTH_SYNC_CLAIM_FAILURE_GLOBAL_LIMIT,
+// which the route reports as an alert on its log line.
+export function noteHealthSyncClaimFailure(): RateLimitResult {
+    return slidingWindow(
+        healthSyncClaimFailureBuckets,
+        GLOBAL_KEY,
+        HEALTH_SYNC_CLAIM_FAILURE_GLOBAL_LIMIT,
+    );
 }
 
 export interface BanState {
@@ -217,4 +275,7 @@ export function _resetBuckets(): void {
     buckets.clear();
     authBuckets.clear();
     authFailures.clear();
+    healthSyncBuckets.clear();
+    healthSyncStartBuckets.clear();
+    healthSyncClaimFailureBuckets.clear();
 }

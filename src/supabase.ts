@@ -1923,6 +1923,37 @@ export function exportStoragePaths(userId: string): string[] {
 export async function deleteAllUserData(userId: string): Promise<void> {
     const sb = getSupabase();
 
+    // Apple Health sync first: removing the link stops the Shortcut syncing
+    // (and writing another sent-values row) while the rest is being deleted.
+    // Pending connects are only attributable once claimed; unclaimed ones
+    // carry no user and lapse within 30 minutes.
+    const { error: hsLinkErr } = await sb
+        .from("health_sync_links")
+        .delete()
+        .eq("user_id", userId);
+    if (hsLinkErr)
+        throw new Error(
+            `Failed to delete Apple Health sync link: ${hsLinkErr.message}`,
+        );
+
+    const { error: hsDaysErr } = await sb
+        .from("health_sync_days")
+        .delete()
+        .eq("user_id", userId);
+    if (hsDaysErr)
+        throw new Error(
+            `Failed to delete Apple Health sync record: ${hsDaysErr.message}`,
+        );
+
+    const { error: hsPendingErr } = await sb
+        .from("health_sync_pending")
+        .delete()
+        .eq("user_id", userId);
+    if (hsPendingErr)
+        throw new Error(
+            `Failed to delete pending Apple Health sync: ${hsPendingErr.message}`,
+        );
+
     const { error: analyticsErr } = await sb
         .from("tool_analytics")
         .delete()
