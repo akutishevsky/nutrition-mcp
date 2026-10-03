@@ -121,7 +121,7 @@ export const APPLE_HEALTH_DE: AppleHealthDoc = {
         title: "Datenschutz und Grenzen",
         items: [
             "Unser Server speichert die Verbindung und 8 Tage lang eine Aufzeichnung der gesendeten Summen, damit jeder Tag einmal gesendet und danach nur noch ergänzt wird. Beides ist in deinem Datenexport enthalten.",
-            "Der Kurzbefehl bewahrt sein Zugriffstoken in einer Datei im Kurzbefehle-Ordner auf deinem iPhone auf, und in deinem iCloud Drive, wenn dieser Ordner dorthin synchronisiert wird. Wer diese Datei lesen kann, kann die Synchronisierung nutzen, bis du sie trennst. Halte sie also privat.",
+            "Der Kurzbefehl bewahrt sein Zugriffstoken in seinem eigenen Speicher in der Kurzbefehle-App auf deinem iPhone auf, nicht in einer Datei, und die Kurzbefehle-App synchronisiert es eventuell über iCloud auf deine anderen Geräte. Wer den Kurzbefehl auf deinen Geräten ausführen kann, kann die Synchronisierung nutzen, bis du sie trennst. Halte ihn also auf Geräten, die nur du nutzt.",
             "Wir senden nichts an Apple. Der Kurzbefehl fragt unseren Server nach deinen Summen und schreibt sie auf deinem iPhone in Health; ab dort gelten deine eigenen Apple-Einstellungen.",
             "Wähle jederzeit <strong>Disconnect</strong>, und die Verbindung samt Aufzeichnung wird sofort gelöscht. Sie endet außerdem von selbst nach 90 Tagen ohne Synchronisierung und 365 Tage nach dem Verbinden. Was schon in Apple Health ist, bleibt dort, bis du es löschst.",
         ],

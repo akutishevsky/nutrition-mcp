@@ -285,7 +285,7 @@ export const APPLE_HEALTH_EN: AppleHealthDoc = {
         title: "Privacy and limits",
         items: [
             "Our server keeps the connection and, for 8 days, a record of the totals it sent, so each day is sent once and afterwards only topped up. Both are in your data export.",
-            "The shortcut keeps its access token in a file in the Shortcuts folder on your iPhone, which is also in your iCloud Drive when that folder syncs there. Anyone who can read that file can use the sync until you disconnect, so keep it private.",
+            "The shortcut keeps its access token in its own storage inside the Shortcuts app on your iPhone, not in a file, and the Shortcuts app may sync it to your other devices through iCloud. Anyone who can run the shortcut on your devices can use the sync until you disconnect, so keep it on devices only you use.",
             "We send nothing to Apple. The shortcut asks our server for your totals and writes them into Health on your iPhone; from there, your own Apple settings apply.",
             "Choose <strong>Disconnect</strong> at any time and the connection and its record are deleted at once. It also ends by itself after 90 days without a sync, and 365 days after connecting. What is already in Apple Health stays there until you delete it.",
         ],

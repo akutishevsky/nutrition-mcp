@@ -116,7 +116,7 @@ export const APPLE_HEALTH_PL: AppleHealthDoc = {
         title: "Prywatność i ograniczenia",
         items: [
             "Nasz serwer przechowuje połączenie oraz, przez 8 dni, zapis wysłanych sum, aby każdy dzień był wysyłany raz, a potem tylko uzupełniany. Oba znajdują się w Twoim eksporcie danych.",
-            "Skrót przechowuje swój token dostępu w pliku w folderze Skróty w telefonie iPhone, a także w usłudze iCloud Drive, jeśli ten folder jest z nią synchronizowany. Każdy, kto może odczytać ten plik, może korzystać z synchronizacji, dopóki jej nie odłączysz, więc zachowaj go tylko dla siebie.",
+            "Skrót przechowuje swój token dostępu we własnej pamięci w aplikacji Skróty w telefonie iPhone, a nie w pliku, a aplikacja Skróty może go synchronizować z innymi Twoimi urządzeniami przez iCloud. Każdy, kto może uruchomić skrót na Twoich urządzeniach, może korzystać z synchronizacji, dopóki jej nie odłączysz, więc trzymaj go tylko na urządzeniach, z których korzystasz wyłącznie Ty.",
             "Niczego nie wysyłamy do Apple. Skrót pobiera Twoje sumy z naszego serwera i zapisuje je w aplikacji Zdrowie w telefonie iPhone; od tego momentu obowiązują Twoje własne ustawienia Apple.",
             "W każdej chwili możesz wybrać <strong>Disconnect</strong>: połączenie i jego zapis zostaną natychmiast usunięte. Połączenie wygasa też samo po 90 dniach bez synchronizacji i 365 dniach od połączenia. To, co już jest w Apple Health, zostaje tam, dopóki tego nie usuniesz.",
         ],

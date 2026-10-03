@@ -123,7 +123,7 @@ export const APPLE_HEALTH_ES: AppleHealthDoc = {
         title: "Privacidad y límites",
         items: [
             "Nuestro servidor guarda la conexión y, durante 8 días, un registro de los totales que ha enviado, para que cada día se envíe una vez y después solo se complete. Ambos están en tu exportación de datos.",
-            "El atajo guarda su token de acceso en un archivo de la carpeta Atajos de tu iPhone, y también en tu iCloud Drive cuando esa carpeta se sincroniza allí. Quien pueda leer ese archivo puede usar la sincronización hasta que la desconectes, así que mantenlo privado.",
+            "El atajo guarda su token de acceso en su propio almacenamiento dentro de la app Atajos de tu iPhone, no en un archivo, y la app Atajos puede sincronizarlo con tus otros dispositivos a través de iCloud. Quien pueda ejecutar el atajo en tus dispositivos puede usar la sincronización hasta que la desconectes, así que mantenlo solo en dispositivos que uses tú.",
             "No enviamos nada a Apple. El atajo pide tus totales a nuestro servidor y los escribe en Salud en tu iPhone; a partir de ahí, se aplican tus propios ajustes de Apple.",
             "Elige <strong>Disconnect</strong> cuando quieras y la conexión y su registro se eliminan al instante. También termina sola tras 90 días sin sincronizar y 365 días después de conectarla. Lo que ya está en Apple Health se queda allí hasta que lo borres.",
         ],

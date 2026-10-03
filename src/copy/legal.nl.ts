@@ -52,7 +52,7 @@ export const PRIVACY_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "We bewaren ook de OAuth-toegangstokens, refreshtokens en autorisatiecodes waarmee je AI-assistent verbonden blijft met je account; hoe lang elk daarvan geldig is, staat onder &ldquo;Hoe lang we gegevens bewaren&rdquo;. Ze worden alleen als eenrichtingshash opgeslagen. De synchronisatie met Apple Health heeft een eigen toegangstoken, dat we ook alleen als eenrichtingshash opslaan; de opdracht heeft het token zelf nodig voor haar verzoeken, dus het staat als platte tekst in het bestand van de opdracht op je apparaten, en in je iCloud Drive als de map van Opdrachten daarheen wordt gesynchroniseerd. Wie dat bestand kan lezen, kan de synchronisatie gebruiken tot je die ontkoppelt.",
+                    html: "We bewaren ook de OAuth-toegangstokens, refreshtokens en autorisatiecodes waarmee je AI-assistent verbonden blijft met je account; hoe lang elk daarvan geldig is, staat onder &ldquo;Hoe lang we gegevens bewaren&rdquo;. Ze worden alleen als eenrichtingshash opgeslagen. De synchronisatie met Apple Health heeft een eigen toegangstoken, dat we ook alleen als eenrichtingshash opslaan; de opdracht heeft het token zelf nodig voor haar verzoeken, dus de Opdrachten-app bewaart het in de eigen opslag van de opdracht op je iPhone, niet in een bestand, en synchroniseert het mogelijk naar je andere apparaten als je opdrachten via iCloud worden gesynchroniseerd. Wie die opdracht op je apparaten kan uitvoeren, kan de synchronisatie gebruiken tot je die ontkoppelt.",
                 },
             ],
         },
@@ -295,7 +295,7 @@ export const TERMS_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Als je de synchronisatie met Apple Health koppelt, worden je dagtotalen op jouw verzoek in Apple Health op je iPhone geschreven. Daar liggen ze in jouw handen en gelden de voorwaarden van Apple: ontkoppelen of je account verwijderen haalt ze niet weg, en omdat Apple Health een waarde die het al heeft niet kan verlagen, wordt een dag die je later naar beneden bijstelt daar niet bijgewerkt — verwijder die registraties dan zelf in de app Gezondheid. Houd het bestand van de opdracht privé: het bevat het token waarmee de opdracht de synchronisatie van je account gebruikt.",
+                    html: "Als je de synchronisatie met Apple Health koppelt, worden je dagtotalen op jouw verzoek in Apple Health op je iPhone geschreven. Daar liggen ze in jouw handen en gelden de voorwaarden van Apple: ontkoppelen of je account verwijderen haalt ze niet weg, en omdat Apple Health een waarde die het al heeft niet kan verlagen, wordt een dag die je later naar beneden bijstelt daar niet bijgewerkt — verwijder die registraties dan zelf in de app Gezondheid. Houd de opdracht op apparaten die alleen jij gebruikt: ze bevat het token waarmee ze de synchronisatie van je account gebruikt, en als je via het menu van de opdracht ontkoppelt, is dat token meteen ongeldig.",
                 },
                 {
                     type: "p",
