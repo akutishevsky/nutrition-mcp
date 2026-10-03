@@ -9,7 +9,7 @@ export const APPLE_HEALTH_NL: AppleHealthDoc = {
     meta: {
         title: "Synchronisatie met Apple Health",
         description:
-            "Stel de gratis opdracht Nutrition MCP Health in op je iPhone: ze kopieert de dagtotalen die je bijhoudt door met je AI te chatten (calorieën, eiwit, koolhydraten, vet, vezels, suiker, cafeïne en desgewenst water) naar Apple Health.",
+            "Stel de gratis opdracht Nutrition MCP Health in op je iPhone: ze kopieert de dagtotalen die je bijhoudt door met je AI te chatten (calorieën, eiwit, koolhydraten, vet, vezels, cafeïne en desgewenst water) naar Apple Health.",
         ogDescription:
             "Kopieer de dagtotalen die je met je AI bijhoudt naar Apple Health, met één gratis iPhone-opdracht.",
     },
@@ -30,7 +30,6 @@ export const APPLE_HEALTH_NL: AppleHealthDoc = {
             carbohydrates_g: "Koolhydraten",
             fat_g: "Totaal vet",
             fiber_g: "Vezels",
-            sugar_g: "Suiker",
             caffeine_mg: "Cafeïne",
             water_ml: "Water",
         },

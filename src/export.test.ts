@@ -1646,7 +1646,6 @@ test("a health_sync row is rendered in the day's own zone, with absent values em
         carbohydrates_g: "",
         fat_g: "",
         fiber_g: "",
-        sugar_g: "",
         caffeine_mg: "",
         water_ml: "1800",
         topup_seq: "1",

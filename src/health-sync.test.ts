@@ -72,7 +72,6 @@ function meal(
         carbs_g: null,
         fat_g: null,
         fiber_g: null,
-        sugar_g: null,
         caffeine_mg: null,
         ...v,
     };
@@ -115,7 +114,6 @@ describe("constants", () => {
         ["carbohydrates_g", 2],
         ["fat_g", 2],
         ["fiber_g", 2],
-        ["sugar_g", 2],
         ["caffeine_mg", 10],
         ["water_ml", 100],
     ] as const)("%s threshold is %d", (f, thr) => {
@@ -155,7 +153,6 @@ describe("computeDayTotals", () => {
         expect(t.energy_kcal).toBe(500);
         expect(t.protein_g).toBe(20);
         expect(t.fiber_g).toBe(0);
-        expect(t.sugar_g).toBeNull();
         expect(t.caffeine_mg).toBeNull();
         expect(t.water_ml).toBeNull();
         expect(presentValues(t, DEFAULTS)).toEqual({
@@ -540,11 +537,11 @@ describe("planPending: thresholds", () => {
     });
 
     test("null now / missing in sent count as 0", () => {
-        // Sugar never sent before, now 30 g; fiber sent 10 g, now null.
-        const p = plan(D, { energy_kcal: 2000, sugar_g: 30 }, [
+        // Protein never sent before, now 30 g; fiber sent 10 g, now null.
+        const p = plan(D, { energy_kcal: 2000, protein_g: 30 }, [
             sentRow({ energy_kcal: 2000, fiber_g: 10 }),
         ]);
-        expect(p.entries[0]!.values).toEqual({ sugar_g: 30 });
+        expect(p.entries[0]!.values).toEqual({ protein_g: 30 });
         expect(p.notices).toHaveLength(1);
         expect(p.notices[0]).toContain("10 g fiber");
     });
@@ -1218,4 +1215,15 @@ describe("shortcutUrlFromEnv", () => {
             expect(shortcutUrlFromEnv(raw)).toBeNull();
         }
     });
+});
+
+test("sugar is not sent to Apple Health", () => {
+    // Sugar is left out of Apple Health sync for now: it stays tracked in
+    // the MCP, but the shortcut has no sugar block. A link created while
+    // it was one keeps "sugar_g" in its stored fields; the routes filter it
+    // out with isHealthSyncField.
+    expect((HEALTH_SYNC_FIELDS as readonly string[]).includes("sugar_g")).toBe(
+        false,
+    );
+    expect(HEALTH_SYNC_DEFAULT_FIELDS).not.toContain("sugar_g" as never);
 });

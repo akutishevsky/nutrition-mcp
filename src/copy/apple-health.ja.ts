@@ -11,7 +11,7 @@ export const APPLE_HEALTH_JA: AppleHealthDoc = {
     meta: {
         title: "Apple Healthとの同期",
         description:
-            "無料のショートカット「Nutrition MCP Health」をiPhoneに設定しましょう。AIとのチャットで記録した1日の合計（カロリー、たんぱく質、炭水化物、脂質、食物繊維、糖質、カフェイン、選択すれば水分）をApple Healthにコピーします。",
+            "無料のショートカット「Nutrition MCP Health」をiPhoneに設定しましょう。AIとのチャットで記録した1日の合計（カロリー、たんぱく質、炭水化物、脂質、食物繊維、カフェイン、選択すれば水分）をApple Healthにコピーします。",
         ogDescription:
             "AIで記録した1日の合計を、無料のiPhoneショートカット1つでApple Healthにコピーします。",
     },
@@ -32,7 +32,6 @@ export const APPLE_HEALTH_JA: AppleHealthDoc = {
             carbohydrates_g: "炭水化物",
             fat_g: "総脂肪",
             fiber_g: "食物繊維",
-            sugar_g: "糖分",
             caffeine_mg: "カフェイン",
             water_ml: "水分",
         },

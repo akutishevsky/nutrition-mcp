@@ -4,7 +4,7 @@ export const APPLE_HEALTH_PL: AppleHealthDoc = {
     meta: {
         title: "Synchronizacja z Apple Health",
         description:
-            "Skonfiguruj darmowy skrót Nutrition MCP Health w telefonie iPhone: kopiuje on do Apple Health sumy dzienne, które zapisujesz w rozmowie z AI (kalorie, białko, węglowodany, tłuszcz, błonnik, cukier, kofeinę i opcjonalnie wodę).",
+            "Skonfiguruj darmowy skrót Nutrition MCP Health w telefonie iPhone: kopiuje on do Apple Health sumy dzienne, które zapisujesz w rozmowie z AI (kalorie, białko, węglowodany, tłuszcz, błonnik, kofeinę i opcjonalnie wodę).",
         ogDescription:
             "Kopiuj do Apple Health sumy dzienne zapisywane z pomocą AI — wystarczy jeden darmowy skrót w telefonie iPhone.",
     },
@@ -25,7 +25,6 @@ export const APPLE_HEALTH_PL: AppleHealthDoc = {
             carbohydrates_g: "Węglowodany",
             fat_g: "Tłuszcze ogółem",
             fiber_g: "Błonnik",
-            sugar_g: "Cukier",
             caffeine_mg: "Kofeina",
             water_ml: "Woda",
         },
