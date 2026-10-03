@@ -65,7 +65,6 @@ const FIELD_TINT: Record<HealthSyncField, string> = {
     carbohydrates_g: "car",
     fat_g: "fat",
     fiber_g: "fib",
-    sugar_g: "sug",
     caffeine_mg: "caf",
     water_ml: "wat",
 };

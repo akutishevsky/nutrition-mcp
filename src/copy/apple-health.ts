@@ -173,7 +173,7 @@ export const APPLE_HEALTH_EN: AppleHealthDoc = {
     meta: {
         title: "Apple Health sync",
         description:
-            "Set up the free Nutrition MCP Health shortcut on your iPhone: it copies the daily totals you log by chatting with your AI (calories, protein, carbs, fat, fiber, sugar, caffeine and optionally water) into Apple Health.",
+            "Set up the free Nutrition MCP Health shortcut on your iPhone: it copies the daily totals you log by chatting with your AI (calories, protein, carbs, fat, fiber, caffeine and optionally water) into Apple Health.",
         ogDescription:
             "Copy the daily totals you log with your AI into Apple Health, with one free iPhone shortcut.",
     },
@@ -194,7 +194,6 @@ export const APPLE_HEALTH_EN: AppleHealthDoc = {
             carbohydrates_g: "Carbohydrates",
             fat_g: "Total Fat",
             fiber_g: "Fiber",
-            sugar_g: "Sugar",
             caffeine_mg: "Caffeine",
             water_ml: "Water",
         },

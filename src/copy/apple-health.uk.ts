@@ -11,7 +11,7 @@ export const APPLE_HEALTH_UK: AppleHealthDoc = {
     meta: {
         title: "Синхронізація з Apple Health",
         description:
-            "Налаштуй безкоштовну швидку команду Nutrition MCP Health на своєму iPhone: вона копіює в Apple Health денні підсумки, які ти записуєш у чаті зі своїм ШІ (калорії, білки, вуглеводи, жири, клітковину, цукор, кофеїн і, за бажанням, воду).",
+            "Налаштуй безкоштовну швидку команду Nutrition MCP Health на своєму iPhone: вона копіює в Apple Health денні підсумки, які ти записуєш у чаті зі своїм ШІ (калорії, білки, вуглеводи, жири, клітковину, кофеїн і, за бажанням, воду).",
         ogDescription:
             "Копіюй денні підсумки, які записуєш зі своїм ШІ, в Apple Health за допомогою однієї безкоштовної швидкої команди для iPhone.",
     },
@@ -32,7 +32,6 @@ export const APPLE_HEALTH_UK: AppleHealthDoc = {
             carbohydrates_g: "Вуглеводи",
             fat_g: "Жири (загалом)",
             fiber_g: "Клітковина",
-            sugar_g: "Цукор",
             caffeine_mg: "Кофеїн",
             water_ml: "Вода",
         },

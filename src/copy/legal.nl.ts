@@ -73,7 +73,7 @@ export const PRIVACY_NL: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Als je de synchronisatie met Apple Health koppelt, vraagt de opdracht op je iPhone onze server om de dagtotalen van je afgesloten dagen — calorieën, eiwit, koolhydraten, vet, vezels, suiker, cafeïne en, als je daarvoor koos, water — en schrijft die op die iPhone in Apple Health. Dat gebeurt op jouw verzoek en op jouw apparaat: onze server antwoordt alleen de opdracht en stuurt niets naar Apple. Zodra de totalen in Apple Health staan, worden ze daar bewaard en gedeeld volgens je eigen instellingen en je overeenkomst met Apple, niet de onze.",
+                    html: "Als je de synchronisatie met Apple Health koppelt, vraagt de opdracht op je iPhone onze server om de dagtotalen van je afgesloten dagen — calorieën, eiwit, koolhydraten, vet, vezels, cafeïne en, als je daarvoor koos, water — en schrijft die op die iPhone in Apple Health. Dat gebeurt op jouw verzoek en op jouw apparaat: onze server antwoordt alleen de opdracht en stuurt niets naar Apple. Zodra de totalen in Apple Health staan, worden ze daar bewaard en gedeeld volgens je eigen instellingen en je overeenkomst met Apple, niet de onze.",
                 },
                 {
                     type: "p",

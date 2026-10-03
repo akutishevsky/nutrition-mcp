@@ -4,7 +4,7 @@ export const APPLE_HEALTH_FR: AppleHealthDoc = {
     meta: {
         title: "Synchronisation avec Apple Health",
         description:
-            "Installe le raccourci gratuit Nutrition MCP Health sur ton iPhone : il copie dans Apple Health les totaux journaliers que tu enregistres en discutant avec ton IA (calories, protéines, glucides, lipides, fibres, sucres, caféine et, si tu veux, eau).",
+            "Installe le raccourci gratuit Nutrition MCP Health sur ton iPhone : il copie dans Apple Health les totaux journaliers que tu enregistres en discutant avec ton IA (calories, protéines, glucides, lipides, fibres, caféine et, si tu veux, eau).",
         ogDescription:
             "Copie dans Apple Health les totaux journaliers que tu enregistres avec ton IA, grâce à un raccourci iPhone gratuit.",
     },
@@ -25,7 +25,6 @@ export const APPLE_HEALTH_FR: AppleHealthDoc = {
             carbohydrates_g: "Glucides",
             fat_g: "Lipides totaux",
             fiber_g: "Fibres",
-            sugar_g: "Sucre",
             caffeine_mg: "Caféine",
             water_ml: "Eau",
         },

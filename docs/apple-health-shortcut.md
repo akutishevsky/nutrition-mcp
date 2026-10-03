@@ -86,7 +86,7 @@ Then four blocks in this order; only one ever runs.
     7. **Get Dictionary Value** `entries` in `Reply` → **Repeat with Each**:
         1. **Get Dictionary Value** `sample_local` in **Repeat Item** → **Get Dates from Input** → **Set variable** `SampleDate`. The string has no offset, so it is read in the phone's zone: noon on that calendar day.
         2. **Get Dictionary Value** `values` in **Repeat Item** → **Set variable** `Values`
-        3. Eight blocks, one per row — **Get Dictionary Value** `<key>` in `Values` → **If** it **has any value** → **Log Health Sample** Type `<type>`, Value = it, Unit `<unit>`, Date = `SampleDate` → **End If**. Build one, then duplicate it (iPhone: long-press → **Duplicate**; Mac: select the **Get Dictionary Value**, **If**, **Log Health Sample** and **End If**, then ⌘C / ⌘V) and edit the key, type and unit. Set each **Log Health Sample**'s Type, Value (the **Dictionary Value** above it), Unit and Date on the iPhone.
+        3. Seven blocks, one per row — **Get Dictionary Value** `<key>` in `Values` → **If** it **has any value** → **Log Health Sample** Type `<type>`, Value = it, Unit `<unit>`, Date = `SampleDate` → **End If**. Build one, then duplicate it (iPhone: long-press → **Duplicate**; Mac: select the **Get Dictionary Value**, **If**, **Log Health Sample** and **End If**, then ⌘C / ⌘V) and edit the key, type and unit. Set each **Log Health Sample**'s Type, Value (the **Dictionary Value** above it), Unit and Date on the iPhone.
 
             | key               | Type           | Unit |
             | ----------------- | -------------- | ---- |
@@ -95,11 +95,10 @@ Then four blocks in this order; only one ever runs.
             | `carbohydrates_g` | Carbohydrates  | g    |
             | `fat_g`           | Total Fat      | g    |
             | `fiber_g`         | Fiber          | g    |
-            | `sugar_g`         | Sugar          | g    |
             | `caffeine_mg`     | Caffeine       | mg   |
             | `water_ml`        | Water          | mL   |
 
-            There is no alcohol block, and there must never be one: the server never sends alcohol.
+            There is no alcohol block, and there must never be one: the server never sends alcohol. There is no sugar block either: sugar is tracked in the MCP but left out of the Apple Health sync for now, so `/pending` never sends `sugar_g`.
 
         4. **Text** `{"entries":[` + **Repeat Item** + `],"done":false}`
         5. **Get contents of** `BaseURL` + `/api/v1/health-sync/ack`, Method **POST**, Headers `Authorization` = `Bearer ` + `Token` and `Content-Type` = `application/json`, Request Body **File** = that Text
@@ -219,5 +218,5 @@ On a real iPhone with the current iOS, before the shortcut is shared:
 9. **Log Health Sample** and stored content work on a locked phone from the Charger trigger.
 10. Whether the first **Log Health Sample** from a background trigger, with Health write access never granted, shows the permission sheet, waits, or fails.
 11. Whether the Health charts refresh when the "Health Is Opened" run finishes, or only after Health is reopened.
-12. How long 8 log actions × 7 entries plus 9 HTTP calls takes, and whether a background run is killed before the end.
+12. How long 7 log actions × 7 entries plus 9 HTTP calls takes, and whether a background run is killed before the end.
 13. Two sources writing Dietary Energy are summed in Health (expected; the troubleshooting copy says so).

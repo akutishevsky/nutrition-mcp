@@ -9,7 +9,7 @@ export const APPLE_HEALTH_DE: AppleHealthDoc = {
     meta: {
         title: "Synchronisierung mit Apple Health",
         description:
-            "Richte den kostenlosen Kurzbefehl Nutrition MCP Health auf deinem iPhone ein: Er überträgt die Tagessummen, die du im Chat mit deiner KI erfasst (Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Zucker, Koffein und auf Wunsch Wasser), in Apple Health.",
+            "Richte den kostenlosen Kurzbefehl Nutrition MCP Health auf deinem iPhone ein: Er überträgt die Tagessummen, die du im Chat mit deiner KI erfasst (Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Koffein und auf Wunsch Wasser), in Apple Health.",
         ogDescription:
             "Übertrage die Tagessummen, die du mit deiner KI erfasst, mit einem kostenlosen iPhone-Kurzbefehl in Apple Health.",
     },
@@ -30,7 +30,6 @@ export const APPLE_HEALTH_DE: AppleHealthDoc = {
             carbohydrates_g: "Kohlenhydrate",
             fat_g: "Fett gesamt",
             fiber_g: "Ballaststoffe",
-            sugar_g: "Zucker",
             caffeine_mg: "Koffein",
             water_ml: "Wasser",
         },

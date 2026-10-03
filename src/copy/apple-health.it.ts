@@ -11,7 +11,7 @@ export const APPLE_HEALTH_IT: AppleHealthDoc = {
     meta: {
         title: "Sincronizzazione con Apple Health",
         description:
-            "Configura sul tuo iPhone il comando rapido gratuito Nutrition MCP Health: copia in Apple Health i totali giornalieri che registri chattando con la tua IA (calorie, proteine, carboidrati, grassi, fibre, zuccheri, caffeina e, se vuoi, acqua).",
+            "Configura sul tuo iPhone il comando rapido gratuito Nutrition MCP Health: copia in Apple Health i totali giornalieri che registri chattando con la tua IA (calorie, proteine, carboidrati, grassi, fibre, caffeina e, se vuoi, acqua).",
         ogDescription:
             "Copia in Apple Health i totali giornalieri che registri con la tua IA, con un comando rapido gratuito per iPhone.",
     },
@@ -32,7 +32,6 @@ export const APPLE_HEALTH_IT: AppleHealthDoc = {
             carbohydrates_g: "Carboidrati",
             fat_g: "Grassi totali",
             fiber_g: "Fibre",
-            sugar_g: "Zuccheri",
             caffeine_mg: "Caffeina",
             water_ml: "Acqua",
         },

@@ -11,7 +11,7 @@ export const APPLE_HEALTH_ES: AppleHealthDoc = {
     meta: {
         title: "Sincronización con Apple Health",
         description:
-            "Configura el atajo gratuito Nutrition MCP Health en tu iPhone: copia en Apple Health los totales diarios que registras hablando con tu IA (calorías, proteínas, carbohidratos, grasas, fibra, azúcar, cafeína y, si quieres, agua).",
+            "Configura el atajo gratuito Nutrition MCP Health en tu iPhone: copia en Apple Health los totales diarios que registras hablando con tu IA (calorías, proteínas, carbohidratos, grasas, fibra, cafeína y, si quieres, agua).",
         ogDescription:
             "Copia en Apple Health los totales diarios que registras con tu IA, con un atajo gratuito para iPhone.",
     },
@@ -32,7 +32,6 @@ export const APPLE_HEALTH_ES: AppleHealthDoc = {
             carbohydrates_g: "Carbohidratos",
             fat_g: "Grasas totales",
             fiber_g: "Fibra",
-            sugar_g: "Azúcar",
             caffeine_mg: "Cafeína",
             water_ml: "Agua",
         },

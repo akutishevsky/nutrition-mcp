@@ -106,7 +106,6 @@ export const HEALTH_SYNC_FIELDS = [
     "carbohydrates_g",
     "fat_g",
     "fiber_g",
-    "sugar_g",
     "caffeine_mg",
     "water_ml",
 ] as const;
@@ -122,18 +121,11 @@ export const HEALTH_SYNC_DEFAULT_FIELDS: readonly HealthSyncField[] = [
     "carbohydrates_g",
     "fat_g",
     "fiber_g",
-    "sugar_g",
     "caffeine_mg",
 ];
 
 type MealColumn =
-    | "calories"
-    | "protein_g"
-    | "carbs_g"
-    | "fat_g"
-    | "fiber_g"
-    | "sugar_g"
-    | "caffeine_mg";
+    "calories" | "protein_g" | "carbs_g" | "fat_g" | "fiber_g" | "caffeine_mg";
 
 export interface HealthSyncFieldSpec {
     /** Where the value comes from: a meal column, or the sum of water rows. */
@@ -199,15 +191,6 @@ export const HEALTH_SYNC_FIELD_SPECS: Record<
         ackMax: 10_000,
         noun: "g fiber",
         healthName: "Fiber",
-    },
-    sugar_g: {
-        source: { table: "meals", column: "sugar_g" },
-        unit: "g",
-        decimals: 1,
-        threshold: 2,
-        ackMax: 10_000,
-        noun: "g sugar",
-        healthName: "Sugar",
     },
     caffeine_mg: {
         source: { table: "meals", column: "caffeine_mg" },

@@ -366,6 +366,8 @@ function seedLink(
                 "carbohydrates_g",
                 "fat_g",
                 "fiber_g",
+                // Links created before sugar left the sync still list it;
+                // the routes drop it, so a meal's sugar is never offered.
                 "sugar_g",
                 "caffeine_mg",
             ],
@@ -1302,7 +1304,6 @@ describe("GET /pending", () => {
                     energy_kcal: 1500,
                     protein_g: 70,
                     fat_g: 20,
-                    sugar_g: 0,
                     caffeine_mg: 95,
                 },
             },
