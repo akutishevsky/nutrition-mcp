@@ -16,6 +16,19 @@ import {
     type LegalDoc,
 } from "./copy/legal.js";
 import { LOGIN } from "./copy/login.js";
+import { HEALTH_SYNC_COPY } from "./copy/health-sync.js";
+import { APPLE_HEALTH, type AppleHealthDoc } from "./copy/apple-health.js";
+import {
+    HEALTH_SYNC_CLOSE_HOUR,
+    HEALTH_SYNC_CONNECT_TTL_MINUTES,
+    HEALTH_SYNC_LINK_IDLE_DAYS,
+    HEALTH_SYNC_LINK_MAX_DAYS,
+    HEALTH_SYNC_MAX_BACKFILL_DAYS,
+    HEALTH_SYNC_RETENTION_DAYS,
+    HEALTH_SYNC_SHORTCUT_NAME,
+    HEALTH_SYNC_SHORTCUT_URL,
+    HEALTH_SYNC_WINDOW_DAYS,
+} from "./health-sync.js";
 import { SITE_LOCALES, pathFor, type SiteLocale } from "./routes.js";
 
 // The public pages are the only place the product describes ITSELF, and they
@@ -159,6 +172,7 @@ const ARCHIVE_FILES = [
     "account.csv",
     "telemetry.csv",
     "connections.csv",
+    "health_sync.csv",
     "README.txt",
 ];
 // The tables behind those CSVs, as the prose names them.
@@ -614,15 +628,15 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
         ]),
     );
     const expected: Record<SiteLocale, string> = {
-        en: "October 2, 2026",
-        de: "2. Oktober 2026",
-        es: "2 de octubre de 2026",
-        fr: "2 octobre 2026",
-        nl: "2 oktober 2026",
-        pl: "2 października 2026",
-        it: "2 ottobre 2026",
-        uk: "2 жовтня 2026 року",
-        ja: "2026年10月2日",
+        en: "October 3, 2026",
+        de: "3. Oktober 2026",
+        es: "3 de octubre de 2026",
+        fr: "3 octobre 2026",
+        nl: "3 oktober 2026",
+        pl: "3 października 2026",
+        it: "3 ottobre 2026",
+        uk: "3 жовтня 2026 року",
+        ja: "2026年10月3日",
     };
     expect(dates).toEqual(
         Object.fromEntries(
@@ -880,6 +894,8 @@ const EXPORT_MIN = await scrape(
     /const EXPORT_TTL_SECONDS = 60 \* (\d+);/,
 );
 const FIRST_BAN = BANS[0]!;
+/** "05:00" — the local time a day closes for Apple Health sync. */
+const CLOSE_TIME = `${String(HEALTH_SYNC_CLOSE_HOUR).padStart(2, "0")}:00`;
 const LAST_BAN = BANS[BANS.length - 1]!;
 
 // Which numbers each entry must carry, in every language.
@@ -888,6 +904,18 @@ const PINNED_DIGITS: Partial<Record<TroubleshootingId, string[]>> = {
     "session-expired": [SESSION_MIN],
     "rate-limited": [LIMIT, AUTH_LIMIT, STRIKES, FIRST_BAN],
     "export-link": [EXPORT_MIN],
+    // Apple Health sync: the 05:00 close is pinned separately below (it is a
+    // clock time, not a bare number).
+    "health-sync-yesterday": [
+        String(HEALTH_SYNC_WINDOW_DAYS),
+        String(HEALTH_SYNC_MAX_BACKFILL_DAYS),
+    ],
+    "health-sync-higher": [String(HEALTH_SYNC_WINDOW_DAYS)],
+    "health-sync-stopped": [
+        String(HEALTH_SYNC_LINK_IDLE_DAYS),
+        String(HEALTH_SYNC_LINK_MAX_DAYS),
+        String(HEALTH_SYNC_CONNECT_TTL_MINUTES),
+    ],
 };
 
 test("the English troubleshooting copy states the limits in the code", () => {
@@ -902,6 +930,25 @@ test("the English troubleshooting copy states the limits in the code", () => {
         ["rate-limited", `${FIRST_BAN} minutes`],
         ["rate-limited", `at most ${capText}`],
         ["export-link", `${EXPORT_MIN} minutes`],
+        ["health-sync-yesterday", `at ${CLOSE_TIME} the next morning`],
+        ["health-sync-yesterday", `the last ${HEALTH_SYNC_WINDOW_DAYS} days`],
+        [
+            "health-sync-yesterday",
+            `up to ${HEALTH_SYNC_MAX_BACKFILL_DAYS} earlier days`,
+        ],
+        ["health-sync-higher", `the last ${HEALTH_SYNC_WINDOW_DAYS} days`],
+        [
+            "health-sync-stopped",
+            `${HEALTH_SYNC_LINK_IDLE_DAYS} days without a sync`,
+        ],
+        [
+            "health-sync-stopped",
+            `${HEALTH_SYNC_LINK_MAX_DAYS} days after connecting`,
+        ],
+        [
+            "health-sync-stopped",
+            `within ${HEALTH_SYNC_CONNECT_TTL_MINUTES} minutes`,
+        ],
     ];
     for (const [id, phrase] of expected)
         expect(items[id].answerHtml, `${id}`).toContain(phrase);
@@ -929,4 +976,184 @@ test("every locale's troubleshooting copy carries the same numbers", () => {
                 )
                     missing.push(`${locale} ${id}: ${d}`);
     expect(missing).toEqual([]);
+});
+
+// ------------------------------------------------ Apple Health sync
+
+// The sync's numbers are restated in prose in four places: the /tools
+// troubleshooting entries (above), the privacy policy, the connect-link error
+// page and the shortcut's build guide. Each is pinned against the constant in
+// src/health-sync.ts, so changing one there fails here until every locale
+// says so too.
+test("every locale's troubleshooting names the 05:00 close and the shortcut", () => {
+    const missing: string[] = [];
+    for (const [locale, doc] of troubleshootingLocales) {
+        const items = doc.troubleshooting.items;
+        if (!items["health-sync-yesterday"].answerHtml.includes(CLOSE_TIME))
+            missing.push(`${locale}: ${CLOSE_TIME}`);
+        for (const id of [
+            "health-sync-yesterday",
+            "health-sync-stopped",
+        ] as const)
+            if (!items[id].answerHtml.includes(HEALTH_SYNC_SHORTCUT_NAME))
+                missing.push(`${locale} ${id}: ${HEALTH_SYNC_SHORTCUT_NAME}`);
+    }
+    expect(missing).toEqual([]);
+});
+
+// Apple Health can't lower a value, and "Delete All Data from Shortcuts" also
+// wipes every other shortcut's samples: the decrease entry must say how to fix
+// a day by hand without ever recommending that button.
+test("the English health-sync-higher entry warns off Delete All Data", () => {
+    const html =
+        TOOLS_COPY.en!.troubleshooting.items["health-sync-higher"].answerHtml;
+    expect(html).toContain("Show All Data");
+    expect(html).toMatch(/Never use <strong>Delete All Data from Shortcuts/);
+});
+
+const hasNumber = (text: string, n: number) =>
+    new RegExp(`(?<!\\d)${n}(?!\\d)`).test(text);
+
+test("every locale's privacy policy states the sync's retention numbers", () => {
+    const missing: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const privacy = allText(PRIVACY[locale]!);
+        for (const n of [
+            HEALTH_SYNC_RETENTION_DAYS,
+            HEALTH_SYNC_CONNECT_TTL_MINUTES,
+            HEALTH_SYNC_LINK_IDLE_DAYS,
+            HEALTH_SYNC_LINK_MAX_DAYS,
+        ])
+            if (!hasNumber(privacy, n)) missing.push(`${locale}: ${n}`);
+        if (!privacy.includes("Apple Health"))
+            missing.push(`${locale}: Apple Health`);
+    }
+    expect(missing).toEqual([]);
+});
+
+test("every locale's expired connect-link page states its lifetime", () => {
+    const missing = SITE_LOCALES.filter(
+        (l) =>
+            !hasNumber(
+                HEALTH_SYNC_COPY[l].errors.expired.body,
+                HEALTH_SYNC_CONNECT_TTL_MINUTES,
+            ),
+    );
+    expect(missing).toEqual([]);
+});
+
+test("the shortcut build guide names the shortcut and the sync's numbers", async () => {
+    const guide = await Bun.file("./docs/apple-health-shortcut.md").text();
+    expect(guide).toContain(`\`${HEALTH_SYNC_SHORTCUT_NAME}\``);
+    expect(guide).toContain(`${CLOSE_TIME} local time`);
+    expect(guide).toContain(`last ${HEALTH_SYNC_WINDOW_DAYS} closed days`);
+    expect(guide).toContain(`${HEALTH_SYNC_CONNECT_TTL_MINUTES} minutes`);
+    expect(guide).toContain(`${HEALTH_SYNC_RETENTION_DAYS} days`);
+});
+
+// ------------------------------------------------ /apple-health
+
+// The setup guide (scripts/gen-apple-health.ts, src/copy/apple-health*.ts)
+// restates the sync's rules in prose, like the troubleshooting entries above:
+// pinned against src/health-sync.ts in every locale.
+const appleHealthLocales = Object.entries(APPLE_HEALTH) as [
+    SiteLocale,
+    AppleHealthDoc,
+][];
+const appleHealthText = (doc: AppleHealthDoc) => JSON.stringify(doc);
+const appleHealthFile = (locale: SiteLocale) =>
+    locale === "en"
+        ? "./public/apple-health.html"
+        : `./public/${locale}/apple-health.html`;
+
+test("the Apple Health guide exists in every locale", () => {
+    expect(Object.keys(APPLE_HEALTH).sort()).toEqual([...SITE_LOCALES].sort());
+});
+
+test("every locale's Apple Health guide states the sync's numbers and the shortcut name", () => {
+    const missing: string[] = [];
+    for (const [locale, doc] of appleHealthLocales) {
+        const text = appleHealthText(doc);
+        if (!text.includes(CLOSE_TIME))
+            missing.push(`${locale}: ${CLOSE_TIME}`);
+        if (!text.includes(HEALTH_SYNC_SHORTCUT_NAME))
+            missing.push(`${locale}: ${HEALTH_SYNC_SHORTCUT_NAME}`);
+        for (const n of [
+            HEALTH_SYNC_WINDOW_DAYS,
+            HEALTH_SYNC_RETENTION_DAYS,
+            HEALTH_SYNC_CONNECT_TTL_MINUTES,
+            HEALTH_SYNC_LINK_IDLE_DAYS,
+            HEALTH_SYNC_LINK_MAX_DAYS,
+        ])
+            if (!hasNumber(text, n)) missing.push(`${locale}: ${n}`);
+        // The automation's input is a literal the shortcut compares against.
+        if (!text.includes("<code>auto</code>"))
+            missing.push(`${locale}: <code>auto</code>`);
+    }
+    expect(missing).toEqual([]);
+});
+
+test("the English Apple Health guide restates the rules in the code", () => {
+    const text = appleHealthText(APPLE_HEALTH.en);
+    for (const phrase of [
+        `<strong>${CLOSE_TIME}</strong> the next morning`,
+        `the last ${HEALTH_SYNC_WINDOW_DAYS} days`,
+        `the last ${HEALTH_SYNC_WINDOW_DAYS} finished days`,
+        `for ${HEALTH_SYNC_RETENTION_DAYS} days`,
+        `for ${HEALTH_SYNC_CONNECT_TTL_MINUTES} minutes`,
+        `${HEALTH_SYNC_LINK_IDLE_DAYS} days without a sync`,
+        `${HEALTH_SYNC_LINK_MAX_DAYS} days after connecting`,
+        "Show All Data",
+    ])
+        expect(text, phrase).toContain(phrase);
+    // Health can't lower a value, and "Delete All Data from Shortcuts" wipes
+    // every other shortcut's samples too: only ever named to warn against it.
+    expect(text).toMatch(/Never use <strong>Delete All Data from Shortcuts/);
+    expect(text.split("Delete All Data from Shortcuts").length - 1).toBe(1);
+    expect(text).not.toMatch(/whoop/i);
+});
+
+test("every built Apple Health guide links its troubleshooting entries and policy in its own locale", async () => {
+    for (const [locale] of appleHealthLocales) {
+        const html = await Bun.file(appleHealthFile(locale)).text();
+        for (const id of [
+            "health-sync-yesterday",
+            "health-sync-higher",
+            "health-sync-stopped",
+        ])
+            expect(html, `${locale} #${id}`).toContain(
+                `href="${pathFor(locale, "/tools")}#${id}"`,
+            );
+        expect(html, `${locale} privacy`).toContain(
+            `href="${pathFor(locale, "/privacy")}"`,
+        );
+        // No dead install button while the iCloud link is unpublished.
+        if (HEALTH_SYNC_SHORTCUT_URL) {
+            expect(html).toContain(`href="${HEALTH_SYNC_SHORTCUT_URL}"`);
+            expect(html).not.toContain('class="ah-pending"');
+        } else {
+            expect(html).toContain('class="ah-pending"');
+            expect(html).not.toContain("icloud.com/shortcuts");
+        }
+    }
+});
+
+test("every page's footer links the Apple Health guide in its locale", async () => {
+    let pages = 0;
+    for await (const file of new Bun.Glob("public/**/*.html").scan(".")) {
+        if (file.startsWith("public/widgets/")) continue;
+        const html = await Bun.file(file).text();
+        if (!html.includes('<footer class="footer">')) continue;
+        const locale =
+            SITE_LOCALES.find(
+                (l) => l !== "en" && file.startsWith(`public/${l}/`),
+            ) ?? "en";
+        expect(html, file).toMatch(
+            new RegExp(
+                `<a href="${pathFor(locale, "/apple-health")}"(?: aria-current="page")?>${chromeFor(locale).footer.appleHealth}</a>`,
+            ),
+        );
+        pages++;
+    }
+    expect(pages).toBeGreaterThan(SITE_LOCALES.length * 5);
 });

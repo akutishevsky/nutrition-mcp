@@ -18,7 +18,13 @@ test("PAGE_ROUTES includes every ALT_PAGES entry plus the standalone pages", () 
     for (const route of Object.keys(ALT_PAGES)) {
         expect(PAGE_ROUTES).toHaveProperty(route);
     }
-    for (const suffix of ["", "/tools", "/privacy", "/terms"]) {
+    for (const suffix of [
+        "",
+        "/tools",
+        "/privacy",
+        "/terms",
+        "/apple-health",
+    ]) {
         expect(PAGE_ROUTES).toHaveProperty(suffix);
     }
 });

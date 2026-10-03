@@ -25,6 +25,8 @@
  *   - The security.txt contact (the route 404s until you set your own) and
  *     its advisory/policy repo URLs
  *   - Medium / YouTube footer links on every page
+ *   - The /apple-health self-hosting note (links the build sheet in the
+ *     maintainer's repo), every locale
  *   - The nutrition-mcp.com domain -> your-domain.com placeholder
  *     (install/MCP URL, canonical/OG tags, sitemap, robots)
  *   - The Claude directory listing (the landing page's "Add to Claude"
@@ -68,6 +70,16 @@
 import { statSync } from "node:fs";
 
 const PLACEHOLDER_DOMAIN = "your-domain.com";
+// Anything but `--dry` is refused before a file is touched: an unknown flag
+// (say `--help`) used to fall through to write mode and rewrite the tree.
+const UNKNOWN_ARGS = process.argv.slice(2).filter((a) => a !== "--dry");
+if (UNKNOWN_ARGS.length) {
+    console.error(
+        `depersonalize: unknown argument(s) ${UNKNOWN_ARGS.join(" ")}. ` +
+            "Usage: bun run scripts/depersonalize.ts [--dry] (no flag rewrites files in place).",
+    );
+    process.exit(2);
+}
 const DRY = process.argv.includes("--dry");
 
 type Rule = {
@@ -447,6 +459,20 @@ const RULES_BY_FILENAME: Record<string, Rule[]> = {
         DOMAIN_RULE,
     ],
     "index.html": [...ANALYTICS_RULES, ...LANDING_RULES, DOMAIN_RULE],
+    "apple-health.html": [
+        ...ANALYTICS_RULES,
+        // The closing self-hosting note links the build sheet in the
+        // maintainer's repo. A fork has the file in its own checkout, and
+        // the note would only point back here, so it goes whole. Required:
+        // every locale's page renders it (scripts/gen-apple-health.ts).
+        {
+            name: "apple-health: self-hosting note (build sheet link)",
+            find: /[ \t]*<p class="ah-selfhost">[\s\S]*?<\/p>\n/,
+        },
+        GITHUB_LINKS_RULE,
+        MAILTO_RULE,
+        DOMAIN_RULE,
+    ],
 };
 
 const localeJobs: { path: string; rules: Rule[] }[] = [];
@@ -490,6 +516,7 @@ const JOBS: { path: string; rules: Rule[] }[] = [
         "privacy.html",
         "terms.html",
         "tools.html",
+        "apple-health.html",
     ].map((f) => ({ path: `public/${f}`, rules: RULES_BY_FILENAME[f]! })),
     ...altPageJobs,
     ...localeJobs,
