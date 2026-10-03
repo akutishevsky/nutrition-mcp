@@ -577,6 +577,25 @@ describe("exportStoragePaths", () => {
         );
         expect(body).toContain('.from("body_measurement_log")');
     });
+
+    // The link goes first so the Shortcut stops syncing (and writing another
+    // sent-values row) while the rest of the account is being deleted.
+    test("deleteAllUserData removes Apple Health sync first", async () => {
+        const src = await Bun.file("./src/supabase.ts").text();
+        const body = src.slice(
+            src.indexOf("export async function deleteAllUserData"),
+        );
+        const at = (table: string) => body.indexOf(`.from("${table}")`);
+        for (const table of [
+            "health_sync_links",
+            "health_sync_days",
+            "health_sync_pending",
+        ]) {
+            expect(at(table), `${table} not deleted`).toBeGreaterThan(-1);
+            expect(at(table)).toBeLessThan(at("meals"));
+        }
+        expect(at("health_sync_links")).toBeLessThan(at("health_sync_days"));
+    });
 });
 
 // ---------- fetchAllPages (issue #66: the meal export silently truncated at
