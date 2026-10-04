@@ -300,7 +300,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "Sieh dir deinen Gewichtstrend über einen Zeitraum an: letzte Messung, Gesamtveränderung, gleitende 7/14/30-Tage-Durchschnitte, Min./Max. und Fortschritt zu deinem Zielgewicht.",
+                "Sieh dir deinen Gewichtstrend über einen Zeitraum an: ein geglättetes Trendgewicht, das tägliche Schwankungen ausgleicht, deine wöchentliche Veränderungsrate, letzte Messung, Gesamtveränderung, Min./Max. und Fortschritt zu deinem Zielgewicht. Das Diagramm zeigt außerdem 90 Tage, ein Jahr oder deinen gesamten Verlauf.",
             params: {
                 days: "Zeitraum in Tagen (Standard 30, maximal 365).",
             },

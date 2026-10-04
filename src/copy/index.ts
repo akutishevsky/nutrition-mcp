@@ -813,7 +813,7 @@ const INDEX_EN: IndexDoc = {
                 toolNotes: {
                     log_weight: "Saves this morning's 78.4 kg weigh-in",
                     get_weight_trends:
-                        "Smooths 30 days into moving averages and the gap to target",
+                        "Smooths day-to-day swings into a trend weight and weekly rate, with the gap to target",
                     log_body_measurement: "Saves the 84 cm waist measurement",
                     get_body_measurements:
                         "Finds the last waist entry to compare against",
@@ -1075,7 +1075,7 @@ const INDEX_EN: IndexDoc = {
             },
             {
                 title: "Weight tracking",
-                body: "Log your body weight in kg or lb, see 7/14/30-day trends, and track progress toward a target weight. Tape measurements of nine body sites — waist to calf — in cm or in sit alongside it.",
+                body: "Log your body weight in kg or lb, see a smoothed trend weight and weekly rate across your whole history, and track progress toward a target weight. Tape measurements of nine body sites — waist to calf — in cm or in sit alongside it.",
             },
             {
                 title: "Timezone-aware",

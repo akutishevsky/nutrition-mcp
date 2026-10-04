@@ -85,7 +85,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `get_weight_today`         | Get today's weight entries                                                                                                                       |
 | `get_weight_by_date`       | Get weight entries for a specific date                                                                                                           |
 | `get_weight_by_date_range` | Get weight entries between two dates (inclusive), grouped by day, up to 366 days per call                                                        |
-| `get_weight_trends`        | Weight trend: latest, overall change, 7/14/30-day moving averages, min/max, and goal progress                                                    |
+| `get_weight_trends`        | Weight trend: smoothed trend weight, weekly rate, latest, overall change, min/max, goal progress; widget zooms to 90 days, 1 year or all history |
 | `update_weight`            | Update an existing weight entry                                                                                                                  |
 | `delete_weight`            | Delete a weight entry by ID                                                                                                                      |
 | `set_weight_unit`          | Set the preferred weight unit (`kg` or `lb`; null to clear)                                                                                      |

@@ -427,7 +427,7 @@ export const INDEX_PL: IndexDoc = {
                 toolNotes: {
                     log_weight: "Zapisuje dzisiejsze poranne ważenie: 78,4 kg",
                     get_weight_trends:
-                        "Wygładza 30 dni średnimi kroczącymi i liczy, ile zostało do celu",
+                        "Wygładza codzienne wahania w wagę trendu i tempo tygodniowe oraz liczy, ile zostało do celu",
                     log_body_measurement: "Zapisuje obwód talii: 84 cm",
                     get_body_measurements:
                         "Szuka poprzedniego pomiaru talii do porównania",
@@ -695,7 +695,7 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 title: "Śledzenie wagi",
-                body: "Zapisuj wagę w kg albo lb, oglądaj trendy z 7, 14 i 30 dni i śledź postępy w drodze do wagi docelowej. Obok możesz też zapisywać obwody dziewięciu partii ciała — od talii po łydkę — w cm albo calach.",
+                body: "Zapisuj wagę w kg albo lb, oglądaj wygładzoną wagę trendu i tempo tygodniowe z całej historii i śledź postępy w drodze do wagi docelowej. Obok możesz też zapisywać obwody dziewięciu partii ciała — od talii po łydkę — w cm albo calach.",
             },
             {
                 title: "Twoja strefa czasowa",

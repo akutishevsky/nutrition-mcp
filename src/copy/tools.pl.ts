@@ -285,7 +285,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "Zobacz trend wagi w wybranym okresie: ostatni pomiar, łączną zmianę, średnie kroczące 7-, 14- i 30-dniowe, minimum i maksimum oraz postęp w drodze do wagi docelowej.",
+                "Zobacz trend wagi w wybranym okresie: wygładzoną wagę trendu, która niweluje codzienne wahania, tempo zmian w skali tygodnia, ostatni pomiar, łączną zmianę, minimum i maksimum oraz postęp w drodze do wagi docelowej. Wykres może też pokazać 90 dni, rok lub całą historię.",
             params: {
                 days: "Długość okresu w dniach (domyślnie 30, maks. 365).",
             },

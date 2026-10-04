@@ -294,7 +294,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "Bekijk je gewichtstrend over een periode: laatste meting, totale verandering, voortschrijdende gemiddelden over 7/14/30 dagen, min/max en je voortgang richting je streefgewicht.",
+                "Bekijk je gewichtstrend over een periode: een afgevlakt trendgewicht dat dagelijkse schommelingen uitmiddelt, je wekelijkse veranderingstempo, laatste meting, totale verandering, min/max en je voortgang richting je streefgewicht. De grafiek kan ook 90 dagen, een jaar of je hele geschiedenis tonen.",
             params: {
                 days: "Periode in dagen (standaard 30, max 365).",
             },

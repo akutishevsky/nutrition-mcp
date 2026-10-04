@@ -301,7 +301,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "Affiche l'évolution de ton poids sur une période : dernière mesure, variation globale, moyennes mobiles sur 7/14/30 jours, min./max. et progression vers ton poids cible.",
+                "Affiche l'évolution de ton poids sur une période : un poids de tendance lissé qui gomme les variations quotidiennes, ton rythme d'évolution par semaine, dernière mesure, variation globale, min./max. et progression vers ton poids cible. Le graphique peut aussi afficher 90 jours, un an ou tout ton historique.",
             params: {
                 days: "Durée de la période en jours (30 par défaut, 365 maximum).",
             },

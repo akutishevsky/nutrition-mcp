@@ -930,7 +930,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "See your weight trend over a window: latest reading, overall change, 7/14/30-day moving averages, min/max, and progress toward your target weight.",
+                "See your weight trend over a window: a smoothed trend weight that evens out day-to-day swings, your weekly rate of change, latest reading, overall change, min/max, and progress toward your target weight. The chart also zooms out to 90 days, a year or your whole history.",
             params: {
                 days: "Window size in days (default 30, max 365).",
             },

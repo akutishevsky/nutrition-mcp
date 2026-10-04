@@ -423,7 +423,7 @@ export const INDEX_ES: IndexDoc = {
                 toolNotes: {
                     log_weight: "Guarda el peso de esta mañana: 78,4 kg",
                     get_weight_trends:
-                        "Suaviza 30 días con medias móviles y calcula cuánto falta para el objetivo",
+                        "Suaviza las oscilaciones diarias en un peso de tendencia y un ritmo semanal, y calcula cuánto falta para el objetivo",
                     log_body_measurement: "Guarda la medida de cintura: 84 cm",
                     get_body_measurements:
                         "Busca la última medida de cintura para compararla",
@@ -683,7 +683,7 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 title: "Seguimiento de peso",
-                body: "Registra tu peso corporal en kg o lb, consulta tendencias de 7/14/30 días y sigue el progreso hacia un peso objetivo. A su lado, puedes registrar en cm o in medidas con cinta métrica de nueve partes del cuerpo, de la cintura a la pantorrilla.",
+                body: "Registra tu peso corporal en kg o lb, consulta tu peso de tendencia suavizado y tu ritmo semanal en todo tu historial y sigue el progreso hacia un peso objetivo. A su lado, puedes registrar en cm o in medidas con cinta métrica de nueve partes del cuerpo, de la cintura a la pantorrilla.",
             },
             {
                 title: "Siempre en tu zona horaria",

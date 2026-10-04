@@ -432,7 +432,7 @@ export const INDEX_IT: IndexDoc = {
                 toolNotes: {
                     log_weight: "Salva la pesata di stamattina: 78,4 kg",
                     get_weight_trends:
-                        "Smussa 30 giorni con medie mobili e calcola la distanza dall'obiettivo",
+                        "Smussa le oscillazioni quotidiane in un peso di tendenza e un ritmo settimanale e calcola la distanza dall'obiettivo",
                     log_body_measurement:
                         "Salva la misura del giro vita: 84 cm",
                     get_body_measurements:
@@ -696,7 +696,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Monitoraggio del peso",
-                body: "Registra il tuo peso corporeo in kg o lb, visualizza gli andamenti a 7/14/30 giorni e segui i progressi verso un peso obiettivo. Accanto al peso puoi registrare, in cm o pollici, le misure prese con il metro in nove zone del corpo, dalla vita al polpaccio.",
+                body: "Registra il tuo peso corporeo in kg o lb, visualizza il peso di tendenza smussato e il ritmo settimanale su tutto il tuo storico e segui i progressi verso un peso obiettivo. Accanto al peso puoi registrare, in cm o pollici, le misure prese con il metro in nove zone del corpo, dalla vita al polpaccio.",
             },
             {
                 title: "Fuso orario intelligente",

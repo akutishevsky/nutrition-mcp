@@ -302,7 +302,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "Mostra l'andamento del tuo peso in un dato periodo: ultima misurazione, variazione complessiva, medie mobili a 7/14/30 giorni, minimo e massimo, e progressi verso il peso obiettivo.",
+                "Mostra l'andamento del tuo peso in un dato periodo: un peso di tendenza smussato che attenua le oscillazioni quotidiane, il tuo ritmo di variazione settimanale, ultima misurazione, variazione complessiva, minimo e massimo, e progressi verso il peso obiettivo. Il grafico può mostrare anche 90 giorni, un anno o tutto lo storico.",
             params: {
                 days: "Ampiezza del periodo in giorni (predefinito 30, massimo 365).",
             },
