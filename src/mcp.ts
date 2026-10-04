@@ -5824,7 +5824,7 @@ function newMcpServer(baseUrl: string): McpServer {
     return new McpServer(
         {
             name: "nutrition-mcp",
-            version: "1.27.2",
+            version: "1.28.0",
             // The "Plugged Apple" tile (white mark on green), so it reads on
             // any host background. favicon.ico stays first: it is the URL
             // clients and the directory listing have always been given.
