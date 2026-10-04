@@ -42,6 +42,10 @@ export interface MealVariation {
      * recorded fiber still yields the typical figure of the ones that did. */
     typicalFiberG: number | null;
     typicalSugarG: number | null;
+    /* Part of typicalSugarG, rendered as a bracket on it. A median over the
+     * entries that recorded it, so it can exceed typicalSugarG when the two
+     * medians come from different entries; null when none did. */
+    typicalAddedSugarG: number | null;
     /* Whole milligrams, matching every other caffeine figure the model is
      * shown. Null for the usual case of a food that never carried any. */
     typicalCaffeineMg: number | null;
@@ -83,6 +87,28 @@ function medianOf(
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+/**
+ * Typical added sugar, never above the typical total. The two medians would
+ * otherwise come from different entries: with sugar [10, 10, 30] and added
+ * [null, null, 25] they are 10 and 25, which prints "10g sugar (25g added)"
+ * and, copied into log_meal, fails its added <= total check. So the added
+ * median is taken over the entries that carry both figures when any do, and
+ * is then capped at the typical total.
+ */
+function typicalAddedSugar(group: Meal[]): number | null {
+    const sugar = medianOf(group, (m) => m.sugar_g, round1);
+    const paired = group.filter(
+        (m) => m.sugar_g != null && m.added_sugar_g != null,
+    );
+    const added = medianOf(
+        paired.length ? paired : group,
+        (m) => m.added_sugar_g,
+        round1,
+    );
+    if (added === null || sugar === null) return added;
+    return Math.min(added, sugar);
+}
+
 /** Group meals into recurring variations, most frequent first. */
 export function groupMealVariations(meals: Meal[]): MealVariation[] {
     const groups = new Map<string, Meal[]>();
@@ -108,6 +134,7 @@ export function groupMealVariations(meals: Meal[]): MealVariation[] {
             typicalFatG: medianOf(group, (m) => m.fat_g, round1),
             typicalFiberG: medianOf(group, (m) => m.fiber_g, round1),
             typicalSugarG: medianOf(group, (m) => m.sugar_g, round1),
+            typicalAddedSugarG: typicalAddedSugar(group),
             typicalCaffeineMg: medianOf(
                 group,
                 (m) => m.caffeine_mg,
@@ -122,6 +149,19 @@ export function groupMealVariations(meals: Meal[]): MealVariation[] {
     return variations;
 }
 
+// "18g sugar (12g added)": added sugar is part of the total, so it is a
+// bracket on it rather than a separate amount (see compactAddedSugar in
+// meal-listing.ts for the listing's equivalent).
+function formatVariationSugar(v: MealVariation): string | null {
+    const added = v.typicalAddedSugarG;
+    if (v.typicalSugarG !== null) {
+        return added !== null
+            ? `${v.typicalSugarG}g sugar (${added}g added)`
+            : `${v.typicalSugarG}g sugar`;
+    }
+    return added !== null ? `${added}g added sugar` : null;
+}
+
 function formatVariation(v: MealVariation, index: number, tz: string): string {
     const parts: string[] = [
         `${index + 1}. ${v.label} — logged ${v.count}×, last on ${dateInTz(v.lastLoggedAt, tz)}`,
@@ -131,7 +171,7 @@ function formatVariation(v: MealVariation, index: number, tz: string): string {
         v.typicalCarbsG !== null ? `${v.typicalCarbsG}g carbs` : null,
         v.typicalFatG !== null ? `${v.typicalFatG}g fat` : null,
         v.typicalFiberG !== null ? `${v.typicalFiberG}g fiber` : null,
-        v.typicalSugarG !== null ? `${v.typicalSugarG}g sugar` : null,
+        formatVariationSugar(v),
         v.typicalCaffeineMg !== null
             ? `${v.typicalCaffeineMg} mg caffeine`
             : null,

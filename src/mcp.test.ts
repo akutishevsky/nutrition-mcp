@@ -38,6 +38,7 @@ import {
     MEAL_CONTRIBUTORS_META_KEY,
     WEIGHT_SERIES_META_KEY,
     PERIOD_AVERAGES_META_KEY,
+    ADDED_SUGAR_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
     MAX_CALORIES,
@@ -53,6 +54,8 @@ import {
     WEIGHT_RANGE_MAX_DAYS,
     BODY_MEASUREMENT_RANGE_MAX_DAYS,
     healthSyncProfileLine,
+    updatedAddedSugarError,
+    addedSugarAverageLine,
 } from "./mcp.js";
 import {
     Client,
@@ -74,6 +77,7 @@ import * as actualSupabase from "./supabase.js";
 const realSupabase = { ...actualSupabase };
 import { DELETED_ACCOUNT_ANALYTICS_ID } from "./analytics.js";
 import { ToolError } from "./errors.js";
+import { addedSugarExtra, type AddedSugarMeta } from "./added-sugar.js";
 import { formatFoodResult, type FoodResult } from "./foods.js";
 import {
     buildDailyBuckets,
@@ -125,6 +129,7 @@ function meal(over: Partial<Meal> = {}): Meal {
         fat_g: 20,
         fiber_g: 6,
         sugar_g: 12,
+        added_sugar_g: null,
         alcohol_g: 14,
         // NULL on the base fixture on purpose: caffeine is the partial nutrient
         // where absence is the norm rather than a relic of pre-feature history,
@@ -147,6 +152,7 @@ function goals(over: Partial<NutritionGoals> = {}): NutritionGoals {
         daily_fat_g: 70,
         daily_fiber_g: 30,
         daily_sugar_g: 40,
+        daily_added_sugar_g: null,
         daily_alcohol_g: 28,
         // Milligrams, and the EFSA/FDA figure the tool description offers.
         daily_caffeine_mg: 400,
@@ -314,6 +320,7 @@ describe("nutrientPresence", () => {
         ).toEqual({
             fiber_g: true,
             sugar_g: false,
+            added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: false,
         });
@@ -323,12 +330,14 @@ describe("nutrientPresence", () => {
         expect(nutrientPresence([meal({ ...blank, fiber_g: 0 })])).toEqual({
             fiber_g: true,
             sugar_g: false,
+            added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: false,
         });
         expect(nutrientPresence([])).toEqual({
             fiber_g: false,
             sugar_g: false,
+            added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: false,
         });
@@ -348,6 +357,7 @@ describe("nutrientPresence", () => {
         ).toEqual({
             fiber_g: false,
             sugar_g: false,
+            added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: true,
         });
@@ -567,7 +577,7 @@ describe("alcohol opt-in gating", () => {
         const off = formatGoals(goals(), "kg", null);
         expect(off).not.toContain("Alcohol");
         expect(off).toContain("- Fiber: 30g");
-        expect(off).toContain("- Sugar (total, max): 40g");
+        expect(off).toContain("- Sugar, total (max): 40g");
     });
 
     test("meal text hides only the alcohol line when tracking is off", () => {
@@ -819,6 +829,7 @@ describe("gateAlcohol", () => {
         fat_g: 20,
         fiber_g: 6,
         sugar_g: 12,
+        added_sugar_g: 0,
         alcohol_g: 14,
         caffeine_mg: 95,
         mealTypes: new Set(["dinner"]),
@@ -1405,6 +1416,10 @@ describe("trendsDayPayloadOf", () => {
         fat_g: 20,
         fiber_g: mealsForDay.reduce((s, m) => s + (m.fiber_g ?? 0), 0),
         sugar_g: mealsForDay.reduce((s, m) => s + (m.sugar_g ?? 0), 0),
+        added_sugar_g: mealsForDay.reduce(
+            (s, m) => s + (m.added_sugar_g ?? 0),
+            0,
+        ),
         alcohol_g: mealsForDay.reduce((s, m) => s + (m.alcohol_g ?? 0), 0),
         caffeine_mg: mealsForDay.reduce((s, m) => s + (m.caffeine_mg ?? 0), 0),
         mealTypes: new Set(["dinner"]),
@@ -1618,13 +1633,28 @@ const db = {
     // it through getSupabase(): the link row, and the latest acked date.
     healthSyncLink: null as Record<string, unknown> | null,
     healthSyncSentThrough: null as string | null,
+    // update_meal's reads of a stored meal's sugar pair: 0 when both sugar
+    // fields were passed, so the check needed no read.
+    storedMealReads: 0,
+    // The sugar guard update_meal handed updateMeal on each call (undefined
+    // when the write needed none), and a sugar edit the fake applies to the
+    // stored meal between update_meal's read and its write.
+    mealUpdateGuards: [] as (
+        Partial<Pick<Meal, "sugar_g" | "added_sugar_g">> | undefined
+    )[],
+    concurrentMealEdit: null as Partial<Meal> | null,
 };
 
-/** The two PostgREST reads behind HealthSyncStore.getLinkStatus, and nothing
- *  else: any other select through this stub has no chain to call. */
+/** The two PostgREST reads behind HealthSyncStore.getLinkStatus, plus
+ *  update_meal's stored-sugar read (`meals` by id), and nothing else: any
+ *  other select through this stub has no chain to call. */
 function healthSyncSelect(table: string) {
+    let idFilter: string | null = null;
     const chain = {
-        eq: () => chain,
+        eq: (column: string, value: string) => {
+            if (column === "id") idFilter = value;
+            return chain;
+        },
         gt: () => chain,
         not: () => chain,
         order: () => chain,
@@ -1635,10 +1665,18 @@ function healthSyncSelect(table: string) {
                     : [],
             error: null,
         }),
-        maybeSingle: async () => ({
-            data: table === "health_sync_links" ? db.healthSyncLink : null,
-            error: null,
-        }),
+        maybeSingle: async () => {
+            db.storedMealReads += table === "meals" ? 1 : 0;
+            return {
+                data:
+                    table === "health_sync_links"
+                        ? db.healthSyncLink
+                        : table === "meals"
+                          ? (db.meals.find((m) => m.id === idFilter) ?? null)
+                          : null,
+                error: null,
+            };
+        },
     };
     return chain;
 }
@@ -1710,8 +1748,25 @@ mock.module("./supabase.js", () => ({
         _userId: string,
         id: string,
         fields: Record<string, unknown>,
+        guard?: Partial<Pick<Meal, "sugar_g" | "added_sugar_g">>,
     ) => {
         if (db.failWith) throw db.failWith;
+        db.mealUpdateGuards.push(guard);
+        // Mirrors the real guarded write: a concurrent edit (staged in
+        // db.concurrentMealEdit, applied between update_meal's read and this
+        // write) that moves a guarded column makes it write nothing and throw
+        // the conflict ToolError naming the values now stored.
+        const current = db.meals.find((m) => m.id === id);
+        if (current && db.concurrentMealEdit)
+            Object.assign(current, db.concurrentMealEdit);
+        if (current && guard) {
+            for (const column of ["sugar_g", "added_sugar_g"] as const) {
+                if (column in guard && guard[column] !== current[column])
+                    throw new ToolError(
+                        realSupabase.mealSugarConflictText(id, current),
+                    );
+            }
+        }
         db.mealUpdates.push(fields);
         const saved = storedMeal({ ...fields, id });
         db.meals = [saved];
@@ -1867,6 +1922,9 @@ beforeEach(() => {
     db.goals = null;
     db.healthSyncLink = null;
     db.healthSyncSentThrough = null;
+    db.storedMealReads = 0;
+    db.mealUpdateGuards = [];
+    db.concurrentMealEdit = null;
     db.meals = [];
     db.mealRangeArgs = [];
     db.goalsHistory = [];
@@ -2280,22 +2338,27 @@ describe("missingNutrientNote", () => {
         fat_g: 20,
         fiber_g: null,
         sugar_g: null,
+        added_sugar_g: null,
         alcohol_g: null,
         caffeine_mg: null,
         notes: null,
         idempotency_key: null,
     } satisfies Meal;
 
-    test("names both missing fields and the meal id to repair", () => {
+    test("names every missing field and the meal id to repair", () => {
         const note = missingNutrientNote(base);
-        expect(note).toContain("fiber_g, sugar_g");
+        expect(note).toContain("fiber_g, sugar_g, added_sugar_g");
         expect(note).toContain("update_meal");
         expect(note).toContain(MEAL_ID);
         // The sentence that stops the model "fixing" it by sending 0s blindly.
         expect(note).toContain("A missing value is not a zero");
-        // Policy 2.D: the backfill is offered, not directed.
+        // Directory policy: the note describes the gap, never directs the
+        // assistant (#190, #213).
         expect(note).not.toContain("fill it in with update_meal");
-        expect(note).toContain("if they want it filled");
+        expect(note).not.toMatch(
+            /\bmention\b|\bestimate\b|\boffer\b|\bask\b|\btell\b/i,
+        );
+        expect(note).toContain("update_meal can add the value");
     });
 
     test("names only the field that is actually missing", () => {
@@ -2304,12 +2367,24 @@ describe("missingNutrientNote", () => {
         expect(note).not.toContain("fiber_g");
     });
 
+    // Added sugar is expected beside sugar, so a meal carrying total sugar
+    // but no added figure is still a gap — and only that field is named.
+    test("names added_sugar_g alone when only it is missing", () => {
+        const note = missingNutrientNote({ ...base, fiber_g: 6, sugar_g: 4 });
+        expect(note).toContain("Not recorded on this meal: added_sugar_g.");
+    });
+
     // An explicit 0 is a measurement — the point of the nudge is to turn
     // omissions into values, and 0 is a perfectly good value for a steak.
     test("an explicit zero satisfies it", () => {
-        expect(missingNutrientNote({ ...base, fiber_g: 0, sugar_g: 0 })).toBe(
-            "",
-        );
+        expect(
+            missingNutrientNote({
+                ...base,
+                fiber_g: 0,
+                sugar_g: 0,
+                added_sugar_g: 0,
+            }),
+        ).toBe("");
     });
 
     // If this ever starts asking for caffeine, the read side has to change
@@ -2319,6 +2394,7 @@ describe("missingNutrientNote", () => {
             ...base,
             fiber_g: 6,
             sugar_g: 4,
+            added_sugar_g: 0,
             caffeine_mg: null,
         });
         expect(note).toBe("");
@@ -2349,6 +2425,7 @@ describe("log_meal / update_meal chase missing fiber and sugar", () => {
                     calories: 700,
                     fiber_g: 0,
                     sugar_g: 0,
+                    added_sugar_g: 0,
                 }),
             );
             expect(text).not.toContain("update_meal");
@@ -2778,7 +2855,7 @@ describe("the nutrient-completeness rule reaches the write tools", () => {
         const tools = await toolsOf();
         const props = tools.find((t) => t.name === "log_meal")?.inputSchema
             .properties as Record<string, { description?: string }>;
-        for (const key of ["fiber_g", "sugar_g"]) {
+        for (const key of ["fiber_g", "sugar_g", "added_sugar_g"]) {
             const d = props[key]?.description ?? "";
             expect(d, key).toContain("every meal");
             // The last-resort anchors: without them an estimate has nothing
@@ -2788,6 +2865,58 @@ describe("the nutrient-completeness rule reaches the write tools", () => {
             // Describes the field; never directs the assistant (#190).
             expect(d, key).not.toMatch(/send (this|0)|do not omit|say so/i);
         }
+    });
+
+    // #213's guard, extended to every added-sugar text the model reads: the
+    // two meal fields, the import row, the goal and the coverage block.
+    test("added sugar is described, never directed, wherever it appears", async () => {
+        const tools = await toolsOf();
+        const prop = (tool: string, key: string, nested?: string) => {
+            const schema = tools.find((t) => t.name === tool)?.inputSchema as {
+                properties: Record<
+                    string,
+                    {
+                        description?: string;
+                        items?: {
+                            properties: Record<
+                                string,
+                                { description?: string }
+                            >;
+                        };
+                    }
+                >;
+            };
+            return nested
+                ? (schema.properties[nested]?.items?.properties[key]
+                      ?.description ?? "")
+                : (schema.properties[key]?.description ?? "");
+        };
+        const texts: Record<string, string> = {
+            log_meal: prop("log_meal", "added_sugar_g"),
+            update_meal: prop("update_meal", "added_sugar_g"),
+            import_row: prop("bulk_import_meals", "added_sugar_g", "meals"),
+            goal: prop("set_nutrition_goals", "daily_added_sugar_g"),
+        };
+        for (const [where, d] of Object.entries(texts)) {
+            expect(d.toLowerCase(), where).toContain("added");
+            expect(d, where).not.toMatch(
+                /send (this|0)|do not omit|say so|\boffer\b|ask the user|you should|\balways\b|\bmust\b/i,
+            );
+        }
+        // The definition the brief settled on, on both meal tools.
+        for (const where of ["log_meal", "update_meal"]) {
+            expect(texts[where], where).toContain("100% fruit juice");
+            expect(texts[where], where).toContain("never more than it");
+        }
+        expect(texts.import_row).toContain("'Added sugars' column");
+        expect(texts.goal).toContain("0 means none");
+        const coverage =
+            tools.find((t) => t.name === "log_meal")?.description ?? "";
+        expect(coverage).toContain("added_sugar_g is read on every meal");
+        const goalsTool =
+            tools.find((t) => t.name === "set_nutrition_goals")?.description ??
+            "";
+        expect(goalsTool).toContain("total sugar, added sugar, alcohol");
     });
 
     // The one field that must keep saying the opposite.
@@ -2802,6 +2931,409 @@ describe("the nutrient-completeness rule reaches the write tools", () => {
                 "send it on every meal",
             );
         }
+    });
+});
+
+// ---------- added sugar ----------
+//
+// Tracked beside total sugar with its own ceiling, never inside any frozen
+// structuredContent shape: every figure here reaches the model through
+// `content`. withTools arms the client's strict schema check, so each tool
+// call below also proves no structuredContent object gained a field.
+
+describe("added sugar", () => {
+    const banana = (id: string) =>
+        meal({
+            id,
+            description: "Banana (120 g)",
+            meal_type: "snack",
+            calories: 107,
+            protein_g: 1.3,
+            carbs_g: 27.4,
+            fat_g: 0.4,
+            fiber_g: 3.1,
+            sugar_g: 14.7,
+            added_sugar_g: 0,
+            alcohol_g: null,
+        });
+    const cola = meal({
+        id: "00000000-0000-4000-8000-0000000000c0",
+        description: "Cola (330 ml)",
+        meal_type: "snack",
+        calories: 139,
+        protein_g: 0,
+        carbs_g: 35,
+        fat_g: 0,
+        fiber_g: 0,
+        sugar_g: 35,
+        added_sugar_g: 35,
+        alcohol_g: null,
+    });
+
+    describe("added ≤ total is a ToolError, never clamped", () => {
+        test("log_meal refuses added above total in the same call", async () => {
+            await withTools(null, async (call) => {
+                const r = await call("log_meal", {
+                    description: "Sweetened yogurt",
+                    meal_type: "snack",
+                    sugar_g: 10,
+                    added_sugar_g: 12,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(
+                    "added_sugar_g (12 g) is more than sugar_g (10 g); added sugars are part of total sugars.",
+                );
+                expect(db.inserted).toHaveLength(0);
+            });
+        });
+
+        test("log_meal stores a consistent pair, and added sugar alone", async () => {
+            await withTools(null, async (call) => {
+                const r = await call("log_meal", {
+                    description: "Cola (330 ml)",
+                    meal_type: "snack",
+                    sugar_g: 35,
+                    added_sugar_g: "35",
+                });
+                expect(r.isError).toBeFalsy();
+                expect(db.inserted[0]!.added_sugar_g).toBe(35);
+                const alone = await call("log_meal", {
+                    description: "Honey (1 tbsp)",
+                    meal_type: "snack",
+                    added_sugar_g: 17,
+                });
+                expect(alone.isError).toBeFalsy();
+                expect(db.inserted[1]!.added_sugar_g).toBe(17);
+            });
+        });
+
+        test("update_meal checks added_sugar_g alone against the stored sugar_g", async () => {
+            db.meals = [meal({ sugar_g: 10, added_sugar_g: null })];
+            await withTools(null, async (call) => {
+                const r = await call("update_meal", {
+                    id: MEAL_ID,
+                    added_sugar_g: 12,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(
+                    "added_sugar_g (12 g) is more than sugar_g (10 g)",
+                );
+                expect(db.mealUpdates).toHaveLength(0);
+                expect(db.storedMealReads).toBe(1);
+
+                const ok = await call("update_meal", {
+                    id: MEAL_ID,
+                    added_sugar_g: 8,
+                });
+                expect(ok.isError).toBeFalsy();
+                expect(db.mealUpdates[0]!.added_sugar_g).toBe(8);
+            });
+        });
+
+        test("update_meal checks sugar_g alone against the stored added_sugar_g", async () => {
+            db.meals = [meal({ sugar_g: 40, added_sugar_g: 30 })];
+            await withTools(null, async (call) => {
+                const r = await call("update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(
+                    "added_sugar_g (30 g) is more than sugar_g (20 g)",
+                );
+                expect(db.mealUpdates).toHaveLength(0);
+            });
+        });
+
+        test("update_meal conditions a one-sided write on the stored value it checked", async () => {
+            db.meals = [meal({ sugar_g: 10, added_sugar_g: null })];
+            await withTools(null, async (call) => {
+                const added = await call("update_meal", {
+                    id: MEAL_ID,
+                    added_sugar_g: 8,
+                });
+                expect(added.isError).toBeFalsy();
+                expect(db.mealUpdateGuards[0]).toEqual({ sugar_g: 10 });
+            });
+            db.meals = [meal({ sugar_g: 40, added_sugar_g: null })];
+            await withTools(null, async (call) => {
+                const sugar = await call("update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                });
+                expect(sugar.isError).toBeFalsy();
+                // A null stored value is guarded as null (IS NULL).
+                expect(db.mealUpdateGuards[1]).toEqual({ added_sugar_g: null });
+            });
+        });
+
+        test("update_meal writes nothing when the checked value moved before the write", async () => {
+            db.meals = [meal({ sugar_g: 40, added_sugar_g: null })];
+            // Another update_meal lowers sugar_g after this call's check read
+            // sugar_g 40 and accepted added_sugar_g 30.
+            db.concurrentMealEdit = { sugar_g: 20 };
+            await withTools(null, async (call) => {
+                const r = await call("update_meal", {
+                    id: MEAL_ID,
+                    added_sugar_g: 30,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toBe(
+                    `The sugar values stored on meal ${MEAL_ID} changed while this edit was being applied, so nothing was written. Stored now: sugar_g 20 g, added_sugar_g not recorded.`,
+                );
+                expect(db.mealUpdates).toHaveLength(0);
+            });
+            const row = db.analyticsRows.find(
+                (r) => r.tool_name === "update_meal",
+            );
+            expect(row?.error_category).not.toBe("record_not_found");
+        });
+
+        test("update_meal passing both checks the pair without reading the row", async () => {
+            db.meals = [meal({ sugar_g: 5, added_sugar_g: 5 })];
+            await withTools(null, async (call) => {
+                const bad = await call("update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                    added_sugar_g: 25,
+                });
+                expect(bad.isError).toBe(true);
+                const ok = await call("update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                    added_sugar_g: 15,
+                });
+                expect(ok.isError).toBeFalsy();
+                expect(db.storedMealReads).toBe(0);
+                // Both values come from this call: nothing to condition on.
+                expect(db.mealUpdateGuards).toEqual([undefined]);
+            });
+        });
+
+        test("updatedAddedSugarError merges the passed value over the stored one", () => {
+            const stored = { sugar_g: 10, added_sugar_g: 4 };
+            expect(updatedAddedSugarError({ added_sugar_g: 10 }, stored)).toBe(
+                null,
+            );
+            expect(
+                updatedAddedSugarError({ added_sugar_g: 11 }, stored),
+            ).toContain("is more than sugar_g (10 g)");
+            expect(updatedAddedSugarError({ sugar_g: 3 }, stored)).toContain(
+                "added_sugar_g (4 g)",
+            );
+            // A side not recorded anywhere leaves nothing to compare against.
+            expect(
+                updatedAddedSugarError(
+                    { added_sugar_g: 50 },
+                    { sugar_g: null, added_sugar_g: null },
+                ),
+            ).toBe(null);
+            expect(updatedAddedSugarError({ added_sugar_g: 50 }, null)).toBe(
+                null,
+            );
+        });
+    });
+
+    describe("formatProgress / formatGoals", () => {
+        test("an added-sugar ceiling line follows Sugar", () => {
+            const day = [banana("b1"), banana("b2"), cola];
+            const text = formatProgress(
+                sumMeals(day),
+                goals({ daily_sugar_g: null, daily_added_sugar_g: 25 }),
+                null,
+                nutrientPresence(day),
+            );
+            const lines = text.split("\n");
+            const sugarAt = lines.findIndex((l) => l.startsWith("Sugar:"));
+            expect(lines[sugarAt]).toBe("Sugar: 64.4g");
+            expect(lines[sugarAt + 1]).toBe(
+                "Added sugar: 35 / 25g limit (140%, 10g over)",
+            );
+        });
+
+        test("0 is a real added-sugar ceiling", () => {
+            const zero = goals({ daily_added_sugar_g: 0 });
+            const clear = [meal({ added_sugar_g: 0 })];
+            expect(
+                formatProgress(
+                    sumMeals(clear),
+                    zero,
+                    null,
+                    nutrientPresence(clear),
+                ),
+            ).toContain("Added sugar: 0 / 0g limit (clear)");
+            const over = [meal({ added_sugar_g: 5 })];
+            expect(
+                formatProgress(
+                    sumMeals(over),
+                    zero,
+                    null,
+                    nutrientPresence(over),
+                ),
+            ).toContain("Added sugar: 5 / 0g limit (5g over)");
+            expect(formatGoals(zero)).toContain("- Added sugar (max): 0g");
+        });
+
+        // A meal logged before the column existed is NULL: "not recorded"
+        // when a limit is set, nothing at all otherwise — never "0g".
+        test("an unrecorded day is not recorded, not zero", () => {
+            const old = [meal({ added_sugar_g: null })];
+            const present = nutrientPresence(old);
+            expect(present.added_sugar_g).toBe(false);
+            expect(
+                formatProgress(
+                    sumMeals(old),
+                    goals({ daily_added_sugar_g: 25 }),
+                    null,
+                    present,
+                ),
+            ).toContain("Added sugar: not recorded / 25g limit");
+            const noLimit = formatProgress(
+                sumMeals(old),
+                goals(),
+                null,
+                present,
+            );
+            expect(noLimit).not.toContain("Added sugar");
+            // Total sugar is untouched by the missing added figure.
+            expect(noLimit).toContain("Sugar: 12 / 40g limit");
+        });
+
+        test("goals list both sugar limits, labelled apart", () => {
+            const text = formatGoals(
+                goals({ daily_sugar_g: 50, daily_added_sugar_g: 25 }),
+            );
+            expect(text).toContain("- Sugar, total (max): 50g");
+            expect(text).toContain("- Added sugar (max): 25g");
+            expect(text.indexOf("Sugar, total")).toBeLessThan(
+                text.indexOf("Added sugar"),
+            );
+            expect(formatGoals(goals())).toContain(
+                "- Added sugar (max): not set",
+            );
+        });
+    });
+
+    describe("coverage", () => {
+        const day = (over: Partial<Meal>) => {
+            const meals = [meal(over)];
+            return { meals, totals: sumMeals(meals) };
+        };
+
+        test("a day with sugar but no added sugar drops out of the added-sugar average only", () => {
+            const { averages, recordedDays } = rangeAverages([
+                day({ sugar_g: 20, added_sugar_g: 10 }),
+                day({ sugar_g: 30, added_sugar_g: null }),
+            ]);
+            expect(recordedDays.sugar_g).toBe(2);
+            expect(averages.sugar_g).toBe(25);
+            expect(recordedDays.added_sugar_g).toBe(1);
+            expect(averages.added_sugar_g).toBe(10);
+        });
+
+        test("addedSugarAverageLine reads against the limit, and stays quiet when it has nothing to add", () => {
+            expect(addedSugarAverageLine(10, 1, 2, 25)).toBe(
+                "\n\nAdded sugar, daily average: 10 / 25g limit (40%, under)",
+            );
+            expect(addedSugarAverageLine(10, 2, 2, null)).toBe(
+                "\n\nAdded sugar, daily average: 10g",
+            );
+            // A single day already prints its own line.
+            expect(addedSugarAverageLine(10, 1, 1, 25)).toBe("");
+            // Nothing recorded is not an average of 0.
+            expect(addedSugarAverageLine(0, 0, 3, 25)).toBe("");
+        });
+
+        test("get_nutrition_summary averages added sugar in text over the days that record it", async () => {
+            db.goals = goals({ daily_added_sugar_g: 25 });
+            db.meals = [
+                meal({
+                    logged_at: "2026-07-25T12:00:00.000Z",
+                    sugar_g: 20,
+                    added_sugar_g: 10,
+                }),
+                meal({
+                    id: "00000000-0000-4000-8000-0000000000d2",
+                    logged_at: "2026-07-26T12:00:00.000Z",
+                    sugar_g: 30,
+                    added_sugar_g: null,
+                }),
+            ];
+            await withTools(null, async (call) => {
+                const r = await call("get_nutrition_summary", {
+                    start_date: "2026-07-25",
+                    end_date: "2026-07-26",
+                });
+                expect(r.isError).toBeFalsy();
+                const text = textOf(r);
+                expect(text).toContain(
+                    "Added sugar, daily average: 10 / 25g limit (40%, under)",
+                );
+                expect(text).toContain(
+                    "(Averaged over the days that record each figure, not all 2: added sugar 1.)",
+                );
+                expect(text).toContain("Added sugar: not recorded / 25g limit");
+            });
+        });
+    });
+
+    describe("set_nutrition_goals", () => {
+        test("stores, keeps, clears and echoes the added-sugar limit", async () => {
+            await withTools(null, async (call) => {
+                const set = await call("set_nutrition_goals", {
+                    daily_added_sugar_g: 25,
+                });
+                expect(set.isError).toBeFalsy();
+                expect(db.goals!.daily_added_sugar_g).toBe(25);
+                expect(textOf(set)).toContain("- Added sugar (max): 25g");
+
+                await call("set_nutrition_goals", { daily_protein_g: 130 });
+                expect(db.goals!.daily_added_sugar_g).toBe(25);
+
+                const zero = await call("set_nutrition_goals", {
+                    daily_added_sugar_g: 0,
+                });
+                expect(textOf(zero)).toContain("- Added sugar (max): 0g");
+
+                await call("set_nutrition_goals", {
+                    daily_added_sugar_g: null,
+                });
+                expect(db.goals!.daily_added_sugar_g).toBeNull();
+
+                const bad = await call("set_nutrition_goals", {
+                    daily_added_sugar_g: MAX_GOAL_G + 1,
+                });
+                expect(bad.isError).toBe(true);
+            });
+        });
+    });
+
+    // The brief's acceptance day: two ~120 g bananas and a 330 ml cola.
+    test("acceptance: bananas and a cola against a 25 g added-sugar limit", async () => {
+        db.meals = [banana("b1"), banana("b2"), cola];
+        db.goals = goals({ daily_sugar_g: null, daily_added_sugar_g: 25 });
+        await withTools(null, async (call) => {
+            const r = await call("get_goal_progress", { date: "2026-07-26" });
+            expect(r.isError).toBeFalsy();
+            const text = textOf(r);
+            expect(text).toContain("Sugar: 64.4g");
+            expect(text).toContain(
+                "Added sugar: 35 / 25g limit (140%, 10g over)",
+            );
+        });
+        // With the old 25 g total limit kept as well, both lines show.
+        db.goals = goals({ daily_sugar_g: 25, daily_added_sugar_g: 25 });
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_goal_progress", { date: "2026-07-26" }),
+            );
+            expect(text).toContain(
+                "Sugar: 64.4 / 25g limit (258%, 39.4g over)",
+            );
+            expect(text).toContain(
+                "Added sugar: 35 / 25g limit (140%, 10g over)",
+            );
+        });
     });
 });
 
@@ -3660,6 +4192,50 @@ describe("meal listings are compact by default", () => {
     });
 });
 
+/**
+ * The added-sugar gap topMealBreakdown leaves: 8 fruit-and-yogurt bowls lead
+ * every ranked metric (total sugar included) with little or no added sugar,
+ * and one sweetened drink carries the most added sugar of all while topping
+ * nothing that ranks rows — so it is not among structuredContent.meals.
+ */
+function addedSugarGapMeals(): Meal[] {
+    const bowls = Array.from({ length: 8 }, (_, i) =>
+        meal({
+            id: `00000000-0000-4000-8000-1000000000${String(i).padStart(2, "0")}`,
+            logged_at: `2026-01-${String(i + 2).padStart(2, "0")}T08:00:00.000Z`,
+            meal_type: "breakfast",
+            description: `fruit and yogurt bowl ${i}`,
+            calories: 400,
+            protein_g: 20,
+            carbs_g: 60,
+            fat_g: 10,
+            fiber_g: 8,
+            sugar_g: 40,
+            // One bowl has a little added sugar: it is kept already, so it
+            // must not come back in `extra`.
+            added_sugar_g: i === 3 ? 2 : 0,
+            alcohol_g: 5,
+            caffeine_mg: 60,
+        }),
+    );
+    const drink = meal({
+        id: "00000000-0000-4000-8000-200000000000",
+        logged_at: "2026-01-20T15:00:00.000Z",
+        meal_type: "snack",
+        description: "sweetened iced tea",
+        calories: 120,
+        protein_g: 0,
+        carbs_g: 30,
+        fat_g: 0,
+        fiber_g: 0,
+        sugar_g: 30,
+        added_sugar_g: 30,
+        alcohol_g: 0,
+        caffeine_mg: null,
+    });
+    return [...bowls, drink];
+}
+
 // ---------- the summary ships only the meals its widget can show ----------
 //
 // structuredContent.meals used to be one row per meal: 186 meals came to
@@ -3784,6 +4360,65 @@ describe("get_nutrition_summary bounds its meal breakdown", () => {
                 expect([...order].sort((a, b) => a - b)).toEqual(order);
             });
         }
+    });
+
+    test("the added-sugar list gets its top meals via _meta.extra, structuredContent.meals unchanged", async () => {
+        const meals = addedSugarGapMeals();
+        db.meals = meals;
+        for (const alcohol of ["us", null] as const) {
+            await withTools(alcohol, async (call) => {
+                const r = await summarize(call);
+                expect(r.isError).toBeFalsy();
+                const sc = r.structuredContent as unknown as SummaryPayload;
+                // Exactly what topMealBreakdown kept before `extra` existed:
+                // the drink tops nothing that ranks rows, so it is absent.
+                const before = topMealBreakdown(
+                    mealBreakdown(meals, "UTC", alcohol),
+                    alcohol,
+                ).meals;
+                expect(sc.meals).toEqual(before as Row[]);
+                expect(
+                    sc.meals.some(
+                        (m) => m.description === "sweetened iced tea",
+                    ),
+                ).toBe(false);
+
+                const meta = r._meta?.[ADDED_SUGAR_META_KEY] as AddedSugarMeta;
+                expect(meta.v).toBe(1);
+                expect(meta.contributors).toBe(2);
+                // The kept bowl with 2 g is in `meals`, so not in `extra`.
+                expect(meta.extra).toEqual([
+                    {
+                        description: "sweetened iced tea",
+                        meal_type: "snack",
+                        date: "2026-01-20",
+                        added_sugar_g: 30,
+                    },
+                ]);
+            });
+        }
+    });
+
+    test("extra rows are formatted exactly like breakdown rows", () => {
+        const meals = [
+            meal({
+                id: "00000000-0000-4000-8000-300000000000",
+                description: "y".repeat(500),
+                meal_type: null,
+                // 00:30 on the 11th in Kyiv, still the 10th in UTC.
+                logged_at: "2026-01-10T22:30:00.000Z",
+                added_sugar_g: 12.345,
+            }),
+        ];
+        const rows = mealBreakdown(meals, "Europe/Kyiv", null);
+        expect(addedSugarExtra(meals, rows, [], MEAL_BREAKDOWN_TOP_N)).toEqual([
+            {
+                description: `${"y".repeat(200)}…`,
+                meal_type: null,
+                date: "2026-01-11",
+                added_sugar_g: 12.3,
+            },
+        ]);
     });
 
     test("the empty path carries zero contributors in _meta", async () => {
@@ -6011,6 +6646,37 @@ describe("/mcp serves one tool surface on both protocol eras", () => {
         },
     );
 
+    // `extra` rides in _meta beside the frozen structuredContent: the client's
+    // outputSchema check (armed by listTools) must still pass on both legs.
+    test.each(ERAS)(
+        "get_nutrition_summary's added-sugar extra rows survive in _meta (%p)",
+        async (mode) => {
+            db.meals = addedSugarGapMeals();
+            await withHttpClient("u1", mode, async (client) => {
+                await client.listTools();
+                const r = await client.callTool({
+                    name: "get_nutrition_summary",
+                    arguments: {
+                        start_date: "2026-01-01",
+                        end_date: "2026-01-31",
+                    },
+                });
+                expect(r.isError).toBeFalsy();
+                const meta = r._meta?.[ADDED_SUGAR_META_KEY] as AddedSugarMeta;
+                expect(meta.extra?.map((e) => e.description)).toEqual([
+                    "sweetened iced tea",
+                ]);
+                expect(
+                    (
+                        r.structuredContent as {
+                            meals: { description: string }[];
+                        }
+                    ).meals.map((m) => m.description),
+                ).not.toContain("sweetened iced tea");
+            });
+        },
+    );
+
     // A widget is only usable if the resource read hands back the assembled,
     // fully-inlined document under the mcp-app mime type: the iframe CSP is
     // deny-all, so anything left un-inlined simply never loads.
@@ -6959,6 +7625,7 @@ function historyRow(
         daily_fat_g: null,
         daily_fiber_g: null,
         daily_sugar_g: null,
+        daily_added_sugar_g: null,
         daily_alcohol_g: null,
         daily_caffeine_mg: null,
         daily_water_ml: null,
@@ -7411,4 +8078,340 @@ test("delete_account names the Apple Health sync connection and its record", asy
         tools.find((t) => t.name === "delete_account")?.description ?? "";
     expect(desc).toContain("Apple Health sync connection");
     expect(desc).toContain("record of values sent");
+});
+
+// ---------- added sugar reaches the widgets through _meta ----------
+//
+// No structuredContent object may gain a field (the schemas are frozen), so
+// the five widget tools carry an AddedSugarMeta under ADDED_SUGAR_META_KEY in
+// the result's _meta instead. Driven over HTTP on both eras: withHttpClient
+// arms the client's advertised-schema check, so every call below also proves
+// structuredContent still validates against the frozen schema.
+describe("added sugar rides in _meta on every widget tool", () => {
+    // The payload's whole v1 contract, strictly: a stray key would mean the
+    // widget is reading something the server never promised.
+    const ADDED_SUGAR_META = z
+        .object({
+            v: z.literal(1),
+            goal: z.number().nullable(),
+            days: z.record(z.string(), z.number().nullable()).optional(),
+            meals: z.record(z.string(), z.number().nullable()).optional(),
+            contributors: z.number().int().min(0).optional(),
+            extra: z
+                .array(
+                    z.strictObject({
+                        description: z.string(),
+                        meal_type: z.string().nullable(),
+                        date: z.string().nullable(),
+                        added_sugar_g: z.number().positive(),
+                    }),
+                )
+                .max(MEAL_BREAKDOWN_TOP_N)
+                .optional(),
+        })
+        .strict();
+    type AddedSugarPayload = z.infer<typeof ADDED_SUGAR_META>;
+
+    const DAY = "2026-07-26";
+    const BANANA_1 = "00000000-0000-4000-8000-0000000000b1";
+    const BANANA_2 = "00000000-0000-4000-8000-0000000000b2";
+    const COLA = "00000000-0000-4000-8000-0000000000c1";
+
+    // The brief's acceptance day: two bananas (~120 g each) and a 330 ml
+    // cola — about 64 g total sugar, 35 g of it added, all from the cola.
+    function bananasAndCola(): Meal[] {
+        return [
+            meal({
+                id: BANANA_1,
+                logged_at: `${DAY}T08:00:00.000Z`,
+                description: "Banana",
+                calories: 107,
+                sugar_g: 14.7,
+                added_sugar_g: 0,
+                alcohol_g: 0,
+            }),
+            meal({
+                id: BANANA_2,
+                logged_at: `${DAY}T11:00:00.000Z`,
+                description: "Banana",
+                calories: 107,
+                sugar_g: 14.7,
+                added_sugar_g: 0,
+                alcohol_g: 0,
+            }),
+            meal({
+                id: COLA,
+                logged_at: `${DAY}T15:00:00.000Z`,
+                description: "Cola 330 ml",
+                calories: 139,
+                sugar_g: 35,
+                added_sugar_g: 35,
+                alcohol_g: 0,
+            }),
+        ];
+    }
+
+    async function call(
+        client: Client,
+        name: string,
+        args: Record<string, unknown>,
+    ): Promise<{ r: ToolResult; meta: AddedSugarPayload }> {
+        const r = (await client.callTool({
+            name,
+            arguments: args,
+        })) as unknown as ToolResult;
+        expect(r.isError).toBeFalsy();
+        expect(r.structuredContent).toBeDefined();
+        // Nothing added sugar touches may leak into structuredContent.
+        expect(JSON.stringify(r.structuredContent)).not.toContain(
+            "added_sugar",
+        );
+        const meta = ADDED_SUGAR_META.parse(r._meta?.[ADDED_SUGAR_META_KEY]);
+        return { r, meta };
+    }
+
+    // The widget joins meta.meals to the breakdown rows BY POSITION (the rows
+    // carry no id), so the two must have one length and one order.
+    function expectJoinable(r: ToolResult, meta: AddedSugarPayload) {
+        const rows = (r.structuredContent as { meals: unknown[] }).meals;
+        expect(Object.keys(meta.meals ?? {})).toHaveLength(rows.length);
+    }
+
+    describe.each(ERAS)("%p", (mode) => {
+        test("log_meal: goal, the day, and the shown meals", async () => {
+            db.goals = goals({ daily_added_sugar_g: 25 });
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "log_meal", {
+                    description: "Cola 330 ml",
+                    meal_type: "snack",
+                    calories: 139,
+                    sugar_g: 35,
+                    added_sugar_g: 35,
+                    logged_at: `${DAY}T15:00:00Z`,
+                });
+                expect(meta.goal).toBe(25);
+                expect(meta.days).toEqual({ [DAY]: 35 });
+                expect(meta.meals).toEqual({ [MEAL_ID]: 35 });
+                expect(meta).not.toHaveProperty("contributors");
+                expectJoinable(r, meta);
+            });
+        });
+
+        test("log_meal with no goals and no added sugar still carries it", async () => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { meta } = await call(client, "log_meal", {
+                    description: "Toast",
+                    meal_type: "snack",
+                    calories: 80,
+                    logged_at: `${DAY}T08:00:00Z`,
+                });
+                // Not recorded: a null day and a null meal, never 0.
+                expect(meta).toEqual({
+                    v: 1,
+                    goal: null,
+                    days: { [DAY]: null },
+                    meals: { [MEAL_ID]: null },
+                });
+            });
+        });
+
+        test("update_meal: the same payload as log_meal", async () => {
+            db.goals = goals({ daily_added_sugar_g: 0 });
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                    added_sugar_g: 12,
+                    logged_at: `${DAY}T12:00:00Z`,
+                });
+                // 0 is a real ceiling, not "unset".
+                expect(meta.goal).toBe(0);
+                expect(meta.days).toEqual({ [DAY]: 12 });
+                expect(meta.meals).toEqual({ [MEAL_ID]: 12 });
+                expectJoinable(r, meta);
+            });
+        });
+
+        test("get_goal_progress: the acceptance day", async () => {
+            db.goals = goals({ daily_sugar_g: null, daily_added_sugar_g: 25 });
+            db.meals = bananasAndCola();
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "get_goal_progress", {
+                    date: DAY,
+                });
+                expect(meta.goal).toBe(25);
+                expect(meta.days).toEqual({ [DAY]: 35 });
+                expect(meta.meals).toEqual({
+                    [BANANA_1]: 0,
+                    [BANANA_2]: 0,
+                    [COLA]: 35,
+                });
+                expect(Object.keys(meta.meals!)).toEqual([
+                    BANANA_1,
+                    BANANA_2,
+                    COLA,
+                ]);
+                // A single day lists every meal; nothing to add.
+                expect(meta).not.toHaveProperty("extra");
+                expectJoinable(r, meta);
+            });
+        });
+
+        test("get_goal_progress: an empty day", async () => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { meta } = await call(client, "get_goal_progress", {
+                    date: DAY,
+                });
+                expect(meta).toEqual({
+                    v: 1,
+                    goal: null,
+                    days: { [DAY]: null },
+                    meals: {},
+                });
+            });
+        });
+
+        test("get_nutrition_summary: merged beside the contributors", async () => {
+            db.goals = goals({ daily_added_sugar_g: 25 });
+            // A pre-feature day (no added sugar recorded) beside the
+            // acceptance day: it is null, never 0.
+            db.meals = [
+                meal({
+                    id: "00000000-0000-4000-8000-0000000000a1",
+                    logged_at: "2026-07-25T12:00:00.000Z",
+                    added_sugar_g: null,
+                }),
+                ...bananasAndCola(),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(
+                    client,
+                    "get_nutrition_summary",
+                    { start_date: "2026-07-20", end_date: DAY },
+                );
+                expect(meta.goal).toBe(25);
+                expect(meta.days).toEqual({
+                    "2026-07-25": null,
+                    [DAY]: 35,
+                });
+                expect(meta.contributors).toBe(1);
+                expect(meta.meals?.[COLA]).toBe(35);
+                // Every meal is kept here, so nothing is left for `extra`.
+                expect(meta.extra).toEqual([]);
+                expectJoinable(r, meta);
+                // The contributors key is still there, in the same object.
+                expect(
+                    MEAL_CONTRIBUTORS.parse(
+                        r._meta?.[MEAL_CONTRIBUTORS_META_KEY],
+                    ).calories,
+                ).toBe(4);
+            });
+        });
+
+        test("get_nutrition_summary: the empty path", async () => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(
+                    client,
+                    "get_nutrition_summary",
+                    { start_date: "2026-07-20", end_date: DAY },
+                );
+                expect(meta).toEqual({
+                    v: 1,
+                    goal: null,
+                    days: {},
+                    meals: {},
+                    contributors: 0,
+                });
+                expect(
+                    MEAL_CONTRIBUTORS.parse(
+                        r._meta?.[MEAL_CONTRIBUTORS_META_KEY],
+                    ).calories,
+                ).toBe(0);
+            });
+        });
+
+        test("get_trends: goal and the 30-day series", async () => {
+            db.goals = goals({ daily_added_sugar_g: 25 });
+            db.meals = bananasAndCola();
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "get_trends", {
+                    days: 7,
+                    end_date: DAY,
+                });
+                expect(meta.goal).toBe(25);
+                const days = meta.days!;
+                // Every day of the series the widget can toggle across, so
+                // it can re-average 7/14/30 on its own.
+                const series = (
+                    r.structuredContent as { days: { date: string }[] }
+                ).days.map((d) => d.date);
+                expect(Object.keys(days).sort()).toEqual([...series].sort());
+                expect(series).toHaveLength(30);
+                expect(days[DAY]).toBe(35);
+                expect(days["2026-07-25"]).toBeNull();
+                expect(meta).not.toHaveProperty("meals");
+                expect(r._meta).not.toHaveProperty(PERIOD_AVERAGES_META_KEY);
+            });
+        });
+
+        test("get_trends: the empty series, and merged with period averages", async () => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "get_trends", {
+                    end_date: DAY,
+                    group_by: "month",
+                });
+                expect(meta.goal).toBeNull();
+                expect(Object.values(meta.days!)).toHaveLength(30);
+                expect(Object.values(meta.days!).every((v) => v === null)).toBe(
+                    true,
+                );
+                expect(r._meta?.[PERIOD_AVERAGES_META_KEY]).toBeDefined();
+            });
+        });
+    });
+
+    test("added sugar never changes which rows the summary keeps", () => {
+        // Eight meals lead every row metric; a ninth is last on all of them
+        // but first on added sugar. Ranking by added sugar would add it to
+        // structuredContent.meals for every host, _meta or not, so it stays
+        // out: the added-sugar list draws from the kept rows only.
+        const meals = [
+            meal({
+                id: "x0",
+                description: "sweet",
+                calories: 1,
+                protein_g: 0.1,
+                carbs_g: 0.1,
+                fat_g: 0.1,
+                fiber_g: 0.1,
+                sugar_g: 40,
+                added_sugar_g: 40,
+                alcohol_g: 0,
+            }),
+            ...Array.from({ length: 8 }, (_, i) =>
+                meal({
+                    id: `x${i + 1}`,
+                    description: `big ${i}`,
+                    sugar_g: 50 + i,
+                    added_sugar_g: 0,
+                    caffeine_mg: 80,
+                }),
+            ),
+        ];
+        const rows = mealBreakdown(meals, "UTC", "us");
+        const top = topMealBreakdown(rows, "us");
+        expect(top.kept).not.toContain(0);
+        expect(top.kept).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+        expect(top.meals).toEqual(top.kept.map((i) => rows[i]!));
+        expect(() => MEAL_CONTRIBUTORS.parse(top.contributors)).not.toThrow();
+    });
+
+    // Each widget repeats the key as a literal (it cannot import), so a
+    // rename on one side would silently drop the cell.
+    test.each(["nutrition-summary", "goal-progress", "meal-logged", "trends"])(
+        "the assembled %s widget reads the key",
+        async (key) => {
+            expect(await getWidgetHtml(key)).toContain(ADDED_SUGAR_META_KEY);
+        },
+    );
 });

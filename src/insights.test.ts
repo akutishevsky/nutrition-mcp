@@ -248,6 +248,7 @@ function meal(logged_at: string, fields: Partial<Meal> = {}): Meal {
         fat_g: 20,
         fiber_g: null,
         sugar_g: null,
+        added_sugar_g: null,
         alcohol_g: null,
         caffeine_mg: null,
         notes: null,
@@ -265,6 +266,7 @@ function goals(fields: Partial<NutritionGoals> = {}): NutritionGoals {
         daily_fat_g: null,
         daily_fiber_g: null,
         daily_sugar_g: null,
+        daily_added_sugar_g: null,
         daily_alcohol_g: null,
         daily_caffeine_mg: null,
         daily_water_ml: null,
@@ -534,6 +536,199 @@ test("computeWeeklyDigest reports a zero-limit nutrient held at zero as clear", 
     const buckets = twoDayBuckets({ sugar_g: 0 }, { sugar_g: 0 });
     const out = computeWeeklyDigest(buckets, goals({ daily_sugar_g: 0 }));
     expect(out).toContain("  Sugar: 0g / 0g limit (clear)");
+});
+
+// ---------- added sugar ----------
+//
+// Part of total sugar, with its own ceiling. Like sugar it is expected on every
+// meal, so a recorded 0 is real — but meals logged before it shipped are NULL
+// and their days drop out of the added-sugar figures only.
+
+test("buildDailyBuckets sums added sugar per day, nulls contributing 0", () => {
+    const buckets = buildDailyBuckets(
+        [
+            meal("2026-06-01T08:00:00Z", { sugar_g: 30, added_sugar_g: 0 }),
+            meal("2026-06-01T19:00:00Z", { sugar_g: 35, added_sugar_g: 35 }),
+            meal("2026-06-02T12:00:00Z", { sugar_g: 12 }), // added null
+        ],
+        [],
+        "2026-06-01",
+        "2026-06-02",
+        "UTC",
+    );
+    expect(buckets[0]!.added_sugar_g).toBe(35);
+    expect(buckets[0]!.sugar_g).toBe(65);
+    expect(buckets[1]!.added_sugar_g).toBe(0);
+});
+
+test("computeTrends adds an added-sugar ceiling row beside sugar", () => {
+    // Two bananas and a cola, then a lighter day.
+    const buckets = twoDayBuckets(
+        { sugar_g: 64, added_sugar_g: 35 },
+        { sugar_g: 20, added_sugar_g: 10 },
+    );
+    const out = computeTrends(
+        buckets,
+        goals({ daily_sugar_g: 50, daily_added_sugar_g: 25 }),
+    );
+    const section = out.split("\n\n").find((s) => s.startsWith("Added sugar:"));
+    expect(section).toBeDefined();
+    expect(section).toContain("  7d avg: 22.5g");
+    expect(section).toContain("  Limit: 25g");
+    expect(section).toContain("  Days over limit: 1/2 days with data");
+    // Sugar keeps its own line and its own limit.
+    const sugar = out.split("\n\n").find((s) => s.startsWith("Sugar:"));
+    expect(sugar).toContain("  Limit: 50g");
+    expect(sugar).toContain("  Days over limit: 1/2 days with data");
+    // Order: sugar, then added sugar.
+    expect(out.indexOf("Sugar:")).toBeLessThan(out.indexOf("Added sugar:"));
+});
+
+test("computeTrends honours an added-sugar limit of zero", () => {
+    const buckets = twoDayBuckets(
+        { sugar_g: 20, added_sugar_g: 0 },
+        { sugar_g: 30, added_sugar_g: 5 },
+    );
+    const out = computeTrends(buckets, goals({ daily_added_sugar_g: 0 }));
+    const section = out
+        .split("\n\n")
+        .find((s) => s.startsWith("Added sugar:"))!;
+    expect(section).toContain("  Limit: 0g");
+    expect(section).toContain("  Days over limit: 1/2 days with data");
+});
+
+test("computeTrends shows a recorded all-zero added-sugar series", () => {
+    // Unlike alcohol/caffeine, a recorded 0 is the expected answer for most
+    // meals (fruit, meat, rice), so it is not suppressed.
+    const buckets = twoDayBuckets(
+        { sugar_g: 20, added_sugar_g: 0 },
+        { sugar_g: 15, added_sugar_g: 0 },
+    );
+    const out = computeTrends(buckets, goals({ daily_added_sugar_g: 25 }));
+    expect(out).toContain("Added sugar:");
+    expect(out).toContain("  Days over limit: 0/2 days with data");
+});
+
+test("computeTrends leaves days without added sugar out of its row only", () => {
+    // Sugar on all 30 days; added sugar only on the last 3 (logged after the
+    // change), each over the limit.
+    const start = new Date("2026-06-01T00:00:00Z");
+    const meals: Meal[] = [];
+    for (let i = 0; i < 30; i++) {
+        const d = new Date(start);
+        d.setUTCDate(d.getUTCDate() + i);
+        const date = d.toISOString().slice(0, 10);
+        meals.push(
+            meal(
+                `${date}T12:00:00Z`,
+                i >= 27 ? { sugar_g: 60, added_sugar_g: 40 } : { sugar_g: 60 },
+            ),
+        );
+    }
+    const buckets = buildDailyBuckets(
+        meals,
+        [],
+        "2026-06-01",
+        "2026-06-30",
+        "UTC",
+    );
+    const out = computeTrends(
+        buckets,
+        goals({ daily_sugar_g: 50, daily_added_sugar_g: 25 }),
+    );
+    const sections = out.split("\n\n");
+    const added = sections.find((s) => s.startsWith("Added sugar:"))!;
+    const sugar = sections.find((s) => s.startsWith("Sugar:"))!;
+    expect(added).toContain("  30d avg: 40g (3 of 30 days with data)");
+    expect(added).toContain("  Days over limit: 3/3 days with data");
+    // Not scored as 27 clean days under the limit, and not averaged as zeros.
+    expect(added).not.toContain("/30 days with data");
+    expect(added).not.toContain("30d avg: 4g");
+    // Sugar is untouched by the gap.
+    expect(sugar).toContain("  30d avg: 60g");
+    expect(sugar).toContain("  Days over limit: 30/30 days with data");
+});
+
+test("computeTrends drops the added-sugar row when no day carries it", () => {
+    const buckets = twoDayBuckets({ sugar_g: 20 }, { sugar_g: 30 });
+    const out = computeTrends(buckets, goals({ daily_added_sugar_g: 25 }));
+    expect(out).toContain("Sugar:");
+    expect(out).not.toContain("Added sugar");
+});
+
+test("computeWeeklyDigest reports added sugar against its limit", () => {
+    const buckets = twoDayBuckets(
+        { sugar_g: 64, added_sugar_g: 35 },
+        { sugar_g: 20, added_sugar_g: 15 },
+    );
+    const out = computeWeeklyDigest(
+        buckets,
+        goals({ daily_sugar_g: 50, daily_added_sugar_g: 25 }),
+    );
+    expect(out).toContain("  Sugar: 42g / 50g limit (84%)");
+    expect(out).toContain("  Added sugar: 25g / 25g limit (100%)");
+    expect(out.indexOf("  Sugar:")).toBeLessThan(out.indexOf("  Added sugar:"));
+});
+
+test("computeWeeklyDigest averages added sugar over its covered days", () => {
+    // Sugar every day; added sugar on the last 2 only.
+    const start = new Date("2026-06-01T00:00:00Z");
+    const meals: Meal[] = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setUTCDate(d.getUTCDate() + i);
+        const date = d.toISOString().slice(0, 10);
+        meals.push(
+            meal(
+                `${date}T12:00:00Z`,
+                i >= 5 ? { sugar_g: 40, added_sugar_g: 30 } : { sugar_g: 40 },
+            ),
+        );
+    }
+    const buckets = buildDailyBuckets(
+        meals,
+        [],
+        "2026-06-01",
+        "2026-06-07",
+        "UTC",
+    );
+    const out = computeWeeklyDigest(
+        buckets,
+        goals({ daily_added_sugar_g: 25 }),
+    );
+    expect(out).toContain(
+        "  Added sugar: 30g / 25g limit (120%) — over 2 of 7 days with data",
+    );
+    expect(out).toContain("  Sugar: 40g");
+    expect(out).not.toContain("Sugar: 40g — over");
+});
+
+test("computeWeeklyDigest honours an added-sugar limit of zero", () => {
+    const clear = computeWeeklyDigest(
+        twoDayBuckets(
+            { sugar_g: 20, added_sugar_g: 0 },
+            { sugar_g: 10, added_sugar_g: 0 },
+        ),
+        goals({ daily_added_sugar_g: 0 }),
+    );
+    expect(clear).toContain("  Added sugar: 0g / 0g limit (clear)");
+    const over = computeWeeklyDigest(
+        twoDayBuckets(
+            { sugar_g: 20, added_sugar_g: 6 },
+            { sugar_g: 10, added_sugar_g: 0 },
+        ),
+        goals({ daily_added_sugar_g: 0 }),
+    );
+    expect(over).toContain("  Added sugar: 3g / 0g limit (3g over)");
+});
+
+test("computeWeeklyDigest drops the added-sugar row with no data", () => {
+    const out = computeWeeklyDigest(
+        twoDayBuckets({ sugar_g: 20 }, { sugar_g: 30 }),
+        goals({ daily_added_sugar_g: 25 }),
+    );
+    expect(out).toContain("  Sugar: 25g");
+    expect(out).not.toContain("Added sugar");
 });
 
 // ---------- caffeine ----------

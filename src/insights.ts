@@ -20,6 +20,9 @@ export interface DailyBucket {
     fat_g: number;
     fiber_g: number;
     sugar_g: number;
+    /** Part of sugar_g. Summed with `?? 0` like the other partial nutrients;
+     * whether the day recorded it at all is dayCarries(meals, "added_sugar_g"). */
+    added_sugar_g: number;
     alcohol_g: number;
     caffeine_mg: number;
     mealTypes: Set<string>;
@@ -86,6 +89,7 @@ export function buildDailyBuckets(
             fat_g: 0,
             fiber_g: 0,
             sugar_g: 0,
+            added_sugar_g: 0,
             alcohol_g: 0,
             caffeine_mg: 0,
             mealTypes: new Set(),
@@ -103,6 +107,7 @@ export function buildDailyBuckets(
         b.fat_g += m.fat_g ?? 0;
         b.fiber_g += m.fiber_g ?? 0;
         b.sugar_g += m.sugar_g ?? 0;
+        b.added_sugar_g += m.added_sugar_g ?? 0;
         b.alcohol_g += m.alcohol_g ?? 0;
         b.caffeine_mg += m.caffeine_mg ?? 0;
         if (m.meal_type) b.mealTypes.add(m.meal_type);
@@ -119,7 +124,7 @@ export function buildDailyBuckets(
 }
 
 /** The nutrients added after the fact — fiber, sugar and alcohol in one pass,
- * caffeine in a later one. Every meal written before each pass shipped carries
+ * caffeine and then added sugar in later ones. Every meal written before each pass shipped carries
  * NULL for its nutrients, so — unlike calories or protein, where a missing value
  * has always meant zero and users have history built on that — a null here means
  * "not recorded", not "ate none". Summing them as zero over every logged day
@@ -127,7 +132,7 @@ export function buildDailyBuckets(
  * under a sugar limit. Caffeine is the same story and then some: most meals will
  * legitimately never carry a value. */
 export type PartialNutrient =
-    "fiber_g" | "sugar_g" | "alcohol_g" | "caffeine_mg";
+    "fiber_g" | "sugar_g" | "added_sugar_g" | "alcohol_g" | "caffeine_mg";
 
 /** THE RULE, shared with mcp.ts: a day carries a nutrient when at least one of
  * that day's meals has a non-null value for it. Only carrying days count toward
@@ -396,7 +401,8 @@ export function computeTrends(
 
     const logged = buckets.filter(nonEmpty);
     // Calories/protein/carbs/fat/water: every day counts, as they always have.
-    // Fiber/sugar/alcohol/caffeine: only the days that carry them (coveredSeries).
+    // Fiber/sugar/added sugar/alcohol/caffeine: only the days that carry them
+    // (coveredSeries).
     const alcoholSeries = coveredSeries(buckets, "alcohol_g");
     const caffeineSeries = coveredSeries(buckets, "caffeine_mg");
 
@@ -469,6 +475,21 @@ export function computeTrends(
             "g",
             coveredSeries(buckets, "sugar_g"),
             goals?.daily_sugar_g ?? null,
+            "ceiling",
+        ),
+    );
+    // Added sugar is part of the sugar above, with its own ceiling — the one
+    // public guidance figures (AHA, DGA) actually set. Expected on every meal
+    // like sugar, so no positive-only suppression: a window of recorded zeros
+    // is a real "0g", and 0 is a real limit. Meals from before it shipped are
+    // NULL, so their days drop out of the series (and the day count) rather
+    // than reading as days under the limit.
+    push(
+        formatStatLine(
+            "Added sugar",
+            "g",
+            coveredSeries(buckets, "added_sugar_g"),
+            goals?.daily_added_sugar_g ?? null,
             "ceiling",
         ),
     );
@@ -820,6 +841,7 @@ export function computeWeeklyDigest(
     };
     const fiber = covered("fiber_g");
     const sugar = covered("sugar_g");
+    const addedSugar = covered("added_sugar_g");
     const alcohol = covered("alcohol_g");
     const caffeine = covered("caffeine_mg");
     // Whole milligrams, like every other caffeine figure the model reads (see
@@ -850,7 +872,8 @@ export function computeWeeklyDigest(
             ? `Daily averages (per calendar day; ${logged.length} of ${buckets.length} days logged):`
             : "Daily averages:",
     );
-    // `noun` is "target" for a floor and "limit" for a ceiling (sugar, alcohol);
+    // `noun` is "target" for a floor and "limit" for a ceiling (sugar, added
+    // sugar, alcohol, caffeine);
     // calling a sugar cap a "target" invites reading the shortfall as a shortfall.
     const line = (
         label: string,
@@ -908,6 +931,21 @@ export function computeWeeklyDigest(
                 goals?.daily_sugar_g ?? null,
                 "limit",
                 sugar.days,
+            ),
+        );
+    }
+    // Same gate as sugar: no added-sugar data in the week, no row. Its days can
+    // be fewer than sugar's (meals logged before it shipped carry sugar only),
+    // and the "over N of 7 days with data" note says so.
+    if (addedSugar.avg != null) {
+        lines.push(
+            line(
+                "Added sugar",
+                addedSugar.avg,
+                "g",
+                goals?.daily_added_sugar_g ?? null,
+                "limit",
+                addedSugar.days,
             ),
         );
     }
