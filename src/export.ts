@@ -9,6 +9,7 @@ import {
     getAllToolAnalytics,
     getAuthAccount,
     getNutritionGoals,
+    getNutritionGoalsHistory,
     getProfile,
     timezoneFromProfile,
     type BodyMeasurementEntry,
@@ -21,6 +22,7 @@ import {
     type WeightEntry,
 } from "./supabase.js";
 import type { User } from "@supabase/supabase-js";
+import type { NutritionGoalsHistoryRow } from "./goals-history.js";
 import {
     HEALTH_SYNC_CLIENT_ID,
     HEALTH_SYNC_FIELDS,
@@ -310,6 +312,49 @@ const GOALS_CSV_COLUMNS = [
     "updated_at",
     "timezone",
 ] as const;
+
+/**
+ * Column order for goals_history.csv: when each set of targets took effect,
+ * the zone that wall clock is in, then the goal columns exactly as goals.csv
+ * names and formats them (target_weight_g stays canonical grams there too).
+ */
+const GOALS_HISTORY_CSV_COLUMNS = [
+    "effective_at",
+    "timezone",
+    ...GOALS_CSV_COLUMNS.filter((c) => c !== "updated_at" && c !== "timezone"),
+] as const;
+
+/**
+ * Build goals_history.csv: one row per change to the goals, oldest first (the
+ * order `getNutritionGoalsHistory` returns). The header is emitted even with
+ * no history, like every other file in the archive. Alcohol is not gated on
+ * the display opt-in, for the reason given on GOALS_CSV_COLUMNS.
+ */
+export function buildGoalsHistoryCsv(
+    history: readonly NutritionGoalsHistoryRow[],
+    tz: string,
+): string {
+    const rows = [GOALS_HISTORY_CSV_COLUMNS.join(",")];
+    for (const h of history) {
+        rows.push(
+            [
+                csvEscape(formatLocalDateTime(h.effective_at, tz)),
+                csvEscape(tz),
+                csvEscape(h.daily_calories),
+                csvEscape(h.daily_protein_g),
+                csvEscape(h.daily_carbs_g),
+                csvEscape(h.daily_fat_g),
+                csvEscape(h.daily_fiber_g),
+                csvEscape(h.daily_sugar_g),
+                csvEscape(h.daily_alcohol_g),
+                csvEscape(h.daily_caffeine_mg),
+                csvEscape(h.daily_water_ml),
+                csvEscape(h.target_weight_g),
+            ].join(","),
+        );
+    }
+    return rows.join("\n");
+}
 
 /**
  * Build goals.csv. A null record still emits the header row: every archive
@@ -683,6 +728,7 @@ export const EXPORT_ARCHIVE_FILES = [
     "weight.csv",
     "body_measurements.csv",
     "goals.csv",
+    "goals_history.csv",
     "profile.csv",
     "account.csv",
     "telemetry.csv",
@@ -732,6 +778,7 @@ export function buildExportReadme(opts: {
         `weight.csv   ${rows(counts.weight)} — every weigh-in, as stored grams and as ${weightUnit}.`,
         `body_measurements.csv ${rows(counts.bodyMeasurements)} — every body measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf): the stored millimetres, and the value exactly as entered with its unit (cm or in).`,
         "goals.csv    your current daily targets — one row, or a header alone if you have never set goals.",
+        `goals_history.csv ${rows(counts.goalsHistory)} — every change to your daily targets, oldest first: when the new values took effect (effective_at) and the targets from then on, in the same columns and units as goals.csv. Goals set before this history was kept appear once, as of their last change.`,
         "profile.csv  your settings: timezone, preferred weight, length and drink units (empty preferred_length_unit = never chosen), display toggles and widget language — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
         'account.csv  your sign-in account: one "account" row (account id, email address, when the account was created, when the email was confirmed, last sign-in, sign-in methods) and one "identity" row per sign-in method (the provider, the provider\'s id for you, and any name or picture it sent — Google accounts created before September 27, 2026 may still hold them).',
         `telemetry.csv ${rows(counts.telemetry)} — one per tool call your AI app made: which tool, when, whether it succeeded, how long it took, the error category if it failed, the date-range length asked for, the MCP session id, the protocol revision and the app name it reported. None of it contains what you logged.`,
@@ -773,6 +820,8 @@ export interface ExportCounts {
     water: number;
     weight: number;
     bodyMeasurements: number;
+    /** Rows in goals_history.csv. */
+    goalsHistory: number;
     telemetry: number;
     /** OAuth grants plus the Apple Health sync link row, when there is one. */
     connections: number;
@@ -791,7 +840,7 @@ export interface FullExportResult {
 
 /**
  * Build the whole-account archive — every log (meals, water, weight and body
- * measurements), the goals, the profile, the
+ * measurements), the goals and their history, the profile, the
  * Auth account, the tool telemetry, the OAuth grants and the Apple Health sync
  * link with its record of what was sent —
  * upload it to the private `exports` bucket under a fixed per-user path (so
@@ -803,9 +852,15 @@ export interface FullExportResult {
 export async function exportAllData(
     userId: string,
     // Injectable for tests; every other reader here is a supabase.ts function.
-    deps: { healthSync?: HealthSyncStore } = {},
+    deps: {
+        healthSync?: HealthSyncStore;
+        getGoalsHistory?: (
+            userId: string,
+        ) => Promise<NutritionGoalsHistoryRow[]>;
+    } = {},
 ): Promise<FullExportResult> {
     const healthSync = deps.healthSync ?? createSupabaseHealthSyncStore();
+    const getGoalsHistory = deps.getGoalsHistory ?? getNutritionGoalsHistory;
     // One round of independent queries rather than each awaited in turn: an
     // account with years of history pages through meals, water, weight and
     // telemetry, and serialising those pushes the tool past the point where a
@@ -816,6 +871,7 @@ export async function exportAllData(
         weight,
         bodyMeasurements,
         goals,
+        goalsHistory,
         profile,
         account,
         telemetry,
@@ -828,6 +884,7 @@ export async function exportAllData(
         getAllWeight(userId),
         getAllBodyMeasurements(userId),
         getNutritionGoals(userId),
+        getGoalsHistory(userId),
         getProfile(userId),
         getAuthAccount(userId),
         getAllToolAnalytics(userId),
@@ -841,6 +898,7 @@ export async function exportAllData(
         water: water.length,
         weight: weight.length,
         bodyMeasurements: bodyMeasurements.length,
+        goalsHistory: goalsHistory.length,
         telemetry: telemetry.length,
         connections: connections.length + (healthSyncLink ? 1 : 0),
         healthSync: healthSyncDays.length,
@@ -887,6 +945,7 @@ export async function exportAllData(
         "weight.csv": buildWeightCsv(weight, tz, weightUnit),
         "body_measurements.csv": buildBodyMeasurementsCsv(bodyMeasurements, tz),
         "goals.csv": buildGoalsCsv(goals, tz),
+        "goals_history.csv": buildGoalsHistoryCsv(goalsHistory, tz),
         "profile.csv": buildProfileCsv(profile, tz),
         "account.csv": buildAccountCsv(account, tz),
         "telemetry.csv": buildTelemetryCsv(telemetry, tz),

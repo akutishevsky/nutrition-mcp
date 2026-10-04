@@ -5046,7 +5046,7 @@ export function registerTools(
         {
             title: "Export All Data",
             description:
-                "Export EVERYTHING this server stores about the user — meals, water, weight, body measurements, nutrition goals, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
+                "Export EVERYTHING this server stores about the user — meals, water, weight, body measurements, nutrition goals and every dated change to them, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path: it covers a full backup, an account takeout, and a request for the meal history alone, which is meals.csv inside the archive. The link is for the user to download the archive.",
             annotations: {
                 title: "Export All Data",
                 readOnlyHint: false,
@@ -5083,6 +5083,7 @@ export function registerTools(
                         `${counts.weight} weight ${counts.weight === 1 ? "entry" : "entries"}`,
                         `${counts.bodyMeasurements} body measurement${counts.bodyMeasurements === 1 ? "" : "s"}`,
                         goals ? "nutrition goals" : "no nutrition goals set",
+                        `${counts.goalsHistory} goal ${counts.goalsHistory === 1 ? "change" : "changes"}`,
                         profile ? "profile settings" : "no profile settings",
                         account ? "account details" : "no account record",
                         `${counts.telemetry} tool-usage telemetry ${counts.telemetry === 1 ? "row" : "rows"}`,
