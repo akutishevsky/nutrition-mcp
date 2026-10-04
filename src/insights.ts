@@ -290,6 +290,16 @@ function targetApplies(target: number | null, direction: StatDirection) {
     return direction === "ceiling" ? target >= 0 : target > 0;
 }
 
+/** Whether a value lands within ±10% of a floor target, judged on the
+ * unrounded value. Two-sided on purpose: 115% of a protein target is off
+ * target, exactly as "Days within ±10% of target" has always counted it. The
+ * one definition behind both that line and the period on-target count in
+ * periods.ts, so the two can never drift apart. A target of zero or less is
+ * not a real floor (see targetApplies) and never counts as hit. */
+export function withinBand(value: number, target: number): boolean {
+    return target > 0 && value >= target * 0.9 && value <= target * 1.1;
+}
+
 /** Whether the goal is something to reach ("floor": calories, protein, fiber…)
  * or something to stay under ("ceiling": sugar, alcohol). Mirrors the
  * GoalDirection used by formatGoalLine in mcp.ts. */
@@ -360,8 +370,10 @@ function formatStatLine(
             parts.push(`  Limit: ${shownLimit}${unit}`);
             parts.push(`  Days over limit: ${daysOver}${of}`);
         } else {
-            const daysOnTarget = values.filter(
-                (v) => v >= limit * 0.9 && v <= limit * 1.1,
+            // targetApplies(…, "floor") above already requires limit > 0, so
+            // withinBand's own `target > 0` guard changes nothing here.
+            const daysOnTarget = values.filter((v) =>
+                withinBand(v, limit),
             ).length;
             parts.push(`  Target: ${shownLimit}${unit}`);
             parts.push(`  Days within ±10% of target: ${daysOnTarget}${of}`);
