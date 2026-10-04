@@ -1,6 +1,6 @@
 # Nutrition MCP
 
-A remote MCP server for personal nutrition tracking — log meals with calories, macros, fiber, total sugar and caffeine, log water, body weight and body measurements, review nutrition history, and import an existing food diary from another app, all through conversation. Alcohol tracking is opt-in and off by default.
+A remote MCP server for personal nutrition tracking — log meals with calories, macros, fiber, total and added sugar and caffeine, log water, body weight and body measurements, review nutrition history, and import an existing food diary from another app, all through conversation. Alcohol tracking is opt-in and off by default.
 
 [Help me pay for the servers on Patreon][patreon]
 
@@ -61,49 +61,49 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 
 ## MCP Tools
 
-| Tool                       | Description                                                                                                                                      |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `log_meal`                 | Log a meal with description, type, calories, macros, fiber, total sugar, alcohol, caffeine (mg), notes — from text or a photo of your plate      |
-| `start_meal_import`        | Open the in-chat CSV importer: pick an export from another app, map its columns, preview, confirm                                                |
-| `bulk_import_meals`        | Write up to 50 imported rows per call — each row validated, duplicates skipped so a re-send is safe while the timezone is unchanged              |
-| `lookup_barcode`           | Look up a packaged product's label nutrition by barcode via Open Food Facts (read from a photo or typed; data © OFF contributors, ODbL)          |
-| `get_meals_today`          | Get all meals logged today, one compact line per meal with its id; `detail: "full"` adds notes                                                   |
-| `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD), one compact line per meal; `detail: "full"` adds notes                                               |
-| `get_meals_by_date_range`  | Get meals between two dates (inclusive), up to 31 days per call; one compact line per meal, `detail: "full"` adds notes                          |
-| `search_meals`             | Search past meals by keyword, grouped into recurring variations (counts, last logged, typical macros)                                            |
-| `get_nutrition_summary`    | Daily nutrition totals + goal progress for a date range, up to 92 days per call                                                                  |
-| `update_meal`              | Update any fields of an existing meal                                                                                                            |
-| `delete_meal`              | Delete a meal by ID                                                                                                                              |
-| `set_nutrition_goals`      | Set daily calorie, macro, fiber and water targets to reach, sugar/alcohol/caffeine limits to stay under, plus an optional target weight          |
-| `get_nutrition_goals`      | Get the current daily targets and limits                                                                                                         |
-| `get_goal_progress`        | Get intake vs. targets and limits for a given day (default: today), plus latest weight vs. target                                                |
-| `log_water`                | Log a hydration entry in milliliters                                                                                                             |
-| `get_water_today`          | Get today's water intake total and entries                                                                                                       |
-| `get_water_by_date`        | Get water intake for a specific date                                                                                                             |
-| `delete_water`             | Delete a water log entry by ID                                                                                                                   |
-| `log_weight`               | Log a body-weight measurement in kg or lb (converted and stored server-side)                                                                     |
-| `get_weight_today`         | Get today's weight entries                                                                                                                       |
-| `get_weight_by_date`       | Get weight entries for a specific date                                                                                                           |
-| `get_weight_by_date_range` | Get weight entries between two dates (inclusive), grouped by day, up to 366 days per call                                                        |
-| `get_weight_trends`        | Weight trend: smoothed trend weight, weekly rate, latest, overall change, min/max, goal progress; widget zooms to 90 days, 1 year or all history |
-| `update_weight`            | Update an existing weight entry                                                                                                                  |
-| `delete_weight`            | Delete a weight entry by ID                                                                                                                      |
-| `set_weight_unit`          | Set the preferred weight unit (`kg` or `lb`; null to clear)                                                                                      |
-| `log_body_measurement`     | Log a tape measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf) in cm or in                                        |
-| `get_body_measurements`    | List body measurements by day, optionally for one site; last 30 days by default, up to 366 days per call                                         |
-| `update_body_measurement`  | Update a measurement's value, unit, time or notes (the site is fixed)                                                                            |
-| `delete_body_measurement`  | Delete a body measurement by ID                                                                                                                  |
-| `set_length_unit`          | Set the preferred length unit (`cm` or `in`; null to clear)                                                                                      |
-| `get_trends`               | 7/14/30-day averages, std dev, streaks, best/worst day; `group_by` week/month/quarter/year averages per logged day vs targets then in effect     |
-| `get_meal_patterns`        | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers)                                                |
-| `export_all_data`          | Export everything stored about you — logs, goals, profile, account, telemetry, app connections — as one ZIP of CSVs + README; 60-minute link     |
-| `get_profile`              | Get timezone (+ local date/time), widget language, weight and length units, widget display and alcohol tracking in one call                      |
-| `set_timezone`             | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                                                                        |
-| `set_language`             | Set the UI language for in-chat widgets (dashboards, charts) — not the language the AI replies in                                                |
-| `get_current_time`         | Get the current date and time in the user's timezone, plus the UTC instant — for hosts with no clock in context                                  |
-| `set_widget_display`       | Enable or disable the in-chat visual widgets (dashboards, rings, charts); enabled by default                                                     |
-| `set_alcohol_tracking`     | Turn alcohol tracking on or off (off by default) and choose US standard drinks or UK units; turning it off hides alcohol rather than deleting it |
-| `delete_account`           | Permanently delete the user's Nutrition MCP account and all data it stores about them                                                            |
+| Tool                       | Description                                                                                                                                                                |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `log_meal`                 | Log a meal with description, type, calories, macros, fiber, total and added sugar, alcohol, caffeine (mg), notes — from text or a photo of your plate                      |
+| `start_meal_import`        | Open the in-chat CSV importer: pick an export from another app, map its columns, preview, confirm                                                                          |
+| `bulk_import_meals`        | Write up to 50 imported rows per call — each row validated, duplicates skipped so a re-send is safe while the timezone is unchanged                                        |
+| `lookup_barcode`           | Look up a packaged product's label nutrition by barcode via Open Food Facts, including added sugar when listed (read from a photo or typed; data © OFF contributors, ODbL) |
+| `get_meals_today`          | Get all meals logged today, one compact line per meal with its id; `detail: "full"` adds notes                                                                             |
+| `get_meals_by_date`        | Get meals for a specific date (YYYY-MM-DD), one compact line per meal; `detail: "full"` adds notes                                                                         |
+| `get_meals_by_date_range`  | Get meals between two dates (inclusive), up to 31 days per call; one compact line per meal, `detail: "full"` adds notes                                                    |
+| `search_meals`             | Search past meals by keyword, grouped into recurring variations (counts, last logged, typical macros)                                                                      |
+| `get_nutrition_summary`    | Daily nutrition totals + goal progress for a date range, up to 92 days per call                                                                                            |
+| `update_meal`              | Update any fields of an existing meal                                                                                                                                      |
+| `delete_meal`              | Delete a meal by ID                                                                                                                                                        |
+| `set_nutrition_goals`      | Set daily calorie, macro, fiber and water targets to reach, total-sugar/added-sugar/alcohol/caffeine limits to stay under, plus an optional target weight                  |
+| `get_nutrition_goals`      | Get the current daily targets and limits                                                                                                                                   |
+| `get_goal_progress`        | Get intake vs. targets and limits for a given day (default: today), plus latest weight vs. target                                                                          |
+| `log_water`                | Log a hydration entry in milliliters                                                                                                                                       |
+| `get_water_today`          | Get today's water intake total and entries                                                                                                                                 |
+| `get_water_by_date`        | Get water intake for a specific date                                                                                                                                       |
+| `delete_water`             | Delete a water log entry by ID                                                                                                                                             |
+| `log_weight`               | Log a body-weight measurement in kg or lb (converted and stored server-side)                                                                                               |
+| `get_weight_today`         | Get today's weight entries                                                                                                                                                 |
+| `get_weight_by_date`       | Get weight entries for a specific date                                                                                                                                     |
+| `get_weight_by_date_range` | Get weight entries between two dates (inclusive), grouped by day, up to 366 days per call                                                                                  |
+| `get_weight_trends`        | Weight trend: smoothed trend weight, weekly rate, latest, overall change, min/max, goal progress; widget zooms to 90 days, 1 year or all history                           |
+| `update_weight`            | Update an existing weight entry                                                                                                                                            |
+| `delete_weight`            | Delete a weight entry by ID                                                                                                                                                |
+| `set_weight_unit`          | Set the preferred weight unit (`kg` or `lb`; null to clear)                                                                                                                |
+| `log_body_measurement`     | Log a tape measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf) in cm or in                                                                  |
+| `get_body_measurements`    | List body measurements by day, optionally for one site; last 30 days by default, up to 366 days per call                                                                   |
+| `update_body_measurement`  | Update a measurement's value, unit, time or notes (the site is fixed)                                                                                                      |
+| `delete_body_measurement`  | Delete a body measurement by ID                                                                                                                                            |
+| `set_length_unit`          | Set the preferred length unit (`cm` or `in`; null to clear)                                                                                                                |
+| `get_trends`               | 7/14/30-day averages, std dev, streaks, best/worst day; `group_by` week/month/quarter/year averages per logged day vs targets then in effect                               |
+| `get_meal_patterns`        | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers)                                                                          |
+| `export_all_data`          | Export everything stored about you — logs, goals, profile, account, telemetry, app connections — as one ZIP of CSVs + README; 60-minute link                               |
+| `get_profile`              | Get timezone (+ local date/time), widget language, weight and length units, widget display and alcohol tracking in one call                                                |
+| `set_timezone`             | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                                                                                                  |
+| `set_language`             | Set the UI language for in-chat widgets (dashboards, charts) — not the language the AI replies in                                                                          |
+| `get_current_time`         | Get the current date and time in the user's timezone, plus the UTC instant — for hosts with no clock in context                                                            |
+| `set_widget_display`       | Enable or disable the in-chat visual widgets (dashboards, rings, charts); enabled by default                                                                               |
+| `set_alcohol_tracking`     | Turn alcohol tracking on or off (off by default) and choose US standard drinks or UK units; turning it off hides alcohol rather than deleting it                           |
+| `delete_account`           | Permanently delete the user's Nutrition MCP account and all data it stores about them                                                                                      |
 
 ## MCP Resources
 
@@ -240,7 +240,7 @@ The full version, in 9 languages, is at [nutrition-mcp.com/tools#troubleshooting
 - **No charts or cards:** widgets need a host that supports MCP Apps; after `set_widget_display`, start a new conversation. The meal-logged card only appears once goals are set.
 - **Importer won't open or can't save:** ask the AI to import the file itself with `bulk_import_meals` (duplicates are skipped, so re-sending is safe as long as your timezone hasn't changed in between; set it before the first import). If you use the importer panel and want an alcohol column kept, turn alcohol tracking on first; the panel skips it while tracking is off.
 - **"Rate limit exceeded" / "Too many failed authentication attempts":** 60 requests a minute per account, 30 a minute per network on the sign-in pages. After 20 rejected connection attempts in a row, a network is paused for 5 minutes, growing to at most an hour — usually an old connector retrying; remove and re-add it.
-- **Barcode not found or wrong:** data comes from Open Food Facts (8–14 digits, no caffeine data); the AI can estimate from the name or a label photo.
+- **Barcode not found or wrong:** data comes from Open Food Facts (8–14 digits, no caffeine data; added sugar only when the product lists it, marked when Open Food Facts estimated it from the ingredients); the AI can estimate from the name or a label photo.
 - **Yesterday isn't in Apple Health yet:** days are sent once they are finished, at 05:00 the next morning in your timezone; the next sync after that (opening Health, stopping your alarm, or **Sync now**) brings it. Every sync covers the last 7 days.
 - **Apple Health shows more than chat:** Health can't lower a value it already has. Delete that day's entries from Shortcuts under Health → Browse → Nutrition → (type) → Show All Data and enter the right total by hand. Never use "Delete All Data from Shortcuts" — it also removes what your other shortcuts logged. If every day looks doubled, another app writes the same types; switch one off under Health → Sharing → Apps.
 - **Apple Health sync stopped:** run **Nutrition MCP Health** by hand to see why. If it asks to connect again (90 days without a sync, 365 days after connecting, or after Disconnect), sign in on the page it opens within 30 minutes. If it only syncs by hand, check its automations are on and set to Run Immediately; if a notice says a day didn't reach Health, allow Shortcuts to write every nutrition type under Health → Sharing → Apps → Shortcuts.

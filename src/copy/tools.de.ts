@@ -86,7 +86,7 @@ export const TOOLS_DE: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus Ballaststoffen, Gesamtzucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen.",
+                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus Ballaststoffen, Gesamt- und zugesetztem Zucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen.",
             params: {
                 description: "Was gegessen wurde",
                 meal_type: "Frühstück, Mittagessen, Abendessen oder Snack",
@@ -98,6 +98,8 @@ export const TOOLS_DE: ToolsDoc = {
                     "Ballaststoffe in Gramm. Die KI soll das bei jeder Mahlzeit ausfüllen und den Wert aus den Zutaten schätzen, wenn kein Etikett ihn nennt, denn ein leeres Feld ist keine Null – es nimmt den ganzen Tag aus deinem Ballaststoffdurchschnitt heraus",
                 sugar_g:
                     "<b>Gesamt</b>zucker in Gramm – der Wert, der auf dem Etikett unter „davon Zucker“ steht, inklusive des natürlichen Zuckers in Obst und Milch, nicht nur zugesetzter Zucker. Wird bei jeder Mahlzeit nach denselben Regeln ausgefüllt wie Ballaststoffe",
+                added_sugar_g:
+                    "<b>Zugesetzter</b> Zucker in Gramm – Zucker, der bei Verarbeitung oder Zubereitung hinzugefügt wird (Haushaltszucker, Sirup, Honig, der Zucker in gesüßten Getränken und Lebensmitteln). Teil des Gesamtzuckers, nie mehr als dieser. Der natürliche Zucker in ganzem Obst, Gemüse und naturbelassener Milch zählt nicht als zugesetzt, ebenso wenig 100 % Fruchtsaft. Wird bei jeder Mahlzeit nach denselben Regeln ausgefüllt wie Ballaststoffe: Unverarbeitete Lebensmittel haben 0, der Zucker eines Softdrinks ist komplett zugesetzt, und die US-Etikettenzeile „Includes Xg Added Sugars“ wird genutzt, wenn es sie gibt",
                 alcohol_g:
                     "Gramm <b>reinen Alkohols</b>, nicht die Menge des Getränks und nicht sein Alkoholgehalt in Prozent – die KI errechnet den Wert aus Menge und Stärke (ein 330-ml-Bier mit 5 % sind 13 g)",
                 caffeine_mg:
@@ -113,7 +115,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Hol dir die Nährwertangaben eines verpackten Produkts per Barcode (8- bis 14-stelliger EAN/UPC-Code) von Open Food Facts, dazu Nutri-Score und NOVA-Gruppe (Verarbeitungsgrad), sofern Open Food Facts sie kennt. Du kannst die Ziffern eintippen oder von einem Foto der Verpackung ablesen lassen; das Ergebnis lässt sich dann erfassen, umgerechnet auf die Menge, die du gegessen hast.",
+                "Hol dir die Nährwertangaben eines verpackten Produkts per Barcode (8- bis 14-stelliger EAN/UPC-Code) von Open Food Facts, dazu Nutri-Score und NOVA-Gruppe (Verarbeitungsgrad), sofern Open Food Facts sie kennt. Zugesetzter Zucker wird angezeigt, wenn Open Food Facts ihn angibt, und gekennzeichnet, wenn Open Food Facts ihn aus den Zutaten geschätzt hat. Du kannst die Ziffern eintippen oder von einem Foto der Verpackung ablesen lassen; das Ergebnis lässt sich dann erfassen, umgerechnet auf die Menge, die du gegessen hast.",
             params: {},
             example: "Scann diesen Barcode: 3017620422003",
             photoHint:
@@ -121,7 +123,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Öffne im Chat einen Importer, um deinen Verlauf aus einer anderen App zu übernehmen: Wähl die CSV, die du aus MyFitnessPal, Cronometer, Lose It!, MacroFactor oder einem anderen Tracker exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Zucker und Koffein zu – plus Alkohol, falls du die Alkohol-Erfassung eingeschaltet hast – und prüf in der Vorschau, was dazukommt, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, gespeichert wird erst, wenn du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
+                "Öffne im Chat einen Importer, um deinen Verlauf aus einer anderen App zu übernehmen: Wähl die CSV, die du aus MyFitnessPal, Cronometer, Lose It!, MacroFactor oder einem anderen Tracker exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Gesamt- und zugesetztem Zucker und Koffein zu – plus Alkohol, falls du die Alkohol-Erfassung eingeschaltet hast – und prüf in der Vorschau, was dazukommt, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, gespeichert wird erst, wenn du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
             params: {},
             example: "Importier meinen Mahlzeiten-Verlauf aus MyFitnessPal",
         },
@@ -129,7 +131,7 @@ export const TOOLS_DE: ToolsDoc = {
             description:
                 "Füge viele vergangene Mahlzeiten auf einmal hinzu – bis zu 50 pro Aufruf –, statt sie einzeln zu erfassen. Der Importer oben speichert über dieses Werkzeug, und die KI kann es auch direkt für Mahlzeitendaten nutzen, die du in den Chat eingefügt hast. Jede Zeile wird vorab geprüft, und was nicht passt, wird Zeile für Zeile gemeldet. Dieselben Zeilen erneut zu senden ist daher sicher und verdoppelt nichts, was schon erfasst ist – solange sich deine Zeitzone zwischendurch nicht geändert hat.",
             params: {
-                meals: "Die zu importierenden Zeilen in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann Uhrzeit, Mahlzeitentyp, Beschreibung, Notizen und dieselben Werte wie eine erfasste Mahlzeit enthalten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
+                meals: "Die zu importierenden Zeilen in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann Uhrzeit, Mahlzeitentyp, Beschreibung, Notizen und dieselben Werte wie eine erfasste Mahlzeit enthalten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>added_sugar_g</code> (zugesetzter Zucker, Teil des Gesamtzuckers), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
                 expected_row_count:
                     "Wie viele Zeilen dieser Aufruf enthält, gezählt in der Quelldatei, damit eine verlorene Zeile auffällt",
                 expected_total_kcal:
@@ -145,7 +147,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Ändere eine bereits erfasste Mahlzeit – Beschreibung, beliebige Makros, Ballaststoffe, Zucker, Alkohol oder Koffein, Uhrzeit oder Notizen. Darüber werden auch Lücken nachgetragen: Wurde eine Mahlzeit ohne Ballaststoffe oder Zucker erfasst, weist der Server darauf hin, und die KI trägt die Werte hier nach, sobald du zustimmst.",
+                "Ändere eine bereits erfasste Mahlzeit – Beschreibung, beliebige Makros, Ballaststoffe, Gesamt- oder zugesetzter Zucker, Alkohol oder Koffein, Uhrzeit oder Notizen. Darüber werden auch Lücken nachgetragen: Wurde eine Mahlzeit ohne Ballaststoffe, Zucker oder zugesetzten Zucker erfasst, weist der Server darauf hin, und die KI trägt die Werte hier nach, sobald du zustimmst.",
             params: {
                 id: "UUID der zu ändernden Mahlzeit",
                 description: "",
@@ -155,6 +157,8 @@ export const TOOLS_DE: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Gesamtzucker, nicht zugesetzter Zucker",
+                added_sugar_g:
+                    "Nur zugesetzter Zucker, nie mehr als der Gesamtzucker",
                 alcohol_g:
                     "Gramm reinen Alkohols, nicht die Menge des Getränks",
                 caffeine_mg: "Milligramm, nicht Gramm",
@@ -362,7 +366,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Leg deine täglichen Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Alkohol, Koffein und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; Zucker, Alkohol und Koffein sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
+                "Leg deine täglichen Ziele für Kalorien, Makros, Ballaststoffe, Zucker, zugesetzten Zucker, Alkohol, Koffein und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; Gesamtzucker, zugesetzter Zucker, Alkohol und Koffein sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
             params: {
                 daily_calories:
                     "Tägliches Kalorienziel (kcal). Zum Löschen „null“ angeben.",
@@ -376,6 +380,8 @@ export const TOOLS_DE: ToolsDoc = {
                     "Tägliches Ballaststoffziel (Gramm), ein Minimum, das du erreichen willst. Zum Löschen „null“ angeben.",
                 daily_sugar_g:
                     "Tägliches Limit für <b>Gesamt</b>zucker (Gramm), ein Maximum, unter dem du bleiben willst. Gesamtzucker umfasst auch den natürlichen Zucker in Obst und Milch, daher liegen offizielle Empfehlungen für zugesetzten Zucker deutlich niedriger. Zum Löschen „null“ angeben.",
+                daily_added_sugar_g:
+                    "Tägliches Limit für <b>zugesetzten</b> Zucker (Gramm), ein Maximum, unter dem du bleiben willst. Zählt nur zugesetzten Zucker, nicht den natürlichen Zucker in Obst und Milch; offizielle Richtwerte für Zucker beziehen sich meist auf diesen Wert (die American Heart Association empfiehlt höchstens 25 g am Tag für Frauen und 36 g für Männer). 0 ist ein echtes Limit und heißt: gar keiner. Zum Löschen „null“ angeben.",
                 daily_alcohol_g:
                     "Tägliches Alkohol-Limit in Gramm <b>reinen Alkohols</b>, ein Maximum, unter dem du bleiben willst. Ein US-Standard-Drink entspricht 14 g, eine UK-Einheit 7,9 g. Zum Löschen „null“ angeben.",
                 daily_caffeine_mg:

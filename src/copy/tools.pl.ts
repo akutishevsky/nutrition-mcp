@@ -81,7 +81,7 @@ export const TOOLS_PL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z błonnikiem, cukrami ogółem, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu.",
+                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z błonnikiem, cukrami ogółem i dodanymi, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu.",
             params: {
                 description: "Co zostało zjedzone",
                 meal_type: "śniadanie, obiad, kolacja lub przekąska",
@@ -93,6 +93,8 @@ export const TOOLS_PL: ToolsDoc = {
                     "Błonnik pokarmowy w gramach. AI ma za zadanie uzupełniać tę wartość przy każdym posiłku i szacować ją ze składników, gdy etykieta jej nie podaje — bo puste pole to nie zero: wyklucza cały dzień z Twojej średniej błonnika",
                 sugar_g:
                     "<b>Łączna</b> zawartość cukrów w gramach — wartość, którą etykieta podaje jako „w tym cukry”, obejmująca cukier naturalnie obecny w owocach i mleku, a nie tylko cukier dodany. Uzupełniana przy każdym posiłku na tych samych zasadach co błonnik",
+                added_sugar_g:
+                    "Cukry <b>dodane</b> w gramach — cukier dodany podczas przetwarzania lub przygotowania (cukier stołowy, syropy, miód, cukier w słodzonych napojach i produktach). Część cukrów ogółem, nigdy więcej niż one. Cukier naturalnie obecny w całych owocach, warzywach i zwykłym mleku nie jest dodany, podobnie jak ten w soku owocowym 100%. Uzupełniane przy każdym posiłku na tych samych zasadach co błonnik: nieprzetworzona żywność ma 0, cukier w słodzonym napoju gazowanym jest w całości dodany, a amerykański wiersz etykiety „Includes Xg Added Sugars” jest używany, gdy występuje",
                 alcohol_g:
                     "Gramy <b>czystego etanolu</b>, a nie objętość napoju ani jego zawartość alkoholu w procentach — AI wylicza je z ilości i mocy napoju (330 ml piwa 5% to 13 g)",
                 caffeine_mg:
@@ -108,7 +110,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Pobierz z Open Food Facts wartości odżywcze z etykiety produktu paczkowanego po jego kodzie kreskowym (EAN/UPC, 8–14 cyfr), a także Nutri-Score i grupę przetworzenia NOVA, jeśli Open Food Facts je podaje. Cyfry możesz wpisać albo odczytać ze zdjęcia opakowania; wynik można potem zapisać, przeliczony na zjedzoną ilość.",
+                "Pobierz z Open Food Facts wartości odżywcze z etykiety produktu paczkowanego po jego kodzie kreskowym (EAN/UPC, 8–14 cyfr), a także Nutri-Score i grupę przetworzenia NOVA, jeśli Open Food Facts je podaje. Cukry dodane są pokazywane, gdy Open Food Facts je podaje, i oznaczane, gdy Open Food Facts oszacował je na podstawie składu. Cyfry możesz wpisać albo odczytać ze zdjęcia opakowania; wynik można potem zapisać, przeliczony na zjedzoną ilość.",
             params: {},
             example: "Zeskanuj ten kod kreskowy: 3017620422003",
             photoHint:
@@ -116,7 +118,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Otwórz w czacie importer, który przeniesie Twoją historię z innej aplikacji — wybierz plik CSV wyeksportowany z MyFitnessPal, Cronometer, Lose It!, MacroFactor lub innego licznika kalorii, dopasuj jego kolumny do kalorii, makroskładników, błonnika, cukru i kofeiny (a także alkoholu, jeśli masz włączone jego śledzenie) i przed potwierdzeniem sprawdź, co zostanie dodane. Plik jest odczytywany w Twojej przeglądarce, nic nie zostaje zapisane, dopóki nie zaakceptujesz podglądu, a ponowny import tego samego pliku nie tworzy duplikatów.",
+                "Otwórz w czacie importer, który przeniesie Twoją historię z innej aplikacji — wybierz plik CSV wyeksportowany z MyFitnessPal, Cronometer, Lose It!, MacroFactor lub innego licznika kalorii, dopasuj jego kolumny do kalorii, makroskładników, błonnika, cukrów ogółem i dodanych oraz kofeiny (a także alkoholu, jeśli masz włączone jego śledzenie) i przed potwierdzeniem sprawdź, co zostanie dodane. Plik jest odczytywany w Twojej przeglądarce, nic nie zostaje zapisane, dopóki nie zaakceptujesz podglądu, a ponowny import tego samego pliku nie tworzy duplikatów.",
             params: {},
             example: "Zaimportuj moją historię posiłków z MyFitnessPal",
         },
@@ -124,7 +126,7 @@ export const TOOLS_PL: ToolsDoc = {
             description:
                 "Dodaj za jednym razem do 50 wcześniejszych posiłków, zamiast zapisywać je po kolei. Korzysta z tego narzędzia opisany wyżej importer, a AI może go użyć bezpośrednio do danych posiłków wklejonych do czatu. Każdy wiersz jest najpierw sprawdzany, a wszystko, co nie pasuje, zostaje zgłoszone osobno dla każdego wiersza, więc ponowne wysłanie tych samych wierszy jest bezpieczne i nie zduplikuje już zapisanych posiłków — o ile w międzyczasie nie zmieniła się Twoja strefa czasowa.",
             params: {
-                meals: "Wiersze do zaimportowania, w kolejności z pliku źródłowego (1–50 na wywołanie). Każdy wiersz może zawierać czas, typ posiłku, opis, notatki i te same wartości co zapisany posiłek: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (cukry ogółem), <code>alcohol_g</code> (gramy czystego etanolu) i <code>caffeine_mg</code> (miligramy, nie gramy)",
+                meals: "Wiersze do zaimportowania, w kolejności z pliku źródłowego (1–50 na wywołanie). Każdy wiersz może zawierać czas, typ posiłku, opis, notatki i te same wartości co zapisany posiłek: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (cukry ogółem), <code>added_sugar_g</code> (cukry dodane, część cukrów ogółem), <code>alcohol_g</code> (gramy czystego etanolu) i <code>caffeine_mg</code> (miligramy, nie gramy)",
                 expected_row_count:
                     "Liczba wierszy w tym wywołaniu, policzona w pliku źródłowym, żeby wychwycić pominięty wiersz",
                 expected_total_kcal:
@@ -139,7 +141,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Zmień szczegóły zapisanego już posiłku — opis, dowolny makroskładnik, błonnik, cukier, alkohol lub kofeinę, godzinę albo notatki. W ten sposób uzupełnia się też luki: jeśli posiłek trafił do dziennika bez błonnika lub cukru, serwer to zgłasza, a AI uzupełnia brakujące dane tutaj, gdy się zgodzisz.",
+                "Zmień szczegóły zapisanego już posiłku — opis, dowolny makroskładnik, błonnik, cukry ogółem lub dodane, alkohol lub kofeinę, godzinę albo notatki. W ten sposób uzupełnia się też luki: jeśli posiłek trafił do dziennika bez błonnika, cukru lub cukrów dodanych, serwer to zgłasza, a AI uzupełnia brakujące dane tutaj, gdy się zgodzisz.",
             params: {
                 id: "UUID posiłku do zaktualizowania",
                 description: "",
@@ -149,6 +151,8 @@ export const TOOLS_PL: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Cukry ogółem, nie cukry dodane",
+                added_sugar_g:
+                    "Tylko cukry dodane, nigdy więcej niż cukry ogółem",
                 alcohol_g: "Gramy czystego etanolu, nie objętość napoju",
                 caffeine_mg: "Miligramy, nie gramy",
                 logged_at: "",
@@ -347,7 +351,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Ustaw dzienne cele dla kalorii, makroskładników, błonnika, cukru, alkoholu, kofeiny i wody, a także opcjonalną wagę docelową. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; cukier, alkohol i kofeina to limity, których nie należy przekraczać — i tak też opisywany jest postęp. Zmieniają się tylko pola, które wskażesz; reszta pozostaje bez zmian.",
+                "Ustaw dzienne cele dla kalorii, makroskładników, błonnika, cukru, cukrów dodanych, alkoholu, kofeiny i wody, a także opcjonalną wagę docelową. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; cukry ogółem, cukry dodane, alkohol i kofeina to limity, których nie należy przekraczać — i tak też opisywany jest postęp. Zmieniają się tylko pola, które wskażesz; reszta pozostaje bez zmian.",
             params: {
                 daily_calories: "Dzienny cel kalorii (kcal). Null usuwa cel.",
                 daily_protein_g:
@@ -360,6 +364,8 @@ export const TOOLS_PL: ToolsDoc = {
                     "Dzienny cel błonnika (w gramach) — minimum do osiągnięcia. Null usuwa cel.",
                 daily_sugar_g:
                     "Dzienny limit cukrów <b>ogółem</b> (w gramach) — maksimum, którego nie należy przekraczać. Cukry ogółem obejmują też cukier naturalnie obecny w owocach i mleku, dlatego oficjalne zalecenia dotyczące cukrów dodanych podają znacznie niższą wartość. Null usuwa limit.",
+                daily_added_sugar_g:
+                    "Dzienny limit cukrów <b>dodanych</b> (w gramach) — maksimum, którego nie należy przekraczać. Obejmuje tylko cukry dodane, a nie cukier naturalnie obecny w owocach i mleku; oficjalne zalecenia dotyczące cukru zwykle odnoszą się właśnie do tej wartości (American Heart Association zaleca najwyżej 25 g dziennie dla kobiet i 36 g dla mężczyzn). 0 to prawdziwy limit oznaczający zero. Null usuwa limit.",
                 daily_alcohol_g:
                     "Dzienny limit alkoholu w gramach <b>czystego etanolu</b> — maksimum, którego nie należy przekraczać. Jedna amerykańska porcja standardowa to 14 g, jedna jednostka brytyjska 7,9 g. Null usuwa limit.",
                 daily_caffeine_mg:

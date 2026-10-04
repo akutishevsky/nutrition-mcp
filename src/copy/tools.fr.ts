@@ -96,7 +96,7 @@ export const TOOLS_FR: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Enregistre ce que tu as mangé avec les calories et les macros, plus les fibres, les sucres totaux, l'alcool et la caféine quand ces valeurs sont disponibles. Décris-le avec tes mots : l'IA estime les valeurs, te demande la taille de la portion si elle n'est pas claire, et peut d'abord récupérer les données de l'étiquette via un code-barres ou sur le web.",
+                "Enregistre ce que tu as mangé avec les calories et les macros, plus les fibres, les sucres totaux et ajoutés, l'alcool et la caféine quand ces valeurs sont disponibles. Décris-le avec tes mots : l'IA estime les valeurs, te demande la taille de la portion si elle n'est pas claire, et peut d'abord récupérer les données de l'étiquette via un code-barres ou sur le web.",
             params: {
                 description: "Ce qui a été mangé",
                 meal_type: "petit-déjeuner, déjeuner, dîner ou collation",
@@ -108,6 +108,8 @@ export const TOOLS_FR: ToolsDoc = {
                     "Fibres alimentaires en grammes. L'IA a pour consigne de remplir ce champ à chaque repas, en l'estimant à partir des ingrédients quand aucune étiquette ne donne la valeur, car un champ vide n'est pas un zéro : il exclut toute la journée de ta moyenne de fibres",
                 sugar_g:
                     "Sucres <b>totaux</b> en grammes : la valeur qu'une étiquette indique sous « dont sucres », y compris le sucre naturellement présent dans les fruits et le lait, pas seulement le sucre ajouté. Renseigné à chaque repas, selon les mêmes règles que les fibres",
+                added_sugar_g:
+                    "Sucres <b>ajoutés</b> en grammes : le sucre ajouté lors de la transformation ou de la préparation (sucre de table, sirops, miel, le sucre des boissons et aliments sucrés). Ils font partie des sucres totaux et ne les dépassent jamais. Le sucre naturellement présent dans les fruits entiers, les légumes et le lait nature n'est pas ajouté, pas plus que celui d'un jus 100 % pur fruit. Renseigné à chaque repas, selon les mêmes règles que les fibres : les aliments bruts valent 0, le sucre d'un soda est entièrement ajouté, et la ligne « Includes Xg Added Sugars » des étiquettes américaines est utilisée quand elle existe",
                 alcohol_g:
                     "Grammes d'<b>éthanol pur</b>, ni le volume de la boisson ni son degré d'alcool : l'IA le calcule à partir de la quantité servie et du degré (une bière de 330 ml à 5 % en contient 13 g)",
                 caffeine_mg:
@@ -123,7 +125,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Récupère sur Open Food Facts les valeurs nutritionnelles indiquées sur l'étiquette d'un produit emballé, à partir de son code-barres (EAN/UPC de 8 à 14 chiffres), ainsi que son Nutri-Score et son groupe de transformation NOVA quand Open Food Facts les connaît. Tu peux taper les chiffres ou les lire sur une photo de l'emballage ; le résultat peut ensuite être enregistré, ajusté à la quantité que tu as mangée.",
+                "Récupère sur Open Food Facts les valeurs nutritionnelles indiquées sur l'étiquette d'un produit emballé, à partir de son code-barres (EAN/UPC de 8 à 14 chiffres), ainsi que son Nutri-Score et son groupe de transformation NOVA quand Open Food Facts les connaît. Les sucres ajoutés sont indiqués quand Open Food Facts les fournit, et signalés quand Open Food Facts les a estimés à partir des ingrédients. Tu peux taper les chiffres ou les lire sur une photo de l'emballage ; le résultat peut ensuite être enregistré, ajusté à la quantité que tu as mangée.",
             params: {},
             example: "Scanne ce code-barres : 3017620422003",
             photoHint:
@@ -131,7 +133,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Ouvre un outil d'import dans le chat pour récupérer ton historique depuis une autre app : choisis le CSV exporté depuis MyFitnessPal, Cronometer, Lose It!, MacroFactor ou une autre app de suivi, associe ses colonnes aux calories, aux macros, aux fibres, aux sucres et à la caféine (plus l'alcool si tu as activé son suivi), puis vérifie ce qui sera ajouté avant de confirmer. Le fichier est lu dans ton navigateur, rien n'est enregistré tant que tu n'as pas validé l'aperçu, et réimporter le même fichier ne crée pas de doublons.",
+                "Ouvre un outil d'import dans le chat pour récupérer ton historique depuis une autre app : choisis le CSV exporté depuis MyFitnessPal, Cronometer, Lose It!, MacroFactor ou une autre app de suivi, associe ses colonnes aux calories, aux macros, aux fibres, aux sucres totaux et ajoutés et à la caféine (plus l'alcool si tu as activé son suivi), puis vérifie ce qui sera ajouté avant de confirmer. Le fichier est lu dans ton navigateur, rien n'est enregistré tant que tu n'as pas validé l'aperçu, et réimporter le même fichier ne crée pas de doublons.",
             params: {},
             example: "Importe mon historique de repas depuis MyFitnessPal",
         },
@@ -139,7 +141,7 @@ export const TOOLS_FR: ToolsDoc = {
             description:
                 "Ajoute d'un coup un lot de repas passés (jusqu'à 50 à la fois) au lieu de les enregistrer un par un. L'outil d'import ci-dessus passe par lui pour enregistrer les repas, et l'IA peut aussi l'utiliser directement pour des repas que tu as collés dans le chat. Chaque ligne est d'abord vérifiée, et tout ce qui ne convient pas est signalé ligne par ligne : renvoyer les mêmes lignes est donc sans risque et ne crée pas de doublons de ce qui est déjà enregistré, tant que ton fuseau horaire n'a pas changé entre-temps.",
             params: {
-                meals: "Les lignes à importer, dans l'ordre du fichier source (1 à 50 par appel). Chaque ligne peut contenir une heure, un type de repas, une description, des notes et les mêmes valeurs qu'un repas enregistré : <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (sucres totaux), <code>alcohol_g</code> (grammes d'éthanol pur) et <code>caffeine_mg</code> (milligrammes, pas grammes)",
+                meals: "Les lignes à importer, dans l'ordre du fichier source (1 à 50 par appel). Chaque ligne peut contenir une heure, un type de repas, une description, des notes et les mêmes valeurs qu'un repas enregistré : <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (sucres totaux), <code>added_sugar_g</code> (sucres ajoutés, inclus dans le total), <code>alcohol_g</code> (grammes d'éthanol pur) et <code>caffeine_mg</code> (milligrammes, pas grammes)",
                 expected_row_count:
                     "Nombre de lignes transmises par cet appel, compté dans le fichier source, pour repérer une ligne perdue",
                 expected_total_kcal:
@@ -154,7 +156,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Modifie un repas déjà enregistré : sa description, une macro, les fibres, les sucres, l'alcool ou la caféine, l'heure ou les notes. C'est aussi comme ça qu'on complète une valeur manquante : si un repas a été enregistré sans ses fibres ou ses sucres, le serveur le signale et l'IA les ajoute ici une fois que tu as donné ton accord.",
+                "Modifie un repas déjà enregistré : sa description, une macro, les fibres, les sucres totaux ou ajoutés, l'alcool ou la caféine, l'heure ou les notes. C'est aussi comme ça qu'on complète une valeur manquante : si un repas a été enregistré sans ses fibres, ses sucres ou ses sucres ajoutés, le serveur le signale et l'IA les ajoute ici une fois que tu as donné ton accord.",
             params: {
                 id: "UUID du repas à modifier",
                 description: "",
@@ -164,6 +166,8 @@ export const TOOLS_FR: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Sucres totaux, pas le sucre ajouté",
+                added_sugar_g:
+                    "Sucres ajoutés uniquement, jamais plus que les sucres totaux",
                 alcohol_g: "Grammes d'éthanol pur, pas le volume de la boisson",
                 caffeine_mg: "Milligrammes, pas grammes",
                 logged_at: "",
@@ -363,7 +367,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Fixe tes objectifs quotidiens de calories, macros, fibres, sucres, alcool, caféine et eau, plus un poids cible facultatif. Les calories, les protéines, les glucides, les lipides, les fibres et l'eau sont des cibles à atteindre ; les sucres, l'alcool et la caféine sont des limites à ne pas dépasser, et la progression est formulée en conséquence. Seuls les champs que tu mentionnes sont mis à jour ; les autres restent inchangés.",
+                "Fixe tes objectifs quotidiens de calories, macros, fibres, sucres, sucres ajoutés, alcool, caféine et eau, plus un poids cible facultatif. Les calories, les protéines, les glucides, les lipides, les fibres et l'eau sont des cibles à atteindre ; les sucres totaux, les sucres ajoutés, l'alcool et la caféine sont des limites à ne pas dépasser, et la progression est formulée en conséquence. Seuls les champs que tu mentionnes sont mis à jour ; les autres restent inchangés.",
             params: {
                 daily_calories:
                     "Objectif calorique quotidien (kcal). Mettre à null pour supprimer cet objectif.",
@@ -377,6 +381,8 @@ export const TOOLS_FR: ToolsDoc = {
                     "Objectif quotidien de fibres (grammes), un minimum à atteindre. Mettre à null pour supprimer cet objectif.",
                 daily_sugar_g:
                     "Limite quotidienne de sucres <b>totaux</b> (grammes), un maximum à ne pas dépasser. Les sucres totaux incluent le sucre naturellement présent dans les fruits et le lait : les recommandations officielles sur les sucres ajoutés donnent donc un chiffre bien plus bas. Mettre à null pour supprimer cette limite.",
+                daily_added_sugar_g:
+                    "Limite quotidienne de sucres <b>ajoutés</b> (grammes), un maximum à ne pas dépasser. Ne compte que les sucres ajoutés, pas le sucre naturellement présent dans les fruits et le lait ; les chiffres des recommandations officielles sur le sucre portent généralement sur cette mesure (l'American Heart Association suggère au plus 25 g par jour pour les femmes et 36 g pour les hommes). 0 est une vraie limite qui signifie aucun. Mettre à null pour supprimer cette limite.",
                 daily_alcohol_g:
                     "Limite quotidienne d'alcool en grammes d'<b>éthanol pur</b>, un maximum à ne pas dépasser. Un verre standard américain contient 14 g, une unité d'alcool britannique 7,9 g. Mettre à null pour supprimer cette limite.",
                 daily_caffeine_mg:
