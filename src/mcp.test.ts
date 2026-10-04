@@ -3187,7 +3187,7 @@ describe("added sugar", () => {
                     null,
                     present,
                 ),
-            ).toContain("Added sugar: not recorded / 25g limit");
+            ).toContain("Added sugar: not recorded on this day (limit 25g)");
             const noLimit = formatProgress(
                 sumMeals(old),
                 goals(),
@@ -3197,6 +3197,54 @@ describe("added sugar", () => {
             expect(noLimit).not.toContain("Added sugar");
             // Total sugar is untouched by the missing added figure.
             expect(noLimit).toContain("Sugar: 12 / 40g limit");
+        });
+
+        // The ChatGPT report: a cola logged with sugar_g 35 and no
+        // added_sugar_g. The added-sugar line must still be there, saying it
+        // was not recorded, so total sugar is never read against the
+        // added-sugar limit. 0 is a real ceiling, so it gets the line too.
+        test("a limit with nothing recorded prints the gap, 0 included", () => {
+            const cola = [meal({ sugar_g: 35, added_sugar_g: null })];
+            const present = nutrientPresence(cola);
+            for (const [limit, shown] of [
+                [29, "29"],
+                [0, "0"],
+                [27.5, "27.5"],
+            ] as const) {
+                const text = formatProgress(
+                    sumMeals(cola),
+                    goals({ daily_sugar_g: null, daily_added_sugar_g: limit }),
+                    null,
+                    present,
+                );
+                const lines = text.split("\n");
+                const sugarAt = lines.findIndex((l) => l.startsWith("Sugar:"));
+                expect(lines[sugarAt]).toBe("Sugar: 35g");
+                expect(lines[sugarAt + 1]).toBe(
+                    `Added sugar: not recorded on this day (limit ${shown}g)`,
+                );
+                expect(text).not.toMatch(/Added sugar: 35/);
+                // Describes the gap, never directs (#190's guard).
+                expect(lines[sugarAt + 1]).not.toMatch(
+                    /\b(ask|offer|should|estimate|call|tell|suggest|please|must)\b/i,
+                );
+            }
+            // No limit and nothing recorded: exactly as before, no line.
+            const none = formatProgress(
+                sumMeals(cola),
+                goals({ daily_sugar_g: null, daily_added_sugar_g: null }),
+                null,
+                present,
+            );
+            expect(none).not.toContain("Added sugar");
+            expect(none.split("\n")).toHaveLength(
+                formatProgress(
+                    sumMeals(cola),
+                    goals({ daily_sugar_g: null, daily_added_sugar_g: null }),
+                    null,
+                    { ...present, added_sugar_g: false },
+                ).split("\n").length,
+            );
         });
 
         test("goals list both sugar limits, labelled apart", () => {
@@ -3240,8 +3288,69 @@ describe("added sugar", () => {
             );
             // A single day already prints its own line.
             expect(addedSugarAverageLine(10, 1, 1, 25)).toBe("");
-            // Nothing recorded is not an average of 0.
-            expect(addedSugarAverageLine(0, 0, 3, 25)).toBe("");
+            // Nothing recorded is not an average of 0: silent without a
+            // limit, the gap stated with one (0 is a real limit).
+            expect(addedSugarAverageLine(0, 0, 3, null)).toBe("");
+            expect(addedSugarAverageLine(0, 0, 3, 25)).toBe(
+                "\n\nAdded sugar, daily average: not recorded in this period (limit 25g)",
+            );
+            expect(addedSugarAverageLine(0, 0, 3, 0)).toBe(
+                "\n\nAdded sugar, daily average: not recorded in this period (limit 0g)",
+            );
+            // A single day still defers to its own section.
+            expect(addedSugarAverageLine(0, 0, 1, 25)).toBe("");
+        });
+
+        test("get_nutrition_summary states an unrecorded range against the limit", async () => {
+            db.goals = goals({ daily_added_sugar_g: 29 });
+            db.meals = [
+                meal({
+                    logged_at: "2026-07-25T12:00:00.000Z",
+                    sugar_g: 35,
+                    added_sugar_g: null,
+                }),
+                meal({
+                    id: "00000000-0000-4000-8000-0000000000d3",
+                    logged_at: "2026-07-26T12:00:00.000Z",
+                    sugar_g: 20,
+                    added_sugar_g: null,
+                }),
+            ];
+            await withTools(null, async (call) => {
+                const r = await call("get_nutrition_summary", {
+                    start_date: "2026-07-25",
+                    end_date: "2026-07-26",
+                });
+                expect(r.isError).toBeFalsy();
+                const text = textOf(r);
+                expect(text).toContain(
+                    "Added sugar, daily average: not recorded in this period (limit 29g)",
+                );
+                expect(
+                    text.match(
+                        /Added sugar: not recorded on this day \(limit 29g\)/g,
+                    ),
+                ).toHaveLength(2);
+                // None recorded is not partial coverage: no coverage note.
+                expect(text).not.toContain("added sugar 0");
+                const meta = r._meta?.[ADDED_SUGAR_META_KEY] as AddedSugarMeta;
+                expect(meta.goal).toBe(29);
+                expect(meta.days).toEqual({
+                    "2026-07-25": null,
+                    "2026-07-26": null,
+                });
+            });
+            // Without a limit the text is exactly what it was.
+            db.goals = goals({ daily_added_sugar_g: null });
+            await withTools(null, async (call) => {
+                const text = textOf(
+                    await call("get_nutrition_summary", {
+                        start_date: "2026-07-25",
+                        end_date: "2026-07-26",
+                    }),
+                );
+                expect(text).not.toContain("Added sugar");
+            });
         });
 
         test("get_nutrition_summary averages added sugar in text over the days that record it", async () => {
@@ -3272,7 +3381,9 @@ describe("added sugar", () => {
                 expect(text).toContain(
                     "(Averaged over the days that record each figure, not all 2: added sugar 1.)",
                 );
-                expect(text).toContain("Added sugar: not recorded / 25g limit");
+                expect(text).toContain(
+                    "Added sugar: not recorded on this day (limit 25g)",
+                );
             });
         });
     });
@@ -8194,6 +8305,61 @@ describe("added sugar rides in _meta on every widget tool", () => {
                 expect(meta.meals).toEqual({ [MEAL_ID]: 35 });
                 expect(meta).not.toHaveProperty("contributors");
                 expectJoinable(r, meta);
+            });
+        });
+
+        // The ChatGPT report, end to end: a 330 ml cola logged with sugar_g
+        // 35 and no added_sugar_g against a 29 g limit. The text states the
+        // gap instead of leaving total sugar to be read against the limit,
+        // and _meta still carries the goal beside a null (not recorded) day,
+        // which is what lets the widget show its "not recorded" cell.
+        test("log_meal without added_sugar_g: not recorded, goal kept", async () => {
+            db.goals = goals({ daily_sugar_g: null, daily_added_sugar_g: 29 });
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "log_meal", {
+                    description: "Cola 330 ml",
+                    meal_type: "snack",
+                    calories: 139,
+                    sugar_g: 35,
+                    logged_at: `${DAY}T15:00:00Z`,
+                });
+                const text = textOf(r);
+                expect(text).toContain("Sugar: 35g");
+                expect(text).toContain(
+                    "Added sugar: not recorded on this day (limit 29g)",
+                );
+                expect(text).not.toMatch(/Added sugar: 35|6g over/);
+                expect(meta).toEqual({
+                    v: 1,
+                    goal: 29,
+                    days: { [DAY]: null },
+                    meals: { [MEAL_ID]: null },
+                });
+            });
+        });
+
+        test("get_trends with a limit and nothing recorded keeps the goal", async () => {
+            db.goals = goals({ daily_added_sugar_g: 29 });
+            db.meals = [
+                meal({
+                    logged_at: `${DAY}T15:00:00.000Z`,
+                    sugar_g: 35,
+                    added_sugar_g: null,
+                }),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "get_trends", {
+                    days: 7,
+                    end_date: DAY,
+                });
+                expect(textOf(r)).toContain(
+                    "Added sugar: not recorded in this period (limit 29g)",
+                );
+                expect(meta.goal).toBe(29);
+                expect(meta.days?.[DAY]).toBeNull();
+                expect(
+                    Object.values(meta.days ?? {}).every((v) => v === null),
+                ).toBe(true);
             });
         });
 

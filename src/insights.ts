@@ -142,6 +142,26 @@ export function dayCarries(meals: Meal[], nutrient: PartialNutrient): boolean {
     return meals.some((m) => m[nutrient] != null);
 }
 
+/**
+ * The added-sugar figure when a limit is set and the day (or window) holds no
+ * recorded value — "not recorded on this day (limit 29g)". One wording for
+ * every model-facing place that reports added sugar against its limit
+ * (formatProgress and the summary average in mcp.ts, computeTrends and
+ * computeWeeklyDigest here), so a model reading two of them never sees two
+ * phrasings of the same fact. It exists because dropping the line let a model
+ * read total sugar against the added-sugar limit (a 330 ml cola logged with
+ * sugar_g 35 and no added_sugar_g, reported as "6 g over your 29 g added-sugar
+ * limit"). Describes only — it states the gap, never what to do about it.
+ * Callers gate it on an active ceiling (0 is a real one).
+ */
+export function addedSugarNotRecorded(
+    scope: "day" | "period",
+    limit: number,
+): string {
+    const where = scope === "day" ? "on this day" : "in this period";
+    return `not recorded ${where} (limit ${round(limit)}g)`;
+}
+
 /** Mean of a nutrient over only the days that carry it, given one Meal[] per
  * day. `avg` is null when no day in the range carries the nutrient — that is
  * the signal to suppress the figure entirely rather than print 0. Exported for
@@ -484,14 +504,22 @@ export function computeTrends(
     // is a real "0g", and 0 is a real limit. Meals from before it shipped are
     // NULL, so their days drop out of the series (and the day count) rather
     // than reading as days under the limit.
+    // A window with no recorded value at all drops the stat block like fiber
+    // — unless a limit is set, where a vanished row lets total sugar be read
+    // against the added-sugar limit; it then says "not recorded" instead.
+    const addedSugarLimit = goals?.daily_added_sugar_g ?? null;
+    const addedSugarStat = formatStatLine(
+        "Added sugar",
+        "g",
+        coveredSeries(buckets, "added_sugar_g"),
+        addedSugarLimit,
+        "ceiling",
+    );
     push(
-        formatStatLine(
-            "Added sugar",
-            "g",
-            coveredSeries(buckets, "added_sugar_g"),
-            goals?.daily_added_sugar_g ?? null,
-            "ceiling",
-        ),
+        addedSugarStat ??
+            (targetApplies(addedSugarLimit, "ceiling")
+                ? `Added sugar: ${addedSugarNotRecorded("period", addedSugarLimit!)}`
+                : null),
     );
     // Alcohol only appears once there is alcohol to talk about — a recorded but
     // flat-zero series is suppressed too (that is also how mcp.ts's opt-in
@@ -934,9 +962,11 @@ export function computeWeeklyDigest(
             ),
         );
     }
-    // Same gate as sugar: no added-sugar data in the week, no row. Its days can
-    // be fewer than sugar's (meals logged before it shipped carry sugar only),
-    // and the "over N of 7 days with data" note says so.
+    // Same gate as sugar: no added-sugar data in the week, no figure. Its days
+    // can be fewer than sugar's (meals logged before it shipped carry sugar
+    // only), and the "over N of 7 days with data" note says so. With a limit
+    // set, a week with none recorded says so rather than vanishing (see
+    // addedSugarNotRecorded).
     if (addedSugar.avg != null) {
         lines.push(
             line(
@@ -947,6 +977,10 @@ export function computeWeeklyDigest(
                 "limit",
                 addedSugar.days,
             ),
+        );
+    } else if (targetApplies(goals?.daily_added_sugar_g ?? null, "ceiling")) {
+        lines.push(
+            `  Added sugar: ${addedSugarNotRecorded("period", goals!.daily_added_sugar_g!)}`,
         );
     }
     // Suppressed for the same reason as the trends line (see hasAnyPositive), but
