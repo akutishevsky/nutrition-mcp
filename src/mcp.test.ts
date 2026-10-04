@@ -2774,17 +2774,19 @@ describe("the nutrient-completeness rule reaches the write tools", () => {
         }
     });
 
-    test("fiber and sugar are described as mandatory, with a fallback", async () => {
+    test("fiber and sugar are described as expected, with reference values", async () => {
         const tools = await toolsOf();
         const props = tools.find((t) => t.name === "log_meal")?.inputSchema
             .properties as Record<string, { description?: string }>;
         for (const key of ["fiber_g", "sugar_g"]) {
             const d = props[key]?.description ?? "";
             expect(d, key).toContain("every meal");
-            // The last-resort anchors: without them "estimate it" is an
-            // instruction with nothing behind it.
+            // The last-resort anchors: without them an estimate has nothing
+            // behind it.
             expect(d, key).toContain("per 100 g");
-            expect(d, key).toContain("do not omit the field");
+            expect(d, key).toContain("0 is the correct value");
+            // Describes the field; never directs the assistant (#190).
+            expect(d, key).not.toMatch(/send (this|0)|do not omit|say so/i);
         }
     });
 
