@@ -254,6 +254,17 @@ function trendsSample(): { meals: Meal[]; water: WaterEntry[] } {
         if (r < 0.12) continue; // unlogged
         water.push(sip(date, 1500 + Math.round(rand() * 1000)));
         if (r < 0.17) continue; // water-only: never a logged day
+        // The oldest two months were backfilled as calorie-only day totals:
+        // their period rows show a dash for each macro, never 0 g.
+        if (i > total - 60) {
+            meals.push({
+                ...meal(date, "20:00", "dinner", 1800 + rand() * 900),
+                protein_g: null,
+                carbs_g: null,
+                fat_g: null,
+            });
+            continue;
+        }
         if (r < 0.22) {
             meals.push(meal(date, "16:00", "snack", 250 + rand() * 300));
             continue; // snack-only: logged, possibly incomplete

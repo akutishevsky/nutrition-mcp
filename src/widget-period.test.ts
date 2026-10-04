@@ -165,6 +165,20 @@ describe("period rows render the locale's units", () => {
         expect(api.periodMacroHtml("pro", "P", 148, null)).toContain("148 g");
     });
 
+    test("a macro no logged day carried shows a dash, never 0", () => {
+        const r = api.periodRowFrom(
+            row({
+                avg: { calories: 1950, protein: null, carbs: null, fat: 60 },
+            }),
+        );
+        expect(r).not.toBeNull();
+        const html = api.periodListHtml([r], "month");
+        expect(html).toContain("–/130 g");
+        expect(html).toContain("– g");
+        expect(html).not.toContain(">0 g<");
+        expect(html).toContain("60 g");
+    });
+
     test("no macro target anywhere shows the no-targets line", () => {
         const html = api.periodListHtml(
             [api.periodRowFrom(row({ targets: null, on_target_days: null }))],
