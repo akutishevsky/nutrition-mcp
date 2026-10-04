@@ -188,6 +188,10 @@ export interface Meal {
     // Total sugars (not added sugar); alcohol is pure ethanol in grams.
     fiber_g: number | null;
     sugar_g: number | null;
+    // Added sugars (US label definition), part of sugar_g and never more than
+    // it. NULL means not recorded — rows logged before the column existed
+    // stay NULL and read as "not recorded", never as 0.
+    added_sugar_g: number | null;
     alcohol_g: number | null;
     // MILLIGRAMS, unlike every other nutrient here — labels and guidelines are
     // all stated in mg, so the unit rides in the name at every layer.
@@ -206,6 +210,8 @@ export interface MealInput {
     fat_g?: number;
     fiber_g?: number;
     sugar_g?: number;
+    // See Meal.added_sugar_g.
+    added_sugar_g?: number;
     alcohol_g?: number;
     // Milligrams — see Meal.caffeine_mg.
     caffeine_mg?: number;
@@ -354,6 +360,7 @@ export async function insertMeal(
             fat_g: meal.fat_g ?? null,
             fiber_g: meal.fiber_g ?? null,
             sugar_g: meal.sugar_g ?? null,
+            added_sugar_g: meal.added_sugar_g ?? null,
             alcohol_g: meal.alcohol_g ?? null,
             caffeine_mg: meal.caffeine_mg ?? null,
             logged_at: loggedAt,
@@ -704,10 +711,32 @@ export async function deleteMeal(userId: string, id: string): Promise<boolean> {
     return (data?.length ?? 0) > 0;
 }
 
+/** The stored sugar values a caller's added ≤ total check relied on (see
+ *  update_meal in src/mcp.ts). Each key present makes updateMeal's write
+ *  conditional on that column still holding exactly that value — `null` means
+ *  IS NULL — so a concurrent edit between the check's read and this write
+ *  cannot leave added_sugar_g above sugar_g; the migration has no DB check. */
+export type MealSugarGuard = Partial<Pick<Meal, "sugar_g" | "added_sugar_g">>;
+
+function sugarText(value: number | null | undefined): string {
+    return value == null ? "not recorded" : `${value} g`;
+}
+
+/** The ToolError a guarded updateMeal throws when the guarded value moved.
+ *  Its wording avoids the words categorizeError's keyword tier keys on
+ *  ("update" holds "date", "separate" holds "rate"), so it is not misfiled. */
+export function mealSugarConflictText(
+    id: string,
+    current: Pick<Meal, "sugar_g" | "added_sugar_g">,
+): string {
+    return `The sugar values stored on meal ${id} changed while this edit was being applied, so nothing was written. Stored now: sugar_g ${sugarText(current.sugar_g)}, added_sugar_g ${sugarText(current.added_sugar_g)}.`;
+}
+
 export async function updateMeal(
     userId: string,
     id: string,
     fields: Partial<MealInput>,
+    guard?: MealSugarGuard,
 ): Promise<Meal> {
     const sb = getSupabase();
 
@@ -732,6 +761,8 @@ export async function updateMeal(
     if (fields.fat_g !== undefined) update.fat_g = fields.fat_g;
     if (fields.fiber_g !== undefined) update.fiber_g = fields.fiber_g;
     if (fields.sugar_g !== undefined) update.sugar_g = fields.sugar_g;
+    if (fields.added_sugar_g !== undefined)
+        update.added_sugar_g = fields.added_sugar_g;
     if (fields.alcohol_g !== undefined) update.alcohol_g = fields.alcohol_g;
     if (fields.caffeine_mg !== undefined)
         update.caffeine_mg = fields.caffeine_mg;
@@ -745,16 +776,45 @@ export async function updateMeal(
     const newKey = updatedMealIdempotencyKey(userId, existing as Meal, fields);
     if (newKey !== null) update.idempotency_key = newKey;
 
-    const { data, error } = await sb
+    let query = sb
         .from("meals")
         .update(update)
         .eq("id", id)
-        .eq("user_id", userId)
-        .select()
-        .single();
+        .eq("user_id", userId);
+    // Compared against exactly the value PostgREST returned on the guard's
+    // read: JSON numbers from a bare numeric column round-trip through eq.
+    for (const column of ["sugar_g", "added_sugar_g"] as const) {
+        if (!guard || !(column in guard)) continue;
+        const value = guard[column];
+        query =
+            value == null ? query.is(column, null) : query.eq(column, value);
+    }
+    // No `.single()`: a guard that no longer matches leaves zero rows, which
+    // must read as a conflict rather than a PostgREST coercion error.
+    const { data, error } = await query.select();
 
     if (error) throw new Error(`Failed to update meal: ${error.message}`);
-    return data as Meal;
+    const row = (data as Meal[] | null)?.[0];
+    if (row) return row;
+
+    // Nothing written. The row existed at the pre-check above, so either it
+    // was deleted since or a guarded value moved; tell them apart.
+    const { data: now, error: nowErr } = await sb
+        .from("meals")
+        .select("sugar_g, added_sugar_g")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (nowErr) throw new Error(`Failed to update meal: ${nowErr.message}`);
+    if (!now) throw new ToolError(`No meal found with id ${id}.`);
+    if (!guard)
+        throw new Error("Failed to update meal: no row matched the write");
+    throw new ToolError(
+        mealSugarConflictText(
+            id,
+            now as Pick<Meal, "sugar_g" | "added_sugar_g">,
+        ),
+    );
 }
 
 // ---------- Profiles ----------
@@ -979,6 +1039,9 @@ export interface NutritionGoals {
     // Total sugars, and pure ethanol. Both are ceilings ("stay under"), unlike
     // every other goal here, which is a floor — see formatGoalLine in mcp.ts.
     daily_sugar_g: number | null;
+    // Added sugars only (see Meal.added_sugar_g), a ceiling like sugar; 0 is a
+    // real limit ("none").
+    daily_added_sugar_g: number | null;
     daily_alcohol_g: number | null;
     // Milligrams, and a ceiling too — 0 means "none". numeric(7,2) in the DB,
     // since mg targets run three orders larger than the gram ones above.
@@ -995,6 +1058,7 @@ export interface NutritionGoalsInput {
     daily_fat_g?: number | null;
     daily_fiber_g?: number | null;
     daily_sugar_g?: number | null;
+    daily_added_sugar_g?: number | null;
     daily_alcohol_g?: number | null;
     daily_caffeine_mg?: number | null;
     daily_water_ml?: number | null;
@@ -1033,6 +1097,7 @@ export async function upsertNutritionGoals(
                 daily_fat_g: input.daily_fat_g ?? null,
                 daily_fiber_g: input.daily_fiber_g ?? null,
                 daily_sugar_g: input.daily_sugar_g ?? null,
+                daily_added_sugar_g: input.daily_added_sugar_g ?? null,
                 daily_alcohol_g: input.daily_alcohol_g ?? null,
                 daily_caffeine_mg: input.daily_caffeine_mg ?? null,
                 daily_water_ml:

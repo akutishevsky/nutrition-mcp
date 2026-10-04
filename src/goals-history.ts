@@ -8,7 +8,7 @@ import { dateInTz } from "./tz.js";
  * `withCurrentGoals`) and `upsertNutritionGoals` writes them.
  */
 
-/** The ten goal columns, shared by `nutrition_goals` and its history. */
+/** The eleven goal columns, shared by `nutrition_goals` and its history. */
 export const GOAL_COLUMNS = [
     "daily_calories",
     "daily_protein_g",
@@ -16,6 +16,7 @@ export const GOAL_COLUMNS = [
     "daily_fat_g",
     "daily_fiber_g",
     "daily_sugar_g",
+    "daily_added_sugar_g",
     "daily_alcohol_g",
     "daily_caffeine_mg",
     "daily_water_ml",
