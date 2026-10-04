@@ -5,6 +5,7 @@ import {
     getWaterInRange,
     getWeightInRange,
     getBodyMeasurementsInRange,
+    hasMealsBefore,
 } from "./supabase.js";
 
 // The paged window reader behind every day and range read, driven for real.
@@ -142,6 +143,37 @@ async function fakePostgrest(
     const kind = q.get("kind")?.replace(/^eq\./, "");
     if (q.has("kind") && table !== "body_measurement_log") {
         refuse(`kind filter on ${table}`);
+    }
+    // hasMealsBefore: one id below a bound, no order, no paging.
+    if (table === "meals" && q.get("select") === "id") {
+        const userId = q.get("user_id")?.replace(/^eq\./, "");
+        const bounds = q.getAll("logged_at");
+        const lt = bounds[0]?.startsWith("lt.") ? bounds[0].slice(3) : null;
+        if (!userId || bounds.length !== 1 || !lt || q.get("limit") !== "1") {
+            refuse(`unexpected existence probe ${url.search}`);
+        }
+        requests.push({ table, url, prefer: req.headers.get("prefer") });
+        // Postgres refuses anything it cannot read as a timestamp, which is
+        // what a Date's String() form is.
+        if (!/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(lt)) {
+            return new Response(
+                JSON.stringify({
+                    code: "22007",
+                    message: `invalid input syntax for type timestamp with time zone: "${lt}"`,
+                }),
+                {
+                    status: 400,
+                    headers: { "content-type": "application/json" },
+                },
+            );
+        }
+        const hit = tables.meals.find(
+            (r) => r.user_id === userId && r.logged_at < lt,
+        );
+        return new Response(JSON.stringify(hit ? [{ id: hit.id }] : []), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+        });
     }
     if (q.get("select") !== "*") refuse(`select=${q.get("select")}`);
     if (q.get("order") !== "logged_at.asc,id.asc") {
@@ -323,6 +355,24 @@ describe("window readers page past the 1000-row cap", () => {
             "gte.2026-01-01T22:00:00.000Z",
             "lt.2026-01-02T22:00:00.000Z",
         ]);
+    });
+});
+
+describe("hasMealsBefore", () => {
+    // Its bound was once handed to .lt() as a Date, which supabase-js
+    // stringifies with String() — a value Postgres refuses, so every
+    // get_trends call with group_by failed.
+    test("filters on the ISO instant of local midnight and answers from the rows", async () => {
+        reset();
+        expect(await hasMealsBefore(USER, "2026-01-02", "Europe/Kyiv")).toBe(
+            true,
+        );
+        expect(requests).toHaveLength(1);
+        const q = new URLSearchParams(requests[0]!.url.search);
+        expect(q.getAll("logged_at")).toEqual(["lt.2026-01-01T22:00:00.000Z"]);
+
+        reset();
+        expect(await hasMealsBefore(USER, "2025-12-31", "UTC")).toBe(false);
     });
 });
 

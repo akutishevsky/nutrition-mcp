@@ -421,7 +421,9 @@ export async function hasMealsBefore(
         .from("meals")
         .select("id")
         .eq("user_id", userId)
-        .lt("logged_at", zonedDayStartUtc(date, tz))
+        // ISO, never the Date itself: supabase-js stringifies a filter value
+        // with String(), and Postgres rejects "Sat Jan 01 2022 00:00:00 GMT…".
+        .lt("logged_at", zonedDayStartUtc(date, tz).toISOString())
         .limit(1);
 
     if (error) throw new Error(`Failed to get meals: ${error.message}`);
