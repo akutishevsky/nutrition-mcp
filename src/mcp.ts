@@ -130,9 +130,14 @@ import {
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 import { formatMealSearchResults } from "./search.js";
 import {
+    ADDED_SUGAR_REQUIRED_FROM_ENV,
     addedSugarError,
     addedSugarExtra,
+    addedSugarMissing,
+    addedSugarMissingError,
+    addedSugarRequiredAt,
     buildAddedSugarMeta,
+    parseAddedSugarRequiredFrom,
 } from "./added-sugar.js";
 import {
     getWidgetHtml,
@@ -197,7 +202,7 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // day from the user's fiber trend rather than making it slightly wrong.
 const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar and caffeine are tracked alongside the headline macros.
 - fiber_g and sugar_g are read on every meal, like protein, carbs and fat. A missing value is stored as "not measured", not as zero, and leaves that whole day out of the user's fiber and sugar averages, goal lines and charts; an estimate keeps the day in. In order of accuracy, a figure comes from a nutrition label, a barcode lookup, the chain's or product's published per-item nutrition, or an estimate from the ingredients and the portion — an exact figure is no more required here than it is for protein. 0 is the correct value for food that has none (a steak, eggs, oil, black coffee).
-- added_sugar_g is read on every meal too, like sugar_g: the part of sugar_g added during processing or preparation, never more than sugar_g. It is a classification more than a measurement — whole fruit, vegetables, plain milk, meat and rice are 0, and a soft drink's sugar is all added. A missing value is stored as "not recorded" and leaves that day out of the added-sugar average and limit.
+- added_sugar_g is read on every meal too, like sugar_g: the part of sugar_g added during processing or preparation, never more than sugar_g. It accompanies sugar_g: a call that gives sugar_g without added_sugar_g may be refused, with nothing saved. It is a classification more than a measurement — whole fruit, vegetables, plain milk, meat and rice are 0, and a soft drink's sugar is all added. A missing value is stored as "not recorded" and leaves that day out of the added-sugar average and limit.
 - caffeine_mg applies only to caffeine sources: coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. A label or a chain's published nutrition gives the figure where available; the field description lists typical amounts otherwise. For anything that is not a caffeine source the field is left out: an explicit 0 means "measured, and it was none", and it shows a caffeine row to a user who never consumes any.`;
 
 // Sent to clients in the initialize response (SDK ServerOptions.instructions).
@@ -1709,6 +1714,34 @@ export function missingNutrientNote(meal: Meal): string {
     return `\n\n(Not recorded on this meal: ${missing.join(", ")}. A missing value is not a zero — it leaves the whole day out of that nutrient's totals, averages and goal line. update_meal can add the value to id ${meal.id}; 0 records a food that genuinely has none.)`;
 }
 
+// Whether log_meal / update_meal refuse sugar_g without added_sugar_g right
+// now. Read from the environment on every call, not once at import, so a test
+// (or an operator restarting with a new value) controls it without
+// mock.module; the clock is per call too, so the rule switches on by itself at
+// the configured instant. Why it is gated at all: see
+// ADDED_SUGAR_REQUIRED_FROM_ENV in added-sugar.ts — hosts cache tools/list
+// for days, and a client on a list from before added_sugar_g existed cannot
+// send the field.
+let warnedAddedSugarGate: string | null = null;
+export function addedSugarRequiredNow(nowMs: number = Date.now()): boolean {
+    const raw = process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+    // One warning per bad value, carrying nothing but the variable's name: an
+    // unparseable instant leaves the rule off, which is the safe direction.
+    if (
+        parseAddedSugarRequiredFrom(raw) === "invalid" &&
+        warnedAddedSugarGate !== raw
+    ) {
+        warnedAddedSugarGate = raw ?? null;
+        console.warn(
+            `[config] ${ADDED_SUGAR_REQUIRED_FROM_ENV} is not an ISO-8601 date or offset date-time; the added-sugar requirement stays off.`,
+        );
+    }
+    return addedSugarRequiredAt(raw, nowMs);
+}
+// At import, so a bad value is reported when the server starts rather than on
+// the first sugared meal.
+addedSugarRequiredNow();
+
 // update_meal's half of the added ≤ total rule (addedSugarError). A field the
 // call leaves out keeps its stored value, so the pair that ends up in the row
 // is the passed value merged over the stored one — backfilling only
@@ -1915,7 +1948,7 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "Added sugars in grams: sugars added during processing or preparation (table sugar, syrups, honey, sugar in sweetened drinks and foods). Part of sugar_g, never more than it. Sugar naturally present in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Expected on every meal: a missing value is stored as not measured rather than as zero and leaves that day out of the added-sugar average and limit. Reference values: whole fruit, vegetables, plain milk, plain yogurt, meat, fish, eggs, rice, pasta and 100% fruit juice are 0; a soft drink's sugar is all added (cola 10.6 g per 100 g); fruit yogurt is about 7 g added per 100 g; milk chocolate about 47 g per 100 g; ketchup about 18 g per 100 g; sweetened cereal about 25 g per 100 g. A US label states it directly, in the line 'Includes Xg Added Sugars'. 0 is the correct value for a food with none rather than an omitted field.",
+                        "Added sugars in grams: sugars added during processing or preparation (table sugar, syrups, honey, sugar in sweetened drinks and foods). Part of sugar_g, never more than it. Sugar naturally present in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Expected on every meal: a missing value is stored as not measured rather than as zero and leaves that day out of the added-sugar average and limit. Reference values: whole fruit, vegetables, plain milk, plain yogurt, meat, fish, eggs, rice, pasta and 100% fruit juice are 0; a soft drink's sugar is all added (cola 10.6 g per 100 g); fruit yogurt is about 7 g added per 100 g; milk chocolate about 47 g per 100 g; ketchup about 18 g per 100 g; sweetened cereal about 25 g per 100 g. A US label states it directly, in the line 'Includes Xg Added Sugars'. 0 is the correct value for a food with none rather than an omitted field. It accompanies sugar_g: a call that gives sugar_g without added_sugar_g may be refused, with nothing saved.",
                     ),
                 alcohol_g: z.coerce
                     .number()
@@ -1964,8 +1997,13 @@ export function registerTools(
             return withAnalytics(
                 "log_meal",
                 async () => {
-                    // Before anything is read or written: a mismatch is the
-                    // caller's to resolve, never clamped (addedSugarError).
+                    // Before anything is read or written. Sugar without added
+                    // sugar first: the pair check below cannot fire when
+                    // added_sugar_g is absent, so the two never compete.
+                    if (addedSugarRequiredNow() && addedSugarMissing(args))
+                        throw addedSugarMissingError();
+                    // A mismatch is the caller's to resolve, never clamped
+                    // (addedSugarError).
                     const sugarError = addedSugarError(
                         args.added_sugar_g,
                         args.sugar_g,
@@ -3608,7 +3646,7 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "Added sugars in grams: sugars added during processing or preparation (table sugar, syrups, honey, sugar in sweetened drinks and foods), part of sugar_g and never more than it. Sugar naturally present in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Only the fields passed are written, so this fills in the figure for a meal logged without one, checked against the meal's stored sugar_g when sugar_g is not passed alongside it; 0 is the correct value for a food that has none (whole fruit, vegetables, plain milk, meat, rice), and a soft drink's sugar is all added.",
+                        "Added sugars in grams: sugars added during processing or preparation (table sugar, syrups, honey, sugar in sweetened drinks and foods), part of sugar_g and never more than it. Sugar naturally present in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Only the fields passed are written, so this fills in the figure for a meal logged without one, checked against the meal's stored sugar_g when sugar_g is not passed alongside it; 0 is the correct value for a food that has none (whole fruit, vegetables, plain milk, meat, rice), and a soft drink's sugar is all added. It accompanies sugar_g: a call that passes sugar_g without added_sugar_g, for a meal with no added sugar recorded, may be refused, leaving the meal unchanged.",
                     ),
                 alcohol_g: z.coerce
                     .number()
@@ -3661,6 +3699,17 @@ export function registerTools(
                             passedSugar && passedAdded
                                 ? null
                                 : await storedMealSugars(userId, id);
+                        // sugar_g without added_sugar_g on a meal that has
+                        // none stored would leave total sugar with no added
+                        // part. `stored` is non-null here whenever only
+                        // sugar_g was passed and the meal exists; a missing
+                        // meal falls through to updateMeal's not-found text.
+                        if (
+                            stored &&
+                            addedSugarRequiredNow() &&
+                            addedSugarMissing(fields, stored.added_sugar_g)
+                        )
+                            throw addedSugarMissingError(id);
                         const sugarError = updatedAddedSugarError(
                             fields,
                             stored,

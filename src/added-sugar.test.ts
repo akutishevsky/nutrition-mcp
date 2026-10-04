@@ -1,6 +1,12 @@
 import { expect, test } from "bun:test";
 import {
+    ADDED_SUGAR_MISSING_CATEGORY,
     addedSugarError,
+    addedSugarMissing,
+    addedSugarMissingError,
+    addedSugarMissingText,
+    addedSugarRequiredAt,
+    parseAddedSugarRequiredFrom,
     addedSugarExtra,
     buildAddedSugarMeta,
     dayAddedSugar,
@@ -326,4 +332,83 @@ test("day totals sum raw values, not per-meal rounded ones", () => {
     // Three 0.04 g meals are 0.12 g that day, not 0.
     const day = [0, 1, 2].map((i) => meal(`m${i}`, { added_sugar_g: 0.04 }));
     expect(dayAddedSugar(day)).toBeCloseTo(0.12, 10);
+});
+
+test("parseAddedSugarRequiredFrom: unset/empty off, ISO on, anything else invalid", () => {
+    expect(parseAddedSugarRequiredFrom(undefined)).toBe(null);
+    expect(parseAddedSugarRequiredFrom("")).toBe(null);
+    expect(parseAddedSugarRequiredFrom("  ")).toBe(null);
+    expect(parseAddedSugarRequiredFrom("2026-10-20")).toBe(
+        Date.parse("2026-10-20T00:00:00Z"),
+    );
+    expect(parseAddedSugarRequiredFrom("2026-10-20T09:30:00+03:00")).toBe(
+        Date.parse("2026-10-20T06:30:00Z"),
+    );
+    expect(parseAddedSugarRequiredFrom("2026-10-20T06:30Z")).toBe(
+        Date.parse("2026-10-20T06:30:00Z"),
+    );
+    // An offset-less time would depend on the host's zone.
+    expect(parseAddedSugarRequiredFrom("2026-10-20T06:30:00")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("October 20 2026")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("true")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("2026-13-45")).toBe("invalid");
+    // Shapes Date.parse would silently roll forward to another day.
+    expect(parseAddedSugarRequiredFrom("2026-02-30")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("2025-02-29")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("2026-04-31T10:00Z")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("2026-02-30T10:00:00+02:00")).toBe(
+        "invalid",
+    );
+    expect(parseAddedSugarRequiredFrom("2026-10-10T24:00Z")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("2026-10-10T23:60Z")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("2026-10-10T23:59:60Z")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("2026-10-10T10:00+25:00")).toBe(
+        "invalid",
+    );
+    expect(parseAddedSugarRequiredFrom("2026-00-10")).toBe("invalid");
+    expect(parseAddedSugarRequiredFrom("2026-10-00")).toBe("invalid");
+    // Real edge dates still parse.
+    expect(parseAddedSugarRequiredFrom("2028-02-29")).toBe(
+        Date.parse("2028-02-29T00:00:00Z"),
+    );
+    expect(parseAddedSugarRequiredFrom("2026-12-31T23:59:59Z")).toBe(
+        Date.parse("2026-12-31T23:59:59Z"),
+    );
+});
+
+test("addedSugarRequiredAt is on from the instant, off before it and when unset", () => {
+    const at = Date.parse("2026-10-20T00:00:00Z");
+    expect(addedSugarRequiredAt("2026-10-20", at - 1)).toBe(false);
+    expect(addedSugarRequiredAt("2026-10-20", at)).toBe(true);
+    expect(addedSugarRequiredAt(undefined, at)).toBe(false);
+    expect(addedSugarRequiredAt("garbage", at)).toBe(false);
+});
+
+test("addedSugarMissing: sugar_g given, added_sugar_g not, nothing stored", () => {
+    expect(addedSugarMissing({ sugar_g: 35 })).toBe(true);
+    expect(addedSugarMissing({ sugar_g: 0 })).toBe(true);
+    expect(addedSugarMissing({ sugar_g: 35, added_sugar_g: 0 })).toBe(false);
+    expect(addedSugarMissing({})).toBe(false);
+    expect(addedSugarMissing({ added_sugar_g: 5 })).toBe(false);
+    // update_meal: a stored added_sugar_g keeps the row complete.
+    expect(addedSugarMissing({ sugar_g: 35 }, null)).toBe(true);
+    expect(addedSugarMissing({ sugar_g: 35 }, 0)).toBe(false);
+    expect(addedSugarMissing({ sugar_g: 35 }, 12)).toBe(false);
+});
+
+test("the refusal carries its own analytics category and describes, never directs", () => {
+    const err = addedSugarMissingError("m1");
+    expect(err.category).toBe(ADDED_SUGAR_MISSING_CATEGORY);
+    expect(ADDED_SUGAR_MISSING_CATEGORY).toBe("added_sugar_missing");
+    expect(err.message).toBe(addedSugarMissingText("m1"));
+    expect(addedSugarMissingText()).toStartWith("Not saved:");
+    expect(addedSugarMissingText("m1")).toContain("meal m1 is unchanged");
+    for (const text of [addedSugarMissingText(), addedSugarMissingText("m1")]) {
+        expect(text).toContain(
+            "added_sugar_g is required whenever sugar_g is given",
+        );
+        expect(text).not.toMatch(
+            /\bplease\b|\bmust\b|ask the user|\bretry\b|call again|you should/i,
+        );
+    }
 });

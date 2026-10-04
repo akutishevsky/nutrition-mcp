@@ -64,6 +64,11 @@ interface AnalyticsContext {
  * a keyword heuristic is possible.
  */
 export function categorizeError(error: unknown): string {
+    // A ToolError that names its own category wins over every wording rule:
+    // its text can carry words ("required", "date") the tiers below would
+    // misfile.
+    if (error instanceof ToolError && error.category) return error.category;
+
     const msg =
         error instanceof Error ? error.message.toLowerCase() : String(error);
 

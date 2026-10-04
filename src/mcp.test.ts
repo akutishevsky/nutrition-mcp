@@ -56,7 +56,12 @@ import {
     healthSyncProfileLine,
     updatedAddedSugarError,
     addedSugarAverageLine,
+    addedSugarRequiredNow,
 } from "./mcp.js";
+import {
+    ADDED_SUGAR_REQUIRED_FROM_ENV,
+    addedSugarMissingText,
+} from "./added-sugar.js";
 import {
     Client,
     StreamableHTTPClientTransport,
@@ -2910,9 +2915,21 @@ describe("the nutrient-completeness rule reaches the write tools", () => {
         }
         expect(texts.import_row).toContain("'Added sugars' column");
         expect(texts.goal).toContain("0 means none");
+        // The added_sugar_g-accompanies-sugar_g sentence, true whether or
+        // not the ADDED_SUGAR_REQUIRED_FROM gate is on ("may be refused").
+        for (const where of ["log_meal", "update_meal"]) {
+            expect(texts[where], where).toContain("It accompanies sugar_g");
+            expect(texts[where], where).toContain("may be refused");
+        }
         const coverage =
             tools.find((t) => t.name === "log_meal")?.description ?? "";
         expect(coverage).toContain("added_sugar_g is read on every meal");
+        const accompanies =
+            coverage.match(/It accompanies sugar_g[^.]*\./)?.[0] ?? "";
+        expect(accompanies).toContain("may be refused");
+        expect(accompanies).not.toMatch(
+            /\bplease\b|\bmust\b|ask the user|\bretry\b|call again|you should|\balways\b/i,
+        );
         const goalsTool =
             tools.find((t) => t.name === "set_nutrition_goals")?.description ??
             "";
@@ -3131,6 +3148,264 @@ describe("added sugar", () => {
             expect(updatedAddedSugarError({ added_sugar_g: 50 }, null)).toBe(
                 null,
             );
+        });
+    });
+
+    // The rollout-gated refusal: sugar_g without added_sugar_g. The gate is an
+    // env var read per call, so these set and restore it rather than mock a
+    // module (see "Server wiring" in CLAUDE.md for why the gate exists).
+    describe("sugar_g without added_sugar_g (ADDED_SUGAR_REQUIRED_FROM)", () => {
+        const PAST = "2000-01-01T00:00:00Z";
+        const FUTURE = "2999-01-01T00:00:00Z";
+        async function withGate(
+            value: string | undefined,
+            run: () => Promise<void>,
+        ): Promise<void> {
+            const before = process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+            if (value === undefined)
+                delete process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+            else process.env[ADDED_SUGAR_REQUIRED_FROM_ENV] = value;
+            try {
+                await run();
+            } finally {
+                if (before === undefined)
+                    delete process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+                else process.env[ADDED_SUGAR_REQUIRED_FROM_ENV] = before;
+            }
+        }
+        const colaArgs = {
+            description: "Cola (330 ml)",
+            meal_type: "snack",
+            sugar_g: 35,
+        };
+
+        test.each([
+            ["unset", undefined],
+            ["empty", ""],
+            ["garbage", "next tuesday"],
+            ["offset-less time", "2000-01-01T00:00"],
+            ["in the future", FUTURE],
+        ])("gate %s: sugar alone is still saved", async (_label, value) => {
+            const warn = spyOn(console, "warn").mockImplementation(() => {});
+            try {
+                await withGate(value, async () => {
+                    expect(addedSugarRequiredNow()).toBe(false);
+                    await withTools(null, async (call) => {
+                        const r = await call("log_meal", colaArgs);
+                        expect(r.isError).toBeFalsy();
+                        expect(db.inserted).toHaveLength(1);
+                        expect(db.inserted[0]!.added_sugar_g).toBeUndefined();
+                    });
+                });
+            } finally {
+                warn.mockRestore();
+            }
+        });
+
+        test("an unparseable gate warns once, naming only the variable", () => {
+            const warn = spyOn(console, "warn").mockImplementation(() => {});
+            try {
+                return withGate("not-a-date-xyz", async () => {
+                    addedSugarRequiredNow();
+                    addedSugarRequiredNow();
+                    const lines = warn.mock.calls
+                        .map((c) => String(c[0]))
+                        .filter((l) =>
+                            l.includes(ADDED_SUGAR_REQUIRED_FROM_ENV),
+                        );
+                    expect(lines).toHaveLength(1);
+                    expect(lines[0]).not.toContain("not-a-date-xyz");
+                });
+            } finally {
+                warn.mockRestore();
+            }
+        });
+
+        test("the gate switches on at its instant", () =>
+            withGate("2026-10-05T00:00:00+03:00", async () => {
+                const at = Date.parse("2026-10-04T21:00:00Z");
+                expect(addedSugarRequiredNow(at - 1)).toBe(false);
+                expect(addedSugarRequiredNow(at)).toBe(true);
+            }));
+
+        test("gate past: log_meal refuses sugar without added sugar, writing nothing", () =>
+            withGate(PAST, async () => {
+                await withTools(null, async (call) => {
+                    for (const sugar_g of [35, 0]) {
+                        const r = await call("log_meal", {
+                            ...colaArgs,
+                            sugar_g,
+                        });
+                        expect(r.isError).toBe(true);
+                        expect(textOf(r)).toBe(addedSugarMissingText());
+                    }
+                });
+                expect(db.inserted).toHaveLength(0);
+                // Refused before the profile read behind the timestamp.
+                expect(db.profileReads).toHaveLength(0);
+                const rows = db.analyticsRows.filter(
+                    (r) => r.tool_name === "log_meal",
+                );
+                expect(rows).toHaveLength(2);
+                for (const row of rows) {
+                    expect(row.success).toBe(false);
+                    expect(row.error_category).toBe("added_sugar_missing");
+                }
+            }));
+
+        test("gate past: added sugar 0, or no sugar at all, is saved", () =>
+            withGate(PAST, async () => {
+                await withTools(null, async (call) => {
+                    const zero = await call("log_meal", {
+                        description: "Apple",
+                        meal_type: "snack",
+                        sugar_g: 10,
+                        added_sugar_g: 0,
+                    });
+                    expect(zero.isError).toBeFalsy();
+                    const none = await call("log_meal", {
+                        description: "Eggs",
+                        meal_type: "breakfast",
+                        calories: 150,
+                    });
+                    expect(none.isError).toBeFalsy();
+                    // The missing-nutrient note still names the gap.
+                    expect(textOf(none)).toContain("sugar_g, added_sugar_g");
+                });
+                expect(db.inserted).toHaveLength(2);
+            }));
+
+        test("gate past: the pair check still applies when both are given", () =>
+            withGate(PAST, async () => {
+                await withTools(null, async (call) => {
+                    const r = await call("log_meal", {
+                        ...colaArgs,
+                        sugar_g: 10,
+                        added_sugar_g: 12,
+                    });
+                    expect(r.isError).toBe(true);
+                    expect(textOf(r)).toContain(
+                        "added_sugar_g (12 g) is more than sugar_g (10 g)",
+                    );
+                });
+            }));
+
+        test("gate past: update_meal refuses sugar_g on a meal with no added sugar stored", () =>
+            withGate(PAST, async () => {
+                db.meals = [meal({ sugar_g: 10, added_sugar_g: null })];
+                await withTools(null, async (call) => {
+                    const r = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 35,
+                    });
+                    expect(r.isError).toBe(true);
+                    expect(textOf(r)).toBe(addedSugarMissingText(MEAL_ID));
+                    expect(textOf(r)).toContain(`meal ${MEAL_ID} is unchanged`);
+                    expect(db.mealUpdates).toHaveLength(0);
+                    // Both given: saved.
+                    const both = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 35,
+                        added_sugar_g: 35,
+                    });
+                    expect(both.isError).toBeFalsy();
+                });
+                expect(db.mealUpdates).toHaveLength(1);
+                const refused = db.analyticsRows.find(
+                    (r) => r.tool_name === "update_meal" && !r.success,
+                );
+                expect(refused?.error_category).toBe("added_sugar_missing");
+            }));
+
+        test("gate past: update_meal accepts sugar_g when added sugar is already stored", () =>
+            withGate(PAST, async () => {
+                db.meals = [meal({ sugar_g: 40, added_sugar_g: 30 })];
+                await withTools(null, async (call) => {
+                    const ok = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 35,
+                    });
+                    expect(ok.isError).toBeFalsy();
+                    // The existing added ≤ total check is untouched. (The
+                    // stub's updateMeal stores only the fields passed, so
+                    // re-stage the stored pair.)
+                    db.meals = [meal({ sugar_g: 40, added_sugar_g: 30 })];
+                    const low = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 20,
+                    });
+                    expect(low.isError).toBe(true);
+                    expect(textOf(low)).toContain(
+                        "added_sugar_g (30 g) is more than sugar_g (20 g)",
+                    );
+                });
+            }));
+
+        test("gate past: update_meal without sugar_g, and a missing meal, are unaffected", () =>
+            withGate(PAST, async () => {
+                db.meals = [meal({ sugar_g: null, added_sugar_g: null })];
+                await withTools(null, async (call) => {
+                    const r = await call("update_meal", {
+                        id: MEAL_ID,
+                        calories: 300,
+                    });
+                    expect(r.isError).toBeFalsy();
+                    const added = await call("update_meal", {
+                        id: MEAL_ID,
+                        added_sugar_g: 5,
+                    });
+                    expect(added.isError).toBeFalsy();
+                });
+                expect(db.mealUpdates).toHaveLength(2);
+                // No such meal: not the added-sugar refusal (the stub's
+                // updateMeal stands in for the real not-found check).
+                db.meals = [];
+                await withTools(null, async (call) => {
+                    const r = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 5,
+                    });
+                    expect(textOf(r)).not.toContain(
+                        "added_sugar_g is required",
+                    );
+                });
+            }));
+
+        test("gate past: bulk_import_meals is unaffected", () =>
+            withGate(PAST, async () => {
+                await withTools(null, async (call) => {
+                    const r = await call("bulk_import_meals", {
+                        meals: [
+                            {
+                                source_line: 2,
+                                description: "Cola",
+                                logged_at: "2026-07-20",
+                                calories: 139,
+                                sugar_g: 35,
+                            },
+                        ],
+                        expected_row_count: 1,
+                        dry_run: false,
+                    });
+                    expect(r.isError).toBeFalsy();
+                    expect(
+                        (r.structuredContent as { status: string }).status,
+                    ).toBe("success");
+                });
+                expect(db.inserted).toHaveLength(1);
+                expect(db.inserted[0]!.sugar_g).toBe(35);
+            }));
+
+        test("the refusal text describes, never directs", () => {
+            for (const text of [
+                addedSugarMissingText(),
+                addedSugarMissingText(MEAL_ID),
+            ]) {
+                expect(text).toContain("100% fruit juice");
+                expect(text).not.toMatch(
+                    /\bplease\b|you must|\bmust\b|ask the user|\bretry\b|call again|you should|\boffer\b/i,
+                );
+            }
         });
     });
 
@@ -6855,6 +7130,47 @@ describe("/mcp serves one tool surface on both protocol eras", () => {
             expect(new Set(db.profileReads)).toEqual(new Set(["mode-user"]));
         },
     );
+});
+
+// The added-sugar refusal reaches both eras as an isError result carrying the
+// text, and a gated-on success still validates against the frozen schema
+// (withHttpClient arms the client's advertised-schema check).
+describe("/mcp: the added-sugar refusal on both eras", () => {
+    test.each(ERAS)("refused and saved (%p)", async (mode) => {
+        const before = process.env.ADDED_SUGAR_REQUIRED_FROM;
+        process.env.ADDED_SUGAR_REQUIRED_FROM = "2000-01-01";
+        try {
+            await withHttpClient("u1", mode, async (client) => {
+                const refused = (await client.callTool({
+                    name: "log_meal",
+                    arguments: {
+                        description: "Cola",
+                        meal_type: "snack",
+                        sugar_g: 35,
+                    },
+                })) as ToolResult;
+                expect(refused.isError).toBe(true);
+                expect(textOf(refused)).toBe(addedSugarMissingText());
+                expect(db.inserted).toHaveLength(0);
+                const saved = (await client.callTool({
+                    name: "log_meal",
+                    arguments: {
+                        description: "Cola",
+                        meal_type: "snack",
+                        sugar_g: 35,
+                        added_sugar_g: 35,
+                    },
+                })) as ToolResult;
+                expect(saved.isError).toBeFalsy();
+                expect(saved.structuredContent).toBeDefined();
+            });
+            expect(db.inserted).toHaveLength(1);
+        } finally {
+            if (before === undefined)
+                delete process.env.ADDED_SUGAR_REQUIRED_FROM;
+            else process.env.ADDED_SUGAR_REQUIRED_FROM = before;
+        }
+    });
 });
 
 describe("/mcp still serves 2025-era clients unchanged", () => {

@@ -109,7 +109,7 @@ export const TOOLS_FR: ToolsDoc = {
                 sugar_g:
                     "Sucres <b>totaux</b> en grammes : la valeur qu'une étiquette indique sous « dont sucres », y compris le sucre naturellement présent dans les fruits et le lait, pas seulement le sucre ajouté. Renseigné à chaque repas, selon les mêmes règles que les fibres",
                 added_sugar_g:
-                    "Sucres <b>ajoutés</b> en grammes : le sucre ajouté lors de la transformation ou de la préparation (sucre de table, sirops, miel, le sucre des boissons et aliments sucrés). Ils font partie des sucres totaux et ne les dépassent jamais. Le sucre naturellement présent dans les fruits entiers, les légumes et le lait nature n'est pas ajouté, pas plus que celui d'un jus 100 % pur fruit. Renseigné à chaque repas, selon les mêmes règles que les fibres : les aliments bruts valent 0, le sucre d'un soda est entièrement ajouté, et la ligne « Includes Xg Added Sugars » des étiquettes américaines est utilisée quand elle existe",
+                    "Sucres <b>ajoutés</b> en grammes : le sucre ajouté lors de la transformation ou de la préparation (sucre de table, sirops, miel, le sucre des boissons et aliments sucrés). Ils font partie des sucres totaux et ne les dépassent jamais. Le sucre naturellement présent dans les fruits entiers, les légumes et le lait nature n'est pas ajouté, pas plus que celui d'un jus 100 % pur fruit. Renseigné à chaque repas, selon les mêmes règles que les fibres : les aliments bruts valent 0, le sucre d'un soda est entièrement ajouté, et la ligne « Includes Xg Added Sugars » des étiquettes américaines est utilisée quand elle existe. Accompagne <code>sugar_g</code> : un repas avec des sucres totaux mais sans sucres ajoutés peut ne pas être enregistré",
                 alcohol_g:
                     "Grammes d'<b>éthanol pur</b>, ni le volume de la boisson ni son degré d'alcool : l'IA le calcule à partir de la quantité servie et du degré (une bière de 330 ml à 5 % en contient 13 g)",
                 caffeine_mg:
@@ -167,7 +167,7 @@ export const TOOLS_FR: ToolsDoc = {
                 fiber_g: "",
                 sugar_g: "Sucres totaux, pas le sucre ajouté",
                 added_sugar_g:
-                    "Sucres ajoutés uniquement, jamais plus que les sucres totaux",
+                    "Sucres ajoutés uniquement, jamais plus que les sucres totaux. Accompagne <code>sugar_g</code> : une modification des sucres totaux d'un repas sans sucres ajoutés enregistrés peut ne pas être enregistrée sans cette valeur",
                 alcohol_g: "Grammes d'éthanol pur, pas le volume de la boisson",
                 caffeine_mg: "Milligrammes, pas grammes",
                 logged_at: "",

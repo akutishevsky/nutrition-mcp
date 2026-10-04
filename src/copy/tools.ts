@@ -749,7 +749,7 @@ const TOOLS_EN: ToolsDoc = {
                 sugar_g:
                     '<b>Total</b> sugars in grams — the figure a label prints under "Sugars", including the sugar naturally in fruit and milk, not just added sugar. Filled in on every meal on the same terms as fiber',
                 added_sugar_g:
-                    "<b>Added</b> sugars in grams — sugar added during processing or preparation (table sugar, syrups, honey, the sugar in sweetened drinks and foods). Part of total sugars, never more than it. Sugar naturally in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Filled in on every meal on the same terms as fiber: whole foods are 0, a soft drink's sugar is all added, and a US label's \"Includes Xg Added Sugars\" line is used when there is one",
+                    "<b>Added</b> sugars in grams — sugar added during processing or preparation (table sugar, syrups, honey, the sugar in sweetened drinks and foods). Part of total sugars, never more than it. Sugar naturally in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Filled in on every meal on the same terms as fiber: whole foods are 0, a soft drink's sugar is all added, and a US label's \"Includes Xg Added Sugars\" line is used when there is one. It accompanies <code>sugar_g</code>: a meal given total sugars without added sugars may not be saved",
                 alcohol_g:
                     "Grams of <b>pure ethanol</b>, not the volume of the drink and not its ABV — the AI works it out from the pour size and strength (a 330 ml 5% beer is 13 g)",
                 caffeine_mg:
@@ -806,7 +806,7 @@ const TOOLS_EN: ToolsDoc = {
                 fiber_g: "",
                 sugar_g: "Total sugars, not added sugar",
                 added_sugar_g:
-                    "Added sugars only, never more than total sugars",
+                    "Added sugars only, never more than total sugars. It accompanies <code>sugar_g</code>: a change to total sugars on a meal with no added sugars recorded may not be saved without it",
                 alcohol_g: "Grams of pure ethanol, not the volume of the drink",
                 caffeine_mg: "Milligrams, not grams",
                 logged_at: "",

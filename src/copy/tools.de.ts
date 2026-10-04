@@ -99,7 +99,7 @@ export const TOOLS_DE: ToolsDoc = {
                 sugar_g:
                     "<b>Gesamt</b>zucker in Gramm – der Wert, der auf dem Etikett unter „davon Zucker“ steht, inklusive des natürlichen Zuckers in Obst und Milch, nicht nur zugesetzter Zucker. Wird bei jeder Mahlzeit nach denselben Regeln ausgefüllt wie Ballaststoffe",
                 added_sugar_g:
-                    "<b>Zugesetzter</b> Zucker in Gramm – Zucker, der bei Verarbeitung oder Zubereitung hinzugefügt wird (Haushaltszucker, Sirup, Honig, der Zucker in gesüßten Getränken und Lebensmitteln). Teil des Gesamtzuckers, nie mehr als dieser. Der natürliche Zucker in ganzem Obst, Gemüse und naturbelassener Milch zählt nicht als zugesetzt, ebenso wenig 100 % Fruchtsaft. Wird bei jeder Mahlzeit nach denselben Regeln ausgefüllt wie Ballaststoffe: Unverarbeitete Lebensmittel haben 0, der Zucker eines Softdrinks ist komplett zugesetzt, und die US-Etikettenzeile „Includes Xg Added Sugars“ wird genutzt, wenn es sie gibt",
+                    "<b>Zugesetzter</b> Zucker in Gramm – Zucker, der bei Verarbeitung oder Zubereitung hinzugefügt wird (Haushaltszucker, Sirup, Honig, der Zucker in gesüßten Getränken und Lebensmitteln). Teil des Gesamtzuckers, nie mehr als dieser. Der natürliche Zucker in ganzem Obst, Gemüse und naturbelassener Milch zählt nicht als zugesetzt, ebenso wenig 100 % Fruchtsaft. Wird bei jeder Mahlzeit nach denselben Regeln ausgefüllt wie Ballaststoffe: Unverarbeitete Lebensmittel haben 0, der Zucker eines Softdrinks ist komplett zugesetzt, und die US-Etikettenzeile „Includes Xg Added Sugars“ wird genutzt, wenn es sie gibt. Gehört zu <code>sugar_g</code>: Eine Mahlzeit mit Gesamtzucker, aber ohne zugesetzten Zucker wird unter Umständen nicht gespeichert",
                 alcohol_g:
                     "Gramm <b>reinen Alkohols</b>, nicht die Menge des Getränks und nicht sein Alkoholgehalt in Prozent – die KI errechnet den Wert aus Menge und Stärke (ein 330-ml-Bier mit 5 % sind 13 g)",
                 caffeine_mg:
@@ -158,7 +158,7 @@ export const TOOLS_DE: ToolsDoc = {
                 fiber_g: "",
                 sugar_g: "Gesamtzucker, nicht zugesetzter Zucker",
                 added_sugar_g:
-                    "Nur zugesetzter Zucker, nie mehr als der Gesamtzucker",
+                    "Nur zugesetzter Zucker, nie mehr als der Gesamtzucker. Gehört zu <code>sugar_g</code>: Eine Änderung des Gesamtzuckers bei einer Mahlzeit ohne erfassten zugesetzten Zucker wird ohne diesen Wert unter Umständen nicht gespeichert",
                 alcohol_g:
                     "Gramm reinen Alkohols, nicht die Menge des Getränks",
                 caffeine_mg: "Milligramm, nicht Gramm",
