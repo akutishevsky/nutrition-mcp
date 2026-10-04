@@ -59,7 +59,7 @@ A `/pending` entry:
 - **Run Shortcut** takes its input from the action above it: "**Run Shortcut** `Nutrition MCP Health`, input **Text** `x`" means a **Text** action holding `x`, then **Run Shortcut** with **Nutrition MCP Health** chosen and, under **›**, **Show While Running** off.
 - Anything that must survive to the next run (the token, the pairing secret, the status) goes through **Store Content**. **Set variable** only lives until the run ends: a token put in a variable instead of stored is gone the next time the shortcut opens, and it starts connecting all over again.
 - Several actions end up called **Text** (the base URL, the pending URL, every request body). Wherever a field takes **Text**, click the token and check it highlights the action directly above, or name it with **Set variable**.
-- **Log Health Sample** says "This action is not supported on Mac" and its fields can't be edited there. Build everything else on the Mac if you like, then open the shortcut on the iPhone and fill in each **Log Health Sample**.
+- **Add every Log Health Sample on the iPhone, and don't edit the finished shortcut on the Mac.** The Mac can't build that action ("This action is not supported on Mac"; its log shows `Failed to initialize parameter` once per setting of every such action), and a shortcut whose Health actions were added or saved there shares in a broken state: the iCloud link uploads without an error but opens nowhere ("Can't connect to the Gallery", also in Safari and on other iPhones), and **Export File** cannot save or AirDrop it. Everything except those actions can be built on the Mac, but the safe order is to finish on the iPhone and stop opening the shortcut in the Mac editor after that.
 
 ## 1. Top
 
@@ -86,7 +86,7 @@ Then four blocks in this order; only one ever runs.
     7. **Get Dictionary Value** `entries` in `Reply` → **Repeat with Each**:
         1. **Get Dictionary Value** `sample_local` in **Repeat Item** → **Get Dates from Input** → **Set variable** `SampleDate`. The string has no offset, so it is read in the phone's zone: noon on that calendar day.
         2. **Get Dictionary Value** `values` in **Repeat Item** → **Set variable** `Values`
-        3. Seven blocks, one per row — **Get Dictionary Value** `<key>` in `Values` → **If** it **has any value** → **Log Health Sample** Type `<type>`, Value = it, Unit `<unit>`, Date = `SampleDate` → **End If**. Build one, then duplicate it (iPhone: long-press → **Duplicate**; Mac: select the **Get Dictionary Value**, **If**, **Log Health Sample** and **End If**, then ⌘C / ⌘V) and edit the key, type and unit. Set each **Log Health Sample**'s Type, Value (the **Dictionary Value** above it), Unit and Date on the iPhone.
+        3. Seven blocks, one per row — **Get Dictionary Value** `<key>` in `Values` → **If** it **has any value** → **Log Health Sample** Type `<type>`, Value = it, Unit `<unit>`, Date = `SampleDate` → **End If**. Build them on the iPhone: make one, then long-press → **Duplicate** and edit the key, type and unit. Set each **Log Health Sample**'s Type, Value (the **Dictionary Value** above it), Unit and Date there too (see section 0: never on the Mac).
 
             | key               | Type           | Unit |
             | ----------------- | -------------- | ---- |
@@ -198,8 +198,9 @@ Run the shortcut from the **Shortcuts** list (the tile or ▶ in the editor), no
 ## 8. Publishing
 
 1. Set the first **Text** to `https://nutrition-mcp.com`.
-2. **Share** → **Copy iCloud Link**.
-3. Set the link as the `HEALTH_SYNC_SHORTCUT_URL` env var on the deploy, scoped to build time (the pages are generated during the build; the Dockerfile passes it through as a build arg), and redeploy; the setup page's install button appears.
+2. On the iPhone: **Share** → **Copy iCloud Link**.
+3. **Test the link before using it.** Open it in Safari on another device: iCloud's page must show **Nutrition MCP Health** with **Get Shortcut**. If it says it can't connect, the shortcut itself is broken, not the network (almost always a **Log Health Sample** added or saved on the Mac, see section 0). To confirm, duplicate the shortcut, delete the **Log Health Sample** actions in the copy and share that: if the copy opens, delete and re-add the Health actions on the iPhone, share again, and delete the copy (named **Nutrition MCP Health 1**, so the sign-in page never reopens it). Don't import the link on the iPhone that built the shortcut: iOS adds a second copy named **Nutrition MCP Health 2**, and connecting breaks because the sign-in page reopens the shortcut by its exact name.
+4. Set the link as the `HEALTH_SYNC_SHORTCUT_URL` env var on the deploy, scoped to build time (the pages are generated during the build; the Dockerfile passes it through as a build arg), and redeploy; the setup page's install button appears.
 
 ---
 
