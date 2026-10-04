@@ -737,6 +737,89 @@ test("every locale's privacy policy discloses the home page's aggregate stats th
     expect(missing).toEqual([]);
 });
 
+// Goals history (nutrition_goals_history): a new per-user table goes into the
+// export, deleteAllUserData and the privacy policy together. Each locale must
+// say a dated copy is kept when goals change (the Goals bullet), name the
+// history where stored data is listed (retention and erasure), and name it in
+// the Access and portability bullet; the terms' export paragraph names it too.
+const GOALS_HISTORY: Record<
+    SiteLocale,
+    { dated: string; stored: string; access: string; terms: string }
+> = {
+    en: {
+        dated: "Each time they change, we also keep a dated copy",
+        stored: "goals and their change history",
+        access: "the history of your goal changes",
+        terms: "goals, goal history,",
+    },
+    de: {
+        dated: "Jedes Mal, wenn sie sich ändern, bewahren wir außerdem eine datierte Kopie",
+        stored: "Ziele samt dem Verlauf ihrer Änderungen",
+        access: "den Verlauf deiner Zieländerungen",
+        terms: "Zielen, dem Zielverlauf,",
+    },
+    es: {
+        dated: "Cada vez que cambian, guardamos además una copia con fecha",
+        stored: "tus objetivos y el historial de sus cambios, tus ajustes",
+        access: "tus objetivos y el historial de sus cambios",
+        terms: "objetivos, historial de objetivos,",
+    },
+    fr: {
+        dated: "Chaque fois qu'ils changent, nous conservons aussi une copie datée",
+        stored: "tes objectifs et l'historique de leurs modifications, tes réglages",
+        access: "tes objectifs et l'historique de leurs modifications",
+        terms: "l'historique de tes objectifs",
+    },
+    it: {
+        dated: "Ogni volta che cambiano conserviamo anche una copia datata",
+        stored: "gli obiettivi e la cronologia delle loro modifiche, le impostazioni",
+        access: "i tuoi obiettivi e la cronologia delle loro modifiche",
+        terms: "cronologia degli obiettivi",
+    },
+    nl: {
+        dated: "Telkens als ze veranderen, bewaren we ook een gedateerde kopie",
+        stored: "doelen en de geschiedenis van je doelwijzigingen, profielinstellingen",
+        access: "je doelen en de geschiedenis van je doelwijzigingen",
+        terms: "doelgeschiedenis",
+    },
+    pl: {
+        dated: "Za każdym razem, gdy się zmieniają, zachowujemy też kopię z datą",
+        stored: "cele wraz z historią ich zmian, ustawienia profilu",
+        access: "cele wraz z historią ich zmian",
+        terms: "historię celów",
+    },
+    uk: {
+        dated: "Щоразу, коли вони змінюються, ми також зберігаємо копію з датою",
+        stored: "їхніх змін, налаштування профілю",
+        access: "цілі та історія їхніх змін",
+        terms: "історії цілей",
+    },
+    ja: {
+        dated: "目標が変わるたびに日付付きの控えも保存し",
+        stored: "目標とその変更履歴、プロフィール設定",
+        access: "目標とその変更履歴",
+        terms: "目標の変更履歴",
+    },
+};
+
+test("every locale's privacy policy and terms name the goals history", () => {
+    const problems: string[] = [];
+    const count = (text: string, token: string) => text.split(token).length - 1;
+    for (const locale of SITE_LOCALES) {
+        const t = GOALS_HISTORY[locale];
+        const privacy = allText(PRIVACY[locale]!);
+        if (!privacy.includes(t.dated)) problems.push(`${locale}: dated copy`);
+        if (!privacy.includes(t.access))
+            problems.push(`${locale}: access and portability`);
+        // Retention and erasure both list stored data.
+        if (count(privacy, t.stored) < 2)
+            problems.push(`${locale}: retention or erasure`);
+        if (!allText(TERMS[locale]!).includes(t.terms))
+            problems.push(`${locale}: terms export`);
+    }
+    expect(problems).toEqual([]);
+});
+
 test("every locale's terms restrict use to supported regions and sanctions law", () => {
     const missing = SITE_LOCALES.filter(
         (l) => !allText(TERMS[l]!).includes(BRIEF13[l].regions),
