@@ -6741,6 +6741,29 @@ describe("get_weight_trends", () => {
         });
     });
 
+    test("the text names the 30-day span of the structured series when the window differs", async () => {
+        db.weights = dailyWeighIns("2026-03-01", 122, 80_000);
+        const note = "The structured daily series covers the last 30 days only";
+        await withTools(null, async (call) => {
+            const r93 = await call("get_weight_trends", {
+                days: 93,
+                end_date: "2026-06-30",
+            });
+            expect(textOf(r93)).toContain(
+                `${note} (2026-06-01 to 2026-06-30); the figures above cover the requested 93-day window.`,
+            );
+            const r7 = await call("get_weight_trends", {
+                days: 7,
+                end_date: "2026-06-30",
+            });
+            expect(textOf(r7)).toContain(note);
+            const r30 = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(textOf(r30)).not.toContain(note);
+        });
+    });
+
     test("no weigh-ins at all still returns the frozen payload and an empty series", async () => {
         await withTools(null, async (call) => {
             const r = await call("get_weight_trends", {
