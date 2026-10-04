@@ -222,7 +222,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "本サービスが保存しているあなたのデータを、すべて1つのZIPにまとめてエクスポートし、60分間有効な非公開のダウンロードリンクを返します。中身はmeals.csv、water.csv、weight.csv、body_measurements.csv、goals.csv、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツールの利用記録）、connections.csv（接続中のAIアプリとApple Health同期。トークンは含みません）、health_sync.csv（Apple Health同期が直近8日間に送信した内容）と、列・単位・含まれないものを説明したREADME.txtです。現時点で再インポートできるのは食事データだけです。",
+                "本サービスが保存しているあなたのデータを、すべて1つのZIPにまとめてエクスポートし、60分間有効な非公開のダウンロードリンクを返します。中身はmeals.csv、water.csv、weight.csv、body_measurements.csv、goals.csv、goals_history.csv（目標の変更履歴と日付）、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツールの利用記録）、connections.csv（接続中のAIアプリとApple Health同期。トークンは含みません）、health_sync.csv（Apple Health同期が直近8日間に送信した内容）と、列・単位・含まれないものを説明したREADME.txtです。現時点で再インポートできるのは食事データだけです。",
             params: {},
             example: "食事・水分・体重・目標、データを全部エクスポートして",
         },
@@ -406,11 +406,13 @@ export const TOOLS_JA: ToolsDoc = {
         },
         get_trends: {
             description:
-                "7/14/30日の移動平均、ばらつき、連続記録日数、曜日ごとの平均カロリー、カロリーで見て最も良かった日と悪かった日を表示します。あらかじめ計算済みなので、AIはそれを説明するだけで済みます。",
+                "7/14/30日の移動平均、ばらつき、連続記録日数、曜日ごとの平均カロリー、カロリーで見て最も良かった日と悪かった日を表示します。あらかじめ計算済みなので、AIはそれを説明するだけで済みます。group_byを指定すると、週・月・四半期・年ごとの平均も出します。平均は記録した日あたり（食事のない日は除外）で、その時点で有効だった目標と比較し、目標内だった日数と記録が不完全かもしれない日数も示します。",
             params: {
                 days: "期間の日数（デフォルト30日、最大365日）。",
+                group_by:
+                    "<code>week</code>、<code>month</code>、<code>quarter</code>、<code>year</code>のいずれか：終了日（デフォルトは今日）を含む期間までの26週、24か月、12四半期、5年。期間は固定です。<code>days</code>は引き続き移動平均の期間を決めます。",
             },
-            example: "この30日間のカロリーとPFCのトレンドは？",
+            example: "月ごとに見て、目標に対してどうだった？",
         },
         get_meal_patterns: {
             description:

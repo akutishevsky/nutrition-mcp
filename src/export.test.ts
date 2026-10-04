@@ -13,6 +13,7 @@ import {
     buildConnectionsCsv,
     buildExportReadme,
     buildGoalsCsv,
+    buildGoalsHistoryCsv,
     buildHealthSyncCsv,
     buildMealsCsv,
     buildProfileCsv,
@@ -28,6 +29,7 @@ import type {
     HealthSyncStore,
 } from "./health-sync-store.js";
 import { HEALTH_SYNC_FIELDS } from "./health-sync.js";
+import type { NutritionGoalsHistoryRow } from "./goals-history.js";
 import type { User } from "@supabase/supabase-js";
 import type {
     BodyMeasurementEntry,
@@ -389,6 +391,25 @@ function goals(overrides: Partial<NutritionGoals> = {}): NutritionGoals {
     };
 }
 
+function goalsHistoryRow(
+    overrides: Partial<NutritionGoalsHistoryRow> = {},
+): NutritionGoalsHistoryRow {
+    return {
+        effective_at: "2026-06-20T14:30:00.000Z",
+        daily_calories: 2200,
+        daily_protein_g: 150,
+        daily_carbs_g: 220,
+        daily_fat_g: 70,
+        daily_fiber_g: 30,
+        daily_sugar_g: 40,
+        daily_alcohol_g: 14,
+        daily_caffeine_mg: 400,
+        daily_water_ml: 2500,
+        target_weight_g: 72000,
+        ...overrides,
+    };
+}
+
 function profile(overrides: Partial<Profile> = {}): Profile {
     return {
         user_id: "user-1",
@@ -410,6 +431,8 @@ const WEIGHT_HEADER =
     "id,logged_at,timezone,weight_g,weight_display,weight_unit,notes,created_at";
 const GOALS_HEADER =
     "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
+const GOALS_HISTORY_HEADER =
+    "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g";
 const PROFILE_HEADER =
     "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit";
 const BODY_MEASUREMENT_HEADER =
@@ -691,6 +714,88 @@ test("goals.csv leaves unset targets as empty fields", () => {
     expect(csv).not.toContain("null");
 });
 
+test("goals_history.csv is header-only when goals were never set", () => {
+    expect(buildGoalsHistoryCsv([], "UTC")).toBe(GOALS_HISTORY_HEADER);
+});
+
+test("goals_history.csv names the goal columns exactly as goals.csv does", () => {
+    // Same names and units, so one mapping reads both files; the history
+    // swaps updated_at for effective_at and leads with the instant and zone.
+    const goalCols = GOALS_HEADER.split(",").filter(
+        (c) => c !== "updated_at" && c !== "timezone",
+    );
+    expect(GOALS_HISTORY_HEADER.split(",")).toEqual([
+        "effective_at",
+        "timezone",
+        ...goalCols,
+    ]);
+});
+
+test("goals_history.csv is byte-for-byte what its rows and zone determine", () => {
+    const history = [
+        goalsHistoryRow({ effective_at: "2026-01-05T08:00:00.000Z" }),
+        goalsHistoryRow({
+            effective_at: "2026-06-20T14:30:00.000Z",
+            daily_calories: 2000,
+            daily_sugar_g: null,
+            daily_alcohol_g: null,
+            target_weight_g: null,
+        }),
+    ];
+    const csv = buildGoalsHistoryCsv(history, "Europe/Berlin");
+    expect(csv).toBe(
+        [
+            GOALS_HISTORY_HEADER,
+            "2026-01-05 09:00:00,Europe/Berlin,2200,150,220,70,30,40,14,400,2500,72000",
+            "2026-06-20 16:30:00,Europe/Berlin,2000,150,220,70,30,,,400,2500,",
+        ].join("\n"),
+    );
+    // Same inputs, same bytes: nothing in it depends on the clock or the host.
+    expect(buildGoalsHistoryCsv(history, "Europe/Berlin")).toBe(csv);
+});
+
+test("goals_history.csv keeps the order it is given and aligns every field", () => {
+    const rows = parseCsv(
+        buildGoalsHistoryCsv(
+            [
+                goalsHistoryRow({ effective_at: "2026-01-01T00:00:00.000Z" }),
+                goalsHistoryRow({ effective_at: "2026-02-01T00:00:00.000Z" }),
+                goalsHistoryRow({ effective_at: "2026-03-01T00:00:00.000Z" }),
+            ],
+            "UTC",
+        ),
+    );
+    expect(rows).toHaveLength(4);
+    for (const row of rows) expect(row.length).toBe(rows[0]!.length);
+    expect(rows.slice(1).map((r) => r[0])).toEqual([
+        "2026-01-01 00:00:00",
+        "2026-02-01 00:00:00",
+        "2026-03-01 00:00:00",
+    ]);
+});
+
+test("every goals history value lands under its own header name", () => {
+    const f = fieldsByName(
+        buildGoalsHistoryCsv([goalsHistoryRow()], "Europe/Berlin"),
+    );
+    expect(f).toEqual({
+        effective_at: "2026-06-20 16:30:00",
+        timezone: "Europe/Berlin",
+        daily_calories: "2200",
+        daily_protein_g: "150",
+        daily_carbs_g: "220",
+        daily_fat_g: "70",
+        daily_fiber_g: "30",
+        daily_sugar_g: "40",
+        // Not gated on the alcohol display opt-in, exactly like goals.csv.
+        daily_alcohol_g: "14",
+        daily_caffeine_mg: "400",
+        daily_water_ml: "2500",
+        // Canonical grams, as in goals.csv — no weight-unit conversion.
+        target_weight_g: "72000",
+    });
+});
+
 test("profile.csv is header-only when there is no profile row", () => {
     expect(buildProfileCsv(null, "UTC")).toBe(PROFILE_HEADER);
 });
@@ -785,6 +890,7 @@ const README_OPTS = {
         water: 45,
         weight: 12,
         bodyMeasurements: 7,
+        goalsHistory: 4,
         telemetry: 830,
         connections: 3,
         healthSync: 6,
@@ -809,6 +915,7 @@ test("the README states when, in which zone, and that the zone was chosen", () =
     expect(readme).toContain("830 rows");
     expect(readme).toContain("3 rows");
     expect(readme).toContain("health_sync.csv 6 rows");
+    expect(readme).toContain("goals_history.csv 4 rows");
 });
 
 test("the README says outright when the zone defaulted to UTC", () => {
@@ -932,6 +1039,7 @@ test("account.csv, telemetry.csv and connections.csv are header-only when empty"
         buildConnectionsCsv([], "UTC"),
         buildConnectionsCsv([], "UTC", null),
         buildHealthSyncCsv([], "UTC"),
+        buildGoalsHistoryCsv([], "UTC"),
     ]) {
         const rows = parseCsv(csv);
         expect(rows).toHaveLength(1);
@@ -945,6 +1053,7 @@ test("no archive file has a token, hash or password column", () => {
         buildWaterCsv([], "UTC"),
         buildWeightCsv([], "UTC", "kg"),
         buildGoalsCsv(null, "UTC"),
+        buildGoalsHistoryCsv([], "UTC"),
         buildProfileCsv(null, "UTC"),
         buildAccountCsv(null, "UTC"),
         buildTelemetryCsv([], "UTC"),
@@ -1467,6 +1576,7 @@ test("EXPORT_ARCHIVE_FILES is the archive's real, ordered file list", () => {
         "weight.csv",
         "body_measurements.csv",
         "goals.csv",
+        "goals_history.csv",
         "profile.csv",
         "account.csv",
         "telemetry.csv",
@@ -1487,6 +1597,7 @@ test("an archive assembled from the builders reads back file for file", () => {
         "weight.csv": buildWeightCsv([weight()], tz, "kg"),
         "body_measurements.csv": buildBodyMeasurementsCsv([measurement()], tz),
         "goals.csv": buildGoalsCsv(goals(), tz),
+        "goals_history.csv": buildGoalsHistoryCsv([goalsHistoryRow()], tz),
         "profile.csv": buildProfileCsv(profile(), tz),
         "account.csv": buildAccountCsv(authUser(), tz),
         "telemetry.csv": buildTelemetryCsv([telemetryRow()], tz),
@@ -1517,6 +1628,7 @@ test("an archive assembled from the builders reads back file for file", () => {
         "water.csv",
         "weight.csv",
         "body_measurements.csv",
+        "goals_history.csv",
         "account.csv",
         "telemetry.csv",
         "connections.csv",
@@ -1700,7 +1812,7 @@ test("the README describes health_sync.csv, its own-zone rows and its retention"
 // exportAllData reads everything else through supabase.ts, which these tests
 // do not stub; it is driven only far enough to prove the health-sync store is
 // consulted and its failure is not swallowed into a partial archive.
-test("exportAllData asks the injected health-sync store and fails loudly with it", async () => {
+test("exportAllData asks the injected stores and fails loudly with them", async () => {
     const asked: string[] = [];
     const store = {
         getLinkStatus: async (userId: string) => {
@@ -1733,12 +1845,22 @@ test("exportAllData asks the injected health-sync store and fails loudly with it
     );
     try {
         await expect(
-            exportAllData("user-9", { healthSync: store }),
+            exportAllData("user-9", {
+                healthSync: store,
+                getGoalsHistory: async (userId: string) => {
+                    asked.push(`goals-history:${userId}`);
+                    return [];
+                },
+            }),
         ).rejects.toThrow("result would be truncated");
     } finally {
         fetchSpy.mockRestore();
         if (envBefore.url === undefined) delete process.env.SUPABASE_URL;
         if (envBefore.key === undefined) delete process.env.SUPABASE_SECRET_KEY;
     }
-    expect(asked.sort()).toEqual(["days:user-9", "link:user-9"]);
+    expect(asked.sort()).toEqual([
+        "days:user-9",
+        "goals-history:user-9",
+        "link:user-9",
+    ]);
 });

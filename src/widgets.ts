@@ -93,6 +93,16 @@ export const MEAL_CONTRIBUTORS_META_KEY = "nutrition-mcp.com/meal-contributors";
  */
 export const WEIGHT_SERIES_META_KEY = "nutrition-mcp.com/weight-series";
 
+/**
+ * Where get_trends puts its per-period averages when called with `group_by`
+ * (the PeriodAveragesMeta built by buildPeriodAveragesMeta in src/periods.ts):
+ * the CallToolResult's `_meta`, for the same frozen-outputSchema reason as the
+ * two keys above. Absent without `group_by`. The trends template repeats this
+ * literal, and src/mcp.test.ts checks the assembled widget contains it. A host
+ * that drops `_meta` leaves the widget on its 7/14/30-day view.
+ */
+export const PERIOD_AVERAGES_META_KEY = "nutrition-mcp.com/period-averages";
+
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
     "nutrition-summary": "nutrition-summary.html",

@@ -219,7 +219,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate e la sincronizzazione con Apple Health, senza alcun token), health_sync.csv (ciò che la sincronizzazione con Apple Health ha inviato negli ultimi 8 giorni) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
+                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (ogni modifica ai tuoi obiettivi, con data), profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate e la sincronizzazione con Apple Health, senza alcun token), health_sync.csv (ciò che la sincronizzazione con Apple Health ha inviato negli ultimi 8 giorni) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
             params: {},
             example:
                 "Esporta tutti i miei dati: pasti, acqua, peso e obiettivi",
@@ -412,12 +412,13 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Medie mobili a 7/14/30 giorni, variabilità, serie di giorni consecutivi di registrazione, media delle calorie per giorno della settimana e i tuoi giorni migliori e peggiori per calorie: già calcolati, così l'IA deve solo riassumerli.",
+                "Medie mobili a 7/14/30 giorni, variabilità, serie di giorni consecutivi di registrazione, media delle calorie per giorno della settimana e i tuoi giorni migliori e peggiori per calorie: già calcolati, così l'IA deve solo riassumerli. Con group_by fornisce anche medie per settimana, mese, trimestre o anno — per giorno registrato, quindi i giorni senza pasti non contano — confrontate con gli obiettivi in vigore in quel momento, con quanti giorni sono stati in obiettivo e quanti sembrano incompleti.",
             params: {
                 days: "Ampiezza del periodo in giorni (predefinito 30, massimo 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> o <code>year</code>: 26 settimane, 24 mesi, 12 trimestri o 5 anni, fino al periodo che contiene la data finale (oggi per impostazione predefinita). L'intervallo è fisso; <code>days</code> imposta comunque le medie mobili.",
             },
-            example:
-                "Qual è l'andamento di calorie e macro negli ultimi 30 giorni?",
+            example: "Come sono andati i miei mesi rispetto ai miei obiettivi?",
         },
         get_meal_patterns: {
             description:

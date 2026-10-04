@@ -1,4 +1,12 @@
-import { test, expect, describe } from "bun:test";
+import {
+    test,
+    expect,
+    describe,
+    beforeAll,
+    afterAll,
+    beforeEach,
+    spyOn,
+} from "bun:test";
 import {
     mealIdempotencyKey,
     updatedMealIdempotencyKey,
@@ -19,14 +27,20 @@ import {
     publicLandingStats,
     type RawLandingStats,
     seedPatreonTokensFromEnv,
+    upsertNutritionGoals,
+    getNutritionGoalsHistory,
     type Meal,
     type MealInput,
     type Profile,
 } from "./supabase.js";
 import { rowContentDigest } from "./import.js";
+import { ToolError } from "./errors.js";
 
-// Every export exercised here is pure: no test in this file constructs a
-// Supabase client, and none touches the network or the database.
+// Almost every export exercised here is pure. The one exception is the goals
+// history block at the end, which runs the real write and read functions
+// against a stubbed global fetch scoped to that block (no mock.module: it is
+// process-wide; see CLAUDE.md). Nothing in this file touches the network or
+// the database.
 
 const USER = "11111111-1111-4111-8111-111111111111";
 const LOGGED_AT = "2026-03-14T12:00:00.000Z";
@@ -596,6 +610,21 @@ describe("exportStoragePaths", () => {
         }
         expect(at("health_sync_links")).toBeLessThan(at("health_sync_days"));
     });
+
+    // Every per-user table goes into the export, deletion and the privacy
+    // policy together; history goes immediately before the goals row.
+    test("deleteAllUserData removes goals history just before goals", async () => {
+        const src = await Bun.file("./src/supabase.ts").text();
+        const body = src.slice(
+            src.indexOf("export async function deleteAllUserData"),
+        );
+        const fromCalls = [...body.matchAll(/\.from\("([a-z_]+)"\)/g)].map(
+            (m) => m[1],
+        );
+        const at = fromCalls.indexOf("nutrition_goals_history");
+        expect(at).toBeGreaterThan(-1);
+        expect(fromCalls[at + 1]).toBe("nutrition_goals");
+    });
 });
 
 // ---------- fetchAllPages (issue #66: the meal export silently truncated at
@@ -976,5 +1005,513 @@ describe("seedPatreonTokensFromEnv", () => {
             if (savedRefresh !== undefined)
                 process.env.PATREON_REFRESH_TOKEN = savedRefresh;
         }
+    });
+});
+
+// ---------- Goals history (period averages against goals). upsertNutritionGoals
+// appends to nutrition_goals_history after a successful upsert, only when the
+// stored values differ from the latest HISTORY row, so a retry after a failed
+// history insert still records the change even though nutrition_goals already
+// holds it. Driven for real against an in-memory PostgREST stand-in; any
+// request it does not recognise is refused, never passed through (Bun
+// auto-loads the env file, so the client may point at a real project). ----------
+
+describe("goals history", () => {
+    type HistoryRow = Record<string, unknown> & {
+        id: number;
+        user_id: string;
+        effective_at: string;
+    };
+
+    const OTHER_USER = "22222222-2222-4222-8222-222222222222";
+    let goalsRow: Record<string, unknown> | null = null;
+    let history: HistoryRow[] = [];
+    let nextId = 1;
+    let failHistoryInserts = 0;
+    let historyMaxRows = 1000;
+    const historyInserts: Record<string, unknown>[] = [];
+
+    function refuse(why: string): never {
+        throw new Error(`goals-history stub refused a request: ${why}`);
+    }
+
+    function json(
+        body: unknown,
+        status = 200,
+        headers: Record<string, string> = {},
+    ): Response {
+        return new Response(JSON.stringify(body), {
+            status,
+            headers: { "content-type": "application/json", ...headers },
+        });
+    }
+
+    const byEffectiveAtThenId = (a: HistoryRow, b: HistoryRow) =>
+        a.effective_at < b.effective_at
+            ? -1
+            : a.effective_at > b.effective_at
+              ? 1
+              : a.id - b.id;
+
+    async function fakePostgrest(
+        input: string | URL | Request,
+        init?: RequestInit,
+    ): Promise<Response> {
+        const req =
+            input instanceof Request
+                ? new Request(input, init)
+                : new Request(input.toString(), init);
+        const url = new URL(req.url);
+        const table = url.pathname.replace(/^\/rest\/v1\//, "");
+        const q = url.searchParams;
+
+        if (table === "nutrition_goals" && req.method === "POST") {
+            if (q.get("on_conflict") !== "user_id") refuse("upsert conflict");
+            const body = (await req.json()) as Record<string, unknown>;
+            goalsRow = { ...goalsRow, ...body };
+            const accept = req.headers.get("accept") ?? "";
+            return json(accept.includes("object+json") ? goalsRow : [goalsRow]);
+        }
+
+        if (table === "nutrition_goals" && req.method === "GET") {
+            const userId = q.get("user_id")?.replace(/^eq\./, "");
+            if (!userId) refuse(`unscoped goals read ${url.search}`);
+            const rows =
+                goalsRow && goalsRow.user_id === userId ? [goalsRow] : [];
+            const accept = req.headers.get("accept") ?? "";
+            if (accept.includes("object+json")) {
+                return rows.length === 1
+                    ? json(rows[0])
+                    : json({ message: "no rows" }, 406);
+            }
+            return json(rows);
+        }
+
+        if (table === "nutrition_goals_history" && req.method === "POST") {
+            const body = (await req.json()) as Record<string, unknown>;
+            if (failHistoryInserts > 0) {
+                failHistoryInserts--;
+                return json({ message: "connection reset" }, 503);
+            }
+            historyInserts.push(body);
+            history.push({ id: nextId++, ...body } as HistoryRow);
+            return new Response(null, { status: 201 });
+        }
+
+        if (table === "nutrition_goals_history" && req.method === "GET") {
+            const userId = q.get("user_id")?.replace(/^eq\./, "");
+            if (!userId) refuse(`unscoped read ${url.search}`);
+            const mine = history
+                .filter((r) => r.user_id === userId)
+                .sort(byEffectiveAtThenId);
+            const order = q.get("order");
+            if (order === "effective_at.desc,id.desc") {
+                if (q.get("limit") !== "1") refuse("latest without limit");
+                return json(mine.slice(-1));
+            }
+            if (order !== "effective_at.asc,id.asc") refuse(`order=${order}`);
+            if (!q.has("offset") || !q.has("limit")) refuse("unbounded read");
+            const offset = Number(q.get("offset"));
+            const limit = Number(q.get("limit"));
+            const page = mine.slice(
+                offset,
+                offset + Math.min(limit, historyMaxRows),
+            );
+            const counted = req.headers.get("prefer")?.includes("count=exact");
+            const range =
+                page.length === 0
+                    ? "*"
+                    : `${offset}-${offset + page.length - 1}`;
+            return json(page, 200, {
+                "content-range": `${range}/${counted ? mine.length : "*"}`,
+            });
+        }
+
+        refuse(`${req.method} ${req.url}`);
+    }
+
+    const envBefore = {
+        url: process.env.SUPABASE_URL,
+        key: process.env.SUPABASE_SECRET_KEY,
+    };
+    let fetchSpy: ReturnType<typeof spyOn>;
+    let warnSpy: ReturnType<typeof spyOn>;
+    const warnings: string[] = [];
+
+    beforeAll(() => {
+        // Only consulted if no earlier suite built the client; with a real env
+        // file the client points at the real project, and the stub still
+        // answers every request before it leaves the process.
+        process.env.SUPABASE_URL ??= "http://supabase.test";
+        process.env.SUPABASE_SECRET_KEY ??= "test-key";
+        fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
+            fakePostgrest as typeof fetch,
+        );
+        warnSpy = spyOn(console, "warn").mockImplementation(
+            (...args: unknown[]) => {
+                warnings.push(args.map(String).join(" "));
+            },
+        );
+    });
+
+    afterAll(() => {
+        fetchSpy.mockRestore();
+        warnSpy.mockRestore();
+        if (envBefore.url === undefined) delete process.env.SUPABASE_URL;
+        if (envBefore.key === undefined) delete process.env.SUPABASE_SECRET_KEY;
+    });
+
+    beforeEach(() => {
+        goalsRow = null;
+        history = [];
+        nextId = 1;
+        failHistoryInserts = 0;
+        historyMaxRows = 1000;
+        historyInserts.length = 0;
+        warnings.length = 0;
+    });
+
+    test("the first save records a history row with the stored values", async () => {
+        const saved = await upsertNutritionGoals(USER, {
+            daily_calories: 2000.4,
+            daily_protein_g: 150,
+        });
+        expect(historyInserts).toHaveLength(1);
+        expect(historyInserts[0]).toMatchObject({
+            user_id: USER,
+            effective_at: saved.updated_at,
+            // As stored: the integer column's rounding, not the raw input.
+            daily_calories: 2000,
+            daily_protein_g: 150,
+            daily_carbs_g: null,
+        });
+    });
+
+    test("a change inserts a row", async () => {
+        await upsertNutritionGoals(USER, { daily_calories: 2000 });
+        await upsertNutritionGoals(USER, { daily_calories: 1800 });
+        expect(historyInserts.map((r) => r.daily_calories)).toEqual([
+            2000, 1800,
+        ]);
+    });
+
+    test("saving the same values again does not", async () => {
+        await upsertNutritionGoals(USER, { daily_calories: 2000 });
+        await upsertNutritionGoals(USER, { daily_calories: 2000 });
+        expect(historyInserts).toHaveLength(1);
+    });
+
+    test("another user's history does not count as this user's latest", async () => {
+        history.push({
+            id: nextId++,
+            user_id: OTHER_USER,
+            effective_at: "2026-03-01T00:00:00+00:00",
+            daily_calories: 2000,
+        });
+        await upsertNutritionGoals(USER, { daily_calories: 2000 });
+        expect(historyInserts).toHaveLength(1);
+    });
+
+    test("a failed insert throws after the goal is saved, and a retry records it", async () => {
+        await upsertNutritionGoals(USER, { daily_calories: 2000 });
+        failHistoryInserts = 1;
+        const err = await upsertNutritionGoals(USER, {
+            daily_calories: 1800,
+        }).then(
+            () => null,
+            (e: unknown) => e,
+        );
+        expect(err).toBeInstanceOf(ToolError);
+        expect((err as Error).message).toContain("were saved");
+        expect((err as Error).message).toContain("set_nutrition_goals");
+        // The goal itself went through; history still holds the old one.
+        expect(goalsRow?.daily_calories).toBe(1800);
+        expect(historyInserts).toHaveLength(1);
+
+        // The retry finds nutrition_goals unchanged but history behind, and
+        // records the change.
+        await upsertNutritionGoals(USER, { daily_calories: 1800 });
+        expect(historyInserts.map((r) => r.daily_calories)).toEqual([
+            2000, 1800,
+        ]);
+    });
+
+    test("a retry dates the healed row to the original save, not to the retry", async () => {
+        history.push({
+            id: nextId++,
+            user_id: USER,
+            effective_at: "2026-03-01T10:00:00.000Z",
+            daily_calories: 2000,
+        });
+        // The state a failed history insert leaves: nutrition_goals holds the
+        // new goal, saved days ago; history still ends with the old one.
+        goalsRow = {
+            user_id: USER,
+            daily_calories: 1800,
+            updated_at: "2026-03-05T08:00:00.000Z",
+        };
+        await upsertNutritionGoals(USER, { daily_calories: 1800 });
+        expect(historyInserts).toHaveLength(1);
+        expect(historyInserts[0]).toMatchObject({
+            effective_at: "2026-03-05T08:00:00.000Z",
+            daily_calories: 1800,
+        });
+    });
+
+    test("a change history missed is recorded at its own time before the new one", async () => {
+        // Seeded by the migration, then changed by code that predates the
+        // history table, then changed again now.
+        history.push({
+            id: nextId++,
+            user_id: USER,
+            effective_at: "2026-03-01T10:00:00.000Z",
+            daily_calories: 2000,
+        });
+        goalsRow = {
+            user_id: USER,
+            daily_calories: 1900,
+            updated_at: "2026-03-03T09:00:00.000Z",
+        };
+        const saved = await upsertNutritionGoals(USER, {
+            daily_calories: 1800,
+        });
+        expect(
+            historyInserts.map((r) => [r.effective_at, r.daily_calories]),
+        ).toEqual([
+            ["2026-03-03T09:00:00.000Z", 1900],
+            [saved.updated_at, 1800],
+        ]);
+    });
+
+    test("goals set with no history at all are recorded at their own time", async () => {
+        goalsRow = {
+            user_id: USER,
+            daily_calories: 1900,
+            updated_at: "2026-03-03T09:00:00.000Z",
+        };
+        await upsertNutritionGoals(USER, { daily_calories: 1900 });
+        expect(
+            historyInserts.map((r) => [r.effective_at, r.daily_calories]),
+        ).toEqual([["2026-03-03T09:00:00.000Z", 1900]]);
+    });
+
+    test("the failure log line carries a ref and no user id", async () => {
+        failHistoryInserts = 1;
+        const err = (await upsertNutritionGoals(USER, {
+            daily_calories: 1800,
+        }).catch((e: unknown) => e)) as Error;
+        const ref = /ref ([0-9a-f]{8})/.exec(err.message)?.[1];
+        expect(ref).toBeDefined();
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toContain(`ref=${ref}`);
+        expect(warnings[0]).not.toContain(USER);
+        // The raw cause stays in the log, never in the caller-facing text.
+        expect(warnings[0]).toContain("connection reset");
+        expect(err.message).not.toContain("connection reset");
+    });
+
+    test("getNutritionGoalsHistory returns this user's rows oldest first", async () => {
+        for (const [i, kcal] of [2000, 1900, 1800, 1700, 1600].entries()) {
+            history.push({
+                id: nextId++,
+                user_id: USER,
+                effective_at: `2026-03-0${5 - i}T10:00:00+00:00`,
+                daily_calories: kcal,
+            });
+        }
+        history.push({
+            id: nextId++,
+            user_id: OTHER_USER,
+            effective_at: "2026-03-01T00:00:00+00:00",
+            daily_calories: 999,
+        });
+        const rows = await getNutritionGoalsHistory(USER);
+        expect(rows.map((r) => r.daily_calories)).toEqual([
+            1600, 1700, 1800, 1900, 2000,
+        ]);
+        expect(rows[0]).toEqual({
+            effective_at: "2026-03-01T10:00:00.000Z",
+            daily_calories: 1600,
+            daily_protein_g: null,
+            daily_carbs_g: null,
+            daily_fat_g: null,
+            daily_fiber_g: null,
+            daily_sugar_g: null,
+            daily_alcohol_g: null,
+            daily_caffeine_mg: null,
+            daily_water_ml: null,
+            target_weight_g: null,
+        });
+    });
+
+    test("getNutritionGoalsHistory pages past 1,000 rows, ties included", async () => {
+        // Two rows per instant, so ids break ties across the page edge.
+        for (let i = 0; i < 2500; i++) {
+            history.push({
+                id: nextId++,
+                user_id: USER,
+                effective_at: new Date(
+                    Date.UTC(2020, 0, 1, 0, Math.floor(i / 2)),
+                ).toISOString(),
+                daily_calories: 1000 + i,
+            });
+        }
+        history.sort(() => Math.random() - 0.5);
+        const rows = await getNutritionGoalsHistory(USER);
+        expect(rows.map((r) => r.daily_calories)).toEqual(
+            Array.from({ length: 2500 }, (_, i) => 1000 + i),
+        );
+    });
+
+    test("getNutritionGoalsHistory throws rather than return a short history", async () => {
+        // A server row cap below the page size: the first page comes back
+        // short and would otherwise end the loop looking complete.
+        historyMaxRows = 2;
+        for (let i = 0; i < 5; i++) {
+            history.push({
+                id: nextId++,
+                user_id: USER,
+                effective_at: `2026-03-0${i + 1}T10:00:00+00:00`,
+                daily_calories: 2000 + i,
+            });
+        }
+        await expect(getNutritionGoalsHistory(USER)).rejects.toThrow(
+            "result would be truncated",
+        );
+    });
+
+    test("getNutritionGoalsHistory with no rows is an empty list", async () => {
+        expect(await getNutritionGoalsHistory(USER)).toEqual([]);
+    });
+
+    // A goal saved by pre-history code after the migration ran sits in
+    // nutrition_goals but not in history until the next save backfills it;
+    // reads must see it in the meantime.
+
+    test("no history but a goals row: the row is the one entry", async () => {
+        goalsRow = {
+            user_id: USER,
+            daily_calories: 1900,
+            daily_protein_g: 140,
+            updated_at: "2026-03-03T09:00:00+00:00",
+        };
+        const rows = await getNutritionGoalsHistory(USER);
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+            effective_at: "2026-03-03T09:00:00.000Z",
+            daily_calories: 1900,
+            daily_protein_g: 140,
+            daily_carbs_g: null,
+        });
+    });
+
+    test("a newer, different goals row is appended after history", async () => {
+        history.push({
+            id: nextId++,
+            user_id: USER,
+            effective_at: "2026-03-01T10:00:00+00:00",
+            daily_calories: 2000,
+        });
+        goalsRow = {
+            user_id: USER,
+            daily_calories: 1900,
+            updated_at: "2026-03-03T09:00:00+00:00",
+        };
+        const rows = await getNutritionGoalsHistory(USER);
+        expect(rows.map((r) => [r.effective_at, r.daily_calories])).toEqual([
+            ["2026-03-01T10:00:00.000Z", 2000],
+            ["2026-03-03T09:00:00.000Z", 1900],
+        ]);
+    });
+
+    test("a newer goals row with the same values adds nothing", async () => {
+        history.push({
+            id: nextId++,
+            user_id: USER,
+            effective_at: "2026-03-01T10:00:00+00:00",
+            daily_calories: 2000,
+        });
+        goalsRow = {
+            user_id: USER,
+            daily_calories: 2000,
+            updated_at: "2026-03-03T09:00:00+00:00",
+        };
+        const rows = await getNutritionGoalsHistory(USER);
+        expect(rows.map((r) => r.daily_calories)).toEqual([2000]);
+    });
+
+    test("no goals row leaves history unchanged", async () => {
+        history.push({
+            id: nextId++,
+            user_id: USER,
+            effective_at: "2026-03-01T10:00:00+00:00",
+            daily_calories: 2000,
+        });
+        const rows = await getNutritionGoalsHistory(USER);
+        expect(rows.map((r) => r.daily_calories)).toEqual([2000]);
+    });
+
+    test("another user's goals row is not merged", async () => {
+        goalsRow = {
+            user_id: OTHER_USER,
+            daily_calories: 1900,
+            updated_at: "2026-03-03T09:00:00+00:00",
+        };
+        expect(await getNutritionGoalsHistory(USER)).toEqual([]);
+    });
+
+    test("after a backfilling save the missed change appears once", async () => {
+        history.push({
+            id: nextId++,
+            user_id: USER,
+            effective_at: "2026-03-01T10:00:00.000Z",
+            daily_calories: 2000,
+        });
+        goalsRow = {
+            user_id: USER,
+            daily_calories: 1900,
+            updated_at: "2026-03-03T09:00:00.000Z",
+        };
+        const before = await getNutritionGoalsHistory(USER);
+
+        // A no-op save: backfills 1900 at its own updated_at, records nothing
+        // new, and bumps updated_at past it with the same values.
+        await upsertNutritionGoals(USER, { daily_calories: 1900 });
+        expect(historyInserts).toHaveLength(1);
+        expect(await getNutritionGoalsHistory(USER)).toEqual(before);
+
+        // A real change afterwards: stored and current agree on the instant.
+        const saved = await upsertNutritionGoals(USER, {
+            daily_calories: 1800,
+        });
+        const rows = await getNutritionGoalsHistory(USER);
+        expect(rows.map((r) => [r.effective_at, r.daily_calories])).toEqual([
+            ["2026-03-01T10:00:00.000Z", 2000],
+            ["2026-03-03T09:00:00.000Z", 1900],
+            [new Date(saved.updated_at).toISOString(), 1800],
+        ]);
+    });
+
+    test("a backfilling change save does not repeat the merged entry", async () => {
+        history.push({
+            id: nextId++,
+            user_id: USER,
+            effective_at: "2026-03-01T10:00:00.000Z",
+            daily_calories: 2000,
+        });
+        goalsRow = {
+            user_id: USER,
+            daily_calories: 1900,
+            updated_at: "2026-03-03T09:00:00.000Z",
+        };
+        const saved = await upsertNutritionGoals(USER, {
+            daily_calories: 1800,
+        });
+        const rows = await getNutritionGoalsHistory(USER);
+        expect(rows.map((r) => [r.effective_at, r.daily_calories])).toEqual([
+            ["2026-03-01T10:00:00.000Z", 2000],
+            ["2026-03-03T09:00:00.000Z", 1900],
+            [new Date(saved.updated_at).toISOString(), 1800],
+        ]);
     });
 });

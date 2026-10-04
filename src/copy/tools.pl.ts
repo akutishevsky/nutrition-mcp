@@ -202,7 +202,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI i synchronizacja z Apple Health, bez żadnych tokenów), health_sync.csv (to, co synchronizacja z Apple Health wysłała w ciągu ostatnich 8 dni) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
+                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (każda zmiana Twoich celów z datą), profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI i synchronizacja z Apple Health, bez żadnych tokenów), health_sync.csv (to, co synchronizacja z Apple Health wysłała w ciągu ostatnich 8 dni) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
             params: {},
             example:
                 "Wyeksportuj wszystkie moje dane — posiłki, wodę, wagę i cele",
@@ -394,12 +394,13 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Średnie kroczące 7-, 14- i 30-dniowe, zmienność, serie dni z wpisami, średnie kalorie według dni tygodnia oraz Twoje najlepsze i najgorsze dni pod względem kalorii — policzone z góry, więc AI może je po prostu opisać.",
+                "Średnie kroczące 7-, 14- i 30-dniowe, zmienność, serie dni z wpisami, średnie kalorie według dni tygodnia oraz Twoje najlepsze i najgorsze dni pod względem kalorii — policzone z góry, więc AI może je po prostu opisać. Z group_by podaje też średnie dla tygodni, miesięcy, kwartałów lub lat — na dzień z wpisami, więc dni bez posiłków się nie liczą — w porównaniu z celami obowiązującymi w danym czasie, wraz z liczbą dni w celu i dni, które mogą być niepełne.",
             params: {
                 days: "Długość okresu w dniach (domyślnie 30, maks. 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> lub <code>year</code>: 26 tygodni, 24 miesiące, 12 kwartałów lub 5 lat, kończąc na okresie zawierającym datę końcową (domyślnie dziś). Zakres jest stały; <code>days</code> nadal ustala średnie kroczące.",
             },
-            example:
-                "Jak wyglądają moje trendy kalorii i makroskładników z ostatnich 30 dni?",
+            example: "Jak wypadły moje miesiące w porównaniu z celami?",
         },
         get_meal_patterns: {
             description:

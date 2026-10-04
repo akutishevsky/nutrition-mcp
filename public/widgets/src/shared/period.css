@@ -1,0 +1,166 @@
+/* Period-average rows: the trends widget's Week / Month / Quarter / Year view
+   (get_trends' `group_by`, delivered in the result `_meta`). Stacked rows,
+   newest first, in their own scroll container — countable units, one row a
+   period. Deliberately NOT table.css: that is scoped to preview tables a user
+   confirms before a write (STYLE_GUIDE §9).
+
+   Colour rules, pinned in STYLE_GUIDE §10:
+     - a figure is --accent when the average is within ±10% of its target,
+       --text-dim otherwise. Never --over: these are floor macros, and
+       over/under colour belongs to limits;
+     - the P / C / F letters carry the series colours (--protein --carbs
+       --fat), the numbers carry the band;
+     - the calorie bar is the macro strip's .mbar/.mfill in --calories. */
+
+/* One caption naming the denominator, above the list. */
+.pcap {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: -2px;
+}
+.pcap.nt {
+    color: var(--text);
+}
+
+/* Capped like .tscroll so the reported height stays bounded however many
+   rows arrive; min-width: 0 for the same reason as there (a flex/grid child
+   otherwise refuses to shrink below its content). */
+.plist {
+    max-height: 320px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-width: 0;
+    margin: 0 -4px;
+    padding: 0 4px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.prow {
+    padding: 8px 0;
+    border-top: 1px solid var(--panel-border);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+.prow:first-child {
+    border-top: 0;
+    padding-top: 2px;
+}
+
+/* Line 1: label (+ partial chip) … day count. */
+.prow-h {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+}
+.plabel {
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+.pchip {
+    flex: none;
+    font-size: 9.5px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--track);
+    color: var(--text-dim);
+    align-self: center;
+}
+.pdays {
+    margin-left: auto;
+    flex: none;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Line 2: calorie figure over its bar, then P / C / F. Wraps the macro
+   figures under the calorie block on a narrow card rather than squeezing. */
+.prow-m {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    min-width: 0;
+}
+.pcal {
+    flex: 1 1 110px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.pcal .mbar {
+    height: 4px;
+}
+.pfig {
+    font-size: 12.5px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.pfig .pu {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    margin-left: 2px;
+}
+.pmacs {
+    display: flex;
+    gap: 10px;
+    flex: none;
+}
+.pmac {
+    font-size: 11.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.pmac b {
+    font-weight: 800;
+    margin-right: 3px;
+}
+.pmac.pro b {
+    color: var(--protein);
+}
+.pmac.car b {
+    color: var(--carbs);
+}
+.pmac.fat b {
+    color: var(--fat);
+}
+/* The band, on the number only. .pin = within ±10% of the target. */
+.pfig.pin,
+.pmac.pin span {
+    color: var(--accent);
+}
+.pfig.pout,
+.pmac.pout span {
+    color: var(--text-dim);
+}
+
+/* Line 3: on target k/n · possibly incomplete · notes. */
+.prow-f {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.35;
+}
+.prow-f .pk {
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+.pnone {
+    font-size: 11px;
+    color: var(--text-dim);
+}

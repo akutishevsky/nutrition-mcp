@@ -447,7 +447,10 @@ export const TOOLS: ToolIdentity[] = [
         name: "get_trends",
         category: "insights-trends",
         badges: ["view", "widget"],
-        params: [{ name: "days", required: false }],
+        params: [
+            { name: "days", required: false },
+            { name: "group_by", required: false },
+        ],
         hasPhotoHint: false,
     },
     {
@@ -850,7 +853,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps and Apple Health sync, without any tokens), health_sync.csv (what Apple Health sync sent over the last 8 days), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
+                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (every change to your goals, dated), profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps and Apple Health sync, without any tokens), health_sync.csv (what Apple Health sync sent over the last 8 days), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
             params: {},
             example: "Export all of my data — meals, water, weight, and goals",
         },
@@ -1036,12 +1039,13 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Rolling 7/14/30-day averages, variability, logging streaks, day-of-week calorie averages, and your best and worst days by calories — pre-computed so the AI can just narrate them.",
+                "Rolling 7/14/30-day averages, variability, logging streaks, day-of-week calorie averages, and your best and worst days by calories — pre-computed so the AI can just narrate them. With group_by, it also gives averages by week, month, quarter or year — per logged day, so days with no meals are left out — set against the targets in effect at the time, with how many days were on target and how many look incomplete.",
             params: {
                 days: "Window size in days (default 30, max 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> or <code>year</code>: 26 weeks, 24 months, 12 quarters or 5 years, ending with the period that contains the end date (today by default). The span is fixed; <code>days</code> still sets the rolling averages.",
             },
-            example:
-                "What are my calorie and macro trends over the last 30 days?",
+            example: "How did my months go against my targets?",
         },
         get_meal_patterns: {
             description:

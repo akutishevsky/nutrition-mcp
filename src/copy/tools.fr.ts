@@ -219,7 +219,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporte tout ce que le service conserve à ton sujet dans un seul fichier ZIP : meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes apps d'IA connectées et la synchronisation Apple Health, sans aucun jeton), health_sync.csv (ce que la synchronisation Apple Health a envoyé ces 8 derniers jours) et un README.txt qui explique les colonnes, les unités et ce qui n'est pas inclus. Tu reçois en retour un lien de téléchargement privé, valable 60 minutes. Pour l'instant, seuls les repas peuvent être réimportés.",
+                "Exporte tout ce que le service conserve à ton sujet dans un seul fichier ZIP : meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (chaque modification de tes objectifs, datée), profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes apps d'IA connectées et la synchronisation Apple Health, sans aucun jeton), health_sync.csv (ce que la synchronisation Apple Health a envoyé ces 8 derniers jours) et un README.txt qui explique les colonnes, les unités et ce qui n'est pas inclus. Tu reçois en retour un lien de téléchargement privé, valable 60 minutes. Pour l'instant, seuls les repas peuvent être réimportés.",
             params: {},
             example:
                 "Exporte toutes mes données : repas, eau, poids et objectifs",
@@ -411,12 +411,14 @@ export const TOOLS_FR: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Moyennes glissantes sur 7/14/30 jours, variabilité, séries d'enregistrement, moyenne des calories par jour de la semaine, et tes meilleurs et pires jours en calories : tout est précalculé pour que l'IA n'ait plus qu'à les commenter.",
+                "Moyennes glissantes sur 7/14/30 jours, variabilité, séries d'enregistrement, moyenne des calories par jour de la semaine, et tes meilleurs et pires jours en calories : tout est précalculé pour que l'IA n'ait plus qu'à les commenter. Avec group_by, il donne aussi des moyennes par semaine, mois, trimestre ou année — par jour enregistré, les jours sans repas ne comptent donc pas — comparées aux objectifs en vigueur à l'époque, avec le nombre de jours dans l'objectif et de jours peut-être incomplets.",
             params: {
                 days: "Durée de la période en jours (30 par défaut, 365 maximum).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> ou <code>year</code> : 26 semaines, 24 mois, 12 trimestres ou 5 ans, jusqu'à la période qui contient la date de fin (aujourd'hui par défaut). La durée est fixe ; <code>days</code> règle toujours les moyennes glissantes.",
             },
             example:
-                "Quelles sont mes tendances de calories et de macros sur les 30 derniers jours ?",
+                "Comment se sont passés mes mois par rapport à mes objectifs ?",
         },
         get_meal_patterns: {
             description:
