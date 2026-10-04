@@ -9,19 +9,33 @@
   sandbox blocks external hosts.
 
   Shown after get_weight_trends. The whole widget is ONE panel: a header line
-  carrying the 7 / 14 / 30-day toggle, then the latest reading beside the
-  weight chart, then a hairline footer with the weigh-in count, the date span
-  and the target. There is NO macro strip here — this widget is about a single
-  series, so it includes neither macros.css nor macros.js.
+  carrying the range toggle, then the headline figure beside the weight chart,
+  then a hairline footer with the weigh-in count and the target. There is NO
+  macro strip here — this widget is about a single series, so it includes
+  neither macros.css nor macros.js.
 
-  The tool sends up to 30 days of per-day weight (same-day weigh-ins averaged),
-  and the toggle filters it CLIENT-SIDE and re-renders — no host round-trip.
-  Unlike the calorie chart, the weight axis is scaled to the data range (NOT
-  zero-based) so small changes stay visible, with a dashed target line.
+  Two modes, picked per render from what the host delivered:
 
-  Data arrives as the `structuredContent` of the get_weight_trends tool result;
-  the shared bridge (shared/bridge.js) reads it across host conventions and calls
-  render(). Standalone preview uses the SAMPLE below.
+  - TREND (the result's `_meta` carries "nutrition-mcp.com/weight-series"):
+    the smoothed trend weight is the big number with the scale reading and a
+    2-week rate chip beside it; the chart is date-proportional, raw daily
+    weights are faint dots and the trend is the solid accent line. The toggle
+    is 7 · 30 · 90 · 1y · All — 7/30/90 slice `daily`, 1y draws `weekly`,
+    All draws `monthly` (each long range shown only when its series exists,
+    All only once the history spans more than a year).
+  - LEGACY (a host that dropped `_meta`, or an older server): exactly the
+    pre-trend widget — raw line over an index-spaced X, 7 / 14 / 30 toggle
+    over `structuredContent.days`. Keep this path byte-for-byte in behaviour;
+    `structuredContent` is frozen, so it is what every stale host still sees.
+
+  Both modes filter CLIENT-SIDE and re-render on a toggle — no host
+  round-trip. The weight axis is scaled to the data range (NOT zero-based) so
+  small changes stay visible, with a dashed target line.
+
+  Data arrives as the `structuredContent` of the get_weight_trends tool result
+  (plus its `_meta` as render()'s second argument); the shared bridge
+  (shared/bridge.js) reads it across host conventions and calls render().
+  Standalone preview uses the SAMPLE below.
 -->
 <html lang="en">
     <head>
@@ -111,6 +125,52 @@
                 color: var(--text-dim);
                 font-size: 12.5px;
             }
+
+            /* ---- Trend mode only (the `_meta` series is present) ---- */
+            /* The chart column: the SVG plus its start/end date labels. */
+            /* The trend headline is wider than the legacy one, so on a
+               narrow host the chart would shrink to a sliver beside it (the
+               viewBox's fixed aspect makes it short as well as thin). Below
+               ~180px of chart it wraps under the headline at full width. */
+            .wmain.wtrend {
+                flex-wrap: wrap;
+            }
+            .wcol {
+                flex: 1;
+                min-width: 180px;
+            }
+            .wcol .wchart {
+                width: 100%;
+            }
+            .wscale {
+                font-size: 10.5px;
+                color: var(--text-dim);
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            .wrate {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                margin: 2px 0 1px;
+                white-space: nowrap;
+            }
+            .wratelab {
+                font-size: 10px;
+                color: var(--text-dim);
+            }
+            /* The rate chip: a tinted pill in its own colour (accent toward
+               the target, --over away from it, --text-dim with no target). */
+            .wchip {
+                display: inline-block;
+                font-size: 10.5px;
+                font-weight: 700;
+                line-height: 1.5;
+                padding: 0 7px;
+                border-radius: 999px;
+                font-variant-numeric: tabular-nums;
+                background: color-mix(in srgb, currentColor 14%, transparent);
+            }
         </style>
     </head>
     <body>
@@ -156,6 +216,80 @@
                 };
             }
             const SAMPLE = buildSample();
+
+            // The matching `_meta` series for the standalone preview: ~20
+            // months of every-other-day weigh-ins drifting down, smoothed with
+            // the server's EWMA (α 0.15, gap-corrected) and bucketed the same
+            // way. Only for the browser preview; the harness builds its
+            // fixtures with the real src/weight-trend.ts.
+            function buildSampleMeta() {
+                const r1 = (v) => Math.round(v * 10) / 10;
+                const days = [];
+                for (let i = 600; i >= 0; i -= 2) {
+                    const date = shiftDate("2026-07-11", -i);
+                    const w = 86 - ((600 - i) / 600) * 8 + Math.sin(i * 1.7);
+                    days.push({ date, weight: w });
+                }
+                let t = days[0].weight;
+                let prev = null;
+                for (const d of days) {
+                    if (prev) {
+                        const gap =
+                            (Date.parse(d.date) - Date.parse(prev)) / 864e5;
+                        t += (1 - Math.pow(0.85, gap)) * (d.weight - t);
+                    }
+                    d.trend = t;
+                    prev = d.date;
+                }
+                const bucket = (keyOf) => {
+                    const map = new Map();
+                    for (const d of days) {
+                        const k = keyOf(d.date);
+                        const b = map.get(k) || { sum: 0, n: 0, trend: 0 };
+                        b.sum += d.weight;
+                        b.n += 1;
+                        b.trend = d.trend;
+                        map.set(k, b);
+                    }
+                    return [...map.entries()].map(([k, b]) => ({
+                        k,
+                        weight: r1(b.sum / b.n),
+                        trend: r1(b.trend),
+                    }));
+                };
+                const monday = (iso) => {
+                    const dow =
+                        (new Date(iso + "T00:00:00Z").getUTCDay() + 6) % 7;
+                    return shiftDate(iso, -dow);
+                };
+                const last = days[days.length - 1];
+                return {
+                    [SERIES_KEY]: {
+                        v: 1,
+                        unit: "kg",
+                        daily: days
+                            .filter((d) => d.date >= shiftDate(last.date, -89))
+                            .map((d) => ({
+                                date: d.date,
+                                weight: r1(d.weight),
+                                trend: r1(d.trend),
+                            })),
+                        weekly: bucket(monday)
+                            .slice(-53)
+                            .map(({ k, ...b }) => ({ start: k, ...b })),
+                        monthly: bucket((iso) => iso.slice(0, 7)).map(
+                            ({ k, ...b }) => ({ month: k, ...b }),
+                        ),
+                        first: {
+                            date: days[0].date,
+                            weight: r1(days[0].weight),
+                        },
+                        trend_latest: r1(last.trend),
+                        trend_date: last.date,
+                        weekly_rate: -0.31,
+                    },
+                };
+            }
 
             function esc(s) {
                 return String(s).replace(
@@ -340,14 +474,510 @@
           </div>`;
             }
 
+            // ---- Trend mode (`_meta` series present) ----------------------------
+            // The result `_meta` key the server writes the long series under
+            // (WEIGHT_SERIES_META_KEY in src/widgets.ts). Repeated as a literal
+            // because a widget cannot import; src/mcp.test.ts asserts the
+            // assembled HTML contains it.
+            const SERIES_KEY = "nutrition-mcp.com/weight-series";
+            // Trend-mode ranges, keyed by string id (the buttons carry
+            // data-r="1y" / "all", which Number() would turn into NaN).
+            // `days` is the window for the daily ranges and the {range} of the
+            // empty-range line; All is never empty, since it only exists when
+            // there is history.
+            const TREND_RANGES = [
+                { id: "7", days: 7 },
+                { id: "30", days: 30 },
+                { id: "90", days: 90 },
+                { id: "1y", days: 365 },
+                { id: "all", days: null },
+            ];
+            // Above this many points the raw dots turn into a grey smear and
+            // only the trend line and its area are drawn.
+            const MAX_DOTS = 45;
+
+            const isNum = (v) => typeof v === "number" && isFinite(v);
+            const isDate = (v) =>
+                typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+            const dayNum = (iso) => Date.parse(iso + "T00:00:00Z") / 864e5;
+
+            // Pull the series out of the result `_meta`, treating every field
+            // as optional: a malformed entry is dropped, never painted. Null
+            // (→ legacy mode) when there is nothing to draw at all.
+            function seriesFrom(meta) {
+                const s = meta && meta[SERIES_KEY];
+                if (!s || typeof s !== "object") return null;
+                const rows = (arr, key, ok) =>
+                    (Array.isArray(arr) ? arr : [])
+                        .filter(
+                            (r) =>
+                                r &&
+                                ok(r[key]) &&
+                                isNum(r.weight) &&
+                                isNum(r.trend),
+                        )
+                        .slice()
+                        .sort((a, b) => (a[key] < b[key] ? -1 : 1));
+                const out = {
+                    hasDaily: Array.isArray(s.daily),
+                    hasWeekly: Array.isArray(s.weekly),
+                    hasMonthly: Array.isArray(s.monthly),
+                    daily: rows(s.daily, "date", isDate),
+                    weekly: rows(s.weekly, "start", isDate),
+                    monthly: rows(s.monthly, "month", (m) =>
+                        /^\d{4}-\d{2}$/.test(String(m)),
+                    ),
+                    first:
+                        s.first && isDate(s.first.date) && isNum(s.first.weight)
+                            ? s.first
+                            : null,
+                    trendLatest: isNum(s.trend_latest) ? s.trend_latest : null,
+                    trendDate: isDate(s.trend_date) ? s.trend_date : null,
+                    weeklyRate: isNum(s.weekly_rate) ? s.weekly_rate : null,
+                };
+                if (
+                    !out.daily.length &&
+                    !out.weekly.length &&
+                    !out.monthly.length
+                ) {
+                    return null;
+                }
+                return out;
+            }
+
+            // The day the whole history ends on: the tool's window end, else
+            // the last weigh-in the series knows about.
+            function seriesEnd(s, data) {
+                if (isDate(data && data.end_date)) return data.end_date;
+                if (s.trendDate) return s.trendDate;
+                const d = s.daily[s.daily.length - 1];
+                return d ? d.date : null;
+            }
+            // First weigh-in ever, from `first` or failing that the oldest
+            // bucket the payload carries.
+            function seriesStart(s) {
+                if (s.first) return s.first.date;
+                const m = s.monthly[0];
+                if (m) return m.month + "-01";
+                const w = s.weekly[0];
+                if (w) return w.start;
+                const d = s.daily[0];
+                return d ? d.date : null;
+            }
+            function historySpanDays(s, data) {
+                const a = seriesStart(s);
+                const b = seriesEnd(s, data);
+                return a && b ? dayNum(b) - dayNum(a) : 0;
+            }
+
+            // Which ranges this payload can fill. 7/30 always (they read
+            // `daily`, as 90 does once the server sends it); 1y needs
+            // `weekly`; All needs a series that reaches back further than 1y.
+            function availableRanges(s, data) {
+                return TREND_RANGES.filter((r) => {
+                    if (r.id === "7" || r.id === "30") return true;
+                    if (r.id === "90") return s.hasDaily;
+                    if (r.id === "1y") return s.weekly.length > 0;
+                    return (
+                        (s.monthly.length > 0 || s.weekly.length > 0) &&
+                        historySpanDays(s, data) > 365
+                    );
+                });
+            }
+
+            // "Mar 2024" — the long ranges need the year, which shortDate()
+            // never shows. UTC on both sides, so the 15th can't slide into a
+            // neighbouring month for anyone.
+            function monthLabel(iso) {
+                const m = /^(\d{4})-(\d{2})/.exec(String(iso || ""));
+                if (!m) return String(iso || "");
+                const d = new Date(Date.UTC(+m[1], +m[2] - 1, 15));
+                try {
+                    return new Intl.DateTimeFormat(WIDGET_LOCALE, {
+                        month: "short",
+                        year: "numeric",
+                        timeZone: "UTC",
+                    }).format(d);
+                } catch (_) {
+                    return `${T.nutritionSummary.months[+m[2] - 1]} ${m[1]}`;
+                }
+            }
+
+            // The points a range draws, as { x, label, weight, trend } with
+            // `x` the calendar day the point is plotted at.
+            //   7/30/90 → `daily`, cut to the window ending on end_date;
+            //   1y      → `weekly` (53 ISO weeks, plotted mid-week);
+            //   All     → `weekly` when it reaches back to the first weigh-in,
+            //             else `monthly` (plotted mid-month). `weekly` stops at
+            //             53 weeks, so a 13–24-month history would otherwise
+            //             lose its first months under "All".
+            //             All only appears past 365 days and `weekly` cannot
+            //             reach back further than 53 weeks, so in practice All
+            //             draws `monthly`. Weekly points for a 1–2-year history
+            //             would need a longer weekly series (e.g. an additive
+            //             104-week field).
+            function rangePoints(s, data, id) {
+                const end = seriesEnd(s, data);
+                if (id === "1y") {
+                    return {
+                        long: true,
+                        points: s.weekly.map((w) => ({
+                            x: shiftDate(w.start, 3),
+                            label: w.start,
+                            weight: w.weight,
+                            trend: w.trend,
+                        })),
+                    };
+                }
+                if (id === "all") {
+                    const start = seriesStart(s);
+                    const weeklyCovers =
+                        s.weekly.length > 0 &&
+                        start != null &&
+                        s.weekly[0].start <= start;
+                    const src = weeklyCovers
+                        ? s.weekly.map((w) => ({
+                              x: shiftDate(w.start, 3),
+                              label: w.start,
+                              weight: w.weight,
+                              trend: w.trend,
+                          }))
+                        : s.monthly.map((m) => ({
+                              x: m.month + "-15",
+                              label: m.month + "-01",
+                              weight: m.weight,
+                              trend: m.trend,
+                          }));
+                    return { long: true, points: src };
+                }
+                const n = Number(id);
+                const cutoff = end ? shiftDate(end, -(n - 1)) : "";
+                return {
+                    long: false,
+                    points: s.daily
+                        .filter((d) => d.date >= cutoff)
+                        .map((d) => ({
+                            x: d.date,
+                            label: d.date,
+                            weight: d.weight,
+                            trend: d.trend,
+                        })),
+                };
+            }
+
+            // Date-proportional chart: raw weights as faint dots, the trend
+            // as the solid accent line with the area under it. Same viewBox,
+            // padding and ±18% Y padding as the legacy chart.
+            function trendChart(points, target, unit, fmtDate) {
+                const W = 300,
+                    H = 62,
+                    padL = 5,
+                    padR = 5,
+                    padT = 7,
+                    padB = 5;
+                const n = points.length;
+                const vals = [];
+                for (const p of points) vals.push(p.weight, p.trend);
+                let lo = Math.min(...vals);
+                let hi = Math.max(...vals);
+                if (target != null) {
+                    lo = Math.min(lo, target);
+                    hi = Math.max(hi, target);
+                }
+                if (hi === lo) {
+                    hi = lo + 1;
+                    lo = lo - 1;
+                }
+                const pad = (hi - lo) * 0.18;
+                const yMin = lo - pad;
+                const yMax = hi + pad;
+                const plotW = W - padL - padR;
+                const plotH = H - padT - padB;
+                const base = padT + plotH;
+                const t0 = dayNum(points[0].x);
+                const span = dayNum(points[n - 1].x) - t0;
+                const x = (p) =>
+                    span <= 0
+                        ? padL + plotW / 2
+                        : padL + (plotW * (dayNum(p.x) - t0)) / span;
+                const y = (v) =>
+                    padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+                const f = (v) => v.toFixed(1);
+                const tp = points.map((p) => [x(p), y(p.trend)]);
+
+                const line =
+                    n >= 2
+                        ? tp
+                              .map(
+                                  (q, i) =>
+                                      `${i ? "L" : "M"}${f(q[0])} ${f(q[1])}`,
+                              )
+                              .join(" ")
+                        : "";
+                const area =
+                    n >= 2
+                        ? `M${f(tp[0][0])} ${base} ` +
+                          tp.map((q) => `L${f(q[0])} ${f(q[1])}`).join(" ") +
+                          ` L${f(tp[n - 1][0])} ${base} Z`
+                        : "";
+                const targetLine =
+                    target != null
+                        ? `<line class="goalline" x1="${padL}" y1="${f(y(target))}" x2="${W - padR}" y2="${f(y(target))}"/>`
+                        : "";
+                const dots =
+                    n <= MAX_DOTS
+                        ? points
+                              .map(
+                                  (p) =>
+                                      `<circle cx="${f(x(p))}" cy="${f(y(p.weight))}" r="2" fill="var(--text-dim)" opacity="0.55"/>`,
+                              )
+                              .join("")
+                        : "";
+                // A lone point has no line to carry the trend, so it gets a
+                // marker of its own on top of the raw dot.
+                const lone =
+                    n === 1
+                        ? `<circle cx="${f(tp[0][0])}" cy="${f(tp[0][1])}" r="2.6" fill="var(--accent)"/>`
+                        : "";
+
+                const from = fmtDate(points[0].label);
+                const to = fmtDate(points[n - 1].label);
+                const label = tpl(T.weightTrends.trendChartAriaLabel, {
+                    from,
+                    to,
+                    latest: `${w1(points[n - 1].trend)} ${unit}`,
+                });
+                const dates =
+                    from === to
+                        ? `<span>${esc(from)}</span>`
+                        : `<span>${esc(from)}</span><span>${esc(to)}</span>`;
+
+                return `
+          <div class="wcol">
+            <svg class="wchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+              ${targetLine}
+              ${area ? `<path d="${area}" fill="var(--accent)" opacity="0.16"/>` : ""}
+              ${dots}
+              ${line ? `<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
+              ${lone}
+            </svg>
+            <div class="tdates" aria-hidden="true">${dates}</div>
+          </div>`;
+            }
+
+            // Accent when a move shrinks the gap to the target, --over when it
+            // widens it, neutral with no target or no move.
+            function towardColor(from, to, target) {
+                if (target == null || from === to) return "var(--text-dim)";
+                return Math.abs(to - target) < Math.abs(from - target)
+                    ? "var(--accent)"
+                    : "var(--over)";
+            }
+
+            // Headline: trend weight big, the scale reading small, then the
+            // 2-week rate chip and the change over the selected range.
+            function trendHead(s, data, id, rp, target, unit) {
+                const pts = rp.points;
+                const n = pts.length;
+                const last = pts[n - 1];
+                const trendNow = s.trendLatest ?? last.trend;
+
+                // The latest raw reading. "Scale today" only when it really is
+                // today's (the window's end day); an older reading is plain
+                // "Latest", so the line never claims a weigh-in that didn't
+                // happen.
+                const lastDay = s.daily[s.daily.length - 1] || null;
+                let scale = "";
+                if (lastDay) {
+                    const value = `${w1(lastDay.weight)} ${esc(unit)}`;
+                    scale =
+                        lastDay.date === seriesEnd(s, data)
+                            ? tpl(T.weightTrends.scaleToday, { value })
+                            : `${esc(T.weightTrends.latest)} ${value}`;
+                    scale = `<div class="wscale">${scale}</div>`;
+                }
+
+                // Rate chip: weekly_rate (2 decimals, display unit) shown at 1
+                // decimal — the same rounding the text content applies to the
+                // same value, so the two never disagree.
+                let rate = "";
+                if (s.weeklyRate != null) {
+                    const r = Math.round(s.weeklyRate * 10) / 10 || 0;
+                    const amount = `${signed(r)} ${esc(unit)}`;
+                    let color = "var(--text-dim)";
+                    if (target != null && r !== 0) {
+                        const gap = target - trendNow;
+                        color = r * gap > 0 ? "var(--accent)" : "var(--over)";
+                    }
+                    const aria = esc(
+                        tpl(T.weightTrends.rateAriaLabel, { amount }),
+                    );
+                    const lab =
+                        id === "7" || id === "30"
+                            ? ""
+                            : `<span class="wratelab">${esc(T.weightTrends.rateTwoWeeks)}</span>`;
+                    rate = `<div class="wrate">${lab}<span class="wchip" style="color:${color}" role="img" aria-label="${aria}" title="${aria}">${tpl(T.weightTrends.perWeek, { amount })}</span></div>`;
+                }
+
+                // Change over the range, trend to trend: the headline is a
+                // trend figure, so the change under it is one too. Dated from
+                // the first point IN the range, not the window's length (see
+                // latestBlock); the long ranges name a month.
+                let delta;
+                if (n >= 2) {
+                    const from = pts[0].trend;
+                    const change = Math.round((last.trend - from) * 10) / 10;
+                    const color = towardColor(from, last.trend, target);
+                    const text = rp.long
+                        ? tpl(T.weightTrends.sinceMonth, {
+                              change: `${signed(change)} ${esc(unit)}`,
+                              date: esc(monthLabel(pts[0].label)),
+                          })
+                        : tpl(T.weightTrends.sinceDate, {
+                              change: `${signed(change)} ${esc(unit)}`,
+                              date: shortDate(pts[0].label),
+                          });
+                    delta = `<div class="wdelta" style="color:${color}">${text}</div>`;
+                } else {
+                    delta = `<div class="wdelta" style="color:var(--text-dim)">${esc(T.weightTrends.needTwo)}</div>`;
+                }
+
+                return `
+          <div class="wnow">
+            <div class="wlabel">${esc(T.weightTrends.trend)}</div>
+            <div class="wval">${w1(trendNow)}<span class="wunit">${esc(unit)}</span></div>
+            ${scale}
+            ${rate}
+            ${delta}
+          </div>`;
+            }
+
+            // Footer: the weigh-in count for the daily ranges (a bucket is not
+            // a weigh-in, so the long ranges leave it out — their span is in
+            // the chart's date labels), and the target measured from the trend.
+            function trendFooter(s, rp, target, unit) {
+                const left = rp.long
+                    ? ""
+                    : plural(T.weightTrends.weighIns, rp.points.length);
+                let right;
+                if (target != null) {
+                    const now =
+                        s.trendLatest ?? rp.points[rp.points.length - 1].trend;
+                    const delta = Math.round((now - target) * 10) / 10;
+                    const gap =
+                        Math.abs(delta) < 0.05
+                            ? T.weightTrends.atTarget
+                            : tpl(
+                                  delta > 0
+                                      ? T.weightTrends.toLose
+                                      : T.weightTrends.toGain,
+                                  {
+                                      amount: `${w1(Math.abs(delta))} ${esc(unit)}`,
+                                  },
+                              );
+                    const targetVal = tpl(T.weightTrends.target, {
+                        value: `${w1(target)} ${unit}`,
+                    });
+                    right = `<b>${esc(targetVal)}</b> · ${gap}`;
+                } else {
+                    right = esc(T.weightTrends.noTarget);
+                }
+                return `
+          <div class="psec wfoot">
+            <span>${left}</span>
+            <span>${right}</span>
+          </div>`;
+            }
+
+            function initialTrendRange(s, data) {
+                const want =
+                    {
+                        7: "7",
+                        30: "30",
+                        90: "90",
+                        365: "1y",
+                    }[data && data.default_range] || "30";
+                const ids = availableRanges(s, data).map((r) => r.id);
+                const pick = ids.includes(want) ? want : "30";
+                // A range with nothing in it (no weigh-in in the last 30
+                // days, say) would open on the empty line while longer
+                // ranges hold data: widen to the next range that has points.
+                const has = (id) => rangePoints(s, data, id).points.length > 0;
+                if (has(pick)) return pick;
+                const wider = ids.slice(ids.indexOf(pick) + 1).find(has);
+                return wider || pick;
+            }
+
+            function paintTrend() {
+                const root = document.getElementById("root");
+                const data = STATE.data || {};
+                const s = STATE.series;
+                const unit = weightUnit(data.unit || s.unit || "kg");
+                const target = isNum(data.target) ? data.target : null;
+                const ranges = availableRanges(s, data);
+                const id = STATE.range;
+                const rp = rangePoints(s, data, id);
+                const n = rp.points.length;
+
+                const seg = ranges
+                    .map((r) => {
+                        const text =
+                            r.id === "1y"
+                                ? T.weightTrends.range1y
+                                : r.id === "all"
+                                  ? T.weightTrends.rangeAll
+                                  : r.id;
+                        const aria =
+                            r.id === "1y"
+                                ? T.weightTrends.range1yAriaLabel
+                                : r.id === "all"
+                                  ? T.weightTrends.rangeAllAriaLabel
+                                  : tpl(T.weightTrends.rangeAriaLabel, {
+                                        n: r.days,
+                                    });
+                        return `<button class="seg-btn${r.id === id ? " active" : ""}" data-r="${r.id}" aria-label="${esc(aria)}" aria-pressed="${r.id === id}">${esc(text)}</button>`;
+                    })
+                    .join("");
+
+                const days = (TREND_RANGES.find((r) => r.id === id) || {}).days;
+                const fmtDate = rp.long ? monthLabel : shortDate;
+                const body =
+                    n === 0
+                        ? `<div class="cempty">${esc(tpl(T.weightTrends.rangeEmpty, { range: days ?? "" }))}</div>`
+                        : `
+          <div class="wmain wtrend">
+            ${trendHead(s, data, id, rp, target, unit)}
+            ${trendChart(rp.points, target, unit, fmtDate)}
+          </div>
+          ${trendFooter(s, rp, target, unit)}`;
+
+                root.innerHTML = `
+          <div class="panel">
+            <div class="phead mid">
+              <div class="ptitle">${esc(T.weightTrends.title)}</div>
+              <div class="seg seg-sm" role="group" aria-label="${esc(T.weightTrends.windowAriaLabel)}">${seg}</div>
+            </div>
+            ${body}
+          </div>`;
+            }
+
             // ---- State + rendering ---------------------------------------------
-            const STATE = { data: null, range: 30 };
+            // `range` is a string id in both modes ("7", "14", "30" in legacy;
+            // "7" … "1y", "all" in trend mode). `series` is the parsed `_meta`
+            // series, or null for legacy mode.
+            const STATE = { data: null, series: null, range: "30" };
             let __widgetApi = null;
 
-            function render(data) {
+            function render(data, meta) {
                 STATE.data = data;
+                STATE.series = seriesFrom(meta);
                 const root = document.getElementById("root");
                 setLocaleFrom(data, __widgetApi);
+                if (STATE.series) {
+                    STATE.range = initialTrendRange(STATE.series, data);
+                    paint();
+                    return;
+                }
                 if (
                     !data ||
                     !Array.isArray(data.days) ||
@@ -360,13 +990,22 @@
             </div>`;
                     return;
                 }
-                STATE.range = RANGES.includes(data.default_range)
-                    ? data.default_range
-                    : 30;
+                STATE.range = String(
+                    RANGES.includes(data.default_range)
+                        ? data.default_range
+                        : 30,
+                );
                 paint();
             }
 
             function paint() {
+                if (STATE.series) paintTrend();
+                else paintLegacy();
+            }
+
+            // The pre-trend widget, for a host that dropped `_meta`. Keep it
+            // exactly as it was: it is what every such host still shows.
+            function paintLegacy() {
                 const root = document.getElementById("root");
                 const data = STATE.data;
                 const unit = weightUnit(data.unit || "kg");
@@ -374,7 +1013,7 @@
                 const all = data.days
                     .slice()
                     .sort((a, b) => (a.date < b.date ? -1 : 1));
-                const range = STATE.range;
+                const range = Number(STATE.range);
                 const cutoff = shiftDate(
                     data.end_date || all[all.length - 1].date,
                     -(range - 1),
@@ -384,7 +1023,7 @@
 
                 const seg = RANGES.map(
                     (r) =>
-                        `<button class="seg-btn${r === range ? " active" : ""}" data-n="${r}" aria-label="${esc(tpl(T.weightTrends.rangeAriaLabel, { n: r }))}" aria-pressed="${r === range}">${r}</button>`,
+                        `<button class="seg-btn${r === range ? " active" : ""}" data-r="${r}" aria-label="${esc(tpl(T.weightTrends.rangeAriaLabel, { n: r }))}" aria-pressed="${r === range}">${r}</button>`,
                 ).join("");
 
                 const body =
@@ -411,9 +1050,10 @@
             document.getElementById("root").addEventListener("click", (e) => {
                 const btn = e.target.closest(".seg-btn");
                 if (!btn) return;
-                const n = Number(btn.dataset.n);
-                if (n && n !== STATE.range && STATE.data) {
-                    STATE.range = n;
+                // A string id, never Number(): "1y" and "all" are ids too.
+                const r = btn.dataset.r;
+                if (r && r !== STATE.range && STATE.data) {
+                    STATE.range = r;
                     paint();
                 }
             });
@@ -437,6 +1077,7 @@
                 coerce,
                 render,
                 sample: SAMPLE,
+                sampleMeta: buildSampleMeta(),
                 onReady(api) {
                     __widgetApi = api;
                 },
