@@ -22,7 +22,8 @@ warmed in `src/index.ts`). Nothing generated is committed.
 
 - **Sources** live in `public/widgets/src/`: shared partials in `shared/`
   (`tokens.css`, `base.css`, `ring.css`, `macros.css`, `trend.css`, `seg.css`,
-  `form.css`, `table.css`, `macros.js`, `bridge.js`) and one template per widget
+  `form.css`, `table.css`, `period.css`, `macros.js`, `period.js`, `bridge.js`,
+  `i18n.js`, `date.js`) and one template per widget
   in `templates/`.
 - **Include marker** — a partial is inlined with a comment that is valid CSS _and_
   JS, so a template still parses on its own:
@@ -1100,6 +1101,43 @@ component gallery.
 `.tscroll` also caps its own height (`max-height`) so the widget's reported height
 stays bounded: a host may impose `hostContext.containerDimensions`, and an unbounded
 table is simply clipped rather than scrolled.
+
+## 10. Component: period rows (`shared/period.css` + `shared/period.js`)
+
+The trends widget's Week · Month · Qtr · Year view: one stacked row per period,
+newest first, built from `get_trends`' `group_by` data in the result `_meta`
+(`nutrition-mcp.com/period-averages`; never `structuredContent`, whose schema is
+frozen). `periodsFrom(meta)` parses it defensively — a malformed row is dropped,
+never half-painted — and returns null when nothing is usable, which leaves the
+widget exactly on its 7/14/30 day view. `periodListHtml(rows, g, { targetsFrom })`
+renders one granularity; the gallery calls it directly.
+
+- **Denominator.** Every figure is an average **per logged day** (a day with at
+  least one meal; water alone does not count), and the list opens with that
+  caption (`T.trends.perLoggedDay`). The day view keeps its own "all days" label.
+  Both denominators are named on screen; keep it that way.
+- **Row.** Line 1: the period label (`Intl.DateTimeFormat` in the widget locale;
+  weeks via `formatRange`, with the year on both ends when the week crosses one;
+  quarters through `T.trends.quarter`), a `.pchip` on the still-running period, and
+  `logged/total days` right-aligned in mono digits. Line 2: the calorie figure
+  `avg / target` over a thin `.mbar`/`.mfill` in `--calories`, then P / C / F
+  (letters from `T.importMeals.tableAbbr`). Line 3: `on target k/n`, possibly
+  incomplete days, and the targets-changed / targets-before-date notes.
+- **Colour.** A figure with a target is `--accent` (`.pin`) when the average is
+  within ±10% of it and `--text-dim` (`.pout`) otherwise — `periodWithinBand`,
+  which must stay identical to `withinBand` in `src/insights.ts`. It is never
+  `--over`: these are floors, and over/under colour belongs to limits. The P/C/F
+  letters keep `--protein`/`--carbs`/`--fat`; the band is on the number only.
+- **States.** `logged_days = 0` is one dim "nothing logged" line. No targets on
+  any row: one line at the top says so, and rows show averages only — no bars, no
+  line 3.
+- **Height.** `.plist` caps at 320px and scrolls inside itself (`min-width: 0`,
+  same reason as `.tscroll`), so the reported height stays bounded. It does not use
+  `table.css`, which is scoped to preview tables (§9).
+- **Switching.** The seg carries string ids (`data-mode="week"` … `"days"`), read
+  as strings, never `Number()`. "Days" shows the day view with its 7/14/30 toggle
+  on a line under the header, so the way back stays in the header. The bridge's
+  ResizeObserver re-reports the height after every switch.
 
 ## Verifying a new widget
 

@@ -28,6 +28,16 @@
   Data arrives as the `structuredContent` of the get_trends tool result; the
   shared bridge (shared/bridge.js) reads it across host conventions and calls
   render(). Standalone preview uses the SAMPLE below.
+
+  PERIOD MODE. get_trends called with `group_by` also sends, in the result's
+  `_meta` under "nutrition-mcp.com/period-averages", rows for every
+  granularity (shared/period.js). The widget then opens on the requested one:
+  the header seg becomes Week · Month · Qtr · Year · Days, the first four
+  show stacked period rows (averages PER LOGGED DAY against the targets in
+  effect at the time), and Days is the calendar-day view above with its own
+  7 / 14 / 30 toggle on a second line. Without that `_meta` (no `group_by`, or
+  a host that dropped it) the widget is exactly the day view, unchanged — the
+  same DOM it always painted.
 -->
 <html lang="en">
     <head>
@@ -53,6 +63,17 @@
             /*@include shared/ring.css@*/
 
             /*@include shared/macros.css@*/
+
+            /* Period rows (Week / Month / Quarter / Year view). */
+            /*@include shared/period.css@*/
+
+            /* Days mode inside period mode: the 7/14/30 toggle on its own
+               line under the header, since the header seg is the period one. */
+            .rangeline {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: -2px;
+            }
         </style>
     </head>
     <body>
@@ -180,6 +201,10 @@
             // averaging loop reads. Requires fmt + esc above.
             /*@include shared/macros.js@*/
 
+            // periodsFrom() + the period row builders. Requires fmt + esc
+            // above and T / tpl / plural from shared/i18n.js.
+            /*@include shared/period.js@*/
+
             // Calories-per-day trend: SVG area + line that scales to any range
             // (7 to 30 days). Compact — a 54-unit-tall viewBox sitting inside
             // the widget's panel, not a card of its own. Uniform scaling — no
@@ -254,11 +279,20 @@
             }
 
             // ---- State + rendering ---------------------------------------------
-            const STATE = { data: null, range: 30 };
+            // `periods` is the parsed `_meta` (null → the day view only, as
+            // before). `mode` is a string id: "week" | "month" | "quarter" |
+            // "year" | "days". `range` stays a number (7 / 14 / 30).
+            const STATE = {
+                data: null,
+                range: 30,
+                periods: null,
+                mode: "days",
+            };
             let __widgetApi = null;
 
-            function render(data) {
+            function render(data, meta) {
                 STATE.data = data;
+                STATE.periods = periodsFrom(meta);
                 const root = document.getElementById("root");
                 // The tool sends a bucket for every calendar day (zeros for
                 // unlogged days), so the array is basically never empty — treat
@@ -273,6 +307,15 @@
                     Array.isArray(data.days) &&
                     data.days.some(dayHasData);
                 setLocaleFrom(data, __widgetApi);
+                if (STATE.periods) {
+                    STATE.mode = STATE.periods.groupBy;
+                    STATE.range = RANGES.includes(data && data.default_range)
+                        ? data.default_range
+                        : 30;
+                    paint();
+                    return;
+                }
+                STATE.mode = "days";
                 if (!anyLogged) {
                     root.innerHTML = `
             <div class="empty">
@@ -288,8 +331,70 @@
             }
 
             function paint() {
+                if (STATE.periods && STATE.mode !== "days") paintPeriods();
+                else paintDays();
+            }
+
+            // The header seg of period mode: one button per granularity the
+            // payload carries, then Days. String ids throughout.
+            function periodSeg() {
+                const p = STATE.periods;
+                const label = {
+                    week: [T.trends.segWeek, T.trends.segWeekAria],
+                    month: [T.trends.segMonth, T.trends.segMonthAria],
+                    quarter: [T.trends.segQuarter, T.trends.segQuarterAria],
+                    year: [T.trends.segYear, T.trends.segYearAria],
+                    days: [T.trends.segDays, T.trends.segDaysAria],
+                };
+                return p.available
+                    .concat(["days"])
+                    .map((id) => {
+                        const on = id === STATE.mode;
+                        return `<button class="seg-btn${on ? " active" : ""}" data-mode="${id}" aria-pressed="${on}" aria-label="${esc(label[id][1])}">${esc(label[id][0])}</button>`;
+                    })
+                    .join("");
+            }
+
+            function paintPeriods() {
+                const root = document.getElementById("root");
+                const p = STATE.periods;
+                const g = STATE.mode;
+                const title = {
+                    week: T.trends.periodTitleWeek,
+                    month: T.trends.periodTitleMonth,
+                    quarter: T.trends.periodTitleQuarter,
+                    year: T.trends.periodTitleYear,
+                }[g];
+                root.innerHTML = `
+          <div class="panel">
+            <div class="phead mid">
+              <div class="ptitle">${esc(title)}</div>
+              <div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${periodSeg()}</div>
+            </div>
+            ${periodListHtml(p.periods[g], g, { targetsFrom: p.targetsFrom })}
+          </div>`;
+            }
+
+            function paintDays() {
                 const root = document.getElementById("root");
                 const data = STATE.data;
+                // Period mode can land here with nothing logged in the last
+                // 30 days (the periods reach further back): say so inside the
+                // panel and keep the seg, so the way back stays on screen.
+                if (
+                    STATE.periods &&
+                    !(Array.isArray(data.days) && data.days.some(dayHasData))
+                ) {
+                    root.innerHTML = `
+          <div class="panel">
+            <div class="phead mid">
+              <div class="ptitle">${esc(T.trends.title)}</div>
+              <div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${periodSeg()}</div>
+            </div>
+            <div class="pnone">${esc(T.trends.empty)}</div>
+          </div>`;
+                    return;
+                }
                 const all = data.days
                     .slice()
                     .sort((a, b) => (a.date < b.date ? -1 : 1));
@@ -305,6 +410,7 @@
                     (r) =>
                         `<button class="seg-btn${r === range ? " active" : ""}" data-range="${r}" aria-pressed="${r === range}" aria-label="${esc(tpl(T.trends.rangeDaysAriaLabel, { n: r }))}">${r}</button>`,
                 ).join("");
+                const rangeSeg = `<div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${seg}</div>`;
 
                 // No per-meal rows in a trends payload, so the strip is static
                 // — macroPanel only makes tiles tappable when meals are passed.
@@ -336,12 +442,24 @@
                     logged,
                 );
 
-                root.innerHTML = `
-          <div class="panel">
+                // Period mode's Days view: the period seg keeps the header
+                // (so the way back is where it was) and the 7/14/30 toggle
+                // gets a line of its own. Without periods: today's header.
+                const head = STATE.periods
+                    ? `
             <div class="phead mid">
               <div class="ptitle">${esc(T.trends.title)}</div>
-              <div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${seg}</div>
+              <div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${periodSeg()}</div>
             </div>
+            <div class="rangeline">${rangeSeg}</div>`
+                    : `
+            <div class="phead mid">
+              <div class="ptitle">${esc(T.trends.title)}</div>
+              ${rangeSeg}
+            </div>`;
+
+                root.innerHTML = `
+          <div class="panel">${head}
             ${chart}
             ${panel}
           </div>`;
@@ -351,10 +469,21 @@
             // rewrites, so it's attached once.
             document.getElementById("root").addEventListener("click", (e) => {
                 const btn = e.target.closest(".seg-btn");
-                if (!btn) return;
-                const n = Number(btn.dataset.range);
-                if (n && n !== STATE.range && STATE.data) {
-                    STATE.range = n;
+                if (!btn || !STATE.data) return;
+                // String ids, never Number(): "week" … "days" are ids too, and
+                // the range buttons are matched against RANGES as strings.
+                const mode = btn.dataset.mode;
+                if (mode) {
+                    if (mode !== STATE.mode) {
+                        STATE.mode = mode;
+                        paint();
+                    }
+                    return;
+                }
+                const id = btn.dataset.range;
+                const r = RANGES.find((x) => String(x) === id);
+                if (r && r !== STATE.range) {
+                    STATE.range = r;
                     paint();
                 }
             });

@@ -26,6 +26,10 @@
 //                       structuredContent.default_range (7/14/30/90/365, else 30)
 //   ?unit=lb            weight-trends: display unit (default kg)
 //   ?target=0           weight-trends: no target weight set
+//   ?groupBy=week       trends: the `group_by` the period view opens on
+//                       (week/month/quarter/year, default month); ?noMeta=1
+//                       shows the plain 7/14/30 day view, as without group_by
+//   ?goals=0            trends: no goals history at all (averages only)
 //   ?locale=pl          structuredContent.locale (and hostContext.locale)
 //   ?theme=dark         hostContext.theme on ui/initialize (default light)
 //
@@ -34,11 +38,29 @@
 import {
     getWidgetHtml,
     MEAL_CONTRIBUTORS_META_KEY,
+    PERIOD_AVERAGES_META_KEY,
     WEIGHT_SERIES_META_KEY,
     WIDGET_TEMPLATES,
 } from "../src/widgets.js";
 import { runImport } from "../src/import.js";
-import type { MealInput, MealInsertResult } from "../src/supabase.js";
+import { buildDailyBuckets } from "../src/insights.js";
+import {
+    buildPeriodAveragesMeta,
+    dayTotalsFromMeals,
+    GRANULARITIES,
+    yearSpanStart,
+    type Granularity,
+} from "../src/periods.js";
+import {
+    GOAL_COLUMNS,
+    type NutritionGoalsHistoryRow,
+} from "../src/goals-history.js";
+import type {
+    Meal,
+    MealInput,
+    MealInsertResult,
+    WaterEntry,
+} from "../src/supabase.js";
 import { shiftLocalDate } from "../src/tz.js";
 import { fromGrams, type WeightUnit } from "../src/units.js";
 import {
@@ -155,6 +177,170 @@ function weightTrendsFixture(params: URLSearchParams) {
     };
 }
 
+// get_trends' tool result, with the period `_meta` built by the REAL
+// src/periods.ts the handler uses. Two years of meals in Kyiv ending
+// TRENDS_END, with: one goal change (and goals history starting a few months
+// in, so the oldest rows read "targets before … not recorded"), a three-week
+// break (inner empty weeks are kept), unlogged days, water-only days (never
+// "logged") and snack-only days (logged, flagged possibly incomplete).
+const TRENDS_END = "2026-07-15";
+const TRENDS_TZ = "Europe/Kyiv";
+function goalsRow(
+    effective_at: string,
+    v: [number, number, number, number],
+): NutritionGoalsHistoryRow {
+    const row = Object.fromEntries(GOAL_COLUMNS.map((c) => [c, null])) as {
+        [K in (typeof GOAL_COLUMNS)[number]]: number | null;
+    };
+    row.daily_calories = v[0];
+    row.daily_protein_g = v[1];
+    row.daily_carbs_g = v[2];
+    row.daily_fat_g = v[3];
+    row.daily_fiber_g = 30;
+    row.daily_water_ml = 2500;
+    return { effective_at, ...row };
+}
+const TRENDS_HISTORY: NutritionGoalsHistoryRow[] = [
+    goalsRow("2024-10-02T09:12:00Z", [2400, 150, 280, 80]),
+    goalsRow("2026-02-18T18:40:00Z", [2200, 160, 220, 70]),
+];
+function trendsSample(): { meals: Meal[]; water: WaterEntry[] } {
+    let seed = 20261005;
+    const rand = () => {
+        seed = (seed + 0x6d2b79f5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const meals: Meal[] = [];
+    const water: WaterEntry[] = [];
+    let n = 0;
+    const meal = (
+        date: string,
+        hh: string,
+        type: string,
+        kcal: number,
+    ): Meal => ({
+        id: `m${++n}`,
+        user_id: "harness",
+        logged_at: `${date}T${hh}:00+03:00`,
+        meal_type: type,
+        description: type,
+        calories: Math.round(kcal),
+        protein_g: Math.round(kcal * (0.065 + rand() * 0.02)),
+        carbs_g: Math.round(kcal * (0.1 + rand() * 0.03)),
+        fat_g: Math.round(kcal * (0.028 + rand() * 0.01)),
+        fiber_g: Math.round(kcal * 0.012 * 10) / 10,
+        sugar_g: Math.round(kcal * 0.025 * 10) / 10,
+        alcohol_g: null,
+        caffeine_mg: type === "breakfast" ? 95 : null,
+        notes: null,
+        idempotency_key: null,
+    });
+    const sip = (date: string, ml: number): WaterEntry => ({
+        id: `w${++n}`,
+        user_id: "harness",
+        amount_ml: ml,
+        logged_at: `${date}T10:00:00+03:00`,
+        notes: null,
+        created_at: `${date}T10:00:00+03:00`,
+        idempotency_key: null,
+    });
+    const total = 2 * 365;
+    for (let i = total; i >= 0; i--) {
+        const date = shiftLocalDate(TRENDS_END, -i);
+        if (i > 120 && i < 142) continue; // a three-week break
+        const r = rand();
+        if (r < 0.12) continue; // unlogged
+        water.push(sip(date, 1500 + Math.round(rand() * 1000)));
+        if (r < 0.17) continue; // water-only: never a logged day
+        if (r < 0.22) {
+            meals.push(meal(date, "16:00", "snack", 250 + rand() * 300));
+            continue; // snack-only: logged, possibly incomplete
+        }
+        // Eats more under the first (higher) goal, tightens after the change.
+        const base = date < "2026-02-18" ? 2350 : 2150;
+        const day = base + (rand() - 0.5) * 700;
+        meals.push(meal(date, "08:15", "breakfast", day * 0.27));
+        meals.push(meal(date, "13:30", "lunch", day * 0.37));
+        meals.push(meal(date, "19:45", "dinner", day * 0.32));
+        if (rand() < 0.5) meals.push(meal(date, "16:30", "snack", day * 0.08));
+    }
+    return { meals, water };
+}
+const r1 = (v: number) => Math.round(v * 10) / 10;
+function trendsFixture(params: URLSearchParams, drinkUnit: "us" | "uk") {
+    const { meals, water } = trendsSample();
+    const history = params.get("goals") === "0" ? [] : TRENDS_HISTORY;
+    const gb = params.get("groupBy") as Granularity | null;
+    const groupBy: Granularity =
+        gb && GRANULARITIES.includes(gb) ? gb : "month";
+    const start = shiftLocalDate(TRENDS_END, -29);
+    // structuredContent: get_trends' current (frozen) shape. The days mirror
+    // trendsDayPayloadOf closely enough for a preview (rounded totals,
+    // fiber/sugar null on a day no meal recorded them, caffeine likewise).
+    const days = buildDailyBuckets(
+        meals,
+        water,
+        start,
+        TRENDS_END,
+        TRENDS_TZ,
+    ).map((b) => {
+        const carries = (k: "fiber_g" | "sugar_g" | "caffeine_mg") =>
+            b.meals.some((m) => m[k] != null);
+        return {
+            date: b.date,
+            calories: Math.round(b.calories),
+            protein_g: r1(b.protein_g),
+            carbs_g: r1(b.carbs_g),
+            fat_g: r1(b.fat_g),
+            fiber_g: carries("fiber_g") ? r1(b.fiber_g) : null,
+            sugar_g: carries("sugar_g") ? r1(b.sugar_g) : null,
+            alcohol_g: null, // no meal records alcohol here
+            caffeine_mg: carries("caffeine_mg")
+                ? Math.round(b.caffeine_mg)
+                : null,
+            water_ml: Math.round(b.waterMl),
+        };
+    });
+    const g = history[history.length - 1];
+    const meta = buildPeriodAveragesMeta(
+        dayTotalsFromMeals(
+            meals,
+            yearSpanStart(TRENDS_END),
+            TRENDS_END,
+            TRENDS_TZ,
+        ),
+        history,
+        TRENDS_END,
+        groupBy,
+        TRENDS_TZ,
+    );
+    return {
+        result: {
+            end_date: TRENDS_END,
+            default_range: 30,
+            drink_unit: drinkUnit,
+            locale: params.get("locale") ?? "en",
+            goals: g
+                ? {
+                      calories: g.daily_calories,
+                      protein_g: g.daily_protein_g,
+                      carbs_g: g.daily_carbs_g,
+                      fat_g: g.daily_fat_g,
+                      fiber_g: g.daily_fiber_g,
+                      sugar_g: g.daily_sugar_g,
+                      alcohol_g: g.daily_alcohol_g,
+                      caffeine_mg: g.daily_caffeine_mg,
+                      water_ml: g.daily_water_ml,
+                  }
+                : null,
+            days,
+        },
+        meta: { [PERIOD_AVERAGES_META_KEY]: meta },
+    };
+}
+
 const PORT = Number(process.env.HARNESS_PORT ?? 8787);
 const KEYS = Object.keys(WIDGET_TEMPLATES);
 
@@ -177,7 +363,8 @@ function indexPage(): string {
      <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>,
      <code>?noMeta=1</code>, <code>?theme=dark</code>, <code>?locale=pl</code>;
      weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
-     <code>?unit=lb</code>, <code>?target=0</code>.</p>
+     <code>?unit=lb</code>, <code>?target=0</code>; trends takes
+     <code>?groupBy=week</code> and <code>?goals=0</code>.</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -392,9 +579,11 @@ function hostPage(widget: string, params: URLSearchParams): string {
     };
     // Per-widget CallToolResult `_meta`, delivered beside structuredContent.
     const weight = weightTrendsFixture(params);
+    const trends = trendsFixture(params, macroDrinkUnit);
     const METAS: Record<string, unknown> = {
         "nutrition-summary": summaryMeta,
         "weight-trends": weight.meta,
+        trends: trends.meta,
     };
 
     const RESULTS: Record<string, unknown> = {
@@ -464,7 +653,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
             totals: { ...totals, alcohol_g: null },
             meals: mealsNoAlcohol,
         },
-        trends: { range_days: 7, days, goals, drink_unit: macroDrinkUnit },
+        trends: trends.result,
         // start_meal_import's payload. Without it the importer would fall back
         // to its built-in defaults and the alcohol gate would never be
         // exercised here — which is exactly how the leak shipped.
