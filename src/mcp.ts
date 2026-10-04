@@ -813,7 +813,7 @@ const IMPORT_ROW_SCHEMA = z.object({
         .number()
         .optional()
         .describe(
-            "TOTAL sugars in grams, including sugar naturally present in fruit and milk — not added sugar. Map the export's 'Sugars' column straight across; do not try to subtract naturally occurring sugar.",
+            "TOTAL sugars in grams, including sugar naturally present in fruit and milk as well as added sugar — the figure an export's 'Sugars' column carries.",
         ),
     alcohol_g: z.coerce
         .number()
@@ -1755,7 +1755,7 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "Dietary fiber in grams. Send this on every meal — treat it as mandatory alongside protein, carbs and fat, and estimate it rather than omitting it, because a missing value is not a zero and excludes the whole day from the user's fiber average and goal. Prefer a label, a barcode lookup or published per-item nutrition where available; otherwise estimate using these anchors per 100 g: cooked lentils or beans 5-8 g, dry rolled oats 10 g, wholemeal bread 7 g, white bread 2.7 g, cooked wholewheat pasta 4 g (white 2 g), cooked brown rice 1.8 g (white 0.4 g), potato with skin 2 g, most vegetables 2-3 g, apple or pear with skin 2.4-3 g, banana 2.6 g, berries 5-7 g, almonds 12 g, chia 34 g. Meat, fish, eggs, dairy, oil and sugar contain none: send 0 there, do not omit the field.",
+                        "Dietary fiber in grams. Expected on every meal alongside protein, carbs and fat: a missing value is stored as not measured rather than as zero and leaves the whole day out of the user's fiber average and goal, while an estimate keeps the day in. Sources, most accurate first: a label, a barcode lookup, published per-item nutrition, an estimate. Reference values per 100 g: cooked lentils or beans 5-8 g, dry rolled oats 10 g, wholemeal bread 7 g, white bread 2.7 g, cooked wholewheat pasta 4 g (white 2 g), cooked brown rice 1.8 g (white 0.4 g), potato with skin 2 g, most vegetables 2-3 g, apple or pear with skin 2.4-3 g, banana 2.6 g, berries 5-7 g, almonds 12 g, chia 34 g. Meat, fish, eggs, dairy, oil and sugar contain none, so 0 is the correct value there rather than an omitted field.",
                     ),
                 sugar_g: z.coerce
                     .number()
@@ -1763,7 +1763,7 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "TOTAL sugars in grams — including sugar naturally present in fruit, milk and juice, not just added sugar. Report the whole figure a nutrition label or database gives for 'Sugars'; do not try to separate out added sugar. Send this on every meal, estimating rather than omitting it: a missing value is not a zero and drops the whole day out of the sugar average and limit. Anchors per 100 g when you have nothing better: milk 5 g, plain yogurt 4.7 g, fruit yogurt 12 g, apple 10 g, banana 12 g, orange 9 g, berries 5-10 g, dried dates 63 g, cola 10.6 g, orange juice 8.4 g, ketchup 22 g, milk chocolate 52 g, bread 3-5 g. Meat, fish, eggs, cheese, oil, rice, pasta and most vegetables are ~0: send 0 there, do not omit the field.",
+                        "TOTAL sugars in grams — the figure a nutrition label or database gives for 'Sugars', which includes sugar naturally present in fruit, milk and juice as well as added sugar. Expected on every meal: a missing value is stored as not measured rather than as zero and leaves the whole day out of the sugar average and limit, while an estimate keeps the day in. Reference values per 100 g: milk 5 g, plain yogurt 4.7 g, fruit yogurt 12 g, apple 10 g, banana 12 g, orange 9 g, berries 5-10 g, dried dates 63 g, cola 10.6 g, orange juice 8.4 g, ketchup 22 g, milk chocolate 52 g, bread 3-5 g. Meat, fish, eggs, cheese, oil, rice, pasta and most vegetables are ~0, so 0 is the correct value there rather than an omitted field.",
                     ),
                 alcohol_g: z.coerce
                     .number()
@@ -2954,7 +2954,7 @@ export function registerTools(
                     .nullable()
                     .optional()
                     .describe(
-                        "Daily TOTAL sugar limit (grams), treated as a maximum to stay under. Total sugars include sugar naturally present in fruit and milk, not only added sugar — say so when the user sets one, since public guidance figures usually refer to ADDED sugar and are therefore a much lower number. Null to clear.",
+                        "Daily TOTAL sugar limit (grams), treated as a maximum to stay under. Total sugars include sugar naturally present in fruit and milk as well as added sugar, so a total-sugar limit is reached sooner than the same number would be as an added-sugar limit; public guidance figures usually refer to added sugar. Null to clear.",
                     ),
                 daily_alcohol_g: z.coerce
                     .number()
@@ -3373,7 +3373,7 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "Dietary fiber in grams. Every meal should carry one — pass it here for a meal logged without it, estimating from the ingredients if no label figure exists, and 0 for a food that genuinely has none (meat, fish, eggs, dairy, oil).",
+                        "Dietary fiber in grams. Only the fields passed are written, so this fills in the figure for a meal logged without one; 0 is the correct value for a food that has none (meat, fish, eggs, dairy, oil).",
                     ),
                 sugar_g: z.coerce
                     .number()
@@ -3381,7 +3381,7 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "TOTAL sugars in grams, including sugar naturally present in fruit and milk — not only added sugar. Every meal should carry one — pass it here for a meal logged without it, estimating if there is no label figure, and 0 for a food that genuinely has none.",
+                        "TOTAL sugars in grams, including sugar naturally present in fruit and milk as well as added sugar. Only the fields passed are written, so this fills in the figure for a meal logged without one; 0 is the correct value for a food that has none.",
                     ),
                 alcohol_g: z.coerce
                     .number()
