@@ -90,7 +90,7 @@ export const TOOLS_ES: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Registra lo que comiste con sus calorías y macros, además de fibra, azúcares totales, alcohol y cafeína cuando haya datos. Descríbelo con tus propias palabras: la IA estima las cifras, te pregunta el tamaño de la porción si no está claro y puede consultar antes los datos de la etiqueta con el código de barras o en la web.",
+                "Registra lo que comiste con sus calorías y macros, además de fibra, azúcares totales y añadidos, alcohol y cafeína cuando haya datos. Descríbelo con tus propias palabras: la IA estima las cifras, te pregunta el tamaño de la porción si no está claro y puede consultar antes los datos de la etiqueta con el código de barras o en la web.",
             params: {
                 description: "Qué comiste",
                 meal_type: "desayuno, almuerzo, cena o snack",
@@ -102,6 +102,8 @@ export const TOOLS_ES: ToolsDoc = {
                     "Fibra dietética en gramos. La IA tiene la instrucción de completarla en cada comida, estimándola a partir de los ingredientes cuando no hay dato de etiqueta, porque un campo vacío no cuenta como cero: saca ese día entero de tu promedio de fibra",
                 sugar_g:
                     "Azúcares <b>totales</b> en gramos: la cifra que la etiqueta indica en «Azúcares», incluido el azúcar natural de la fruta y la leche, no solo el azúcar añadido. Se completa en cada comida, igual que la fibra",
+                added_sugar_g:
+                    "Azúcares <b>añadidos</b> en gramos: el azúcar que se añade al procesar o preparar un alimento (azúcar de mesa, siropes, miel, el azúcar de bebidas y alimentos endulzados). Forman parte de los azúcares totales y nunca los superan. El azúcar natural de la fruta entera, las verduras y la leche sin azúcar no es añadido, y tampoco el del zumo 100 % de fruta. Se completa en cada comida, igual que la fibra: los alimentos sin procesar llevan 0, el azúcar de un refresco es todo añadido y se usa la línea «Includes Xg Added Sugars» de las etiquetas estadounidenses cuando existe",
                 alcohol_g:
                     "Gramos de <b>etanol puro</b>, no el volumen de la bebida ni su graduación: la IA lo calcula a partir de la cantidad servida y la graduación (una cerveza de 330 ml al 5&nbsp;% son 13 g)",
                 caffeine_mg:
@@ -117,7 +119,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Obtén de Open Food Facts la información nutricional de la etiqueta de un producto envasado a partir de su código de barras (EAN/UPC de 8 a 14 dígitos), además de su Nutri-Score y su grupo de procesamiento NOVA cuando Open Food Facts los tiene. Puedes escribir los dígitos o leerlos de una foto del envase; después puedes registrar el resultado, ajustado a la cantidad que comiste.",
+                "Obtén de Open Food Facts la información nutricional de la etiqueta de un producto envasado a partir de su código de barras (EAN/UPC de 8 a 14 dígitos), además de su Nutri-Score y su grupo de procesamiento NOVA cuando Open Food Facts los tiene. El azúcar añadido aparece cuando Open Food Facts lo indica, y se marca cuando Open Food Facts lo ha estimado a partir de los ingredientes. Puedes escribir los dígitos o leerlos de una foto del envase; después puedes registrar el resultado, ajustado a la cantidad que comiste.",
             params: {},
             example: "Escanea este código de barras: 3017620422003",
             photoHint:
@@ -125,7 +127,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Abre en el chat un importador para traer tu historial desde otra app: elige el CSV que exportaste de MyFitnessPal, Cronometer, Lose It!, MacroFactor u otra app de seguimiento, asigna sus columnas a calorías, macros, fibra, azúcar y cafeína (y también alcohol, si activaste su seguimiento) y revisa lo que se añadirá antes de confirmar. El archivo se lee en tu navegador, no se guarda nada hasta que apruebas la vista previa y, si vuelves a importar el mismo archivo, no se crean duplicados.",
+                "Abre en el chat un importador para traer tu historial desde otra app: elige el CSV que exportaste de MyFitnessPal, Cronometer, Lose It!, MacroFactor u otra app de seguimiento, asigna sus columnas a calorías, macros, fibra, azúcar total y añadido, y cafeína (y también alcohol, si activaste su seguimiento) y revisa lo que se añadirá antes de confirmar. El archivo se lee en tu navegador, no se guarda nada hasta que apruebas la vista previa y, si vuelves a importar el mismo archivo, no se crean duplicados.",
             params: {},
             example: "Importa mi historial de comidas de MyFitnessPal",
         },
@@ -133,7 +135,7 @@ export const TOOLS_ES: ToolsDoc = {
             description:
                 "Añade de golpe un lote de comidas anteriores (hasta 50 a la vez) en lugar de registrarlas una por una. El importador de arriba guarda los datos a través de esta herramienta, y la IA puede usarla directamente con datos de comidas que hayas pegado en el chat. Antes de guardar, comprueba cada fila e informa, fila por fila, de lo que no encaje, así que reenviar las mismas filas es seguro y no duplica lo ya registrado, siempre que tu zona horaria no haya cambiado entretanto.",
             params: {
-                meals: "Las filas que se van a importar, en el orden del archivo de origen (1–50 por llamada). Cada fila puede incluir hora, tipo de comida, descripción, notas y las mismas cifras que una comida registrada: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (azúcares totales), <code>alcohol_g</code> (gramos de etanol puro) y <code>caffeine_mg</code> (miligramos, no gramos)",
+                meals: "Las filas que se van a importar, en el orden del archivo de origen (1–50 por llamada). Cada fila puede incluir hora, tipo de comida, descripción, notas y las mismas cifras que una comida registrada: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (azúcares totales), <code>added_sugar_g</code> (azúcares añadidos, parte del total), <code>alcohol_g</code> (gramos de etanol puro) y <code>caffeine_mg</code> (miligramos, no gramos)",
                 expected_row_count:
                     "Cuántas filas trae esta llamada, contadas en el archivo de origen, para detectar si se pierde alguna",
                 expected_total_kcal:
@@ -148,7 +150,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Cambia los datos de una comida que ya registraste: su descripción, cualquier macro, la fibra, el azúcar, el alcohol o la cafeína, la hora o las notas. También sirve para completar un dato que faltaba: si una comida se guardó sin fibra o sin azúcar, el servidor lo indica y la IA lo completa aquí si estás de acuerdo.",
+                "Cambia los datos de una comida que ya registraste: su descripción, cualquier macro, la fibra, el azúcar total o añadido, el alcohol o la cafeína, la hora o las notas. También sirve para completar un dato que faltaba: si una comida se guardó sin fibra, sin azúcar o sin azúcar añadido, el servidor lo indica y la IA lo completa aquí si estás de acuerdo.",
             params: {
                 id: "UUID de la comida que quieres actualizar",
                 description: "",
@@ -158,6 +160,8 @@ export const TOOLS_ES: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Azúcares totales, no azúcar añadido",
+                added_sugar_g:
+                    "Solo azúcares añadidos, nunca más que los azúcares totales",
                 alcohol_g: "Gramos de etanol puro, no el volumen de la bebida",
                 caffeine_mg: "Miligramos, no gramos",
                 logged_at: "",
@@ -357,7 +361,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Define tus objetivos diarios de calorías, macros, fibra, azúcar, alcohol, cafeína y agua, además de un peso objetivo opcional. Calorías, proteína, carbohidratos, grasa, fibra y agua son objetivos por alcanzar; azúcar, alcohol y cafeína son límites que no superar, y el progreso se expresa en consecuencia. Solo se actualizan los campos que indiques; el resto no cambia.",
+                "Define tus objetivos diarios de calorías, macros, fibra, azúcar, azúcar añadido, alcohol, cafeína y agua, además de un peso objetivo opcional. Calorías, proteína, carbohidratos, grasa, fibra y agua son objetivos por alcanzar; azúcar total, azúcar añadido, alcohol y cafeína son límites que no superar, y el progreso se expresa en consecuencia. Solo se actualizan los campos que indiques; el resto no cambia.",
             params: {
                 daily_calories:
                     "Objetivo diario de calorías (kcal). Null para borrarlo.",
@@ -371,6 +375,8 @@ export const TOOLS_ES: ToolsDoc = {
                     "Objetivo diario de fibra (gramos), un mínimo por alcanzar. Null para borrarlo.",
                 daily_sugar_g:
                     "Límite diario de azúcares <b>totales</b> (gramos), un máximo que no superar. Los azúcares totales incluyen el azúcar natural de la fruta y la leche, así que las recomendaciones oficiales sobre azúcar añadido dan una cifra mucho menor. Null para borrarlo.",
+                daily_added_sugar_g:
+                    "Límite diario de azúcares <b>añadidos</b> (gramos), un máximo que no superar. Solo cuenta los azúcares añadidos, no el azúcar natural de la fruta y la leche; las cifras de las recomendaciones oficiales sobre el azúcar suelen referirse a esta medida (la American Heart Association sugiere un máximo de 25 g al día para las mujeres y 36 g para los hombres). 0 es un límite real que significa nada en absoluto. Null para borrarlo.",
                 daily_alcohol_g:
                     "Límite diario de alcohol en gramos de <b>etanol puro</b>, un máximo que no superar. Una bebida estándar de EE. UU. son 14 g; una unidad del Reino Unido, 7,9 g. Null para borrarlo.",
                 daily_caffeine_mg:

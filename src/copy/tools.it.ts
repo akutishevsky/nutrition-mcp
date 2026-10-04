@@ -95,7 +95,7 @@ export const TOOLS_IT: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Registra cosa hai mangiato con calorie e macro, più fibre, zuccheri totali, alcol e caffeina quando i valori sono disponibili. Descrivilo a parole tue: l'IA stima i valori, ti chiede la porzione quando non è chiara e può prima recuperare i dati dell'etichetta da un codice a barre o dal web.",
+                "Registra cosa hai mangiato con calorie e macro, più fibre, zuccheri totali e aggiunti, alcol e caffeina quando i valori sono disponibili. Descrivilo a parole tue: l'IA stima i valori, ti chiede la porzione quando non è chiara e può prima recuperare i dati dell'etichetta da un codice a barre o dal web.",
             params: {
                 description: "Cosa hai mangiato",
                 meal_type: "colazione, pranzo, cena o spuntino",
@@ -107,6 +107,8 @@ export const TOOLS_IT: ToolsDoc = {
                     "Fibre alimentari in grammi. All'IA viene chiesto di compilarlo per ogni pasto, stimandolo dagli ingredienti quando manca il valore in etichetta, perché un campo vuoto non vale zero: esclude l'intera giornata dalla tua media di fibre",
                 sugar_g:
                     "Zuccheri <b>totali</b> in grammi: il valore che l'etichetta riporta alla voce “Zuccheri”, compresi quelli naturalmente presenti in frutta e latte, non solo gli zuccheri aggiunti. Si compila per ogni pasto, alle stesse condizioni delle fibre",
+                added_sugar_g:
+                    "Zuccheri <b>aggiunti</b> in grammi: lo zucchero aggiunto durante la lavorazione o la preparazione (zucchero da tavola, sciroppi, miele, lo zucchero di bevande e alimenti zuccherati). Fanno parte degli zuccheri totali e non li superano mai. Lo zucchero naturalmente presente nella frutta intera, nella verdura e nel latte semplice non è aggiunto, e nemmeno quello del succo 100% frutta. Si compila per ogni pasto, alle stesse condizioni delle fibre: gli alimenti non lavorati valgono 0, lo zucchero di una bibita è tutto aggiunto e si usa la riga “Includes Xg Added Sugars” delle etichette statunitensi quando c'è",
                 alcohol_g:
                     "Grammi di <b>etanolo puro</b>, non il volume della bevanda né la sua gradazione: l'IA li calcola dalla quantità servita e dalla gradazione (una birra da 330 ml al 5% contiene 13 g)",
                 caffeine_mg:
@@ -122,7 +124,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Recupera da Open Food Facts i valori nutrizionali in etichetta di un prodotto confezionato tramite il codice a barre (EAN/UPC di 8–14 cifre), insieme a Nutri-Score e gruppo di trasformazione NOVA quando Open Food Facts li riporta. Puoi digitare le cifre o ricavarle da una foto della confezione; poi il risultato si può registrare, in proporzione a quanto ne hai mangiato.",
+                "Recupera da Open Food Facts i valori nutrizionali in etichetta di un prodotto confezionato tramite il codice a barre (EAN/UPC di 8–14 cifre), insieme a Nutri-Score e gruppo di trasformazione NOVA quando Open Food Facts li riporta. Gli zuccheri aggiunti compaiono quando Open Food Facts li indica, segnalati come stima quando Open Food Facts li ha ricavati dagli ingredienti. Puoi digitare le cifre o ricavarle da una foto della confezione; poi il risultato si può registrare, in proporzione a quanto ne hai mangiato.",
             params: {},
             example: "Scansiona questo codice a barre: 3017620422003",
             photoHint:
@@ -130,7 +132,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Apre in chat un importatore per portare il tuo storico da un'altra app: scegli il CSV esportato da MyFitnessPal, Cronometer, Lose It!, MacroFactor o un'altra app di monitoraggio, abbina le colonne a calorie, macro, fibre, zuccheri e caffeina (più l'alcol, se hai attivato il monitoraggio dell'alcol) e controlla cosa verrà aggiunto prima di confermare. Il file viene letto direttamente nel tuo browser, non si salva nulla finché non approvi l'anteprima e reimportare lo stesso file non crea duplicati.",
+                "Apre in chat un importatore per portare il tuo storico da un'altra app: scegli il CSV esportato da MyFitnessPal, Cronometer, Lose It!, MacroFactor o un'altra app di monitoraggio, abbina le colonne a calorie, macro, fibre, zuccheri totali e aggiunti e caffeina (più l'alcol, se hai attivato il monitoraggio dell'alcol) e controlla cosa verrà aggiunto prima di confermare. Il file viene letto direttamente nel tuo browser, non si salva nulla finché non approvi l'anteprima e reimportare lo stesso file non crea duplicati.",
             params: {},
             example: "Importa lo storico dei miei pasti da MyFitnessPal",
         },
@@ -138,7 +140,7 @@ export const TOOLS_IT: ToolsDoc = {
             description:
                 "Aggiunge in un colpo solo un blocco di pasti passati, fino a 50 alla volta, invece di registrarli uno per uno. L'importatore qui sopra salva i dati tramite questo strumento, e l'IA può usarlo direttamente per i pasti che hai incollato in chat. Ogni riga viene prima controllata e ogni problema viene segnalato riga per riga, quindi reinviare le stesse righe è sicuro e non duplica ciò che è già registrato, purché nel frattempo tu non abbia cambiato fuso orario.",
             params: {
-                meals: "Le righe da importare, nell'ordine del file di origine (1–50 per chiamata). Ogni riga può contenere un orario, il tipo di pasto, una descrizione, le note e gli stessi valori di un pasto registrato: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (zuccheri totali), <code>alcohol_g</code> (grammi di etanolo puro) e <code>caffeine_mg</code> (milligrammi, non grammi)",
+                meals: "Le righe da importare, nell'ordine del file di origine (1–50 per chiamata). Ogni riga può contenere un orario, il tipo di pasto, una descrizione, le note e gli stessi valori di un pasto registrato: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (zuccheri totali), <code>added_sugar_g</code> (zuccheri aggiunti, parte del totale), <code>alcohol_g</code> (grammi di etanolo puro) e <code>caffeine_mg</code> (milligrammi, non grammi)",
                 expected_row_count:
                     "Quante righe contiene questa chiamata, contate nel file di origine, così ci si accorge se una riga va persa",
                 expected_total_kcal:
@@ -153,7 +155,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Modifica i dettagli di un pasto già registrato: la descrizione, qualsiasi macro, fibre, zuccheri, alcol o caffeina, l'orario o le note. Serve anche a colmare i vuoti: se un pasto è stato registrato senza fibre o zuccheri, il server lo segnala e, se sei d'accordo, l'IA li aggiunge qui.",
+                "Modifica i dettagli di un pasto già registrato: la descrizione, qualsiasi macro, fibre, zuccheri totali o aggiunti, alcol o caffeina, l'orario o le note. Serve anche a colmare i vuoti: se un pasto è stato registrato senza fibre, zuccheri o zuccheri aggiunti, il server lo segnala e, se sei d'accordo, l'IA li aggiunge qui.",
             params: {
                 id: "UUID del pasto da aggiornare",
                 description: "",
@@ -163,6 +165,8 @@ export const TOOLS_IT: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Zuccheri totali, non zuccheri aggiunti",
+                added_sugar_g:
+                    "Solo zuccheri aggiunti, mai più degli zuccheri totali",
                 alcohol_g:
                     "Grammi di etanolo puro, non il volume della bevanda",
                 caffeine_mg: "Milligrammi, non grammi",
@@ -364,7 +368,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Imposta i tuoi obiettivi giornalieri di calorie, macro, fibre, zuccheri, alcol, caffeina e acqua, più un peso obiettivo facoltativo. Calorie, proteine, carboidrati, grassi, fibre e acqua sono valori da raggiungere; zuccheri, alcol e caffeina sono limiti da non superare, e i progressi vengono descritti di conseguenza. Aggiorna solo i campi che indichi; gli altri restano invariati.",
+                "Imposta i tuoi obiettivi giornalieri di calorie, macro, fibre, zuccheri, zuccheri aggiunti, alcol, caffeina e acqua, più un peso obiettivo facoltativo. Calorie, proteine, carboidrati, grassi, fibre e acqua sono valori da raggiungere; zuccheri totali, zuccheri aggiunti, alcol e caffeina sono limiti da non superare, e i progressi vengono descritti di conseguenza. Aggiorna solo i campi che indichi; gli altri restano invariati.",
             params: {
                 daily_calories:
                     "Obiettivo calorico giornaliero (kcal). Null per rimuoverlo.",
@@ -378,6 +382,8 @@ export const TOOLS_IT: ToolsDoc = {
                     "Obiettivo giornaliero di fibre (grammi), un minimo da raggiungere. Null per rimuoverlo.",
                 daily_sugar_g:
                     "Limite giornaliero di zuccheri <b>totali</b> (grammi), un massimo da non superare. Gli zuccheri totali comprendono quelli naturalmente presenti in frutta e latte, quindi le linee guida ufficiali sugli zuccheri aggiunti indicano un valore molto più basso. Null per rimuoverlo.",
+                daily_added_sugar_g:
+                    "Limite giornaliero di zuccheri <b>aggiunti</b> (grammi), un massimo da non superare. Conta solo gli zuccheri aggiunti, non quelli naturalmente presenti in frutta e latte; i valori delle linee guida ufficiali sugli zuccheri di solito si riferiscono a questa misura (l'American Heart Association indica al massimo 25 g al giorno per le donne e 36 g per gli uomini). 0 è un limite reale che significa nessuno. Null per rimuoverlo.",
                 daily_alcohol_g:
                     "Limite giornaliero di alcol in grammi di <b>etanolo puro</b>, un massimo da non superare. Un drink standard USA equivale a 14 g, un'unità alcolica britannica a 7,9 g. Null per rimuoverlo.",
                 daily_caffeine_mg:

@@ -69,6 +69,7 @@ function meal(logged_at: string, calories: number | null, p = 0): Meal {
         fat_g: null,
         fiber_g: null,
         sugar_g: null,
+        added_sugar_g: null,
         alcohol_g: null,
         caffeine_mg: null,
         notes: null,

@@ -62,6 +62,7 @@ function meal(overrides: Partial<Meal> = {}): Meal {
         fat_g: 20,
         fiber_g: 7,
         sugar_g: 12,
+        added_sugar_g: 9,
         alcohol_g: 3,
         caffeine_mg: 95,
         notes: null,
@@ -71,7 +72,7 @@ function meal(overrides: Partial<Meal> = {}): Meal {
 }
 
 const HEADER =
-    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,alcohol_g,caffeine_mg,notes";
+    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,notes";
 
 /**
  * Minimal RFC-4180 reader: splits a CSV document into rows of fields, honouring
@@ -148,6 +149,7 @@ test("header and data rows have identical field counts", () => {
                 fat_g: null,
                 fiber_g: null,
                 sugar_g: null,
+                added_sugar_g: null,
                 alcohol_g: null,
                 caffeine_mg: null,
                 meal_type: null,
@@ -181,6 +183,7 @@ test("every value lands under its own header name", () => {
                     fat_g: 20,
                     fiber_g: 7,
                     sugar_g: 12,
+                    added_sugar_g: 9,
                     alcohol_g: 3,
                     caffeine_mg: 95,
                     notes: "post-run",
@@ -201,6 +204,7 @@ test("every value lands under its own header name", () => {
         fat_g: "20",
         fiber_g: "7",
         sugar_g: "12",
+        added_sugar_g: "9",
         alcohol_g: "3",
         caffeine_mg: "95",
         notes: "post-run",
@@ -222,6 +226,9 @@ test("header column order is stable and importer-compatible", () => {
         "fat_g",
         "fiber_g",
         "sugar_g",
+        // Right after sugar_g: the part of it that was added. The importer
+        // matches by name, so exports without it still re-import.
+        "added_sugar_g",
         "alcohol_g",
         // Between alcohol_g and notes, and spelled with its unit: the importer
         // matches on this exact string, and "caffeine" alone would let a grams
@@ -273,6 +280,7 @@ test("leaves null macros and notes as empty fields", () => {
                     fat_g: null,
                     fiber_g: null,
                     sugar_g: null,
+                    added_sugar_g: null,
                     alcohol_g: null,
                     caffeine_mg: null,
                     notes: null,
@@ -288,6 +296,9 @@ test("leaves null macros and notes as empty fields", () => {
         "fat_g",
         "fiber_g",
         "sugar_g",
+        // NULL on every meal logged before added sugar was tracked: "not
+        // recorded", which a 0 would turn into "none added".
+        "added_sugar_g",
         "alcohol_g",
         // Every meal logged before caffeine existed carries NULL here, so this
         // is the common case, not an edge one: it must render as an empty cell,
@@ -382,6 +393,7 @@ function goals(overrides: Partial<NutritionGoals> = {}): NutritionGoals {
         daily_fat_g: 70,
         daily_fiber_g: 30,
         daily_sugar_g: 40,
+        daily_added_sugar_g: 25,
         daily_alcohol_g: 14,
         daily_caffeine_mg: 400,
         daily_water_ml: 2500,
@@ -402,6 +414,7 @@ function goalsHistoryRow(
         daily_fat_g: 70,
         daily_fiber_g: 30,
         daily_sugar_g: 40,
+        daily_added_sugar_g: 25,
         daily_alcohol_g: 14,
         daily_caffeine_mg: 400,
         daily_water_ml: 2500,
@@ -430,9 +443,9 @@ const WATER_HEADER = "id,logged_at,timezone,amount_ml,notes,created_at";
 const WEIGHT_HEADER =
     "id,logged_at,timezone,weight_g,weight_display,weight_unit,notes,created_at";
 const GOALS_HEADER =
-    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
+    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
 const GOALS_HISTORY_HEADER =
-    "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g";
+    "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g";
 const PROFILE_HEADER =
     "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit";
 const BODY_MEASUREMENT_HEADER =
@@ -669,6 +682,7 @@ test("every goal value lands under its own header name", () => {
         daily_fat_g: "70",
         daily_fiber_g: "30",
         daily_sugar_g: "40",
+        daily_added_sugar_g: "25",
         daily_alcohol_g: "14",
         // Milligrams next to nine gram/ml columns, spelled so in the header.
         daily_caffeine_mg: "400",
@@ -699,6 +713,7 @@ test("goals.csv leaves unset targets as empty fields", () => {
             daily_fat_g: null,
             daily_fiber_g: null,
             daily_sugar_g: null,
+            daily_added_sugar_g: null,
             daily_alcohol_g: null,
             daily_caffeine_mg: null,
             daily_water_ml: null,
@@ -738,6 +753,7 @@ test("goals_history.csv is byte-for-byte what its rows and zone determine", () =
             effective_at: "2026-06-20T14:30:00.000Z",
             daily_calories: 2000,
             daily_sugar_g: null,
+            daily_added_sugar_g: null,
             daily_alcohol_g: null,
             target_weight_g: null,
         }),
@@ -746,8 +762,8 @@ test("goals_history.csv is byte-for-byte what its rows and zone determine", () =
     expect(csv).toBe(
         [
             GOALS_HISTORY_HEADER,
-            "2026-01-05 09:00:00,Europe/Berlin,2200,150,220,70,30,40,14,400,2500,72000",
-            "2026-06-20 16:30:00,Europe/Berlin,2000,150,220,70,30,,,400,2500,",
+            "2026-01-05 09:00:00,Europe/Berlin,2200,150,220,70,30,40,25,14,400,2500,72000",
+            "2026-06-20 16:30:00,Europe/Berlin,2000,150,220,70,30,,,,400,2500,",
         ].join("\n"),
     );
     // Same inputs, same bytes: nothing in it depends on the clock or the host.
@@ -787,6 +803,7 @@ test("every goals history value lands under its own header name", () => {
         daily_fat_g: "70",
         daily_fiber_g: "30",
         daily_sugar_g: "40",
+        daily_added_sugar_g: "25",
         // Not gated on the alcohol display opt-in, exactly like goals.csv.
         daily_alcohol_g: "14",
         daily_caffeine_mg: "400",
@@ -939,6 +956,10 @@ test("the README spells out the mixed units", () => {
     expect(readme).toContain("ethanol");
     expect(readme).toContain("weight_g");
     expect(readme).toContain("value_mm");
+    // Added sugar is a part of sugar_g, not a sibling to sum with it.
+    expect(readme).toMatch(
+        /added_sugar_g counts only sugars added[^\n]*part of sugar_g[^\n]*daily_added_sugar_g is the daily limit for added sugars, separate from daily_sugar_g/,
+    );
 });
 
 test("the README says only meals.csv can be re-imported", () => {

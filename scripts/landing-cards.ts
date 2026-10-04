@@ -18,20 +18,30 @@
  * Page-only: nothing outside gen-index.ts imports this.
  */
 
+import { addedSugarExtra, buildAddedSugarMeta } from "../src/added-sugar.js";
 import { HTML_LANG, type SiteLocale } from "../src/routes.js";
+import type { Meal } from "../src/supabase.js";
+import {
+    ADDED_SUGAR_META_KEY,
+    MEAL_BREAKDOWN_TOP_N,
+    MEAL_CONTRIBUTORS_META_KEY,
+} from "../src/widgets.js";
 import { loadWidgetSources, renderWidgetCard } from "./widget-static.js";
 
 // ------------------------------------------------------------------ data
 
 /** Daily goals every demo account shares (the "Set goals, check in" slide
- * sets exactly these). */
+ * sets exactly these). The sugar limit is on ADDED sugar (25 g) and there is
+ * deliberately no total-sugar limit: the fruit in a smoothie bowl no longer
+ * fills it, which is the point of tracking added sugar separately. */
 const GOALS = {
     kcal: 2000,
     pro: 160,
     car: 220,
     fat: 70,
     fib: 30,
-    sug: 60,
+    sug: null,
+    add: 25,
     caf: 400,
     water: 2500,
 } as const;
@@ -42,7 +52,10 @@ interface Totals {
     car: number;
     fat: number;
     fib: number;
+    /** Total sugar, grams. */
     sug: number;
+    /** Added sugar, grams: part of `sug`, never more than it. */
+    add: number;
     /** null: nothing with caffeine logged, so the limit row omits it. */
     caf: number | null;
     /** Grams of alcohol; set only on a drink logged with tracking on. */
@@ -52,11 +65,12 @@ interface Totals {
 }
 
 /** 14 days of the "Review the week" account, oldest first: date, kcal,
- * protein, carbs, fat, fiber, sugar, caffeine, water ml. 25 Feb was not
- * logged. The slide's reply quotes what get_trends({days: 14}) prints for
- * them: 13 of 14 days logged, a 10-day streak, 9 days within ±10% of the
+ * protein, carbs, fat, fiber, sugar, added sugar, caffeine, water ml. 25 Feb
+ * was not logged. The slide's reply quotes what get_trends({days: 14}) prints
+ * for them: 13 of 14 days logged, a 10-day streak, 9 days within ±10% of the
  * 2,000 kcal target, 1,830 kcal as a calendar-day average (the unlogged day
- * counts as zero), sugar 52 g over the 13 days with data, over 60 g on 4. */
+ * counts as zero), added sugar 21.9 g (said as 22 g) over the 13 days with
+ * data, over the 25 g limit on 5, and total sugar 52 g (52.2) with no limit. */
 const TRENDS_DAYS: [
     string,
     number,
@@ -67,21 +81,22 @@ const TRENDS_DAYS: [
     number,
     number,
     number,
+    number,
 ][] = [
-    ["2026-02-22", 2030, 155, 210, 69, 28.2, 53, 165, 2300],
-    ["2026-02-23", 1850, 143, 192, 63, 25.4, 45, 135, 2050],
-    ["2026-02-24", 2190, 165, 230, 73, 30.7, 62, 185, 2550],
-    ["2026-02-25", 0, 0, 0, 0, 0, 0, 0, 0],
-    ["2026-02-26", 1900, 147, 198, 66, 26.1, 47, 145, 2100],
-    ["2026-02-27", 2240, 168, 236, 75, 33.0, 65, 195, 2650],
-    ["2026-02-28", 1830, 141, 188, 62, 24.6, 43, 115, 2000],
-    ["2026-03-01", 2080, 158, 214, 72, 29.8, 58, 180, 2300],
-    ["2026-03-02", 1890, 146, 198, 64, 26.0, 44, 150, 2100],
-    ["2026-03-03", 2140, 162, 226, 71, 31.1, 61, 210, 2600],
-    ["2026-03-04", 1760, 138, 182, 60, 24.6, 38, 120, 1800],
-    ["2026-03-05", 2210, 170, 236, 74, 33.5, 66, 190, 2500],
-    ["2026-03-06", 1650, 128, 172, 56, 23.1, 42, 140, 1900],
-    ["2026-03-07", 1850, 148, 172, 79, 27.9, 55, 130, 2200],
+    ["2026-02-22", 2030, 155, 210, 69, 28.2, 53, 22, 165, 2300],
+    ["2026-02-23", 1850, 143, 192, 63, 25.4, 45, 14, 135, 2050],
+    ["2026-02-24", 2190, 165, 230, 73, 30.7, 62, 31, 185, 2550],
+    ["2026-02-25", 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ["2026-02-26", 1900, 147, 198, 66, 26.1, 47, 18, 145, 2100],
+    ["2026-02-27", 2240, 168, 236, 75, 33.0, 65, 33, 195, 2650],
+    ["2026-02-28", 1830, 141, 188, 62, 24.6, 43, 12, 115, 2000],
+    ["2026-03-01", 2080, 158, 214, 72, 29.8, 58, 27, 180, 2300],
+    ["2026-03-02", 1890, 146, 198, 64, 26.0, 44, 15, 150, 2100],
+    ["2026-03-03", 2140, 162, 226, 71, 31.1, 61, 29, 210, 2600],
+    ["2026-03-04", 1760, 138, 182, 60, 24.6, 38, 10, 120, 1800],
+    ["2026-03-05", 2210, 170, 236, 74, 33.5, 66, 34, 190, 2500],
+    ["2026-03-06", 1650, 128, 172, 56, 23.1, 42, 16, 140, 1900],
+    ["2026-03-07", 1850, 148, 172, 79, 27.9, 55, 24, 130, 2200],
 ];
 
 /** Weigh-ins, [days before the last one, kg], oldest first: 80.2 kg on
@@ -138,7 +153,11 @@ const MEAL_CARDS: Partial<
             car: 85,
             fat: 8,
             fib: 9,
+            // 51 g of sugar, 20 g of it added: the tablespoon of honey
+            // (~17 g) and the granola (~3 g). The rest is the banana, the
+            // berries and the yogurt.
             sug: 51,
+            add: 20,
             caf: 126,
             water: 0,
         },
@@ -152,7 +171,9 @@ const MEAL_CARDS: Partial<
             car: 56,
             fat: 6,
             fib: 6,
+            // Milk and blueberries: no added sugar.
             sug: 18,
+            add: 0,
             caf: 95,
             water: 0,
         },
@@ -166,7 +187,9 @@ const MEAL_CARDS: Partial<
             car: 43,
             fat: 27,
             fib: 7,
+            // The beets carry most of it; the rye bread adds 2 g.
             sug: 10,
+            add: 2,
             caf: null,
             water: 0,
         },
@@ -182,7 +205,9 @@ const MEAL_CARDS: Partial<
             car: 5,
             fat: 0,
             fib: 0,
+            // Plain yogurt: all of its sugar is the milk's own.
             sug: 5,
+            add: 0,
             caf: null,
             water: 0,
         },
@@ -198,6 +223,7 @@ const MEAL_CARDS: Partial<
             fat: 0,
             fib: 0,
             sug: 0,
+            add: 0,
             caf: null,
             alc: 17.9,
             water: 0,
@@ -256,12 +282,15 @@ const ZERO: Totals = {
     fat: 0,
     fib: 0,
     sug: 0,
+    add: 0,
     caf: null,
     water: 0,
 };
 
 /** The hero day (8 Mar): breakfast, lunch and the fries, 1,150 kcal and
- * 76 g protein — the reply quotes 850 kcal and 84 g left, sugar 59 of 60.
+ * 76 g protein — the reply quotes 850 kcal and 84 g left, added sugar 23 of
+ * the 25 g limit (breakfast's 20 g plus 3 g in the stir-fry sauce) and 59 g
+ * of total sugar, which has no limit.
  * Keyed by meal_type; each row's description is the locale's hero copy
  * (`meal` on the exchange that logged it). */
 const HERO_DAY_MEALS: [string, Totals][] = [
@@ -275,6 +304,7 @@ const HERO_DAY_MEALS: [string, Totals][] = [
             fat: 19,
             fib: 5,
             sug: 8,
+            add: 3,
             caf: null,
             water: 0,
         },
@@ -288,6 +318,7 @@ const HERO_DAY_MEALS: [string, Totals][] = [
             fat: 3,
             fib: 1,
             sug: 0,
+            add: 0,
             caf: null,
             water: 0,
         },
@@ -303,6 +334,7 @@ function sumTotals(rows: Totals[], water: number): Totals {
             fat: a.fat + r.fat,
             fib: a.fib + r.fib,
             sug: a.sug + r.sug,
+            add: a.add + r.add,
             caf:
                 r.caf == null && a.caf == null
                     ? null
@@ -315,7 +347,8 @@ function sumTotals(rows: Totals[], water: number): Totals {
 }
 
 /** The "Set goals, check in" day (20 Feb): four meals, three glasses of
- * water, 1,540 kcal and 104 g protein, sugar 40 g, caffeine 130 mg. */
+ * water, 1,540 kcal and 104 g protein, added sugar 16 g of the 25 g limit
+ * (sugar 40 g in all, no limit), caffeine 130 mg. */
 const GOALS_DAY_MEALS: Totals[] = [
     {
         kcal: 380,
@@ -324,6 +357,7 @@ const GOALS_DAY_MEALS: Totals[] = [
         fat: 10,
         fib: 6,
         sug: 14,
+        add: 6,
         caf: 95,
         water: 0,
     },
@@ -334,10 +368,21 @@ const GOALS_DAY_MEALS: Totals[] = [
         fat: 17,
         fib: 7,
         sug: 8,
+        add: 0,
         caf: null,
         water: 0,
     },
-    { kcal: 180, pro: 12, car: 20, fat: 6, fib: 3, sug: 12, caf: 35, water: 0 },
+    {
+        kcal: 180,
+        pro: 12,
+        car: 20,
+        fat: 6,
+        fib: 3,
+        sug: 12,
+        add: 8,
+        caf: 35,
+        water: 0,
+    },
     {
         kcal: 420,
         pro: 26,
@@ -345,10 +390,55 @@ const GOALS_DAY_MEALS: Totals[] = [
         fat: 15,
         fib: 4,
         sug: 6,
+        add: 2,
         caf: null,
         water: 0,
     },
 ];
+
+// ---------------------------------------------------------------- _meta
+//
+// Added sugar reaches every widget through the tool result's `_meta`
+// (ADDED_SUGAR_META_KEY), never structuredContent, whose schemas are frozen.
+// These build it with the server's own buildAddedSugarMeta, from the same
+// figures as the payloads above, so a card's "Added sugar" cell is what the
+// tool would send.
+
+/** A stand-in meals row: buildAddedSugarMeta reads only `id` and
+ * `added_sugar_g`, the rest is here to satisfy the type. */
+function demoMeal(id: string, t: Totals): Meal {
+    return {
+        id,
+        user_id: "demo",
+        logged_at: "",
+        meal_type: null,
+        description: "",
+        calories: t.kcal,
+        protein_g: t.pro,
+        carbs_g: t.car,
+        fat_g: t.fat,
+        fiber_g: t.fib,
+        sugar_g: t.sug,
+        added_sugar_g: t.add,
+        alcohol_g: t.alc ?? null,
+        caffeine_mg: t.caf,
+        notes: null,
+        idempotency_key: null,
+    };
+}
+
+/** A single day's `_meta`, as log_meal and get_goal_progress send it: that
+ * day's total and one value per breakdown row, in row order. */
+function dayMeta(date: string, rows: Totals[]) {
+    const meals = rows.map((t, i) => demoMeal(`${date}-${i}`, t));
+    return {
+        [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+            goal: GOALS.add,
+            days: { [date]: meals },
+            meals,
+        }),
+    };
+}
 
 function mealLoggedPayload(id: DemoCardId, meal: string, locale: string) {
     const d = MEAL_CARDS[id]!;
@@ -376,8 +466,40 @@ function mealLoggedPayload(id: DemoCardId, meal: string, locale: string) {
 
 type HeroMeal = { description: string; type: string };
 
+const HERO_DATE = "2026-03-08";
+
+/** The hero summary's `_meta`, as get_nutrition_summary sends it: the
+ * per-metric contributor counts beside the added-sugar figures. Three meals,
+ * so every row is kept and nothing is `extra`. */
+function summaryMeta(rows: ReturnType<typeof mealRow>[]) {
+    const meals = HERO_DAY_MEALS.map(([type, t]) => demoMeal(type, t));
+    const kept = rows.map((_, i) => i);
+    const count = (k: keyof (typeof rows)[number]) =>
+        rows.filter((r) => Number(r[k] ?? 0) > 0).length;
+    return {
+        [MEAL_CONTRIBUTORS_META_KEY]: {
+            calories: count("calories"),
+            protein_g: count("protein_g"),
+            carbs_g: count("carbs_g"),
+            fat_g: count("fat_g"),
+            fiber_g: count("fiber_g"),
+            sugar_g: count("sugar_g"),
+            // Alcohol tracking is off on this account.
+            alcohol_g: null,
+            caffeine_mg: count("caffeine_mg"),
+        },
+        [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+            goal: GOALS.add,
+            days: { [HERO_DATE]: meals },
+            meals,
+            contributorsOf: meals,
+            extra: addedSugarExtra(meals, rows, kept, MEAL_BREAKDOWN_TOP_N),
+        }),
+    };
+}
+
 function summaryPayload(locale: string, dayMeals: HeroMeal[]) {
-    const date = "2026-03-08";
+    const date = HERO_DATE;
     if (
         dayMeals.length !== HERO_DAY_MEALS.length ||
         dayMeals.some((m, i) => m.type !== HERO_DAY_MEALS[i]![0])
@@ -412,10 +534,12 @@ function summaryPayload(locale: string, dayMeals: HeroMeal[]) {
     };
 }
 
+const GOALS_DATE = "2026-02-20";
+
 function goalProgressPayload(locale: string) {
     const t = sumTotals(GOALS_DAY_MEALS, 1500);
     return {
-        date: "2026-02-20",
+        date: GOALS_DATE,
         meal_count: GOALS_DAY_MEALS.length,
         water_entries: 3,
         drink_unit: null,
@@ -426,9 +550,34 @@ function goalProgressPayload(locale: string) {
             current: 79.6,
             target: TARGET_KG,
             unit: "kg",
-            logged_on: "2026-02-20",
+            logged_on: GOALS_DATE,
         },
         meals: GOALS_DAY_MEALS.map((m, i) => mealRow(`meal ${i + 1}`, m)),
+    };
+}
+
+/** get_trends' `_meta`: one added-sugar total per day. The unlogged day has
+ * no meals, so it is null (not recorded) and drops out of the average. */
+function trendsMeta() {
+    return {
+        [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+            goal: GOALS.add,
+            days: Object.fromEntries(
+                TRENDS_DAYS.map(([date, kcal, , , , , sug, add]) => [
+                    date,
+                    kcal
+                        ? [
+                              demoMeal(date, {
+                                  ...ZERO,
+                                  kcal,
+                                  sug,
+                                  add,
+                              }),
+                          ]
+                        : [],
+                ]),
+            ),
+        }),
     };
 }
 
@@ -440,7 +589,7 @@ function trendsPayload(locale: string) {
         locale,
         goals: GOALS_ITEM,
         days: TRENDS_DAYS.map(
-            ([date, kcal, pro, car, fat, fib, sug, caf, water]) => ({
+            ([date, kcal, pro, car, fat, fib, sug, , caf, water]) => ({
                 date,
                 calories: kcal,
                 protein_g: pro,
@@ -525,15 +674,22 @@ export function renderCard(
     dayMeals: HeroMeal[] = [],
 ): string {
     const lang = HTML_LANG[locale];
-    const card = (key: string, payload: { locale: string }, today: string) =>
-        renderWidgetCard(key, payload, { lang, today });
+    const card = (
+        key: string,
+        payload: { locale: string },
+        today: string,
+        meta: Record<string, unknown> | null = null,
+    ) => renderWidgetCard(key, payload, { lang, today, meta });
     switch (id) {
-        case "hero-day":
+        case "hero-day": {
+            const p = summaryPayload(locale, dayMeals);
             return card(
                 "nutrition-summary",
-                summaryPayload(locale, dayMeals),
-                "2026-03-08",
+                p,
+                HERO_DATE,
+                summaryMeta(p.meals),
             );
+        }
         case "hero-weight": {
             const p = weightPayload(locale, true);
             return card("weight-trends", p, p.end_date);
@@ -546,18 +702,31 @@ export function renderCard(
             return card(
                 "goal-progress",
                 goalProgressPayload(locale),
-                "2026-02-20",
+                GOALS_DATE,
+                dayMeta(GOALS_DATE, GOALS_DAY_MEALS),
             );
         case "review-week":
             // Asked on the evening of the fortnight's last day (7 Mar is
             // logged), so get_trends' default end_date is today and the
             // window is exactly 22 Feb – 7 Mar.
-            return card("trends", trendsPayload(locale), "2026-03-07");
+            return card(
+                "trends",
+                trendsPayload(locale),
+                "2026-03-07",
+                trendsMeta(),
+            );
         case "import-file":
             return card("import-meals", importPayload(locale), "2026-03-20");
         default: {
             const p = mealLoggedPayload(id, meal, locale);
-            return card("meal-logged", p, p.date);
+            // The demo day is this one meal, so the day's added sugar is
+            // the meal's.
+            return card(
+                "meal-logged",
+                p,
+                p.date,
+                dayMeta(p.date, [MEAL_CARDS[id]!.totals]),
+            );
         }
     }
 }

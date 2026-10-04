@@ -29,6 +29,8 @@ import {
     seedPatreonTokensFromEnv,
     upsertNutritionGoals,
     getNutritionGoalsHistory,
+    insertMeal,
+    updateMeal,
     type Meal,
     type MealInput,
     type Profile,
@@ -103,6 +105,20 @@ describe("mealIdempotencyKey", () => {
                 }),
             ),
         ).toBe(base);
+    });
+
+    test("added_sugar_g is EXCLUDED from the derived key too", () => {
+        // Same frozen-array rule as the four columns above: adding it would
+        // re-key every future write and turn a replayed log or import into a
+        // duplicate row.
+        const base = key(meal());
+        expect(key(meal({ added_sugar_g: 9.5 }))).toBe(base);
+        expect(key(meal({ added_sugar_g: 0 }))).toBe(base);
+        expect(key(meal({ sugar_g: 14.5, added_sugar_g: 9.5 }))).toBe(base);
+        // And the mirror in src/import.ts still agrees with it.
+        expect(key(meal({ logged_at: LOGGED_AT, added_sugar_g: 9.5 }))).toBe(
+            `auto:${rowContentDigest(USER, meal({ logged_at: LOGGED_AT, added_sugar_g: 9.5 }))}`,
+        );
     });
 
     test("two coffees differing only in caffeine dedupe to one — the accepted cost", () => {
@@ -187,6 +203,7 @@ function existingMeal(overrides: Partial<Meal> = {}): Meal {
         fat_g: 8,
         fiber_g: null,
         sugar_g: null,
+        added_sugar_g: null,
         alcohol_g: null,
         caffeine_mg: null,
         notes: "made with milk",
@@ -248,6 +265,13 @@ describe("updatedMealIdempotencyKey", () => {
         });
 
         expect(updated).toBe(existing.idempotency_key);
+    });
+
+    test("backfilling added_sugar_g alone does not change the recomputed key", () => {
+        const existing = existingMeal({ sugar_g: 14.5 });
+        expect(
+            updatedMealIdempotencyKey(USER, existing, { added_sugar_g: 9.5 }),
+        ).toBe(existing.idempotency_key);
     });
 
     test("editing logged_at changes the key to match the new timestamp", () => {
@@ -1187,6 +1211,36 @@ describe("goals history", () => {
         });
     });
 
+    test("the added-sugar limit is stored and recorded in history", async () => {
+        const saved = await upsertNutritionGoals(USER, {
+            daily_sugar_g: 60,
+            daily_added_sugar_g: 25,
+        });
+        expect(goalsRow).toMatchObject({
+            daily_sugar_g: 60,
+            daily_added_sugar_g: 25,
+        });
+        expect(saved.daily_added_sugar_g).toBe(25);
+        expect(historyInserts[0]).toMatchObject({
+            daily_sugar_g: 60,
+            daily_added_sugar_g: 25,
+        });
+    });
+
+    test("a change to the added-sugar limit alone is a change; 0 is a real value", async () => {
+        await upsertNutritionGoals(USER, { daily_added_sugar_g: 25 });
+        await upsertNutritionGoals(USER, { daily_added_sugar_g: 0 });
+        // Omitting it clears it, like every other column.
+        await upsertNutritionGoals(USER, { daily_calories: 2000 });
+        expect(historyInserts.map((r) => r.daily_added_sugar_g)).toEqual([
+            25,
+            0,
+            null,
+        ]);
+        const rows = await getNutritionGoalsHistory(USER);
+        expect(rows.map((r) => r.daily_added_sugar_g)).toEqual([25, 0, null]);
+    });
+
     test("a change inserts a row", async () => {
         await upsertNutritionGoals(USER, { daily_calories: 2000 });
         await upsertNutritionGoals(USER, { daily_calories: 1800 });
@@ -1337,6 +1391,7 @@ describe("goals history", () => {
             daily_fat_g: null,
             daily_fiber_g: null,
             daily_sugar_g: null,
+            daily_added_sugar_g: null,
             daily_alcohol_g: null,
             daily_caffeine_mg: null,
             daily_water_ml: null,
@@ -1513,5 +1568,262 @@ describe("goals history", () => {
             ["2026-03-03T09:00:00.000Z", 1900],
             [new Date(saved.updated_at).toISOString(), 1800],
         ]);
+    });
+});
+
+// ---------- Meal writes. insertMeal / updateMeal driven for real against an
+// in-memory PostgREST stand-in for the meals table, the same way as the goals
+// history block above (no mock.module; any request it does not recognise is
+// refused). ----------
+
+describe("meal writes persist added_sugar_g", () => {
+    const MEAL_ID = "44444444-4444-4444-8444-444444444444";
+    let rows: Record<string, unknown>[] = [];
+    const inserts: Record<string, unknown>[] = [];
+    const patches: Record<string, unknown>[] = [];
+    const patchQueries: URLSearchParams[] = [];
+
+    function json(body: unknown, status = 200): Response {
+        return new Response(JSON.stringify(body), {
+            status,
+            headers: { "content-type": "application/json" },
+        });
+    }
+
+    function eqParam(q: URLSearchParams, col: string): string | undefined {
+        return q.get(col)?.replace(/^eq\./, "");
+    }
+
+    async function fakeMeals(
+        input: string | URL | Request,
+        init?: RequestInit,
+    ): Promise<Response> {
+        const req =
+            input instanceof Request
+                ? new Request(input, init)
+                : new Request(input.toString(), init);
+        const url = new URL(req.url);
+        const table = url.pathname.replace(/^\/rest\/v1\//, "");
+        const q = url.searchParams;
+        const single = (req.headers.get("accept") ?? "").includes(
+            "object+json",
+        );
+        if (table !== "meals") {
+            throw new Error(`meals stub refused ${req.method} ${req.url}`);
+        }
+        const userId = eqParam(q, "user_id");
+        if (!userId && req.method !== "POST") {
+            throw new Error(`meals stub: unscoped ${url.search}`);
+        }
+
+        if (req.method === "GET") {
+            const key = eqParam(q, "idempotency_key");
+            const id = eqParam(q, "id");
+            const found = rows.filter(
+                (r) =>
+                    r.user_id === userId &&
+                    (key === undefined || r.idempotency_key === key) &&
+                    (id === undefined || r.id === id),
+            );
+            if (single) {
+                return found.length === 1
+                    ? json(found[0])
+                    : json({ message: "no rows" }, 406);
+            }
+            return json(found);
+        }
+        if (req.method === "POST") {
+            const body = (await req.json()) as Record<string, unknown>;
+            inserts.push(body);
+            const row = { id: MEAL_ID, ...body };
+            rows.push(row);
+            return json(single ? row : [row], 201);
+        }
+        if (req.method === "PATCH") {
+            const body = (await req.json()) as Record<string, unknown>;
+            patchQueries.push(q);
+            // Applied only when every guard filter on a sugar column holds,
+            // the way PostgREST would: `eq.<n>` compares the stored number,
+            // `is.null` a NULL.
+            const guardsHold = (r: Record<string, unknown>) =>
+                ["sugar_g", "added_sugar_g"].every((col) => {
+                    const f = q.get(col);
+                    if (f === null) return true;
+                    if (f === "is.null") return r[col] == null;
+                    const m = f.match(/^eq\.(.*)$/);
+                    if (!m) throw new Error(`meals stub: filter ${col}=${f}`);
+                    return r[col] != null && Number(m[1]) === r[col];
+                });
+            const row = rows.find(
+                (r) =>
+                    r.id === eqParam(q, "id") &&
+                    r.user_id === userId &&
+                    guardsHold(r),
+            );
+            if (!row)
+                return single ? json({ message: "no rows" }, 406) : json([]);
+            patches.push(body);
+            Object.assign(row, body);
+            return json(single ? row : [row]);
+        }
+        throw new Error(`meals stub refused ${req.method} ${req.url}`);
+    }
+
+    const envBefore = {
+        url: process.env.SUPABASE_URL,
+        key: process.env.SUPABASE_SECRET_KEY,
+    };
+    let fetchSpy: ReturnType<typeof spyOn>;
+
+    beforeAll(() => {
+        process.env.SUPABASE_URL ??= "http://supabase.test";
+        process.env.SUPABASE_SECRET_KEY ??= "test-key";
+        fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
+            fakeMeals as typeof fetch,
+        );
+    });
+
+    afterAll(() => {
+        fetchSpy.mockRestore();
+        if (envBefore.url === undefined) delete process.env.SUPABASE_URL;
+        if (envBefore.key === undefined) delete process.env.SUPABASE_SECRET_KEY;
+    });
+
+    beforeEach(() => {
+        rows = [];
+        inserts.length = 0;
+        patches.length = 0;
+        patchQueries.length = 0;
+    });
+
+    test("insertMeal writes the value, and NULL when it is omitted", async () => {
+        const { meal: saved } = await insertMeal(USER, {
+            ...meal({ sugar_g: 35, added_sugar_g: 35 }),
+            logged_at: LOGGED_AT,
+        });
+        expect(inserts[0]).toMatchObject({ sugar_g: 35, added_sugar_g: 35 });
+        expect(saved.added_sugar_g).toBe(35);
+
+        await insertMeal(USER, {
+            ...meal({ description: "banana", sugar_g: 14 }),
+            logged_at: LOGGED_AT,
+        });
+        // Not recorded is NULL, never 0.
+        expect(inserts[1]).toHaveProperty("added_sugar_g", null);
+    });
+
+    test("a re-log differing only in added_sugar_g dedupes onto the first row", async () => {
+        await insertMeal(USER, {
+            ...meal({ sugar_g: 20 }),
+            logged_at: LOGGED_AT,
+        });
+        const again = await insertMeal(USER, {
+            ...meal({ sugar_g: 20, added_sugar_g: 12 }),
+            logged_at: LOGGED_AT,
+        });
+        expect(again.deduplicated).toBe(true);
+        expect(inserts).toHaveLength(1);
+    });
+
+    test("updateMeal writes added_sugar_g only when it is passed", async () => {
+        await insertMeal(USER, {
+            ...meal({ sugar_g: 20 }),
+            logged_at: LOGGED_AT,
+        });
+        const updated = await updateMeal(USER, MEAL_ID, { added_sugar_g: 12 });
+        expect(patches[0]).toHaveProperty("added_sugar_g", 12);
+        expect(updated.added_sugar_g).toBe(12);
+        // The derived key is unchanged by the backfill.
+        expect(patches[0]?.idempotency_key).toBe(inserts[0]?.idempotency_key);
+
+        await updateMeal(USER, MEAL_ID, { calories: 320 });
+        expect(patches[1]).not.toHaveProperty("added_sugar_g");
+        // No guard, no sugar filter on the write.
+        expect(patchQueries[1]?.has("sugar_g")).toBe(false);
+        expect(patchQueries[1]?.has("added_sugar_g")).toBe(false);
+    });
+
+    test("a guarded write sends the guard as a PostgREST filter and writes when it holds", async () => {
+        await insertMeal(USER, {
+            ...meal({ sugar_g: 20.5 }),
+            logged_at: LOGGED_AT,
+        });
+        const updated = await updateMeal(
+            USER,
+            MEAL_ID,
+            { added_sugar_g: 12 },
+            { sugar_g: 20.5 },
+        );
+        expect(patchQueries[0]?.get("sugar_g")).toBe("eq.20.5");
+        expect(patchQueries[0]?.has("added_sugar_g")).toBe(false);
+        expect(updated.added_sugar_g).toBe(12);
+    });
+
+    test("a null guard is sent as IS NULL", async () => {
+        await insertMeal(USER, {
+            ...meal({ sugar_g: 40 }),
+            logged_at: LOGGED_AT,
+        });
+        const updated = await updateMeal(
+            USER,
+            MEAL_ID,
+            { sugar_g: 30 },
+            { added_sugar_g: null },
+        );
+        expect(patchQueries[0]?.get("added_sugar_g")).toBe("is.null");
+        expect(updated.sugar_g).toBe(30);
+    });
+
+    test("a guard that no longer holds writes nothing and throws the conflict ToolError", async () => {
+        await insertMeal(USER, {
+            ...meal({ sugar_g: 20 }),
+            logged_at: LOGGED_AT,
+        });
+        // The check read sugar_g 40; a concurrent edit has since stored 20.
+        const err = await updateMeal(
+            USER,
+            MEAL_ID,
+            { added_sugar_g: 30 },
+            { sugar_g: 40 },
+        ).catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(ToolError);
+        expect((err as Error).message).toBe(
+            `The sugar values stored on meal ${MEAL_ID} changed while this edit was being applied, so nothing was written. Stored now: sugar_g 20 g, added_sugar_g not recorded.`,
+        );
+        expect(patches).toHaveLength(0);
+        expect(rows[0]?.added_sugar_g ?? null).toBe(null);
+    });
+
+    test("a guarded write on a meal deleted since the pre-check is not-found, not a conflict", async () => {
+        await insertMeal(USER, {
+            ...meal({ sugar_g: 20 }),
+            logged_at: LOGGED_AT,
+        });
+        // Delete the row as the PATCH arrives: the pre-check saw it, the
+        // write and the follow-up read do not.
+        const before = fetchSpy.getMockImplementation();
+        fetchSpy.mockImplementation((async (
+            input: string | URL | Request,
+            init?: RequestInit,
+        ) => {
+            const method =
+                input instanceof Request ? input.method : init?.method;
+            if (method === "PATCH") rows = [];
+            return fakeMeals(input, init);
+        }) as typeof fetch);
+        try {
+            const err = await updateMeal(
+                USER,
+                MEAL_ID,
+                { added_sugar_g: 5 },
+                { sugar_g: 20 },
+            ).catch((e: unknown) => e);
+            expect(err).toBeInstanceOf(ToolError);
+            expect((err as Error).message).toBe(
+                `No meal found with id ${MEAL_ID}.`,
+            );
+        } finally {
+            fetchSpy.mockImplementation(before!);
+        }
     });
 });

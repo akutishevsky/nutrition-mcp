@@ -16,6 +16,7 @@ import {
     searchMeals,
     deleteMeal,
     updateMeal,
+    type MealSugarGuard,
     deleteAllUserData,
     upsertNutritionGoals,
     getNutritionGoals,
@@ -35,6 +36,7 @@ import {
     insertBodyMeasurement,
     getBodyMeasurementsInRange,
     getBodyMeasurement,
+    getSupabase,
     updateBodyMeasurement,
     deleteBodyMeasurement,
     preferredLengthUnitFromProfile,
@@ -127,10 +129,17 @@ import {
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 import { formatMealSearchResults } from "./search.js";
 import {
+    addedSugarError,
+    addedSugarExtra,
+    buildAddedSugarMeta,
+} from "./added-sugar.js";
+import {
     getWidgetHtml,
     MEAL_CONTRIBUTORS_META_KEY,
     WEIGHT_SERIES_META_KEY,
     PERIOD_AVERAGES_META_KEY,
+    ADDED_SUGAR_META_KEY,
+    MEAL_BREAKDOWN_TOP_N,
 } from "./widgets.js";
 import {
     GRANULARITIES,
@@ -170,7 +179,7 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // declared once and spliced into SERVER_INSTRUCTIONS, log_meal and update_meal
 // so the three cannot drift.
 //
-// Fiber and sugar are unconditional; caffeine deliberately is NOT. That
+// Fiber, sugar and added sugar are unconditional; caffeine deliberately is NOT. That
 // asymmetry is the whole point of this block, and it is a read-side constraint
 // rather than a stylistic one: caffeine's display gate is `!= null` everywhere
 // (limitShown in shared/macros.js, recordedGoalLine and totalsPayloadOf here),
@@ -185,8 +194,9 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // zero, it excludes the entire DAY from that nutrient's averages and goal lines
 // (dayCarries in insights.ts), so one forgotten fiber figure silently deletes a
 // day from the user's fiber trend rather than making it slightly wrong.
-const NUTRIENT_COVERAGE = `Fiber, sugar and caffeine are tracked alongside the headline macros.
+const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar and caffeine are tracked alongside the headline macros.
 - fiber_g and sugar_g are read on every meal, like protein, carbs and fat. A missing value is stored as "not measured", not as zero, and leaves that whole day out of the user's fiber and sugar averages, goal lines and charts; an estimate keeps the day in. In order of accuracy, a figure comes from a nutrition label, a barcode lookup, the chain's or product's published per-item nutrition, or an estimate from the ingredients and the portion — an exact figure is no more required here than it is for protein. 0 is the correct value for food that has none (a steak, eggs, oil, black coffee).
+- added_sugar_g is read on every meal too, like sugar_g: the part of sugar_g added during processing or preparation, never more than sugar_g. It is a classification more than a measurement — whole fruit, vegetables, plain milk, meat and rice are 0, and a soft drink's sugar is all added. A missing value is stored as "not recorded" and leaves that day out of the added-sugar average and limit.
 - caffeine_mg applies only to caffeine sources: coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. A label or a chain's published nutrition gives the figure where available; the field description lists typical amounts otherwise. For anything that is not a caffeine source the field is left out: an explicit 0 means "measured, and it was none", and it shows a caffeine row to a user who never consumes any.`;
 
 // Sent to clients in the initialize response (SDK ServerOptions.instructions).
@@ -210,7 +220,7 @@ Current time — some hosts put the current date and time in context and some do
 
 Recording a complete meal — this applies to every write path (log_meal, update_meal, a barcode lookup that is then logged, a meal copied from search_meals), not just to photos.
 ${NUTRIENT_COVERAGE}
-A meal saved without its fiber or sugar can be completed later: update_meal writes only the fields passed, so it fills in the missing figure once the user wants it filled in.
+A meal saved without its fiber, sugar or added sugar can be completed later: update_meal writes only the fields passed, so it fills in the missing figure once the user wants it filled in.
 
 Meals from photos:
 - A packaged product with a visible barcode: the digits printed under the barcode go to lookup_barcode.
@@ -267,6 +277,10 @@ interface DailyTotals {
     fat_g: number;
     fiber_g: number;
     sugar_g: number;
+    // Text only: totalsPayloadOf picks its fields by name and never emits this
+    // one, because every structuredContent shape that carries totals is frozen
+    // (see ADDED_SUGAR_META_KEY for where the widgets get it instead).
+    added_sugar_g: number;
     alcohol_g: number;
     // Milligrams, unlike every gram-valued field above it — the unit rides in
     // the name at every layer because caffeine is the one nutrient here whose
@@ -284,6 +298,7 @@ function emptyTotals(): DailyTotals {
         fat_g: 0,
         fiber_g: 0,
         sugar_g: 0,
+        added_sugar_g: 0,
         alcohol_g: 0,
         caffeine_mg: 0,
         water_ml: 0,
@@ -304,6 +319,7 @@ export function sumMeals(meals: Meal[]): DailyTotals {
         // zero, and that is what nutrientPresence below is for.
         totals.fiber_g += m.fiber_g ?? 0;
         totals.sugar_g += m.sugar_g ?? 0;
+        totals.added_sugar_g += m.added_sugar_g ?? 0;
         totals.alcohol_g += m.alcohol_g ?? 0;
         totals.caffeine_mg += m.caffeine_mg ?? 0;
     }
@@ -325,6 +341,7 @@ export function sumMeals(meals: Meal[]): DailyTotals {
 export interface NutrientPresence {
     fiber_g: boolean;
     sugar_g: boolean;
+    added_sugar_g: boolean;
     alcohol_g: boolean;
     caffeine_mg: boolean;
 }
@@ -333,6 +350,7 @@ export function nutrientPresence(meals: Meal[]): NutrientPresence {
     return {
         fiber_g: dayCarries(meals, "fiber_g"),
         sugar_g: dayCarries(meals, "sugar_g"),
+        added_sugar_g: dayCarries(meals, "added_sugar_g"),
         alcohol_g: dayCarries(meals, "alcohol_g"),
         caffeine_mg: dayCarries(meals, "caffeine_mg"),
     };
@@ -364,6 +382,7 @@ export function rangeAverages(
     recordedDays: {
         fiber_g: number;
         sugar_g: number;
+        added_sugar_g: number;
         alcohol_g: number;
         caffeine_mg: number;
     };
@@ -379,6 +398,7 @@ export function rangeAverages(
     const mealsByDay = perDay.map((d) => d.meals);
     const fiber = coveredDailyAverage(mealsByDay, "fiber_g");
     const sugar = coveredDailyAverage(mealsByDay, "sugar_g");
+    const addedSugar = coveredDailyAverage(mealsByDay, "added_sugar_g");
     const alcohol = coveredDailyAverage(mealsByDay, "alcohol_g");
     const caffeine = coveredDailyAverage(mealsByDay, "caffeine_mg");
     const n = perDay.length || 1;
@@ -390,6 +410,7 @@ export function rangeAverages(
             fat_g: sum.fat_g / n,
             fiber_g: fiber.avg ?? 0,
             sugar_g: sugar.avg ?? 0,
+            added_sugar_g: addedSugar.avg ?? 0,
             alcohol_g: alcohol.avg ?? 0,
             caffeine_mg: caffeine.avg ?? 0,
             water_ml: Math.round(sum.water_ml / n),
@@ -397,10 +418,32 @@ export function rangeAverages(
         recordedDays: {
             fiber_g: fiber.days,
             sugar_g: sugar.days,
+            added_sugar_g: addedSugar.days,
             alcohol_g: alcohol.days,
             caffeine_mg: caffeine.days,
         },
     };
+}
+
+/** get_nutrition_summary's added-sugar average, in text because no
+ *  structuredContent shape may carry it (the summary's `averages` schema is
+ *  frozen). Covered days only, like sugar (rangeAverages), against the limit
+ *  when one is set. Empty for a single day, whose section already prints the
+ *  figure, and when no logged day recorded added sugar. */
+export function addedSugarAverageLine(
+    average: number,
+    recordedDays: number,
+    loggedDays: number,
+    limit: number | null,
+): string {
+    if (loggedDays < 2 || recordedDays === 0) return "";
+    return `\n\n${formatGoalLine(
+        "Added sugar, daily average",
+        "g",
+        average,
+        limit,
+        "ceiling",
+    )}`;
 }
 
 /** The model-facing half of the #70 fix: says out loud that these averages
@@ -486,11 +529,9 @@ export function mealBreakdown(
     }));
 }
 
-// How many meals the summary widget lists per metric. MUST equal `CAP` in
-// public/widgets/src/shared/macros.js (mealList): the server keeps exactly the
-// rows that list can show, so a larger CAP there would list fewer meals than it
-// claims room for, and a smaller one would ship rows nobody sees.
-export const MEAL_BREAKDOWN_TOP_N = 8;
+// MEAL_BREAKDOWN_TOP_N lives in src/widgets.ts (Supabase-free, so the widget
+// harness can import it too); re-exported here for existing importers.
+export { MEAL_BREAKDOWN_TOP_N };
 
 // The metrics a summary's meal list can be opened on, in MEAL_BREAKDOWN_ITEM's
 // field names.
@@ -532,6 +573,9 @@ export { WEIGHT_SERIES_META_KEY };
 // And for get_trends' per-period averages (PeriodAveragesMeta, built in
 // src/periods.ts), present only when `group_by` is set.
 export { PERIOD_AVERAGES_META_KEY };
+// And for the added-sugar figures (AddedSugarMeta) that five tools carry
+// beside their frozen structuredContent.
+export { ADDED_SUGAR_META_KEY };
 
 /** Zero contributors, for a window with no meals at all. `.nullable()` is not
  *  optional: the alcohol key is always present, null when tracking is off. */
@@ -561,20 +605,29 @@ export function emptyMealContributors(
 export function topMealBreakdown(
     rows: BreakdownRow[],
     alcohol: AlcoholDisplay,
-): { meals: BreakdownRow[]; contributors: MealContributors } {
+): {
+    meals: BreakdownRow[];
+    contributors: MealContributors;
+    /** Indices of the kept rows, in order — to pick the matching meals. */
+    kept: number[];
+} {
     const keep = new Set<number>();
     const contributors = emptyMealContributors(alcohol);
-    for (const key of BREAKDOWN_METRICS) {
-        const ranked = rows
-            .map((row, i) => ({ i, v: row[key] ?? 0 }))
+    const top = (values: number[]) =>
+        values
+            .map((v, i) => ({ i, v }))
             .filter((r) => r.v > 0)
             .sort((a, b) => b.v - a.v || a.i - b.i);
+    for (const key of BREAKDOWN_METRICS) {
+        const ranked = top(rows.map((row) => row[key] ?? 0));
         if (key !== "alcohol_g" || alcohol) contributors[key] = ranked.length;
         for (const r of ranked.slice(0, MEAL_BREAKDOWN_TOP_N)) keep.add(r.i);
     }
+    const kept = rows.map((_, i) => i).filter((i) => keep.has(i));
     return {
-        meals: rows.filter((_, i) => keep.has(i)),
+        meals: kept.map((i) => rows[i]!),
         contributors,
+        kept,
     };
 }
 
@@ -741,6 +794,9 @@ export function trendsDayPayloadOf(
             fat_g: bucket.fat_g,
             fiber_g: bucket.fiber_g,
             sugar_g: bucket.sugar_g,
+            // Never emitted by totalsPayloadOf (the days schema is frozen);
+            // the widget reads per-day added sugar from ADDED_SUGAR_META_KEY.
+            added_sugar_g: bucket.added_sugar_g,
             alcohol_g: bucket.alcohol_g,
             caffeine_mg: bucket.caffeine_mg,
             water_ml: bucket.waterMl,
@@ -814,6 +870,12 @@ const IMPORT_ROW_SCHEMA = z.object({
         .optional()
         .describe(
             "TOTAL sugars in grams, including sugar naturally present in fruit and milk as well as added sugar — the figure an export's 'Sugars' column carries.",
+        ),
+    added_sugar_g: z.coerce
+        .number()
+        .optional()
+        .describe(
+            "Added sugars in grams — the figure an export's 'Added sugars' column carries. Part of sugar_g and never more than it; a row where it is more is reported as a per-row error.",
         ),
     alcohol_g: z.coerce
         .number()
@@ -977,9 +1039,21 @@ async function buildMealProgress(
         meals: mealBreakdown(meals, null, alcohol),
     };
 
+    // The day's added sugar, for the widget only: structuredContent's schema
+    // is frozen, so it rides in the result's _meta (ADDED_SUGAR_META_KEY).
+    // `meals` is the same list, in the same order, as the rows above — the
+    // widget joins the two by position.
+    const meta = {
+        [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+            goal: goals?.daily_added_sugar_g,
+            days: { [mealDate]: meals },
+            meals,
+        }),
+    };
+
     // tz goes back to the caller so its confirmation prints the meal's time
     // in the same zone this progress section bucketed it by.
-    return { progressSection, structuredContent, tz };
+    return { progressSection, structuredContent, meta, tz };
 }
 
 // Which way a target points. A floor is something to reach (calories, protein,
@@ -1074,6 +1148,7 @@ function recordedGoalLine(
 const ALL_RECORDED: NutrientPresence = {
     fiber_g: true,
     sugar_g: true,
+    added_sugar_g: true,
     alcohol_g: true,
     caffeine_mg: true,
 };
@@ -1125,6 +1200,18 @@ export function formatProgress(
             totals.sugar_g,
             goals?.daily_sugar_g ?? null,
             present.sugar_g,
+            "ceiling",
+        ),
+        // Its own ceiling, beside total sugar rather than instead of it: the
+        // public guidance figures (WHO, AHA, DGA) limit added or free sugar,
+        // and a 25 g total-sugar limit is spent by two bananas. Gated on
+        // presence exactly like sugar, so a pre-column day prints nothing.
+        recordedGoalLine(
+            "Added sugar",
+            "g",
+            totals.added_sugar_g,
+            goals?.daily_added_sugar_g ?? null,
+            present.added_sugar_g,
             "ceiling",
         ),
     ];
@@ -1191,8 +1278,12 @@ export function formatGoals(
     parts.push(`- Carbs: ${floor(goals.daily_carbs_g, (n) => `${n}g`)}`);
     parts.push(`- Fat: ${floor(goals.daily_fat_g, (n) => `${n}g`)}`);
     parts.push(`- Fiber: ${floor(goals.daily_fiber_g, (n) => `${n}g`)}`);
+    // "total" leads so the two sugar limits read apart at a glance.
     parts.push(
-        `- Sugar (total, max): ${ceiling(goals.daily_sugar_g, (n) => `${n}g`)}`,
+        `- Sugar, total (max): ${ceiling(goals.daily_sugar_g, (n) => `${n}g`)}`,
+    );
+    parts.push(
+        `- Added sugar (max): ${ceiling(goals.daily_added_sugar_g, (n) => `${n}g`)}`,
     );
     if (alcohol) {
         parts.push(
@@ -1576,15 +1667,16 @@ export function alcoholHiddenNote(
 // the top of a session; this note lands in the model's context at the exact
 // moment it left a nutrient out, which is the only feedback in the loop. Same
 // report-only shape as alcoholHiddenNote above — it never writes anything, and
-// it points at an offer, not a write: the gap is mentioned to the user and
-// update_meal fills it only if they want it filled (directory policy 2.D — no
-// write the user did not ask for).
+// it describes rather than directs: it names the gap, what a gap does to the
+// totals, and that update_meal can fill it — never what the assistant should
+// say or do (directory policy; see #190, #213).
 //
-// Deliberately limited to fiber_g and sugar_g. Both are estimable for every
-// food that exists, so a NULL on a meal the model just wrote is an omission and
-// not a fact, and the cost is not one imperfect number: a null excludes the
-// whole DAY from that nutrient's averages, goal lines and charts (dayCarries in
-// insights.ts), so a forgotten fiber figure deletes the day from the trend.
+// Deliberately limited to fiber_g, sugar_g and added_sugar_g. All three are
+// estimable for every food that exists (added sugar is a classification more
+// than a measurement: 0 for whole foods, all of it for a soft drink), so a
+// NULL on a meal the model just wrote is an omission and not a fact, and the
+// cost is not one imperfect number: a null excludes the whole DAY from that
+// nutrient's averages, goal lines and charts (dayCarries in insights.ts), so a forgotten fiber figure deletes the day from the trend.
 //
 // Caffeine is NOT checked here, and adding it would undo the suppression the
 // rest of this file is built around: most meals genuinely carry none, its
@@ -1595,9 +1687,45 @@ export function missingNutrientNote(meal: Meal): string {
     const missing = [
         meal.fiber_g == null ? "fiber_g" : null,
         meal.sugar_g == null ? "sugar_g" : null,
+        meal.added_sugar_g == null ? "added_sugar_g" : null,
     ].filter((f): f is string => f !== null);
     if (missing.length === 0) return "";
-    return `\n\n(Not recorded on this meal: ${missing.join(", ")}. A missing value is not a zero — it leaves the whole day out of that nutrient's totals, averages and goal line. Mention the gap to the user; if they want it filled, estimate the value from the ingredients (0 where the food genuinely has none) and update_meal can add it to id ${meal.id}.)`;
+    return `\n\n(Not recorded on this meal: ${missing.join(", ")}. A missing value is not a zero — it leaves the whole day out of that nutrient's totals, averages and goal line. update_meal can add the value to id ${meal.id}; 0 records a food that genuinely has none.)`;
+}
+
+// update_meal's half of the added ≤ total rule (addedSugarError). A field the
+// call leaves out keeps its stored value, so the pair that ends up in the row
+// is the passed value merged over the stored one — backfilling only
+// added_sugar_g on a meal whose sugar_g is already stored has to be checked
+// against that sugar_g. `stored` is null when both were passed (no read
+// needed) or the meal does not exist (updateMeal reports that). Never clamps.
+export function updatedAddedSugarError(
+    fields: { sugar_g?: number; added_sugar_g?: number },
+    stored: Pick<Meal, "sugar_g" | "added_sugar_g"> | null,
+): string | null {
+    return addedSugarError(
+        fields.added_sugar_g !== undefined
+            ? fields.added_sugar_g
+            : stored?.added_sugar_g,
+        fields.sugar_g !== undefined ? fields.sugar_g : stored?.sugar_g,
+    );
+}
+
+// The stored pair updatedAddedSugarError checks a one-sided update against.
+// Two columns only, scoped to the user like every meal read; null when no such
+// meal exists, which updateMeal then reports with its own not-found text.
+async function storedMealSugars(
+    userId: string,
+    id: string,
+): Promise<Pick<Meal, "sugar_g" | "added_sugar_g"> | null> {
+    const { data, error } = await getSupabase()
+        .from("meals")
+        .select("sugar_g, added_sugar_g")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (error) throw new Error(`Failed to read meal: ${error.message}`);
+    return (data as Pick<Meal, "sugar_g" | "added_sugar_g"> | null) ?? null;
 }
 
 // lookup_barcode's two Open Food Facts fallbacks. A lookup is often only a
@@ -1765,6 +1893,14 @@ export function registerTools(
                     .describe(
                         "TOTAL sugars in grams — the figure a nutrition label or database gives for 'Sugars', which includes sugar naturally present in fruit, milk and juice as well as added sugar. Expected on every meal: a missing value is stored as not measured rather than as zero and leaves the whole day out of the sugar average and limit, while an estimate keeps the day in. Reference values per 100 g: milk 5 g, plain yogurt 4.7 g, fruit yogurt 12 g, apple 10 g, banana 12 g, orange 9 g, berries 5-10 g, dried dates 63 g, cola 10.6 g, orange juice 8.4 g, ketchup 22 g, milk chocolate 52 g, bread 3-5 g. Meat, fish, eggs, cheese, oil, rice, pasta and most vegetables are ~0, so 0 is the correct value there rather than an omitted field.",
                     ),
+                added_sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Added sugars in grams: sugars added during processing or preparation (table sugar, syrups, honey, sugar in sweetened drinks and foods). Part of sugar_g, never more than it. Sugar naturally present in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Expected on every meal: a missing value is stored as not measured rather than as zero and leaves that day out of the added-sugar average and limit. Reference values: whole fruit, vegetables, plain milk, plain yogurt, meat, fish, eggs, rice, pasta and 100% fruit juice are 0; a soft drink's sugar is all added (cola 10.6 g per 100 g); fruit yogurt is about 7 g added per 100 g; milk chocolate about 47 g per 100 g; ketchup about 18 g per 100 g; sweetened cereal about 25 g per 100 g. A US label states it directly, in the line 'Includes Xg Added Sugars'. 0 is the correct value for a food with none rather than an omitted field.",
+                    ),
                 alcohol_g: z.coerce
                     .number()
                     .min(0)
@@ -1779,7 +1915,7 @@ export function registerTools(
                     .max(MAX_CAFFEINE_MG)
                     .optional()
                     .describe(
-                        "Caffeine in MILLIGRAMS (mg) — this field is the one that is not in grams, and a value under 1 almost certainly means grams were sent by mistake. Typical amounts: a 240 ml brewed coffee 95 mg, a single espresso 63 mg, instant coffee 62 mg, black tea 47 mg, green tea 28 mg, a 355 ml cola 34 mg, a 250 ml energy drink 80 mg, decaf 2 mg. Scale them to what was actually drunk (a double espresso is 126 mg), and for a branded drink prefer the figure on the label or the chain's published nutrition. Caffeine adds no calories, so it never changes the kcal figure. Unlike fiber_g and sugar_g, this field is conditional, so decide it on every entry rather than skipping it by default: if the item is a caffeine source at all — coffee including decaf, tea, matcha, yerba mate, cola and other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets — send a figure, from the label or published nutrition where available and otherwise from the amounts above. Omit the field for anything that is not a caffeine source rather than sending 0 — a 0 records 'measured, and it was none', and one on a sandwich puts a caffeine row on the dashboard of a user who never drinks any.",
+                        "Caffeine in MILLIGRAMS (mg) — this field is the one that is not in grams, and a value under 1 almost certainly means grams were sent by mistake. Typical amounts: a 240 ml brewed coffee 95 mg, a single espresso 63 mg, instant coffee 62 mg, black tea 47 mg, green tea 28 mg, a 355 ml cola 34 mg, a 250 ml energy drink 80 mg, decaf 2 mg. Scale them to what was actually drunk (a double espresso is 126 mg), and for a branded drink prefer the figure on the label or the chain's published nutrition. Caffeine adds no calories, so it never changes the kcal figure. Unlike fiber_g, sugar_g and added_sugar_g, this field is conditional, so decide it on every entry rather than skipping it by default: if the item is a caffeine source at all — coffee including decaf, tea, matcha, yerba mate, cola and other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets — send a figure, from the label or published nutrition where available and otherwise from the amounts above. Omit the field for anything that is not a caffeine source rather than sending 0 — a 0 records 'measured, and it was none', and one on a sandwich puts a caffeine row on the dashboard of a user who never drinks any.",
                     ),
                 logged_at: z
                     .string()
@@ -1812,6 +1948,13 @@ export function registerTools(
             return withAnalytics(
                 "log_meal",
                 async () => {
+                    // Before anything is read or written: a mismatch is the
+                    // caller's to resolve, never clamped (addedSugarError).
+                    const sugarError = addedSugarError(
+                        args.added_sugar_g,
+                        args.sugar_g,
+                    );
+                    if (sugarError) throw new ToolError(sugarError);
                     const { iso, note } = await resolveWriteTimestamp(
                         userId,
                         args.logged_at,
@@ -1826,7 +1969,7 @@ export function registerTools(
                         ? "Meal already logged — this matched an existing meal, so nothing new was added"
                         : "Meal logged";
 
-                    const { progressSection, structuredContent, tz } =
+                    const { progressSection, structuredContent, meta, tz } =
                         await buildMealProgress(
                             userId,
                             meal,
@@ -1846,6 +1989,7 @@ export function registerTools(
                             },
                         ],
                         structuredContent,
+                        _meta: meta,
                     };
                 },
                 analytics,
@@ -2120,7 +2264,7 @@ export function registerTools(
         {
             title: "Look Up Barcode",
             description:
-                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures come from the product's own label as transcribed by the Open Food Facts community, so they beat estimating — but they are not verified by this server and can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is) — pass these along if the user is asking about the product's quality, not just its macros; they're omitted, not \"n/a\", when OFF hasn't computed one for that product. If no product is found, estimate from the product description, or from the label if the user can share it. Two gaps to close yourself before logging: a fiber or sugar figure shown as n/a is missing data rather than a zero, so estimate it and pass it anyway; and Open Food Facts carries no caffeine at all, so for a coffee, tea, cola, energy drink or other caffeinated product take caffeine_mg from the label where available, otherwise from typical amounts.",
+                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures come from the product's own label as transcribed by the Open Food Facts community, so they beat estimating — but they are not verified by this server and can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is) — pass these along if the user is asking about the product's quality, not just its macros; they're omitted, not \"n/a\", when OFF hasn't computed one for that product. If no product is found, estimate from the product description, or from the label if the user can share it. Two gaps to close yourself before logging: a fiber, sugar or added-sugar figure shown as n/a is missing data rather than a zero, so estimate it and pass it anyway; and Open Food Facts carries no caffeine at all, so for a coffee, tea, cola, energy drink or other caffeinated product take caffeine_mg from the label where available, otherwise from typical amounts.",
             annotations: {
                 title: "Look Up Barcode",
                 readOnlyHint: true,
@@ -2739,6 +2883,12 @@ export function registerTools(
                             _meta: {
                                 [MEAL_CONTRIBUTORS_META_KEY]:
                                     emptyMealContributors(alcohol),
+                                [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                                    goal: goals?.daily_added_sugar_g,
+                                    days: {},
+                                    meals: [],
+                                    contributorsOf: [],
+                                }),
                             },
                         };
                     }
@@ -2824,6 +2974,10 @@ export function registerTools(
                         recordedDays.sugar_g < days.length
                             ? `sugar ${recordedDays.sugar_g}`
                             : null,
+                        recordedDays.added_sugar_g > 0 &&
+                        recordedDays.added_sugar_g < days.length
+                            ? `added sugar ${recordedDays.added_sugar_g}`
+                            : null,
                         alcohol &&
                         recordedDays.alcohol_g > 0 &&
                         recordedDays.alcohol_g < days.length
@@ -2838,13 +2992,24 @@ export function registerTools(
                     const coverageNote = partial.length
                         ? `\n\n(Averaged over the days that record each figure, not all ${days.length}: ${partial.join(", ")}.)`
                         : "";
-
-                    const breakdown = topMealBreakdown(
-                        mealBreakdown(meals, tz, alcohol),
-                        alcohol,
+                    const addedSugarAverage = addedSugarAverageLine(
+                        rawAverages.added_sugar_g,
+                        recordedDays.added_sugar_g,
+                        days.length,
+                        goals?.daily_added_sugar_g ?? null,
                     );
 
+                    // Added sugar does not rank rows of its own: that would
+                    // change structuredContent.meals for every host, _meta or
+                    // not. Its list draws from the kept rows that carry a
+                    // value plus _meta's `extra` — its own top N that the
+                    // kept rows miss (addedSugarExtra) — and its exact
+                    // "N more" comes from _meta's contributors.
+                    const rows = mealBreakdown(meals, tz, alcohol);
+                    const breakdown = topMealBreakdown(rows, alcohol);
+
                     const footer =
+                        addedSugarAverage +
                         coverageNote +
                         loggedDayAverageNote(days.length, daysInRange) +
                         (goals
@@ -2882,6 +3047,22 @@ export function registerTools(
                         _meta: {
                             [MEAL_CONTRIBUTORS_META_KEY]:
                                 breakdown.contributors,
+                            // Same object, beside the contributors: `meals`
+                            // follows the kept rows' order exactly (the
+                            // widget joins by position), and `contributors`
+                            // counts over every meal in the range.
+                            [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                                goal: goals?.daily_added_sugar_g,
+                                days: Object.fromEntries(byDate),
+                                meals: breakdown.kept.map((i) => meals[i]!),
+                                contributorsOf: meals,
+                                extra: addedSugarExtra(
+                                    meals,
+                                    rows,
+                                    breakdown.kept,
+                                    MEAL_BREAKDOWN_TOP_N,
+                                ),
+                            }),
                         },
                     };
                 },
@@ -2896,7 +3077,7 @@ export function registerTools(
         {
             title: "Set Nutrition Goals",
             description:
-                "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target. Calories, protein, carbs, fat, fiber and water are targets to REACH; sugar, alcohol and caffeine are limits to STAY UNDER, and progress against them is worded accordingly. Every gram target is in grams and the caffeine limit is in MILLIGRAMS. For a limit, 0 is a real value meaning 'none at all' rather than 'unset'. Targets are the user's own choice; this server does not provide medical or dietary advice.",
+                "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target. Calories, protein, carbs, fat, fiber and water are targets to REACH; total sugar, added sugar, alcohol and caffeine are limits to STAY UNDER, and progress against them is worded accordingly. Every gram target is in grams and the caffeine limit is in MILLIGRAMS. For a limit, 0 is a real value meaning 'none at all' rather than 'unset'. Targets are the user's own choice; this server does not provide medical or dietary advice.",
             annotations: {
                 title: "Set Nutrition Goals",
                 readOnlyHint: false,
@@ -2954,7 +3135,16 @@ export function registerTools(
                     .nullable()
                     .optional()
                     .describe(
-                        "Daily TOTAL sugar limit (grams), treated as a maximum to stay under. Total sugars include sugar naturally present in fruit and milk as well as added sugar, so a total-sugar limit is reached sooner than the same number would be as an added-sugar limit; public guidance figures usually refer to added sugar. Null to clear.",
+                        "Daily TOTAL sugar limit (grams), treated as a maximum to stay under. Total sugars include sugar naturally present in fruit and milk as well as added sugar, so a total-sugar limit is reached sooner than the same number would be as an added-sugar limit; public guidance figures usually refer to added sugar, which daily_added_sugar_g limits. Null to clear.",
+                    ),
+                daily_added_sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_GOAL_G)
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Daily added-sugar limit (grams), a maximum to stay under. Counts only added sugars, not sugar naturally present in fruit and milk; public guidance figures for sugar usually refer to this measure. 0 means none. Null to clear.",
                     ),
                 daily_alcohol_g: z.coerce
                     .number()
@@ -3048,6 +3238,10 @@ export function registerTools(
                             args.daily_sugar_g === undefined
                                 ? (existing?.daily_sugar_g ?? null)
                                 : args.daily_sugar_g,
+                        daily_added_sugar_g:
+                            args.daily_added_sugar_g === undefined
+                                ? (existing?.daily_added_sugar_g ?? null)
+                                : args.daily_added_sugar_g,
                         daily_alcohol_g:
                             args.daily_alcohol_g === undefined
                                 ? (existing?.daily_alcohol_g ?? null)
@@ -3265,6 +3459,15 @@ export function registerTools(
                             // Single day → label rows by meal type in the widget.
                             meals: mealBreakdown(meals, null, alcohol),
                         },
+                        // Rows and meta.meals share one list and one order;
+                        // the widget joins them by position.
+                        _meta: {
+                            [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                                goal: goals?.daily_added_sugar_g,
+                                days: { [targetDate]: meals },
+                                meals,
+                            }),
+                        },
                     };
                 },
                 analytics,
@@ -3341,7 +3544,7 @@ export function registerTools(
             // backfill runs only once the user asks or agrees: an unrequested
             // write is what directory policy 2.D forbids.
             description:
-                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to backfill nutrition a meal was logged without: when a past meal has no fiber_g, sugar_g or (where it applies) caffeine_mg and the user asks or agrees to fill it in, estimate the value and pass just that field. Meal ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.\n\n" +
+                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to backfill nutrition a meal was logged without: when a past meal has no fiber_g, sugar_g, added_sugar_g or (where it applies) caffeine_mg and the user asks or agrees to fill it in, estimate the value and pass just that field. Meal ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.\n\n" +
                 NUTRIENT_COVERAGE,
             annotations: {
                 title: "Update Meal",
@@ -3383,6 +3586,14 @@ export function registerTools(
                     .describe(
                         "TOTAL sugars in grams, including sugar naturally present in fruit and milk as well as added sugar. Only the fields passed are written, so this fills in the figure for a meal logged without one; 0 is the correct value for a food that has none.",
                     ),
+                added_sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Added sugars in grams: sugars added during processing or preparation (table sugar, syrups, honey, sugar in sweetened drinks and foods), part of sugar_g and never more than it. Sugar naturally present in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Only the fields passed are written, so this fills in the figure for a meal logged without one, checked against the meal's stored sugar_g when sugar_g is not passed alongside it; 0 is the correct value for a food that has none (whole fruit, vegetables, plain milk, meat, rice), and a soft drink's sugar is all added.",
+                    ),
                 alcohol_g: z.coerce
                     .number()
                     .min(0)
@@ -3420,15 +3631,43 @@ export function registerTools(
                         throw new ToolError(
                             notUuidText("meal", id, MEAL_ID_SOURCES),
                         );
+                    // The stored row is read only when exactly one of the
+                    // two sugar fields is passed — the backfill case. The
+                    // write is then conditional on the stored value the check
+                    // relied on (the side NOT passed), so a concurrent edit to
+                    // it makes updateMeal refuse rather than leave added
+                    // sugar above total; never clamped.
+                    const passedSugar = fields.sugar_g !== undefined;
+                    const passedAdded = fields.added_sugar_g !== undefined;
+                    let sugarGuard: MealSugarGuard | undefined;
+                    if (passedSugar || passedAdded) {
+                        const stored =
+                            passedSugar && passedAdded
+                                ? null
+                                : await storedMealSugars(userId, id);
+                        const sugarError = updatedAddedSugarError(
+                            fields,
+                            stored,
+                        );
+                        if (sugarError) throw new ToolError(sugarError);
+                        // A null `stored` here means no such meal; updateMeal
+                        // reports that itself.
+                        if (stored)
+                            sugarGuard = passedSugar
+                                ? { added_sugar_g: stored.added_sugar_g }
+                                : { sugar_g: stored.sugar_g };
+                    }
                     const { iso, note } = await resolveWriteTimestamp(
                         userId,
                         fields.logged_at,
                     );
-                    const meal = await updateMeal(userId, id, {
-                        ...fields,
-                        logged_at: iso,
-                    });
-                    const { progressSection, structuredContent, tz } =
+                    const meal = await updateMeal(
+                        userId,
+                        id,
+                        { ...fields, logged_at: iso },
+                        sugarGuard,
+                    );
+                    const { progressSection, structuredContent, meta, tz } =
                         await buildMealProgress(
                             userId,
                             meal,
@@ -3447,6 +3686,7 @@ export function registerTools(
                             },
                         ],
                         structuredContent,
+                        _meta: meta,
                     };
                 },
                 analytics,
@@ -4879,7 +5119,7 @@ export function registerTools(
         {
             title: "Get Trends",
             description:
-                "Rolling 7/14/30-day averages, standard deviation and coefficient of variation for calories, protein, carbs, fat, fiber, sugar, alcohol (when tracking is on), caffeine and water, with days within ±10% of each target or over each limit when goals are set; logging streaks; day-of-week calorie averages; and the best and worst day by calories (closest to and furthest from the calorie target when one is set, otherwise the lowest and highest). Every figure arrives pre-computed. Defaults to the last 30 days ending today. With group_by (week, month, quarter or year) the result also lists calorie, protein, carb and fat averages per calendar period over a fixed span (26 weeks, 24 months, 12 quarters or 5 years), each divided by the days in that period with at least one meal logged rather than by calendar days, beside the targets in effect at the time, the days logged and the days on target. Figures are estimates, not medical or dietary advice.",
+                "Rolling 7/14/30-day averages, standard deviation and coefficient of variation for calories, protein, carbs, fat, fiber, sugar, added sugar, alcohol (when tracking is on), caffeine and water, with days within ±10% of each target or over each limit when goals are set; logging streaks; day-of-week calorie averages; and the best and worst day by calories (closest to and furthest from the calorie target when one is set, otherwise the lowest and highest). Every figure arrives pre-computed. Defaults to the last 30 days ending today. With group_by (week, month, quarter or year) the result also lists calorie, protein, carb and fat averages per calendar period over a fixed span (26 weeks, 24 months, 12 quarters or 5 years), each divided by the days in that period with at least one meal logged rather than by calendar days, beside the targets in effect at the time, the days logged and the days on target. Figures are estimates, not medical or dietary advice.",
             annotations: {
                 title: "Get Trends",
                 readOnlyHint: true,
@@ -4992,7 +5232,7 @@ export function registerTools(
                     // structuredContent — the output schema is frozen (see
                     // PERIOD_AVERAGES_META_KEY). structuredContent stays
                     // exactly what the `days` window gives without it.
-                    let periodMeta: Record<string, unknown> | undefined;
+                    const periodMeta: Record<string, unknown> = {};
                     if (group_by && history) {
                         const spanStart = yearSpanStart(endDate);
                         const meta = buildPeriodAveragesMeta(
@@ -5008,12 +5248,29 @@ export function registerTools(
                             group_by,
                             targetsRecordedFrom(history, tz),
                         )}`;
-                        periodMeta = { [PERIOD_AVERAGES_META_KEY]: meta };
+                        periodMeta[PERIOD_AVERAGES_META_KEY] = meta;
+                    }
+
+                    // Added sugar per day of the 30-day series, for the
+                    // widget's own 7/14/30 re-average. Meals are grouped
+                    // here rather than read off the buckets, and only the
+                    // series' dates are keyed (with group_by the meal read
+                    // reaches years further back).
+                    const seriesMeals: Record<string, Meal[]> = {};
+                    for (const b of seriesBuckets) seriesMeals[b.date] = [];
+                    for (const meal of meals) {
+                        seriesMeals[dateInTz(meal.logged_at, tz)]?.push(meal);
                     }
 
                     return {
                         content: [{ type: "text", text }],
-                        ...(periodMeta ? { _meta: periodMeta } : {}),
+                        _meta: {
+                            ...periodMeta,
+                            [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                                goal: goals?.daily_added_sugar_g,
+                                days: seriesMeals,
+                            }),
+                        },
                         structuredContent: {
                             end_date: endDate,
                             default_range: [7, 14, 30].includes(windowDays)

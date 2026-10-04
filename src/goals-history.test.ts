@@ -212,3 +212,68 @@ describe("withCurrentGoals", () => {
         expect(input).toEqual(HISTORY);
     });
 });
+
+describe("added-sugar goal column", () => {
+    test("sits right after daily_sugar_g in GOAL_COLUMNS", () => {
+        const cols: readonly string[] = GOAL_COLUMNS;
+        const sugar = cols.indexOf("daily_sugar_g");
+        expect(sugar).toBeGreaterThanOrEqual(0);
+        expect(cols[sugar + 1]).toBe("daily_added_sugar_g");
+    });
+
+    test("pickGoals coerces it like any other column, keeping 0", () => {
+        expect(pickGoals({ daily_added_sugar_g: "25.50" })).toMatchObject({
+            daily_added_sugar_g: 25.5,
+        });
+        expect(pickGoals({ daily_added_sugar_g: 0 }).daily_added_sugar_g).toBe(
+            0,
+        );
+        // Rows written before the column existed simply lack it.
+        expect(pickGoals({ daily_sugar_g: 50 }).daily_added_sugar_g).toBeNull();
+    });
+
+    test("a change to it alone makes two goal sets differ", () => {
+        expect(
+            sameGoals(
+                goals({ daily_added_sugar_g: 25 }),
+                goals({ daily_added_sugar_g: 0 }),
+            ),
+        ).toBe(false);
+        expect(
+            sameGoals(
+                goals({ daily_added_sugar_g: 25 }),
+                goals({ daily_added_sugar_g: 25 }),
+            ),
+        ).toBe(true);
+    });
+});
+
+// The added-sugar migration must create every column the code writes; a
+// rename or a dropped column would otherwise only surface as a failed insert
+// in production.
+test("the added-sugar migration adds the columns the code writes", async () => {
+    const read = (name: string) =>
+        Bun.file(
+            new URL(`../supabase/migrations/${name}`, import.meta.url),
+        ).text();
+    const sql = (await read("20261006120000_added_sugar.sql")).replace(
+        /\s+/g,
+        " ",
+    );
+    const history = await read("20261005120000_nutrition_goals_history.sql");
+
+    expect(sql).toContain(
+        "alter table public.meals add column if not exists added_sugar_g numeric check (added_sugar_g >= 0);",
+    );
+    for (const table of ["nutrition_goals", "nutrition_goals_history"]) {
+        expect(sql).toContain(
+            `alter table public.${table} add column if not exists daily_added_sugar_g numeric(6, 2) check (daily_added_sugar_g >= 0);`,
+        );
+    }
+    // Every goal column the history table did not start with comes from here.
+    const added = GOAL_COLUMNS.filter(
+        (c) => !new RegExp(`\\b${c}\\b`).test(history),
+    );
+    expect(added.length).toBeGreaterThan(0);
+    for (const c of added) expect(sql).toMatch(new RegExp(`\\b${c}\\b`));
+});

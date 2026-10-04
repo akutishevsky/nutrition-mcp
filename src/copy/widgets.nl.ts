@@ -8,6 +8,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             carbs_g: "Koolhydraten",
             fat_g: "Vet",
             sugar_g: "Suiker",
+            added_sugar_g: "Toegevoegde suiker",
             alcohol_g: "Alcohol",
             caffeine_mg: "Cafeïne",
             fiber_g: "Vezels",
@@ -197,6 +198,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             fat_g: "Vet (g)",
             fiber_g: "Vezels (g)",
             sugar_g: "Suiker, totaal (g)",
+            added_sugar_g: "Toegevoegde suiker (g)",
             alcohol_g: "Alcohol (g)",
             caffeine_mg: "Cafeïne (mg)",
             notes: "Notities",
@@ -242,8 +244,6 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         tabLabel: "tab",
         notInFile: "(niet in dit bestand)",
         columnFallback: "kolom {n}",
-        addedSugarNotice:
-            "Dit bestand heeft een kolom voor toegevoegde suikers ({column}), maar geen voor totale suikers, dus Suiker is niet gekoppeld. Suiker wordt opgeslagen als TOTALE suikers, inclusief de suikers die van nature in fruit en melk zitten. Koppel je er toegevoegde suikers aan, dan valt elke rij te laag uit.",
         caffeineGramsNotice:
             "De cafeïnekolom in dit bestand ({column}) staat in gram, maar cafeïne wordt opgeslagen in milligram, dus Cafeïne is niet gekoppeld. Wel koppelen zou 0,18 vastleggen waar op het etiket 180 mg staat. Hetzelfde bestand later opnieuw importeren vult dit niet alsnog aan: die rijen zijn dan al gelogd en worden als duplicaten overgeslagen. Klopt de kolomkop niet en staan de waarden echt in milligram, kies de kolom dan hierboven. Staan ze echt in gram, vermenigvuldig ze dan vóór het importeren met 1000 in het bestand, niet erna.",
         alcoholNotice:
@@ -289,6 +289,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             fat_g: "V",
             fiber_g: "Vezels",
             sugar_g: "Suiker",
+            added_sugar_g: "Toegev",
             alcohol_g: "Alc",
             caffeine_mg: "Caf",
         },

@@ -150,6 +150,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "fat_g", required: false },
             { name: "fiber_g", required: false },
             { name: "sugar_g", required: false },
+            { name: "added_sugar_g", required: false },
             { name: "alcohol_g", required: false },
             { name: "caffeine_mg", required: false },
             { name: "logged_at", required: false },
@@ -198,6 +199,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "fat_g", required: false },
             { name: "fiber_g", required: false },
             { name: "sugar_g", required: false },
+            { name: "added_sugar_g", required: false },
             { name: "alcohol_g", required: false },
             { name: "caffeine_mg", required: false },
             { name: "logged_at", required: false },
@@ -412,6 +414,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "daily_fat_g", required: false },
             { name: "daily_fiber_g", required: false },
             { name: "daily_sugar_g", required: false },
+            { name: "daily_added_sugar_g", required: false },
             { name: "daily_alcohol_g", required: false },
             { name: "daily_caffeine_mg", required: false },
             { name: "daily_water_ml", required: false },
@@ -733,7 +736,7 @@ const TOOLS_EN: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log what you ate with calories and macros — plus fiber, total sugar, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first.",
+                "Log what you ate with calories and macros — plus fiber, total and added sugar, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first.",
             params: {
                 description: "What was eaten",
                 meal_type: "breakfast, lunch, dinner or snack",
@@ -745,6 +748,8 @@ const TOOLS_EN: ToolsDoc = {
                     "Dietary fiber in grams. The AI is told to fill this in on every meal, estimating from the ingredients when no label figure exists, because a blank is not a zero — it leaves the whole day out of your fiber average",
                 sugar_g:
                     '<b>Total</b> sugars in grams — the figure a label prints under "Sugars", including the sugar naturally in fruit and milk, not just added sugar. Filled in on every meal on the same terms as fiber',
+                added_sugar_g:
+                    "<b>Added</b> sugars in grams — sugar added during processing or preparation (table sugar, syrups, honey, the sugar in sweetened drinks and foods). Part of total sugars, never more than it. Sugar naturally in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Filled in on every meal on the same terms as fiber: whole foods are 0, a soft drink's sugar is all added, and a US label's \"Includes Xg Added Sugars\" line is used when there is one",
                 alcohol_g:
                     "Grams of <b>pure ethanol</b>, not the volume of the drink and not its ABV — the AI works it out from the pour size and strength (a 330 ml 5% beer is 13 g)",
                 caffeine_mg:
@@ -759,7 +764,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Fetch a packaged product's label nutrition from Open Food Facts by its barcode (8–14 digit EAN/UPC), plus its Nutri-Score and NOVA processing group when Open Food Facts has them. You can type the digits or read them off a photo of the package; the result can then be logged, scaled to how much you ate.",
+                "Fetch a packaged product's label nutrition from Open Food Facts by its barcode (8–14 digit EAN/UPC), plus its Nutri-Score and NOVA processing group when Open Food Facts has them. Added sugar is shown when Open Food Facts lists it, and marked when Open Food Facts estimated it from the ingredients. You can type the digits or read them off a photo of the package; the result can then be logged, scaled to how much you ate.",
             params: {},
             example: "Scan this barcode: 3017620422003",
             photoHint:
@@ -767,7 +772,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Open an importer in the chat to bring your history over from another app — pick the CSV you exported from MyFitnessPal, Cronometer, Lose It!, MacroFactor or another tracker, match its columns to calories, macros, fiber, sugar and caffeine — plus alcohol if you've turned alcohol tracking on — and review what will be added before you confirm. The file is read in your browser, nothing is saved until you approve the preview, and importing the same file again won't create duplicates.",
+                "Open an importer in the chat to bring your history over from another app — pick the CSV you exported from MyFitnessPal, Cronometer, Lose It!, MacroFactor or another tracker, match its columns to calories, macros, fiber, total and added sugar and caffeine — plus alcohol if you've turned alcohol tracking on — and review what will be added before you confirm. The file is read in your browser, nothing is saved until you approve the preview, and importing the same file again won't create duplicates.",
             params: {},
             example: "Import my meal history from MyFitnessPal",
         },
@@ -775,7 +780,7 @@ const TOOLS_EN: ToolsDoc = {
             description:
                 "Add a batch of past meals in one go — up to 50 at a time — instead of logging them one by one. The importer above writes through this, and the AI can use it directly for meal data you've pasted into the chat. Every row is checked first and anything that doesn't fit is reported row by row, so re-sending the same rows is safe and won't duplicate what's already logged, as long as your timezone hasn't changed in between.",
             params: {
-                meals: "The rows to import, in source-file order (1–50 per call). Each row can carry a time, meal type, description, notes and the same numbers as a logged meal: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (total sugars), <code>alcohol_g</code> (grams of pure ethanol) and <code>caffeine_mg</code> (milligrams, not grams)",
+                meals: "The rows to import, in source-file order (1–50 per call). Each row can carry a time, meal type, description, notes and the same numbers as a logged meal: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (total sugars), <code>added_sugar_g</code> (added sugars, part of the total), <code>alcohol_g</code> (grams of pure ethanol) and <code>caffeine_mg</code> (milligrams, not grams)",
                 expected_row_count:
                     "How many rows this call carries, counted from the source file, so a dropped row gets caught",
                 expected_total_kcal:
@@ -790,7 +795,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Change the details of a meal you already logged — its description, any macro, fiber, sugar, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber or sugar, the server says so and the AI fills it in here once you agree.",
+                "Change the details of a meal you already logged — its description, any macro, fiber, total or added sugar, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber, sugar or added sugar, the server says so and the AI fills it in here once you agree.",
             params: {
                 id: "UUID of the meal to update",
                 description: "",
@@ -800,6 +805,8 @@ const TOOLS_EN: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Total sugars, not added sugar",
+                added_sugar_g:
+                    "Added sugars only, never more than total sugars",
                 alcohol_g: "Grams of pure ethanol, not the volume of the drink",
                 caffeine_mg: "Milligrams, not grams",
                 logged_at: "",
@@ -995,7 +1002,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Set your daily calorie, macro, fiber, sugar, alcohol, caffeine and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; sugar, alcohol and caffeine are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
+                "Set your daily calorie, macro, fiber, sugar, added sugar, alcohol, caffeine and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; total sugar, added sugar, alcohol and caffeine are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
             params: {
                 daily_calories: "Daily calorie target (kcal). Null to clear.",
                 daily_protein_g: "Daily protein target (grams). Null to clear.",
@@ -1005,6 +1012,8 @@ const TOOLS_EN: ToolsDoc = {
                     "Daily fiber target (grams), a minimum to reach. Null to clear.",
                 daily_sugar_g:
                     "Daily limit for <b>total</b> sugars (grams), a maximum to stay under. Total sugars include the sugar naturally in fruit and milk, so public added-sugar guidance is a much lower number. Null to clear.",
+                daily_added_sugar_g:
+                    "Daily limit for <b>added</b> sugars (grams), a maximum to stay under. Counts only added sugars, not the sugar naturally in fruit and milk; public guidance figures for sugar usually refer to this measure (the American Heart Association suggests at most 25 g a day for women and 36 g for men). 0 is a real limit meaning none at all. Null to clear.",
                 daily_alcohol_g:
                     "Daily alcohol limit in grams of <b>pure ethanol</b>, a maximum to stay under. One US standard drink is 14 g, one UK unit 7.9 g. Null to clear.",
                 daily_caffeine_mg:

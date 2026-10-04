@@ -59,6 +59,30 @@ export function clipDescription(text: string): string {
     return clip(text.replace(/\s*[\r\n]+\s*/g, " "), DESCRIPTION_CLIP);
 }
 
+// Added sugar is part of total sugar, so it rides on the sugar figure as a
+// bracket ("sugar 18 g (12 added)") rather than as a field of its own: the
+// listing stays one line per meal, and the two never read as separate amounts
+// to add up. A meal with added sugar but no total (an import column the source
+// filled only half of) still shows the figure it has. Null is "not recorded",
+// so nothing is printed; 0 is data and is.
+function compactAddedSugar(meal: Meal): string | null {
+    const added = meal.added_sugar_g;
+    if (added == null) return null;
+    return meal.sugar_g != null
+        ? `sugar ${meal.sugar_g} g (${added} added)`
+        : `added sugar ${added} g`;
+}
+
+function fullSugar(meal: Meal): string | null {
+    const added = meal.added_sugar_g;
+    if (meal.sugar_g != null) {
+        return added != null
+            ? `Sugar: ${meal.sugar_g}g (${added}g added)`
+            : `Sugar: ${meal.sugar_g}g`;
+    }
+    return added != null ? `Added sugar: ${added}g` : null;
+}
+
 /** Every field on its own line, notes included, time as local
  *  "YYYY-MM-DD HH:MM". Never clipped. */
 export function formatMealFull(
@@ -76,7 +100,7 @@ export function formatMealFull(
         meal.carbs_g != null ? `Carbs: ${meal.carbs_g}g` : null,
         meal.fat_g != null ? `Fat: ${meal.fat_g}g` : null,
         meal.fiber_g != null ? `Fiber: ${meal.fiber_g}g` : null,
-        meal.sugar_g != null ? `Sugar: ${meal.sugar_g}g` : null,
+        fullSugar(meal),
         // Opt-in (see formatProgress in mcp.ts): a stored value stays hidden
         // until the user turns alcohol tracking on. It exists for users in
         // recovery, so the compact line below gates it identically.
@@ -108,11 +132,16 @@ export function formatMealCompact(
         meal.carbs_g != null ? `C ${meal.carbs_g}` : null,
         meal.fat_g != null ? `F ${meal.fat_g}` : null,
         meal.fiber_g != null ? `fiber ${meal.fiber_g}` : null,
-        meal.sugar_g != null ? `sugar ${meal.sugar_g}` : null,
+        // Without an added figure, sugar stays inside the shared " g" run as
+        // it always has; with one it needs its own unit before the bracket.
+        meal.sugar_g != null && meal.added_sugar_g == null
+            ? `sugar ${meal.sugar_g}`
+            : null,
     ].filter(Boolean);
     const parts = [
         meal.calories != null ? `${meal.calories} kcal` : null,
         grams.length ? `${grams.join(" · ")} g` : null,
+        compactAddedSugar(meal),
         // Same gate as formatMealFull.
         alcohol && meal.alcohol_g != null
             ? `alcohol ${formatAlcohol(meal.alcohol_g, alcohol)}`

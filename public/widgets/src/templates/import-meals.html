@@ -250,6 +250,9 @@
                 { key: "fat_g" },
                 { key: "fiber_g" },
                 { key: "sugar_g" },
+                // The part of sugar_g that was added; the server refuses a
+                // row whose added sugar exceeds its total.
+                { key: "added_sugar_g" },
                 // Only offered when the user tracks alcohol — see gatedField.
                 { key: "alcohol_g", alcoholOnly: true },
                 // Milligrams, and the label says so. Caffeine has no opt-in
@@ -322,10 +325,9 @@
                     "fibra",
                     "fibres",
                 ],
-                // TOTAL sugars only. "Added sugar" / "free sugars" is a
-                // different quantity and is deliberately absent here — see
-                // ADDED_SUGAR_RE below. Matching is exact per normalized
-                // header, so Cronometer's "Sugar Alcohols (g)" (a polyol, not
+                // TOTAL sugars only. "Added sugar" / "free sugars" maps to
+                // the added_sugar_g field below, never this one. Matching is
+                // exact per normalized header, so Cronometer's "Sugar Alcohols (g)" (a polyol, not
                 // sugar and not ethanol) cannot land in this field either.
                 sugar_g: [
                     "sugar_g",
@@ -342,6 +344,33 @@
                     "sucres",
                     "zuccheri",
                     "suikers",
+                ],
+                // ADDED sugars, a subset of sugar_g. The exact spellings here
+                // cover the common exports; ADDED_SUGAR_RE below catches the
+                // rest when none of these matched.
+                added_sugar_g: [
+                    "added_sugar_g",
+                    "added_sugar",
+                    "added_sugars_g",
+                    "added_sugars",
+                    "sugar_added",
+                    "sugars_added",
+                    "free_sugars",
+                    "free_sugars_g",
+                    "zugesetzter_zucker",
+                    "zugesetzter_zucker_g",
+                    "azucares_anadidos",
+                    "azucares_anadidos_g",
+                    "sucres_ajoutes",
+                    "sucres_ajoutes_g",
+                    "zuccheri_aggiunti",
+                    "zuccheri_aggiunti_g",
+                    "toegevoegde_suiker",
+                    "toegevoegde_suiker_g",
+                    "toegevoegde_suikers",
+                    "toegevoegde_suikers_g",
+                    "cukry_dodane",
+                    "cukry_dodane_g",
                 ],
                 // Grams of pure ethanol. NOT a drink volume, an ABV percentage
                 // or a sugar-alcohol count, so "abv" / "alcohol_by_volume" /
@@ -392,18 +421,19 @@
                 timezone: ["timezone"],
             };
 
-            // Columns that hold ADDED sugar rather than total sugar. The server
-            // stores total sugars (including what is naturally in fruit and
-            // milk), so an added-sugar column is not a substitute: mapping it
-            // would under-report every row while looking like a clean import.
-            // It never auto-maps; when a file has one and nothing filled the
-            // Sugar row, say why rather than leaving a silent blank.
+            // Looser net for added-sugar headers no ALIASES spelling matched
+            // ("Added Sugars, incl. syrups (g)"). Only consulted by autoMap
+            // when the exact aliases found nothing, and never for the column
+            // already holding total sugar. Each alternative names sugar
+            // explicitly, so a bare "Zusatzstoffe" (additives) cannot match.
             const ADDED_SUGAR_RE =
-                /added_sugar|sugar_added|free_sugar|zugesetzt|zusatz/;
-            function addedSugarColumns() {
-                if (!S.table) return [];
-                return S.table.headers.filter((h) =>
-                    ADDED_SUGAR_RE.test(normalizeHeader(h)),
+                /added_sugar|sugars?_added|free_sugar|zugesetzte[rn]?_zucker|zuckerzusatz/;
+            function addedSugarColumn() {
+                const sugarCol = S.mapping.sugar_g;
+                return S.table.headers.findIndex(
+                    (h, i) =>
+                        i !== sugarCol &&
+                        ADDED_SUGAR_RE.test(normalizeHeader(h)),
                 );
             }
 
@@ -566,6 +596,8 @@
                               ALIASES[f.key] || [f.key],
                           );
                 }
+                if (S.mapping.added_sugar_g === -1)
+                    S.mapping.added_sugar_g = addedSugarColumn();
             }
             // A MyFitnessPal export has a Meal column but no food name; knowing
             // which app it came from lets the server label those rows.
@@ -759,8 +791,8 @@
                     const time = rawTime ? normalizeTime(rawTime) : null;
                     if (time) when = when + " " + time;
 
-                    // Calories only: protein/carbs/fat/fiber/sugar/alcohol are
-                    // all grams in every export and caffeine is milligrams in
+                    // Calories only: protein/carbs/fat/fiber/sugar/added
+                    // sugar/alcohol are all grams in every export and caffeine is milligrams in
                     // every export that carries it — each already the unit the
                     // server stores, so none of them convert. A caffeine column
                     // headed in grams is the one shape that would need
@@ -783,6 +815,7 @@
                         fat_g: num(r, m.fat_g),
                         fiber_g: num(r, m.fiber_g),
                         sugar_g: num(r, m.sugar_g),
+                        added_sugar_g: num(r, m.added_sugar_g),
                         // The mapping is already -1 when tracking is off; this
                         // is the belt to that braces, because this line is the
                         // one that decides what leaves the browser.
@@ -1204,15 +1237,6 @@
                               )
                               .join("")
                         : "") +
-                    (S.mapping.sugar_g === -1 && addedSugarColumns().length
-                        ? '<div class="notice"><span>i</span><span>' +
-                          esc(
-                              tpl(T.importMeals.addedSugarNotice, {
-                                  column: addedSugarColumns()[0],
-                              }),
-                          ) +
-                          "</span></div>"
-                        : "") +
                     (S.mapping.caffeine_mg === -1 &&
                     caffeineGramsColumns().length
                         ? '<div class="notice"><span>i</span><span>' +
@@ -1293,9 +1317,9 @@
                     CFG.max_rows_per_call,
                 );
                 const chunks = previewChunks.length;
-                // Fiber, sugar, alcohol and caffeine are missing from most
-                // exports, so their columns appear only when this file actually
-                // carries them — four columns of "—" would push the macros that
+                // Fiber, sugar, added sugar, alcohol and caffeine are missing
+                // from most exports, so their columns appear only when this
+                // file actually carries them — five columns of "—" would push the macros that
                 // do have values off the visible width for no information.
                 // Alcohol additionally never appears with tracking off: the
                 // rows carry none by then, but the column is filtered by the
@@ -1305,6 +1329,7 @@
                 const extra = [
                     ["fiber_g"],
                     ["sugar_g"],
+                    ["added_sugar_g"],
                     ["alcohol_g", true],
                     ["caffeine_mg"],
                 ].filter(

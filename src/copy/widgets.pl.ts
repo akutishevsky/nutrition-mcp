@@ -8,6 +8,7 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
             carbs_g: "Węglowodany",
             fat_g: "Tłuszcz",
             sugar_g: "Cukier",
+            added_sugar_g: "Cukier dodany",
             alcohol_g: "Alkohol",
             caffeine_mg: "Kofeina",
             fiber_g: "Błonnik",
@@ -220,6 +221,7 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
             fat_g: "Tłuszcz (g)",
             fiber_g: "Błonnik (g)",
             sugar_g: "Cukry ogółem (g)",
+            added_sugar_g: "Cukry dodane (g)",
             alcohol_g: "Alkohol (g)",
             caffeine_mg: "Kofeina (mg)",
             notes: "Notatki",
@@ -276,8 +278,6 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         tabLabel: "tabulator",
         notInFile: "(brak w tym pliku)",
         columnFallback: "kolumna {n}",
-        addedSugarNotice:
-            "Ten plik ma kolumnę cukrów dodanych ({column}), ale nie ma kolumny cukrów ogółem, więc pola Cukier nie dopasowano do żadnej kolumny. Cukier jest zapisywany jako cukry OGÓŁEM, łącznie z cukrami naturalnie obecnymi w owocach i mleku, więc dopasowanie do niego cukrów dodanych zaniżyłoby wartość w każdym wierszu.",
         caffeineGramsNotice:
             "Kolumna kofeiny w tym pliku ({column}) jest w gramach, a kofeina jest zapisywana w miligramach, więc pola Kofeina nie dopasowano do żadnej kolumny. Po dopasowaniu zapisałoby się 0,18 tam, gdzie etykieta podaje 180 mg. Ponowny import tego samego pliku później tego nie uzupełni — te wiersze będą już zapisane i zostaną pominięte jako duplikaty. Jeśli nagłówek jest źle opisany, a wartości naprawdę są w miligramach, wybierz tę kolumnę powyżej; jeśli naprawdę są w gramach, pomnóż je w pliku przez 1000 przed importem, a nie po nim.",
         alcoholNotice:
@@ -337,6 +337,7 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
             fat_g: "T",
             fiber_g: "Bł",
             sugar_g: "Cuk",
+            added_sugar_g: "Dod",
             alcohol_g: "Alk",
             caffeine_mg: "Kof",
         },

@@ -53,7 +53,7 @@ export const INDEX_NL: IndexDoc = {
                 },
                 {
                     userText: "ja",
-                    aiText: "Ontbijt gelogd: 480 kcal, 21 g eiwit en 126 mg cafeïne. Suiker zit al op 51 van je limiet van 60 g.",
+                    aiText: "Ontbijt gelogd: 480 kcal, 21 g eiwit en 126 mg cafeïne. Toegevoegde suiker zit op 20 van je limiet van 25 g, vooral door de honing; de rest van de 51 g totale suiker komt uit fruit en yoghurt.",
                     card: "meal-logged",
                     meal: {
                         description:
@@ -83,7 +83,7 @@ export const INDEX_NL: IndexDoc = {
                 },
                 {
                     userText: "wat kan er nog in bij het avondeten?",
-                    aiText: "Nog 850 kcal en 84 g eiwit te gaan. Suiker zit op 59 van je limiet van 60 g.",
+                    aiText: "Nog 850 kcal en 84 g eiwit te gaan. Toegevoegde suiker zit op 23 van je limiet van 25 g, en het meeste van de 59 g totale suiker van vandaag komt uit fruit.",
                     card: "nutrition-summary",
                 },
                 {
@@ -200,10 +200,10 @@ export const INDEX_NL: IndexDoc = {
                 id: "log-meal",
                 title: "In gewone woorden loggen",
                 description:
-                    "Zeg het zoals je het een vriend zou vertellen. Ontbreekt de portie of om welke maaltijd het gaat, dan volgt eerst een vraag en pas daarna een schatting. Vezels en suiker staan bij elke registratie, cafeïne bij alles waar het in zit, en “rond 7 uur” valt op 07:00 in jouw tijdzone.",
+                    "Zeg het zoals je het een vriend zou vertellen. Ontbreekt de portie of om welke maaltijd het gaat, dan volgt eerst een vraag en pas daarna een schatting. Vezels, suiker en toegevoegde suiker staan bij elke registratie, cafeïne bij alles waar het in zit, en “rond 7 uur” valt op 07:00 in jouw tijdzone.",
                 toolNotes: {
                     log_meal:
-                        "Slaat het ontbijt op met macro's, vezels, suiker en de cafeïne van de koffie",
+                        "Slaat het ontbijt op met macro's, vezels, suiker, toegevoegde suiker en de cafeïne van de koffie",
                     log_water:
                         "Telt de 500 ml van 07:00 mee bij je water van vandaag",
                     get_current_time:
@@ -305,7 +305,7 @@ export const INDEX_NL: IndexDoc = {
                 id: "scan-barcode",
                 title: "Scan een barcode",
                 description:
-                    "Fotografeer de verpakking: de cijfers onder de barcode worden opgezocht in Open Food Facts, en er volgt de vraag hoeveel je ervan nam. Open Food Facts vermeldt geen cafeïne, dus die komt van het etiket of uit gangbare hoeveelheden; ontbreken vezels of suiker, dan worden die geschat in plaats van leeg gelaten.",
+                    "Fotografeer de verpakking: de cijfers onder de barcode worden opgezocht in Open Food Facts, en er volgt de vraag hoeveel je ervan nam. Toegevoegde suiker wordt overgenomen waar Open Food Facts die vermeldt. Open Food Facts vermeldt geen cafeïne, dus die komt van het etiket of uit gangbare hoeveelheden; ontbreken vezels, suiker of toegevoegde suiker, dan worden die geschat in plaats van leeg gelaten.",
                 toolNotes: {
                     lookup_barcode:
                         "Haalt de etiketwaarden en de Nutri-Score van het bakje op uit Open Food Facts",
@@ -320,7 +320,7 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Dat is een bakje Griekse yoghurt naturel van 150 g (0% vet): 87 kcal, 15 g eiwit en 5 g suiker, en Open Food Facts geeft het Nutri-Score A. Heb je het hele bakje gegeten?",
+                        text: "Dat is een bakje Griekse yoghurt naturel van 150 g (0% vet): 87 kcal, 15 g eiwit en 5 g suiker, waarvan niets toegevoegd, en Open Food Facts geeft het Nutri-Score A. Heb je het hele bakje gegeten?",
                     },
                     {
                         from: "user",
@@ -343,7 +343,7 @@ export const INDEX_NL: IndexDoc = {
                 id: "goals-progress",
                 title: "Doelen stellen, stand checken",
                 description:
-                    "Stel doelen in om te halen, zoals calorieën en eiwit, en limieten om onder te blijven, voor suiker, alcohol en cafeïne; alleen wat je noemt, verandert. Vraag daarna naar een willekeurige dag en zie wat er nog over is tot elk doel en waar je staat ten opzichte van elke limiet.",
+                    "Stel doelen in om te halen, zoals calorieën en eiwit, en limieten om onder te blijven, voor toegevoegde suiker, totale suiker, alcohol en cafeïne; alleen wat je noemt, verandert. Vraag daarna naar een willekeurige dag en zie wat er nog over is tot elk doel en waar je staat ten opzichte van elke limiet.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Slaat het calorie- en eiwitdoel op, plus een cafeïnelimiet van 400 mg",
@@ -365,7 +365,7 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Klaar: 2.000 kcal en 160 g eiwit om te halen, cafeïne onder de 400 mg. De rest blijft zoals het was: 220 g koolhydraten, 70 g vet, 30 g vezels, 2,5 L water, je suikerlimiet van 60 g en je streefgewicht van 75 kg.",
+                        text: "Klaar: 2.000 kcal en 160 g eiwit om te halen, cafeïne onder de 400 mg. De rest blijft zoals het was: 220 g koolhydraten, 70 g vet, 30 g vezels, 2,5 L water, je limiet van 25 g toegevoegde suiker en je streefgewicht van 75 kg.",
                     },
                     {
                         from: "user",
@@ -373,7 +373,7 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Je zit op 1.540 van 2.000 kcal en 104 van 160 g eiwit, dus nog 460 kcal en 56 g eiwit te gaan. Suiker staat op 40 g van je limiet van 60 g en cafeïne op 130 van 400 mg, allebei eronder.",
+                        text: "Je zit op 1.540 van 2.000 kcal en 104 van 160 g eiwit, dus nog 460 kcal en 56 g eiwit te gaan. Toegevoegde suiker staat op 16 g van je limiet van 25 g en cafeïne op 130 van 400 mg, allebei eronder.",
                     },
                 ],
                 cards: [
@@ -407,7 +407,7 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Gemiddeld 52 g per dag, onder je limiet van 60 g, maar op 4 van de 13 dagen zat je erboven.",
+                        text: "Toegevoegde suiker was gemiddeld 22 g per dag, onder je limiet van 25 g, maar op 5 van de 13 dagen zat je erboven. Totale suiker was gemiddeld 52 g, vooral uit fruit en melk.",
                     },
                 ],
                 cards: [
@@ -668,15 +668,15 @@ export const INDEX_NL: IndexDoc = {
         cards: [
             {
                 title: "Maaltijden in gewone taal",
-                body: "Omschrijf wat je hebt gegeten: je AI schat calorieën, eiwit, koolhydraten, vet, vezels, totale suikers en cafeïne (in milligram) en logt het.",
+                body: "Omschrijf wat je hebt gegeten: je AI schat calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, toegevoegde suiker en cafeïne (in milligram) en logt het.",
             },
             {
                 title: "Scan een barcode",
-                body: "Fotografeer of typ de barcode van een product en haal macro's, vezels en suiker op uit Open Food Facts, omgerekend naar hoeveel je hebt gegeten.",
+                body: "Fotografeer of typ de barcode van een product en haal macro's, vezels en suiker op uit Open Food Facts (ook toegevoegde suiker, waar die vermeld staat), omgerekend naar hoeveel je hebt gegeten.",
             },
             {
                 title: "Doelen & voortgang",
-                body: "Stel dagdoelen in voor calorieën, macro's, vezels en water, plus limieten voor suiker, cafeïne en alcohol om onder te blijven, en volg live je voortgang.",
+                body: "Stel dagdoelen in voor calorieën, macro's, vezels en water, plus limieten voor toegevoegde suiker, totale suiker, cafeïne en alcohol om onder te blijven, en volg live je voortgang.",
             },
             {
                 title: "Overzichten & trends",
@@ -786,7 +786,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is een gratis, open source Model Context Protocol (MCP)-server die van Claude, ChatGPT of een andere MCP-client een calorieteller en macrotracker maakt. In plaats van een voedingsdatabase te doorzoeken, vertel je je AI wat je hebt gegeten en die legt de calorieën, macro's, vezels, suiker en cafeïne vast in je eigen eetdagboek.",
+                "Nutrition MCP is een gratis, open source Model Context Protocol (MCP)-server die van Claude, ChatGPT of een andere MCP-client een calorieteller en macrotracker maakt. In plaats van een voedingsdatabase te doorzoeken, vertel je je AI wat je hebt gegeten en die legt de calorieën, macro's, vezels, suiker, toegevoegde suiker en cafeïne vast in je eigen eetdagboek.",
         },
         {
             question: "Wat is het Model Context Protocol (MCP)?",
@@ -796,7 +796,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Hoe tel ik calorieën met Claude of ChatGPT?",
             visibleHtml:
-                "Verbind Nutrition MCP één keer (in Claude via de connectordirectory, in ChatGPT als custom app met de server-URL) en log in. Vertel je AI daarna in je eigen woorden wat je hebt gegeten, laat een foto van de maaltijd zien of geef een productbarcode. Je AI schat de calorieën, eiwit, koolhydraten, vet, vezels en suiker, en Nutrition MCP slaat de registratie op in je eetdagboek. Vraag op elk moment naar je totalen van vandaag, je weektrends of je voortgang richting je doelen.",
+                "Verbind Nutrition MCP één keer (in Claude via de connectordirectory, in ChatGPT als custom app met de server-URL) en log in. Vertel je AI daarna in je eigen woorden wat je hebt gegeten, laat een foto van de maaltijd zien of geef een productbarcode. Je AI schat de calorieën, eiwit, koolhydraten, vet, vezels, suiker en toegevoegde suiker, en Nutrition MCP slaat de registratie op in je eetdagboek. Vraag op elk moment naar je totalen van vandaag, je weektrends of je voortgang richting je doelen.",
         },
         {
             // Het zichtbare antwoord laat de server-URL bewust weg (die staat
@@ -828,7 +828,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat kan ik bijhouden?",
             visibleHtml:
-                "Calorieën, eiwit, koolhydraten, vet, vezels, totale suikers en water voor elke registratie, omschreven in gewone taal of via een productbarcode opgehaald uit Open Food Facts. Cafeïne wordt ook bijgehouden, in milligram (de eenheid die op elk etiket staat), en levert geen calorieën op. Alcohol kan ook worden bijgehouden, in gram zuivere ethanol; het wordt getoond zodra je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht loggen in kg of lb en trends volgen richting een streefgewicht. Ook lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, dij en kuit) kun je in cm of inch loggen. Bekijk dagoverzichten, vraag maaltijden op over een periode, pas eerdere registraties aan of verwijder ze, stel doelen in en volg trends door de tijd.",
+                "Calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, toegevoegde suiker en water voor elke registratie, omschreven in gewone taal of via een productbarcode opgehaald uit Open Food Facts. Cafeïne wordt ook bijgehouden, in milligram (de eenheid die op elk etiket staat), en levert geen calorieën op. Alcohol kan ook worden bijgehouden, in gram zuivere ethanol; het wordt getoond zodra je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht loggen in kg of lb en trends volgen richting een streefgewicht. Ook lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, dij en kuit) kun je in cm of inch loggen. Bekijk dagoverzichten, vraag maaltijden op over een periode, pas eerdere registraties aan of verwijder ze, stel doelen in en volg trends door de tijd.",
         },
         {
             question: "Hoe nauwkeurig zijn de calorieën?",

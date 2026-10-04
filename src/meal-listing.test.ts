@@ -22,6 +22,7 @@ function meal(over: Partial<Meal> = {}): Meal {
         fat_g: 20,
         fiber_g: 6,
         sugar_g: 12,
+        added_sugar_g: null,
         alcohol_g: 14,
         caffeine_mg: null,
         notes: null,
@@ -165,6 +166,37 @@ describe("compact line", () => {
         expect(line).toContain("P 25 · C 90 · F 20 · sugar 0 g");
     });
 
+    test("added sugar rides on the sugar figure as a bracket", () => {
+        const line = formatMealCompact(
+            meal({ sugar_g: 18, added_sugar_g: 12 }),
+            null,
+            KYIV,
+        );
+        expect(line).toContain(
+            "P 25 · C 90 · F 20 · fiber 6 g · sugar 18 g (12 added)",
+        );
+        expect(line.match(/sugar/g)).toHaveLength(1);
+    });
+
+    test("a recorded 0 g added is shown; null keeps today's line", () => {
+        expect(
+            formatMealCompact(meal({ added_sugar_g: 0 }), null, KYIV),
+        ).toContain("sugar 12 g (0 added)");
+        const plain = formatMealCompact(meal(), null, KYIV);
+        expect(plain).toContain("P 25 · C 90 · F 20 · fiber 6 · sugar 12 g");
+        expect(plain).not.toContain("added");
+    });
+
+    test("added sugar without a total still shows the figure it has", () => {
+        const line = formatMealCompact(
+            meal({ sugar_g: null, added_sugar_g: 7 }),
+            null,
+            KYIV,
+        );
+        expect(line).toContain("added sugar 7 g");
+        expect(line).not.toContain("(7 added)");
+    });
+
     test("a 300-character description is clipped to 200 plus an ellipsis", () => {
         const long = "a".repeat(300);
         const line = formatMealCompact(meal({ description: long }), null, KYIV);
@@ -194,6 +226,26 @@ describe("full listing", () => {
         expect(text).toContain("Notes: long note");
         expect(text).toContain(`ID: ${ID}`);
         expect(text).not.toContain("2026-01-15T19:05");
+    });
+
+    test("sugar carries its added figure in the same line", () => {
+        expect(
+            formatMealFull(
+                meal({ sugar_g: 18, added_sugar_g: 12 }),
+                null,
+                KYIV,
+            ),
+        ).toContain("Sugar: 18g (12g added)");
+        const plain = formatMealFull(meal(), null, KYIV);
+        expect(plain).toContain("Sugar: 12g");
+        expect(plain).not.toContain("added");
+        const addedOnly = formatMealFull(
+            meal({ sugar_g: null, added_sugar_g: 7 }),
+            null,
+            KYIV,
+        );
+        expect(addedOnly).toContain("Added sugar: 7g");
+        expect(addedOnly).not.toContain("Sugar: ");
     });
 
     test("the compact legend is only added when notes exist", () => {

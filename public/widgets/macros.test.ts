@@ -7,6 +7,7 @@
 // real values. Without this the wording is pinned by nothing at all.
 import { test, expect } from "bun:test";
 import { WIDGET_STRINGS, WIDGET_STRINGS_EN } from "../../src/copy/widgets";
+import { NO_META_CASES, NO_META_GOLDEN } from "./macros.golden";
 
 const SRC = "./public/widgets/src";
 
@@ -21,6 +22,15 @@ const esc = (s: unknown) => String(s);
 type Bits = { goalLine: string; over: boolean; pct: number | null };
 type Macro = { key: string; direction?: string };
 type Vals = Record<string, number | null>;
+type AddedSugar = {
+    v: 1;
+    goal: number | null;
+    days?: Record<string, number | null>;
+    meals?: Record<string, number | null>;
+    contributors?: number;
+    extra?: unknown;
+};
+type ExtraRows = Record<string, unknown[]> | null;
 const macrosApi = await (async () => {
     // shared/i18n.js before shared/macros.js, exactly as every template
     // orders its includes — macros.js reads T/tpl/plural from it. Only the
@@ -35,7 +45,7 @@ const macrosApi = await (async () => {
         "fmt",
         "esc",
         "WIDGET_STRINGS",
-        `${i18nSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList };`,
+        `${i18nSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, addedSugarPayload, addedSugarFor, withAddedSugar, withAddedSugarContributors };`,
     );
     return factory(fmt, esc, { en: WIDGET_STRINGS_EN }) as {
         macroBits: (
@@ -50,7 +60,13 @@ const macrosApi = await (async () => {
             goal?: Vals | null,
             wording?: { under?: string; over?: string },
             meals?: unknown[],
-            opts?: { drinkUnit?: string },
+            opts?: {
+                drinkUnit?: string;
+                bounded?: boolean;
+                contributors?: Record<string, number | null> | null;
+                mealTotal?: number | null;
+                extraRows?: ExtraRows;
+            },
         ) => string;
         macroLimit: (m: Macro, ctx: unknown, interactive?: boolean) => string;
         macroCtxOf: (
@@ -63,10 +79,32 @@ const macrosApi = await (async () => {
                 bounded?: boolean;
                 contributors?: Record<string, number | null> | null;
                 mealTotal?: number | null;
+                extraRows?: ExtraRows;
             },
         ) => unknown;
         dayHasData: (day: Vals) => boolean;
         mealList: (m: Macro, meals: unknown[], ctx?: unknown) => string;
+        addedSugarPayload: (raw: unknown) => AddedSugar | null;
+        addedSugarFor: (
+            as: AddedSugar | null,
+            dates: string[],
+        ) => number | undefined;
+        withAddedSugar: (
+            as: AddedSugar | null,
+            value: number | undefined,
+            vals: Vals,
+            goal: Vals | null,
+            meals: unknown[] | null,
+        ) => {
+            vals: Vals;
+            goal: Vals | null;
+            meals: unknown[] | null;
+            extraRows: ExtraRows;
+        };
+        withAddedSugarContributors: (
+            as: AddedSugar | null,
+            contributors: Record<string, number | null> | null,
+        ) => Record<string, number | null> | null;
     };
 })();
 
@@ -204,6 +242,13 @@ const MEALS = [
         alcohol_g: 0,
         caffeine_mg: 185,
     },
+];
+
+// The same meals with added sugar merged in, as withAddedSugar does from
+// `_meta`: the porridge's maple syrup, nothing added to the flat white.
+const MEALS_ADDED = [
+    { ...MEALS[0], added_sugar_g: 6.2 },
+    { ...MEALS[1], added_sugar_g: 0 },
 ];
 
 // Every tile that is a button, by macro key → its accessible name.
@@ -469,12 +514,21 @@ test("every interactive tile carries its formatted value, and none is spoken as 
         [VALS, GOALS, { under: "under" }],
         [VALS, null, undefined],
         [{ ...VALS, fat_g: 0, calories: 4120 }, GOALS, undefined],
+        [{ ...VALS, added_sugar_g: 14.3 }, GOALS, undefined],
+        [
+            { ...VALS, added_sugar_g: 31 },
+            { ...GOALS, added_sugar_g: 25 },
+            undefined,
+        ],
     ];
     for (const [vals, goal, wording] of cases) {
         const labels = tileLabels(
-            macrosApi.macroPanel(vals, goal, wording, MEALS),
+            macrosApi.macroPanel(vals, goal, wording, MEALS_ADDED),
         );
         expect(Object.keys(labels).length).toBeGreaterThan(0);
+        if (vals.added_sugar_g != null) {
+            expect(labels.added_sugar_g).toBeDefined();
+        }
         for (const [key, label] of Object.entries(labels)) {
             const m = macroOf(key) as Macro & {
                 label: string;
@@ -539,11 +593,30 @@ test("a floor goal of 0 never reaches the figure", () => {
 // ---- the limits row -------------------------------------------------------
 //
 // One row, one to four cells, no special cases: alcohol simply is or is not
-// among them, and the column count travels with the markup.
+// among them, and the column count travels with the markup. Once added sugar
+// is on show, sugar and added sugar move into a two-column row of their own
+// (the sugars row) placed before it, so the limits row never holds five.
 const limitKeys = (html: string) =>
     [...html.matchAll(/<span class="mkey">([^<]+)<\/span>/g)]
         .map((m) => m[1]!)
         .slice(3); // the first three are protein / carbs / fat
+
+// The rows of limit cells in order: their class, style and cell names. Each
+// row runs to the next one (the last to the end, where no .mkey follows).
+const limitRows = (html: string) =>
+    html
+        .split('<div class="mgrid lim')
+        .slice(1)
+        .map((seg) => {
+            const head = /^([^"]*)" style="([^"]*)"/.exec(seg)!;
+            return {
+                cls: `mgrid lim${head[1]}`,
+                style: head[2]!,
+                keys: [
+                    ...seg.matchAll(/<span class="mkey">([^<]+)<\/span>/g),
+                ].map((k) => k[1]!),
+            };
+        });
 
 test("the limits row is sugar, alcohol, caffeine, fiber — in that order", () => {
     expect(limitKeys(macrosApi.macroPanel(VALS, GOALS))).toEqual([
@@ -552,6 +625,144 @@ test("the limits row is sugar, alcohol, caffeine, fiber — in that order", () =
         "Caffeine",
         "Fiber",
     ]);
+});
+
+// The strip reads macro bars → [Sugar, Added sugar] → [Alcohol, Caffeine,
+// Fiber] → water: total sugar, then the part of it that was added, side by
+// side, before the rest of the limits.
+test("with added sugar the sugars row comes first, then alcohol, caffeine, fiber", () => {
+    const html = macrosApi.macroPanel({ ...VALS, added_sugar_g: 14.3 }, GOALS);
+    expect(limitKeys(html)).toEqual([
+        "Sugar",
+        "Added sugar",
+        "Alcohol",
+        "Caffeine",
+        "Fiber",
+    ]);
+    expect(limitRows(html)).toEqual([
+        {
+            cls: "mgrid lim pair psec",
+            style: "--lc:2;--lcw:2",
+            keys: ["Sugar", "Added sugar"],
+        },
+        {
+            cls: "mgrid lim n3 psec",
+            style: "--lc:3;--lcw:3",
+            keys: ["Alcohol", "Caffeine", "Fiber"],
+        },
+    ]);
+    // Both sit before the water line and the hint, after the macro bars.
+    expect(html.indexOf("lim pair")).toBeLessThan(html.indexOf("lim n3"));
+    expect(html.indexOf("lim n3")).toBeLessThan(html.indexOf("wrow"));
+});
+
+// Two columns at every width, whatever the limits row beside it does: the
+// sugars row is what lets both full names fit.
+test("the sugars row is two columns at every width", () => {
+    for (const vals of [
+        { ...VALS, added_sugar_g: 14.3 },
+        { ...VALS, added_sugar_g: 14.3, alcohol_g: null },
+        { ...VALS, added_sugar_g: 14.3, alcohol_g: null, caffeine_mg: null },
+    ]) {
+        const rows = limitRows(macrosApi.macroPanel(vals, GOALS));
+        expect(rows[0]).toMatchObject({
+            cls: "mgrid lim pair psec",
+            style: "--lc:2;--lcw:2",
+            keys: ["Sugar", "Added sugar"],
+        });
+    }
+    // Alcohol off leaves two limits; alcohol and caffeine off, one.
+    expect(
+        limitRows(
+            macrosApi.macroPanel(
+                { ...VALS, added_sugar_g: 14.3, alcohol_g: null },
+                GOALS,
+            ),
+        )[1],
+    ).toMatchObject({ cls: "mgrid lim n2 psec", style: "--lc:2;--lcw:2" });
+});
+
+// Added sugar on show with no sugar cell (a 0 g day with an added-sugar limit
+// and no total limit): the sugars row holds added sugar alone, at the same
+// half width it has beside sugar.
+test("added sugar without a sugar cell is alone in the sugars row, half width", () => {
+    const bare = { calories: 500, protein_g: 20, carbs_g: 60, fat_g: 10 };
+    const rows = limitRows(
+        macrosApi.macroPanel(
+            { ...bare, sugar_g: 0, added_sugar_g: 0, fiber_g: 3 },
+            { added_sugar_g: 25 },
+        ),
+    );
+    expect(rows).toEqual([
+        {
+            cls: "mgrid lim pair psec",
+            style: "--lc:2;--lcw:2",
+            keys: ["Added sugar"],
+        },
+        { cls: "mgrid lim n1 psec", style: "--lc:1;--lcw:1", keys: ["Fiber"] },
+    ]);
+});
+
+// Without added sugar on show nothing moves: one limits row, sugar first, and
+// no sugars row at all.
+test("without added sugar there is no sugars row and sugar stays in the limits row", () => {
+    for (const vals of [VALS, { ...VALS, added_sugar_g: undefined }]) {
+        const html = macrosApi.macroPanel(vals as Vals, GOALS);
+        expect(html).not.toContain("lim pair");
+        expect(limitRows(html)).toEqual([
+            {
+                cls: "mgrid lim n4 psec",
+                style: "--lc:2;--lcw:4",
+                keys: ["Sugar", "Alcohol", "Caffeine", "Fiber"],
+            },
+        ]);
+    }
+});
+
+test("the limits-row layout rules in macros.css", async () => {
+    const css = await Bun.file(`${SRC}/shared/macros.css`).text();
+    // Never five cells, so no five-cell rule; no short labels to swap in.
+    expect(css).not.toContain(".n5");
+    expect(css).not.toContain("mkey-short");
+    expect(css).not.toContain("mkey-full");
+    // No width-bounded rule may change the sugars row's two columns.
+    expect(css).not.toMatch(/\.mgrid\.lim\.pair \{\s*grid-template-columns/);
+    // In the sugars row a name too long to sit beside its figure pushes the
+    // figure onto the next line rather than ellipsising, and the two cells
+    // share their row tracks so their bars stay level.
+    expect(css).toMatch(/\.mgrid\.lim\.pair \.mtop \{\s*flex-wrap: wrap;/);
+    expect(css).toMatch(
+        /\.mgrid\.lim\.pair \.mtile \{[^}]*grid-template-rows: subgrid;/,
+    );
+    // Below 360px every limits row is two columns.
+    expect(css).toMatch(
+        /@media \(max-width: 359px\) \{\s*\.mgrid\.lim \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/,
+    );
+});
+
+// The full name is the only name: no abbreviation, in markup or in the
+// accessible name.
+test("added sugar is always named in full", () => {
+    const html = macrosApi.macroPanel({ ...VALS, added_sugar_g: 14.3 }, GOALS);
+    expect(html).toContain('<span class="mkey">Added sugar</span>');
+    expect(html).not.toContain("mkey-");
+    const tiles = tileLabels(
+        macrosApi.macroPanel(
+            { ...VALS, added_sugar_g: 6.2 },
+            { ...GOALS, added_sugar_g: 25 },
+            undefined,
+            MEALS_ADDED,
+        ),
+    );
+    expect(tiles.added_sugar_g).toBe(
+        "Added sugar 6.2 g, limit 25 g, 18.8 g under. Show the meals that contributed.",
+    );
+});
+
+test("every locale names added sugar", () => {
+    for (const [loc, strings] of Object.entries(WIDGET_STRINGS)) {
+        expect(strings.macros.labels.added_sugar_g, loc).toBeTruthy();
+    }
 });
 
 test("alcohol tracking off drops its cell and the row stays three-up", () => {
@@ -619,6 +830,476 @@ test("fiber and sugar earn a cell with data or a goal; alcohol's 0 always shows"
     expect(
         limitKeys(macrosApi.macroPanel({ ...bare, alcohol_g: 0 }, null)),
     ).toEqual(["Alcohol"]);
+});
+
+// Added sugar is "data" like sugar, but it reaches the strip only through
+// `_meta`: undefined (no `_meta`, or a day that did not record it) is no cell
+// at all, even with a limit; a recorded 0 shows against a limit; 0 is a real
+// ceiling.
+test("added sugar earns a cell with a value or a limit, never without `_meta`", () => {
+    const bare = { calories: 500, protein_g: 20, carbs_g: 60, fat_g: 10 };
+    expect(
+        limitKeys(macrosApi.macroPanel(bare, { added_sugar_g: 25 })),
+    ).toEqual([]);
+    expect(
+        limitKeys(macrosApi.macroPanel({ ...bare, added_sugar_g: 0 }, null)),
+    ).toEqual([]);
+    expect(
+        limitKeys(
+            macrosApi.macroPanel(
+                { ...bare, added_sugar_g: 0 },
+                { added_sugar_g: 25 },
+            ),
+        ),
+    ).toEqual(["Added sugar"]);
+    expect(
+        limitKeys(macrosApi.macroPanel({ ...bare, added_sugar_g: 3.5 }, null)),
+    ).toEqual(["Added sugar"]);
+    expect(line("added_sugar_g", 6, 0)).toBe("limit 0 g · 6 g over");
+    expect(line("added_sugar_g", 35.2, 25)).toBe("limit 25 g · 10.2 g over");
+});
+
+// ---- added sugar from `_meta` ---------------------------------------------
+//
+// The acceptance day: two bananas (no added sugar, ~29 g natural) and a 330 ml
+// cola (35 g, all added), with a 25 g added-sugar limit and no total limit.
+const AS_DAY: AddedSugar = {
+    v: 1,
+    goal: 25,
+    days: { "2026-10-04": 35 },
+    meals: { b1: 0, b2: 0, cola: 35 },
+};
+const DAY_VALS = {
+    calories: 350,
+    protein_g: 2.6,
+    carbs_g: 90,
+    fat_g: 0.8,
+    fiber_g: 6.2,
+    sugar_g: 63.9,
+    alcohol_g: null,
+    caffeine_mg: 32,
+    water_ml: 0,
+};
+const DAY_GOALS = {
+    calories: 2000,
+    protein_g: null,
+    carbs_g: null,
+    fat_g: null,
+    fiber_g: null,
+    sugar_g: null,
+    alcohol_g: null,
+    caffeine_mg: null,
+    water_ml: null,
+};
+const DAY_MEALS = [
+    { description: "Banana", meal_type: "snack", sugar_g: 14.4, calories: 105 },
+    { description: "Banana", meal_type: "snack", sugar_g: 14.4, calories: 105 },
+    { description: "Cola", meal_type: "snack", sugar_g: 35.1, calories: 140 },
+];
+
+test("without the added-sugar `_meta` the strip is exactly today's", () => {
+    for (const raw of [undefined, null, {}, { v: 2, goal: 25 }, "x"]) {
+        const as = macrosApi.addedSugarPayload(raw);
+        expect(as).toBeNull();
+        const m = macrosApi.withAddedSugar(
+            as,
+            macrosApi.addedSugarFor(as, ["2026-10-04"]),
+            VALS,
+            GOALS,
+            MEALS,
+        );
+        expect(m.vals).toBe(VALS);
+        expect(m.goal).toBe(GOALS);
+        expect(m.meals).toBe(MEALS);
+        expect(macrosApi.macroPanel(m.vals, m.goal, undefined, m.meals)).toBe(
+            macrosApi.macroPanel(VALS, GOALS, undefined, MEALS),
+        );
+    }
+});
+
+// The test above shows `withAddedSugar` is a pass-through without `_meta`; it
+// compares the new code with itself, so it cannot show that the strip is what
+// it was before added sugar existed. This does: every case is checked against
+// the markup the pre-change shared/macros.js rendered (macros.golden.ts).
+test("without `_meta` the strip is byte for byte the pre-added-sugar markup", () => {
+    expect(Object.keys(NO_META_CASES).sort()).toEqual(
+        Object.keys(NO_META_GOLDEN).sort(),
+    );
+    for (const [name, c] of Object.entries(NO_META_CASES)) {
+        const as = macrosApi.addedSugarPayload(undefined);
+        const m = macrosApi.withAddedSugar(
+            as,
+            macrosApi.addedSugarFor(as, ["2026-10-04"]),
+            c.vals,
+            c.goal ?? null,
+            // undefined passes straight through, as it does from a template
+            c.meals as unknown[] | null,
+        );
+        const html = macrosApi.macroPanel(
+            m.vals,
+            m.goal,
+            c.wording,
+            m.meals,
+            c.opts as Parameters<typeof macrosApi.macroPanel>[4],
+        );
+        expect({ name, html }).toEqual({ name, html: NO_META_GOLDEN[name]! });
+    }
+});
+
+test("the bananas-and-cola day shows added sugar over its limit beside an unlimited total", () => {
+    const as = macrosApi.addedSugarPayload(AS_DAY);
+    const m = macrosApi.withAddedSugar(
+        as,
+        macrosApi.addedSugarFor(as, ["2026-10-04"]),
+        DAY_VALS,
+        DAY_GOALS,
+        DAY_MEALS,
+    );
+    expect(m.vals.added_sugar_g).toBe(35);
+    expect(m.goal?.added_sugar_g).toBe(25);
+    const html = macrosApi.macroPanel(m.vals, m.goal, undefined, m.meals);
+    expect(limitKeys(html)).toEqual([
+        "Sugar",
+        "Added sugar",
+        "Caffeine",
+        "Fiber",
+    ]);
+    const labels = tileLabels(html);
+    expect(labels.added_sugar_g).toBe(
+        "Added sugar 35 g, limit 25 g, 10 g over. Show the meals that contributed.",
+    );
+    expect(labels.sugar_g).toBe(
+        "Sugar 63.9 g, no goal set. Show the meals that contributed.",
+    );
+    // With the old 25 g total limit set as well, both cells judge their own.
+    const both = tileLabels(
+        macrosApi.macroPanel(
+            m.vals,
+            { ...m.goal, sugar_g: 25 },
+            undefined,
+            m.meals,
+        ),
+    );
+    expect(both.sugar_g).toContain("limit 25 g, 38.9 g over");
+    expect(both.added_sugar_g).toContain("limit 25 g, 10 g over");
+});
+
+test("the added-sugar breakdown lists only meals with a value, joined by position", () => {
+    const as = macrosApi.addedSugarPayload({
+        v: 1,
+        goal: 25,
+        days: { "2026-10-04": 35 },
+        meals: { b1: null, b2: 0, cola: 35 },
+    });
+    const m = macrosApi.withAddedSugar(as, 35, DAY_VALS, DAY_GOALS, DAY_MEALS);
+    const ctx = macrosApi.macroCtxOf(m.vals, m.goal, undefined, m.meals!);
+    const list = macrosApi.mealList(macroOf("added_sugar_g"), m.meals!, ctx);
+    expect(list).toContain("Cola");
+    expect(list).not.toContain("Banana");
+    // A count that does not match the rows joins nothing: no tile to open.
+    const off = macrosApi.withAddedSugar(
+        macrosApi.addedSugarPayload({ v: 1, goal: 25, meals: { cola: 35 } }),
+        35,
+        DAY_VALS,
+        DAY_GOALS,
+        DAY_MEALS,
+    );
+    expect(off.meals).toBe(DAY_MEALS);
+    expect(
+        tileLabels(
+            macrosApi.macroPanel(off.vals, off.goal, undefined, off.meals),
+        ).added_sugar_g,
+    ).toBeUndefined();
+});
+
+test("added sugar averages over the days that recorded it", () => {
+    const as = macrosApi.addedSugarPayload({
+        v: 1,
+        goal: 25,
+        days: { a: 10, b: null, c: 30, d: 0 },
+    });
+    expect(macrosApi.addedSugarFor(as, ["a", "b", "c", "d"])).toBe(40 / 3);
+    expect(macrosApi.addedSugarFor(as, ["b"])).toBeUndefined();
+    expect(macrosApi.addedSugarFor(as, ["zz"])).toBeUndefined();
+    expect(macrosApi.addedSugarFor(null, ["a"])).toBeUndefined();
+});
+
+test("the summary's added-sugar count joins the per-metric contributors", () => {
+    const as = macrosApi.addedSugarPayload({ ...AS_DAY, contributors: 12 });
+    expect(macrosApi.withAddedSugarContributors(as, { calories: 20 })).toEqual({
+        calories: 20,
+        added_sugar_g: 12,
+    });
+    expect(macrosApi.withAddedSugarContributors(as, null)).toEqual({
+        added_sugar_g: 12,
+    });
+    const none = { calories: 20 };
+    expect(
+        macrosApi.withAddedSugarContributors(
+            macrosApi.addedSugarPayload(AS_DAY),
+            none,
+        ),
+    ).toBe(none);
+});
+
+// get_nutrition_summary's rows are the union of the OTHER metrics' top 8
+// (structuredContent is frozen, so added sugar ranks none in), which can drop
+// the meal with the most added sugar of all. `_meta.extra` sends those meals;
+// they join the added-sugar list only, in ranked position.
+const SUMMARY_ROWS = [
+    { description: "Granola", date: "2026-10-01", calories: 480, sugar_g: 22 },
+    { description: "Pasta", date: "2026-10-02", calories: 720, sugar_g: 9 },
+    { description: "Yogurt", date: "2026-10-03", calories: 180, sugar_g: 18 },
+];
+const SUMMARY_AS = {
+    v: 1 as const,
+    goal: 25,
+    days: { "2026-10-01": 12, "2026-10-02": 30, "2026-10-03": 4 },
+    meals: { g: 12, p: null, y: 4 },
+    contributors: 5,
+    extra: [
+        {
+            description: "Sweet iced tea",
+            meal_type: "snack",
+            date: "2026-10-02",
+            added_sugar_g: 30,
+        },
+        {
+            description: "Ketchup",
+            meal_type: null,
+            date: "2026-10-03",
+            added_sugar_g: 5,
+        },
+    ],
+};
+const SUMMARY_VALS = {
+    calories: 1400,
+    protein_g: 60,
+    carbs_g: 180,
+    fat_g: 40,
+    fiber_g: 20,
+    sugar_g: 49,
+    alcohol_g: null,
+    caffeine_mg: null,
+    water_ml: 0,
+};
+function summaryStrip(raw: unknown) {
+    const as = macrosApi.addedSugarPayload(raw);
+    const m = macrosApi.withAddedSugar(
+        as,
+        macrosApi.addedSugarFor(as, ["2026-10-01", "2026-10-02", "2026-10-03"]),
+        SUMMARY_VALS,
+        DAY_GOALS,
+        SUMMARY_ROWS,
+    );
+    const opts = {
+        bounded: true,
+        contributors: macrosApi.withAddedSugarContributors(as, {
+            calories: 6,
+            sugar_g: 6,
+        }),
+        extraRows: m.extraRows,
+    };
+    const ctx = macrosApi.macroCtxOf(m.vals, m.goal, undefined, m.meals!, opts);
+    const list = (key: string) =>
+        macrosApi.mealList(macroOf(key), m.meals!, ctx);
+    return { m, opts, list };
+}
+const names = (html: string) =>
+    [...html.matchAll(/class="md-name">([^<]*)</g)].map((x) => x[1]);
+
+test("the summary's added-sugar list ranks `extra` rows among the kept ones", () => {
+    const { list } = summaryStrip(SUMMARY_AS);
+    const added = list("added_sugar_g");
+    // Ranked by added sugar across both sources; Pasta (null) stays out.
+    expect(names(added)).toEqual([
+        "Sweet iced tea",
+        "Granola",
+        "Ketchup",
+        "Yogurt",
+    ]);
+    // An extra row keeps its date tag like any multi-day row.
+    expect(added).toContain('class="md-sub">10-02<');
+    // "+N more" stays exact: 5 contributors, 4 shown.
+    expect(added).toContain("+ 1 smaller meal");
+    expect(added).not.toContain("or more");
+});
+
+test("`extra` rows never reach another metric's list", () => {
+    const { list } = summaryStrip(SUMMARY_AS);
+    for (const key of ["sugar_g", "calories"]) {
+        const out = list(key);
+        expect(out, key).not.toContain("Sweet iced tea");
+        expect(out, key).not.toContain("Ketchup");
+        expect(names(out), key).toHaveLength(3);
+    }
+    // And the strip with them differs from the strip without them only in
+    // the added-sugar tile (a button either way here): same calorie/sugar
+    // tiles, same everything else.
+    const { m, opts } = summaryStrip(SUMMARY_AS);
+    const withExtra = macrosApi.macroPanel(
+        m.vals,
+        m.goal,
+        undefined,
+        m.meals!,
+        opts,
+    );
+    const without = macrosApi.macroPanel(m.vals, m.goal, undefined, m.meals!, {
+        ...opts,
+        extraRows: null,
+    });
+    expect(withExtra).toBe(without);
+});
+
+test("an added-sugar tile whose only contributors are `extra` rows still opens", () => {
+    const { m, opts } = summaryStrip({
+        ...SUMMARY_AS,
+        meals: { g: 0, p: null, y: 0 },
+    });
+    const labels = tileLabels(
+        macrosApi.macroPanel(m.vals, m.goal, undefined, m.meals!, opts),
+    );
+    expect(labels.added_sugar_g).toContain("Show the meals that contributed.");
+    const noExtra = summaryStrip({
+        ...SUMMARY_AS,
+        meals: { g: 0, p: null, y: 0 },
+        extra: undefined,
+    });
+    expect(
+        tileLabels(
+            macrosApi.macroPanel(
+                noExtra.m.vals,
+                noExtra.m.goal,
+                undefined,
+                noExtra.m.meals!,
+                noExtra.opts,
+            ),
+        ).added_sugar_g,
+    ).toBeUndefined();
+});
+
+test("malformed `extra` entries are ignored, and at most 8 are taken", () => {
+    const bad = [
+        null,
+        "x",
+        42,
+        { description: "No sugar field" },
+        { description: "Zero", added_sugar_g: 0 },
+        { description: "Negative", added_sugar_g: -3 },
+        { description: "NaN", added_sugar_g: Number.NaN },
+        { description: "Infinite", added_sugar_g: Infinity },
+        { description: "String grams", added_sugar_g: "40" },
+        { description: 7, added_sugar_g: 40 },
+        { added_sugar_g: 40 },
+        {
+            description: "Kept row",
+            meal_type: 3,
+            date: {},
+            added_sugar_g: 8,
+            calories: 9999,
+        },
+    ];
+    const { m, list } = summaryStrip({ ...SUMMARY_AS, extra: bad });
+    const row = (m.extraRows!.added_sugar_g as Record<string, unknown>[])[0];
+    expect(m.extraRows!.added_sugar_g).toHaveLength(1);
+    // Rebuilt from the four fields alone: a stray calorie figure is dropped,
+    // a non-string type or date becomes null.
+    expect(row).toEqual({
+        description: "Kept row",
+        meal_type: null,
+        date: null,
+        added_sugar_g: 8,
+    });
+    expect(names(list("added_sugar_g"))).toEqual([
+        "Granola",
+        "Kept row",
+        "Yogurt",
+    ]);
+    expect(list("calories")).not.toContain("Kept");
+    // Not an array at all: nothing.
+    for (const extra of [null, "rows", { 0: SUMMARY_AS.extra[0] }, 5]) {
+        expect(summaryStrip({ ...SUMMARY_AS, extra }).m.extraRows).toBeNull();
+    }
+    // Twelve good rows: the first 8, in the order sent.
+    const many = Array.from({ length: 12 }, (_, i) => ({
+        description: `Drink ${i}`,
+        meal_type: null,
+        date: null,
+        added_sugar_g: 50 - i,
+    }));
+    const capped = summaryStrip({ ...SUMMARY_AS, extra: many }).m.extraRows!
+        .added_sugar_g as { description: string }[];
+    expect(capped.map((r) => r.description)).toEqual(
+        many.slice(0, 8).map((r) => r.description),
+    );
+});
+
+test("`extra` is used only when the kept rows joined", () => {
+    // as.meals of the wrong length: the join fails, so the extras alone would
+    // be a "top" list missing its kept leaders — none are shown.
+    const { m } = summaryStrip({ ...SUMMARY_AS, meals: { g: 12 } });
+    expect(m.meals).toBe(SUMMARY_ROWS);
+    expect(m.extraRows).toBeNull();
+});
+
+test("without `extra` every list and strip is exactly as before", () => {
+    const { extra: _drop, ...noExtra } = SUMMARY_AS;
+    for (const raw of [noExtra, { ...SUMMARY_AS, extra: [] }]) {
+        const { m, opts, list } = summaryStrip(raw);
+        expect(m.extraRows).toBeNull();
+        const { extraRows: _x, ...before } = opts;
+        expect(
+            macrosApi.macroPanel(m.vals, m.goal, undefined, m.meals!, opts),
+        ).toBe(
+            macrosApi.macroPanel(m.vals, m.goal, undefined, m.meals!, before),
+        );
+        for (const key of ["added_sugar_g", "sugar_g", "calories"]) {
+            expect(list(key), key).toBe(
+                macrosApi.mealList(
+                    macroOf(key),
+                    m.meals!,
+                    macrosApi.macroCtxOf(
+                        m.vals,
+                        m.goal,
+                        undefined,
+                        m.meals!,
+                        before,
+                    ),
+                ),
+            );
+        }
+        expect(names(list("added_sugar_g"))).toEqual(["Granola", "Yogurt"]);
+    }
+});
+
+test("nutrition-summary passes the added-sugar extra rows to the strip", async () => {
+    const html = await Bun.file(
+        `${SRC}/templates/nutrition-summary.html`,
+    ).text();
+    expect(html).toContain("extraRows: merged.extraRows");
+});
+
+// Every template that draws the strip reads the key itself (a widget cannot
+// import src/widgets.ts), so each must spell it exactly.
+test("every macro template reads the added-sugar `_meta` key", async () => {
+    for (const t of [
+        "nutrition-summary",
+        "goal-progress",
+        "meal-logged",
+        "trends",
+        "component-gallery",
+    ]) {
+        const html = await Bun.file(`${SRC}/templates/${t}.html`).text();
+        expect(html, t).toContain('"nutrition-mcp.com/added-sugar"');
+        expect(html, t).toContain("withAddedSugar(");
+    }
+});
+
+test("--added-sugar is defined in every token block", async () => {
+    const css = await Bun.file(`${SRC}/shared/tokens.css`).text();
+    expect(css.match(/--added-sugar:/g)?.length).toBe(
+        css.match(/--sugar:/g)?.length,
+    );
 });
 
 // The payload is millilitres because that is what a glass is logged in; a
@@ -919,4 +1600,17 @@ test("caffeine reaches the row only when a column is mapped to it", () => {
     mapStepFor(CAF_G[0], CAF_G[1], null);
     importWidget.buildRows();
     expect(importWidget.S.rows[0]!.caffeine_mg).toBeUndefined();
+});
+
+test("mealList's CAP and the extra-row cap equal MEAL_BREAKDOWN_TOP_N", async () => {
+    // get_nutrition_summary keeps exactly the rows the list can show; a
+    // mismatch makes the list and its "+N more" count disagree.
+    const { MEAL_BREAKDOWN_TOP_N } = await import("../../src/widgets");
+    const src = await Bun.file(`${SRC}/shared/macros.js`).text();
+    expect(src.match(/const CAP = (\d+);/)?.[1]).toBe(
+        String(MEAL_BREAKDOWN_TOP_N),
+    );
+    expect(src.match(/if \(rows\.length >= (\d+)\) break;/)?.[1]).toBe(
+        String(MEAL_BREAKDOWN_TOP_N),
+    );
 });

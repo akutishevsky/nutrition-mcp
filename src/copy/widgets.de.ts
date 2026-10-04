@@ -11,6 +11,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             carbs_g: "Kohlenh.",
             fat_g: "Fett",
             sugar_g: "Zucker",
+            added_sugar_g: "Zugesetzter Zucker",
             alcohol_g: "Alkohol",
             caffeine_mg: "Koffein",
             fiber_g: "Ballaststoffe",
@@ -201,6 +202,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             fat_g: "Fett (g)",
             fiber_g: "Ballaststoffe (g)",
             sugar_g: "Gesamtzucker (g)",
+            added_sugar_g: "Zugesetzter Zucker (g)",
             alcohol_g: "Alkohol (g)",
             caffeine_mg: "Koffein (mg)",
             notes: "Notizen",
@@ -246,8 +248,6 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         tabLabel: "Tab",
         notInFile: "(nicht in dieser Datei)",
         columnFallback: "Spalte {n}",
-        addedSugarNotice:
-            "Diese Datei hat eine Spalte für zugesetzten Zucker ({column}), aber keine für Gesamtzucker, deshalb wurde Zucker nicht zugeordnet. Zucker wird als GESAMTZUCKER gespeichert, also inklusive des natürlichen Zuckers in Obst und Milch – würde man zugesetzten Zucker dort zuordnen, wäre der Zuckerwert in jeder Zeile zu niedrig.",
         caffeineGramsNotice:
             "Die Koffeinspalte dieser Datei ({column}) ist in Gramm angegeben, Koffein wird aber in Milligramm gespeichert, deshalb wurde Koffein nicht zugeordnet. Sonst würde 0,18 erfasst, wo auf dem Etikett 180 mg steht. Ein erneuter Import derselben Datei trägt das später nicht nach – diese Zeilen sind dann schon erfasst und werden als Duplikate übersprungen. Ist die Spalte falsch beschriftet und sind die Werte wirklich Milligramm, wähl sie oben aus; sind es wirklich Gramm, multipliziere sie vor dem Import in der Datei mit 1000, nicht danach.",
         alcoholNotice:
@@ -294,6 +294,7 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             fat_g: "F",
             fiber_g: "Ball.",
             sugar_g: "Zucker",
+            added_sugar_g: "Zuges.",
             alcohol_g: "Alk.",
             caffeine_mg: "Koff.",
         },

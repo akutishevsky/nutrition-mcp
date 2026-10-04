@@ -9,6 +9,7 @@
 
 import { getSupabase } from "./supabase.js";
 import { gramsFromDrink, formatAlcohol, type DrinkUnit } from "./alcohol.js";
+import { addedSugarError } from "./added-sugar.js";
 
 const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 const REQUEST_TIMEOUT_MS = 8_000;
@@ -42,6 +43,14 @@ export interface FoodResult {
     fat_g: number | null;
     fiber_g: number | null;
     sugar_g: number | null; // TOTAL sugars, incl. naturally occurring
+    // ADDED sugars (the US label definition), part of sugar_g and never above
+    // it — see resolveAddedSugar. Optional only so FoodResult literals written
+    // before it shipped still type-check; every result this module builds, and
+    // every cache hit, carries both keys.
+    added_sugar_g?: number | null;
+    // true when Open Food Facts marked the added-sugar value "~": estimated
+    // from the ingredient list, not read off a label.
+    added_sugar_estimated?: boolean;
     alcohol_g: number | null; // pure ethanol; often null — see resolveAlcoholGrams
     // Open Food Facts' own quality scores. Both are null when OFF hasn't
     // computed one — a real gap (missing category or nutrition data on OFF's
@@ -174,6 +183,41 @@ function resolveAlcoholGrams(
     return num(gramsFromDrink(ml, abv));
 }
 
+// OFF's `<nutrient>_modifier` for an estimated value: "~" means OFF computed
+// it from the ingredient list rather than reading it off the label. Other
+// modifiers ("<", ">", "<=") qualify a label value and are left alone.
+const OFF_ESTIMATED_MODIFIER = "~";
+
+// Added sugars on the same basis as everything else. Most labels outside the
+// US carry no added-sugar line, so a null here is the common case. A value
+// above total sugar is impossible by definition (added sugars are part of
+// total sugars) — a community-edit typo or a basis mix-up — and is dropped
+// rather than passed on to be logged; the log line names no barcode.
+function resolveAddedSugar(
+    n: Record<string, unknown>,
+    hasServing: boolean,
+    sugar: number | null,
+): { added_sugar_g: number | null; added_sugar_estimated: boolean } {
+    const added = hasServing
+        ? num(n["added-sugars_serving"])
+        : num(n["added-sugars_100g"]);
+    if (added == null || added < 0) {
+        return { added_sugar_g: null, added_sugar_estimated: false };
+    }
+    if (addedSugarError(added, sugar) != null) {
+        console.log("[foods] added-sugars above total sugars, dropped");
+        return { added_sugar_g: null, added_sugar_estimated: false };
+    }
+    const modifier =
+        typeof n["added-sugars_modifier"] === "string"
+            ? n["added-sugars_modifier"].trim()
+            : null;
+    return {
+        added_sugar_g: added,
+        added_sugar_estimated: modifier === OFF_ESTIMATED_MODIFIER,
+    };
+}
+
 // Normalize an OFF product into our shape. Prefer per-serving values when the
 // product declares a serving size and a per-serving energy; otherwise fall back
 // to the always-present per-100g basis and label it as such.
@@ -183,6 +227,9 @@ function normalizeOFFProduct(product: OFFProduct, barcode: string): FoodResult {
         !!product.serving_size && n["energy-kcal_serving"] != null;
     const pick = (servingKey: string, hundredKey: string) =>
         hasServing ? num(n[servingKey]) : num(n[hundredKey]);
+    // "sugars", plural. This is TOTAL sugars including naturally occurring
+    // sugar from fruit and milk.
+    const sugar = pick("sugars_serving", "sugars_100g");
 
     return {
         name: product.product_name?.trim() || `Product ${barcode}`,
@@ -195,11 +242,10 @@ function normalizeOFFProduct(product: OFFProduct, barcode: string): FoodResult {
         // OFF spells it "fiber" (American) — no "fibre_*" key exists; confirmed
         // across 100 products, where only fiber_100g / fiber_serving appear.
         fiber_g: pick("fiber_serving", "fiber_100g"),
-        // "sugars", plural. This is TOTAL sugars including naturally occurring
-        // sugar from fruit and milk. OFF also carries a separate
-        // `added-sugars_*`; we deliberately do not read it — the canonical
-        // stored field is total sugar.
-        sugar_g: pick("sugars_serving", "sugars_100g"),
+        sugar_g: sugar,
+        // OFF's separate `added-sugars_*` (with `added-sugars_modifier`) is
+        // read alongside total sugar, never in place of it.
+        ...resolveAddedSugar(n, hasServing, sugar),
         alcohol_g: resolveAlcoholGrams(product, n, hasServing),
         nutriscore_grade: normalizeNutriscoreGrade(product.nutriscore_grade),
         nova_group: normalizeNovaGroup(product.nova_group),
@@ -262,11 +308,49 @@ export async function fetchProductFromOFF(
 // config, transient error) is swallowed and treated as a miss so a cache
 // problem can never break a lookup.
 
+/**
+ * Turn a cached payload back into a FoodResult, or null when it is unusable.
+ *
+ * `stale` marks a row cached before added sugar shipped: it never had that
+ * figure read, so serving it as-is would claim Open Food Facts has no figure
+ * even for a US product whose record carries one — for up to the whole TTL
+ * after deploy. The lookup refetches such a row first and falls back to it
+ * (added_sugar_g null) only when the refetch fails, so an Open Food Facts
+ * outage or a since-deleted product never turns yesterday's cache hit into an
+ * error.
+ *
+ * Rows cached before fiber/sugar/alcohol/nutriscore/nova shipped have no
+ * such keys either; those are backfilled rather than refetched (an accepted
+ * gap). Deserialized they would be `undefined`, not `null` — and an undefined
+ * field is an ABSENT one once it reaches a structuredContent literal, which
+ * for a .nullable() (hence *required*) schema field is a validation failure
+ * rather than a null. Backfill explicitly so a cache hit and a fresh fetch
+ * are always the same shape.
+ */
+export function fromCachedPayload(
+    payload: FoodResult,
+): { food: FoodResult; stale: boolean } | null {
+    if (!payload || typeof payload !== "object") return null;
+    return {
+        food: {
+            ...payload,
+            fiber_g: payload.fiber_g ?? null,
+            sugar_g: payload.sugar_g ?? null,
+            added_sugar_g: payload.added_sugar_g ?? null,
+            added_sugar_estimated: payload.added_sugar_estimated ?? false,
+            alcohol_g: payload.alcohol_g ?? null,
+            nutriscore_grade: payload.nutriscore_grade ?? null,
+            nova_group: payload.nova_group ?? null,
+        },
+        stale: !("added_sugar_g" in payload),
+    };
+}
+
 async function getCachedFood(
     source: string,
     sourceId: string,
     ttlMs: number,
-): Promise<FoodResult | null> {
+): Promise<{ food: FoodResult; stale: boolean } | null> {
     try {
         const { data, error } = await getSupabase()
             .from("food_cache")
@@ -277,22 +361,7 @@ async function getCachedFood(
         if (error || !data) return null;
         const ageMs = Date.now() - new Date(data.fetched_at).getTime();
         if (ageMs > ttlMs) return null;
-        const payload = data.payload as FoodResult;
-        // Rows cached before fiber/sugar/alcohol/nutriscore/nova shipped have no
-        // such keys, and stay servable for the whole TTL after deploy.
-        // Deserialized they would be `undefined`, not `null` — and an undefined
-        // field is an ABSENT one once it reaches a structuredContent literal,
-        // which for a .nullable() (hence *required*) schema field is a
-        // validation failure rather than a null. Backfill explicitly so a cache
-        // hit and a fresh fetch are always the same shape.
-        return {
-            ...payload,
-            fiber_g: payload.fiber_g ?? null,
-            sugar_g: payload.sugar_g ?? null,
-            alcohol_g: payload.alcohol_g ?? null,
-            nutriscore_grade: payload.nutriscore_grade ?? null,
-            nova_group: payload.nova_group ?? null,
-        };
+        return fromCachedPayload(data.payload as FoodResult);
     } catch {
         return null;
     }
@@ -318,24 +387,57 @@ async function putCachedFood(
     }
 }
 
+/**
+ * The cache-then-fetch decision, with its I/O injected so it unit-tests
+ * without Supabase. A fresh cache row is served as-is; a stale one (see
+ * fromCachedPayload) is refetched, and served backfilled when the refetch
+ * throws or finds nothing — exactly what the lookup returned before added
+ * sugar existed.
+ */
+export async function resolveCachedLookup(
+    cached: { food: FoodResult; stale: boolean } | null,
+    fetchFood: () => Promise<FoodResult | null>,
+    store: (food: FoodResult) => Promise<void>,
+): Promise<FoodResult | null> {
+    if (cached && !cached.stale) return cached.food;
+    let food: FoodResult | null;
+    try {
+        food = await fetchFood();
+    } catch (err) {
+        if (cached) return cached.food;
+        throw err;
+    }
+    if (food) {
+        await store(food);
+        return food;
+    }
+    return cached ? cached.food : null;
+}
+
 // Cache-first barcode lookup. `barcode` must already be normalized
 // (see normalizeBarcode). Returns null when the product is unknown; throws only
-// when Open Food Facts itself is unreachable.
+// when Open Food Facts itself is unreachable and nothing usable is cached.
 export async function lookupBarcode(
     barcode: string,
 ): Promise<FoodResult | null> {
-    const cached = await getCachedFood(SOURCE_OFF, barcode, OFF_TTL_MS);
-    if (cached) return cached;
-
-    const food = await fetchProductFromOFF(barcode);
-    if (food) await putCachedFood(SOURCE_OFF, barcode, food);
-    return food;
+    return resolveCachedLookup(
+        await getCachedFood(SOURCE_OFF, barcode, OFF_TTL_MS),
+        () => fetchProductFromOFF(barcode),
+        (food) => putCachedFood(SOURCE_OFF, barcode, food),
+    );
 }
 
 // ---------- Formatting ----------
 
 function macro(value: number | null, unit: string): string {
     return value == null ? "n/a" : `${value} ${unit}`;
+}
+
+// "a", "a or b", "a, b or c".
+function orList(items: string[]): string {
+    return items.length <= 1
+        ? (items[0] ?? "")
+        : `${items.slice(0, -1).join(", ")} or ${items[items.length - 1]}`;
 }
 
 function novaLabel(group: 1 | 2 | 3 | 4): string {
@@ -358,9 +460,10 @@ function novaLabel(group: 1 | 2 | 3 | 4): string {
  * returned in the FoodResult and still stored if the meal is logged; only the
  * rendering is gated.
  *
- * Fiber and sugar are never gated, and are shown even when null ("n/a"): a food
- * with no fiber figure in Open Food Facts is a fact worth stating, since the
- * alternative is the model quietly assuming zero.
+ * Fiber, sugar and added sugar are never gated, and are shown even when null
+ * ("n/a"): a food with no fiber figure in Open Food Facts is a fact worth
+ * stating, since the alternative is the model quietly assuming zero. An added
+ * sugar value Open Food Facts estimated from the ingredients ("~") says so.
  *
  * Nutri-Score and NOVA are the opposite: OFF simply hasn't computed them for
  * plenty of legitimate products (water, coffee, categories it can't classify),
@@ -371,6 +474,7 @@ export function formatFoodResult(
     food: FoodResult,
     alcoholUnit: DrinkUnit | null = null,
 ): string {
+    const added = food.added_sugar_g ?? null;
     const title = food.brand ? `${food.name} (${food.brand})` : food.name;
     const lines = [
         title,
@@ -385,7 +489,11 @@ export function formatFoodResult(
         `Fiber: ${macro(food.fiber_g, "g")} · Sugar (total): ${macro(
             food.sugar_g,
             "g",
-        )}`,
+        )} · Added sugar: ${macro(added, "g")}${
+            added != null && food.added_sugar_estimated
+                ? " (estimated by Open Food Facts)"
+                : ""
+        }`,
     ];
     const scoreParts = [
         food.nutriscore_grade
@@ -408,10 +516,11 @@ export function formatFoodResult(
     const unknown = [
         food.fiber_g == null ? "fiber" : null,
         food.sugar_g == null ? "sugar" : null,
-    ].filter(Boolean);
+        added == null ? "added sugar" : null,
+    ].filter((x): x is string => x != null);
     if (unknown.length > 0) {
         lines.push(
-            `(Open Food Facts has no ${unknown.join(" or ")} figure for this product — that is missing data, not a zero. If this product is logged, estimate it from the ingredients and portion and pass the value to log_meal rather than omitting it.)`,
+            `(Open Food Facts has no ${orList(unknown)} figure for this product — that is missing data, not a zero. If this product is logged, estimate it from the ingredients and portion and pass the value to log_meal rather than omitting it.)`,
         );
     }
     lines.push(

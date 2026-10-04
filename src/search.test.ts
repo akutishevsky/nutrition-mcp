@@ -20,6 +20,7 @@ function meal(overrides: Partial<Meal> = {}): Meal {
         fat_g: 20,
         fiber_g: null,
         sugar_g: null,
+        added_sugar_g: null,
         alcohol_g: null,
         caffeine_mg: null,
         notes: null,
@@ -257,6 +258,43 @@ test("a variation carries fiber, sugar and caffeine when the history has them", 
     expect(text).toContain("95 mg caffeine");
 });
 
+// Added sugar is part of the total, so it is a bracket on the sugar figure
+// rather than an amount of its own.
+test("a variation shows added sugar inside its sugar figure", () => {
+    const text = formatMealSearchResults(
+        [
+            meal({ description: "Cola", sugar_g: 35, added_sugar_g: 35 }),
+            meal({ description: "Cola", sugar_g: 35, added_sugar_g: null }),
+        ],
+        ["cola"],
+        "UTC",
+    );
+    expect(text).toContain("35g sugar (35g added)");
+});
+
+test("added sugar is left out when no entry recorded it", () => {
+    const [v] = groupMealVariations([
+        meal({ description: "Banana", sugar_g: 14 }),
+    ]);
+    expect(v?.typicalAddedSugarG).toBeNull();
+    const text = formatMealSearchResults(
+        [meal({ description: "Banana", sugar_g: 14 })],
+        ["banana"],
+        "UTC",
+    );
+    expect(text).toContain("14g sugar)");
+    expect(text).not.toContain("added");
+});
+
+test("added sugar with no total recorded still shows", () => {
+    const text = formatMealSearchResults(
+        [meal({ description: "Syrup", sugar_g: null, added_sugar_g: 10 })],
+        ["syrup"],
+        "UTC",
+    );
+    expect(text).toContain("10g added sugar");
+});
+
 // Median over the entries that HAVE the field, so a history where fiber was
 // only recorded sometimes still surfaces the figure rather than dropping it.
 test("mixed history reports the typical value of the entries that recorded one", () => {
@@ -292,4 +330,28 @@ test("nutrients still show when the calorie figure is the missing one", () => {
     );
     expect(text).toContain("4g fiber");
     expect(text).not.toContain("(no macros logged)");
+});
+
+test("typical added sugar never exceeds typical sugar", () => {
+    // Older entries carry no added sugar, so separate medians would give
+    // sugar 10 and added 25.
+    const [v] = groupMealVariations([
+        meal({ description: "Cola", sugar_g: 10, added_sugar_g: null }),
+        meal({ description: "Cola", sugar_g: 10, added_sugar_g: null }),
+        meal({ description: "Cola", sugar_g: 30, added_sugar_g: 25 }),
+    ]);
+    expect(v?.typicalSugarG).toBe(10);
+    expect(v?.typicalAddedSugarG).not.toBeNull();
+    expect(v!.typicalAddedSugarG!).toBeLessThanOrEqual(v!.typicalSugarG!);
+    const text = formatMealSearchResults(
+        [
+            meal({ description: "Cola", sugar_g: 10, added_sugar_g: null }),
+            meal({ description: "Cola", sugar_g: 10, added_sugar_g: null }),
+            meal({ description: "Cola", sugar_g: 30, added_sugar_g: 25 }),
+        ],
+        ["cola"],
+        "UTC",
+    );
+    expect(text).toContain("10g sugar (10g added)");
+    expect(text).not.toContain("25g added");
 });

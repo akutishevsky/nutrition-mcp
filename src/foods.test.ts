@@ -3,6 +3,8 @@ import {
     normalizeBarcode,
     fetchProductFromOFF,
     formatFoodResult,
+    fromCachedPayload,
+    resolveCachedLookup,
     type FoodResult,
 } from "./foods.js";
 
@@ -105,9 +107,10 @@ describe("fetchProductFromOFF", () => {
                         sugars_100g: 14,
                         sugars_serving: 8.4,
                         sugars_unit: "g",
-                        // Present in OFF but deliberately ignored: we store
-                        // TOTAL sugars, never added sugars.
+                        // Read beside total sugars, never in place of them.
+                        "added-sugars_100g": 2,
                         "added-sugars_serving": 1.2,
+                        "added-sugars_modifier": "~",
                     },
                 },
             }),
@@ -117,7 +120,130 @@ describe("fetchProductFromOFF", () => {
         expect(food!.serving).toBe("60g");
         expect(food!.fiber_g).toBe(6);
         expect(food!.sugar_g).toBe(8.4);
+        expect(food!.added_sugar_g).toBe(1.2);
+        expect(food!.added_sugar_estimated).toBe(true);
         expect(food!.alcohol_g).toBeNull();
+    });
+
+    // OFF's `added-sugars_modifier`: "~" marks a value OFF estimated from the
+    // ingredient list; anything else (or no modifier) is a label value.
+    describe("added sugars", () => {
+        function cereal(nutriments: Record<string, unknown>) {
+            return {
+                status: 1,
+                product: {
+                    product_name: "Frosted Flakes",
+                    serving_size: "40 g",
+                    nutriments: {
+                        "energy-kcal_serving": 150,
+                        sugars_serving: 12,
+                        sugars_100g: 30,
+                        ...nutriments,
+                    },
+                },
+            };
+        }
+
+        test("an exact label value is not marked estimated", async () => {
+            mockFetch(() =>
+                jsonResponse(cereal({ "added-sugars_serving": 9.5 })),
+            );
+            const food = await fetchProductFromOFF("3800020430781");
+            expect(food!.added_sugar_g).toBe(9.5);
+            expect(food!.added_sugar_estimated).toBe(false);
+        });
+
+        test("a non-estimate modifier is still a label value", async () => {
+            mockFetch(() =>
+                jsonResponse(
+                    cereal({
+                        "added-sugars_serving": 0.5,
+                        "added-sugars_modifier": "<",
+                    }),
+                ),
+            );
+            const food = await fetchProductFromOFF("3800020430781");
+            expect(food!.added_sugar_g).toBe(0.5);
+            expect(food!.added_sugar_estimated).toBe(false);
+        });
+
+        test('"~" marks the value estimated by Open Food Facts', async () => {
+            mockFetch(() =>
+                jsonResponse(
+                    cereal({
+                        "added-sugars_serving": 9.5,
+                        "added-sugars_modifier": "~",
+                    }),
+                ),
+            );
+            const food = await fetchProductFromOFF("3800020430781");
+            expect(food!.added_sugar_g).toBe(9.5);
+            expect(food!.added_sugar_estimated).toBe(true);
+        });
+
+        test("missing is null, not zero", async () => {
+            mockFetch(() => jsonResponse(cereal({})));
+            const food = await fetchProductFromOFF("3800020430781");
+            expect(food!.added_sugar_g).toBeNull();
+            expect(food!.added_sugar_estimated).toBe(false);
+        });
+
+        test("follows the per-100 g basis with everything else", async () => {
+            mockFetch(() =>
+                jsonResponse({
+                    status: 1,
+                    product: {
+                        product_name: "Granola",
+                        nutriments: {
+                            "energy-kcal_100g": 450,
+                            sugars_100g: 20,
+                            "added-sugars_100g": 14,
+                            // A per-serving figure without a serving basis
+                            // must not leak into a per-100 g result.
+                            "added-sugars_serving": 5.6,
+                        },
+                    },
+                }),
+            );
+            const food = await fetchProductFromOFF("3800020430781");
+            expect(food!.serving).toBe("100 g");
+            expect(food!.added_sugar_g).toBe(14);
+        });
+
+        test("a value above total sugar is dropped and logged without the barcode", async () => {
+            mockFetch(() =>
+                jsonResponse(
+                    cereal({
+                        "added-sugars_serving": 15,
+                        "added-sugars_modifier": "~",
+                    }),
+                ),
+            );
+            const logs: string[] = [];
+            const realLog = console.log;
+            console.log = (...args: unknown[]) => {
+                logs.push(args.join(" "));
+            };
+            try {
+                const food = await fetchProductFromOFF("3800020430781");
+                expect(food!.sugar_g).toBe(12);
+                expect(food!.added_sugar_g).toBeNull();
+                expect(food!.added_sugar_estimated).toBe(false);
+            } finally {
+                console.log = realLog;
+            }
+            const foods = logs.filter((l) => l.startsWith("[foods]"));
+            expect(foods).toHaveLength(1);
+            expect(foods[0]).not.toContain("3800020430781");
+        });
+
+        test("equal to total sugar is kept", async () => {
+            mockFetch(() =>
+                jsonResponse(cereal({ "added-sugars_serving": 12 })),
+            );
+            const food = await fetchProductFromOFF("3800020430781");
+            expect(food!.added_sugar_g).toBe(12);
+        });
     });
 
     test("falls back to per-100g fiber and sugars", async () => {
@@ -513,6 +639,8 @@ describe("formatFoodResult", () => {
         fat_g: 12,
         fiber_g: 0.5,
         sugar_g: 1.8,
+        added_sugar_g: 0,
+        added_sugar_estimated: false,
         alcohol_g: null,
         nutriscore_grade: "b",
         nova_group: 3,
@@ -594,6 +722,71 @@ describe("formatFoodResult", () => {
         expect(text).toContain("no fiber or sugar figure");
     });
 
+    test("shows an exact added-sugar value plainly", () => {
+        const text = formatFoodResult({ ...base, added_sugar_g: 9.5 });
+        expect(text).toContain("Added sugar: 9.5 g");
+        expect(text).not.toContain("estimated by Open Food Facts");
+    });
+
+    test('says when Open Food Facts estimated added sugar ("~")', () => {
+        const text = formatFoodResult({
+            ...base,
+            added_sugar_g: 9.5,
+            added_sugar_estimated: true,
+        });
+        expect(text).toContain(
+            "Added sugar: 9.5 g (estimated by Open Food Facts)",
+        );
+        expect(text).not.toContain("not a zero");
+    });
+
+    test("a missing added sugar is n/a with the missing-data note", () => {
+        const text = formatFoodResult({ ...base, added_sugar_g: null });
+        expect(text).toContain("Added sugar: n/a");
+        expect(text).not.toContain("estimated by Open Food Facts");
+        expect(text).toContain("no added sugar figure");
+        expect(text).toContain("not a zero");
+    });
+
+    test("a result without the added-sugar keys reads as missing", () => {
+        const { added_sugar_g: _a, added_sugar_estimated: _e, ...old } = base;
+        const text = formatFoodResult(old);
+        expect(text).toContain("Added sugar: n/a");
+        expect(text).toContain("no added sugar figure");
+    });
+
+    // A cache row from before added sugar shipped never had it read, so its
+    // null would wrongly say Open Food Facts has no figure: it is stale.
+    test("a cached payload without added_sugar_g is stale, backfilled", () => {
+        const { added_sugar_g: _a, added_sugar_estimated: _e, ...old } = base;
+        const hit = fromCachedPayload(old as FoodResult);
+        expect(hit!.stale).toBe(true);
+        expect(hit!.food.added_sugar_g).toBeNull();
+        expect(hit!.food.added_sugar_estimated).toBe(false);
+    });
+
+    test("a cached payload with added_sugar_g is fresh, backfilled", () => {
+        const { alcohol_g: _al, ...older } = base;
+        const hit = fromCachedPayload({
+            ...older,
+            added_sugar_g: null,
+        } as FoodResult);
+        expect(hit!.stale).toBe(false);
+        expect(hit!.food.added_sugar_g).toBeNull();
+        expect(hit!.food.alcohol_g).toBeNull();
+        expect(hit!.food.added_sugar_estimated).toBe(false);
+    });
+
+    test("all three missing are named in one line", () => {
+        const text = formatFoodResult({
+            ...base,
+            fiber_g: null,
+            sugar_g: null,
+            added_sugar_g: null,
+        });
+        expect(text).toContain("no fiber, sugar or added sugar figure");
+    });
+
     test("nothing is appended when the label carried both", () => {
         expect(formatFoodResult(base)).not.toContain("not a zero");
     });
@@ -607,5 +800,71 @@ describe("formatFoodResult", () => {
         expect(text).toContain("Coconut Milk\n");
         expect(text).not.toContain("()");
         expect(text).toContain("Calories: n/a");
+    });
+});
+
+describe("resolveCachedLookup", () => {
+    const food = (name: string) => ({ name }) as unknown as FoodResult;
+    const noStore = async () => {};
+
+    test("a fresh cache row is served without fetching", async () => {
+        const fetchFood = mock(async () => food("fetched"));
+        const got = await resolveCachedLookup(
+            { food: food("cached"), stale: false },
+            fetchFood,
+            noStore,
+        );
+        expect(got).toEqual(food("cached"));
+        expect(fetchFood).not.toHaveBeenCalled();
+    });
+
+    test("a stale row is refetched and the new result stored", async () => {
+        const stored: FoodResult[] = [];
+        const got = await resolveCachedLookup(
+            { food: food("cached"), stale: true },
+            async () => food("fetched"),
+            async (f) => {
+                stored.push(f);
+            },
+        );
+        expect(got).toEqual(food("fetched"));
+        expect(stored).toEqual([food("fetched")]);
+    });
+
+    // An Open Food Facts outage must not turn yesterday's cache hit into an
+    // error, nor a since-deleted product into "not found".
+    test("a stale row is served when the refetch throws", async () => {
+        const got = await resolveCachedLookup(
+            { food: food("cached"), stale: true },
+            async () => {
+                throw new Error("Open Food Facts timed out");
+            },
+            noStore,
+        );
+        expect(got).toEqual(food("cached"));
+    });
+
+    test("a stale row is served when the refetch finds nothing", async () => {
+        const got = await resolveCachedLookup(
+            { food: food("cached"), stale: true },
+            async () => null,
+            noStore,
+        );
+        expect(got).toEqual(food("cached"));
+    });
+
+    test("with no cache row a fetch failure still throws", async () => {
+        await expect(
+            resolveCachedLookup(
+                null,
+                async () => {
+                    throw new Error("down");
+                },
+                noStore,
+            ),
+        ).rejects.toThrow("down");
+        expect(await resolveCachedLookup(null, async () => null, noStore)).toBe(
+            null,
+        );
     });
 });

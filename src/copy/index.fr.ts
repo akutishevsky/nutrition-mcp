@@ -61,7 +61,7 @@ export const INDEX_FR: IndexDoc = {
                 },
                 {
                     userText: "oui",
-                    aiText: "Petit-déjeuner enregistré : 480 kcal, 21 g de protéines et 126 mg de caféine. Côté sucres, tu en es déjà à 51 g sur ta limite de 60 g.",
+                    aiText: "Petit-déjeuner enregistré : 480 kcal, 21 g de protéines et 126 mg de caféine. Côté sucres ajoutés, tu en es à 20 g sur ta limite de 25 g, surtout à cause du miel ; le reste des 51 g de sucres totaux vient des fruits et du yaourt.",
                     card: "meal-logged",
                     meal: {
                         description:
@@ -91,7 +91,7 @@ export const INDEX_FR: IndexDoc = {
                 },
                 {
                     userText: "il me reste quoi pour le dîner ?",
-                    aiText: "Il te reste 850 kcal et 84 g de protéines. Côté sucres, tu en es à 59 g sur ta limite de 60 g.",
+                    aiText: "Il te reste 850 kcal et 84 g de protéines. Côté sucres ajoutés, tu en es à 23 g sur ta limite de 25 g, et l'essentiel des 59 g de sucres totaux de la journée vient des fruits.",
                     card: "nutrition-summary",
                 },
                 {
@@ -209,10 +209,10 @@ export const INDEX_FR: IndexDoc = {
                 id: "log-meal",
                 title: "Enregistre avec tes mots",
                 description:
-                    "Dis-le comme tu le raconterais à un ami. S'il manque la portion ou le repas concerné, il pose la question avant d'estimer. Fibres et sucres sur chaque entrée, caféine dès qu'il y en a, et « vers 7 h » est placé à 07:00 dans ton fuseau horaire.",
+                    "Dis-le comme tu le raconterais à un ami. S'il manque la portion ou le repas concerné, il pose la question avant d'estimer. Fibres, sucres et sucres ajoutés sur chaque entrée, caféine dès qu'il y en a, et « vers 7 h » est placé à 07:00 dans ton fuseau horaire.",
                 toolNotes: {
                     log_meal:
-                        "Enregistre le petit-déjeuner avec macros, fibres, sucres et la caféine du café",
+                        "Enregistre le petit-déjeuner avec macros, fibres, sucres, sucres ajoutés et la caféine du café",
                     log_water:
                         "Ajoute les 500 ml à 07:00 au total d'eau du jour",
                     get_current_time:
@@ -314,7 +314,7 @@ export const INDEX_FR: IndexDoc = {
                 id: "scan-barcode",
                 title: "Scanne un code-barres",
                 description:
-                    "Prends l'emballage en photo : les chiffres sous le code-barres sont recherchés dans Open Food Facts, puis il te demande quelle quantité tu as prise. Open Food Facts n'indique pas la caféine : elle vient donc de l'étiquette ou de valeurs courantes. Si les fibres ou les sucres manquent, ils sont estimés plutôt que laissés vides.",
+                    "Prends l'emballage en photo : les chiffres sous le code-barres sont recherchés dans Open Food Facts, puis il te demande quelle quantité tu as prise. Les sucres ajoutés sont repris quand Open Food Facts les indique. Open Food Facts n'indique pas la caféine : elle vient donc de l'étiquette ou de valeurs courantes. Si les fibres, les sucres ou les sucres ajoutés manquent, ils sont estimés plutôt que laissés vides.",
                 toolNotes: {
                     lookup_barcode:
                         "Récupère les valeurs de l'étiquette et le Nutri-Score du pot dans Open Food Facts",
@@ -329,7 +329,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "C'est un pot de 150 g de yaourt à la grecque nature (0 % de matières grasses) : 87 kcal, 15 g de protéines et 5 g de sucres, et Open Food Facts lui donne un Nutri-Score A. Tu as mangé tout le pot ?",
+                        text: "C'est un pot de 150 g de yaourt à la grecque nature (0 % de matières grasses) : 87 kcal, 15 g de protéines et 5 g de sucres, dont aucun ajouté, et Open Food Facts lui donne un Nutri-Score A. Tu as mangé tout le pot ?",
                     },
                     {
                         from: "user",
@@ -352,7 +352,7 @@ export const INDEX_FR: IndexDoc = {
                 id: "goals-progress",
                 title: "Fixe tes objectifs, fais le point",
                 description:
-                    "Fixe des cibles à atteindre, comme les calories et les protéines, et des limites à ne pas dépasser pour les sucres, l'alcool et la caféine ; seul ce que tu mentionnes change. Ensuite, demande-lui où tu en es pour n'importe quel jour : ce qu'il te reste pour chaque cible, et où tu te situes par rapport à chaque limite.",
+                    "Fixe des cibles à atteindre, comme les calories et les protéines, et des limites à ne pas dépasser pour les sucres ajoutés, les sucres totaux, l'alcool et la caféine ; seul ce que tu mentionnes change. Ensuite, demande-lui où tu en es pour n'importe quel jour : ce qu'il te reste pour chaque cible, et où tu te situes par rapport à chaque limite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Enregistre les cibles de calories et de protéines, et une limite de caféine de 400 mg",
@@ -374,7 +374,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "C'est fait : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Le reste ne change pas : 220 g de glucides, 70 g de lipides, 30 g de fibres, 2,5 L d'eau, ta limite de 60 g de sucres et ton poids cible de 75 kg.",
+                        text: "C'est fait : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Le reste ne change pas : 220 g de glucides, 70 g de lipides, 30 g de fibres, 2,5 L d'eau, ta limite de 25 g de sucres ajoutés et ton poids cible de 75 kg.",
                     },
                     {
                         from: "user",
@@ -382,7 +382,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Tu en es à 1 540 kcal sur 2 000 et à 104 g de protéines sur 160, il te reste donc 460 kcal et 56 g de protéines. Les sucres sont à 40 g sur ta limite de 60 g, et la caféine à 130 sur 400 mg : les deux restent sous la limite.",
+                        text: "Tu en es à 1 540 kcal sur 2 000 et à 104 g de protéines sur 160, il te reste donc 460 kcal et 56 g de protéines. Les sucres ajoutés sont à 16 g sur ta limite de 25 g, et la caféine à 130 sur 400 mg : les deux restent sous la limite.",
                     },
                 ],
                 cards: [
@@ -416,7 +416,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "52 g par jour en moyenne, sous ta limite de 60 g, mais tu l'as dépassée 4 jours sur 13.",
+                        text: "Les sucres ajoutés sont à 22 g par jour en moyenne, sous ta limite de 25 g, mais tu l'as dépassée 5 jours sur 13. Les sucres totaux sont à 52 g en moyenne, surtout apportés par les fruits et le lait.",
                     },
                 ],
                 cards: [
@@ -679,15 +679,15 @@ export const INDEX_FR: IndexDoc = {
         cards: [
             {
                 title: "Repas en langage courant",
-                body: "Décris ce que tu as mangé : ton IA estime les calories, protéines, glucides, lipides, fibres, sucres totaux et la caféine en milligrammes, puis enregistre le tout.",
+                body: "Décris ce que tu as mangé : ton IA estime les calories, protéines, glucides, lipides, fibres, sucres totaux, sucres ajoutés et la caféine en milligrammes, puis enregistre le tout.",
             },
             {
                 title: "Scanne un code-barres",
-                body: "Prends en photo ou tape le code-barres d'un produit et récupère ses macros, fibres et sucres depuis Open Food Facts, ajustés à la quantité mangée.",
+                body: "Prends en photo ou tape le code-barres d'un produit et récupère ses macros, fibres et sucres depuis Open Food Facts (et les sucres ajoutés quand ils sont indiqués), ajustés à la quantité mangée.",
             },
             {
                 title: "Objectifs et progression",
-                body: "Définis tes cibles quotidiennes de calories, macros, fibres et eau, plus des limites à ne pas dépasser pour les sucres, la caféine et l'alcool, et suis ta progression en direct.",
+                body: "Définis tes cibles quotidiennes de calories, macros, fibres et eau, plus des limites à ne pas dépasser pour les sucres ajoutés, les sucres totaux, la caféine et l'alcool, et suis ta progression en direct.",
             },
             {
                 title: "Résumés et tendances",
@@ -800,7 +800,7 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Qu'est-ce que Nutrition MCP ?",
             visibleHtml:
-                "Nutrition MCP est un serveur Model Context Protocol (MCP) gratuit et open source qui transforme Claude, ChatGPT ou un autre client MCP en compteur de calories et de macros. Plutôt que de chercher dans une base de données d'aliments, tu dis à ton IA ce que tu as mangé, et elle enregistre les calories, les macros, les fibres, les sucres et la caféine dans ton propre journal alimentaire.",
+                "Nutrition MCP est un serveur Model Context Protocol (MCP) gratuit et open source qui transforme Claude, ChatGPT ou un autre client MCP en compteur de calories et de macros. Plutôt que de chercher dans une base de données d'aliments, tu dis à ton IA ce que tu as mangé, et elle enregistre les calories, les macros, les fibres, les sucres, les sucres ajoutés et la caféine dans ton propre journal alimentaire.",
         },
         {
             question: "Qu'est-ce que le Model Context Protocol (MCP) ?",
@@ -810,7 +810,7 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Comment compter ses calories avec Claude ou ChatGPT ?",
             visibleHtml:
-                "Ajoute Nutrition MCP une seule fois (dans Claude depuis l'annuaire des connecteurs, dans ChatGPT comme app personnalisée avec l'URL du serveur), puis connecte-toi. Dis ensuite à ton IA ce que tu as mangé avec tes propres mots, montre-lui une photo du repas ou donne-lui le code-barres d'un produit. Ton IA estime les calories, protéines, glucides, lipides, fibres et sucres, et Nutrition MCP enregistre l'entrée dans ton journal alimentaire. Demande à tout moment tes totaux du jour, tes tendances de la semaine ou ta progression vers tes objectifs.",
+                "Ajoute Nutrition MCP une seule fois (dans Claude depuis l'annuaire des connecteurs, dans ChatGPT comme app personnalisée avec l'URL du serveur), puis connecte-toi. Dis ensuite à ton IA ce que tu as mangé avec tes propres mots, montre-lui une photo du repas ou donne-lui le code-barres d'un produit. Ton IA estime les calories, protéines, glucides, lipides, fibres, sucres et sucres ajoutés, et Nutrition MCP enregistre l'entrée dans ton journal alimentaire. Demande à tout moment tes totaux du jour, tes tendances de la semaine ou ta progression vers tes objectifs.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -842,7 +842,7 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Que puis-je suivre ?",
             visibleHtml:
-                "Calories, protéines, glucides, lipides, fibres, sucres totaux et eau pour chaque entrée, décrits en langage courant ou récupérés depuis le code-barres d'un produit via Open Food Facts. La caféine est suivie aussi, en milligrammes, l'unité utilisée par toutes les étiquettes, et elle n'ajoute aucune calorie. L'alcool peut aussi être suivi, en grammes d'éthanol pur ; il s'affiche une fois que tu actives le suivi de l'alcool. Tu peux aussi enregistrer ton poids en kg ou en lb et suivre les tendances vers un poids cible. Les mensurations (taille, hanches, cou, poitrine, épaules, haut du bras, avant-bras, cuisse et mollet) peuvent elles aussi être enregistrées en cm ou en pouces. Consulte des résumés quotidiens, retrouve tes repas sur une période donnée, modifie ou supprime des entrées passées, définis des objectifs et suis tes tendances dans la durée.",
+                "Calories, protéines, glucides, lipides, fibres, sucres totaux, sucres ajoutés et eau pour chaque entrée, décrits en langage courant ou récupérés depuis le code-barres d'un produit via Open Food Facts. La caféine est suivie aussi, en milligrammes, l'unité utilisée par toutes les étiquettes, et elle n'ajoute aucune calorie. L'alcool peut aussi être suivi, en grammes d'éthanol pur ; il s'affiche une fois que tu actives le suivi de l'alcool. Tu peux aussi enregistrer ton poids en kg ou en lb et suivre les tendances vers un poids cible. Les mensurations (taille, hanches, cou, poitrine, épaules, haut du bras, avant-bras, cuisse et mollet) peuvent elles aussi être enregistrées en cm ou en pouces. Consulte des résumés quotidiens, retrouve tes repas sur une période donnée, modifie ou supprime des entrées passées, définis des objectifs et suis tes tendances dans la durée.",
         },
         {
             question: "Le comptage des calories est-il précis ?",

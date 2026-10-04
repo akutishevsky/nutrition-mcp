@@ -86,7 +86,7 @@ export const TOOLS_NL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log wat je hebt gegeten, met calorieën en macro's, plus vezels, totale suikers, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web.",
+                "Log wat je hebt gegeten, met calorieën en macro's, plus vezels, totale en toegevoegde suikers, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web.",
             params: {
                 description: "Wat er is gegeten",
                 meal_type: "ontbijt, lunch, diner of snack",
@@ -98,6 +98,8 @@ export const TOOLS_NL: ToolsDoc = {
                     "Voedingsvezels in gram. De AI krijgt de opdracht dit bij elke maaltijd in te vullen en schat het aan de hand van de ingrediënten als het etiket geen waarde geeft, want een leeg veld is geen nul: daarmee valt de hele dag buiten je vezelgemiddelde",
                 sugar_g:
                     "<b>Totale</b> suikers in gram: het getal dat op het etiket bij “waarvan suikers” staat, inclusief de suiker die van nature in fruit en zuivel zit, niet alleen toegevoegde suiker. Wordt net als vezels bij elke maaltijd ingevuld",
+                added_sugar_g:
+                    "<b>Toegevoegde</b> suikers in gram: suiker die bij verwerking of bereiding is toegevoegd (kristalsuiker, siropen, honing, de suiker in gezoete dranken en producten). Onderdeel van de totale suikers, nooit meer dan dat. De suiker die van nature in heel fruit, groente en ongezoete melk zit, is niet toegevoegd, en die in 100% vruchtensap ook niet. Wordt net als vezels bij elke maaltijd ingevuld: onbewerkte producten zijn 0, de suiker in frisdrank is helemaal toegevoegd, en de Amerikaanse etiketregel “Includes Xg Added Sugars” wordt gebruikt als die er is",
                 alcohol_g:
                     "Gram <b>zuivere ethanol</b>, niet het volume van de drank en niet het alcoholpercentage. De AI rekent het uit op basis van de hoeveelheid en de sterkte (een flesje bier van 330 ml met 5% is 13 g)",
                 caffeine_mg:
@@ -112,7 +114,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Haal de voedingswaarden van het etiket van een verpakt product op bij Open Food Facts via de barcode (EAN/UPC met 8–14 cijfers), plus de Nutri-Score en de NOVA-verwerkingsgroep als Open Food Facts die heeft. Je kunt de cijfers typen of laten aflezen van een foto van de verpakking; daarna kun je het resultaat loggen, omgerekend naar hoeveel je hebt gegeten.",
+                "Haal de voedingswaarden van het etiket van een verpakt product op bij Open Food Facts via de barcode (EAN/UPC met 8–14 cijfers), plus de Nutri-Score en de NOVA-verwerkingsgroep als Open Food Facts die heeft. Toegevoegde suiker wordt getoond als Open Food Facts die vermeldt, en gemarkeerd als Open Food Facts die uit de ingrediënten heeft geschat. Je kunt de cijfers typen of laten aflezen van een foto van de verpakking; daarna kun je het resultaat loggen, omgerekend naar hoeveel je hebt gegeten.",
             params: {},
             example: "Scan deze barcode: 3017620422003",
             photoHint:
@@ -120,7 +122,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Open een importvenster in de chat om je geschiedenis uit een andere app over te zetten. Kies de CSV die je uit MyFitnessPal, Cronometer, Lose It!, MacroFactor of een andere tracker hebt geëxporteerd, koppel de kolommen aan calorieën, macro's, vezels, suiker en cafeïne (plus alcohol als je alcoholregistratie hebt aangezet) en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je het voorbeeld goedkeurt, en hetzelfde bestand opnieuw importeren levert geen dubbele registraties op.",
+                "Open een importvenster in de chat om je geschiedenis uit een andere app over te zetten. Kies de CSV die je uit MyFitnessPal, Cronometer, Lose It!, MacroFactor of een andere tracker hebt geëxporteerd, koppel de kolommen aan calorieën, macro's, vezels, totale en toegevoegde suiker en cafeïne (plus alcohol als je alcoholregistratie hebt aangezet) en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je het voorbeeld goedkeurt, en hetzelfde bestand opnieuw importeren levert geen dubbele registraties op.",
             params: {},
             example: "Importeer mijn maaltijdgeschiedenis uit MyFitnessPal",
         },
@@ -128,7 +130,7 @@ export const TOOLS_NL: ToolsDoc = {
             description:
                 "Voeg een reeks eerdere maaltijden in één keer toe (tot 50 tegelijk) in plaats van ze één voor één te loggen. De importer hierboven schrijft via deze tool, en de AI kan hem ook zelf gebruiken voor maaltijdgegevens die je in de chat hebt geplakt. Elke rij wordt eerst gecontroleerd en wat niet klopt, wordt per rij gemeld. Dezelfde rijen opnieuw versturen is dus veilig en levert geen dubbele registraties op, zolang je tijdzone intussen niet is gewijzigd.",
             params: {
-                meals: "De rijen om te importeren, in de volgorde van het bronbestand (1–50 per aanroep). Elke rij kan een tijd, maaltijdtype, omschrijving, notities en dezelfde cijfers als een gelogde maaltijd bevatten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (totale suikers), <code>alcohol_g</code> (gram zuivere ethanol) en <code>caffeine_mg</code> (milligram, niet gram)",
+                meals: "De rijen om te importeren, in de volgorde van het bronbestand (1–50 per aanroep). Elke rij kan een tijd, maaltijdtype, omschrijving, notities en dezelfde cijfers als een gelogde maaltijd bevatten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (totale suikers), <code>added_sugar_g</code> (toegevoegde suikers, onderdeel van het totaal), <code>alcohol_g</code> (gram zuivere ethanol) en <code>caffeine_mg</code> (milligram, niet gram)",
                 expected_row_count:
                     "Hoeveel rijen deze aanroep bevat, geteld in het bronbestand, zodat een ontbrekende rij opvalt",
                 expected_total_kcal:
@@ -143,7 +145,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Wijzig een maaltijd die je al hebt gelogd: de omschrijving, een macro, vezels, suiker, alcohol of cafeïne, de tijd of de notities. Zo wordt ook een ontbrekende waarde achteraf aangevuld: is een maaltijd zonder vezels of suiker gelogd, dan meldt de server dat en vult de AI die waarde hier aan als je akkoord gaat.",
+                "Wijzig een maaltijd die je al hebt gelogd: de omschrijving, een macro, vezels, totale of toegevoegde suiker, alcohol of cafeïne, de tijd of de notities. Zo wordt ook een ontbrekende waarde achteraf aangevuld: is een maaltijd zonder vezels, suiker of toegevoegde suiker gelogd, dan meldt de server dat en vult de AI die waarde hier aan als je akkoord gaat.",
             params: {
                 id: "UUID van de te wijzigen maaltijd",
                 description: "",
@@ -153,6 +155,8 @@ export const TOOLS_NL: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Totale suikers, niet toegevoegde suiker",
+                added_sugar_g:
+                    "Alleen toegevoegde suikers, nooit meer dan de totale suikers",
                 alcohol_g: "Gram zuivere ethanol, niet het volume van de drank",
                 caffeine_mg: "Milligram, niet gram",
                 logged_at: "",
@@ -356,7 +360,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Stel je dagelijkse doelen in voor calorieën, macro's, vezels, suiker, alcohol, cafeïne en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; suiker, alcohol en cafeïne zijn limieten om onder te blijven, en zo wordt de voortgang ook verwoord. Alleen de velden die je noemt, worden bijgewerkt; de rest blijft zoals het was.",
+                "Stel je dagelijkse doelen in voor calorieën, macro's, vezels, suiker, toegevoegde suiker, alcohol, cafeïne en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; totale suiker, toegevoegde suiker, alcohol en cafeïne zijn limieten om onder te blijven, en zo wordt de voortgang ook verwoord. Alleen de velden die je noemt, worden bijgewerkt; de rest blijft zoals het was.",
             params: {
                 daily_calories:
                     "Dagelijks caloriedoel (kcal). Null om te wissen.",
@@ -369,6 +373,8 @@ export const TOOLS_NL: ToolsDoc = {
                     "Dagelijks vezeldoel (gram), een minimum om te halen. Null om te wissen.",
                 daily_sugar_g:
                     "Dagelijkse limiet voor <b>totale</b> suikers (gram), een maximum om onder te blijven. Totale suikers omvatten ook de suiker die van nature in fruit en zuivel zit; de officiële richtlijn voor toegevoegde suiker ligt daarom veel lager. Null om te wissen.",
+                daily_added_sugar_g:
+                    "Dagelijkse limiet voor <b>toegevoegde</b> suikers (gram), een maximum om onder te blijven. Telt alleen toegevoegde suikers, niet de suiker die van nature in fruit en zuivel zit; officiële richtlijnen voor suiker gaan meestal over deze maat (de American Heart Association houdt maximaal 25 g per dag aan voor vrouwen en 36 g voor mannen). 0 is een echte limiet en betekent helemaal niets. Null om te wissen.",
                 daily_alcohol_g:
                     "Dagelijkse alcohollimiet in gram <b>zuivere ethanol</b>, een maximum om onder te blijven. Eén Amerikaans standaardglas is 14 g, één Britse eenheid 7,9 g. Null om te wissen.",
                 daily_caffeine_mg:
