@@ -19,6 +19,8 @@ import {
     deleteAllUserData,
     upsertNutritionGoals,
     getNutritionGoals,
+    getNutritionGoalsHistory,
+    hasMealsBefore,
     insertWater,
     getWaterByDate,
     getWaterInRange,
@@ -128,7 +130,17 @@ import {
     getWidgetHtml,
     MEAL_CONTRIBUTORS_META_KEY,
     WEIGHT_SERIES_META_KEY,
+    PERIOD_AVERAGES_META_KEY,
 } from "./widgets.js";
+import {
+    GRANULARITIES,
+    buildPeriodAveragesMeta,
+    dayTotalsFromMeals,
+    formatPeriodContent,
+    targetsRecordedFrom,
+    yearSpanStart,
+    type Granularity,
+} from "./periods.js";
 import {
     clipDescription,
     formatMg,
@@ -517,6 +529,9 @@ export { MEAL_CONTRIBUTORS_META_KEY };
 // Same arrangement for get_weight_trends' series (WeightSeriesMeta, built in
 // src/weight-trend.ts).
 export { WEIGHT_SERIES_META_KEY };
+// And for get_trends' per-period averages (PeriodAveragesMeta, built in
+// src/periods.ts), present only when `group_by` is set.
+export { PERIOD_AVERAGES_META_KEY };
 
 /** Zero contributors, for a window with no meals at all. `.nullable()` is not
  *  optional: the alcohol key is always present, null when tracking is off. */
@@ -4864,7 +4879,7 @@ export function registerTools(
         {
             title: "Get Trends",
             description:
-                "Rolling 7/14/30-day averages, standard deviation and coefficient of variation for calories, protein, carbs, fat, fiber, sugar, alcohol (when tracking is on), caffeine and water, with days within ±10% of each target or over each limit when goals are set; logging streaks; day-of-week calorie averages; and the best and worst day by calories (closest to and furthest from the calorie target when one is set, otherwise the lowest and highest). Pre-aggregated so you can narrate findings to the user without doing arithmetic. Defaults to the last 30 days ending today. Figures are estimates, not medical or dietary advice.",
+                "Rolling 7/14/30-day averages, standard deviation and coefficient of variation for calories, protein, carbs, fat, fiber, sugar, alcohol (when tracking is on), caffeine and water, with days within ±10% of each target or over each limit when goals are set; logging streaks; day-of-week calorie averages; and the best and worst day by calories (closest to and furthest from the calorie target when one is set, otherwise the lowest and highest). Every figure arrives pre-computed. Defaults to the last 30 days ending today. With group_by (week, month, quarter or year) the result also lists calorie, protein, carb and fat averages per calendar period over a fixed span (26 weeks, 24 months, 12 quarters or 5 years), each divided by the days in that period with at least one meal logged rather than by calendar days, beside the targets in effect at the time, the days logged and the days on target. Figures are estimates, not medical or dietary advice.",
             annotations: {
                 title: "Get Trends",
                 readOnlyHint: true,
@@ -4884,6 +4899,12 @@ export function registerTools(
                     .string()
                     .optional()
                     .describe("Window end date YYYY-MM-DD (default today)."),
+                group_by: z
+                    .enum(GRANULARITIES as [Granularity, ...Granularity[]])
+                    .optional()
+                    .describe(
+                        "Adds per-period averages per logged day (days with no meals are excluded) against the targets in effect at the time: ISO weeks starting Monday (26 rows), months (24), quarters (12) or years (5), in the profile timezone, ending with the period that contains end_date. The span is fixed per granularity; `days` still sets the rolling-average window.",
+                    ),
             }),
             outputSchema: z.object({
                 end_date: z.string(),
@@ -4901,7 +4922,7 @@ export function registerTools(
             // Link the tool to its interactive trends UI (MCP Apps).
             ...uiMeta(TRENDS_WIDGET_URI),
         },
-        async ({ days, end_date }) => {
+        async ({ days, end_date, group_by }) => {
             return withAnalytics(
                 "get_trends",
                 async () => {
@@ -4919,11 +4940,35 @@ export function registerTools(
                         endDate,
                         -(seriesDays - 1),
                     );
-                    const [meals, water, goals] = await Promise.all([
-                        getMealsInRange(userId, startDate, endDate, tz),
-                        getWaterInRange(userId, startDate, endDate, tz),
-                        getNutritionGoals(userId),
-                    ]);
+                    // With group_by, one meal read covers every granularity's
+                    // span (5 calendar years) and the rolling window too: the
+                    // window is at most 365 days, always inside it, and
+                    // buildDailyBuckets drops meals outside its own range.
+                    // Without group_by, the reads are exactly what they were.
+                    const mealStart = group_by
+                        ? yearSpanStart(endDate) < startDate
+                            ? yearSpanStart(endDate)
+                            : startDate
+                        : startDate;
+                    // hasMealsBefore: meals before the span make its empty
+                    // early periods inner gaps (kept), not a lead-in
+                    // (dropped).
+                    const [meals, water, goals, history, loggedBefore] =
+                        await Promise.all([
+                            getMealsInRange(userId, mealStart, endDate, tz),
+                            getWaterInRange(userId, startDate, endDate, tz),
+                            getNutritionGoals(userId),
+                            group_by
+                                ? getNutritionGoalsHistory(userId)
+                                : Promise.resolve(null),
+                            group_by
+                                ? hasMealsBefore(
+                                      userId,
+                                      yearSpanStart(endDate),
+                                      tz,
+                                  )
+                                : Promise.resolve(false),
+                        ]);
                     const allBuckets = buildDailyBuckets(
                         meals,
                         water,
@@ -4938,16 +4983,37 @@ export function registerTools(
 
                     const goalsPayload = goalsPayloadOf(goals, alcohol);
 
+                    let text = computeTrends(
+                        gateAlcohol(textBuckets, alcohol),
+                        goals,
+                    );
+                    // Per-period averages: only with group_by, and then in
+                    // `content` and the result's `_meta`, never in
+                    // structuredContent — the output schema is frozen (see
+                    // PERIOD_AVERAGES_META_KEY). structuredContent stays
+                    // exactly what the `days` window gives without it.
+                    let periodMeta: Record<string, unknown> | undefined;
+                    if (group_by && history) {
+                        const spanStart = yearSpanStart(endDate);
+                        const meta = buildPeriodAveragesMeta(
+                            dayTotalsFromMeals(meals, spanStart, endDate, tz),
+                            history,
+                            endDate,
+                            group_by,
+                            tz,
+                            loggedBefore ? spanStart : null,
+                        );
+                        text += `\n\n${formatPeriodContent(
+                            meta.periods[group_by],
+                            group_by,
+                            targetsRecordedFrom(history, tz),
+                        )}`;
+                        periodMeta = { [PERIOD_AVERAGES_META_KEY]: meta };
+                    }
+
                     return {
-                        content: [
-                            {
-                                type: "text",
-                                text: computeTrends(
-                                    gateAlcohol(textBuckets, alcohol),
-                                    goals,
-                                ),
-                            },
-                        ],
+                        content: [{ type: "text", text }],
+                        ...(periodMeta ? { _meta: periodMeta } : {}),
                         structuredContent: {
                             end_date: endDate,
                             default_range: [7, 14, 30].includes(windowDays)

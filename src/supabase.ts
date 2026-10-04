@@ -406,6 +406,29 @@ export async function getMealsInRange(
 }
 
 /**
+ * Whether this user logged any meal before local `date` in `tz`. `get_trends`
+ * with `group_by` reads only its 5-year span, so this is how it tells a
+ * history that starts inside that span (empty periods before the first meal
+ * are dropped) from one that runs past its start (they are inner gaps, kept).
+ * One indexed row at most (`idx_meals_user_logged_at`).
+ */
+export async function hasMealsBefore(
+    userId: string,
+    date: string,
+    tz: string = "UTC",
+): Promise<boolean> {
+    const { data, error } = await getSupabase()
+        .from("meals")
+        .select("id")
+        .eq("user_id", userId)
+        .lt("logged_at", zonedDayStartUtc(date, tz))
+        .limit(1);
+
+    if (error) throw new Error(`Failed to get meals: ${error.message}`);
+    return (data ?? []).length > 0;
+}
+
+/**
  * How many meal rows this user already has. Used by bulk import to bound total
  * growth: rate limiting is per HTTP request, so one batched call writes many
  * rows for a single limiter hit.

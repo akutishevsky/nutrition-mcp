@@ -37,6 +37,7 @@ import {
     MEAL_CONTRIBUTORS,
     MEAL_CONTRIBUTORS_META_KEY,
     WEIGHT_SERIES_META_KEY,
+    PERIOD_AVERAGES_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
     MAX_CALORIES,
@@ -97,6 +98,12 @@ import {
 } from "./tz.js";
 import { getWidgetHtml } from "./widgets.js";
 import { rateForDisplay } from "./weight-trend.js";
+import {
+    buildPeriodRows,
+    dayTotalsFromMeals,
+    PERIOD_ROW_COUNTS,
+} from "./periods.js";
+import type { NutritionGoalsHistoryRow } from "./goals-history.js";
 
 // Real uuids, because the id tools check the shape before touching the
 // database: a fixture like "m1" would never reach the stubs below.
@@ -980,6 +987,56 @@ describe("summary and trends agree on the same window", () => {
         expect(trendsText).not.toContain("calendar-day average");
         expect(loggedDayAverageNote(byDate.size, 30)).toBe("");
     });
+
+    // get_trends' group_by rows divide by logged days, like the summary,
+    // not by calendar days like the rolling averages above. Over the same
+    // dates, with gaps and uneven days, the two must give the same figures.
+    test("a period row's per-logged-day averages are the summary's", () => {
+        const july = meals
+            .filter((m) => m.logged_at.startsWith("2026-07"))
+            .filter((_, i) => i % 4 !== 1)
+            .map((m, i) =>
+                meal({
+                    ...m,
+                    calories: 400 + 37 * i,
+                    protein_g: 20 + i,
+                    carbs_g: 50 + (i % 5),
+                    fat_g: 15 + i / 7,
+                }),
+            );
+        const byDay = new Map<string, Meal[]>();
+        for (const m of july) {
+            const date = m.logged_at.slice(0, 10);
+            byDay.set(date, [...(byDay.get(date) ?? []), m]);
+        }
+        const summaryJuly = rangeAverages(
+            [...byDay.values()].map((dayMeals) => ({
+                meals: dayMeals,
+                totals: sumMeals(dayMeals),
+            })),
+        );
+        const [row] = buildPeriodRows(
+            dayTotalsFromMeals(july, "2026-07-01", END, "UTC"),
+            [],
+            END,
+            "month",
+            "UTC",
+        );
+        expect(row!.key).toBe("2026-07");
+        expect(row!.days).toBe(26);
+        expect(row!.logged_days).toBe(byDay.size);
+        expect(row!.logged_days).toBeLessThan(row!.days);
+        expect(row!.avg!.calories).toBeCloseTo(
+            summaryJuly.averages.calories,
+            9,
+        );
+        expect(row!.avg!.protein).toBeCloseTo(
+            summaryJuly.averages.protein_g,
+            9,
+        );
+        expect(row!.avg!.carbs).toBeCloseTo(summaryJuly.averages.carbs_g, 9);
+        expect(row!.avg!.fat).toBeCloseTo(summaryJuly.averages.fat_g, 9);
+    });
 });
 
 // ---------- Regression pin for issue #70 ----------
@@ -1503,6 +1560,16 @@ const db = {
     profile: null as actualSupabase.Profile | null,
     goals: null as NutritionGoals | null,
     meals: [] as Meal[],
+    // Every getMealsInRange call's [start, end], in order: get_trends'
+    // group_by widens its one meal read to the 5-year span, and must not
+    // without group_by.
+    mealRangeArgs: [] as [string, string][],
+    // getNutritionGoalsHistory's rows, oldest first, and how often it ran.
+    goalsHistory: [] as NutritionGoalsHistoryRow[],
+    goalsHistoryReads: 0,
+    // hasMealsBefore's answer, and the dates it was asked about.
+    mealsBefore: false,
+    mealsBeforeArgs: [] as string[],
     water: [] as WaterEntry[],
     // getWaterByDate's rows (get_water_today / _by_date and buildMealProgress);
     // `water` above feeds the range reader.
@@ -1540,6 +1607,7 @@ const db = {
     // a raw Postgres/PostgREST failure, or for the real updateMeal's not-found
     // ToolError, neither of which the stubs otherwise produce.
     failWith: null as Error | null,
+    goalsHistoryFailure: null as Error | null,
     // Every call to a delete stub, found or not: stays 0 when a tool refuses
     // an id before it reaches the database.
     deleteCalls: 0,
@@ -1605,9 +1673,19 @@ mock.module("./supabase.js", () => ({
     // the window they ask for, and filtering here would only re-implement the
     // query under test. Paging, ordering and the count reconcile belong to the
     // real reader, driven against a stubbed fetch in supabase-window.test.ts.
-    getMealsInRange: async () => {
+    getMealsInRange: async (_userId: string, s: string, e: string) => {
+        db.mealRangeArgs.push([s, e]);
         if (db.failWith) throw db.failWith;
         return db.meals;
+    },
+    // get_trends' group_by: the goal in effect on each past day.
+    getNutritionGoalsHistory: async () => {
+        db.goalsHistoryReads += 1;
+        return db.goalsHistory;
+    },
+    hasMealsBefore: async (_userId: string, date: string) => {
+        db.mealsBeforeArgs.push(date);
+        return db.mealsBefore;
     },
     getWaterInRange: async () => db.water,
     // get_weight_by_date_range's reader; its range guard is what is under test.
@@ -1765,6 +1843,9 @@ mock.module("./supabase.js", () => ({
         patch: Record<string, unknown>,
     ) => {
         db.goals = { ...goals(), ...patch } as NutritionGoals;
+        // The real function throws its history ToolError after the goal is
+        // saved, so the stub saves first too.
+        if (db.goalsHistoryFailure) throw db.goalsHistoryFailure;
         return db.goals;
     },
     upsertProfile: async (userId: string, patch: Record<string, unknown>) => {
@@ -1787,6 +1868,11 @@ beforeEach(() => {
     db.healthSyncLink = null;
     db.healthSyncSentThrough = null;
     db.meals = [];
+    db.mealRangeArgs = [];
+    db.goalsHistory = [];
+    db.goalsHistoryReads = 0;
+    db.mealsBefore = false;
+    db.mealsBeforeArgs = [];
     db.water = [];
     db.waterByDate = [];
     db.weights = [];
@@ -1806,6 +1892,7 @@ beforeEach(() => {
     db.accountWipes = 0;
     db.profileReads = [];
     db.failWith = null;
+    db.goalsHistoryFailure = null;
     db.deleteCalls = 0;
     db.dedupe = false;
 });
@@ -3104,6 +3191,23 @@ describe("raw database errors never reach the model", () => {
             expect(textOf(r)).toBe(`No meal found with id ${MEAL_ID}.`);
         });
         expect(rowFor("update_meal").error_category).toBe("record_not_found");
+    });
+
+    // upsertNutritionGoals throws this ToolError when the goal saved but its
+    // history row did not; the tool must report it as written, not as a
+    // per-category message that would hide that the goal itself went through.
+    test("set_nutrition_goals reports a failed history insert verbatim", async () => {
+        const message =
+            "Failed to record this change in the goals history (ref 0123abcd). The new goals themselves were saved. Calling set_nutrition_goals again with the same values records the change, dated to when it was saved; it does not save anything twice.";
+        db.goalsHistoryFailure = new ToolError(message);
+        await withTools(null, async (call) => {
+            const r = await call("set_nutrition_goals", {
+                daily_calories: 1800,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toBe(message);
+        });
+        expect(db.goals?.daily_calories).toBe(1800);
     });
 
     // Resources bypass withAnalytics, and the SDK forwards a thrown message to
@@ -5222,6 +5326,7 @@ describe("export_all_data is on the tool surface", () => {
             "weight.csv",
             "body_measurements.csv",
             "goals.csv",
+            "goals_history.csv",
             "profile.csv",
             "account.csv",
             "telemetry.csv",
@@ -5614,6 +5719,7 @@ describe("tool text leaves writes and location to the user", () => {
                     "set_language",
                     "set_timezone",
                     "get_meal_patterns",
+                    "get_trends",
                 ]) {
                     expect(desc(name), name).not.toMatch(/\boffer\b/i);
                     expect(desc(name), name).not.toMatch(/narrate/i);
@@ -6791,6 +6897,459 @@ describe("get_weight_trends", () => {
         expect(WEIGHT_SERIES_META_KEY).toBe("nutrition-mcp.com/weight-series");
         const html = await getWidgetHtml("weight-trends");
         expect(html).toContain(JSON.stringify(WEIGHT_SERIES_META_KEY));
+    });
+});
+
+// ---------- get_trends group_by: per-period averages in _meta ----------
+
+const PERIOD_TARGETS = z
+    .strictObject({
+        calories: z.number().nullable(),
+        protein: z.number().nullable(),
+        carbs: z.number().nullable(),
+        fat: z.number().nullable(),
+    })
+    .nullable();
+const PERIOD_ROW = z.strictObject({
+    key: z.string(),
+    start: z.iso.date(),
+    end: z.iso.date(),
+    days: z.number().int(),
+    partial: z.boolean(),
+    logged_days: z.number().int(),
+    avg: z
+        .strictObject({
+            calories: z.number(),
+            protein: z.number(),
+            carbs: z.number(),
+            fat: z.number(),
+        })
+        .nullable(),
+    targets: PERIOD_TARGETS,
+    targets_changed: z.boolean(),
+    targets_assumed: z.boolean(),
+    on_target_days: z.number().int().nullable(),
+    incomplete_days: z.number().int().nullable(),
+});
+const PERIOD_META = z.strictObject({
+    v: z.literal(1),
+    end_date: z.iso.date(),
+    group_by: z.enum(["week", "month", "quarter", "year"]),
+    targets_from: z.iso.date().nullable(),
+    periods: z.strictObject({
+        week: z.array(PERIOD_ROW),
+        month: z.array(PERIOD_ROW),
+        quarter: z.array(PERIOD_ROW),
+        year: z.array(PERIOD_ROW),
+    }),
+});
+
+/** A goals-history row: every column null unless given. */
+function historyRow(
+    effective_at: string,
+    over: Partial<NutritionGoalsHistoryRow> = {},
+): NutritionGoalsHistoryRow {
+    return {
+        effective_at,
+        daily_calories: null,
+        daily_protein_g: null,
+        daily_carbs_g: null,
+        daily_fat_g: null,
+        daily_fiber_g: null,
+        daily_sugar_g: null,
+        daily_alcohol_g: null,
+        daily_caffeine_mg: null,
+        daily_water_ml: null,
+        target_weight_g: null,
+        ...over,
+    };
+}
+
+describe("get_trends group_by", () => {
+    const END = "2026-07-31";
+    // One meal in late December 2025 (the first logged day, so every period
+    // before it is dropped), nothing from January to June (kept: the gap is
+    // the information), then most of July with varied totals.
+    const JULY_GAPS = new Set([5, 6, 12]);
+    const julyMeals = (): Meal[] => {
+        const out: Meal[] = [];
+        for (let d = 1; d <= 20; d++) {
+            if (JULY_GAPS.has(d)) continue;
+            const date = `2026-07-${String(d).padStart(2, "0")}`;
+            out.push(
+                meal({
+                    id: `jul-${d}-a`,
+                    logged_at: `${date}T08:00:00.000Z`,
+                    calories: 600 + 13 * d,
+                    protein_g: 30 + d,
+                    carbs_g: 70.5,
+                    fat_g: 20 + d / 3,
+                }),
+            );
+            if (d % 3 === 0) {
+                out.push(
+                    meal({
+                        id: `jul-${d}-b`,
+                        logged_at: `${date}T19:00:00.000Z`,
+                        calories: 1100,
+                        protein_g: 60,
+                        carbs_g: 120,
+                        fat_g: 41,
+                    }),
+                );
+            }
+        }
+        return out;
+    };
+    const FIXTURE = (): Meal[] => [
+        meal({
+            id: "dec",
+            logged_at: "2025-12-30T12:00:00.000Z",
+            calories: 1800,
+        }),
+        ...julyMeals(),
+    ];
+    // Goals recorded from July 10 (so July 1–9 assume them), raised on
+    // July 20 — a change inside July.
+    const HISTORY = [
+        historyRow("2026-07-10T09:00:00.000Z", {
+            daily_calories: 2000,
+            daily_protein_g: 120,
+            daily_carbs_g: 220,
+            daily_fat_g: 70,
+        }),
+        historyRow("2026-07-20T18:00:00.000Z", {
+            daily_calories: 2200,
+            daily_protein_g: 140,
+            daily_carbs_g: 240,
+            daily_fat_g: 70,
+        }),
+    ];
+
+    test.each(ERAS)(
+        "structuredContent validates against the frozen schema and the periods ride in _meta (%p)",
+        async (mode) => {
+            db.meals = FIXTURE();
+            db.goals = goals();
+            db.goalsHistory = HISTORY;
+            const frozen = (await Bun.file(
+                new URL("./output-schemas.frozen.json", import.meta.url),
+            ).json()) as Record<string, JsonSchemaType>;
+            const validate = new AjvJsonSchemaValidator().getValidator(
+                frozen.get_trends!,
+            );
+            await withHttpClient("u1", mode, async (client) => {
+                await client.listTools();
+                const r = await client.callTool({
+                    name: "get_trends",
+                    arguments: { end_date: END, group_by: "month" },
+                });
+                expect(r.isError).toBeFalsy();
+                const result = validate(r.structuredContent);
+                expect(result.errorMessage).toBeUndefined();
+                expect(result.valid).toBe(true);
+                const meta = PERIOD_META.parse(
+                    r._meta?.[PERIOD_AVERAGES_META_KEY],
+                );
+                expect(meta.end_date).toBe(END);
+                expect(meta.group_by).toBe("month");
+                // The widget's "targets before {date} not recorded" date:
+                // the first history row's local day.
+                expect(meta.targets_from).toBe("2026-07-10");
+                // Dec 2025 … Jul 2026, newest first: leading empty months
+                // dropped, the empty months inside the history kept.
+                expect(meta.periods.month.map((p) => p.key)).toEqual([
+                    "2026-07",
+                    "2026-06",
+                    "2026-05",
+                    "2026-04",
+                    "2026-03",
+                    "2026-02",
+                    "2026-01",
+                    "2025-12",
+                ]);
+                const feb = meta.periods.month.find(
+                    (p) => p.key === "2026-02",
+                )!;
+                expect(feb).toMatchObject({
+                    days: 28,
+                    logged_days: 0,
+                    avg: null,
+                });
+                expect(meta.periods.year.map((p) => p.key)).toEqual([
+                    "2026",
+                    "2025",
+                ]);
+                // Nothing in _meta leaked into the frozen payload.
+                expect(Object.keys(r.structuredContent ?? {})).toEqual([
+                    "end_date",
+                    "default_range",
+                    "drink_unit",
+                    "locale",
+                    "goals",
+                    "days",
+                ]);
+            });
+        },
+    );
+
+    test("without group_by: no _meta key, no history read, and today's read window and structuredContent", async () => {
+        db.meals = FIXTURE();
+        db.goals = goals();
+        db.goalsHistory = HISTORY;
+        await withTools(null, async (call) => {
+            const plain = await call("get_trends", { end_date: END });
+            expect(plain.isError).toBeFalsy();
+            expect(plain._meta?.[PERIOD_AVERAGES_META_KEY]).toBeUndefined();
+            expect(db.goalsHistoryReads).toBe(0);
+            expect(db.mealRangeArgs).toEqual([["2026-07-02", END]]);
+            // The pre-group_by payload, rebuilt from the same helpers the
+            // handler always used: same keys, same order, same values.
+            const start = shiftLocalDate(END, -29);
+            const expected = {
+                end_date: END,
+                default_range: 30,
+                drink_unit: null,
+                locale: "en",
+                goals: goalsPayloadOf(db.goals, null),
+                days: buildDailyBuckets(db.meals, [], start, END, "UTC").map(
+                    (b) => trendsDayPayloadOf(b, null),
+                ),
+            };
+            expect(JSON.stringify(plain.structuredContent)).toBe(
+                JSON.stringify(expected),
+            );
+            expect(textOf(plain)).not.toContain("per logged day");
+
+            // group_by leaves structuredContent alone and only appends text.
+            const grouped = await call("get_trends", {
+                end_date: END,
+                group_by: "month",
+            });
+            expect(JSON.stringify(grouped.structuredContent)).toBe(
+                JSON.stringify(expected),
+            );
+            expect(textOf(grouped).startsWith(textOf(plain))).toBe(true);
+            expect(db.goalsHistoryReads).toBe(1);
+            // One meal read, widened to the 5-year span.
+            expect(db.mealRangeArgs).toEqual([
+                ["2026-07-02", END],
+                ["2022-01-01", END],
+            ]);
+        });
+    });
+
+    test("days still sets the structured window when group_by is set", async () => {
+        db.meals = FIXTURE();
+        await withTools(null, async (call) => {
+            const plain = await call("get_trends", { end_date: END, days: 7 });
+            const grouped = await call("get_trends", {
+                end_date: END,
+                days: 7,
+                group_by: "week",
+            });
+            expect(JSON.stringify(grouped.structuredContent)).toBe(
+                JSON.stringify(plain.structuredContent),
+            );
+            expect(
+                (grouped.structuredContent as { default_range: number })
+                    .default_range,
+            ).toBe(7);
+        });
+    });
+
+    test("the text lists the requested granularity per logged day, with the goal notes", async () => {
+        db.meals = FIXTURE();
+        db.goalsHistory = HISTORY;
+        await withTools(null, async (call) => {
+            const month = textOf(
+                await call("get_trends", { end_date: END, group_by: "month" }),
+            );
+            expect(month).toContain(
+                "Averages per logged day (days with no meals are excluded), vs the targets in effect at the time.",
+            );
+            const july = month
+                .split("\n")
+                .find((l) => l.startsWith("Jul 2026 · "));
+            expect(july).toBeDefined();
+            expect(july).toContain("17/31 days logged");
+            expect(july).toContain("(target 2,200)");
+            expect(july).toContain("targets changed mid-period");
+            expect(july).toContain("targets before 2026-07-10 not recorded");
+            expect(month).toContain("Feb 2026 · 0/28 days logged");
+            // Newest first.
+            expect(month.indexOf("Jul 2026")).toBeLessThan(
+                month.indexOf("Dec 2025"),
+            );
+
+            const week = textOf(
+                await call("get_trends", { end_date: END, group_by: "week" }),
+            );
+            expect(week).toContain("Jul 27 – Aug 2, 2026 (partial)");
+            expect(week).not.toContain("Jul 2026 ·");
+        });
+    });
+
+    test("meals before the 5-year span keep its empty early periods as inner gaps", async () => {
+        db.meals = FIXTURE();
+        const years = async () => {
+            let rows: { key: string; logged_days: number }[] = [];
+            await withTools(null, async (call) => {
+                const r = await call("get_trends", {
+                    end_date: END,
+                    group_by: "year",
+                });
+                rows = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY])
+                    .periods.year;
+            });
+            return rows;
+        };
+        const cut = await years();
+        expect(cut.map((r) => r.key)).not.toContain("2022");
+        expect(db.mealsBeforeArgs).toEqual(["2022-01-01"]);
+
+        db.mealsBefore = true;
+        const kept = await years();
+        expect(kept.map((r) => r.key)).toEqual([
+            "2026",
+            "2025",
+            "2024",
+            "2023",
+            "2022",
+        ]);
+        expect(kept.at(-1)?.logged_days).toBe(0);
+    });
+
+    test("no goals history: averages only, no targets anywhere", async () => {
+        db.meals = FIXTURE();
+        db.goals = goals();
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "quarter",
+            });
+            expect(r.isError).toBeFalsy();
+            const meta = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY]);
+            for (const g of ["week", "month", "quarter", "year"] as const) {
+                for (const row of meta.periods[g]) {
+                    expect(row.targets).toBeNull();
+                    expect(row.on_target_days).toBeNull();
+                    expect(row.incomplete_days).toBeNull();
+                }
+            }
+            expect(textOf(r)).toContain("No nutrition targets are set.");
+            expect(textOf(r)).not.toContain("(target");
+        });
+    });
+
+    test("nothing logged in the span still validates and returns empty periods", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "year",
+            });
+            expect(r.isError).toBeFalsy();
+            const meta = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY]);
+            expect(meta.targets_from).toBeNull();
+            expect(meta.periods).toEqual({
+                week: [],
+                month: [],
+                quarter: [],
+                year: [],
+            });
+            expect(textOf(r)).toContain(
+                `no meals logged in the last ${PERIOD_ROW_COUNTS.year} years`,
+            );
+        });
+    });
+
+    test("an unknown granularity is refused before the database", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "day",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("group_by");
+            expect(db.mealRangeArgs).toEqual([]);
+        });
+    });
+
+    test("logged days add up across granularities", async () => {
+        db.meals = FIXTURE();
+        db.goalsHistory = HISTORY;
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "year",
+            });
+            const meta = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY]);
+            const logged = (g: "month" | "quarter" | "year") =>
+                meta.periods[g].reduce((n, p) => n + p.logged_days, 0);
+            // All 18 logged days sit inside every span but the 26 weeks'.
+            expect(logged("year")).toBe(18);
+            expect(logged("quarter")).toBe(18);
+            expect(logged("month")).toBe(18);
+            const q3 = meta.periods.quarter.find((p) => p.key === "2026-Q3")!;
+            const julyToSep = meta.periods.month.filter((p) =>
+                ["2026-07", "2026-08", "2026-09"].includes(p.key),
+            );
+            expect(julyToSep.reduce((n, p) => n + p.logged_days, 0)).toBe(
+                q3.logged_days,
+            );
+        });
+    });
+
+    // The acceptance cross-check: for a month inside get_nutrition_summary's
+    // 92-day cap, the month's per-logged-day averages are the summary's
+    // logged-day averages over the same dates. No water-only day here: the
+    // summary counts one as logged, a period row deliberately does not.
+    test("a month's per-logged-day averages equal get_nutrition_summary's over the same dates", async () => {
+        db.meals = julyMeals();
+        db.goalsHistory = HISTORY;
+        await withTools(null, async (call) => {
+            const summary = (
+                await call("get_nutrition_summary", {
+                    start_date: "2026-07-01",
+                    end_date: END,
+                })
+            ).structuredContent as {
+                logged_days: number;
+                averages: {
+                    calories: number;
+                    protein_g: number;
+                    carbs_g: number;
+                    fat_g: number;
+                };
+            };
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "month",
+            });
+            const july = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY])
+                .periods.month[0]!;
+            expect(july.key).toBe("2026-07");
+            expect(july.partial).toBe(false);
+            expect(july.logged_days).toBe(summary.logged_days);
+            const r1 = (n: number) => Math.round(n * 10) / 10;
+            expect(Math.round(july.avg!.calories)).toBe(
+                summary.averages.calories,
+            );
+            expect(r1(july.avg!.protein)).toBe(summary.averages.protein_g);
+            expect(r1(july.avg!.carbs)).toBe(summary.averages.carbs_g);
+            expect(r1(july.avg!.fat)).toBe(summary.averages.fat_g);
+        });
+    });
+
+    // The widget cannot import the key, so it carries the literal; a rename
+    // on the server would otherwise pass every server test while every host
+    // silently stayed on the 7/14/30-day view.
+    test("the trends widget reads _meta under PERIOD_AVERAGES_META_KEY", async () => {
+        expect(PERIOD_AVERAGES_META_KEY).toBe(
+            "nutrition-mcp.com/period-averages",
+        );
+        const html = await getWidgetHtml("trends");
+        expect(html).toContain(JSON.stringify(PERIOD_AVERAGES_META_KEY));
     });
 });
 
