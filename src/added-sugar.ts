@@ -1,5 +1,6 @@
 import { dayCarries } from "./insights.js";
 import type { Meal } from "./supabase.js";
+import { ToolError, type ToolErrorCategory } from "./errors.js";
 
 /**
  * Added sugar: the shared rules every write path and every widget payload use.
@@ -28,6 +29,101 @@ export function addedSugarError(
     let places = 1;
     while (places < 6 && fmt(added, places) === fmt(total, places)) places++;
     return `added_sugar_g (${fmt(added, places)} g) is more than sugar_g (${fmt(total, places)} g); added sugars are part of total sugars.`;
+}
+
+/**
+ * The "sugar_g needs added_sugar_g" rule for log_meal and update_meal.
+ *
+ * Gated by ADDED_SUGAR_REQUIRED_FROM, an ISO-8601 instant: unset, empty or
+ * unparseable means off, and once the clock passes it the rule is on. The
+ * gate exists because hosts cache tools/list for days (see "Server wiring" in
+ * CLAUDE.md): a client still holding a list from before added_sugar_g existed
+ * cannot send the field at all, so enforcing the rule before those lists have
+ * expired would refuse every sugared meal those users log, and each refusal is
+ * an isError result counted against the directory listing's health badge. Set
+ * the instant comfortably after the deploy that advertised the field.
+ *
+ * bulk_import_meals and the import widget never apply it: third-party exports
+ * rarely carry an added-sugar column.
+ */
+export const ADDED_SUGAR_REQUIRED_FROM_ENV = "ADDED_SUGAR_REQUIRED_FROM";
+
+/** tool_analytics.error_category of the refusal. */
+export const ADDED_SUGAR_MISSING_CATEGORY: ToolErrorCategory =
+    "added_sugar_missing";
+
+// A date, or a date and time WITH an offset: an offset-less time would be read
+// in the host's zone, which is not something a deploy setting should depend on.
+const ISO_INSTANT =
+    /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-](\d{2}):(\d{2})))?$/;
+
+/** The gate's instant in epoch ms, null when unset or empty, "invalid" when
+ * set to something that is not an ISO-8601 date or offset date-time. */
+export function parseAddedSugarRequiredFrom(
+    raw: string | undefined,
+): number | null | "invalid" {
+    const value = raw?.trim() ?? "";
+    if (value === "") return null;
+    const m = ISO_INSTANT.exec(value);
+    if (!m) return "invalid";
+    // Every field is range-checked here rather than left to Date.parse, which
+    // (in Bun/JSC) rolls an impossible date forward instead of failing:
+    // 2026-02-30 parses as 2026-03-02 and T24:00 as the next midnight, so a
+    // mistyped rollout date would switch the rule on silently on another day.
+    const [y, mo, d, h, mi, s, oh, om] = m
+        .slice(1)
+        .map((g) => (g === undefined ? 0 : Number(g)));
+    const daysInMonth = new Date(Date.UTC(y!, mo!, 0)).getUTCDate();
+    if (mo! < 1 || mo! > 12 || d! < 1 || d! > daysInMonth) return "invalid";
+    if (h! > 23 || mi! > 59 || s! > 59 || oh! > 23 || om! > 59) {
+        return "invalid";
+    }
+    const ms = Date.parse(value);
+    return Number.isNaN(ms) ? "invalid" : ms;
+}
+
+/** Whether the rule is on at `nowMs` for the raw env value. */
+export function addedSugarRequiredAt(
+    raw: string | undefined,
+    nowMs: number,
+): boolean {
+    const from = parseAddedSugarRequiredFrom(raw);
+    return typeof from === "number" && nowMs >= from;
+}
+
+/**
+ * Whether a write would leave the meal with total sugar but no added sugar:
+ * sugar_g passed (0 included), added_sugar_g not passed, and nothing already
+ * stored for it. `storedAdded` is the meal's current added_sugar_g for an
+ * update, undefined for a new meal.
+ */
+export function addedSugarMissing(
+    fields: { sugar_g?: number; added_sugar_g?: number },
+    storedAdded?: number | null,
+): boolean {
+    return (
+        fields.sugar_g !== undefined &&
+        fields.added_sugar_g === undefined &&
+        storedAdded == null
+    );
+}
+
+const ADDED_SUGAR_DEFINITION =
+    "It is the part of sugar_g added during processing or preparation: 0 for whole fruit, vegetables, plain milk, plain yogurt, meat, fish, eggs, rice and 100% fruit juice; all of a soft drink's sugar (cola 10.6 g per 100 g).";
+
+/** The refusal's caller-facing text. Describes, never directs (directory
+ * policy): what was not saved, the rule, and what the field holds. */
+export function addedSugarMissingText(mealId?: string): string {
+    return mealId === undefined
+        ? `Not saved: added_sugar_g is required whenever sugar_g is given. ${ADDED_SUGAR_DEFINITION}`
+        : `Not saved, meal ${mealId} is unchanged: added_sugar_g is required whenever sugar_g is given and the meal has no added sugar recorded. ${ADDED_SUGAR_DEFINITION}`;
+}
+
+/** The refusal as a ToolError carrying its own analytics category. */
+export function addedSugarMissingError(mealId?: string): ToolError {
+    return new ToolError(addedSugarMissingText(mealId), {
+        category: ADDED_SUGAR_MISSING_CATEGORY,
+    });
 }
 
 function fmt(n: number, places: number): string {

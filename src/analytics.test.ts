@@ -254,6 +254,23 @@ describe("categorizeError", () => {
     });
 });
 
+describe("a ToolError's own category", () => {
+    test("wins over the wording tiers and passes through verbatim", () => {
+        // "required" alone would be missing_required_param in tier 3.
+        const err = new ToolError("added_sugar_g is required", {
+            category: "added_sugar_missing",
+        });
+        expect(categorizeError(err)).toBe("added_sugar_missing");
+        expect(
+            userFacingError("log_meal", err, "added_sugar_missing", "ref1"),
+        ).toBe("added_sugar_g is required");
+        // Without one, the wording rules still decide.
+        expect(categorizeError(new ToolError("x is required"))).toBe(
+            "missing_required_param",
+        );
+    });
+});
+
 describe("userFacingError", () => {
     const REF = "abc12345";
 
