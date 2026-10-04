@@ -259,8 +259,61 @@ export interface WidgetStrings {
         windowAriaLabel: string;
         /** Template for a range button's aria-label. Placeholder: {n}. */
         rangeDaysAriaLabel: string;
-        /** Template for the strip's calorie caption. Placeholder: {range}. */
+        /** Template for the strip's calorie caption. Placeholder: {range}.
+         * Day view only; the period view labels its own denominator with
+         * perLoggedDay, so each view names what it divides by. */
         avgAllDays: string;
+        /** Period view (get_trends with group_by, rows from the result's
+         * `nutrition-mcp.com/period-averages` _meta). Short labels for the
+         * five-button `.seg-sm` control — Week · Month · Quarter · Year ·
+         * Days — which must fit a 320px card, so keep each to about six
+         * characters where the language allows. segDays switches back to
+         * the 7/14/30-day view. */
+        segWeek: string;
+        segMonth: string;
+        segQuarter: string;
+        segYear: string;
+        segDays: string;
+        /** Full-phrase aria-labels for the five buttons above. */
+        segWeekAria: string;
+        segMonthAria: string;
+        segQuarterAria: string;
+        segYearAria: string;
+        segDaysAria: string;
+        /** Card header in period mode, one per granularity. */
+        periodTitleWeek: string;
+        periodTitleMonth: string;
+        periodTitleQuarter: string;
+        periodTitleYear: string;
+        /** Denominator caption for a period row's averages: they divide by
+         * the days that have a log, not by calendar days. */
+        perLoggedDay: string;
+        /** Template for a period row's day count, right-aligned on its first
+         * line. Placeholders: {logged}, {total}. */
+        daysLogged: string;
+        /** Template for how many logged days had every targeted nutrient
+         * (calories, protein, carbs, fat) within its band. Placeholders: {k}
+         * (days on target), {n} (logged days). */
+        onTarget: string;
+        /** Logged days under half of that day's calorie target, flagged but
+         * kept in the average. Placeholder: {n}. Polish and Ukrainian carry
+         * few/many. */
+        possiblyIncomplete: PluralForms;
+        /** Chip on the current, still-running period. */
+        partial: string;
+        /** The single dim line of a period with no logged day. */
+        nothingLogged: string;
+        /** Note on a row whose period spans a goal change. */
+        targetsChanged: string;
+        /** Note on a row with days that predate the recorded goals history,
+         * so their targets are assumed. Placeholder: {date} (the first
+         * recorded date, already formatted for the locale). */
+        targetsAssumed: string;
+        /** One line at the top of the period view when no targets are set. */
+        noTargets: string;
+        /** Template for a quarter's period label. Placeholders: {q} (1–4),
+         * {year}. */
+        quarter: string;
     };
 
     /** templates/weight-trends.html's own top matter. No macro strip here. */
@@ -602,6 +655,33 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         windowAriaLabel: "Trend window",
         rangeDaysAriaLabel: "{n} days",
         avgAllDays: "{range}-day avg · all days",
+        segWeek: "Week",
+        segMonth: "Month",
+        segQuarter: "Qtr",
+        segYear: "Year",
+        segDays: "Days",
+        segWeekAria: "Show weekly averages",
+        segMonthAria: "Show monthly averages",
+        segQuarterAria: "Show quarterly averages",
+        segYearAria: "Show yearly averages",
+        segDaysAria: "Show daily trends",
+        periodTitleWeek: "Weekly averages",
+        periodTitleMonth: "Monthly averages",
+        periodTitleQuarter: "Quarterly averages",
+        periodTitleYear: "Yearly averages",
+        perLoggedDay: "per logged day",
+        daysLogged: "{logged}/{total} days",
+        onTarget: "on target {k}/{n}",
+        possiblyIncomplete: {
+            one: "{n} possibly incomplete",
+            other: "{n} possibly incomplete",
+        },
+        partial: "partial",
+        nothingLogged: "nothing logged",
+        targetsChanged: "targets changed mid-period",
+        targetsAssumed: "targets before {date} not recorded",
+        noTargets: "No targets set — averages only.",
+        quarter: "Q{q} {year}",
     },
     weightTrends: {
         loading: "Loading your weight trends…",
