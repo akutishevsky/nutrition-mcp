@@ -1,11 +1,14 @@
-import type {
-    Meal,
-    NutritionGoals,
-    WaterEntry,
-    WeightEntry,
-} from "./supabase.js";
+import type { Meal, NutritionGoals, WaterEntry } from "./supabase.js";
 import { dateInTz, hourInTz } from "./tz.js";
 import { formatWeight, fromGrams, type WeightUnit } from "./units.js";
+import {
+    dailyAverages,
+    rateForDisplay,
+    rateInUnit,
+    trendSeries,
+    weeklyRate,
+    type WeightRow,
+} from "./weight-trend.js";
 
 export interface DailyBucket {
     date: string; // YYYY-MM-DD
@@ -555,35 +558,37 @@ export function computeTrends(
 /**
  * Weight is a point measurement (not a daily sum), and multiple weigh-ins per
  * day are allowed — so we aggregate to one value per day by averaging that day's
- * entries, then report trailing moving averages to smooth day-to-day noise.
- * All output is rendered in the user's preferred unit from canonical grams.
+ * entries (`dailyAverages`), then smooth with the trend EWMA from
+ * src/weight-trend.ts. All output is rendered in the user's preferred unit from
+ * canonical grams.
+ *
+ * `entries` may (and from get_weight_trends does) reach back before
+ * `startDate`: the trend runs over every day up to `endDate`, so it is settled
+ * on the first day shown and equals the widget's `_meta` `trend_latest`. The
+ * Latest / Change / Min / Max stats use only the days inside the window; days
+ * after `endDate` are ignored.
  */
 export function computeWeightTrend(
-    entries: WeightEntry[],
+    entries: readonly WeightRow[],
     startDate: string,
     endDate: string,
     tz: string,
     targetWeightG: number | null,
     unit: WeightUnit,
 ): string {
-    // Daily average (grams) for each day that has at least one weigh-in.
-    const sums = new Map<string, { total: number; count: number }>();
-    for (const e of entries) {
-        const date = dateInTz(e.logged_at, tz);
-        const cur = sums.get(date) ?? { total: 0, count: 0 };
-        cur.total += e.weight_g;
-        cur.count += 1;
-        sums.set(date, cur);
-    }
-    const days = [...sums.entries()]
-        .map(([date, { total, count }]) => ({ date, avg: total / count }))
-        .sort((a, b) => a.date.localeCompare(b.date));
+    const history = dailyAverages(entries, tz).filter((d) => d.date <= endDate);
+    const series = trendSeries(history);
+    const days = series.filter((d) => d.date >= startDate);
 
     if (days.length === 0) {
         return `No weight logged between ${startDate} and ${endDate}.`;
     }
 
     const fmt = (g: number) => formatWeight(g, unit);
+    // Same rule as the widget chip's signed(): a real minus sign (U+2212)
+    // and always one decimal, so the text and the chip read identically.
+    const signed = (v: number) =>
+        `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)}`;
     // Signed delta rendered in display units.
     const fmtDelta = (g: number) => {
         const v = fromGrams(Math.abs(g), unit);
@@ -593,18 +598,9 @@ export function computeWeightTrend(
 
     const first = days[0]!;
     const last = days[days.length - 1]!;
-    // Trailing average over the last n calendar days ending at endDate.
-    const trailing = (n: number): number | null => {
-        const cutoff = addDays(endDate, -(n - 1));
-        const vals = days.filter((d) => d.date >= cutoff).map((d) => d.avg);
-        return vals.length > 0 ? mean(vals) : null;
-    };
-    const avg7 = trailing(7);
-    const avg14 = trailing(14);
-    const avg30 = trailing(30);
 
-    const minDay = days.reduce((a, b) => (a.avg <= b.avg ? a : b));
-    const maxDay = days.reduce((a, b) => (a.avg >= b.avg ? a : b));
+    const minDay = days.reduce((a, b) => (a.weight_g <= b.weight_g ? a : b));
+    const maxDay = days.reduce((a, b) => (a.weight_g >= b.weight_g ? a : b));
 
     const sections: string[] = [];
     sections.push(
@@ -613,27 +609,43 @@ export function computeWeightTrend(
 
     sections.push(
         [
-            `Latest: ${fmt(last.avg)} (on ${last.date})`,
-            `Change over range: ${fmtDelta(last.avg - first.avg)} (from ${fmt(first.avg)} on ${first.date})`,
+            `Latest: ${fmt(last.weight_g)} (on ${last.date})`,
+            `Change over range: ${fmtDelta(last.weight_g - first.weight_g)} (from ${fmt(first.weight_g)} on ${first.date})`,
         ].join("\n"),
     );
 
-    const movingLines = ["Moving averages (smoothed):"];
-    if (avg7 != null) movingLines.push(`  7-day: ${fmt(avg7)}`);
-    if (avg14 != null) movingLines.push(`  14-day: ${fmt(avg14)}`);
-    if (avg30 != null) movingLines.push(`  30-day: ${fmt(avg30)}`);
-    sections.push(movingLines.join("\n"));
+    // The rate goes through the same rounding as _meta.weekly_rate (2
+    // decimals) and then the 1-decimal display step the widget's chip uses,
+    // so the text and the chip cannot disagree.
+    const rateG = weeklyRate(series, endDate);
+    const rate =
+        rateG === null
+            ? ""
+            : ` (${signed(rateForDisplay(rateInUnit(rateG, unit)))} ${unit}/week over the last 2 weeks)`;
+    const trendLines = [`Trend weight: ${fmt(last.trend_g)}${rate}`];
+    const origin = series[0]!;
+    if (origin.date < startDate) {
+        // Rounded display values on both sides, so the stated difference is
+        // exactly the difference of the two figures printed beside it.
+        const trendNow = fromGrams(last.trend_g, unit);
+        const firstW = fromGrams(origin.weight_g, unit);
+        const delta = Math.round((trendNow - firstW) * 10) / 10;
+        trendLines.push(
+            `Since first weigh-in (${origin.date}, ${firstW} ${unit}): ${signed(delta === 0 ? 0 : delta)} ${unit}; trend now ${trendNow} ${unit}.`,
+        );
+    }
+    sections.push(trendLines.join("\n"));
 
     sections.push(
         [
             "Range:",
-            `  Min: ${fmt(minDay.avg)} (on ${minDay.date})`,
-            `  Max: ${fmt(maxDay.avg)} (on ${maxDay.date})`,
+            `  Min: ${fmt(minDay.weight_g)} (on ${minDay.date})`,
+            `  Max: ${fmt(maxDay.weight_g)} (on ${maxDay.date})`,
         ].join("\n"),
     );
 
     if (targetWeightG != null && targetWeightG > 0) {
-        const delta = last.avg - targetWeightG; // positive = above target
+        const delta = last.weight_g - targetWeightG; // positive = above target
         const remaining = fromGrams(Math.abs(delta), unit);
         let goalLine: string;
         if (remaining === 0) {

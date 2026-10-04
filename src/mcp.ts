@@ -26,6 +26,7 @@ import {
     insertWeight,
     getWeightByDate,
     getWeightInRange,
+    getAllWeight,
     getLatestWeight,
     updateWeight,
     deleteWeight,
@@ -85,6 +86,7 @@ import {
     dateDiffDays,
     type DailyBucket,
 } from "./insights.js";
+import { analyzeWeightHistory, defaultRangeFor } from "./weight-trend.js";
 import {
     toGrams,
     formatWeight,
@@ -122,7 +124,11 @@ import {
 } from "./import.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 import { formatMealSearchResults } from "./search.js";
-import { getWidgetHtml, MEAL_CONTRIBUTORS_META_KEY } from "./widgets.js";
+import {
+    getWidgetHtml,
+    MEAL_CONTRIBUTORS_META_KEY,
+    WEIGHT_SERIES_META_KEY,
+} from "./widgets.js";
 import {
     clipDescription,
     formatMg,
@@ -508,6 +514,9 @@ export type MealContributors = z.infer<typeof MEAL_CONTRIBUTORS>;
 // Defined in src/widgets.ts (so the side-effect-free widget harness can import
 // it too); re-exported here beside the MealContributors it carries.
 export { MEAL_CONTRIBUTORS_META_KEY };
+// Same arrangement for get_weight_trends' series (WeightSeriesMeta, built in
+// src/weight-trend.ts).
+export { WEIGHT_SERIES_META_KEY };
 
 /** Zero contributors, for a window with no meals at all. `.nullable()` is not
  *  optional: the alcohol key is always present, null when tracking is off. */
@@ -2554,15 +2563,15 @@ export function registerTools(
         },
     );
 
-    // UI resource for the get_weight_trends widget (weight-over-time line chart
-    // with a 7/14/30-day toggle and target line). Same contract as above.
+    // UI resource for the get_weight_trends widget (weight-over-time chart with
+    // a trend line, a range toggle and target line). Same contract as above.
     server.registerResource(
         "weight-trends-widget",
         WEIGHT_TRENDS_WIDGET_URI,
         {
             title: "Weight Trends",
             description:
-                "Interactive UI for get_weight_trends: a 7/14/30-day toggle over a weight-over-time chart (data-scaled axis, target line) plus latest/change/target stats, with automatic light/dark theming.",
+                "Interactive UI for get_weight_trends: a range toggle (up to the whole history) over a weight-over-time chart (daily weigh-ins, smoothed trend line, data-scaled axis, target line) plus trend weight, weekly rate, change and target stats, with automatic light/dark theming.",
             mimeType: APP_UI_MIME_TYPE,
         },
         async (uri) => {
@@ -3959,7 +3968,7 @@ export function registerTools(
         {
             title: "Get Weight Trends",
             description:
-                "Weight trend over a window: latest reading, overall change, 7/14/30-day moving averages (to smooth day-to-day noise), min/max, and progress toward the target weight if one is set. Aggregates multiple weigh-ins per day by averaging. Defaults to the last 30 days ending today.",
+                "Weight trend over a window: latest reading, overall change, a smoothed trend weight with its weekly rate over the last 2 weeks (which filters out day-to-day water swings), min/max, and progress toward the target weight if one is set. Aggregates multiple weigh-ins per day by averaging. Defaults to the last 30 days ending today.",
             annotations: {
                 title: "Get Weight Trends",
                 readOnlyHint: true,
@@ -4014,61 +4023,47 @@ export function registerTools(
                     const locale = localeFromProfile(profile) ?? "en";
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
-                    // The widget's toggle offers up to 30 days, so fetch at
-                    // least 30 regardless of the requested text window.
-                    const seriesDays = Math.max(windowDays, 30);
-                    const fetchStart = shiftLocalDate(
-                        endDate,
-                        -(seriesDays - 1),
-                    );
                     const requestedStart = shiftLocalDate(
                         endDate,
                         -(windowDays - 1),
                     );
+                    // One full-history read feeds everything: the trend's
+                    // warm-up (the EWMA runs from the first weigh-in ever, so
+                    // it is settled on the first day shown), the text window,
+                    // the 30-day structuredContent and the long-range series
+                    // in _meta. getAllWeight pages and reconciles against an
+                    // exact count, so a long history throws rather than
+                    // silently starting the trend late.
                     const [entries, goals] = await Promise.all([
-                        getWeightInRange(userId, fetchStart, endDate, tz),
+                        getAllWeight(userId),
                         getNutritionGoals(userId),
                     ]);
                     const targetG = goals?.target_weight_g ?? null;
+                    const analysis = analyzeWeightHistory(
+                        entries,
+                        tz,
+                        unit,
+                        endDate,
+                    );
 
-                    // Text summary respects the requested window.
-                    const textEntries =
-                        windowDays >= 30
-                            ? entries
-                            : entries.filter(
-                                  (e) =>
-                                      dateInTz(e.logged_at, tz) >=
-                                      requestedStart,
-                              );
-
-                    // Widget series: one value per logged day (same-day
-                    // weigh-ins averaged), in display units, within 30 days.
+                    // structuredContent is frozen (output-schemas.frozen.json):
+                    // one value per logged day (same-day weigh-ins averaged),
+                    // raw, in display units, within the last 30 days. Older
+                    // history only ever reaches the widget through _meta.
                     const seriesCutoff = shiftLocalDate(endDate, -29);
-                    const dailyG = new Map<
-                        string,
-                        { total: number; count: number }
-                    >();
-                    for (const e of entries) {
-                        const date = dateInTz(e.logged_at, tz);
-                        const cur = dailyG.get(date) ?? { total: 0, count: 0 };
-                        cur.total += e.weight_g;
-                        cur.count += 1;
-                        dailyG.set(date, cur);
-                    }
-                    const widgetDays = [...dailyG.entries()]
-                        .filter(([date]) => date >= seriesCutoff)
-                        .map(([date, { total, count }]) => ({
-                            date,
-                            weight: fromGrams(total / count, unit),
-                        }))
-                        .sort((a, b) => (a.date < b.date ? -1 : 1));
+                    const widgetDays = analysis.days
+                        .filter((d) => d.date >= seriesCutoff)
+                        .map((d) => ({
+                            date: d.date,
+                            weight: fromGrams(d.weight_g, unit),
+                        }));
 
                     return {
                         content: [
                             {
                                 type: "text",
                                 text: computeWeightTrend(
-                                    textEntries,
+                                    entries,
                                     requestedStart,
                                     endDate,
                                     tz,
@@ -4084,11 +4079,15 @@ export function registerTools(
                                 targetG != null
                                     ? fromGrams(targetG, unit)
                                     : null,
-                            default_range: [7, 14, 30].includes(windowDays)
-                                ? windowDays
-                                : 30,
+                            default_range: defaultRangeFor(windowDays),
                             locale,
                             days: widgetDays,
+                        },
+                        // Trend, rate and the 90-day / weekly / monthly
+                        // series: _meta, not structuredContent, because the
+                        // output schema is frozen (see WEIGHT_SERIES_META_KEY).
+                        _meta: {
+                            [WEIGHT_SERIES_META_KEY]: analysis.meta,
                         },
                     };
                 },

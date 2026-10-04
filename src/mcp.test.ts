@@ -36,6 +36,7 @@ import {
     MEAL_BREAKDOWN_TOP_N,
     MEAL_CONTRIBUTORS,
     MEAL_CONTRIBUTORS_META_KEY,
+    WEIGHT_SERIES_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
     MAX_CALORIES,
@@ -95,6 +96,7 @@ import {
     shiftLocalDate,
 } from "./tz.js";
 import { getWidgetHtml } from "./widgets.js";
+import { rateForDisplay } from "./weight-trend.js";
 
 // Real uuids, because the id tools check the shape before touching the
 // database: a fixture like "m1" would never reach the stubs below.
@@ -1505,8 +1507,10 @@ const db = {
     // getWaterByDate's rows (get_water_today / _by_date and buildMealProgress);
     // `water` above feeds the range reader.
     waterByDate: [] as WaterEntry[],
-    // getWeightInRange's rows.
+    // getWeightInRange's and getAllWeight's rows.
     weights: [] as WeightEntry[],
+    // Which weight reader ran, in order: "range" or "all".
+    weightReads: [] as string[],
     inserted: [] as Record<string, unknown>[],
     // Same capture as `inserted`, for the non-meal write paths. Each one
     // resolves logged_at independently, so each needs its own witness.
@@ -1607,7 +1611,15 @@ mock.module("./supabase.js", () => ({
     },
     getWaterInRange: async () => db.water,
     // get_weight_by_date_range's reader; its range guard is what is under test.
-    getWeightInRange: async () => db.weights,
+    getWeightInRange: async () => {
+        db.weightReads.push("range");
+        return db.weights;
+    },
+    // get_weight_trends' one full-history read.
+    getAllWeight: async () => {
+        db.weightReads.push("all");
+        return db.weights;
+    },
     // get_goal_progress's standing weight metric: the newest staged entry.
     getLatestWeight: async () => db.weights.at(-1) ?? null,
     insertMeal: async (_userId: string, input: Record<string, unknown>) => {
@@ -1778,6 +1790,7 @@ beforeEach(() => {
     db.water = [];
     db.waterByDate = [];
     db.weights = [];
+    db.weightReads = [];
     db.inserted = [];
     db.mealUpdates = [];
     db.waterInserted = [];
@@ -6500,6 +6513,261 @@ describe("output schemas are frozen once deployed", () => {
     test("the summary widget reads _meta under MEAL_CONTRIBUTORS_META_KEY", async () => {
         const html = await getWidgetHtml("nutrition-summary");
         expect(html).toContain(JSON.stringify(MEAL_CONTRIBUTORS_META_KEY));
+    });
+});
+
+// ---------- get_weight_trends: trend weight and long-range series ----------
+
+/** A stored weigh-in at an exact instant. */
+function weighIn(logged_at: string, weight_g: number): WeightEntry {
+    return {
+        id: WEIGHT_ID,
+        user_id: "u1",
+        weight_g,
+        logged_at,
+        notes: null,
+        created_at: logged_at,
+        idempotency_key: null,
+    };
+}
+
+/** One 08:00 UTC weigh-in a day for `days` days from `from`, losing
+ *  `lossPerDay` grams a day from `startG`. */
+function dailyWeighIns(
+    from: string,
+    days: number,
+    startG: number,
+    lossPerDay = 0,
+): WeightEntry[] {
+    return Array.from({ length: days }, (_, i) =>
+        weighIn(
+            `${shiftLocalDate(from, i)}T08:00:00.000Z`,
+            startG - lossPerDay * i,
+        ),
+    );
+}
+
+/** The `_meta[WEIGHT_SERIES_META_KEY]` contract the widget reads (v1). Strict,
+ *  so a stray field fails here before it surprises the template. */
+const POINT = { weight: z.number(), trend: z.number() };
+const WEIGHT_SERIES = z.strictObject({
+    v: z.literal(1),
+    unit: z.string(),
+    daily: z.array(z.strictObject({ date: z.iso.date(), ...POINT })),
+    weekly: z.array(z.strictObject({ start: z.iso.date(), ...POINT })),
+    monthly: z.array(
+        z.strictObject({ month: z.string().regex(/^\d{4}-\d{2}$/), ...POINT }),
+    ),
+    first: z
+        .strictObject({ date: z.iso.date(), weight: z.number() })
+        .nullable(),
+    trend_latest: z.number().nullable(),
+    trend_date: z.iso.date().nullable(),
+    weekly_rate: z.number().nullable(),
+});
+
+describe("get_weight_trends", () => {
+    // Kyiv is UTC+3 in summer, so the day bucketing is visibly local: the
+    // 21:30Z weigh-in on May 31 is June 1 there, the 20:00Z one is not.
+    const FIXTURE = [
+        weighIn("2024-02-10T08:00:00.000Z", 92_000), // history only
+        weighIn("2026-05-31T20:00:00.000Z", 85_000), // May 31 local: warm-up
+        weighIn("2026-05-31T21:30:00.000Z", 80_000), // June 1 local
+        weighIn("2026-06-01T06:00:00.000Z", 81_000), // June 1 local
+        weighIn("2026-06-15T08:00:00.000Z", 79_940),
+        weighIn("2026-06-29T22:30:00.000Z", 79_000), // June 30 local
+        weighIn("2026-07-01T08:00:00.000Z", 70_000), // after end_date
+    ];
+
+    // The 30-day structuredContent the pre-trend handler produced for this
+    // fixture, written out by hand: same keys, same order, same values. It
+    // is frozen, so the full-history read must not change one byte of it.
+    const EXPECTED_STRUCTURED = {
+        end_date: "2026-06-30",
+        unit: "kg",
+        target: null,
+        default_range: 30,
+        locale: "en",
+        days: [
+            { date: "2026-06-01", weight: 80.5 },
+            { date: "2026-06-15", weight: 79.9 },
+            { date: "2026-06-30", weight: 79 },
+        ],
+    };
+
+    test.each(ERAS)(
+        "structuredContent validates against the frozen schema and the series rides in _meta (%p)",
+        async (mode) => {
+            db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+            db.weights = FIXTURE;
+            const frozen = (await Bun.file(
+                new URL("./output-schemas.frozen.json", import.meta.url),
+            ).json()) as Record<string, JsonSchemaType>;
+            const validate = new AjvJsonSchemaValidator().getValidator(
+                frozen.get_weight_trends!,
+            );
+            await withHttpClient("u1", mode, async (client) => {
+                await client.listTools();
+                const r = await client.callTool({
+                    name: "get_weight_trends",
+                    arguments: { end_date: "2026-06-30" },
+                });
+                expect(r.isError).toBeFalsy();
+                const result = validate(r.structuredContent);
+                expect(result.errorMessage).toBeUndefined();
+                expect(result.valid).toBe(true);
+                const meta = WEIGHT_SERIES.parse(
+                    r._meta?.[WEIGHT_SERIES_META_KEY],
+                );
+                expect(meta.unit).toBe("kg");
+                expect(meta.first).toEqual({ date: "2024-02-10", weight: 92 });
+                expect(meta.trend_date).toBe("2026-06-30");
+                // Nothing in _meta leaked into the frozen payload.
+                expect(Object.keys(r.structuredContent ?? {})).toEqual(
+                    Object.keys(EXPECTED_STRUCTURED),
+                );
+            });
+        },
+    );
+
+    test("structuredContent.days is byte for byte the pre-trend 30-day payload", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.weights = FIXTURE;
+        await withTools(null, async (call) => {
+            const r = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(JSON.stringify(r.structuredContent)).toBe(
+                JSON.stringify(EXPECTED_STRUCTURED),
+            );
+        });
+    });
+
+    test("one full-history read; warm-up and history days stay out of structuredContent", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.weights = FIXTURE;
+        await withTools(null, async (call) => {
+            const r = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(db.weightReads).toEqual(["all"]);
+            const days = (
+                r.structuredContent as { days: { date: string }[] }
+            ).days.map((d) => d.date);
+            expect(days).not.toContain("2026-05-31");
+            expect(days).not.toContain("2024-02-10");
+            expect(days).not.toContain("2026-07-01");
+            const meta = WEIGHT_SERIES.parse(r._meta?.[WEIGHT_SERIES_META_KEY]);
+            // The warm-up day was read and fed the trend: it is in the
+            // 90-day series, and the trend on June 1 is pulled toward 85 kg
+            // rather than seeded at 80.5.
+            expect(meta.daily.map((d) => d.date)).toEqual([
+                "2026-05-31",
+                "2026-06-01",
+                "2026-06-15",
+                "2026-06-30",
+            ]);
+            expect(meta.daily[1]!.trend).toBeGreaterThan(80.5);
+            // Weigh-ins after end_date never reach any series.
+            expect(meta.monthly.map((m) => m.month)).toEqual([
+                "2024-02",
+                "2026-05",
+                "2026-06",
+            ]);
+            // The text names the history the window does not show.
+            expect(textOf(r)).toContain(
+                `Since first weigh-in (2024-02-10, 92 kg): `,
+            );
+            expect(textOf(r)).toContain(`trend now ${meta.trend_latest} kg.`);
+        });
+    });
+
+    test("a 3-year user gets a monthly series of every month, and the text rate equals the chip's", async () => {
+        // 2023-07-01 … 2026-06-30: 1096 daily weigh-ins over 36 months.
+        db.weights = dailyWeighIns("2023-07-01", 1096, 100_000, 20);
+        await withTools(null, async (call) => {
+            const r = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(r.isError).toBeFalsy();
+            const meta = WEIGHT_SERIES.parse(r._meta?.[WEIGHT_SERIES_META_KEY]);
+            expect(meta.monthly).toHaveLength(36);
+            expect(meta.monthly[0]!.month).toBe("2023-07");
+            expect(meta.monthly.at(-1)!.month).toBe("2026-06");
+            expect(meta.weekly).toHaveLength(53);
+            expect(meta.daily).toHaveLength(90);
+            expect(meta.first).toEqual({ date: "2023-07-01", weight: 100 });
+            // 20 g a day is 0.14 kg a week: 2 decimals in _meta, and the
+            // 1 decimal both the text and the chip show.
+            expect(meta.weekly_rate).toBe(-0.14);
+            expect(rateForDisplay(meta.weekly_rate!)).toBe(-0.1);
+            // Exact glyphs: a real minus (U+2212) and one decimal, the same
+            // rule as the widget chip's signed().
+            expect(textOf(r)).toContain(
+                `Trend weight: ${meta.trend_latest} kg (−0.1 kg/week over the last 2 weeks)`,
+            );
+            expect(textOf(r)).not.toMatch(/\(-\d/);
+            // structuredContent still holds only the last 30 days.
+            expect(
+                (r.structuredContent as { days: unknown[] }).days,
+            ).toHaveLength(30);
+        });
+    });
+
+    test("default_range maps days to the widget's ranges", async () => {
+        db.weights = dailyWeighIns("2026-06-01", 30, 80_000);
+        const cases: [number, number][] = [
+            [7, 7],
+            [14, 14],
+            [30, 30],
+            [90, 90],
+            [365, 365],
+            [2, 30],
+            [45, 30],
+        ];
+        await withTools(null, async (call) => {
+            for (const [days, expected] of cases) {
+                const r = await call("get_weight_trends", {
+                    days,
+                    end_date: "2026-06-30",
+                });
+                expect(
+                    (r.structuredContent as { default_range: number })
+                        .default_range,
+                    `days=${days}`,
+                ).toBe(expected);
+            }
+        });
+    });
+
+    test("no weigh-ins at all still returns the frozen payload and an empty series", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(r.structuredContent).toMatchObject({ days: [] });
+            expect(
+                WEIGHT_SERIES.parse(r._meta?.[WEIGHT_SERIES_META_KEY]),
+            ).toMatchObject({
+                daily: [],
+                weekly: [],
+                monthly: [],
+                first: null,
+                trend_latest: null,
+                weekly_rate: null,
+            });
+        });
+    });
+
+    // The widget cannot import the key, so it carries the literal; a rename
+    // on the server would otherwise pass every server test while every host
+    // silently fell back to the raw 7/14/30-day chart.
+    test("the weight-trends widget reads _meta under WEIGHT_SERIES_META_KEY", async () => {
+        expect(WEIGHT_SERIES_META_KEY).toBe("nutrition-mcp.com/weight-series");
+        const html = await getWidgetHtml("weight-trends");
+        expect(html).toContain(JSON.stringify(WEIGHT_SERIES_META_KEY));
     });
 });
 
