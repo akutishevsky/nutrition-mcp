@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             lb: "lb",
         },
         noneLogged: "niets gelogd",
+        notRecorded: "niet vastgelegd",
         caloriesToday: "Calorieën vandaag",
         caloriesOn: "Calorieën · {date}",
         tapHint: "Tik op een waarde voor de bijbehorende maaltijden",

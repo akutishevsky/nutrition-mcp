@@ -341,9 +341,10 @@
                 ],
             ];
 
-            // Added sugar: a ceiling with no null signal of its own — a day
-            // that did not record it never reaches the strip at all (the
-            // merge leaves it undefined), and 0 is a real limit.
+            // Added sugar: a day that did not record it reaches the strip as
+            // undefined (the merge leaves it out) — a "not recorded" cell when
+            // a limit is set, nothing otherwise — and a recorded 0 prints as
+            // 0 (zeroIsValue), never "none logged". 0 is a real limit.
             const addedSugarStates = [
                 [
                     "over the limit",
@@ -366,11 +367,18 @@
                     { added_sugar_g: 0 },
                     { added_sugar_g: 25 },
                 ],
+                ["recorded 0, no limit (hidden)", { added_sugar_g: 0 }, null],
                 [
-                    "not recorded (undefined → renders nothing)",
+                    "not recorded, limit set → 'not recorded'",
                     {},
                     { added_sugar_g: 25 },
                 ],
+                [
+                    "not recorded, limit of 0 g → 'not recorded', not 'at limit'",
+                    {},
+                    { added_sugar_g: 0 },
+                ],
+                ["not recorded, no limit → renders nothing", {}, null],
             ];
 
             // A limit cell is a grid item; on its own it needs a one-column

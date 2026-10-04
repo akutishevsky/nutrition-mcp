@@ -35,6 +35,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
             lb: "lb",
         },
         noneLogged: "nada registrado",
+        notRecorded: "sin registrar",
         caloriesToday: "Calorías de hoy",
         caloriesOn: "Calorías · {date}",
         tapHint: "Toca un valor para ver qué comidas lo aportan",

@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
             lb: "lb",
         },
         noneLogged: "rien d'enregistré",
+        notRecorded: "non renseigné",
         caloriesToday: "Calories du jour",
         caloriesOn: "Calories · {date}",
         tapHint: "Touche une valeur pour voir les repas concernés",

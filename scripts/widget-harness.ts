@@ -33,6 +33,14 @@
 //                       shows the plain 7/14/30 day view, as without group_by
 //   ?goals=0            trends: no goals history at all (averages only)
 //   ?locale=pl          structuredContent.locale (and hostContext.locale)
+//   ?addedSugar=unrecorded  a 29 g added-sugar limit and NO recorded figure:
+//                       meal-logged / goal-progress show the day a 330 ml cola
+//                       was logged with sugar_g 35 and no added_sugar_g; the
+//                       summary and trends get every day unrecorded. The
+//                       added-sugar cell reads "not recorded" over the limit.
+//   ?addedSugar=zero    the same limit with a recorded 0 g (an apple and a
+//                       diet cola; 0 g on every summary/trends day): the cell
+//                       reads "0", never "none logged"
 //   ?theme=dark         hostContext.theme on ui/initialize (default light)
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
@@ -403,7 +411,8 @@ function indexPage(): string {
   <p>Pick a widget. Append query flags to simulate host behaviour:
      <code>?serverTools=0</code>, <code>?tools=0</code>, <code>?delay=3000</code>,
      <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>,
-     <code>?noMeta=1</code>, <code>?theme=dark</code>, <code>?locale=pl</code>;
+     <code>?noMeta=1</code>, <code>?theme=dark</code>, <code>?locale=pl</code>,
+     <code>?addedSugar=unrecorded</code>, <code>?addedSugar=zero</code>;
      weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
      <code>?unit=lb</code>, <code>?target=0</code>; trends takes
      <code>?groupBy=week</code> and <code>?goals=0</code>.</p>
@@ -740,6 +749,123 @@ function hostPage(widget: string, params: URLSearchParams): string {
         "meal-logged": { [ADDED_SUGAR_META_KEY]: dayAddedSugar },
     };
 
+    // ?addedSugar=unrecorded|zero: the added-sugar edge cases, against a
+    // 29 g limit. Built with the server's own buildAddedSugarMeta, from Meal
+    // rows shaped like the breakdown rows they are joined to.
+    const asMode = params.get("addedSugar");
+    const asEdge = asMode === "unrecorded" || asMode === "zero";
+    const edgeRows =
+        asMode === "zero"
+            ? [
+                  {
+                      description: "Apple",
+                      meal_type: "snack",
+                      date: null,
+                      calories: 95,
+                      protein_g: 0.5,
+                      carbs_g: 25,
+                      fat_g: 0.3,
+                      fiber_g: 4.4,
+                      sugar_g: 19,
+                      alcohol_g: null,
+                      caffeine_mg: null,
+                  },
+                  {
+                      description: "Diet cola 330 ml",
+                      meal_type: "snack",
+                      date: null,
+                      calories: 2,
+                      protein_g: 0,
+                      carbs_g: 0,
+                      fat_g: 0,
+                      fiber_g: 0,
+                      sugar_g: 0,
+                      alcohol_g: null,
+                      caffeine_mg: 42,
+                  },
+              ]
+            : [
+                  {
+                      description: "Cola 330 ml",
+                      meal_type: "snack",
+                      date: null,
+                      calories: 139,
+                      protein_g: 0,
+                      carbs_g: 35,
+                      fat_g: 0,
+                      fiber_g: 0,
+                      sugar_g: 35,
+                      alcohol_g: null,
+                      caffeine_mg: 32,
+                  },
+              ];
+    const edgeMeals = edgeRows.map((r, i) => ({
+        ...asMeal(r, i),
+        // asMeal fills added sugar from ADDED; here it is the case itself.
+        added_sugar_g: asMode === "zero" ? 0 : null,
+    }));
+    const sumOf = (k: keyof (typeof edgeRows)[number]) =>
+        edgeRows.reduce((a, r) => a + ((r[k] as number | null) ?? 0), 0);
+    const edgeTotals = {
+        calories: sumOf("calories"),
+        protein_g: sumOf("protein_g"),
+        carbs_g: sumOf("carbs_g"),
+        fat_g: sumOf("fat_g"),
+        fiber_g: sumOf("fiber_g"),
+        sugar_g: sumOf("sugar_g"),
+        alcohol_g: null,
+        caffeine_mg: sumOf("caffeine_mg"),
+        water_ml: 0,
+    };
+    // A total-sugar limit is not set: the case seen in production, where the
+    // 29 g limit was on added sugar only.
+    const edgeGoals = { ...goals, sugar_g: null, alcohol_g: null };
+    const edgeDayMeta = (rows: Meal[]) =>
+        buildAddedSugarMeta({
+            goal: 29,
+            days: { "2026-07-15": edgeMeals },
+            meals: rows,
+        });
+    // Every day of a window carries the edge value, the limit is 29 g.
+    const edgeWindowMeta = (meta: unknown) => {
+        const m = meta as { days?: Record<string, number | null> };
+        return {
+            v: 1,
+            goal: 29,
+            days: Object.fromEntries(
+                Object.keys(m.days ?? {}).map((d) => [
+                    d,
+                    asMode === "zero" ? 0 : null,
+                ]),
+            ),
+            contributors: 0,
+        };
+    };
+    if (asEdge) {
+        METAS["meal-logged"] = {
+            [ADDED_SUGAR_META_KEY]: edgeDayMeta(edgeMeals),
+        };
+        METAS["goal-progress"] = { [ADDED_SUGAR_META_KEY]: edgeDayMeta([]) };
+        METAS["nutrition-summary"] = {
+            ...summaryMeta,
+            [ADDED_SUGAR_META_KEY]: {
+                ...edgeWindowMeta(summaryAddedSugar),
+                meals: Object.fromEntries(
+                    Object.keys(summaryAddedSugar.meals ?? {}).map((id) => [
+                        id,
+                        asMode === "zero" ? 0 : null,
+                    ]),
+                ),
+            },
+        };
+        METAS.trends = {
+            ...(trends.meta as Record<string, unknown>),
+            [ADDED_SUGAR_META_KEY]: edgeWindowMeta(
+                (trends.meta as Record<string, unknown>)[ADDED_SUGAR_META_KEY],
+            ),
+        };
+    }
+
     const RESULTS: Record<string, unknown> = {
         "nutrition-summary": {
             start_date: "2026-07-09",
@@ -828,6 +954,27 @@ function hostPage(widget: string, params: URLSearchParams): string {
         },
         "weight-trends": weight.result,
     };
+    if (asEdge) {
+        RESULTS["meal-logged"] = {
+            action: "logged",
+            date: "2026-07-15",
+            logged_meal: edgeRows[edgeRows.length - 1],
+            has_goals: true,
+            drink_unit: null,
+            goals: edgeGoals,
+            totals: edgeTotals,
+            meals: edgeRows,
+        };
+        RESULTS["goal-progress"] = {
+            ...(RESULTS["goal-progress"] as Record<string, unknown>),
+            meal_count: edgeRows.length,
+            drink_unit: null,
+            goals: edgeGoals,
+            // edgeTotals has no water, so neither does the header's count.
+            water_entries: 0,
+            totals: edgeTotals,
+        };
+    }
     // Probe and gallery paint their own UI; anything non-null will do.
     const baseResult = RESULTS[widget] ?? { probe: true };
     // ?locale= reaches every widget through the field they all read first.

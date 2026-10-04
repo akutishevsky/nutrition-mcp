@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
             lb: "lb",
         },
         noneLogged: "brak wpisów",
+        notRecorded: "nie zapisano",
         caloriesToday: "Kalorie dziś",
         caloriesOn: "Kalorie · {date}",
         tapHint: "Dotknij wskaźnika, by zobaczyć posiłki",
