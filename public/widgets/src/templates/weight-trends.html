@@ -132,8 +132,14 @@
                narrow host the chart would shrink to a sliver beside it (the
                viewBox's fixed aspect makes it short as well as thin). Below
                ~180px of chart it wraps under the headline at full width. */
+            /* Top-aligned (legacy is bottom-aligned): the headline's last
+               line ("−0.3 kg since 29 Sep") would otherwise sit on the same
+               baseline as the chart's start date label right beside it and
+               read as one run-on line. */
             .wmain.wtrend {
                 flex-wrap: wrap;
+                align-items: flex-start;
+                column-gap: 18px;
             }
             .wcol {
                 flex: 1;

@@ -4058,20 +4058,23 @@ export function registerTools(
                             weight: fromGrams(d.weight_g, unit),
                         }));
 
+                    let text = computeWeightTrend(
+                        entries,
+                        requestedStart,
+                        endDate,
+                        tz,
+                        targetG,
+                        unit,
+                    );
+                    // The structured `days` series is always the last 30 days
+                    // whatever window was asked for; say so, or a host that
+                    // charts it labels a 30-day chart with the text's window.
+                    if (windowDays !== 30 && widgetDays.length > 0) {
+                        text += `\n\nThe structured daily series covers the last 30 days only (${seriesCutoff} to ${endDate}); the figures above cover the requested ${windowDays}-day window.`;
+                    }
+
                     return {
-                        content: [
-                            {
-                                type: "text",
-                                text: computeWeightTrend(
-                                    entries,
-                                    requestedStart,
-                                    endDate,
-                                    tz,
-                                    targetG,
-                                    unit,
-                                ),
-                            },
-                        ],
+                        content: [{ type: "text", text }],
                         structuredContent: {
                             end_date: endDate,
                             unit,
