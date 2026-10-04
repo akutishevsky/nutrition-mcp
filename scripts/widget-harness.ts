@@ -19,7 +19,9 @@
 //   ?drinkUnit=us       alcohol tracking ON for import-meals (default: off/null)
 //   ?noMeta=1           deliver the tool result WITHOUT its _meta, as a host that
 //                       drops it would (nutrition-summary then shows "N or more",
-//                       weight-trends falls back to its legacy 7/14/30 chart)
+//                       weight-trends falls back to its legacy 7/14/30 chart,
+//                       and every macro strip loses its added-sugar cell —
+//                       exactly the strip from before that field existed)
 //   ?sample=sparse      weight-trends: a 3-weigh-in user instead of 3 years of
 //                       history (the degraded states: no rate chip, no 1y/All)
 //   ?days=90            weight-trends: the tool's `days` argument, which picks
@@ -35,8 +37,11 @@
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
 
+import { addedSugarExtra, buildAddedSugarMeta } from "../src/added-sugar.js";
 import {
+    ADDED_SUGAR_META_KEY,
     getWidgetHtml,
+    MEAL_BREAKDOWN_TOP_N,
     MEAL_CONTRIBUTORS_META_KEY,
     PERIOD_AVERAGES_META_KEY,
     WEIGHT_SERIES_META_KEY,
@@ -197,9 +202,14 @@ function goalsRow(
     row.daily_carbs_g = v[2];
     row.daily_fat_g = v[3];
     row.daily_fiber_g = 30;
+    row.daily_added_sugar_g = 25;
     row.daily_water_ml = 2500;
     return { effective_at, ...row };
 }
+// Meals before this date carry no added-sugar figure, so the 30-day window
+// mixes recorded and unrecorded days and the 7/14/30 averages differ in how
+// many days they divide by.
+const ADDED_SUGAR_FROM = "2026-06-25";
 const TRENDS_HISTORY: NutritionGoalsHistoryRow[] = [
     goalsRow("2024-10-02T09:12:00Z", [2400, 150, 280, 80]),
     goalsRow("2026-02-18T18:40:00Z", [2200, 160, 220, 70]),
@@ -232,6 +242,18 @@ function trendsSample(): { meals: Meal[]; water: WaterEntry[] } {
         fat_g: Math.round(kcal * (0.028 + rand() * 0.01)),
         fiber_g: Math.round(kcal * 0.012 * 10) / 10,
         sugar_g: Math.round(kcal * 0.025 * 10) / 10,
+        // No rand() here: a new draw would shift every figure after it. Set
+        // from the meal type instead (sweetened coffee at breakfast, a sweet
+        // snack), and null before the cut-off below, like meals logged before
+        // the column existed.
+        added_sugar_g:
+            date < ADDED_SUGAR_FROM
+                ? null
+                : type === "breakfast"
+                  ? 8
+                  : type === "snack"
+                    ? Math.round(kcal * 0.015 * 10) / 10
+                    : 0,
         alcohol_g: null,
         caffeine_mg: type === "breakfast" ? 95 : null,
         notes: null,
@@ -290,13 +312,14 @@ function trendsFixture(params: URLSearchParams, drinkUnit: "us" | "uk") {
     // structuredContent: get_trends' current (frozen) shape. The days mirror
     // trendsDayPayloadOf closely enough for a preview (rounded totals,
     // fiber/sugar null on a day no meal recorded them, caffeine likewise).
-    const days = buildDailyBuckets(
+    const buckets = buildDailyBuckets(
         meals,
         water,
         start,
         TRENDS_END,
         TRENDS_TZ,
-    ).map((b) => {
+    );
+    const days = buckets.map((b) => {
         const carries = (k: "fiber_g" | "sugar_g" | "caffeine_mg") =>
             b.meals.some((m) => m[k] != null);
         return {
@@ -348,7 +371,15 @@ function trendsFixture(params: URLSearchParams, drinkUnit: "us" | "uk") {
                 : null,
             days,
         },
-        meta: { [PERIOD_AVERAGES_META_KEY]: meta },
+        meta: {
+            [PERIOD_AVERAGES_META_KEY]: meta,
+            // get_trends' added-sugar series: the same 30 days, which the
+            // widget re-averages per 7/14/30 range.
+            [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                goal: g ? g.daily_added_sugar_g : null,
+                days: Object.fromEntries(buckets.map((b) => [b.date, b.meals])),
+            }),
+        },
     };
 }
 
@@ -562,11 +593,30 @@ function hostPage(widget: string, params: URLSearchParams): string {
             }),
         ),
     ].map((m, i) => ({ ...m, date: days[i % days.length]!.date }));
+    // A meal the server trimmed from `meals` that still leads added sugar:
+    // a lemonade small enough to be in no other metric's top 8 (its 6.6 g of
+    // sugar is ninth), yet second by added sugar. It reaches the widget only
+    // through the added-sugar `_meta`'s `extra`, so the added-sugar list shows
+    // it second while the sugar and calorie lists never do.
+    const trimmedLemonade = {
+        description: "Lemonade",
+        meal_type: "snack",
+        date: days[2]!.date,
+        calories: 28,
+        protein_g: 0,
+        carbs_g: 7,
+        fat_g: 0,
+        fiber_g: 0,
+        sugar_g: 6.6,
+        alcohol_g: 0,
+        caffeine_mg: null,
+    };
     // What get_nutrition_summary sends in the result's _meta under
     // MEAL_CONTRIBUTORS_META_KEY: per metric, how many meals had a value above
     // zero. Two more meals than are listed contributed calories and the three
     // macros — the server trimmed them, being outside every metric's top 8 —
-    // so the counts run past the rows exactly as a real trimmed payload does.
+    // and so did the lemonade above, so the counts run past the rows exactly
+    // as a real trimmed payload does.
     const TRIMMED = new Set(["calories", "protein_g", "carbs_g", "fat_g"]);
     const summaryMeta = {
         [MEAL_CONTRIBUTORS_META_KEY]: Object.fromEntries(
@@ -584,17 +634,110 @@ function hostPage(widget: string, params: URLSearchParams): string {
             ).map((k) => [
                 k,
                 summaryMeals.filter((m) => (m[k] ?? 0) > 0).length +
-                    (TRIMMED.has(k) ? 2 : 0),
+                    (TRIMMED.has(k) ? 2 : 0) +
+                    ((trimmedLemonade[k] ?? 0) > 0 ? 1 : 0),
             ]),
         ),
     };
+    // Added sugar per fixture meal, by description: the sweetened ones only.
+    // Feeds buildAddedSugarMeta (src/added-sugar.ts) — the server's own
+    // builder — through Meal rows made from the breakdown rows below, in the
+    // same order, since the widget joins `_meta.meals` to them by position.
+    const ADDED: Record<string, number> = {
+        "Overnight oats with berries": 6.5,
+        "Salmon with quinoa & veg": 2.1,
+        "Greek yogurt & honey": 14,
+        "Turkey wrap": 1.5,
+        "Protein bar": 5,
+        "Beef stir-fry": 6,
+        Lemonade: 6.6,
+    };
+    const asMeal = (
+        row: { description: string; date: string | null } & Record<
+            string,
+            unknown
+        >,
+        i: number,
+    ): Meal => ({
+        id: `harness-meal-${i}`,
+        user_id: "harness",
+        logged_at: `${row.date ?? "2026-07-15"}T12:00:00+03:00`,
+        meal_type: (row.meal_type as string | null) ?? null,
+        description: row.description,
+        calories: row.calories as number,
+        protein_g: row.protein_g as number,
+        carbs_g: row.carbs_g as number,
+        fat_g: row.fat_g as number,
+        fiber_g: row.fiber_g as number,
+        sugar_g: row.sugar_g as number,
+        // The espresso has no figure at all: recorded as nothing, it stays out
+        // of the cell's breakdown rather than reading "0 g".
+        added_sugar_g:
+            row.description === "Double espresso"
+                ? null
+                : (ADDED[row.description] ?? 0),
+        alcohol_g: (row.alcohol_g as number | null) ?? null,
+        caffeine_mg: (row.caffeine_mg as number | null) ?? null,
+        notes: null,
+        idempotency_key: null,
+    });
+    // One day for the single-day widgets: the four breakdown meals.
+    const dayMeals = meals.map((m, i) => asMeal(m, i));
+    const dayAddedSugar = buildAddedSugarMeta({
+        goal: 25,
+        days: { "2026-07-15": dayMeals },
+        meals: dayMeals,
+    });
+    const summaryMealRows = summaryMeals.map((m, i) => asMeal(m, i));
+    // Every meal of the window: the listed rows (indices 0…n-1, the "kept"
+    // ones) then the lemonade the server trimmed.
+    const windowRows = [...summaryMeals, trimmedLemonade];
+    const windowMeals = windowRows.map((m, i) => asMeal(m, i));
+    const summaryAddedSugar = buildAddedSugarMeta({
+        goal: 25,
+        days: Object.fromEntries(
+            days.map((d) => [
+                d.date,
+                windowMeals.filter((m) => m.logged_at.startsWith(d.date)),
+            ]),
+        ),
+        meals: summaryMealRows,
+        // The two meals the server trimmed (see TRIMMED below) had no added
+        // sugar; the lemonade did, so it counts here and arrives as `extra`.
+        contributorsOf: windowMeals,
+        // The server's own ranking (src/added-sugar.ts) and cap.
+        extra: addedSugarExtra(
+            windowMeals,
+            windowRows,
+            summaryMeals.map((_, i) => i),
+            MEAL_BREAKDOWN_TOP_N,
+        ),
+    });
+
     // Per-widget CallToolResult `_meta`, delivered beside structuredContent.
     const weight = weightTrendsFixture(params);
     const trends = trendsFixture(params, macroDrinkUnit);
     const METAS: Record<string, unknown> = {
-        "nutrition-summary": summaryMeta,
+        "nutrition-summary": {
+            ...summaryMeta,
+            [ADDED_SUGAR_META_KEY]: summaryAddedSugar,
+        },
         "weight-trends": weight.meta,
         trends: trends.meta,
+        // goal-progress has alcohol on and caffeine recorded, so with added
+        // sugar it shows the sugars row (sugar, added sugar) above a
+        // three-cell limits row (alcohol, caffeine, fiber). meal-logged has
+        // alcohol off: the sugars row above caffeine and fiber. ?noMeta=1
+        // drops the key and sugar goes back into the limits row.
+        "goal-progress": {
+            // Its payload lists no meals, so neither does its `_meta`.
+            [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                goal: 25,
+                days: { "2026-07-15": dayMeals },
+                meals: [],
+            }),
+        },
+        "meal-logged": { [ADDED_SUGAR_META_KEY]: dayAddedSugar },
     };
 
     const RESULTS: Record<string, unknown> = {

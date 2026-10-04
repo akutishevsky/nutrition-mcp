@@ -282,17 +282,28 @@
             // `periods` is the parsed `_meta` (null → the day view only, as
             // before). `mode` is a string id: "week" | "month" | "quarter" |
             // "year" | "days". `range` stays a number (7 / 14 / 30).
+            // `addedSugar` is the AddedSugarMeta from `_meta`, or null.
             const STATE = {
                 data: null,
                 range: 30,
                 periods: null,
                 mode: "days",
+                addedSugar: null,
             };
             let __widgetApi = null;
+
+            // Where get_trends puts the 30-day added-sugar series
+            // (AddedSugarMeta, src/added-sugar.ts) — in the result's `_meta`,
+            // because the frozen outputSchema can gain no field. Must equal
+            // ADDED_SUGAR_META_KEY in src/widgets.ts.
+            const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
 
             function render(data, meta) {
                 STATE.data = data;
                 STATE.periods = periodsFrom(meta);
+                STATE.addedSugar = addedSugarPayload(
+                    meta && meta[ADDED_SUGAR_META_KEY],
+                );
                 const root = document.getElementById("root");
                 // The tool sends a bucket for every calendar day (zeros for
                 // unlogged days), so the array is basically never empty — treat
@@ -403,6 +414,20 @@
 
                 const avg = {};
                 for (const m of MACROS) avg[m.key] = avgOf(slice, m.key);
+                // No day bucket carries added sugar, so avgOf left it null and
+                // the cell hidden. With `_meta` it is re-averaged here for the
+                // same slice — over the days that recorded it, not every
+                // calendar day: an unrecorded day is unknown, not 0.
+                const merged = withAddedSugar(
+                    STATE.addedSugar,
+                    addedSugarFor(
+                        STATE.addedSugar,
+                        slice.map((d) => d.date),
+                    ),
+                    avg,
+                    data.goals,
+                    null,
+                );
 
                 const logged = slice.filter(dayHasData).length;
 
@@ -422,8 +447,8 @@
                 // fits a historical average's shortfall. See macroBits'
                 // wording.under in shared/macros.js.
                 const panel = macroPanel(
-                    avg,
-                    data.goals,
+                    merged.vals,
+                    merged.goal,
                     { under: T.trends.avgUnder },
                     null,
                     {

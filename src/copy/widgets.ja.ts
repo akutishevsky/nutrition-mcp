@@ -8,6 +8,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             carbs_g: "炭水化物",
             fat_g: "脂質",
             sugar_g: "糖類",
+            added_sugar_g: "添加糖",
             alcohol_g: "アルコール",
             caffeine_mg: "カフェイン",
             fiber_g: "食物繊維",
@@ -195,6 +196,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             fat_g: "脂質（g）",
             fiber_g: "食物繊維（g）",
             sugar_g: "糖類（総量）（g）",
+            added_sugar_g: "添加糖（g）",
             alcohol_g: "アルコール（g）",
             caffeine_mg: "カフェイン（mg）",
             notes: "メモ",
@@ -241,8 +243,6 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         tabLabel: "タブ",
         notInFile: "（このファイルにはありません）",
         columnFallback: "{n}列目",
-        addedSugarNotice:
-            "このファイルには添加糖の列（{column}）はありますが、総糖類の列がないため、糖類は対応付けていません。糖類は果物や牛乳に自然に含まれる分も含めた「総量」で保存されるため、添加糖を対応付けると、すべての行で少なく記録されてしまいます。",
         caffeineGramsNotice:
             "このファイルのカフェイン列（{column}）はグラム単位ですが、カフェインはミリグラム単位で保存されるため、対応付けていません。そのまま対応付けると、栄養成分表示で180 mgのものが0.18として記録されます。後で同じファイルを再インポートしても補完されません。それらの行は記録済みのため、重複としてスキップされます。列名が誤っていて実際の値がミリグラムなら、上でこの列を選択してください。本当にグラムなら、インポートの前に（後ではなく）ファイル内で値を1000倍してください。",
         alcoholNotice:
@@ -288,6 +288,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             fat_g: "F",
             fiber_g: "繊維",
             sugar_g: "糖類",
+            added_sugar_g: "添加糖",
             alcohol_g: "アルコール",
             caffeine_mg: "カフェイン",
         },

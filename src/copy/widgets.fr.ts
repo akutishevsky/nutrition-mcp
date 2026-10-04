@@ -8,6 +8,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
             carbs_g: "Glucides",
             fat_g: "Lipides",
             sugar_g: "Sucres",
+            added_sugar_g: "Sucres ajoutés",
             alcohol_g: "Alcool",
             caffeine_mg: "Caféine",
             fiber_g: "Fibres",
@@ -196,6 +197,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
             fat_g: "Lipides (g)",
             fiber_g: "Fibres (g)",
             sugar_g: "Sucres totaux (g)",
+            added_sugar_g: "Sucres ajoutés (g)",
             alcohol_g: "Alcool (g)",
             caffeine_mg: "Caféine (mg)",
             notes: "Notes",
@@ -242,8 +244,6 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         tabLabel: "tabulation",
         notInFile: "(pas dans ce fichier)",
         columnFallback: "colonne {n}",
-        addedSugarNotice:
-            "Ce fichier contient une colonne de sucres ajoutés ({column}) mais pas de colonne de sucres totaux : Sucres n'a donc pas été associé. Les sucres sont enregistrés en sucres TOTAUX, y compris ceux naturellement présents dans les fruits et le lait : y associer les sucres ajoutés sous-évaluerait chaque ligne.",
         caffeineGramsNotice:
             "La colonne caféine de ce fichier ({column}) est en grammes, alors que la caféine est enregistrée en milligrammes : Caféine n'a donc pas été associée. L'associer enregistrerait 0,18 là où l'étiquette indique 180 mg. Réimporter le même fichier plus tard ne comblera pas ce manque : ces lignes seront déjà enregistrées et seront ignorées comme doublons. Si l'en-tête est mal libellé et que les valeurs sont bien en milligrammes, sélectionne-la ci-dessus ; si elles sont bien en grammes, multiplie-les par 1 000 dans le fichier avant l'import, pas après.",
         alcoholNotice:
@@ -288,6 +288,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
             fat_g: "L",
             fiber_g: "Fib",
             sugar_g: "Suc",
+            added_sugar_g: "Ajout",
             alcohol_g: "Alc",
             caffeine_mg: "Caf",
         },

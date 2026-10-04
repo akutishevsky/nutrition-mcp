@@ -66,6 +66,7 @@ export interface WidgetStrings {
             carbs_g: string;
             fat_g: string;
             sugar_g: string;
+            added_sugar_g: string;
             alcohol_g: string;
             caffeine_mg: string;
             fiber_g: string;
@@ -404,6 +405,7 @@ export interface WidgetStrings {
             fat_g: string;
             fiber_g: string;
             sugar_g: string;
+            added_sugar_g: string;
             alcohol_g: string;
             caffeine_mg: string;
             notes: string;
@@ -449,8 +451,6 @@ export interface WidgetStrings {
         /** Template. Placeholder: {n}. */
         columnFallback: string;
         /** Template. Placeholder: {column}. */
-        addedSugarNotice: string;
-        /** Template. Placeholder: {column}. */
         caffeineGramsNotice: string;
         /** Template. Placeholder: {column}. */
         alcoholNotice: string;
@@ -491,6 +491,7 @@ export interface WidgetStrings {
             fat_g: string;
             fiber_g: string;
             sugar_g: string;
+            added_sugar_g: string;
             alcohol_g: string;
             caffeine_mg: string;
         };
@@ -543,6 +544,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             carbs_g: "Carbs",
             fat_g: "Fat",
             sugar_g: "Sugar",
+            added_sugar_g: "Added sugar",
             alcohol_g: "Alcohol",
             caffeine_mg: "Caffeine",
             fiber_g: "Fiber",
@@ -729,6 +731,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             fat_g: "Fat (g)",
             fiber_g: "Fiber (g)",
             sugar_g: "Sugar, total (g)",
+            added_sugar_g: "Added sugar (g)",
             alcohol_g: "Alcohol (g)",
             caffeine_mg: "Caffeine (mg)",
             notes: "Notes",
@@ -774,8 +777,6 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         tabLabel: "tab",
         notInFile: "(not in this file)",
         columnFallback: "column {n}",
-        addedSugarNotice:
-            "This file has an added-sugar column ({column}) but no total-sugar column, so Sugar was left unmapped. Sugar is stored as TOTAL sugars, including what occurs naturally in fruit and milk, so mapping added sugar into it would under-report every row.",
         caffeineGramsNotice:
             "This file's caffeine column ({column}) is in grams, but caffeine is stored in milligrams, so Caffeine was left unmapped. Mapping it would record 0.18 where the label says 180 mg. Re-importing the same file later will not fill it in — those rows will already be logged and will be skipped as duplicates. If the header is mislabelled and the values really are milligrams, pick it above; if they really are grams, multiply them by 1000 in the file before importing, not after.",
         alcoholNotice:
@@ -821,6 +822,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             fat_g: "F",
             fiber_g: "Fib",
             sugar_g: "Sug",
+            added_sugar_g: "Add",
             alcohol_g: "Alc",
             caffeine_mg: "Caf",
         },

@@ -277,7 +277,33 @@
                     caffeine_mg: 470,
                 },
             ];
+            // Added sugar reaches the strip only through the result's `_meta`
+            // (no structuredContent field can be added), so the gallery feeds
+            // it the same way a template does: an AddedSugarMeta under the
+            // real key, merged with withAddedSugar. Meals are joined by
+            // position; the null one has no figure and stays out of the
+            // breakdown. With the key present sugar and added sugar move into
+            // their own two-column sugars row above alcohol, caffeine and
+            // fiber — the layout worth checking.
+            const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            const GALLERY_META = {
+                [ADDED_SUGAR_META_KEY]: {
+                    v: 1,
+                    goal: 25,
+                    days: { "2026-10-04": 35 },
+                    meals: { m1: 4.8, m2: 0, m3: 1.2, m4: null },
+                },
+            };
+            const AS = addedSugarPayload(GALLERY_META[ADDED_SUGAR_META_KEY]);
+            const STRIP = withAddedSugar(
+                AS,
+                addedSugarFor(AS, ["2026-10-04"]),
+                TOTALS,
+                GOALS,
+                MEALS,
+            );
             const CARBS = MACROS.find((m) => m.key === "carbs_g");
+            const ADDED_SUGAR = MACROS.find((m) => m.key === "added_sugar_g");
             const ALCOHOL = MACROS.find((m) => m.key === "alcohol_g");
             const CAFFEINE = MACROS.find((m) => m.key === "caffeine_mg");
             // The alcohol line in each of its states, including the two that
@@ -312,6 +338,38 @@
                     "never recorded (null → renders nothing)",
                     { caffeine_mg: null },
                     GOALS,
+                ],
+            ];
+
+            // Added sugar: a ceiling with no null signal of its own — a day
+            // that did not record it never reaches the strip at all (the
+            // merge leaves it undefined), and 0 is a real limit.
+            const addedSugarStates = [
+                [
+                    "over the limit",
+                    { added_sugar_g: 35 },
+                    { added_sugar_g: 25 },
+                ],
+                [
+                    "under the limit",
+                    { added_sugar_g: 12.4 },
+                    { added_sugar_g: 25 },
+                ],
+                ["no limit set", { added_sugar_g: 18 }, null],
+                [
+                    "a limit of 0 g — any added sugar is over it",
+                    { added_sugar_g: 6 },
+                    { added_sugar_g: 0 },
+                ],
+                [
+                    "recorded 0, limit set",
+                    { added_sugar_g: 0 },
+                    { added_sugar_g: 25 },
+                ],
+                [
+                    "not recorded (undefined → renders nothing)",
+                    {},
+                    { added_sugar_g: 25 },
                 ],
             ];
 
@@ -425,6 +483,11 @@
 
             <section class="card">
               <h3>Macro strip — calorie ring, macro bars, limits row, water line</h3>
+              <div class="panel">${macroPanel(STRIP.vals, STRIP.goal, undefined, STRIP.meals)}</div>
+            </section>
+
+            <section class="card">
+              <h3>Macro strip without the added-sugar <code>_meta</code> — four limits</h3>
               <div class="panel">${macroPanel(TOTALS, GOALS, undefined, MEALS)}</div>
             </section>
 
@@ -443,6 +506,18 @@
                       ([caption, vals, goal]) =>
                           `<div class="hint" style="margin-bottom:6px">${caption}</div>${limitRow(
                               macroLimit(ALCOHOL, macroCtxOf(vals, goal)),
+                          )}`,
+                  )
+                  .join("")}
+            </section>
+
+            <section class="card">
+              <h3>Added sugar limit cell — every state</h3>
+              ${addedSugarStates
+                  .map(
+                      ([caption, vals, goal]) =>
+                          `<div class="hint" style="margin-bottom:6px">${caption}</div>${limitRow(
+                              macroLimit(ADDED_SUGAR, macroCtxOf(vals, goal)),
                           )}`,
                   )
                   .join("")}

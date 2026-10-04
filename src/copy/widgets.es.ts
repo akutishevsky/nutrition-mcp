@@ -8,6 +8,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
             carbs_g: "Carbohidratos",
             fat_g: "Grasas",
             sugar_g: "Azúcar",
+            added_sugar_g: "Azúcar añadido",
             alcohol_g: "Alcohol",
             caffeine_mg: "Cafeína",
             fiber_g: "Fibra",
@@ -202,6 +203,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
             fat_g: "Grasas (g)",
             fiber_g: "Fibra (g)",
             sugar_g: "Azúcares totales (g)",
+            added_sugar_g: "Azúcares añadidos (g)",
             alcohol_g: "Alcohol (g)",
             caffeine_mg: "Cafeína (mg)",
             notes: "Notas",
@@ -248,8 +250,6 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         tabLabel: "tabulación",
         notInFile: "(no está en este archivo)",
         columnFallback: "columna {n}",
-        addedSugarNotice:
-            "Este archivo tiene una columna de azúcar añadido ({column}), pero no una de azúcares totales, así que el campo Azúcar quedó sin asignar. El azúcar se guarda como azúcares TOTALES, incluidos los presentes de forma natural en la fruta y la leche, así que asignar el azúcar añadido daría una cifra demasiado baja en cada fila.",
         caffeineGramsNotice:
             "La columna de cafeína de este archivo ({column}) está en gramos, pero la cafeína se guarda en miligramos, así que el campo Cafeína quedó sin asignar. Si la asignaras, se registraría 0,18 donde la etiqueta dice 180 mg. Si vuelves a importar el mismo archivo más tarde, ese dato no se añadirá: esas filas ya estarán registradas y se omitirán como duplicadas. Si el encabezado está mal etiquetado y los valores son en realidad miligramos, selecciónala arriba; si de verdad son gramos, multiplícalos por 1000 en el archivo antes de importar, no después.",
         alcoholNotice:
@@ -295,6 +295,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
             fat_g: "G",
             fiber_g: "Fib",
             sugar_g: "Azúc",
+            added_sugar_g: "Añad",
             alcohol_g: "Alc",
             caffeine_mg: "Caf",
         },

@@ -2,7 +2,9 @@
 //
 // Renders ONE compact block: the calorie ring beside its figure, three
 // protein/carbs/fat bars, a "limits" row of the metrics you stay under
-// (sugar, alcohol, caffeine) plus fiber, and the water line. It is not a card
+// (sugar, alcohol, caffeine) plus fiber — with sugar and added sugar in a
+// two-column row of their own above it whenever added sugar is on show — and
+// the water line. It is not a card
 // of its own — a widget drops it inside its single `.panel` under whatever top
 // matter only that widget has (a chart, a range toggle, a weight line). Pairs
 // with shared/macros.css (layout) and shared/ring.css (the gauge).
@@ -11,8 +13,9 @@
 //
 // Data contract: `vals` and `goal` are plain objects keyed by macro
 // (`calories`, `protein_g`, `carbs_g`, `fat_g`, `fiber_g`, `sugar_g`,
-// `alcohol_g`, `caffeine_mg`, `water_ml`) — e.g. a day's totals, a range's
-// averages, or a computed slice. Note that `caffeine_mg` is the ONE key not in
+// `alcohol_g`, `caffeine_mg`, `water_ml`, and `added_sugar_g` once a template
+// has merged it in from the result's `_meta` — see withAddedSugar) — e.g. a
+// day's totals, a range's averages, or a computed slice. Note that `caffeine_mg` is the ONE key not in
 // grams, which is why the unit is in its name at every layer down to the DB
 // column: a bare `caffeine` is how someone's 180 mg becomes 180 g.
 // `wording` tunes the caption verb for the remaining amount on
@@ -30,6 +33,12 @@
 //          you stay under, plus fiber, which shares the idiom because it is
 //          read the same way ("21.8, of 30 g") even though it is a floor
 //   bar    the full-width water line
+//
+// `row` (limits only) names a row of their own that some limit cells move
+// into, and `opensRow` marks the cell whose presence opens it. Today that is
+// one pair: sugar and added sugar share the "sugars" row, which exists only
+// while the added-sugar cell is shown (see macroPanel). Without it, sugar
+// stays in the limits row exactly where it always was.
 //
 // `direction` marks a target you stay UNDER rather than reach (mirrors
 // GoalDirection in src/mcp.ts): exceeding a ceiling is flagged with --over,
@@ -105,6 +114,30 @@ const MACROS = [
         role: "limit",
         direction: "ceiling",
         signal: "data",
+        row: "sugars",
+    },
+    // Added sugars (the US label definition): part of sugar_g, never more than
+    // it, and the measure public guidance limits are written against — so a
+    // ceiling of its own beside total sugar rather than a sub-line of it. It
+    // is in no structuredContent payload (those schemas are frozen); a
+    // template merges it from the result's `_meta` with withAddedSugar, and
+    // without that `_meta` the value stays undefined and limitShown hides the
+    // cell — the strip is then exactly what it was before the field existed.
+    // "data", not "null": the per-day figure is null when not recorded, which
+    // the merge leaves undefined, so either way the gate is the value itself.
+    // Shown, it opens the "sugars" row: the pair sits two-up on a row of its
+    // own, so both full names fit beside their figures at every width.
+    {
+        key: "added_sugar_g",
+        label: "Added sugar",
+        unit: "g",
+        color: "var(--added-sugar)",
+        decimals: 1,
+        role: "limit",
+        direction: "ceiling",
+        signal: "data",
+        row: "sugars",
+        opensRow: true,
     },
     {
         key: "alcohol_g",
@@ -156,8 +189,8 @@ const MACROS = [
 
 // The metrics that stand on their own as evidence that a day was logged at all
 // — used by trends to count logged days. Derived from the roles so a new entry
-// joins the test only if it is a top-level metric: fiber and sugar never appear
-// without a meal that already contributes calories, and alcohol_g / caffeine_mg
+// joins the test only if it is a top-level metric: fiber, sugar and added sugar
+// never appear without a meal that already contributes calories, and alcohol_g / caffeine_mg
 // are null (not 0) on a day that recorded neither, so none of them belongs in
 // the test.
 const TOP_LEVEL_MACRO_KEYS = MACROS.filter(
@@ -304,8 +337,18 @@ function ringMarkup(m, b) {
 // the same rule and needs no special case: water is logged separately and no
 // meal row carries `water_ml`.
 function macroHasDetail(m, ctx) {
-    if (!ctx.meals) return false;
-    return ctx.meals.some((meal) => (Number(meal?.[m.key]) || 0) > 0);
+    return metricRows(m, ctx.meals || [], ctx).some(
+        (meal) => (Number(meal?.[m.key]) || 0) > 0,
+    );
+}
+
+// The rows one metric's breakdown draws from: the strip's `meals`, then any
+// rows sent for that metric alone (`ctx.extraRows`, keyed by metric key —
+// today only added sugar's, see withAddedSugar). A metric with no extra rows
+// gets `meals` itself, so every other list is exactly what it was.
+function metricRows(m, meals, ctx) {
+    const extra = ctx && ctx.extraRows ? ctx.extraRows[m.key] : null;
+    return Array.isArray(extra) && extra.length ? meals.concat(extra) : meals;
 }
 
 // The accessible name of an interactive tile — VALUE FIRST, action second.
@@ -404,6 +447,8 @@ function macroBarTile(m, ctx, interactive) {
 // and caffeine the payload's null is the whole gate and a recorded 0 is a real
 // reading that stays on screen; for fiber and sugar a 0 could equally mean the
 // day predates the column, so the cell is earned by a value or by a goal.
+// Added sugar is "data" too, and is undefined whenever `_meta` did not carry a
+// recorded figure (see withAddedSugar), which the first test already hides.
 //
 // What the gate prevents is a "0 mg of 400 mg" line invented for someone who
 // has never recorded any — the same suppression the model-facing text applies
@@ -523,15 +568,42 @@ function macroCtxOf(vals, goal, wording, meals, opts) {
         // NOT trim — every meal made some metric's top CAP — count exactly.
         mealTotal:
             opts && Number.isFinite(opts.mealTotal) ? opts.mealTotal : null,
+        // Rows that belong to ONE metric's breakdown only, keyed by metric key
+        // ({ added_sugar_g: [...] }, built by withAddedSugar from the
+        // AddedSugarMeta's `extra`). They join that metric's list (metricRows)
+        // and nothing else: no other metric's list, tile or count sees them.
+        // null (every caller without them) leaves every list as it was.
+        extraRows:
+            opts && opts.extraRows && typeof opts.extraRows === "object"
+                ? opts.extraRows
+                : null,
     };
 }
 
 // The column count for a grid, as the two custom properties macros.css reads.
 // Four limits do not fit across a phone, so they become a 2×2; three or fewer
 // keep one row at both widths. The row therefore handles one to four cells
-// with no special case — alcohol simply is or is not among them.
+// with no special case — alcohol simply is or is not among them. It never
+// gets a fifth: added sugar takes sugar into a row of its own (see
+// macroPanel). (Below 360px every limits row is two columns, and between 700
+// and 859px four stay a 2×2: see macros.css.)
 function gridCols(n) {
     return `--lc:${n === 4 ? 2 : n};--lcw:${n}`;
+}
+
+// A row of limit cells. The sugars row is always two columns, at every width
+// and whatever it holds: two cells a half each is what lets "ADDED SUGAR" /
+// "ZUGESETZTER ZUCKER" sit beside its figure unabbreviated. A lone cell (added
+// sugar shown while total sugar is not — a 0 g day against an added-sugar
+// limit) keeps that half width rather than stretching across the strip, so it
+// reads as the same cell it is beside sugar, at the same size.
+function limitRowMarkup(cells, ctx, tap, own) {
+    const cls = own ? "mgrid lim pair psec" : `mgrid lim n${cells.length} psec`;
+    const cols = own ? "--lc:2;--lcw:2" : gridCols(cells.length);
+    return `<div class="${cls}" style="${cols}">${cells
+        .map((m) => macroLimit(m, ctx, tap(m)))
+        .join("")}
+        </div>`;
 }
 
 // Full macro strip: the calorie row, the three macro bars, the limits row and
@@ -539,20 +611,24 @@ function gridCols(n) {
 //
 // `meals` is optional: when a non-empty array of per-meal breakdown rows is
 // passed (each { description, meal_type, date, calories, protein_g, carbs_g,
-// fat_g, fiber_g, sugar_g, alcohol_g, caffeine_mg }), every tile some meal
+// fat_g, fiber_g, sugar_g, alcohol_g, caffeine_mg }, plus added_sugar_g once
+// withAddedSugar has merged it), every tile some meal
 // contributed to becomes tappable and reveals those meals (see macroToggle) —
 // the limits row included, not just calories and the three bars.
 //
 // `opts` is optional: { drinkUnit: "us" | "uk", calLabel: string,
 // divided: boolean, contributors: { [metricKey]: number } | null,
-// bounded: boolean, mealTotal: number | null }.
+// bounded: boolean, mealTotal: number | null,
+// extraRows: { [metricKey]: row[] } | null }.
 // `bounded` marks `meals` as a possibly server-trimmed subset
 // (nutrition-summary), `mealTotal` is how many meals the window really holds,
 // and `contributors` is the true per-metric count of meals with a positive
 // value that such a caller receives out of band (the result's `_meta`); the
 // breakdown's "N more meals" line counts against it instead of meals.length,
 // and, trimmed but without a count, says "N or more" (or, at exactly CAP
-// rows, "possibly more") rather than a number it cannot know.
+// rows, "possibly more") rather than a number it cannot know. `extraRows`
+// adds rows to a single metric's breakdown only (added sugar's, from
+// `_meta`; see withAddedSugar and metricRows).
 function macroPanel(vals, goal, wording, meals, opts) {
     const ctx = macroCtxOf(vals, goal, wording, meals, opts);
     // Stash it so the delegated toggle handler can build the breakdown on
@@ -576,12 +652,18 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // what earns the hint line and the region the breakdown renders into.
     const tap = (m) => macroHasDetail(m, ctx);
     const interactive = [cal, ...trio, ...limits].some(tap);
-    const limitRow = limits.length
-        ? `<div class="mgrid lim n${limits.length} psec" style="${gridCols(limits.length)}">${limits
-              .map((m) => macroLimit(m, ctx, tap(m)))
-              .join("")}
-        </div>`
-        : "";
+    // A limit with a `row` leaves the limits row for a row of its own only
+    // while a cell that opens that row is shown — today, sugar and added sugar
+    // move together into the sugars row once added sugar is on screen. With
+    // no such cell nothing moves, and the markup is exactly what it was before
+    // the sugars row existed. Own rows come first: the visual order stays the
+    // MACROS order (sugar, added sugar, alcohol, caffeine, fiber).
+    const opened = new Set(limits.filter((m) => m.opensRow).map((m) => m.row));
+    const ownRows = [...opened].map((r) => limits.filter((m) => m.row === r));
+    const rest = limits.filter((m) => !opened.has(m.row));
+    const limitRow =
+        ownRows.map((cells) => limitRowMarkup(cells, ctx, tap, true)).join("") +
+        (rest.length ? limitRowMarkup(rest, ctx, tap, false) : "");
     // What a tap does, said once. Hover and a cursor are the whole affordance
     // on a pointer device and NEITHER exists on a phone, which is where this
     // widget mostly lives — without a line saying so, the breakdown is a
@@ -614,6 +696,116 @@ function macroPanel(vals, goal, wording, meals, opts) {
       </div>`;
 }
 
+// ---- Added sugar, from the result's `_meta` ---------------------------------
+// Five tools carry an AddedSugarMeta (src/added-sugar.ts) under the
+// "nutrition-mcp.com/added-sugar" `_meta` key, because no structuredContent
+// object may gain a field. Each template reads that key itself (the literal
+// lives in the template, like the summary's contributors key) and merges it
+// into the strip's inputs here, before macroPanel. A missing, malformed or
+// future-versioned payload merges nothing at all, so the strip is byte for
+// byte what it was before the field existed.
+function addedSugarPayload(raw) {
+    return raw && typeof raw === "object" && raw.v === 1 ? raw : null;
+}
+
+// The added-sugar figure for a set of local dates: the mean over the dates the
+// payload carries a recorded (finite) value for, or undefined when none does.
+// A null day is "not recorded" and drops out of the average — the same rule
+// the server's text applies — rather than counting as 0. One date gives that
+// day's total; trends passes its 7/14/30-day slice, the summary its days.
+function addedSugarFor(as, dates) {
+    if (!as || !as.days || typeof as.days !== "object") return undefined;
+    let sum = 0;
+    let seen = 0;
+    for (const d of dates) {
+        const v = as.days[d];
+        if (Number.isFinite(v)) {
+            sum += v;
+            seen++;
+        }
+    }
+    return seen ? sum / seen : undefined;
+}
+
+// Merge an AddedSugarMeta into the strip's inputs. `value` is the figure the
+// cell shows (addedSugarFor); undefined leaves `vals` without the key, so
+// limitShown hides the cell. Returns new objects and never mutates the
+// payload's own.
+//
+// `meals` are the breakdown rows (MEAL_BREAKDOWN_ITEM), which carry no id, so
+// `as.meals` — keyed by meal id, built by the server from the same rows in the
+// same order — is joined BY POSITION, and only when the counts agree. Any
+// mismatch leaves the rows as they are: the cell then simply has no breakdown,
+// which is better than attributing one meal's sugar to another. A meal with no
+// recorded value gets null, which mealList leaves out.
+//
+// `extraRows` carries `as.extra` (get_nutrition_summary only): the meals among
+// the window's top CAP by added sugar that are NOT in `meals`. The summary's
+// `meals` is the union of every OTHER metric's top CAP (structuredContent is
+// frozen, so added sugar cannot rank rows into it), which can leave out the
+// meal with the most added sugar of all — a sweetened drink that tops no other
+// metric. Those rows join the added-sugar list only, as
+// `{ added_sugar_g: [...] }` for macroPanel's opts.extraRows, and only when
+// the positional join above succeeded: without the kept rows' figures the
+// extras alone would rank as a top list with its biggest entries missing.
+// null when there are none, so a payload without `extra` changes nothing.
+function withAddedSugar(as, value, vals, goal, meals) {
+    if (!as) return { vals, goal, meals, extraRows: null };
+    const out = { vals, goal, meals, extraRows: null };
+    if (Number.isFinite(value)) {
+        out.vals = Object.assign({}, vals, { added_sugar_g: value });
+    }
+    if (Number.isFinite(as.goal)) {
+        out.goal = Object.assign({}, goal, { added_sugar_g: as.goal });
+    }
+    if (Array.isArray(meals) && as.meals && typeof as.meals === "object") {
+        const per = Object.values(as.meals);
+        if (per.length === meals.length) {
+            out.meals = meals.map((meal, i) =>
+                Object.assign({}, meal, {
+                    added_sugar_g: Number.isFinite(per[i]) ? per[i] : null,
+                }),
+            );
+            const extra = addedSugarExtraRows(as);
+            if (extra.length) out.extraRows = { added_sugar_g: extra };
+        }
+    }
+    return out;
+}
+
+// `as.extra`, validated: it arrives from the host, so it is untrusted. Keeps
+// only entries that are objects with a string description and a finite,
+// positive added_sugar_g, rebuilds each from those four fields alone (a stray
+// `calories` on one can never reach another metric), and caps at 8 — the
+// server never sends more than MEAL_BREAKDOWN_TOP_N. Anything else is [].
+function addedSugarExtraRows(as) {
+    if (!as || !Array.isArray(as.extra)) return [];
+    const rows = [];
+    for (const e of as.extra) {
+        if (rows.length >= 8) break;
+        if (!e || typeof e !== "object") continue;
+        if (typeof e.description !== "string") continue;
+        const v = e.added_sugar_g;
+        if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) continue;
+        rows.push({
+            description: e.description,
+            meal_type: typeof e.meal_type === "string" ? e.meal_type : null,
+            date: typeof e.date === "string" ? e.date : null,
+            added_sugar_g: v,
+        });
+    }
+    return rows;
+}
+
+// The summary's per-metric "N more" counts with added sugar's folded in.
+// Returns `contributors` untouched when the payload has no count.
+function withAddedSugarContributors(as, contributors) {
+    if (!as || !Number.isFinite(as.contributors)) return contributors;
+    return Object.assign({}, contributors, {
+        added_sugar_g: as.contributors,
+    });
+}
+
 // ---- Interactive breakdown ------------------------------------------------
 // Set by macroPanel() when the strip is interactive; read by the delegated
 // handlers below.
@@ -629,7 +821,10 @@ function mealList(m, meals, ctx) {
     // whole at every scale (see the MACROS entries), and a tenth of a
     // milligram is below anything anyone can act on.
     const decimals = m.decimals === 0 && m.unit === "g" ? 1 : m.decimals;
-    const rows = meals
+    // `meals` plus this metric's own extra rows (metricRows), if any. The sort
+    // is stable, so a tie keeps a kept row ahead of an extra one, and extras
+    // keep the server's ranked order among themselves.
+    const rows = metricRows(m, meals, ctx)
         .map((meal) => ({ meal, v: Number(meal?.[m.key] ?? 0) || 0 }))
         .filter((r) => r.v > 0)
         .sort((a, b) => b.v - a.v);
@@ -638,9 +833,11 @@ function mealList(m, meals, ctx) {
         return `<div class="md-empty">${esc(tpl(T.macros.noMealsContributed, { label: macroLabel(m) }))}</div>`;
     }
 
-    // Must equal MEAL_BREAKDOWN_TOP_N in src/mcp.ts: get_nutrition_summary
-    // sends only the union of each metric's top N meals, so a larger CAP
-    // would list rows the server may have dropped.
+    // Must equal MEAL_BREAKDOWN_TOP_N in src/widgets.ts (checked by
+    // public/widgets/macros.test.ts): get_nutrition_summary
+    // sends only the union of each metric's top N meals (added sugar's top N
+    // completed by its `extra` rows), so a larger CAP would list rows the
+    // server may have dropped.
     const CAP = 8;
     const shown = rows.slice(0, CAP);
     // Four cases for the "N more" line:
@@ -700,7 +897,7 @@ function macroDetailBody(m, ctx) {
       <div class="md-head">
         <span class="md-title"><span class="dot" style="background:${m.color}"></span>${esc(tpl(T.macros.byMealTitle, { label: macroLabel(m) }))}</span>
         <button class="md-close" data-macro-close aria-label="${esc(T.macros.closeBreakdown)}">✕</button>
-      </div>${mealList(m, ctx.meals, ctx)}`;
+      </div>${mealList(m, ctx.meals || [], ctx)}`;
 }
 
 // Toggle the breakdown for the tapped tile. Tapping the open tile again (or its

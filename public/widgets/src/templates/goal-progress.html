@@ -330,7 +330,15 @@
 
             let __widgetApi = null;
 
-            function render(data) {
+            // Where get_goal_progress puts the day's added-sugar figures
+            // (AddedSugarMeta, src/added-sugar.ts) — in the result's `_meta`,
+            // because the frozen outputSchema can gain no field. Must equal
+            // ADDED_SUGAR_META_KEY in src/widgets.ts.
+            const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+
+            // `resultMeta` is the tool result's `_meta` (or null — see
+            // bridge.js).
+            function render(data, resultMeta) {
                 const root = document.getElementById("root");
                 setLocaleFrom(data, __widgetApi);
                 if (!data || typeof data !== "object") {
@@ -371,11 +379,23 @@
                     ? T.macros.caloriesToday
                     : tpl(T.macros.caloriesOn, { date: shortDate(data.date) });
 
-                const panel = macroPanel(
+                // Added sugar joins the strip only when `_meta` carries it;
+                // without it these are the payload's own objects, untouched.
+                const as = addedSugarPayload(
+                    resultMeta && resultMeta[ADDED_SUGAR_META_KEY],
+                );
+                const merged = withAddedSugar(
+                    as,
+                    addedSugarFor(as, [data.date]),
                     totals,
                     data.goals,
-                    undefined,
                     data.meals,
+                );
+                const panel = macroPanel(
+                    merged.vals,
+                    merged.goal,
+                    undefined,
+                    merged.meals,
                     // Nothing sits between the header line and the strip, so no
                     // leading hairline.
                     { drinkUnit: data.drink_unit, calLabel },

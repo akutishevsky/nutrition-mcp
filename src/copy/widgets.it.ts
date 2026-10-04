@@ -8,6 +8,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             carbs_g: "Carboidrati",
             fat_g: "Grassi",
             sugar_g: "Zuccheri",
+            added_sugar_g: "Zuccheri aggiunti",
             alcohol_g: "Alcol",
             caffeine_mg: "Caffeina",
             fiber_g: "Fibre",
@@ -196,6 +197,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             fat_g: "Grassi (g)",
             fiber_g: "Fibre (g)",
             sugar_g: "Zuccheri, totali (g)",
+            added_sugar_g: "Zuccheri aggiunti (g)",
             alcohol_g: "Alcol (g)",
             caffeine_mg: "Caffeina (mg)",
             notes: "Note",
@@ -242,8 +244,6 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         tabLabel: "tabulazione",
         notInFile: "(non presente in questo file)",
         columnFallback: "colonna {n}",
-        addedSugarNotice:
-            "Questo file ha una colonna degli zuccheri aggiunti ({column}) ma non quella degli zuccheri totali, quindi Zuccheri non è stato abbinato. Zuccheri viene salvato come zuccheri TOTALI, compresi quelli naturalmente presenti in frutta e latte: abbinare qui gli zuccheri aggiunti sottostimerebbe ogni riga.",
         caffeineGramsNotice:
             "La colonna della caffeina di questo file ({column}) è in grammi, ma la caffeina viene salvata in milligrammi, quindi Caffeina non è stata abbinata. Abbinarla registrerebbe 0,18 dove l'etichetta indica 180 mg. Reimportare lo stesso file in seguito non recupererà questi valori: quelle righe risulteranno già registrate e verranno saltate come duplicati. Se l'intestazione è sbagliata e i valori sono davvero in milligrammi, selezionala qui sopra; se sono davvero grammi, moltiplicali per 1000 nel file prima di importarlo, non dopo.",
         alcoholNotice:
@@ -289,6 +289,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             fat_g: "G",
             fiber_g: "Fib",
             sugar_g: "Zucc",
+            added_sugar_g: "Agg",
             alcohol_g: "Alc",
             caffeine_mg: "Caff",
         },
