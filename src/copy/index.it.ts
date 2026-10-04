@@ -59,7 +59,7 @@ export const INDEX_IT: IndexDoc = {
                 },
                 {
                     userText: "sì",
-                    aiText: "Colazione registrata: 480 kcal, 21 g di proteine e 126 mg di caffeina. Sei già a 51 g di zuccheri sui 60 g del tuo limite.",
+                    aiText: "Colazione registrata: 480 kcal, 21 g di proteine e 126 mg di caffeina. Gli zuccheri aggiunti sono a 20 g sui 25 g del tuo limite, soprattutto per il miele; il resto dei 51 g di zuccheri totali viene da frutta e yogurt.",
                     card: "meal-logged",
                     meal: {
                         description:
@@ -89,7 +89,7 @@ export const INDEX_IT: IndexDoc = {
                 },
                 {
                     userText: "cosa mi resta per cena?",
-                    aiText: "Ti restano 850 kcal e 84 g di proteine. Con gli zuccheri sei a 59 g sui 60 g del tuo limite.",
+                    aiText: "Ti restano 850 kcal e 84 g di proteine. Gli zuccheri aggiunti sono a 23 g sui 25 g del tuo limite, e la maggior parte dei 59 g di zuccheri totali di oggi viene dalla frutta.",
                     card: "nutrition-summary",
                 },
                 {
@@ -207,10 +207,10 @@ export const INDEX_IT: IndexDoc = {
                 id: "log-meal",
                 title: "Registra a parole tue",
                 description:
-                    "Dillo come lo racconteresti a un amico. Se manca la porzione o non è chiaro di quale pasto si tratta, te lo chiede prima di stimare. Fibre e zuccheri finiscono in ogni voce, la caffeina in tutto ciò che ne contiene, e “verso le 7” diventa le 07:00 nel tuo fuso orario.",
+                    "Dillo come lo racconteresti a un amico. Se manca la porzione o non è chiaro di quale pasto si tratta, te lo chiede prima di stimare. Fibre, zuccheri e zuccheri aggiunti finiscono in ogni voce, la caffeina in tutto ciò che ne contiene, e “verso le 7” diventa le 07:00 nel tuo fuso orario.",
                 toolNotes: {
                     log_meal:
-                        "Salva la colazione con macro, fibre, zuccheri e la caffeina del caffè",
+                        "Salva la colazione con macro, fibre, zuccheri, zuccheri aggiunti e la caffeina del caffè",
                     log_water:
                         "Aggiunge i 500 ml delle 07:00 al totale d'acqua di oggi",
                     get_current_time:
@@ -312,7 +312,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "scan-barcode",
                 title: "Scansiona un codice a barre",
                 description:
-                    "Fotografa la confezione: le cifre sotto il codice a barre vengono cercate su Open Food Facts, poi ti chiede quanto ne hai consumato. Open Food Facts non riporta la caffeina, quindi quella si ricava dall'etichetta o da valori tipici; se mancano fibre o zuccheri, vengono stimati invece di restare vuoti.",
+                    "Fotografa la confezione: le cifre sotto il codice a barre vengono cercate su Open Food Facts, poi ti chiede quanto ne hai consumato. Gli zuccheri aggiunti vengono letti quando Open Food Facts li riporta. Open Food Facts non riporta la caffeina, quindi quella si ricava dall'etichetta o da valori tipici; se mancano fibre, zuccheri o zuccheri aggiunti, vengono stimati invece di restare vuoti.",
                 toolNotes: {
                     lookup_barcode:
                         "Recupera da Open Food Facts i valori in etichetta e il Nutri-Score del vasetto",
@@ -327,7 +327,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "È un vasetto da 150 g di yogurt greco bianco (0% di grassi): 87 kcal, 15 g di proteine e 5 g di zuccheri, e Open Food Facts gli dà Nutri-Score A. Hai mangiato tutto il vasetto?",
+                        text: "È un vasetto da 150 g di yogurt greco bianco (0% di grassi): 87 kcal, 15 g di proteine e 5 g di zuccheri, nessuno aggiunto, e Open Food Facts gli dà Nutri-Score A. Hai mangiato tutto il vasetto?",
                     },
                     {
                         from: "user",
@@ -350,7 +350,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "goals-progress",
                 title: "Fissa obiettivi, fai il punto",
                 description:
-                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
+                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri aggiunti, zuccheri totali, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Salva gli obiettivi di calorie e proteine e un limite di caffeina di 400 mg",
@@ -372,7 +372,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Fatto: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto rimane com'era: 220 g di carboidrati, 70 g di grassi, 30 g di fibre, 2,5 L d'acqua, il tuo limite di 60 g di zuccheri e il tuo peso obiettivo di 75 kg.",
+                        text: "Fatto: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto rimane com'era: 220 g di carboidrati, 70 g di grassi, 30 g di fibre, 2,5 L d'acqua, il tuo limite di 25 g di zuccheri aggiunti e il tuo peso obiettivo di 75 kg.",
                     },
                     {
                         from: "user",
@@ -380,7 +380,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Sei a 1540 kcal su 2000 e a 104 g di proteine su 160, quindi ti mancano 460 kcal e 56 g di proteine. Gli zuccheri sono a 40 g sui 60 g del tuo limite e la caffeina a 130 mg su 400: entrambi sotto il limite.",
+                        text: "Sei a 1540 kcal su 2000 e a 104 g di proteine su 160, quindi ti mancano 460 kcal e 56 g di proteine. Gli zuccheri aggiunti sono a 16 g sui 25 g del tuo limite e la caffeina a 130 mg su 400: entrambi sotto il limite.",
                     },
                 ],
                 cards: [
@@ -414,7 +414,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "In media 52 g al giorno, sotto il tuo limite di 60 g, ma l'hai superato in 4 giorni su 13.",
+                        text: "Gli zuccheri aggiunti sono stati in media 22 g al giorno, sotto il tuo limite di 25 g, ma l'hai superato in 5 giorni su 13. Gli zuccheri totali sono stati in media 52 g, soprattutto da frutta e latte.",
                     },
                 ],
                 cards: [
@@ -676,15 +676,15 @@ export const INDEX_IT: IndexDoc = {
         cards: [
             {
                 title: "Pasti a parole tue",
-                body: "Descrivi cosa hai mangiato: la tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e caffeina in milligrammi, e registra tutto.",
+                body: "Descrivi cosa hai mangiato: la tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e caffeina in milligrammi, e registra tutto.",
             },
             {
                 title: "Scansiona un codice a barre",
-                body: "Fotografa o digita il codice a barre di un prodotto e ottieni macro, fibre e zuccheri da Open Food Facts, calcolati in base a quanto ne hai mangiato.",
+                body: "Fotografa o digita il codice a barre di un prodotto e ottieni macro, fibre e zuccheri da Open Food Facts (anche gli zuccheri aggiunti, quando sono indicati), calcolati in base a quanto ne hai mangiato.",
             },
             {
                 title: "Obiettivi e progressi",
-                body: "Imposta obiettivi giornalieri di calorie, macro, fibre e acqua, più limiti da non superare per zuccheri, caffeina e alcol, e segui i progressi in tempo reale.",
+                body: "Imposta obiettivi giornalieri di calorie, macro, fibre e acqua, più limiti da non superare per zuccheri aggiunti, zuccheri totali, caffeina e alcol, e segui i progressi in tempo reale.",
             },
             {
                 title: "Riepiloghi e andamenti",
@@ -791,7 +791,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cos'è Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP è un server Model Context Protocol (MCP) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contacalorie e tracker delle macro. Invece di cercare in un database di alimenti, dici alla tua IA cosa hai mangiato e lei registra calorie, macro, fibre, zuccheri e caffeina nel tuo diario alimentare.",
+                "Nutrition MCP è un server Model Context Protocol (MCP) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contacalorie e tracker delle macro. Invece di cercare in un database di alimenti, dici alla tua IA cosa hai mangiato e lei registra calorie, macro, fibre, zuccheri, zuccheri aggiunti e caffeina nel tuo diario alimentare.",
         },
         {
             question: "Cos'è il Model Context Protocol (MCP)?",
@@ -801,7 +801,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Come si contano le calorie con Claude o ChatGPT?",
             visibleHtml:
-                "Collega Nutrition MCP una volta sola (in Claude dalla directory dei connettori, in ChatGPT come app personalizzata con l'URL del server) e accedi. Poi di' alla tua IA cosa hai mangiato a parole tue, mostrale una foto del pasto o dalle il codice a barre di un prodotto. La tua IA stima calorie, proteine, carboidrati, grassi, fibre e zuccheri, e Nutrition MCP salva la voce nel tuo diario alimentare. Chiedi in qualsiasi momento i totali di oggi, gli andamenti settimanali o i progressi verso i tuoi obiettivi.",
+                "Collega Nutrition MCP una volta sola (in Claude dalla directory dei connettori, in ChatGPT come app personalizzata con l'URL del server) e accedi. Poi di' alla tua IA cosa hai mangiato a parole tue, mostrale una foto del pasto o dalle il codice a barre di un prodotto. La tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri e zuccheri aggiunti, e Nutrition MCP salva la voce nel tuo diario alimentare. Chiedi in qualsiasi momento i totali di oggi, gli andamenti settimanali o i progressi verso i tuoi obiettivi.",
         },
         {
             question: "Funziona con ChatGPT?",
@@ -828,7 +828,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cosa posso monitorare?",
             visibleHtml:
-                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Anche le misure corporee (vita, fianchi, collo, torace, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
+                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Anche le misure corporee (vita, fianchi, collo, torace, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
         },
         {
             question: "Quanto sono precisi i conteggi delle calorie?",

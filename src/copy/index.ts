@@ -443,7 +443,7 @@ const INDEX_EN: IndexDoc = {
                 },
                 {
                     userText: "yes",
-                    aiText: "Logged breakfast: 480 kcal, 21 g protein and 126 mg caffeine. Sugar is already at 51 of your 60 g limit.",
+                    aiText: "Logged breakfast: 480 kcal, 21 g protein and 126 mg caffeine. Added sugar is at 20 of your 25 g limit, mostly the honey; the rest of the 51 g of total sugar is fruit and yogurt.",
                     card: "meal-logged",
                     meal: {
                         description:
@@ -471,7 +471,7 @@ const INDEX_EN: IndexDoc = {
                 },
                 {
                     userText: "what's left for dinner?",
-                    aiText: "850 kcal and 84 g of protein to go. Sugar is at 59 of your 60 g limit.",
+                    aiText: "850 kcal and 84 g of protein to go. Added sugar is at 23 of your 25 g limit, and most of today's 59 g of total sugar is from fruit.",
                     card: "nutrition-summary",
                 },
                 {
@@ -588,10 +588,10 @@ const INDEX_EN: IndexDoc = {
                 id: "log-meal",
                 title: "Log in plain words",
                 description:
-                    "Say it the way you'd tell a friend. If the portion or which meal it was is missing, it asks before estimating. Fiber and sugar go on every entry, caffeine on anything that has some, and “around 7” lands at 07:00 in your timezone.",
+                    "Say it the way you'd tell a friend. If the portion or which meal it was is missing, it asks before estimating. Fiber, sugar and added sugar go on every entry, caffeine on anything that has some, and “around 7” lands at 07:00 in your timezone.",
                 toolNotes: {
                     log_meal:
-                        "Saves breakfast with macros, fiber, sugar and the coffee's caffeine",
+                        "Saves breakfast with macros, fiber, sugar, added sugar and the coffee's caffeine",
                     log_water:
                         "Records the 500 ml at 07:00 toward today's water total",
                     get_current_time:
@@ -693,7 +693,7 @@ const INDEX_EN: IndexDoc = {
                 id: "scan-barcode",
                 title: "Scan a barcode",
                 description:
-                    "Photograph the package: the digits under the barcode are looked up in Open Food Facts, and it asks how much you had. Open Food Facts carries no caffeine, so that comes from the label or typical amounts; a missing fiber or sugar figure is estimated rather than left blank.",
+                    "Photograph the package: the digits under the barcode are looked up in Open Food Facts, and it asks how much you had. Added sugar is read where Open Food Facts has it. Open Food Facts carries no caffeine, so that comes from the label or typical amounts; a missing fiber, sugar or added-sugar figure is estimated rather than left blank.",
                 toolNotes: {
                     lookup_barcode:
                         "Pulls the pot's label figures and Nutri-Score from Open Food Facts",
@@ -708,7 +708,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "That's a 150 g pot of plain Greek yogurt (0% fat): 87 kcal, 15 g protein and 5 g sugar, and Open Food Facts rates it Nutri-Score A. Did you have the whole pot?",
+                        text: "That's a 150 g pot of plain Greek yogurt (0% fat): 87 kcal, 15 g protein and 5 g sugar, none of it added, and Open Food Facts rates it Nutri-Score A. Did you have the whole pot?",
                     },
                     {
                         from: "user",
@@ -731,7 +731,7 @@ const INDEX_EN: IndexDoc = {
                 id: "goals-progress",
                 title: "Set goals, check in",
                 description:
-                    "Set targets to reach, like calories and protein, and limits to stay under for sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see what's left to reach each target and where you stand against each limit.",
+                    "Set targets to reach, like calories and protein, and limits to stay under for added sugar, total sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see what's left to reach each target and where you stand against each limit.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Saves calorie and protein targets and a 400 mg caffeine limit",
@@ -753,7 +753,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 30 g fiber, 2.5 L water, your 60 g sugar limit and your 75 kg target weight.",
+                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 30 g fiber, 2.5 L water, your 25 g added-sugar limit and your 75 kg target weight.",
                     },
                     {
                         from: "user",
@@ -761,7 +761,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "You're at 1,540 of 2,000 kcal and 104 of 160 g protein, so 460 kcal and 56 g protein to go. Sugar is at 40 g of your 60 g limit, and caffeine at 130 of 400 mg, both under.",
+                        text: "You're at 1,540 of 2,000 kcal and 104 of 160 g protein, so 460 kcal and 56 g protein to go. Added sugar is at 16 g of your 25 g limit, and caffeine at 130 of 400 mg, both under.",
                     },
                 ],
                 cards: [
@@ -795,7 +795,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "It averaged 52 g a day, under your 60 g limit, but went over it on 4 of the 13 days.",
+                        text: "Added sugar averaged 22 g a day, under your 25 g limit, but went over it on 5 of the 13 days. Total sugar averaged 52 g, mostly from fruit and milk.",
                     },
                 ],
                 cards: [
@@ -1055,15 +1055,15 @@ const INDEX_EN: IndexDoc = {
         cards: [
             {
                 title: "Meals in plain language",
-                body: "Describe what you ate — your AI estimates calories, protein, carbs, fat, fiber, total sugar, and caffeine in milligrams and logs it.",
+                body: "Describe what you ate — your AI estimates calories, protein, carbs, fat, fiber, total sugar, added sugar, and caffeine in milligrams and logs it.",
             },
             {
                 title: "Scan a barcode",
-                body: "Snap or type a product barcode and pull macros, fiber, and sugar from Open Food Facts, scaled to how much you ate.",
+                body: "Snap or type a product barcode and pull macros, fiber, and sugar from Open Food Facts — added sugar too, where it's listed — scaled to how much you ate.",
             },
             {
                 title: "Goals & progress",
-                body: "Set daily calorie, macro, fiber, and water targets — plus sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
+                body: "Set daily calorie, macro, fiber, and water targets — plus added sugar, total sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
             },
             {
                 title: "Summaries & trends",
@@ -1170,7 +1170,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is a free, open-source Model Context Protocol (MCP) server that turns Claude, ChatGPT or another MCP client into a calorie and macro tracker. Instead of searching a food database, you tell your AI what you ate and it logs the calories, macros, fiber, sugar and caffeine to your own food diary.",
+                "Nutrition MCP is a free, open-source Model Context Protocol (MCP) server that turns Claude, ChatGPT or another MCP client into a calorie and macro tracker. Instead of searching a food database, you tell your AI what you ate and it logs the calories, macros, fiber, sugar, added sugar and caffeine to your own food diary.",
         },
         {
             question: "What is the Model Context Protocol (MCP)?",
@@ -1180,7 +1180,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "How do I track calories with Claude or ChatGPT?",
             visibleHtml:
-                "Connect Nutrition MCP once — in Claude from the connectors directory, in ChatGPT as a custom app with the server URL — and sign in. Then tell your AI what you ate in your own words, show it a photo of the meal, or give it a product barcode. Your AI estimates the calories, protein, carbs, fat, fiber and sugar, and Nutrition MCP saves the entry to your food diary. Ask for today's totals, weekly trends or progress toward your goals at any time.",
+                "Connect Nutrition MCP once — in Claude from the connectors directory, in ChatGPT as a custom app with the server URL — and sign in. Then tell your AI what you ate in your own words, show it a photo of the meal, or give it a product barcode. Your AI estimates the calories, protein, carbs, fat, fiber, sugar and added sugar, and Nutrition MCP saves the entry to your food diary. Ask for today's totals, weekly trends or progress toward your goals at any time.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -1212,7 +1212,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What can I track?",
             visibleHtml:
-                "Calories, protein, carbohydrates, fat, fiber, total sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+                "Calories, protein, carbohydrates, fat, fiber, total sugar, added sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
         },
         {
             question: "How accurate are the calorie counts?",

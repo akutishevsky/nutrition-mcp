@@ -104,6 +104,30 @@ test("the landing page's feature cards list caffeine where they list nutrients",
     expect(barcode).not.toContain("caffeine");
 });
 
+// Added sugar shipped the same way caffeine did: same guard, so the landing
+// page's enumerations can't keep listing the old set. Unlike caffeine, the
+// barcode card names it too — Open Food Facts carries an added-sugar figure
+// where the label has one.
+test("the landing page names added sugar wherever it lists nutrients", () => {
+    const cards = [
+        ...index.matchAll(/<h3>([^<]+)<\/h3>\s*<p>([\s\S]*?)<\/p>/g),
+    ];
+    const byTitle = new Map(
+        cards.map((m) => [normalize(m[1]!), normalize(m[2]!)]),
+    );
+    for (const title of [
+        "Meals in plain language",
+        "Scan a barcode",
+        "Goals & progress",
+    ]) {
+        expect(byTitle.get(title)).toContain("added sugar");
+    }
+    const { jsonLd, visible } = trackAnswers();
+    for (const answer of [jsonLd!, visible!]) {
+        expect(normalize(answer)).toContain("added sugar");
+    }
+});
+
 // The comparison pages are generated. Editing the HTML directly is silently
 // undone by the next `bun run scripts/gen-alternatives.ts`, so the copy has to
 // be right in the source data AND regenerated — this asserts both halves
