@@ -44,21 +44,26 @@ export const PERIOD_ROW_COUNTS: Record<Granularity, number> = {
 export const PERIOD_AVERAGES_META_VERSION = 1;
 
 /** One local calendar day's meal totals. `meal_count` is the number of meals;
- * water is deliberately absent — it never makes a day "logged" here. */
+ * water is deliberately absent — it never makes a day "logged" here. A macro
+ * is null when no meal that day carries a value for it (the `dayCarries`
+ * rule): a meal logged with calories only says nothing about its protein, so
+ * the day must not count as a 0 g protein day. */
 export interface DayTotals {
     date: string;
     meal_count: number;
     calories: number;
-    protein_g: number;
-    carbs_g: number;
-    fat_g: number;
+    protein_g: number | null;
+    carbs_g: number | null;
+    fat_g: number | null;
 }
 
+/** Calories average over every logged day; each macro over only the logged
+ * days that carry it, and is null when none does. */
 export interface PeriodMacros {
     calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
+    protein: number | null;
+    carbs: number | null;
+    fat: number | null;
 }
 
 /** A field is null when that goal is unset (null, or a zero floor, which
@@ -194,13 +199,18 @@ export function dayTotalsFromMeals(
     endDate: string,
     tz: string,
 ): DayTotals[] {
+    const carried = (
+        b: { meals: Meal[] },
+        key: "protein_g" | "carbs_g" | "fat_g",
+        total: number,
+    ): number | null => (b.meals.some((m) => m[key] != null) ? total : null);
     return buildDailyBuckets(meals, [], startDate, endDate, tz).map((b) => ({
         date: b.date,
         meal_count: b.meals.length,
         calories: b.calories,
-        protein_g: b.protein_g,
-        carbs_g: b.carbs_g,
-        fat_g: b.fat_g,
+        protein_g: carried(b, "protein_g", b.protein_g),
+        carbs_g: carried(b, "carbs_g", b.carbs_g),
+        fat_g: carried(b, "fat_g", b.fat_g),
     }));
 }
 
@@ -238,16 +248,16 @@ function hasAnyTarget(t: PeriodTargets): boolean {
 
 /** A logged day is on target when each of the four macros that has a target
  * that day is within ±10% of that day's own goal. A macro with a target but
- * no value that day sums to 0 and so counts as missed. */
+ * no value that day counts as missed. */
 function dayOnTarget(day: DayTotals, t: PeriodTargets): boolean {
-    const pairs: [number, number | null][] = [
+    const pairs: [number | null, number | null][] = [
         [day.calories, t.calories],
         [day.protein_g, t.protein],
         [day.carbs_g, t.carbs],
         [day.fat_g, t.fat],
     ];
     return pairs.every(
-        ([v, target]) => target == null || withinBand(v, target),
+        ([v, target]) => target == null || (v != null && withinBand(v, target)),
     );
 }
 
@@ -279,10 +289,19 @@ function buildRow(
     let loggedDays = 0;
     // Summed in ascending date order over day totals, then divided once — the
     // same order and arithmetic as get_nutrition_summary's rangeAverages.
+    // Calories divide by every logged day; each macro only by the logged days
+    // that carry it.
     let cal = 0;
-    let pro = 0;
-    let carb = 0;
-    let fat = 0;
+    const pro = { sum: 0, days: 0 };
+    const carb = { sum: 0, days: 0 };
+    const fat = { sum: 0, days: 0 };
+    const add = (acc: { sum: number; days: number }, v: number | null) => {
+        if (v == null) return;
+        acc.sum += v;
+        acc.days++;
+    };
+    const mean = (acc: { sum: number; days: number }) =>
+        acc.days === 0 ? null : acc.sum / acc.days;
     let onTarget = 0;
     let incomplete = 0;
     let anyTarget = false;
@@ -308,9 +327,9 @@ function buildRow(
         if (!isLogged(day)) continue;
         loggedDays++;
         cal += day.calories;
-        pro += day.protein_g;
-        carb += day.carbs_g;
-        fat += day.fat_g;
+        add(pro, day.protein_g);
+        add(carb, day.carbs_g);
+        add(fat, day.fat_g);
         if (goals) {
             if (hasAnyTarget(goals.targets) && dayOnTarget(day, goals.targets))
                 onTarget++;
@@ -335,9 +354,9 @@ function buildRow(
                 ? null
                 : {
                       calories: cal / loggedDays,
-                      protein: pro / loggedDays,
-                      carbs: carb / loggedDays,
-                      fat: fat / loggedDays,
+                      protein: mean(pro),
+                      carbs: mean(carb),
+                      fat: mean(fat),
                   },
         // Null, not an all-null object, when none of the four macros has a
         // target (history holding only water, fiber or a target weight), so
@@ -541,8 +560,15 @@ function formatRow(
         parts.push(
             `${whole(avg.calories)} kcal${t?.calories != null ? ` (target ${whole(t.calories)})` : ""}`,
         );
-        const macro = (label: string, v: number, target: number | null) =>
-            `${label} ${whole(v)}${target != null ? `/${whole(target)}` : ""} g`;
+        // A macro no logged day carries is "not logged", never "0 g".
+        const macro = (
+            label: string,
+            v: number | null,
+            target: number | null,
+        ) =>
+            v == null
+                ? `${label} not logged`
+                : `${label} ${whole(v)}${target != null ? `/${whole(target)}` : ""} g`;
         parts.push(macro("P", avg.protein, t?.protein ?? null));
         parts.push(macro("C", avg.carbs, t?.carbs ?? null));
         parts.push(macro("F", avg.fat, t?.fat ?? null));

@@ -29,6 +29,9 @@ const periodIsCount = (v) => Number.isInteger(v) && v >= 0;
 const periodIsDate = (v) =>
     typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const periodNumOrNull = (v) => (periodIsNum(v) ? v : null);
+// A macro average may be null (no logged day in the period carried it), but
+// never missing or a non-number.
+const periodIsNumOrNull = (v) => v === null || periodIsNum(v);
 
 // One row, every field treated as optional: anything malformed returns null
 // and the row is dropped, never painted half-right.
@@ -44,9 +47,9 @@ function periodRowFrom(r) {
         if (
             !a ||
             !periodIsNum(a.calories) ||
-            !periodIsNum(a.protein) ||
-            !periodIsNum(a.carbs) ||
-            !periodIsNum(a.fat)
+            !periodIsNumOrNull(a.protein) ||
+            !periodIsNumOrNull(a.carbs) ||
+            !periodIsNumOrNull(a.fat)
         ) {
             return null;
         }
@@ -207,13 +210,14 @@ function periodBand(value, target) {
     return periodWithinBand(value, target) ? " pin" : " pout";
 }
 
+// A null value is a macro no logged day carried: a dash, never "0 g", dimmed
+// like an off-band figure since there is nothing to compare with the target.
 function periodMacroHtml(cls, letter, value, target) {
     const g = (T.macros.units && T.macros.units.g) || "g";
-    const fig =
-        target != null
-            ? `${fmt(value)}/${fmt(target)} ${g}`
-            : `${fmt(value)} ${g}`;
-    return `<span class="pmac ${cls}${periodBand(value, target)}"><b>${esc(letter)}</b><span>${esc(fig)}</span></span>`;
+    const v = value == null ? "–" : fmt(value);
+    const fig = target != null ? `${v}/${fmt(target)} ${g}` : `${v} ${g}`;
+    const band = value == null ? " pout" : periodBand(value, target);
+    return `<span class="pmac ${cls}${band}"><b>${esc(letter)}</b><span>${esc(fig)}</span></span>`;
 }
 
 function periodRowHtml(row, g, ctx) {

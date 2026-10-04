@@ -48,9 +48,10 @@ function day(
         date,
         meal_count,
         calories,
-        protein_g: macros.protein_g ?? 0,
-        carbs_g: macros.carbs_g ?? 0,
-        fat_g: macros.fat_g ?? 0,
+        // An explicit null (no meal carried it) stays null.
+        protein_g: "protein_g" in macros ? macros.protein_g! : 0,
+        carbs_g: "carbs_g" in macros ? macros.carbs_g! : 0,
+        fat_g: "fat_g" in macros ? macros.fat_g! : 0,
     };
 }
 
@@ -175,8 +176,9 @@ describe("dayTotalsFromMeals", () => {
             meal_count: 2,
             calories: 500,
             protein_g: 25,
-            carbs_g: 0,
-            fat_g: 0,
+            // Every meal in the fixture has null carbs and fat: not carried.
+            carbs_g: null,
+            fat_g: null,
         });
         expect(out[1]!.meal_count).toBe(0);
         expect(out[3]!.calories).toBe(100);
@@ -193,8 +195,108 @@ describe("dayTotalsFromMeals", () => {
     });
 });
 
+describe("dayTotalsFromMeals macro coverage", () => {
+    test("a macro is null on a day no meal carries it, its sum when one does", () => {
+        const calOnly = {
+            ...meal("2026-03-01T08:00:00Z", 600),
+            protein_g: null,
+        };
+        const withProtein = meal("2026-03-02T08:00:00Z", 500, 30);
+        const out = dayTotalsFromMeals(
+            [
+                calOnly,
+                withProtein,
+                { ...meal("2026-03-02T12:00:00Z", 200), protein_g: null },
+            ],
+            "2026-03-01",
+            "2026-03-02",
+            "UTC",
+        );
+        expect(out[0]!.protein_g).toBeNull();
+        expect(out[0]!.calories).toBe(600);
+        // One carrying meal makes the day carry it; the other adds nothing.
+        expect(out[1]!.protein_g).toBe(30);
+    });
+});
+
 describe("buildPeriodRows", () => {
     const tz = "UTC";
+
+    test("a macro no logged day carries averages to null, not 0", () => {
+        const days = [
+            day("2026-03-01", 2000, 1, {
+                protein_g: null,
+                carbs_g: null,
+                fat_g: null,
+            }),
+            day("2026-03-02", 1800, 1, {
+                protein_g: null,
+                carbs_g: null,
+                fat_g: null,
+            }),
+        ];
+        const march = buildPeriodRows(days, [], "2026-04-15", "month", tz).find(
+            (r) => r.key === "2026-03",
+        )!;
+        expect(march.avg).toEqual({
+            calories: 1900,
+            protein: null,
+            carbs: null,
+            fat: null,
+        });
+    });
+
+    test("each macro averages over only the logged days that carry it", () => {
+        const days = [
+            day("2026-03-01", 2000, 1, {
+                protein_g: 150,
+                carbs_g: null,
+                fat_g: 60,
+            }),
+            day("2026-03-02", 1000, 1, {
+                protein_g: null,
+                carbs_g: null,
+                fat_g: 80,
+            }),
+            day("2026-03-03", 1500, 1, {
+                protein_g: 90,
+                carbs_g: 200,
+                fat_g: 70,
+            }),
+        ];
+        const march = buildPeriodRows(days, [], "2026-04-15", "month", tz).find(
+            (r) => r.key === "2026-03",
+        )!;
+        expect(march.logged_days).toBe(3);
+        // Calories over all 3 logged days; protein over 2, carbs over 1.
+        expect(march.avg).toEqual({
+            calories: 1500,
+            protein: 120,
+            carbs: 200,
+            fat: 70,
+        });
+    });
+
+    test("a day with a protein target but no protein logged is not on target", () => {
+        const history = [
+            hist("2026-01-01T00:00:00Z", {
+                daily_calories: 2000,
+                daily_protein_g: 150,
+            }),
+        ];
+        const days = [
+            day("2026-03-01", 2000, 1, { protein_g: null }),
+            day("2026-03-02", 2000, 1, { protein_g: 150 }),
+        ];
+        const march = buildPeriodRows(
+            days,
+            history,
+            "2026-04-15",
+            "month",
+            tz,
+        ).find((r) => r.key === "2026-03")!;
+        expect(march.on_target_days).toBe(1);
+    });
 
     test("logged-day vs calendar-day denominators; a water-only day is not logged", () => {
         // March 2026, end date mid-April: March is complete.
@@ -514,6 +616,26 @@ describe("formatPeriodContent", () => {
             daily_fat_g: 70,
         }),
     ];
+
+    test("a macro no logged day carried reads 'not logged', never 0 g", () => {
+        const days = [
+            day("2026-03-02", 1950, 1, {
+                protein_g: null,
+                carbs_g: null,
+                fat_g: 60,
+            }),
+        ];
+        const rows = buildPeriodRows(
+            days,
+            history,
+            "2026-03-31",
+            "month",
+            "UTC",
+        );
+        const text = formatPeriodContent(rows, "month", "2026-03-10");
+        expect(text).toContain("P not logged · C not logged · F 60/70 g");
+        expect(text).not.toContain("P 0");
+    });
 
     test("the example line shape, partial and notes", () => {
         const days = [
