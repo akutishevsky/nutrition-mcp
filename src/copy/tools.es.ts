@@ -103,7 +103,7 @@ export const TOOLS_ES: ToolsDoc = {
                 sugar_g:
                     "Azúcares <b>totales</b> en gramos: la cifra que la etiqueta indica en «Azúcares», incluido el azúcar natural de la fruta y la leche, no solo el azúcar añadido. Se completa en cada comida, igual que la fibra",
                 added_sugar_g:
-                    "Azúcares <b>añadidos</b> en gramos: el azúcar que se añade al procesar o preparar un alimento (azúcar de mesa, siropes, miel, el azúcar de bebidas y alimentos endulzados). Forman parte de los azúcares totales y nunca los superan. El azúcar natural de la fruta entera, las verduras y la leche sin azúcar no es añadido, y tampoco el del zumo 100 % de fruta. Se completa en cada comida, igual que la fibra: los alimentos sin procesar llevan 0, el azúcar de un refresco es todo añadido y se usa la línea «Includes Xg Added Sugars» de las etiquetas estadounidenses cuando existe",
+                    "Azúcares <b>añadidos</b> en gramos: el azúcar que se añade al procesar o preparar un alimento (azúcar de mesa, siropes, miel, el azúcar de bebidas y alimentos endulzados). Forman parte de los azúcares totales y nunca los superan. El azúcar natural de la fruta entera, las verduras y la leche sin azúcar no es añadido, y tampoco el del zumo 100 % de fruta. Se completa en cada comida, igual que la fibra: los alimentos sin procesar llevan 0, el azúcar de un refresco es todo añadido y se usa la línea «Includes Xg Added Sugars» de las etiquetas estadounidenses cuando existe. Acompaña a <code>sugar_g</code>: una comida con azúcares totales pero sin azúcares añadidos puede no guardarse",
                 alcohol_g:
                     "Gramos de <b>etanol puro</b>, no el volumen de la bebida ni su graduación: la IA lo calcula a partir de la cantidad servida y la graduación (una cerveza de 330 ml al 5&nbsp;% son 13 g)",
                 caffeine_mg:
@@ -161,7 +161,7 @@ export const TOOLS_ES: ToolsDoc = {
                 fiber_g: "",
                 sugar_g: "Azúcares totales, no azúcar añadido",
                 added_sugar_g:
-                    "Solo azúcares añadidos, nunca más que los azúcares totales",
+                    "Solo azúcares añadidos, nunca más que los azúcares totales. Acompaña a <code>sugar_g</code>: un cambio en los azúcares totales de una comida sin azúcares añadidos registrados puede no guardarse sin este valor",
                 alcohol_g: "Gramos de etanol puro, no el volumen de la bebida",
                 caffeine_mg: "Miligramos, no gramos",
                 logged_at: "",

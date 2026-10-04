@@ -94,7 +94,7 @@ export const TOOLS_PL: ToolsDoc = {
                 sugar_g:
                     "<b>Łączna</b> zawartość cukrów w gramach — wartość, którą etykieta podaje jako „w tym cukry”, obejmująca cukier naturalnie obecny w owocach i mleku, a nie tylko cukier dodany. Uzupełniana przy każdym posiłku na tych samych zasadach co błonnik",
                 added_sugar_g:
-                    "Cukry <b>dodane</b> w gramach — cukier dodany podczas przetwarzania lub przygotowania (cukier stołowy, syropy, miód, cukier w słodzonych napojach i produktach). Część cukrów ogółem, nigdy więcej niż one. Cukier naturalnie obecny w całych owocach, warzywach i zwykłym mleku nie jest dodany, podobnie jak ten w soku owocowym 100%. Uzupełniane przy każdym posiłku na tych samych zasadach co błonnik: nieprzetworzona żywność ma 0, cukier w słodzonym napoju gazowanym jest w całości dodany, a amerykański wiersz etykiety „Includes Xg Added Sugars” jest używany, gdy występuje",
+                    "Cukry <b>dodane</b> w gramach — cukier dodany podczas przetwarzania lub przygotowania (cukier stołowy, syropy, miód, cukier w słodzonych napojach i produktach). Część cukrów ogółem, nigdy więcej niż one. Cukier naturalnie obecny w całych owocach, warzywach i zwykłym mleku nie jest dodany, podobnie jak ten w soku owocowym 100%. Uzupełniane przy każdym posiłku na tych samych zasadach co błonnik: nieprzetworzona żywność ma 0, cukier w słodzonym napoju gazowanym jest w całości dodany, a amerykański wiersz etykiety „Includes Xg Added Sugars” jest używany, gdy występuje. Towarzyszy polu <code>sugar_g</code>: posiłek z cukrami ogółem, ale bez cukrów dodanych, może nie zostać zapisany",
                 alcohol_g:
                     "Gramy <b>czystego etanolu</b>, a nie objętość napoju ani jego zawartość alkoholu w procentach — AI wylicza je z ilości i mocy napoju (330 ml piwa 5% to 13 g)",
                 caffeine_mg:
@@ -152,7 +152,7 @@ export const TOOLS_PL: ToolsDoc = {
                 fiber_g: "",
                 sugar_g: "Cukry ogółem, nie cukry dodane",
                 added_sugar_g:
-                    "Tylko cukry dodane, nigdy więcej niż cukry ogółem",
+                    "Tylko cukry dodane, nigdy więcej niż cukry ogółem. Towarzyszy polu <code>sugar_g</code>: zmiana cukrów ogółem w posiłku bez zapisanych cukrów dodanych może nie zostać zapisana bez tej wartości",
                 alcohol_g: "Gramy czystego etanolu, nie objętość napoju",
                 caffeine_mg: "Miligramy, nie gramy",
                 logged_at: "",

@@ -99,7 +99,7 @@ export const TOOLS_NL: ToolsDoc = {
                 sugar_g:
                     "<b>Totale</b> suikers in gram: het getal dat op het etiket bij “waarvan suikers” staat, inclusief de suiker die van nature in fruit en zuivel zit, niet alleen toegevoegde suiker. Wordt net als vezels bij elke maaltijd ingevuld",
                 added_sugar_g:
-                    "<b>Toegevoegde</b> suikers in gram: suiker die bij verwerking of bereiding is toegevoegd (kristalsuiker, siropen, honing, de suiker in gezoete dranken en producten). Onderdeel van de totale suikers, nooit meer dan dat. De suiker die van nature in heel fruit, groente en ongezoete melk zit, is niet toegevoegd, en die in 100% vruchtensap ook niet. Wordt net als vezels bij elke maaltijd ingevuld: onbewerkte producten zijn 0, de suiker in frisdrank is helemaal toegevoegd, en de Amerikaanse etiketregel “Includes Xg Added Sugars” wordt gebruikt als die er is",
+                    "<b>Toegevoegde</b> suikers in gram: suiker die bij verwerking of bereiding is toegevoegd (kristalsuiker, siropen, honing, de suiker in gezoete dranken en producten). Onderdeel van de totale suikers, nooit meer dan dat. De suiker die van nature in heel fruit, groente en ongezoete melk zit, is niet toegevoegd, en die in 100% vruchtensap ook niet. Wordt net als vezels bij elke maaltijd ingevuld: onbewerkte producten zijn 0, de suiker in frisdrank is helemaal toegevoegd, en de Amerikaanse etiketregel “Includes Xg Added Sugars” wordt gebruikt als die er is. Hoort bij <code>sugar_g</code>: een maaltijd met totale suikers maar zonder toegevoegde suikers wordt mogelijk niet opgeslagen",
                 alcohol_g:
                     "Gram <b>zuivere ethanol</b>, niet het volume van de drank en niet het alcoholpercentage. De AI rekent het uit op basis van de hoeveelheid en de sterkte (een flesje bier van 330 ml met 5% is 13 g)",
                 caffeine_mg:
@@ -156,7 +156,7 @@ export const TOOLS_NL: ToolsDoc = {
                 fiber_g: "",
                 sugar_g: "Totale suikers, niet toegevoegde suiker",
                 added_sugar_g:
-                    "Alleen toegevoegde suikers, nooit meer dan de totale suikers",
+                    "Alleen toegevoegde suikers, nooit meer dan de totale suikers. Hoort bij <code>sugar_g</code>: een wijziging van de totale suikers bij een maaltijd zonder vastgelegde toegevoegde suikers wordt zonder deze waarde mogelijk niet opgeslagen",
                 alcohol_g: "Gram zuivere ethanol, niet het volume van de drank",
                 caffeine_mg: "Milligram, niet gram",
                 logged_at: "",

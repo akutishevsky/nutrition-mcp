@@ -108,7 +108,7 @@ export const TOOLS_IT: ToolsDoc = {
                 sugar_g:
                     "Zuccheri <b>totali</b> in grammi: il valore che l'etichetta riporta alla voce “Zuccheri”, compresi quelli naturalmente presenti in frutta e latte, non solo gli zuccheri aggiunti. Si compila per ogni pasto, alle stesse condizioni delle fibre",
                 added_sugar_g:
-                    "Zuccheri <b>aggiunti</b> in grammi: lo zucchero aggiunto durante la lavorazione o la preparazione (zucchero da tavola, sciroppi, miele, lo zucchero di bevande e alimenti zuccherati). Fanno parte degli zuccheri totali e non li superano mai. Lo zucchero naturalmente presente nella frutta intera, nella verdura e nel latte semplice non è aggiunto, e nemmeno quello del succo 100% frutta. Si compila per ogni pasto, alle stesse condizioni delle fibre: gli alimenti non lavorati valgono 0, lo zucchero di una bibita è tutto aggiunto e si usa la riga “Includes Xg Added Sugars” delle etichette statunitensi quando c'è",
+                    "Zuccheri <b>aggiunti</b> in grammi: lo zucchero aggiunto durante la lavorazione o la preparazione (zucchero da tavola, sciroppi, miele, lo zucchero di bevande e alimenti zuccherati). Fanno parte degli zuccheri totali e non li superano mai. Lo zucchero naturalmente presente nella frutta intera, nella verdura e nel latte semplice non è aggiunto, e nemmeno quello del succo 100% frutta. Si compila per ogni pasto, alle stesse condizioni delle fibre: gli alimenti non lavorati valgono 0, lo zucchero di una bibita è tutto aggiunto e si usa la riga “Includes Xg Added Sugars” delle etichette statunitensi quando c'è. Accompagna <code>sugar_g</code>: un pasto con zuccheri totali ma senza zuccheri aggiunti potrebbe non essere salvato",
                 alcohol_g:
                     "Grammi di <b>etanolo puro</b>, non il volume della bevanda né la sua gradazione: l'IA li calcola dalla quantità servita e dalla gradazione (una birra da 330 ml al 5% contiene 13 g)",
                 caffeine_mg:
@@ -166,7 +166,7 @@ export const TOOLS_IT: ToolsDoc = {
                 fiber_g: "",
                 sugar_g: "Zuccheri totali, non zuccheri aggiunti",
                 added_sugar_g:
-                    "Solo zuccheri aggiunti, mai più degli zuccheri totali",
+                    "Solo zuccheri aggiunti, mai più degli zuccheri totali. Accompagna <code>sugar_g</code>: una modifica degli zuccheri totali di un pasto senza zuccheri aggiunti registrati potrebbe non essere salvata senza questo valore",
                 alcohol_g:
                     "Grammi di etanolo puro, non il volume della bevanda",
                 caffeine_mg: "Milligrammi, non grammi",
