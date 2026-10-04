@@ -1,4 +1,4 @@
-// Typed content for /tools (the "all 36 tools" reference page), rendered
+// Typed content for /tools (the "all 41 tools" reference page), rendered
 // by scripts/gen-tools.ts. Extracted verbatim from the previously
 // hand-authored public/tools.html — see CLAUDE.md's "Public site" section
 // for the generator family this belongs to, and gen-tools.ts's own header
@@ -128,12 +128,13 @@ export interface ToolIdentity {
 }
 
 /**
- * All 36 tools, in the exact document order of public/tools.html (grouped
- * by category — see CategoryId — for the reader). Cross-checked against
- * the 36 `server.registerTool()` calls in src/mcp.ts: the two orders
+ * All 41 tools, in the exact document order of public/tools.html (grouped
+ * by category — see CategoryId — for the reader). The *set* of names must
+ * equal the 41 `server.registerTool()` calls in src/mcp.ts; the two orders
  * differ (mcp.ts registers in its own order, unrelated to this page's
- * reader-facing grouping) but the *set* of 36 tool names is identical —
- * nothing here was dropped or invented.
+ * reader-facing grouping). "the registered tool set and every hand-typed
+ * tool count agree" in src/site-copy.test.ts enforces the set and the
+ * count fields of every locale.
  */
 export const TOOLS: ToolIdentity[] = [
     {
@@ -149,6 +150,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "fat_g", required: false },
             { name: "fiber_g", required: false },
             { name: "sugar_g", required: false },
+            { name: "added_sugar_g", required: false },
             { name: "alcohol_g", required: false },
             { name: "caffeine_mg", required: false },
             { name: "logged_at", required: false },
@@ -197,6 +199,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "fat_g", required: false },
             { name: "fiber_g", required: false },
             { name: "sugar_g", required: false },
+            { name: "added_sugar_g", required: false },
             { name: "alcohol_g", required: false },
             { name: "caffeine_mg", required: false },
             { name: "logged_at", required: false },
@@ -350,6 +353,57 @@ export const TOOLS: ToolIdentity[] = [
         hasPhotoHint: false,
     },
     {
+        name: "log_body_measurement",
+        category: "weight",
+        badges: ["log"],
+        params: [
+            { name: "kind", required: true },
+            { name: "value", required: true },
+            { name: "unit", required: false },
+            { name: "logged_at", required: false },
+            { name: "notes", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "get_body_measurements",
+        category: "weight",
+        badges: ["view"],
+        params: [
+            { name: "kind", required: false },
+            { name: "start_date", required: false },
+            { name: "end_date", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "update_body_measurement",
+        category: "weight",
+        badges: ["edit"],
+        params: [
+            { name: "id", required: true },
+            { name: "value", required: false },
+            { name: "unit", required: false },
+            { name: "logged_at", required: false },
+            { name: "notes", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "delete_body_measurement",
+        category: "weight",
+        badges: ["remove"],
+        params: [{ name: "id", required: true }],
+        hasPhotoHint: false,
+    },
+    {
+        name: "set_length_unit",
+        category: "weight",
+        badges: ["setting"],
+        params: [],
+        hasPhotoHint: false,
+    },
+    {
         name: "set_nutrition_goals",
         category: "goals-progress",
         badges: ["setting"],
@@ -360,6 +414,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "daily_fat_g", required: false },
             { name: "daily_fiber_g", required: false },
             { name: "daily_sugar_g", required: false },
+            { name: "daily_added_sugar_g", required: false },
             { name: "daily_alcohol_g", required: false },
             { name: "daily_caffeine_mg", required: false },
             { name: "daily_water_ml", required: false },
@@ -395,7 +450,10 @@ export const TOOLS: ToolIdentity[] = [
         name: "get_trends",
         category: "insights-trends",
         badges: ["view", "widget"],
-        params: [{ name: "days", required: false }],
+        params: [
+            { name: "days", required: false },
+            { name: "group_by", required: false },
+        ],
         hasPhotoHint: false,
     },
     {
@@ -473,6 +531,9 @@ export const TROUBLESHOOTING_IDS = [
     "import-problems",
     "rate-limited",
     "barcode-not-found",
+    "health-sync-yesterday",
+    "health-sync-higher",
+    "health-sync-stopped",
     "export-link",
     "delete-account",
     "report-a-problem",
@@ -597,11 +658,11 @@ export interface ToolsDoc {
 
 const TOOLS_EN: ToolsDoc = {
     meta: {
-        title: "36 Calorie, Macro, Water & Weight Tools",
+        title: "41 Calorie, Macro, Water & Weight Tools",
         description:
-            "All 36 Nutrition MCP tools for Claude, ChatGPT and other AI apps: log meals, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water and weight.",
+            "All 41 Nutrition MCP tools for Claude, ChatGPT and more: log meals, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
         ogDescription:
-            "All 36 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
+            "All 41 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
@@ -609,7 +670,7 @@ const TOOLS_EN: ToolsDoc = {
         titleEm: "do",
         titleAfterEm: "",
         lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
-        countBold: "36 tools",
+        countBold: "41 tools",
         countTail: "across 7 areas",
     },
     categories: {
@@ -631,10 +692,10 @@ const TOOLS_EN: ToolsDoc = {
             description: "Track hydration alongside your food.",
         },
         weight: {
-            pillLabel: "Weight",
-            title: "Weight tracking",
+            pillLabel: "Body",
+            title: "Weight & body measurements",
             description:
-                "Log weigh-ins, review them, and watch the trend toward your target.",
+                "Log weigh-ins and tape measurements, review them, and watch your weight trend toward your target.",
         },
         "goals-progress": {
             pillLabel: "Goals",
@@ -675,7 +736,7 @@ const TOOLS_EN: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log what you ate with calories and macros — plus fiber, total sugar, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first.",
+                "Log what you ate with calories and macros — plus fiber, total and added sugar, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first.",
             params: {
                 description: "What was eaten",
                 meal_type: "breakfast, lunch, dinner or snack",
@@ -687,6 +748,8 @@ const TOOLS_EN: ToolsDoc = {
                     "Dietary fiber in grams. The AI is told to fill this in on every meal, estimating from the ingredients when no label figure exists, because a blank is not a zero — it leaves the whole day out of your fiber average",
                 sugar_g:
                     '<b>Total</b> sugars in grams — the figure a label prints under "Sugars", including the sugar naturally in fruit and milk, not just added sugar. Filled in on every meal on the same terms as fiber',
+                added_sugar_g:
+                    "<b>Added</b> sugars in grams — sugar added during processing or preparation (table sugar, syrups, honey, the sugar in sweetened drinks and foods). Part of total sugars, never more than it. Sugar naturally in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Filled in on every meal on the same terms as fiber: whole foods are 0, a soft drink's sugar is all added, and a US label's \"Includes Xg Added Sugars\" line is used when there is one. It accompanies <code>sugar_g</code>: a meal given total sugars without added sugars may not be saved",
                 alcohol_g:
                     "Grams of <b>pure ethanol</b>, not the volume of the drink and not its ABV — the AI works it out from the pour size and strength (a 330 ml 5% beer is 13 g)",
                 caffeine_mg:
@@ -701,7 +764,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Fetch a packaged product's label nutrition from Open Food Facts by its barcode (8–14 digit EAN/UPC), plus its Nutri-Score and NOVA processing group when Open Food Facts has them. You can type the digits or read them off a photo of the package; the result can then be logged, scaled to how much you ate.",
+                "Fetch a packaged product's label nutrition from Open Food Facts by its barcode (8–14 digit EAN/UPC), plus its Nutri-Score and NOVA processing group when Open Food Facts has them. Added sugar is shown when Open Food Facts lists it, and marked when Open Food Facts estimated it from the ingredients. You can type the digits or read them off a photo of the package; the result can then be logged, scaled to how much you ate.",
             params: {},
             example: "Scan this barcode: 3017620422003",
             photoHint:
@@ -709,7 +772,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Open an importer in the chat to bring your history over from another app — pick the CSV you exported from MyFitnessPal, Cronometer, Lose It!, MacroFactor or another tracker, match its columns to calories, macros, fiber, sugar and caffeine — plus alcohol if you've turned alcohol tracking on — and review what will be added before you confirm. The file is read in your browser, nothing is saved until you approve the preview, and importing the same file again won't create duplicates.",
+                "Open an importer in the chat to bring your history over from another app — pick the CSV you exported from MyFitnessPal, Cronometer, Lose It!, MacroFactor or another tracker, match its columns to calories, macros, fiber, total and added sugar and caffeine — plus alcohol if you've turned alcohol tracking on — and review what will be added before you confirm. The file is read in your browser, nothing is saved until you approve the preview, and importing the same file again won't create duplicates.",
             params: {},
             example: "Import my meal history from MyFitnessPal",
         },
@@ -717,7 +780,7 @@ const TOOLS_EN: ToolsDoc = {
             description:
                 "Add a batch of past meals in one go — up to 50 at a time — instead of logging them one by one. The importer above writes through this, and the AI can use it directly for meal data you've pasted into the chat. Every row is checked first and anything that doesn't fit is reported row by row, so re-sending the same rows is safe and won't duplicate what's already logged, as long as your timezone hasn't changed in between.",
             params: {
-                meals: "The rows to import, in source-file order (1–50 per call). Each row can carry a time, meal type, description, notes and the same numbers as a logged meal: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (total sugars), <code>alcohol_g</code> (grams of pure ethanol) and <code>caffeine_mg</code> (milligrams, not grams)",
+                meals: "The rows to import, in source-file order (1–50 per call). Each row can carry a time, meal type, description, notes and the same numbers as a logged meal: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (total sugars), <code>added_sugar_g</code> (added sugars, part of the total), <code>alcohol_g</code> (grams of pure ethanol) and <code>caffeine_mg</code> (milligrams, not grams)",
                 expected_row_count:
                     "How many rows this call carries, counted from the source file, so a dropped row gets caught",
                 expected_total_kcal:
@@ -732,7 +795,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Change the details of a meal you already logged — its description, any macro, fiber, sugar, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber or sugar, the server says so and the AI fills it in here once you agree.",
+                "Change the details of a meal you already logged — its description, any macro, fiber, total or added sugar, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber, sugar or added sugar, the server says so and the AI fills it in here once you agree.",
             params: {
                 id: "UUID of the meal to update",
                 description: "",
@@ -742,6 +805,8 @@ const TOOLS_EN: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Total sugars, not added sugar",
+                added_sugar_g:
+                    "Added sugars only, never more than total sugars. It accompanies <code>sugar_g</code>: a change to total sugars on a meal with no added sugars recorded may not be saved without it",
                 alcohol_g: "Grams of pure ethanol, not the volume of the drink",
                 caffeine_mg: "Milligrams, not grams",
                 logged_at: "",
@@ -795,7 +860,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps, without any tokens), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
+                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (every change to your goals, dated), profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps and Apple Health sync, without any tokens), health_sync.csv (what Apple Health sync sent over the last 8 days), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
             params: {},
             example: "Export all of my data — meals, water, weight, and goals",
         },
@@ -875,7 +940,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "See your weight trend over a window: latest reading, overall change, 7/14/30-day moving averages, min/max, and progress toward your target weight.",
+                "See your weight trend over a window: a smoothed trend weight that evens out day-to-day swings, your weekly rate of change, latest reading, overall change, min/max, and progress toward your target weight. The chart also zooms out to 90 days, a year or your whole history.",
             params: {
                 days: "Window size in days (default 30, max 365).",
             },
@@ -887,9 +952,57 @@ const TOOLS_EN: ToolsDoc = {
             params: {},
             example: "Use pounds for my weight from now on",
         },
+        log_body_measurement: {
+            description:
+                "Record a tape measurement of one body site — waist, hips, neck, chest, shoulders, upper arm, forearm, thigh or calf — in cm or inches. Stored exactly as entered alongside a canonical value, so switching units never shifts a number. Numbers far outside a realistic range for the site are refused as likely typos.",
+            params: {
+                kind: "Which site: <code>waist</code>, <code>hips</code>, <code>neck</code>, <code>chest</code>, <code>shoulders</code>, <code>upper_arm</code>, <code>forearm</code>, <code>thigh</code> or <code>calf</code>. One value per site; a side (left/right) can go in notes.",
+                value: "The measurement, in <code>unit</code> (&gt; 0).",
+                unit: "<code>cm</code> or <code>in</code>; defaults to your saved length unit.",
+                logged_at: "When it was measured, if not now",
+                notes: "Additional notes",
+            },
+            example: "Log my waist — 82 cm this morning",
+        },
+        get_body_measurements: {
+            description:
+                "List your body measurements by day, oldest first, optionally for one site only. Covers the last 30 days unless you give dates, up to 366 days per call.",
+            params: {
+                kind: "Only this site (e.g. <code>waist</code>)",
+                start_date: "Start date (YYYY-MM-DD)",
+                end_date:
+                    "End date (YYYY-MM-DD), up to 366 days including the start",
+            },
+            example: "Show my waist measurements from the last three months",
+        },
+        update_body_measurement: {
+            description:
+                "Correct an existing measurement — the value, its unit, the time, or notes. The site itself is fixed; a different site is a new entry.",
+            params: {
+                id: "UUID of the measurement to update",
+                value: "New value, in <code>unit</code>.",
+                unit: "Defaults to the unit the entry was recorded in.",
+                logged_at: "ISO 8601 timestamp",
+                notes: "Replacement notes",
+            },
+            example: "That hip measurement was 98 cm, not 89",
+        },
+        delete_body_measurement: {
+            description: "Remove a body measurement entry.",
+            params: {
+                id: "UUID of the measurement to delete",
+            },
+            example: "Delete today's neck measurement",
+        },
+        set_length_unit: {
+            description:
+                "Choose whether body measurements are shown and entered in centimetres or inches. Separate from your weight unit. Stored values are unaffected — only display and default parsing change.",
+            params: {},
+            example: "Use inches for my measurements",
+        },
         set_nutrition_goals: {
             description:
-                "Set your daily calorie, macro, fiber, sugar, alcohol, caffeine and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; sugar, alcohol and caffeine are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
+                "Set your daily calorie, macro, fiber, sugar, added sugar, alcohol, caffeine and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; total sugar, added sugar, alcohol and caffeine are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
             params: {
                 daily_calories: "Daily calorie target (kcal). Null to clear.",
                 daily_protein_g: "Daily protein target (grams). Null to clear.",
@@ -899,6 +1012,8 @@ const TOOLS_EN: ToolsDoc = {
                     "Daily fiber target (grams), a minimum to reach. Null to clear.",
                 daily_sugar_g:
                     "Daily limit for <b>total</b> sugars (grams), a maximum to stay under. Total sugars include the sugar naturally in fruit and milk, so public added-sugar guidance is a much lower number. Null to clear.",
+                daily_added_sugar_g:
+                    "Daily limit for <b>added</b> sugars (grams), a maximum to stay under. Counts only added sugars, not the sugar naturally in fruit and milk; public guidance figures for sugar usually refer to this measure (the American Heart Association suggests at most 25 g a day for women and 36 g for men). 0 is a real limit meaning none at all. Null to clear.",
                 daily_alcohol_g:
                     "Daily alcohol limit in grams of <b>pure ethanol</b>, a maximum to stay under. One US standard drink is 14 g, one UK unit 7.9 g. Null to clear.",
                 daily_caffeine_mg:
@@ -933,12 +1048,13 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Rolling 7/14/30-day averages, variability, logging streaks, day-of-week calorie averages, and your best and worst days by calories — pre-computed so the AI can just narrate them.",
+                "Rolling 7/14/30-day averages, variability, logging streaks, day-of-week calorie averages, and your best and worst days by calories — pre-computed so the AI can just narrate them. With group_by, it also gives averages by week, month, quarter or year — per logged day, so days with no meals are left out — set against the targets in effect at the time, with how many days were on target and how many look incomplete.",
             params: {
                 days: "Window size in days (default 30, max 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> or <code>year</code>: 26 weeks, 24 months, 12 quarters or 5 years, ending with the period that contains the end date (today by default). The span is fixed; <code>days</code> still sets the rolling averages.",
             },
-            example:
-                "What are my calorie and macro trends over the last 30 days?",
+            example: "How did my months go against my targets?",
         },
         get_meal_patterns: {
             description:
@@ -951,7 +1067,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_profile: {
             description:
-                "See your current settings in one go: timezone (plus local date and time), widget language, preferred weight unit, whether in-chat widgets are shown, and whether alcohol tracking is on.",
+                "See your current settings in one go: timezone (plus local date and time), widget language, preferred weight and length units, whether in-chat widgets are shown, and whether alcohol tracking is on.",
             params: {},
             example: "What are my current settings?",
         },
@@ -1059,6 +1175,21 @@ const TOOLS_EN: ToolsDoc = {
                 answerHtml:
                     "Barcode data comes from Open Food Facts, a community database, so some products are missing and some entries are out of date. Make sure all 8–14 digits under the barcode were read correctly. If the product is not there, the AI can estimate from the name or from a photo of the nutrition label, and you can correct any figure afterwards. Adding the product on openfoodfacts.org helps everyone. Open Food Facts has no caffeine data, so caffeine comes from the label or typical amounts.",
             },
+            "health-sync-yesterday": {
+                question: "Yesterday isn't in Apple Health yet",
+                answerHtml:
+                    'Apple Health sync sends only finished days. A day counts as finished at 05:00 the next morning in your timezone, so yesterday arrives with the first sync after 05:00 today, and today never shows in Health until tomorrow. A sync runs when one of the shortcut\'s automations fires (opening the Health app, stopping your alarm) or when you run <strong>Nutrition MCP Health</strong> in the Shortcuts app and choose <strong>Sync now</strong>. A missed morning catches up on its own: every sync looks back over the last 7 days. Days follow the timezone on your profile (<a href="#get_profile"><code>get_profile</code></a>), or the one your iPhone reported when you connected if you never set one (<a href="#wrong-day">meals on the wrong day</a>). Days before you connected are only sent if you chose to bring back up to 7 earlier days while connecting.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health shows more than my chat",
+                answerHtml:
+                    "Apple Health can add to a value but can never lower one it already holds. A meal you add to a day that was already sent follows as a small extra entry at 12:01, 12:02 and so on, as long as the day is within the last 7 days. A meal you delete or make smaller after its day was sent leaves Health higher, and the shortcut shows a notice saying by how much. To fix it, open the Health app, go to <strong>Browse</strong> → <strong>Nutrition</strong>, open the type (for example Dietary Energy), tap <strong>Show All Data</strong>, delete that day's entries from Shortcuts and enter the right total by hand. Never use <strong>Delete All Data from Shortcuts</strong>: it also removes what your other shortcuts logged. If every day looks doubled, another app writes the same types too and Health adds the two together: switch one of them off under <strong>Sharing</strong> → <strong>Apps</strong> in the Health app.",
+            },
+            "health-sync-stopped": {
+                question: "Apple Health sync stopped",
+                answerHtml:
+                    "Open the Shortcuts app and run <strong>Nutrition MCP Health</strong> by hand: it says what went wrong. If it asks you to connect again, the connection has ended (after 90 days without a sync, 365 days after connecting, or after <strong>Disconnect</strong>): run it, sign in on the page it opens with the same account as in your AI app, and finish within 30 minutes. If it syncs when you run it but not on its own, check that its automations in the Shortcuts app's <strong>Automation</strong> tab are on and set to <strong>Run Immediately</strong>. If a notice says a day did not reach Apple Health, let Shortcuts write every nutrition type under <strong>Sharing</strong> → <strong>Apps</strong> → <strong>Shortcuts</strong> in the Health app, then run it again. Connecting a new iPhone replaces the old one's connection.",
+            },
             "export-link": {
                 question: "My export download link doesn't work",
                 answerHtml:
@@ -1067,7 +1198,7 @@ const TOOLS_EN: ToolsDoc = {
             "delete-account": {
                 question: "How do I delete my account?",
                 answerHtml:
-                    'Ask the AI to delete your Nutrition MCP account (<a href="#delete_account"><code>delete_account</code></a>). It will ask you to confirm, then permanently delete your meals, water, weight, goals, settings, the record of which tools your AI app used, any export file, your sign-in and the account itself. This cannot be undone, so export your data first if you want a copy. Then remove the connector from your app. Signing in again with the same email later creates a new, empty account.',
+                    'Ask the AI to delete your Nutrition MCP account (<a href="#delete_account"><code>delete_account</code></a>). It will ask you to confirm, then permanently delete your meals, water, weight, body measurements, goals, settings, the record of which tools your AI app used, any export file, your sign-in and the account itself. This cannot be undone, so export your data first if you want a copy. Then remove the connector from your app. Signing in again with the same email later creates a new, empty account.',
             },
             "report-a-problem": {
                 question: "How do I report a bug or a security issue?",

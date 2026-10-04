@@ -2,9 +2,12 @@ import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import crypto from "node:crypto";
 import {
+    HEALTH_SYNC_CLIENT_ID,
     createSupabaseOAuthStore,
+    healthSyncCallbackUrl,
     legacyClientFromEnv,
     supabaseOAuthAuth,
+    withFirstPartyClients,
     withLegacyClient,
     type OAuthAuth,
     type OAuthClient,
@@ -13,6 +16,7 @@ import {
 } from "./oauth-store.js";
 import {
     KNOWN_CLIENT_HOSTS,
+    challengeMatches,
     isLoopbackRedirect,
     isValidCodeChallenge,
     isValidCodeVerifier,
@@ -359,11 +363,20 @@ function renderTranslationNotice(
 // shows nothing is a login page that hands codes to strangers (#148). The
 // client's self-declared client_name is never rendered: it is attacker-chosen
 // ("Claude") and would lend a lookalike the credibility the host denies it.
+//
+// The built-in health-sync client gets its own notice instead: its redirect is
+// always this server, so naming a host would tell the user nothing, while the
+// real risk — someone else's shortcut run sending this link to the victim —
+// is exactly what the notice describes. Keyed on the client id the session was
+// validated for, which only that client can carry.
 function renderClientNotice(session: OAuthSession): string {
     const copy = LOGIN_CLIENT_NOTICE[session.locale];
     let template: string;
     let warn: boolean;
-    if (session.redirectKind === "loopback") {
+    if (session.clientId === HEALTH_SYNC_CLIENT_ID) {
+        template = copy.healthSync;
+        warn = true;
+    } else if (session.redirectKind === "loopback") {
         template = copy.loopback;
         warn = true;
     } else if (
@@ -674,13 +687,6 @@ function str(v: unknown): string | undefined {
     return typeof v === "string" ? v : undefined;
 }
 
-// pkceS256(verifier) against the stored challenge, in constant time.
-function challengeMatches(computed: string, stored: string): boolean {
-    const a = Buffer.from(computed, "utf8");
-    const b = Buffer.from(stored, "utf8");
-    return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
 export interface OAuthRouterDeps {
     store?: OAuthStore;
     auth?: OAuthAuth;
@@ -692,9 +698,10 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
     // The legacy env client is read here, at construction, and resolved in
     // memory by whichever store is in use (see withLegacyClient).
     const legacy = legacyClientFromEnv();
-    const store = withLegacyClient(
-        deps.store ?? createSupabaseOAuthStore(),
-        legacy,
+    // The built-in health-sync client is resolved the same way, ahead of
+    // both (see withFirstPartyClients).
+    const store = withFirstPartyClients(
+        withLegacyClient(deps.store ?? createSupabaseOAuthStore(), legacy),
     );
     const auth = deps.auth ?? supabaseOAuthAuth;
     const now = deps.now ?? Date.now;
@@ -885,10 +892,17 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
     // present one of its registered URIs (loopback ignoring the port); the
     // legacy env client, which registered nothing, is held to loopback plus
     // the hand-reviewed snapshot.
+    // The built-in health-sync client may only come back to this server's
+    // own callback, on the same base URL /authorize is answering on, byte
+    // for byte — no loopback port leniency, nothing registered.
     async function redirectAllowed(
+        c: Context,
         client: OAuthClient,
         redirectUri: string,
     ): Promise<boolean> {
+        if (client.firstParty === "health-sync") {
+            return redirectUri === healthSyncCallbackUrl(getBaseUrl(c));
+        }
         if (!client.legacy) {
             return client.redirectUris.some((r) =>
                 redirectMatches(r, redirectUri),
@@ -946,7 +960,7 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
                 "unknown_client",
             );
         }
-        if (!(await redirectAllowed(client, redirectUri))) {
+        if (!(await redirectAllowed(c, client, redirectUri))) {
             return rejectDirect(
                 "invalid_request",
                 "redirect_uri is not registered for this client",
@@ -1418,6 +1432,11 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             return { ok: true, client: null };
         }
         if (!client) return fail("unknown client");
+        // The health-sync client's codes are redeemed by its own server-side
+        // callback (src/health-sync-routes.ts) straight from the store; it
+        // has no business at /token, so no token or refresh token is ever
+        // minted for it here. Checked before any code is consumed.
+        if (client.firstParty) return fail("unknown client");
 
         if (client.legacy) {
             // The legacy env client's secret is optional (it was handed to

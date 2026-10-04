@@ -8,7 +8,7 @@
 // Locale notes: numbers follow Spanish conventions as CLDR has them — no
 // separator in a four-digit figure ("2000", "1830"), a decimal comma
 // ("78,4 kg") — the same formatting the cards on the page get from
-// toLocaleString("es"). The tool count ("36") is hand-typed here exactly as
+// toLocaleString("es"). The tool count ("41") is hand-typed here exactly as
 // in index.ts — see CLAUDE.md's "Registered tool set".
 
 import type { IndexDoc } from "./index.js";
@@ -51,7 +51,7 @@ export const INDEX_ES: IndexDoc = {
                 },
                 {
                     userText: "sí",
-                    aiText: "Desayuno registrado: 480 kcal, 21 g de proteína y 126 mg de cafeína. Ya llevas 51 g de azúcar, de un límite de 60 g.",
+                    aiText: "Desayuno registrado: 480 kcal, 21 g de proteína y 126 mg de cafeína. Llevas 20 g de azúcar añadido, de un límite de 25 g, casi todo de la miel; el resto de los 51 g de azúcar total viene de la fruta y el yogur.",
                     card: "meal-logged",
                     meal: {
                         description:
@@ -80,7 +80,7 @@ export const INDEX_ES: IndexDoc = {
                 },
                 {
                     userText: "¿qué me queda para la cena?",
-                    aiText: "Te quedan 850 kcal y te faltan 84 g de proteína. Llevas 59 g de azúcar, de un límite de 60 g.",
+                    aiText: "Te quedan 850 kcal y te faltan 84 g de proteína. Llevas 23 g de azúcar añadido, de un límite de 25 g, y casi todo el azúcar total de hoy, 59 g, viene de la fruta.",
                     card: "nutrition-summary",
                 },
                 {
@@ -172,7 +172,7 @@ export const INDEX_ES: IndexDoc = {
         note: "Todo esto es opcional. Puedes hacerlo ahora, más tarde o nunca: empieza a registrar y ajústalo cuando quieras.",
         toolsCta: {
             heading: "¿Te preguntas qué puede hacer de verdad?",
-            body: "Explora las 36 herramientas (registro, códigos de barras, agua, peso, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
+            body: "Explora las 41 herramientas (registro, códigos de barras, agua, peso y medidas corporales, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
             arrow: "Ver las herramientas",
         },
     },
@@ -198,10 +198,10 @@ export const INDEX_ES: IndexDoc = {
                 id: "log-meal",
                 title: "Regístralo con tus palabras",
                 description:
-                    "Dilo como se lo contarías a un amigo. Si no dices la porción o de qué comida se trata, te lo pregunta antes de estimar. La fibra y el azúcar van en cada registro, la cafeína en todo lo que la lleve, y «sobre las 7» queda a las 07:00 en tu zona horaria.",
+                    "Dilo como se lo contarías a un amigo. Si no dices la porción o de qué comida se trata, te lo pregunta antes de estimar. La fibra, el azúcar y el azúcar añadido van en cada registro, la cafeína en todo lo que la lleve, y «sobre las 7» queda a las 07:00 en tu zona horaria.",
                 toolNotes: {
                     log_meal:
-                        "Guarda el desayuno con macros, fibra, azúcar y la cafeína del café",
+                        "Guarda el desayuno con macros, fibra, azúcar, azúcar añadido y la cafeína del café",
                     log_water:
                         "Suma los 500 ml de las 07:00 al total de agua de hoy",
                     get_current_time:
@@ -303,7 +303,7 @@ export const INDEX_ES: IndexDoc = {
                 id: "scan-barcode",
                 title: "Escanea un código de barras",
                 description:
-                    "Fotografía el envase: busca en Open Food Facts los números que hay bajo el código de barras y te pregunta cuánto tomaste. Open Food Facts no incluye la cafeína, así que se toma de la etiqueta o de cantidades habituales; si falta la fibra o el azúcar, se estima en vez de dejarlo en blanco.",
+                    "Fotografía el envase: busca en Open Food Facts los números que hay bajo el código de barras y te pregunta cuánto tomaste. El azúcar añadido se toma de Open Food Facts cuando lo tiene. Open Food Facts no incluye la cafeína, así que se toma de la etiqueta o de cantidades habituales; si falta la fibra, el azúcar o el azúcar añadido, se estima en vez de dejarlo en blanco.",
                 toolNotes: {
                     lookup_barcode:
                         "Obtiene de Open Food Facts los valores de la etiqueta y el Nutri-Score del envase",
@@ -318,7 +318,7 @@ export const INDEX_ES: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Es un envase de 150 g de yogur griego natural (0 % de grasa): 87 kcal, 15 g de proteína y 5 g de azúcar, y Open Food Facts le da un Nutri-Score A. ¿Te tomaste el envase entero?",
+                        text: "Es un envase de 150 g de yogur griego natural (0 % de grasa): 87 kcal, 15 g de proteína y 5 g de azúcar, ninguno añadido, y Open Food Facts le da un Nutri-Score A. ¿Te tomaste el envase entero?",
                     },
                     {
                         from: "user",
@@ -341,7 +341,7 @@ export const INDEX_ES: IndexDoc = {
                 id: "goals-progress",
                 title: "Fija objetivos y revisa tu día",
                 description:
-                    "Define objetivos por alcanzar, como las calorías y la proteína, y límites que no superar para el azúcar, el alcohol y la cafeína; solo cambia lo que mencionas. Luego pregunta por cualquier día y verás lo que te falta para cada objetivo y cómo vas frente a cada límite.",
+                    "Define objetivos por alcanzar, como las calorías y la proteína, y límites que no superar para el azúcar añadido, el azúcar total, el alcohol y la cafeína; solo cambia lo que mencionas. Luego pregunta por cualquier día y verás lo que te falta para cada objetivo y cómo vas frente a cada límite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Guarda objetivos de calorías y proteína y un límite de cafeína de 400 mg",
@@ -363,7 +363,7 @@ export const INDEX_ES: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Hecho: 2000 kcal y 160 g de proteína por alcanzar, y la cafeína por debajo de 400 mg. Lo demás sigue igual: 220 g de carbohidratos, 70 g de grasa, 30 g de fibra, 2,5 L de agua, tu límite de 60 g de azúcar y tu peso objetivo de 75 kg.",
+                        text: "Hecho: 2000 kcal y 160 g de proteína por alcanzar, y la cafeína por debajo de 400 mg. Lo demás sigue igual: 220 g de carbohidratos, 70 g de grasa, 30 g de fibra, 2,5 L de agua, tu límite de 25 g de azúcar añadido y tu peso objetivo de 75 kg.",
                     },
                     {
                         from: "user",
@@ -371,7 +371,7 @@ export const INDEX_ES: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Llevas 1540 de 2000 kcal y 104 de 160 g de proteína, así que te quedan 460 kcal y 56 g de proteína. El azúcar va por 40 g de tu límite de 60 g, y la cafeína por 130 de 400 mg; los dos por debajo.",
+                        text: "Llevas 1540 de 2000 kcal y 104 de 160 g de proteína, así que te quedan 460 kcal y 56 g de proteína. El azúcar añadido va por 16 g de tu límite de 25 g, y la cafeína por 130 de 400 mg; los dos por debajo.",
                     },
                 ],
                 cards: [
@@ -405,7 +405,7 @@ export const INDEX_ES: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "La media fue de 52 g al día, por debajo de tu límite de 60 g, pero lo superaste en 4 de los 13 días.",
+                        text: "El azúcar añadido fue de 22 g al día de media, por debajo de tu límite de 25 g, pero lo superaste en 5 de los 13 días. El azúcar total fue de 52 g de media, sobre todo de la fruta y la leche.",
                     },
                 ],
                 cards: [
@@ -417,19 +417,30 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Controla tu peso",
+                title: "Peso y medidas",
                 description:
-                    "Registra tu peso en kg o lb y mira la tendencia más allá de las subidas y bajadas diarias: una media suavizada, el cambio del mes y lo que te falta para tu objetivo. Una lectura imposible, como una coma decimal olvidada, se detecta antes de guardarse.",
+                    "Registra tu peso en kg o lb y mira la tendencia más allá de las subidas y bajadas diarias: una media suavizada, el cambio del mes y lo que te falta para tu objetivo. A su lado, registra en cm o pulgadas las medidas con cinta métrica de nueve partes del cuerpo, de la cintura a la pantorrilla. Una lectura imposible, como una coma decimal olvidada, se detecta antes de guardarse.",
                 toolNotes: {
                     log_weight: "Guarda el peso de esta mañana: 78,4 kg",
                     get_weight_trends:
-                        "Suaviza 30 días con medias móviles y calcula cuánto falta para el objetivo",
+                        "Suaviza las oscilaciones diarias en un peso de tendencia y un ritmo semanal, y calcula cuánto falta para el objetivo",
+                    log_body_measurement: "Guarda la medida de cintura: 84 cm",
+                    get_body_measurements:
+                        "Busca la última medida de cintura para compararla",
                 },
                 messages: [
                     { from: "user", text: "78,4 kg esta mañana. ¿cómo voy?" },
                     {
                         from: "ai",
                         text: "Guardado: 78,4 kg. Has bajado 1,8 kg desde el 11 de febrero (cuando pesabas 80,2 kg), y tu media de 7 días es de 78,7 kg. Te faltan 3,4 kg para tu objetivo de 75 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "y de cintura 84 cm. ¿qué tal comparado con antes?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Guardada tu cintura: 84 cm. La última medida fue de 86,5 cm el 14 de febrero, así que son 2,5 cm menos.",
                     },
                 ],
                 cards: [
@@ -597,10 +608,10 @@ export const INDEX_ES: IndexDoc = {
                 id: "export-data",
                 title: "Llévate tus datos",
                 description:
-                    "Una sola petición reúne todo lo que se guarda sobre ti (comidas, agua, pesajes, objetivos, ajustes del perfil, el registro de tu cuenta, la telemetría de uso y las conexiones de apps) en un ZIP de archivos CSV con un README. Las marcas de tiempo usan tu zona horaria, y meals.csv se vuelve a importar tal cual.",
+                    "Una sola petición reúne todo lo que se guarda sobre ti (comidas, agua, pesajes, medidas corporales, objetivos, ajustes del perfil, el registro de tu cuenta, la telemetría de uso y las conexiones de apps) en un ZIP de archivos CSV con un README. Las marcas de tiempo usan tu zona horaria, y meals.csv se vuelve a importar tal cual.",
                 toolNotes: {
                     export_all_data:
-                        "Empaqueta ocho CSV y un README en un ZIP con un enlace válido durante 60 minutos",
+                        "Empaqueta nueve CSV y un README en un ZIP con un enlace válido durante 60 minutos",
                 },
                 messages: [
                     {
@@ -652,15 +663,15 @@ export const INDEX_ES: IndexDoc = {
         cards: [
             {
                 title: "Comidas en lenguaje natural",
-                body: "Di qué comiste: tu IA estima calorías, proteína, carbohidratos, grasa, fibra, azúcares totales y cafeína en miligramos, y lo registra.",
+                body: "Di qué comiste: tu IA estima calorías, proteína, carbohidratos, grasa, fibra, azúcares totales, azúcar añadido y cafeína en miligramos, y lo registra.",
             },
             {
                 title: "Escanea un código de barras",
-                body: "Fotografía o escribe el código de barras de un producto y obtén de Open Food Facts los macros, la fibra y el azúcar, ajustados a la cantidad que comiste.",
+                body: "Fotografía o escribe el código de barras de un producto y obtén de Open Food Facts los macros, la fibra y el azúcar (también el azúcar añadido, cuando figura), ajustados a la cantidad que comiste.",
             },
             {
                 title: "Objetivos y progreso",
-                body: "Define objetivos diarios de calorías, macros, fibra y agua, además de límites de azúcar, cafeína y alcohol que no superar, y consulta tu progreso en tiempo real.",
+                body: "Define objetivos diarios de calorías, macros, fibra y agua, además de límites de azúcar añadido, azúcar total, cafeína y alcohol que no superar, y consulta tu progreso en tiempo real.",
             },
             {
                 title: "Resúmenes y tendencias",
@@ -672,7 +683,7 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 title: "Seguimiento de peso",
-                body: "Registra tu peso corporal en kg o lb, consulta tendencias de 7/14/30 días y sigue el progreso hacia un peso objetivo.",
+                body: "Registra tu peso corporal en kg o lb, consulta tu peso de tendencia suavizado y tu ritmo semanal en todo tu historial y sigue el progreso hacia un peso objetivo. A su lado, puedes registrar en cm o in medidas con cinta métrica de nueve partes del cuerpo, de la cintura a la pantorrilla.",
             },
             {
                 title: "Siempre en tu zona horaria",
@@ -684,7 +695,7 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 title: "Exporta: tus datos son tuyos",
-                body: "Llévate todo lo que almacenamos sobre ti (comidas, agua, peso, objetivos y perfil, además del registro de tu cuenta, la telemetría de uso y las apps conectadas) como un único ZIP de archivos CSV. Por ahora, las comidas son la única parte que se puede volver a importar. Y elimina tu cuenta y tus datos cuando quieras.",
+                body: "Llévate todo lo que almacenamos sobre ti (comidas, agua, peso, medidas corporales, objetivos y perfil, además del registro de tu cuenta, la telemetría de uso y las apps conectadas) como un único ZIP de archivos CSV. Por ahora, las comidas son la única parte que se puede volver a importar. Y elimina tu cuenta y tus datos cuando quieras.",
             },
         ],
     },
@@ -773,7 +784,7 @@ export const INDEX_ES: IndexDoc = {
         {
             question: "¿Qué es Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP es un servidor de Model Context Protocol (MCP) gratuito y de código abierto que convierte a Claude, ChatGPT o cualquier otro cliente MCP en un contador de calorías y macros. En vez de buscar en una base de datos de alimentos, le dices a tu IA qué comiste y ella registra las calorías, los macros, la fibra, el azúcar y la cafeína en tu propio diario de comidas.",
+                "Nutrition MCP es un servidor de Model Context Protocol (MCP) gratuito y de código abierto que convierte a Claude, ChatGPT o cualquier otro cliente MCP en un contador de calorías y macros. En vez de buscar en una base de datos de alimentos, le dices a tu IA qué comiste y ella registra las calorías, los macros, la fibra, el azúcar, el azúcar añadido y la cafeína en tu propio diario de comidas.",
         },
         {
             question: "¿Qué es el Model Context Protocol (MCP)?",
@@ -783,7 +794,7 @@ export const INDEX_ES: IndexDoc = {
         {
             question: "¿Cómo contar calorías con Claude o ChatGPT?",
             visibleHtml:
-                "Conecta Nutrition MCP una vez (en Claude, desde el directorio de conectores; en ChatGPT, como app personalizada con la URL del servidor) e inicia sesión. Después dile a tu IA qué comiste con tus propias palabras, muéstrale una foto de la comida o dale el código de barras de un producto. Tu IA estima las calorías, la proteína, los carbohidratos, la grasa, la fibra y el azúcar, y Nutrition MCP guarda la entrada en tu diario de comidas. Pide los totales de hoy, las tendencias semanales o tu progreso hacia tus objetivos cuando quieras.",
+                "Conecta Nutrition MCP una vez (en Claude, desde el directorio de conectores; en ChatGPT, como app personalizada con la URL del servidor) e inicia sesión. Después dile a tu IA qué comiste con tus propias palabras, muéstrale una foto de la comida o dale el código de barras de un producto. Tu IA estima las calorías, la proteína, los carbohidratos, la grasa, la fibra, el azúcar y el azúcar añadido, y Nutrition MCP guarda la entrada en tu diario de comidas. Pide los totales de hoy, las tendencias semanales o tu progreso hacia tus objetivos cuando quieras.",
         },
         {
             // La respuesta visible omite deliberadamente la URL del servidor
@@ -816,7 +827,7 @@ export const INDEX_ES: IndexDoc = {
         {
             question: "¿Qué puedo registrar?",
             visibleHtml:
-                "Calorías, proteína, carbohidratos, grasa, fibra, azúcares totales y agua en cada entrada, descritos en lenguaje natural o obtenidos del código de barras de un producto a través de Open Food Facts. La cafeína también se registra, en miligramos, la unidad que usan todas las etiquetas, y no aporta calorías. El alcohol también puede controlarse, en gramos de etanol puro; se muestra en cuanto activas su seguimiento. También puedes registrar tu peso corporal en kg o lb y seguir tendencias hacia un peso objetivo. Consulta resúmenes diarios, busca comidas por rango de fechas, actualiza o elimina entradas pasadas, define objetivos y sigue tu evolución con el tiempo.",
+                "Calorías, proteína, carbohidratos, grasa, fibra, azúcares totales, azúcar añadido y agua en cada entrada, descritos en lenguaje natural o obtenidos del código de barras de un producto a través de Open Food Facts. La cafeína también se registra, en miligramos, la unidad que usan todas las etiquetas, y no aporta calorías. El alcohol también puede controlarse, en gramos de etanol puro; se muestra en cuanto activas su seguimiento. También puedes registrar tu peso corporal en kg o lb y seguir tendencias hacia un peso objetivo. Las medidas corporales (cintura, cadera, cuello, pecho, hombros, brazo, antebrazo, muslo y pantorrilla) también se pueden registrar en cm o pulgadas. Consulta resúmenes diarios, busca comidas por rango de fechas, actualiza o elimina entradas pasadas, define objetivos y sigue tu evolución con el tiempo.",
         },
         {
             question: "¿Qué precisión tiene el conteo de calorías?",

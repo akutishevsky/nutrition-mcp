@@ -22,7 +22,8 @@ warmed in `src/index.ts`). Nothing generated is committed.
 
 - **Sources** live in `public/widgets/src/`: shared partials in `shared/`
   (`tokens.css`, `base.css`, `ring.css`, `macros.css`, `trend.css`, `seg.css`,
-  `form.css`, `table.css`, `macros.js`, `bridge.js`) and one template per widget
+  `form.css`, `table.css`, `period.css`, `macros.js`, `period.js`, `bridge.js`,
+  `i18n.js`, `date.js`) and one template per widget
   in `templates/`.
 - **Include marker** — a partial is inlined with a comment that is valid CSS _and_
   JS, so a template still parses on its own:
@@ -85,6 +86,7 @@ theme win in **both** directions (a light host inside a dark OS, and vice-versa)
     --carbs: #10b981;
     --fiber: #0d9488;
     --sugar: #65a30d;
+    --added-sugar: #858a0b;
     --fat: #f43f7e;
     --alcohol: #a21caf;
     --caffeine: #8b5e34;
@@ -115,6 +117,7 @@ theme win in **both** directions (a light host inside a dark OS, and vice-versa)
         --carbs: #34d399;
         --fiber: #14b8a6;
         --sugar: #a3e635;
+        --added-sugar: #d4d03a;
         --fat: #fb7199;
         --alcohol: #e879f9;
         --caffeine: #c69a6d;
@@ -137,19 +140,20 @@ Each series keeps a distinct hue, tuned per theme (dark values are lightened for
 contrast on black). `--over` and `--warn` are **status flags**, not series colours —
 never repaint a whole series with one (see the over-goal convention in §4 and §4a).
 
-| Token        | Light     | Dark      |
-| ------------ | --------- | --------- |
-| `--calories` | `#ff9f0a` | `#ffab2e` |
-| `--protein`  | `#8b5cf6` | `#a78bfa` |
-| `--carbs`    | `#10b981` | `#34d399` |
-| `--fiber`    | `#0d9488` | `#14b8a6` |
-| `--sugar`    | `#65a30d` | `#a3e635` |
-| `--fat`      | `#f43f7e` | `#fb7199` |
-| `--alcohol`  | `#a21caf` | `#e879f9` |
-| `--caffeine` | `#8b5e34` | `#c69a6d` |
-| `--water`    | `#0ea5e9` | `#38bdf8` |
-| `--over`     | `#d0452b` | `#ff6b52` |
-| `--warn`     | `#b26a00` | `#e0a030` |
+| Token           | Light     | Dark      |
+| --------------- | --------- | --------- |
+| `--calories`    | `#ff9f0a` | `#ffab2e` |
+| `--protein`     | `#8b5cf6` | `#a78bfa` |
+| `--carbs`       | `#10b981` | `#34d399` |
+| `--fiber`       | `#0d9488` | `#14b8a6` |
+| `--sugar`       | `#65a30d` | `#a3e635` |
+| `--added-sugar` | `#858a0b` | `#d4d03a` |
+| `--fat`         | `#f43f7e` | `#fb7199` |
+| `--alcohol`     | `#a21caf` | `#e879f9` |
+| `--caffeine`    | `#8b5e34` | `#c69a6d` |
+| `--water`       | `#0ea5e9` | `#38bdf8` |
+| `--over`        | `#d0452b` | `#ff6b52` |
+| `--warn`        | `#b26a00` | `#e0a030` |
 
 `--fiber` and `--sugar` are deliberately inside the carbs green family (a deeper
 teal and a lime), because fiber and sugar are _parts of_ carbs. They used to sit
@@ -160,6 +164,14 @@ series with no neighbour, so it takes the otherwise-unused plum/fuchsia slot, we
 clear of `--protein` (violet) and `--fat` (rose). `--caffeine` is coffee brown, the
 last unused hue: it must not drift amber, because `--calories` and `--warn` already
 own that end of the wheel.
+
+`--added-sugar` is the part of sugar that was added, so it is the same family
+moved warmer and deeper: an olive-chartreuse (hue ≈ 60°) beside sugar's lime
+(≈ 85°). That keeps the pair reading as related when they sit next to each other
+in the sugars row, while staying clear of `--fiber` and `--carbs` (teal and
+emerald, the other side of lime) and short of `--calories` / `--warn` (amber,
+≈ 35°). In light it is darker than `--sugar`; in dark it is the yellower of the
+two. Check both themes in the component gallery, which shows the sugars row.
 
 `--warn` is the amber counterpart to `--over`, for "worth a look" rather than
 "wrong" (a row logged at local noon because the source had no time). It is used by
@@ -462,8 +474,10 @@ inside its single `.panel`, under whatever top matter that widget has. In order:
 - **the calorie row** (`.cal`) — the compact ring beside the figure, its goal and
   how much is left;
 - **three macro bars** (`.mgrid` of `.mtile`) — protein, carbs, fat;
+- **the sugars row** (`.mgrid.lim.pair.psec`) — only while added sugar is on show:
+  sugar and added sugar, two columns at every width;
 - **the limits row** (`.mgrid.lim.psec`) — one to four cells of the metrics you stay
-  under (sugar, alcohol, caffeine) plus fiber;
+  under (sugar — unless the sugars row has taken it — alcohol, caffeine) plus fiber;
 - **the water line** (`.wrow.psec`) — full width, in litres;
 - **the disclosure region** (`.macro-detail.psec`) — empty and `hidden` until a tile
   is tapped.
@@ -511,6 +525,12 @@ one function:
 //                                        //   (T.macros.moreMealsAtLeast) and at
 //                                        //   exactly 8 "+ possibly more smaller
 //                                        //   meals" (T.macros.moreMealsMaybe)
+//            extraRows: object | null,   // rows for ONE metric's breakdown
+//                                        //   only, keyed by metric key —
+//                                        //   today `{ added_sugar_g: [...] }`
+//                                        //   from withAddedSugar. They join
+//                                        //   that metric's list and tile
+//                                        //   (metricRows) and nothing else
 //          }
 // Requires fmt(n, decimals) and esc(s) in scope.
 root.innerHTML = `
@@ -578,16 +598,75 @@ uniformly:
   alcohol tracking off; `caffeine_mg: null` means nobody ever recorded any (caffeine
   has **no profile opt-in** by design — the null is all there is). See
   `totalsPayloadOf` in `src/mcp.ts`.
-- **`signal: "data"`** (fiber, sugar) — `TOTALS_ITEM` types these as `z.number()`,
-  so a day that predates the column is indistinguishable from a genuine zero. The
-  cell is earned by a value above zero **or** by a goal of the user's own — the same
-  rule the carbs disclosure applied when they lived inside it.
+- **`signal: "data"`** (fiber, sugar, added sugar) — `TOTALS_ITEM` types fiber and
+  sugar as `z.number()`, so a day that predates the column is indistinguishable
+  from a genuine zero. The cell is earned by a value above zero **or** by a goal of
+  the user's own — the same rule the carbs disclosure applied when they lived
+  inside it. Added sugar is in no `structuredContent` at all (see below), and an
+  unrecorded day never reaches `vals`, so its gate is the same — with one addition,
+  below.
+- **`unrecordedWithGoal`** (added sugar only) — a cell with **no value** is still
+  shown when the user set a limit for it (a finite goal, `0` included): the figure
+  reads **"not recorded"** (`T.macros.notRecorded`), the bar is empty and the
+  caption is the limit alone (never "at limit" or "29 g under", which would judge a
+  figure nobody entered). It is never a button — nothing is behind it — and carries
+  `role="group"` with one name: "Added sugar, not recorded, limit 29 g". A limit the
+  user set therefore never silently disappears on a day a model logged sugar
+  without splitting out the added part. The limit only reaches the strip from
+  `_meta`, so without `_meta` this path cannot run. Without a limit and without a
+  value the cell stays hidden.
+- **`zeroIsValue`** (added sugar only) — a recorded `0` prints as `0` (with the unit
+  when there is no limit to carry it) instead of "none logged": its null already
+  means "not recorded", so a `0` is a figure someone entered.
+
+### Added sugar comes from `_meta`
+
+No output schema may gain a field, so added sugar travels in the CallToolResult's
+`_meta` under `"nutrition-mcp.com/added-sugar"` (`ADDED_SUGAR_META_KEY` in
+`src/widgets.ts`; the payload is `AddedSugarMeta` in `src/added-sugar.ts`:
+`{ v: 1, goal, days?, meals?, contributors?, extra? }`). Each template spells the key
+itself and merges it into the strip's inputs **before** `macroPanel`:
+
+```js
+const as = addedSugarPayload(resultMeta && resultMeta[ADDED_SUGAR_META_KEY]);
+const merged = withAddedSugar(as, addedSugarFor(as, dates), vals, goal, meals);
+macroPanel(merged.vals, merged.goal, wording, merged.meals, opts);
+```
+
+- `addedSugarFor(as, dates)` is the mean over the dates whose figure is recorded —
+  one date for goal-progress / meal-logged, the summary's days, trends' 7/14/30
+  slice. A `null` day is "not recorded" and drops out rather than counting as 0;
+  no recorded day leaves it `undefined` — a "not recorded" cell when `as.goal` is
+  a limit, no cell otherwise. Trends decides this per 7/14/30 slice.
+- `withAddedSugar` returns the caller's own objects untouched when the payload is
+  missing, malformed or not `v: 1` — **without `_meta` the strip is byte for byte
+  what it was before** (`macros.test.ts` pins this).
+- The breakdown rows carry no meal id, so `as.meals` (keyed by id, built from the
+  same rows in the same order) is joined **by position**, and only when the counts
+  agree; a meal whose figure is `null` stays out of the cell's list. The summary
+  folds `as.contributors` into its per-metric counts with
+  `withAddedSugarContributors`.
+- `as.extra` (get_nutrition_summary only) completes the added-sugar list. The
+  summary's rows are the union of every _other_ metric's top 8 — added sugar ranks
+  none in, since structuredContent is frozen — so the meal with the most added sugar
+  (a sweetened drink that tops nothing else) can be missing from them. `extra` is
+  the window's top 8 by added sugar minus the rows already sent, ranked, each
+  `{ description, meal_type, date, added_sugar_g }`. `withAddedSugar` validates it
+  (an array; entries with a string description and a finite, positive figure,
+  rebuilt from those four fields; at most 8) and returns it as
+  `merged.extraRows = { added_sugar_g: [...] }`, which the summary passes as
+  `opts.extraRows`. The rows join the added-sugar list only, sorted in with the kept
+  rows; no other tile, list or count sees them, and "N more" stays
+  `contributors − shown`. They are dropped when the positional join failed — the
+  extras alone would be a top list missing its leaders — and a payload without
+  `extra` leaves `extraRows` null and every list exactly as before.
 
 What the gate prevents either way is a "0 mg of 400 mg" line invented for someone
 who never went near the limit — the same suppression the model-facing text applies
 (`recordedGoalLine` in `src/mcp.ts`). A metric that _is_ shown but reads zero says
 so in words: `.mnone` renders **"none logged"**, because a `0` in the figure slot
-looks like a measurement.
+looks like a measurement. Added sugar is the exception (`zeroIsValue`, above), and
+its "not recorded" is a different word for a different state: unknown, not none.
 
 Water is the contrast: it has no opt-in, so a `0` cannot mean anything but
 "untracked" and the whole line is dropped (`role: "bar"` cells render only above
@@ -653,7 +732,45 @@ The **column count travels with the markup** as two custom properties, set by
 fewer limits stay one row at both widths; four become a 2×2 while stacked
 (`--lc:2;--lcw:4`), because four cells do not fit across one. The row therefore
 handles one to four cells with no special case — alcohol simply is or is not among
-them.
+them. It never holds five: added sugar does not join it (see below).
+
+| Limit cells | Below 360px | 360–699px | 700–859px | 860px and up |
+| ----------- | ----------- | --------- | --------- | ------------ |
+| 1–2         | 2 (or 1)    | n         | n         | n            |
+| 3           | 2 (2+1)     | 3         | 3         | 3            |
+| 4           | 2 (2×2)     | 2 (2×2)   | 2 (2×2)   | 4            |
+
+**The sugars row.** Once added sugar is on show (it arrives only through `_meta`
+and earns its cell like sugar does — see `limitShown`), sugar and added sugar leave
+the limits row together for a row of their own, placed where the limits row sits:
+after the macro bars, before the remaining limits (alcohol, caffeine, fiber), so
+the strip reads macro bars → [Sugar, Added sugar] → [Alcohol, Caffeine, Fiber] →
+water. It is `.mgrid.lim.pair` with `--lc:2;--lcw:2` — **two columns at every
+width** — and uses the same cells as the limits row (ceiling direction, colours,
+figure, bar, caption, tap-to-open breakdown, keyboard and aria behaviour). The
+reason is the names: "ADDED SUGAR" beside its figure truncates in a third or a
+quarter of the strip, and "ZUGESETZTER ZUCKER" / "TOEGEVOEGDE SUIKER" sooner. The
+full label is the only label — no abbreviation, ever. Even a half of a 320px card
+(~127px) is too narrow for "ZUGESETZTER ZUCKER 35.2", so in this row only `.mtop`
+wraps: a name that cannot sit beside its figure pushes the figure onto the next
+line instead of ellipsising. The two cells are `subgrid`s of the row's three
+tracks (name line, bar, caption), so a cell whose figure wrapped does not drop its
+bar below its neighbour's. Each cell declares its own `minmax(0, 1fr)` column with
+`justify-content: stretch` — without it the limits row's `flex-start` packs the
+cell's implicit `auto` column at content width, and the two bars come out shorter
+than the column and different from each other and from the row below. The name
+tops its line (`align-items: flex-start`, one shared line height) instead of
+sharing a baseline with the larger figure, so the two names line up even when only
+one cell's figure wrapped.
+
+The pairing is declared on the `MACROS` entries, not in a key list: both carry
+`row: "sugars"`, and added sugar carries `opensRow: true` — the row exists only while
+a cell that opens it is shown — a "not recorded" added-sugar cell included. With
+added sugar hidden (no `_meta`, or no value and no limit) nothing moves, and the strip's markup is byte for byte what it was before
+the row existed. With added sugar shown and **sugar hidden** (a 0 g day with an
+added-sugar limit and no total limit), the sugars row holds added sugar alone at
+the **same half width** — it is the same cell it is beside sugar, at the same size,
+not a stretched one.
 
 **Nothing in either grid may rely on `white-space: nowrap` to hold its shape.** A
 track is `minmax(0, 1fr)`, so two nowrap children in a ~84px column do not fit —
@@ -689,10 +806,11 @@ width — up to ~230px for "DAILY AVG · LOGGED DAYS" — so flipping at 560 wou
 three macro columns of ~90px, narrower than the phone layout they just replaced.
 
 Two edge rules exist for the same reason and are worth knowing about: below **360px**
-a three-cell limits row folds to a 2×2 (three columns of ~80px start truncating
-names), and between **700 and 859px** a **four**-cell one stays a 2×2 via the
-`.n4` class `macroPanel` puts on the row — four columns beside a 230px calorie block
-is the tightest thing the strip ever asks for, and it truncates to "ALCO…".
+every limits row is two columns (three columns of ~80px start truncating names),
+and between **700 and 859px** a **four**-cell one stays a 2×2 via the `.n4` class
+`macroPanel` puts on the row — four columns beside a 230px calorie block is the
+tightest thing the strip ever asks for, and it truncates to "ALCO…". The sugars
+row is untouched by both: it is two columns everywhere.
 
 The macro row keeps its cells centred: their content is always identical, so
 centring is invisible there, and it is what holds the 44px tap target together.
@@ -786,6 +904,27 @@ matter above the shared strip. Key rules that keep it sharp and legible:
   a zero-based axis. Metrics that hover in a narrow band (body weight) must scale the
   axis to `[min, max] ± ~18%` of the data instead — a zero-based weight chart
   flattens the trend into a straight line. See `weight-trends.html`.
+- **Raw = faint dots, trend = solid accent line.** When a series has a smoothed
+  companion (weight-trends with its `_meta` series: the EWMA trend weight), the
+  smoothed series is the one the chart is about. Draw it as the solid line
+  (`stroke: var(--accent)`, `stroke-width: 2`, round joins) with the usual 16%
+  area fill under it, and draw the raw readings as **dots only, no line** —
+  `r="2"`, `fill: var(--text-dim)`, `opacity: 0.55` — painted under the trend line
+  so the line stays on top. Above 45 points the dots become a grey smear, so drop
+  them and keep only the line and area. The Y domain covers raw, trend and target
+  together (still `± 18%`), and X is **date-proportional** (`x ∝ days since the
+first point`), never index-spaced: an index axis hides gaps between weigh-ins and
+  makes a smoothed line look steadier than the data was. Long ranges (weekly or
+  monthly buckets) follow the same rule with the bucket mean as the dot. A lone
+  point gets an accent `r="2.6"` marker, since there is no line to carry it.
+  Without a smoothed series (a host that dropped `_meta`) weight-trends keeps its
+  original single accent line with accent dots over an index axis.
+- **Date labels under the chart are `.tdates`** (start left, end right; one label
+  when they are the same day), as HTML beside the SVG — in weight-trends the SVG
+  and its `.tdates` sit together in a `.wcol` column. Daily ranges use
+  `shortDate` ("13 Jun"); ranges that cross a year use
+  `Intl.DateTimeFormat(locale, { month: "short", year: "numeric" })` ("Jul 2025"),
+  since `shortDate` has no year.
 
 ```css
 .chart {
@@ -905,15 +1044,16 @@ with `psec`. Only the little track between label and figure is local to
   along as the track's `aria-label` and the row's `title`, with `·` spelled as a
   comma in the spoken name.
 
-Name collision worth knowing: `weight-trends.html` defines its **own** `.wrow` (a
-flex row holding the latest figure beside the chart). It includes neither
-`macros.css` nor this markup, so the two never meet — but do not assume `.wrow`
-means the same thing in both files.
+Not to be confused with `weight-trends.html`'s **`.wmain`** — the flex row holding
+the headline figure (`.wnow`) beside the chart. That widget includes neither
+`macros.css` nor this markup and has no `.wrow` of its own; the two rows share
+nothing but the subject.
 
 ## 7. Component: segmented control (`.seg`)
 
-A pill toggle for switching a view's mode/range (the trends and weight-trends
-7/14/30-day toggles). The **active** label uses `var(--bg)` on the accent fill so it
+A pill toggle for switching a view's mode/range (the trends 7/14/30-day toggle;
+weight-trends' 7 · 30 · 90 · 1y · All, or 7/14/30 when its `_meta` series is
+missing). The **active** label uses `var(--bg)` on the accent fill so it
 stays high-contrast in both themes — off-white on dark-green in light, black on
 light-green in dark — without theme-specific overrides.
 
@@ -934,7 +1074,8 @@ it owns, but the two widgets with a range toggle include `seg.css` and not
 interactive thing on the page with no visible focus. The declaration is identical to
 `form.css`'s, so including both partials is a no-op.
 
-**Interactivity:** buttons carry a `data-*` value; delegate the click on a container
+**Interactivity:** buttons carry a `data-*` value — a **string id**, read as a
+string (`data-r="1y"`, `data-r="all"`; `Number()` turns those into `NaN`); delegate the click on a container
 that survives re-renders (e.g. `#root`), read the value, update state, and
 re-`paint()`. For a range/filter toggle, prefer sending a superset of data and
 slicing client-side over re-calling the tool — instant, no host round-trip.
@@ -1078,6 +1219,43 @@ component gallery.
 stays bounded: a host may impose `hostContext.containerDimensions`, and an unbounded
 table is simply clipped rather than scrolled.
 
+## 10. Component: period rows (`shared/period.css` + `shared/period.js`)
+
+The trends widget's Week · Month · Qtr · Year view: one stacked row per period,
+newest first, built from `get_trends`' `group_by` data in the result `_meta`
+(`nutrition-mcp.com/period-averages`; never `structuredContent`, whose schema is
+frozen). `periodsFrom(meta)` parses it defensively — a malformed row is dropped,
+never half-painted — and returns null when nothing is usable, which leaves the
+widget exactly on its 7/14/30 day view. `periodListHtml(rows, g, { targetsFrom })`
+renders one granularity; the gallery calls it directly.
+
+- **Denominator.** Every figure is an average **per logged day** (a day with at
+  least one meal; water alone does not count), and the list opens with that
+  caption (`T.trends.perLoggedDay`). The day view keeps its own "all days" label.
+  Both denominators are named on screen; keep it that way.
+- **Row.** Line 1: the period label (`Intl.DateTimeFormat` in the widget locale;
+  weeks via `formatRange`, with the year on both ends when the week crosses one;
+  quarters through `T.trends.quarter`), a `.pchip` on the still-running period, and
+  `logged/total days` right-aligned in mono digits. Line 2: the calorie figure
+  `avg / target` over a thin `.mbar`/`.mfill` in `--calories`, then P / C / F
+  (letters from `T.importMeals.tableAbbr`). Line 3: `on target k/n`, possibly
+  incomplete days, and the targets-changed / targets-before-date notes.
+- **Colour.** A figure with a target is `--accent` (`.pin`) when the average is
+  within ±10% of it and `--text-dim` (`.pout`) otherwise — `periodWithinBand`,
+  which must stay identical to `withinBand` in `src/insights.ts`. It is never
+  `--over`: these are floors, and over/under colour belongs to limits. The P/C/F
+  letters keep `--protein`/`--carbs`/`--fat`; the band is on the number only.
+- **States.** `logged_days = 0` is one dim "nothing logged" line. No targets on
+  any row: one line at the top says so, and rows show averages only — no bars, no
+  line 3.
+- **Height.** `.plist` caps at 320px and scrolls inside itself (`min-width: 0`,
+  same reason as `.tscroll`), so the reported height stays bounded. It does not use
+  `table.css`, which is scoped to preview tables (§9).
+- **Switching.** The seg carries string ids (`data-mode="week"` … `"days"`), read
+  as strings, never `Number()`. "Days" shows the day view with its 7/14/30 toggle
+  on a line under the header, so the way back stays in the header. The bridge's
+  ResizeObserver re-reports the height after every switch.
+
 ## Verifying a new widget
 
 Run `bun run harness` and open <http://localhost:8787>. It mimics a strict host
@@ -1102,7 +1280,11 @@ Then, for the widget itself:
    leaving the header line, the macro captions and the " g" unit appearing, the
    breakdown list going one column → two (560); the calorie block moving beside the
    grids and growing its divider (700); a four-cell limits row going 2×2 → one row
-   (860); a three-cell one folding to 2×2 (360). Check both directions — a layout
+   (860); a three-cell one folding to 2+1 (360). The sugars row stays two columns
+   throughout; at 320px in German, Dutch and Italian its added-sugar figure drops
+   under the full name, with both cells' bars still level. Check it with and
+   without `?noMeta=1` — without, sugar is back in the limits row and there is no
+   sugars row. Check both directions — a layout
    that only ever grows can hide a rule that never un-applies. Watch specifically
    for a metric NAME overprinting its own figure or the next column: that is what a
    nowrap child in a `minmax(0, 1fr)` track does, and it never produces a

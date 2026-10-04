@@ -31,6 +31,8 @@
 
             /*@include shared/macros.css@*/
 
+            /*@include shared/period.css@*/
+
             .gal {
                 padding: 16px;
                 display: grid;
@@ -81,6 +83,122 @@
             }
 
             /*@include shared/macros.js@*/
+
+            /*@include shared/period.js@*/
+
+            // Period rows (trends' Week / Month / Quarter / Year view), one of
+            // each state: the partial current period, a goal change with
+            // possibly-incomplete days, an inner period with nothing logged,
+            // and one predating goals history. Shaped like PeriodRow in
+            // src/periods.ts and run through the widget's own parser.
+            const PT_A = { calories: 2200, protein: 160, carbs: 220, fat: 70 };
+            const PT_B = { calories: 2400, protein: 150, carbs: 280, fat: 80 };
+            const prow = (key, start, end, days, logged, avg, t, extra) =>
+                Object.assign(
+                    {
+                        key,
+                        start,
+                        end,
+                        days,
+                        partial: false,
+                        logged_days: logged,
+                        avg,
+                        targets: t,
+                        targets_changed: false,
+                        targets_assumed: false,
+                        on_target_days: t ? 0 : null,
+                        incomplete_days: t ? 0 : null,
+                    },
+                    extra,
+                );
+            const PERIOD_GALLERY = periodsFrom({
+                [PERIOD_META_KEY]: {
+                    v: 1,
+                    end_date: "2026-07-15",
+                    group_by: "month",
+                    targets_from: "2026-03-10",
+                    periods: {
+                        week: [],
+                        quarter: [],
+                        year: [],
+                        month: [
+                            prow(
+                                "2026-07",
+                                "2026-07-01",
+                                "2026-07-31",
+                                15,
+                                12,
+                                {
+                                    calories: 2140.4,
+                                    protein: 148.2,
+                                    carbs: 231,
+                                    fat: 71,
+                                },
+                                PT_A,
+                                {
+                                    partial: true,
+                                    on_target_days: 7,
+                                    incomplete_days: 0,
+                                },
+                            ),
+                            prow(
+                                "2026-06",
+                                "2026-06-01",
+                                "2026-06-30",
+                                30,
+                                23,
+                                {
+                                    calories: 1830,
+                                    protein: 132,
+                                    carbs: 204,
+                                    fat: 62.5,
+                                },
+                                PT_A,
+                                {
+                                    targets_changed: true,
+                                    on_target_days: 9,
+                                    incomplete_days: 2,
+                                },
+                            ),
+                            prow(
+                                "2026-05",
+                                "2026-05-01",
+                                "2026-05-31",
+                                31,
+                                0,
+                                null,
+                                PT_B,
+                            ),
+                            prow(
+                                "2026-03",
+                                "2026-03-01",
+                                "2026-03-31",
+                                31,
+                                26,
+                                {
+                                    calories: 2390,
+                                    protein: 171,
+                                    carbs: 262,
+                                    fat: 78,
+                                },
+                                PT_B,
+                                {
+                                    targets_assumed: true,
+                                    on_target_days: 11,
+                                    incomplete_days: 1,
+                                },
+                            ),
+                        ],
+                    },
+                },
+            });
+            const PERIOD_NO_TARGETS = PERIOD_GALLERY.periods.month.map((r) =>
+                Object.assign({}, r, {
+                    targets: null,
+                    on_target_days: null,
+                    incomplete_days: null,
+                }),
+            );
 
             // One day's worth of fixture data for the macro components below.
             const GOALS = {
@@ -159,7 +277,33 @@
                     caffeine_mg: 470,
                 },
             ];
+            // Added sugar reaches the strip only through the result's `_meta`
+            // (no structuredContent field can be added), so the gallery feeds
+            // it the same way a template does: an AddedSugarMeta under the
+            // real key, merged with withAddedSugar. Meals are joined by
+            // position; the null one has no figure and stays out of the
+            // breakdown. With the key present sugar and added sugar move into
+            // their own two-column sugars row above alcohol, caffeine and
+            // fiber — the layout worth checking.
+            const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            const GALLERY_META = {
+                [ADDED_SUGAR_META_KEY]: {
+                    v: 1,
+                    goal: 25,
+                    days: { "2026-10-04": 35 },
+                    meals: { m1: 4.8, m2: 0, m3: 1.2, m4: null },
+                },
+            };
+            const AS = addedSugarPayload(GALLERY_META[ADDED_SUGAR_META_KEY]);
+            const STRIP = withAddedSugar(
+                AS,
+                addedSugarFor(AS, ["2026-10-04"]),
+                TOTALS,
+                GOALS,
+                MEALS,
+            );
             const CARBS = MACROS.find((m) => m.key === "carbs_g");
+            const ADDED_SUGAR = MACROS.find((m) => m.key === "added_sugar_g");
             const ALCOHOL = MACROS.find((m) => m.key === "alcohol_g");
             const CAFFEINE = MACROS.find((m) => m.key === "caffeine_mg");
             // The alcohol line in each of its states, including the two that
@@ -195,6 +339,46 @@
                     { caffeine_mg: null },
                     GOALS,
                 ],
+            ];
+
+            // Added sugar: a day that did not record it reaches the strip as
+            // undefined (the merge leaves it out) — a "not recorded" cell when
+            // a limit is set, nothing otherwise — and a recorded 0 prints as
+            // 0 (zeroIsValue), never "none logged". 0 is a real limit.
+            const addedSugarStates = [
+                [
+                    "over the limit",
+                    { added_sugar_g: 35 },
+                    { added_sugar_g: 25 },
+                ],
+                [
+                    "under the limit",
+                    { added_sugar_g: 12.4 },
+                    { added_sugar_g: 25 },
+                ],
+                ["no limit set", { added_sugar_g: 18 }, null],
+                [
+                    "a limit of 0 g — any added sugar is over it",
+                    { added_sugar_g: 6 },
+                    { added_sugar_g: 0 },
+                ],
+                [
+                    "recorded 0, limit set",
+                    { added_sugar_g: 0 },
+                    { added_sugar_g: 25 },
+                ],
+                ["recorded 0, no limit (hidden)", { added_sugar_g: 0 }, null],
+                [
+                    "not recorded, limit set → 'not recorded'",
+                    {},
+                    { added_sugar_g: 25 },
+                ],
+                [
+                    "not recorded, limit of 0 g → 'not recorded', not 'at limit'",
+                    {},
+                    { added_sugar_g: 0 },
+                ],
+                ["not recorded, no limit → renders nothing", {}, null],
             ];
 
             // A limit cell is a grid item; on its own it needs a one-column
@@ -307,6 +491,11 @@
 
             <section class="card">
               <h3>Macro strip — calorie ring, macro bars, limits row, water line</h3>
+              <div class="panel">${macroPanel(STRIP.vals, STRIP.goal, undefined, STRIP.meals)}</div>
+            </section>
+
+            <section class="card">
+              <h3>Macro strip without the added-sugar <code>_meta</code> — four limits</h3>
               <div class="panel">${macroPanel(TOTALS, GOALS, undefined, MEALS)}</div>
             </section>
 
@@ -331,6 +520,18 @@
             </section>
 
             <section class="card">
+              <h3>Added sugar limit cell — every state</h3>
+              ${addedSugarStates
+                  .map(
+                      ([caption, vals, goal]) =>
+                          `<div class="hint" style="margin-bottom:6px">${caption}</div>${limitRow(
+                              macroLimit(ADDED_SUGAR, macroCtxOf(vals, goal)),
+                          )}`,
+                  )
+                  .join("")}
+            </section>
+
+            <section class="card">
               <h3>Caffeine limit cell — every state</h3>
               ${caffeineStates
                   .map(
@@ -340,6 +541,16 @@
                           )}`,
                   )
                   .join("")}
+            </section>
+
+            <section class="card">
+              <h3>Period rows — trends' Week / Month / Quarter / Year view</h3>
+              <div class="panel">${periodListHtml(PERIOD_GALLERY.periods.month, "month", { targetsFrom: PERIOD_GALLERY.targetsFrom })}</div>
+            </section>
+
+            <section class="card">
+              <h3>Period rows — no goals history (averages only)</h3>
+              <div class="panel">${periodListHtml(PERIOD_NO_TARGETS.slice(0, 2), "month", {})}</div>
             </section>
 
             <section class="card">

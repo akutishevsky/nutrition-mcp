@@ -43,6 +43,7 @@ const PRIORITY: Record<string, string> = {
     "/tools": "0.8",
     "/privacy": "0.3",
     "/terms": "0.3",
+    "/apple-health": "0.6",
 };
 // Comparison pages and the /alternatives hub aren't in the maps above (their
 // suffixes are data-driven from ALT_PAGES, not hand-listed) — the hub gets
@@ -64,6 +65,7 @@ const LASTMOD: Record<string, string> = {
     "/tools": "2026-10-02",
     "/privacy": "2026-10-02",
     "/terms": "2026-10-02",
+    "/apple-health": "2026-10-03",
 };
 function lastmodFor(suffix: string): string {
     return LASTMOD[suffix] ?? "2026-10-02";

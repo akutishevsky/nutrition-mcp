@@ -15,11 +15,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_IT: ToolsDoc = {
     meta: {
-        title: "36 strumenti per calorie, macro, acqua e peso",
+        title: "41 strumenti per calorie, macro, acqua e peso",
         description:
-            "I 36 strumenti per Claude, ChatGPT e altre IA: registra pasti, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua e peso.",
+            "I 41 strumenti per Claude, ChatGPT e altre IA: registra pasti, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
         ogDescription:
-            "Tutti i 36 strumenti che il server Nutrition MCP mette a disposizione della tua IA, compreso un importatore CSV per portare lo storico da un'altra app, con descrizioni ed esempi di richieste.",
+            "Tutti i 41 strumenti che il server Nutrition MCP mette a disposizione della tua IA, compreso un importatore CSV per portare lo storico da un'altra app, con descrizioni ed esempi di richieste.",
     },
     hero: {
         eyebrow: "Guida di riferimento",
@@ -27,7 +27,7 @@ export const TOOLS_IT: ToolsDoc = {
         titleEm: "fare",
         titleAfterEm: "",
         lead: "Non devi mai usarli direttamente: parli con Claude, ChatGPT o un altro client MCP e l'assistente sceglie lo strumento giusto. Ecco tutti gli strumenti che il server Nutrition MCP offre per pasti, calorie e macro, acqua e peso, con cosa fa ciascuno e una frase che lo attiva.",
-        countBold: "36 strumenti",
+        countBold: "41 strumenti",
         countTail: "in 7 aree",
     },
     categories: {
@@ -50,10 +50,10 @@ export const TOOLS_IT: ToolsDoc = {
                 "Tieni traccia dell'idratazione insieme a ciò che mangi.",
         },
         weight: {
-            pillLabel: "Peso",
-            title: "Monitoraggio del peso",
+            pillLabel: "Corpo",
+            title: "Peso e misure corporee",
             description:
-                "Registra le pesate, rivedile e segui l'andamento verso il tuo obiettivo.",
+                "Registra pesate e misure prese con il metro, rivedile e segui l'andamento del peso verso il tuo obiettivo.",
         },
         "goals-progress": {
             pillLabel: "Obiettivi",
@@ -95,7 +95,7 @@ export const TOOLS_IT: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Registra cosa hai mangiato con calorie e macro, più fibre, zuccheri totali, alcol e caffeina quando i valori sono disponibili. Descrivilo a parole tue: l'IA stima i valori, ti chiede la porzione quando non è chiara e può prima recuperare i dati dell'etichetta da un codice a barre o dal web.",
+                "Registra cosa hai mangiato con calorie e macro, più fibre, zuccheri totali e aggiunti, alcol e caffeina quando i valori sono disponibili. Descrivilo a parole tue: l'IA stima i valori, ti chiede la porzione quando non è chiara e può prima recuperare i dati dell'etichetta da un codice a barre o dal web.",
             params: {
                 description: "Cosa hai mangiato",
                 meal_type: "colazione, pranzo, cena o spuntino",
@@ -107,6 +107,8 @@ export const TOOLS_IT: ToolsDoc = {
                     "Fibre alimentari in grammi. All'IA viene chiesto di compilarlo per ogni pasto, stimandolo dagli ingredienti quando manca il valore in etichetta, perché un campo vuoto non vale zero: esclude l'intera giornata dalla tua media di fibre",
                 sugar_g:
                     "Zuccheri <b>totali</b> in grammi: il valore che l'etichetta riporta alla voce “Zuccheri”, compresi quelli naturalmente presenti in frutta e latte, non solo gli zuccheri aggiunti. Si compila per ogni pasto, alle stesse condizioni delle fibre",
+                added_sugar_g:
+                    "Zuccheri <b>aggiunti</b> in grammi: lo zucchero aggiunto durante la lavorazione o la preparazione (zucchero da tavola, sciroppi, miele, lo zucchero di bevande e alimenti zuccherati). Fanno parte degli zuccheri totali e non li superano mai. Lo zucchero naturalmente presente nella frutta intera, nella verdura e nel latte semplice non è aggiunto, e nemmeno quello del succo 100% frutta. Si compila per ogni pasto, alle stesse condizioni delle fibre: gli alimenti non lavorati valgono 0, lo zucchero di una bibita è tutto aggiunto e si usa la riga “Includes Xg Added Sugars” delle etichette statunitensi quando c'è. Accompagna <code>sugar_g</code>: un pasto con zuccheri totali ma senza zuccheri aggiunti potrebbe non essere salvato",
                 alcohol_g:
                     "Grammi di <b>etanolo puro</b>, non il volume della bevanda né la sua gradazione: l'IA li calcola dalla quantità servita e dalla gradazione (una birra da 330 ml al 5% contiene 13 g)",
                 caffeine_mg:
@@ -122,7 +124,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Recupera da Open Food Facts i valori nutrizionali in etichetta di un prodotto confezionato tramite il codice a barre (EAN/UPC di 8–14 cifre), insieme a Nutri-Score e gruppo di trasformazione NOVA quando Open Food Facts li riporta. Puoi digitare le cifre o ricavarle da una foto della confezione; poi il risultato si può registrare, in proporzione a quanto ne hai mangiato.",
+                "Recupera da Open Food Facts i valori nutrizionali in etichetta di un prodotto confezionato tramite il codice a barre (EAN/UPC di 8–14 cifre), insieme a Nutri-Score e gruppo di trasformazione NOVA quando Open Food Facts li riporta. Gli zuccheri aggiunti compaiono quando Open Food Facts li indica, segnalati come stima quando Open Food Facts li ha ricavati dagli ingredienti. Puoi digitare le cifre o ricavarle da una foto della confezione; poi il risultato si può registrare, in proporzione a quanto ne hai mangiato.",
             params: {},
             example: "Scansiona questo codice a barre: 3017620422003",
             photoHint:
@@ -130,7 +132,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Apre in chat un importatore per portare il tuo storico da un'altra app: scegli il CSV esportato da MyFitnessPal, Cronometer, Lose It!, MacroFactor o un'altra app di monitoraggio, abbina le colonne a calorie, macro, fibre, zuccheri e caffeina (più l'alcol, se hai attivato il monitoraggio dell'alcol) e controlla cosa verrà aggiunto prima di confermare. Il file viene letto direttamente nel tuo browser, non si salva nulla finché non approvi l'anteprima e reimportare lo stesso file non crea duplicati.",
+                "Apre in chat un importatore per portare il tuo storico da un'altra app: scegli il CSV esportato da MyFitnessPal, Cronometer, Lose It!, MacroFactor o un'altra app di monitoraggio, abbina le colonne a calorie, macro, fibre, zuccheri totali e aggiunti e caffeina (più l'alcol, se hai attivato il monitoraggio dell'alcol) e controlla cosa verrà aggiunto prima di confermare. Il file viene letto direttamente nel tuo browser, non si salva nulla finché non approvi l'anteprima e reimportare lo stesso file non crea duplicati.",
             params: {},
             example: "Importa lo storico dei miei pasti da MyFitnessPal",
         },
@@ -138,7 +140,7 @@ export const TOOLS_IT: ToolsDoc = {
             description:
                 "Aggiunge in un colpo solo un blocco di pasti passati, fino a 50 alla volta, invece di registrarli uno per uno. L'importatore qui sopra salva i dati tramite questo strumento, e l'IA può usarlo direttamente per i pasti che hai incollato in chat. Ogni riga viene prima controllata e ogni problema viene segnalato riga per riga, quindi reinviare le stesse righe è sicuro e non duplica ciò che è già registrato, purché nel frattempo tu non abbia cambiato fuso orario.",
             params: {
-                meals: "Le righe da importare, nell'ordine del file di origine (1–50 per chiamata). Ogni riga può contenere un orario, il tipo di pasto, una descrizione, le note e gli stessi valori di un pasto registrato: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (zuccheri totali), <code>alcohol_g</code> (grammi di etanolo puro) e <code>caffeine_mg</code> (milligrammi, non grammi)",
+                meals: "Le righe da importare, nell'ordine del file di origine (1–50 per chiamata). Ogni riga può contenere un orario, il tipo di pasto, una descrizione, le note e gli stessi valori di un pasto registrato: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (zuccheri totali), <code>added_sugar_g</code> (zuccheri aggiunti, parte del totale), <code>alcohol_g</code> (grammi di etanolo puro) e <code>caffeine_mg</code> (milligrammi, non grammi)",
                 expected_row_count:
                     "Quante righe contiene questa chiamata, contate nel file di origine, così ci si accorge se una riga va persa",
                 expected_total_kcal:
@@ -153,7 +155,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Modifica i dettagli di un pasto già registrato: la descrizione, qualsiasi macro, fibre, zuccheri, alcol o caffeina, l'orario o le note. Serve anche a colmare i vuoti: se un pasto è stato registrato senza fibre o zuccheri, il server lo segnala e, se sei d'accordo, l'IA li aggiunge qui.",
+                "Modifica i dettagli di un pasto già registrato: la descrizione, qualsiasi macro, fibre, zuccheri totali o aggiunti, alcol o caffeina, l'orario o le note. Serve anche a colmare i vuoti: se un pasto è stato registrato senza fibre, zuccheri o zuccheri aggiunti, il server lo segnala e, se sei d'accordo, l'IA li aggiunge qui.",
             params: {
                 id: "UUID del pasto da aggiornare",
                 description: "",
@@ -163,6 +165,8 @@ export const TOOLS_IT: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Zuccheri totali, non zuccheri aggiunti",
+                added_sugar_g:
+                    "Solo zuccheri aggiunti, mai più degli zuccheri totali. Accompagna <code>sugar_g</code>: una modifica degli zuccheri totali di un pasto senza zuccheri aggiunti registrati potrebbe non essere salvata senza questo valore",
                 alcohol_g:
                     "Grammi di etanolo puro, non il volume della bevanda",
                 caffeine_mg: "Milligrammi, non grammi",
@@ -219,7 +223,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate, senza alcun token) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
+                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (ogni modifica ai tuoi obiettivi, con data), profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate e la sincronizzazione con Apple Health, senza alcun token), health_sync.csv (ciò che la sincronizzazione con Apple Health ha inviato negli ultimi 8 giorni) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
             params: {},
             example:
                 "Esporta tutti i miei dati: pasti, acqua, peso e obiettivi",
@@ -302,7 +306,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "Mostra l'andamento del tuo peso in un dato periodo: ultima misurazione, variazione complessiva, medie mobili a 7/14/30 giorni, minimo e massimo, e progressi verso il peso obiettivo.",
+                "Mostra l'andamento del tuo peso in un dato periodo: un peso di tendenza smussato che attenua le oscillazioni quotidiane, il tuo ritmo di variazione settimanale, ultima misurazione, variazione complessiva, minimo e massimo, e progressi verso il peso obiettivo. Il grafico può mostrare anche 90 giorni, un anno o tutto lo storico.",
             params: {
                 days: "Ampiezza del periodo in giorni (predefinito 30, massimo 365).",
             },
@@ -314,9 +318,57 @@ export const TOOLS_IT: ToolsDoc = {
             params: {},
             example: "D'ora in poi usa le libbre per il mio peso",
         },
+        log_body_measurement: {
+            description:
+                "Registra una misura presa con il metro da sarta in una zona del corpo (vita, fianchi, collo, torace, spalle, braccio, avambraccio, coscia o polpaccio), in cm o pollici. Il valore viene salvato così come l'hai inserito, insieme a un valore standard, così cambiare unità non altera mai un numero. I numeri molto lontani da un intervallo realistico per quella zona vengono rifiutati come probabili errori di battitura.",
+            params: {
+                kind: "La zona misurata: <code>waist</code>, <code>hips</code>, <code>neck</code>, <code>chest</code>, <code>shoulders</code>, <code>upper_arm</code>, <code>forearm</code>, <code>thigh</code> o <code>calf</code>. Un valore per zona; il lato (sinistro o destro) può andare nelle note.",
+                value: "La misura, nell'unità indicata da <code>unit</code> (&gt; 0).",
+                unit: "<code>cm</code> o <code>in</code>; per impostazione predefinita, l'unità di lunghezza che hai salvato.",
+                logged_at: "Quando è stata presa la misura, se non adesso",
+                notes: "Note aggiuntive",
+            },
+            example: "Registra il mio giro vita: 82 cm stamattina",
+        },
+        get_body_measurements: {
+            description:
+                "Elenca le tue misure corporee per giorno, dalla più vecchia alla più recente, anche per una sola zona. Copre gli ultimi 30 giorni se non indichi date, fino a 366 giorni per chiamata.",
+            params: {
+                kind: "Solo questa zona (ad es. <code>waist</code>)",
+                start_date: "Data di inizio (AAAA-MM-GG)",
+                end_date:
+                    "Data di fine (AAAA-MM-GG), fino a 366 giorni compreso quello di inizio",
+            },
+            example: "Mostrami le misure del giro vita degli ultimi tre mesi",
+        },
+        update_body_measurement: {
+            description:
+                "Corregge una misura esistente: il valore, la sua unità, l'orario o le note. La zona invece non cambia: una zona diversa è una nuova voce.",
+            params: {
+                id: "UUID della misura da aggiornare",
+                value: "Nuovo valore, nell'unità indicata da <code>unit</code>.",
+                unit: "Per impostazione predefinita, l'unità in cui è stata registrata la voce.",
+                logged_at: "Data e ora in formato ISO 8601",
+                notes: "Note sostitutive",
+            },
+            example: "La misura dei fianchi era 98 cm, non 89",
+        },
+        delete_body_measurement: {
+            description: "Rimuove una misura corporea.",
+            params: {
+                id: "UUID della misura da eliminare",
+            },
+            example: "Elimina la misura del collo di oggi",
+        },
+        set_length_unit: {
+            description:
+                "Imposta se le misure corporee vengono mostrate e inserite in centimetri o pollici. È un'impostazione separata dall'unità di peso. I valori salvati non cambiano: cambiano solo la visualizzazione e l'unità con cui vengono interpretati i numeri per impostazione predefinita.",
+            params: {},
+            example: "Usa i pollici per le mie misure",
+        },
         set_nutrition_goals: {
             description:
-                "Imposta i tuoi obiettivi giornalieri di calorie, macro, fibre, zuccheri, alcol, caffeina e acqua, più un peso obiettivo facoltativo. Calorie, proteine, carboidrati, grassi, fibre e acqua sono valori da raggiungere; zuccheri, alcol e caffeina sono limiti da non superare, e i progressi vengono descritti di conseguenza. Aggiorna solo i campi che indichi; gli altri restano invariati.",
+                "Imposta i tuoi obiettivi giornalieri di calorie, macro, fibre, zuccheri, zuccheri aggiunti, alcol, caffeina e acqua, più un peso obiettivo facoltativo. Calorie, proteine, carboidrati, grassi, fibre e acqua sono valori da raggiungere; zuccheri totali, zuccheri aggiunti, alcol e caffeina sono limiti da non superare, e i progressi vengono descritti di conseguenza. Aggiorna solo i campi che indichi; gli altri restano invariati.",
             params: {
                 daily_calories:
                     "Obiettivo calorico giornaliero (kcal). Null per rimuoverlo.",
@@ -330,6 +382,8 @@ export const TOOLS_IT: ToolsDoc = {
                     "Obiettivo giornaliero di fibre (grammi), un minimo da raggiungere. Null per rimuoverlo.",
                 daily_sugar_g:
                     "Limite giornaliero di zuccheri <b>totali</b> (grammi), un massimo da non superare. Gli zuccheri totali comprendono quelli naturalmente presenti in frutta e latte, quindi le linee guida ufficiali sugli zuccheri aggiunti indicano un valore molto più basso. Null per rimuoverlo.",
+                daily_added_sugar_g:
+                    "Limite giornaliero di zuccheri <b>aggiunti</b> (grammi), un massimo da non superare. Conta solo gli zuccheri aggiunti, non quelli naturalmente presenti in frutta e latte; i valori delle linee guida ufficiali sugli zuccheri di solito si riferiscono a questa misura (l'American Heart Association indica al massimo 25 g al giorno per le donne e 36 g per gli uomini). 0 è un limite reale che significa nessuno. Null per rimuoverlo.",
                 daily_alcohol_g:
                     "Limite giornaliero di alcol in grammi di <b>etanolo puro</b>, un massimo da non superare. Un drink standard USA equivale a 14 g, un'unità alcolica britannica a 7,9 g. Null per rimuoverlo.",
                 daily_caffeine_mg:
@@ -364,12 +418,13 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Medie mobili a 7/14/30 giorni, variabilità, serie di giorni consecutivi di registrazione, media delle calorie per giorno della settimana e i tuoi giorni migliori e peggiori per calorie: già calcolati, così l'IA deve solo riassumerli.",
+                "Medie mobili a 7/14/30 giorni, variabilità, serie di giorni consecutivi di registrazione, media delle calorie per giorno della settimana e i tuoi giorni migliori e peggiori per calorie: già calcolati, così l'IA deve solo riassumerli. Con group_by fornisce anche medie per settimana, mese, trimestre o anno — per giorno registrato, quindi i giorni senza pasti non contano — confrontate con gli obiettivi in vigore in quel momento, con quanti giorni sono stati in obiettivo e quanti sembrano incompleti.",
             params: {
                 days: "Ampiezza del periodo in giorni (predefinito 30, massimo 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> o <code>year</code>: 26 settimane, 24 mesi, 12 trimestri o 5 anni, fino al periodo che contiene la data finale (oggi per impostazione predefinita). L'intervallo è fisso; <code>days</code> imposta comunque le medie mobili.",
             },
-            example:
-                "Qual è l'andamento di calorie e macro negli ultimi 30 giorni?",
+            example: "Come sono andati i miei mesi rispetto ai miei obiettivi?",
         },
         get_meal_patterns: {
             description:
@@ -382,7 +437,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_profile: {
             description:
-                "Mostra in un colpo solo tutte le tue impostazioni attuali: fuso orario (con data e ora locali), lingua dei widget, unità di peso preferita, se i widget in chat sono visibili e se il monitoraggio dell'alcol è attivo.",
+                "Mostra in un colpo solo tutte le tue impostazioni attuali: fuso orario (con data e ora locali), lingua dei widget, unità di peso e di lunghezza preferite, se i widget in chat sono visibili e se il monitoraggio dell'alcol è attivo.",
             params: {},
             example: "Quali sono le mie impostazioni attuali?",
         },
@@ -497,6 +552,22 @@ export const TOOLS_IT: ToolsDoc = {
                 answerHtml:
                     "I dati dei codici a barre vengono da Open Food Facts, un database collaborativo, quindi alcuni prodotti mancano e alcune schede non sono aggiornate. Assicurati che tutte le 8–14 cifre sotto il codice a barre siano state lette correttamente. Se il prodotto non c'è, l'IA può stimare i valori dal nome o da una foto della tabella nutrizionale, e puoi correggere qualsiasi valore in seguito. Aggiungere il prodotto su openfoodfacts.org aiuta tutti. Open Food Facts non ha dati sulla caffeina, quindi la caffeina si ricava dall'etichetta o da quantità tipiche.",
             },
+            "health-sync-yesterday": {
+                question: "Ieri non è ancora in Apple Health",
+                answerHtml:
+                    'La sincronizzazione con Apple Health invia solo i giorni conclusi. Un giorno si considera concluso alle 05:00 del mattino dopo nel tuo fuso orario, quindi ieri arriva con la prima sincronizzazione dopo le 05:00 di oggi, e oggi compare in Salute solo domani. Una sincronizzazione parte quando scatta una delle automazioni del comando rapido (aprire l\'app Salute, fermare la sveglia) oppure quando esegui <strong>Nutrition MCP Health</strong> nell\'app Comandi Rapidi e scegli <strong>Sync now</strong>. Una mattina saltata si recupera da sola: ogni sincronizzazione guarda indietro agli ultimi 7 giorni. I giorni seguono il fuso orario del tuo profilo (<a href="#get_profile"><code>get_profile</code></a>) oppure, se non ne hai mai impostato uno, quello che il tuo iPhone ha indicato al collegamento (<a href="#wrong-day">pasti nel giorno sbagliato</a>). I giorni precedenti al collegamento vengono inviati solo se, collegandoti, hai scelto di recuperare fino a 7 giorni prima.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health mostra più della mia chat",
+                answerHtml:
+                    "Apple Health può aggiungere a un valore, ma non può mai ridurne uno che ha già. Un pasto che aggiungi a un giorno già inviato arriva come una piccola voce in più alle 12:01, 12:02 e così via, purché il giorno rientri negli ultimi 7 giorni. Se elimini o riduci un pasto dopo che il suo giorno è stato inviato, Salute resta più alto e il comando rapido mostra un avviso con la differenza. Per correggere, apri l'app Salute, vai su <strong>Sfoglia</strong> → <strong>Alimentazione</strong>, apri il tipo di dato, tocca <strong>Mostra tutti i dati</strong>, elimina le voci di quel giorno provenienti da Comandi Rapidi e inserisci a mano il totale corretto. Non usare mai <strong>Elimina tutti i dati da “Comandi Rapidi”</strong>: cancella anche ciò che hanno registrato gli altri tuoi comandi rapidi. Se ogni giorno sembra raddoppiato, un'altra app scrive gli stessi tipi e Salute li somma: disattivane una in <strong>Condivisione</strong> → <strong>App</strong> nell'app Salute.",
+            },
+            "health-sync-stopped": {
+                question:
+                    "La sincronizzazione con Apple Health si è interrotta",
+                answerHtml:
+                    "Apri l'app Comandi Rapidi ed esegui <strong>Nutrition MCP Health</strong> a mano: ti dice cosa non ha funzionato. Se ti chiede di collegarti di nuovo, il collegamento è terminato (dopo 90 giorni senza sincronizzazione, 365 giorni dopo il collegamento o dopo <strong>Disconnect</strong>): eseguilo, accedi nella pagina che apre con lo stesso account che usi nella tua app di IA e completa entro 30 minuti. Se sincronizza quando lo esegui ma non da solo, controlla che le sue automazioni nella scheda <strong>Automazione</strong> di Comandi Rapidi siano attive e impostate su <strong>Esegui immediatamente</strong>. Se un avviso dice che un giorno non ha raggiunto Apple Health, consenti a Comandi Rapidi di scrivere ogni tipo di dato sull'alimentazione in <strong>Condivisione</strong> → <strong>App</strong> → <strong>Comandi Rapidi</strong> nell'app Salute, poi eseguilo di nuovo. Collegare un nuovo iPhone sostituisce il collegamento di quello vecchio.",
+            },
             "export-link": {
                 question: "Il link per scaricare l'esportazione non funziona",
                 answerHtml:
@@ -505,7 +576,7 @@ export const TOOLS_IT: ToolsDoc = {
             "delete-account": {
                 question: "Come elimino il mio account?",
                 answerHtml:
-                    "Chiedi all'IA di eliminare il tuo account Nutrition MCP (<a href=\"#delete_account\"><code>delete_account</code></a>). Ti chiederà di confermare, poi eliminerà definitivamente pasti, acqua, peso, obiettivi, impostazioni, il registro degli strumenti usati dalla tua app di IA, eventuali file di esportazione, i tuoi dati di accesso e l'account stesso. L'operazione non si può annullare, quindi, se vuoi una copia dei tuoi dati, esportali prima. Poi rimuovi il connettore dalla tua app. Se in futuro accedi di nuovo con la stessa email, verrà creato un nuovo account vuoto.",
+                    "Chiedi all'IA di eliminare il tuo account Nutrition MCP (<a href=\"#delete_account\"><code>delete_account</code></a>). Ti chiederà di confermare, poi eliminerà definitivamente pasti, acqua, peso, misure corporee, obiettivi, impostazioni, il registro degli strumenti usati dalla tua app di IA, eventuali file di esportazione, i tuoi dati di accesso e l'account stesso. L'operazione non si può annullare, quindi, se vuoi una copia dei tuoi dati, esportali prima. Poi rimuovi il connettore dalla tua app. Se in futuro accedi di nuovo con la stessa email, verrà creato un nuovo account vuoto.",
             },
             "report-a-problem": {
                 question: "Come segnalo un bug o un problema di sicurezza?",

@@ -7,7 +7,7 @@
 // code to any redirect_uri it was handed (#148). Registration binds a client to
 // its redirect URIs; these functions decide which URIs may be registered and
 // whether a presented one matches.
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { mcpResourceUrl } from "./discovery.js";
 
 // Hosts the consent notice treats as a recognised assistant. Anything else
@@ -318,6 +318,24 @@ export function base64URLEncode(buffer: Buffer): string {
 // RFC 7636 §4.2 S256 transform: BASE64URL-ENCODE(SHA256(ASCII(code_verifier))).
 export function pkceS256(verifier: string): string {
     return base64URLEncode(createHash("sha256").update(verifier).digest());
+}
+
+// pkceS256(verifier) against a stored challenge, in constant time.
+export function challengeMatches(computed: string, stored: string): boolean {
+    const a = Buffer.from(computed, "utf8");
+    const b = Buffer.from(stored, "utf8");
+    return a.length === b.length && timingSafeEqual(a, b);
+}
+
+// The whole RFC 7636 §4.6 check for a verifier the caller holds: well-formed,
+// and its S256 hash equals the challenge the code was issued against. A null
+// or empty challenge (a code minted before PKCE was mandatory) never matches.
+export function verifierMatchesChallenge(
+    verifier: string,
+    challenge: string | null | undefined,
+): boolean {
+    if (!challenge || !isValidCodeVerifier(verifier)) return false;
+    return challengeMatches(pkceS256(verifier), challenge);
 }
 
 // RFC 8707 resource indicator, normalized for comparison: an absolute http(s)

@@ -132,11 +132,19 @@ export interface LoginErrors {
  * All three are plain text, escaped at render time. `{host}` is replaced
  * by the escaped redirect host at request time — keep the placeholder
  * verbatim in every translation (it may appear more than once).
+ *
+ * `healthSync` replaces all three for the built-in Apple Health sync client
+ * (HEALTH_SYNC_CLIENT_ID in src/oauth-store.ts) and is never shown for any
+ * other client. Its redirect is always this server, so it names no host; it
+ * says what signing in does and who should not continue — someone who did
+ * not start this from the shortcut on their own iPhone may have been sent
+ * another person's pairing link. Plain text, no placeholders, also tinted.
  */
 export interface LoginClientNotice {
     returnTo: string;
     unknownHost: string;
     loopback: string;
+    healthSync: string;
 }
 
 const EN: LoginDoc = {
@@ -149,7 +157,7 @@ const EN: LoginDoc = {
     signInButton: "Sign in",
     createAccountButton: "Create account",
     consentNote:
-        "By continuing you confirm you're at least 16, agree to the {terms} and {privacy}, and consent to us storing the meals, weight and alcohol you log, which is health data.",
+        "By continuing you confirm you're at least 16, agree to the {terms} and {privacy}, and consent to us storing the meals, weight, body measurements and alcohol you log, which is health data.",
     termsLinkText: "Terms of Service",
     privacyLinkText: "Privacy Policy",
     newHereNote:
@@ -205,6 +213,8 @@ export const LOGIN_CLIENT_NOTICE: Record<SiteLocale, LoginClientNotice> = {
             "{host} isn't an assistant we recognise. Only continue if you started connecting from {host} yourself.",
         loopback:
             "You'll be sent back to a program running on this computer ({host}). Only continue if you started this connection from it.",
+        healthSync:
+            "Signing in connects Apple Health sync on the device that opened this page. If you did not start this from the Nutrition MCP shortcut on your own iPhone just now, close this page.",
     },
     de: LOGIN_CLIENT_NOTICE_DE,
     es: LOGIN_CLIENT_NOTICE_ES,

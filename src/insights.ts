@@ -1,11 +1,14 @@
-import type {
-    Meal,
-    NutritionGoals,
-    WaterEntry,
-    WeightEntry,
-} from "./supabase.js";
+import type { Meal, NutritionGoals, WaterEntry } from "./supabase.js";
 import { dateInTz, hourInTz } from "./tz.js";
 import { formatWeight, fromGrams, type WeightUnit } from "./units.js";
+import {
+    dailyAverages,
+    rateForDisplay,
+    rateInUnit,
+    trendSeries,
+    weeklyRate,
+    type WeightRow,
+} from "./weight-trend.js";
 
 export interface DailyBucket {
     date: string; // YYYY-MM-DD
@@ -17,6 +20,9 @@ export interface DailyBucket {
     fat_g: number;
     fiber_g: number;
     sugar_g: number;
+    /** Part of sugar_g. Summed with `?? 0` like the other partial nutrients;
+     * whether the day recorded it at all is dayCarries(meals, "added_sugar_g"). */
+    added_sugar_g: number;
     alcohol_g: number;
     caffeine_mg: number;
     mealTypes: Set<string>;
@@ -83,6 +89,7 @@ export function buildDailyBuckets(
             fat_g: 0,
             fiber_g: 0,
             sugar_g: 0,
+            added_sugar_g: 0,
             alcohol_g: 0,
             caffeine_mg: 0,
             mealTypes: new Set(),
@@ -100,6 +107,7 @@ export function buildDailyBuckets(
         b.fat_g += m.fat_g ?? 0;
         b.fiber_g += m.fiber_g ?? 0;
         b.sugar_g += m.sugar_g ?? 0;
+        b.added_sugar_g += m.added_sugar_g ?? 0;
         b.alcohol_g += m.alcohol_g ?? 0;
         b.caffeine_mg += m.caffeine_mg ?? 0;
         if (m.meal_type) b.mealTypes.add(m.meal_type);
@@ -116,7 +124,7 @@ export function buildDailyBuckets(
 }
 
 /** The nutrients added after the fact — fiber, sugar and alcohol in one pass,
- * caffeine in a later one. Every meal written before each pass shipped carries
+ * caffeine and then added sugar in later ones. Every meal written before each pass shipped carries
  * NULL for its nutrients, so — unlike calories or protein, where a missing value
  * has always meant zero and users have history built on that — a null here means
  * "not recorded", not "ate none". Summing them as zero over every logged day
@@ -124,7 +132,7 @@ export function buildDailyBuckets(
  * under a sugar limit. Caffeine is the same story and then some: most meals will
  * legitimately never carry a value. */
 export type PartialNutrient =
-    "fiber_g" | "sugar_g" | "alcohol_g" | "caffeine_mg";
+    "fiber_g" | "sugar_g" | "added_sugar_g" | "alcohol_g" | "caffeine_mg";
 
 /** THE RULE, shared with mcp.ts: a day carries a nutrient when at least one of
  * that day's meals has a non-null value for it. Only carrying days count toward
@@ -132,6 +140,26 @@ export type PartialNutrient =
  * both numerator and denominator, so trends and the summary must agree. */
 export function dayCarries(meals: Meal[], nutrient: PartialNutrient): boolean {
     return meals.some((m) => m[nutrient] != null);
+}
+
+/**
+ * The added-sugar figure when a limit is set and the day (or window) holds no
+ * recorded value — "not recorded on this day (limit 29g)". One wording for
+ * every model-facing place that reports added sugar against its limit
+ * (formatProgress and the summary average in mcp.ts, computeTrends and
+ * computeWeeklyDigest here), so a model reading two of them never sees two
+ * phrasings of the same fact. It exists because dropping the line let a model
+ * read total sugar against the added-sugar limit (a 330 ml cola logged with
+ * sugar_g 35 and no added_sugar_g, reported as "6 g over your 29 g added-sugar
+ * limit"). Describes only — it states the gap, never what to do about it.
+ * Callers gate it on an active ceiling (0 is a real one).
+ */
+export function addedSugarNotRecorded(
+    scope: "day" | "period",
+    limit: number,
+): string {
+    const where = scope === "day" ? "on this day" : "in this period";
+    return `not recorded ${where} (limit ${round(limit)}g)`;
 }
 
 /** Mean of a nutrient over only the days that carry it, given one Meal[] per
@@ -287,6 +315,16 @@ function targetApplies(target: number | null, direction: StatDirection) {
     return direction === "ceiling" ? target >= 0 : target > 0;
 }
 
+/** Whether a value lands within ±10% of a floor target, judged on the
+ * unrounded value. Two-sided on purpose: 115% of a protein target is off
+ * target, exactly as "Days within ±10% of target" has always counted it. The
+ * one definition behind both that line and the period on-target count in
+ * periods.ts, so the two can never drift apart. A target of zero or less is
+ * not a real floor (see targetApplies) and never counts as hit. */
+export function withinBand(value: number, target: number): boolean {
+    return target > 0 && value >= target * 0.9 && value <= target * 1.1;
+}
+
 /** Whether the goal is something to reach ("floor": calories, protein, fiber…)
  * or something to stay under ("ceiling": sugar, alcohol). Mirrors the
  * GoalDirection used by formatGoalLine in mcp.ts. */
@@ -357,8 +395,10 @@ function formatStatLine(
             parts.push(`  Limit: ${shownLimit}${unit}`);
             parts.push(`  Days over limit: ${daysOver}${of}`);
         } else {
-            const daysOnTarget = values.filter(
-                (v) => v >= limit * 0.9 && v <= limit * 1.1,
+            // targetApplies(…, "floor") above already requires limit > 0, so
+            // withinBand's own `target > 0` guard changes nothing here.
+            const daysOnTarget = values.filter((v) =>
+                withinBand(v, limit),
             ).length;
             parts.push(`  Target: ${shownLimit}${unit}`);
             parts.push(`  Days within ±10% of target: ${daysOnTarget}${of}`);
@@ -381,7 +421,8 @@ export function computeTrends(
 
     const logged = buckets.filter(nonEmpty);
     // Calories/protein/carbs/fat/water: every day counts, as they always have.
-    // Fiber/sugar/alcohol/caffeine: only the days that carry them (coveredSeries).
+    // Fiber/sugar/added sugar/alcohol/caffeine: only the days that carry them
+    // (coveredSeries).
     const alcoholSeries = coveredSeries(buckets, "alcohol_g");
     const caffeineSeries = coveredSeries(buckets, "caffeine_mg");
 
@@ -456,6 +497,29 @@ export function computeTrends(
             goals?.daily_sugar_g ?? null,
             "ceiling",
         ),
+    );
+    // Added sugar is part of the sugar above, with its own ceiling — the one
+    // public guidance figures (AHA, DGA) actually set. Expected on every meal
+    // like sugar, so no positive-only suppression: a window of recorded zeros
+    // is a real "0g", and 0 is a real limit. Meals from before it shipped are
+    // NULL, so their days drop out of the series (and the day count) rather
+    // than reading as days under the limit.
+    // A window with no recorded value at all drops the stat block like fiber
+    // — unless a limit is set, where a vanished row lets total sugar be read
+    // against the added-sugar limit; it then says "not recorded" instead.
+    const addedSugarLimit = goals?.daily_added_sugar_g ?? null;
+    const addedSugarStat = formatStatLine(
+        "Added sugar",
+        "g",
+        coveredSeries(buckets, "added_sugar_g"),
+        addedSugarLimit,
+        "ceiling",
+    );
+    push(
+        addedSugarStat ??
+            (targetApplies(addedSugarLimit, "ceiling")
+                ? `Added sugar: ${addedSugarNotRecorded("period", addedSugarLimit!)}`
+                : null),
     );
     // Alcohol only appears once there is alcohol to talk about — a recorded but
     // flat-zero series is suppressed too (that is also how mcp.ts's opt-in
@@ -555,35 +619,37 @@ export function computeTrends(
 /**
  * Weight is a point measurement (not a daily sum), and multiple weigh-ins per
  * day are allowed — so we aggregate to one value per day by averaging that day's
- * entries, then report trailing moving averages to smooth day-to-day noise.
- * All output is rendered in the user's preferred unit from canonical grams.
+ * entries (`dailyAverages`), then smooth with the trend EWMA from
+ * src/weight-trend.ts. All output is rendered in the user's preferred unit from
+ * canonical grams.
+ *
+ * `entries` may (and from get_weight_trends does) reach back before
+ * `startDate`: the trend runs over every day up to `endDate`, so it is settled
+ * on the first day shown and equals the widget's `_meta` `trend_latest`. The
+ * Latest / Change / Min / Max stats use only the days inside the window; days
+ * after `endDate` are ignored.
  */
 export function computeWeightTrend(
-    entries: WeightEntry[],
+    entries: readonly WeightRow[],
     startDate: string,
     endDate: string,
     tz: string,
     targetWeightG: number | null,
     unit: WeightUnit,
 ): string {
-    // Daily average (grams) for each day that has at least one weigh-in.
-    const sums = new Map<string, { total: number; count: number }>();
-    for (const e of entries) {
-        const date = dateInTz(e.logged_at, tz);
-        const cur = sums.get(date) ?? { total: 0, count: 0 };
-        cur.total += e.weight_g;
-        cur.count += 1;
-        sums.set(date, cur);
-    }
-    const days = [...sums.entries()]
-        .map(([date, { total, count }]) => ({ date, avg: total / count }))
-        .sort((a, b) => a.date.localeCompare(b.date));
+    const history = dailyAverages(entries, tz).filter((d) => d.date <= endDate);
+    const series = trendSeries(history);
+    const days = series.filter((d) => d.date >= startDate);
 
     if (days.length === 0) {
         return `No weight logged between ${startDate} and ${endDate}.`;
     }
 
     const fmt = (g: number) => formatWeight(g, unit);
+    // Same rule as the widget chip's signed(): a real minus sign (U+2212)
+    // and always one decimal, so the text and the chip read identically.
+    const signed = (v: number) =>
+        `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)}`;
     // Signed delta rendered in display units.
     const fmtDelta = (g: number) => {
         const v = fromGrams(Math.abs(g), unit);
@@ -593,18 +659,9 @@ export function computeWeightTrend(
 
     const first = days[0]!;
     const last = days[days.length - 1]!;
-    // Trailing average over the last n calendar days ending at endDate.
-    const trailing = (n: number): number | null => {
-        const cutoff = addDays(endDate, -(n - 1));
-        const vals = days.filter((d) => d.date >= cutoff).map((d) => d.avg);
-        return vals.length > 0 ? mean(vals) : null;
-    };
-    const avg7 = trailing(7);
-    const avg14 = trailing(14);
-    const avg30 = trailing(30);
 
-    const minDay = days.reduce((a, b) => (a.avg <= b.avg ? a : b));
-    const maxDay = days.reduce((a, b) => (a.avg >= b.avg ? a : b));
+    const minDay = days.reduce((a, b) => (a.weight_g <= b.weight_g ? a : b));
+    const maxDay = days.reduce((a, b) => (a.weight_g >= b.weight_g ? a : b));
 
     const sections: string[] = [];
     sections.push(
@@ -613,27 +670,43 @@ export function computeWeightTrend(
 
     sections.push(
         [
-            `Latest: ${fmt(last.avg)} (on ${last.date})`,
-            `Change over range: ${fmtDelta(last.avg - first.avg)} (from ${fmt(first.avg)} on ${first.date})`,
+            `Latest: ${fmt(last.weight_g)} (on ${last.date})`,
+            `Change over range: ${fmtDelta(last.weight_g - first.weight_g)} (from ${fmt(first.weight_g)} on ${first.date})`,
         ].join("\n"),
     );
 
-    const movingLines = ["Moving averages (smoothed):"];
-    if (avg7 != null) movingLines.push(`  7-day: ${fmt(avg7)}`);
-    if (avg14 != null) movingLines.push(`  14-day: ${fmt(avg14)}`);
-    if (avg30 != null) movingLines.push(`  30-day: ${fmt(avg30)}`);
-    sections.push(movingLines.join("\n"));
+    // The rate goes through the same rounding as _meta.weekly_rate (2
+    // decimals) and then the 1-decimal display step the widget's chip uses,
+    // so the text and the chip cannot disagree.
+    const rateG = weeklyRate(series, endDate);
+    const rate =
+        rateG === null
+            ? ""
+            : ` (${signed(rateForDisplay(rateInUnit(rateG, unit)))} ${unit}/week over the last 2 weeks)`;
+    const trendLines = [`Trend weight: ${fmt(last.trend_g)}${rate}`];
+    const origin = series[0]!;
+    if (origin.date < startDate) {
+        // Rounded display values on both sides, so the stated difference is
+        // exactly the difference of the two figures printed beside it.
+        const trendNow = fromGrams(last.trend_g, unit);
+        const firstW = fromGrams(origin.weight_g, unit);
+        const delta = Math.round((trendNow - firstW) * 10) / 10;
+        trendLines.push(
+            `Since first weigh-in (${origin.date}, ${firstW} ${unit}): ${signed(delta === 0 ? 0 : delta)} ${unit}; trend now ${trendNow} ${unit}.`,
+        );
+    }
+    sections.push(trendLines.join("\n"));
 
     sections.push(
         [
             "Range:",
-            `  Min: ${fmt(minDay.avg)} (on ${minDay.date})`,
-            `  Max: ${fmt(maxDay.avg)} (on ${maxDay.date})`,
+            `  Min: ${fmt(minDay.weight_g)} (on ${minDay.date})`,
+            `  Max: ${fmt(maxDay.weight_g)} (on ${maxDay.date})`,
         ].join("\n"),
     );
 
     if (targetWeightG != null && targetWeightG > 0) {
-        const delta = last.avg - targetWeightG; // positive = above target
+        const delta = last.weight_g - targetWeightG; // positive = above target
         const remaining = fromGrams(Math.abs(delta), unit);
         let goalLine: string;
         if (remaining === 0) {
@@ -796,6 +869,7 @@ export function computeWeeklyDigest(
     };
     const fiber = covered("fiber_g");
     const sugar = covered("sugar_g");
+    const addedSugar = covered("added_sugar_g");
     const alcohol = covered("alcohol_g");
     const caffeine = covered("caffeine_mg");
     // Whole milligrams, like every other caffeine figure the model reads (see
@@ -826,7 +900,8 @@ export function computeWeeklyDigest(
             ? `Daily averages (per calendar day; ${logged.length} of ${buckets.length} days logged):`
             : "Daily averages:",
     );
-    // `noun` is "target" for a floor and "limit" for a ceiling (sugar, alcohol);
+    // `noun` is "target" for a floor and "limit" for a ceiling (sugar, added
+    // sugar, alcohol, caffeine);
     // calling a sugar cap a "target" invites reading the shortfall as a shortfall.
     const line = (
         label: string,
@@ -885,6 +960,27 @@ export function computeWeeklyDigest(
                 "limit",
                 sugar.days,
             ),
+        );
+    }
+    // Same gate as sugar: no added-sugar data in the week, no figure. Its days
+    // can be fewer than sugar's (meals logged before it shipped carry sugar
+    // only), and the "over N of 7 days with data" note says so. With a limit
+    // set, a week with none recorded says so rather than vanishing (see
+    // addedSugarNotRecorded).
+    if (addedSugar.avg != null) {
+        lines.push(
+            line(
+                "Added sugar",
+                addedSugar.avg,
+                "g",
+                goals?.daily_added_sugar_g ?? null,
+                "limit",
+                addedSugar.days,
+            ),
+        );
+    } else if (targetApplies(goals?.daily_added_sugar_g ?? null, "ceiling")) {
+        lines.push(
+            `  Added sugar: ${addedSugarNotRecorded("period", goals!.daily_added_sugar_g!)}`,
         );
     }
     // Suppressed for the same reason as the trends line (see hasAnyPositive), but

@@ -1,5 +1,6 @@
 // Hourly sweep of the OAuth tables: expired access tokens, refresh tokens and
-// auth codes, and client registrations that were never used. Started once from
+// auth codes, and client registrations that were never used — and, on the
+// same tick, of Apple Health sync's pending connects, links and 8-day record. Started once from
 // the import.meta.main block of src/index.ts, never on import. The sweep itself
 // takes an injectable store so src/oauth-cleanup.test.ts runs it against an
 // in-memory fake; the Supabase queries live in src/supabase.ts.
@@ -9,6 +10,12 @@ import {
     listUnusedOAuthClientIds,
     oauthClientIdsWithGrants,
 } from "./supabase.js";
+import {
+    HEALTH_SYNC_LINK_MAX_AGE_MS,
+    supabaseHealthSyncCleanupStore,
+    type HealthSyncCleanupStore,
+} from "./health-sync-store.js";
+import { HEALTH_SYNC_RETENTION_DAYS } from "./health-sync.js";
 
 const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -169,9 +176,74 @@ export async function sweepOAuth(
     return result;
 }
 
+// How many days of Apple Health sync's sent-values record are kept: rows
+// dated before today (UTC) minus this many days go. The privacy policy and
+// /tools say 8 days.
+export const HEALTH_SYNC_DAYS_KEPT = HEALTH_SYNC_RETENTION_DAYS;
+
+export interface HealthSyncSweepResult {
+    pending: number;
+    links: number;
+    days: number;
+}
+
+// Apple Health sync's three tables, on the same hourly tick: lapsed pending
+// connects (30 minutes, or 10 more once a claim code is minted), links past
+// their sliding 90-day expiry or 365 days old, and sent-values rows past the
+// 8-day record. Each table on its own, like the OAuth tables above.
+export async function sweepHealthSync(
+    store: HealthSyncCleanupStore = supabaseHealthSyncCleanupStore,
+    now: number = Date.now(),
+): Promise<HealthSyncSweepResult> {
+    const result: HealthSyncSweepResult = { pending: 0, links: 0, days: 0 };
+    const nowIso = new Date(now).toISOString();
+    // The calendar date in UTC, as the database's current_date reads it.
+    const beforeDate = new Date(
+        now - HEALTH_SYNC_DAYS_KEPT * 24 * 60 * 60 * 1000,
+    )
+        .toISOString()
+        .slice(0, 10);
+    const steps = [
+        [
+            "health_sync_pending",
+            "pending",
+            () => store.deleteExpiredPending(nowIso),
+        ],
+        [
+            "health_sync_links",
+            "links",
+            () =>
+                store.deleteExpiredLinks(
+                    nowIso,
+                    new Date(now - HEALTH_SYNC_LINK_MAX_AGE_MS).toISOString(),
+                ),
+        ],
+        ["health_sync_days", "days", () => store.deleteDaysBefore(beforeDate)],
+    ] as const;
+    for (const [table, key, run] of steps) {
+        try {
+            result[key] = await run();
+        } catch (err) {
+            console.warn(
+                `[health-sync] cleanup failed table=${table}: ${(err as Error).message}`,
+            );
+        }
+    }
+    // Counts only.
+    if (result.pending + result.links + result.days) {
+        console.log(
+            `[health-sync] cleanup pending=${result.pending} links=${result.links} days=${result.days}`,
+        );
+    }
+    return result;
+}
+
 let sweepRunning = false;
 
-/** Start the hourly OAuth cleanup sweep. Call once at server startup. */
+/**
+ * Start the hourly OAuth and Apple Health sync cleanup sweep. Call once at
+ * server startup.
+ */
 export function startOAuthCleanup(): void {
     const tick = () => {
         if (sweepRunning) return;
@@ -180,6 +252,14 @@ export function startOAuthCleanup(): void {
             .catch((err) =>
                 console.warn(
                     `[oauth] cleanup failed: ${(err as Error).message}`,
+                ),
+            )
+            // Runs whatever happened above: one sweep failing must not keep
+            // the other's rows past what the privacy policy promises.
+            .then(() => sweepHealthSync())
+            .catch((err) =>
+                console.warn(
+                    `[health-sync] cleanup failed: ${(err as Error).message}`,
                 ),
             )
             .finally(() => {

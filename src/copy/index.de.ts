@@ -49,7 +49,7 @@ export const INDEX_DE: IndexDoc = {
                 },
                 {
                     userText: "ja",
-                    aiText: "Frühstück erfasst: 480 kcal, 21 g Protein und 126 mg Koffein. Beim Zucker bist du schon bei 51 g, dein Limit liegt bei 60 g.",
+                    aiText: "Frühstück erfasst: 480 kcal, 21 g Protein und 126 mg Koffein. Beim zugesetzten Zucker bist du bei 20 g, dein Limit liegt bei 25 g – das meiste davon ist der Honig; der Rest der 51 g Gesamtzucker stammt aus Obst und Joghurt.",
                     card: "meal-logged",
                     meal: {
                         description:
@@ -79,7 +79,7 @@ export const INDEX_DE: IndexDoc = {
                 },
                 {
                     userText: "was ist noch drin fürs Abendessen?",
-                    aiText: "Es bleiben noch 850 kcal und 84 g Protein. Beim Zucker bist du bei 59 g, dein Limit liegt bei 60 g.",
+                    aiText: "Es bleiben noch 850 kcal und 84 g Protein. Beim zugesetzten Zucker bist du bei 23 g, dein Limit liegt bei 25 g, und der Großteil der heutigen 59 g Gesamtzucker stammt aus Obst.",
                     card: "nutrition-summary",
                 },
                 {
@@ -171,7 +171,7 @@ export const INDEX_DE: IndexDoc = {
         note: "Das alles ist optional. Ob jetzt, später oder nie – fang einfach an zu erfassen und stell das ein, wann immer du willst.",
         toolsCta: {
             heading: "Neugierig, was es alles kann?",
-            body: "Sieh dir alle 36 Werkzeuge an – Erfassen, Barcodes, Wasser, Gewicht, Ziele und Trends –, jeweils mit Beschreibung und Beispielsatz.",
+            body: "Sieh dir alle 41 Werkzeuge an – Erfassen, Barcodes, Wasser, Gewicht und Körpermaße, Ziele und Trends –, jeweils mit Beschreibung und Beispielsatz.",
             arrow: "Werkzeuge entdecken",
         },
     },
@@ -197,10 +197,10 @@ export const INDEX_DE: IndexDoc = {
                 id: "log-meal",
                 title: "In eigenen Worten erfassen",
                 description:
-                    "Sag es so, wie du es Freunden erzählen würdest. Fehlt die Portion oder welche Mahlzeit es war, kommt erst eine Rückfrage, bevor geschätzt wird. Ballaststoffe und Zucker stehen bei jedem Eintrag, Koffein bei allem, was welches enthält, und „gegen 7“ landet in deiner Zeitzone auf 07:00.",
+                    "Sag es so, wie du es Freunden erzählen würdest. Fehlt die Portion oder welche Mahlzeit es war, kommt erst eine Rückfrage, bevor geschätzt wird. Ballaststoffe, Zucker und zugesetzter Zucker stehen bei jedem Eintrag, Koffein bei allem, was welches enthält, und „gegen 7“ landet in deiner Zeitzone auf 07:00.",
                 toolNotes: {
                     log_meal:
-                        "Speichert das Frühstück mit Makros, Ballaststoffen, Zucker und dem Koffein des Kaffees",
+                        "Speichert das Frühstück mit Makros, Ballaststoffen, Zucker, zugesetztem Zucker und dem Koffein des Kaffees",
                     log_water:
                         "Zählt die 500 ml um 07:00 zur heutigen Wassermenge",
                     get_current_time:
@@ -302,7 +302,7 @@ export const INDEX_DE: IndexDoc = {
                 id: "scan-barcode",
                 title: "Barcode scannen",
                 description:
-                    "Fotografier die Verpackung: Die Ziffern unter dem Barcode werden in Open Food Facts nachgeschlagen, dann kommt die Frage, wie viel du hattest. Open Food Facts führt kein Koffein, deshalb kommt es vom Etikett oder aus typischen Mengen; fehlen Ballaststoffe oder Zucker, werden sie geschätzt statt leer gelassen.",
+                    "Fotografier die Verpackung: Die Ziffern unter dem Barcode werden in Open Food Facts nachgeschlagen, dann kommt die Frage, wie viel du hattest. Zugesetzter Zucker wird übernommen, wo Open Food Facts ihn führt. Open Food Facts führt kein Koffein, deshalb kommt es vom Etikett oder aus typischen Mengen; fehlen Ballaststoffe, Zucker oder zugesetzter Zucker, werden sie geschätzt statt leer gelassen.",
                 toolNotes: {
                     lookup_barcode:
                         "Holt die Etikettwerte und den Nutri-Score des Bechers aus Open Food Facts",
@@ -317,7 +317,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Das ist ein 150-g-Becher Naturjoghurt griechischer Art (0 % Fett): 87 kcal, 15 g Protein und 5 g Zucker, und Open Food Facts bewertet ihn mit Nutri-Score A. Hattest du den ganzen Becher?",
+                        text: "Das ist ein 150-g-Becher Naturjoghurt griechischer Art (0 % Fett): 87 kcal, 15 g Protein und 5 g Zucker, davon nichts zugesetzt, und Open Food Facts bewertet ihn mit Nutri-Score A. Hattest du den ganzen Becher?",
                     },
                     {
                         from: "user",
@@ -340,7 +340,7 @@ export const INDEX_DE: IndexDoc = {
                 id: "goals-progress",
                 title: "Ziele setzen, Stand checken",
                 description:
-                    "Leg Ziele fest, die du erreichen willst, etwa Kalorien und Protein, und Limits für Zucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Dann frag nach einem beliebigen Tag und sieh, was dir bei jedem Ziel noch fehlt und wo du bei jedem Limit stehst.",
+                    "Leg Ziele fest, die du erreichen willst, etwa Kalorien und Protein, und Limits für zugesetzten Zucker, Gesamtzucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Dann frag nach einem beliebigen Tag und sieh, was dir bei jedem Ziel noch fehlt und wo du bei jedem Limit stehst.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Speichert Kalorien- und Proteinziel sowie ein Koffeinlimit von 400 mg",
@@ -362,7 +362,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 30 g Ballaststoffe, 2,5 l Wasser, dein Zuckerlimit von 60 g und dein Zielgewicht von 75 kg.",
+                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 30 g Ballaststoffe, 2,5 l Wasser, dein Limit von 25 g für zugesetzten Zucker und dein Zielgewicht von 75 kg.",
                     },
                     {
                         from: "user",
@@ -370,7 +370,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Du bist bei 1.540 von 2.000 kcal und 104 von 160 g Protein, es fehlen also noch 460 kcal und 56 g Protein. Zucker liegt bei 40 von maximal 60 g, Koffein bei 130 von 400 mg – beides unter dem Limit.",
+                        text: "Du bist bei 1.540 von 2.000 kcal und 104 von 160 g Protein, es fehlen also noch 460 kcal und 56 g Protein. Zugesetzter Zucker liegt bei 16 von maximal 25 g, Koffein bei 130 von 400 mg – beides unter dem Limit.",
                     },
                 ],
                 cards: [
@@ -404,7 +404,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Im Schnitt 52 g am Tag, also unter deinem Limit von 60 g, aber an 4 der 13 Tage lagst du darüber.",
+                        text: "Zugesetzter Zucker lag im Schnitt bei 22 g am Tag, also unter deinem Limit von 25 g, aber an 5 der 13 Tage lagst du darüber. Gesamtzucker lag im Schnitt bei 52 g, vor allem aus Obst und Milch.",
                     },
                 ],
                 cards: [
@@ -416,14 +416,17 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Gewicht verfolgen",
+                title: "Gewicht & Körpermaße",
                 description:
-                    "Trag dein Gewicht in kg oder lb ein und sieh den Trend hinter den täglichen Schwankungen: geglätteter Durchschnitt, Veränderung im Monat, Abstand zum Zielgewicht. Ein unmöglicher Wert, etwa mit vergessenem Komma, wird abgefangen, bevor er gespeichert wird.",
+                    "Trag dein Gewicht in kg oder lb ein und sieh den Trend hinter den täglichen Schwankungen: geglätteter Durchschnitt, Veränderung im Monat, Abstand zum Zielgewicht. Maßband-Maße von neun Körperstellen, von der Taille bis zur Wade, erfasst du daneben in cm oder Zoll. Ein unmöglicher Wert, etwa mit vergessenem Komma, wird abgefangen, bevor er gespeichert wird.",
                 toolNotes: {
                     log_weight:
                         "Speichert die Messung von heute Morgen: 78,4 kg",
                     get_weight_trends:
-                        "Glättet 30 Tage zu gleitenden Durchschnitten und zeigt den Abstand zum Ziel",
+                        "Glättet Tagesschwankungen zu einem Trendgewicht und einer Wochenrate und zeigt den Abstand zum Ziel",
+                    log_body_measurement: "Speichert den Taillenumfang: 84 cm",
+                    get_body_measurements:
+                        "Sucht den letzten Taillenwert zum Vergleich",
                 },
                 messages: [
                     {
@@ -433,6 +436,14 @@ export const INDEX_DE: IndexDoc = {
                     {
                         from: "ai",
                         text: "78,4 kg gespeichert. Seit dem 11. Februar hast du 1,8 kg abgenommen (von 80,2 kg), und dein 7-Tage-Schnitt liegt bei 78,7 kg. Noch 3,4 kg bis zu deinem Zielgewicht von 75 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "Taille war übrigens 84 cm. wie ist das im Vergleich?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Taillenumfang von 84 cm gespeichert. Am 14. Februar waren es noch 86,5 cm, also 2,5 cm weniger.",
                     },
                 ],
                 cards: [
@@ -600,10 +611,10 @@ export const INDEX_DE: IndexDoc = {
                 id: "export-data",
                 title: "Deine Daten mitnehmen",
                 description:
-                    "Eine Anfrage packt alles, was über dich gespeichert ist – Mahlzeiten, Wasser, Gewichtseinträge, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungstelemetrie und App-Verbindungen –, in ein ZIP aus CSV-Dateien samt README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
+                    "Eine Anfrage packt alles, was über dich gespeichert ist – Mahlzeiten, Wasser, Gewichtseinträge, Körpermaße, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungstelemetrie und App-Verbindungen –, in ein ZIP aus CSV-Dateien samt README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
                 toolNotes: {
                     export_all_data:
-                        "Packt acht CSV-Dateien und ein README in ein ZIP hinter einem 60-Minuten-Link",
+                        "Packt neun CSV-Dateien und ein README in ein ZIP hinter einem 60-Minuten-Link",
                 },
                 messages: [
                     {
@@ -655,15 +666,15 @@ export const INDEX_DE: IndexDoc = {
         cards: [
             {
                 title: "Mahlzeiten in eigenen Worten",
-                body: "Beschreib, was du gegessen hast – deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Koffein in Milligramm und erfasst alles.",
+                body: "Beschreib, was du gegessen hast – deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker, zugesetzten Zucker und Koffein in Milligramm und erfasst alles.",
             },
             {
                 title: "Barcode scannen",
-                body: "Fotografier einen Produkt-Barcode oder tipp ihn ein und hol dir Makros, Ballaststoffe und Zucker von Open Food Facts – umgerechnet auf die Menge, die du gegessen hast.",
+                body: "Fotografier einen Produkt-Barcode oder tipp ihn ein und hol dir Makros, Ballaststoffe und Zucker – wo angegeben auch zugesetzten Zucker – von Open Food Facts, umgerechnet auf die Menge, die du gegessen hast.",
             },
             {
                 title: "Ziele & Fortschritt",
-                body: "Leg tägliche Ziele für Kalorien, Makros, Ballaststoffe und Wasser fest – dazu Limits für Zucker, Koffein und Alkohol, unter denen du bleiben willst – und verfolg deinen Fortschritt live.",
+                body: "Leg tägliche Ziele für Kalorien, Makros, Ballaststoffe und Wasser fest – dazu Limits für zugesetzten Zucker, Gesamtzucker, Koffein und Alkohol, unter denen du bleiben willst – und verfolg deinen Fortschritt live.",
             },
             {
                 title: "Übersichten & Trends",
@@ -675,7 +686,7 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 title: "Gewichts-Tracking",
-                body: "Erfasse dein Körpergewicht in kg oder lb, sieh dir 7/14/30-Tage-Trends an und verfolg deinen Fortschritt Richtung Zielgewicht.",
+                body: "Erfasse dein Körpergewicht in kg oder lb, sieh dir dein geglättetes Trendgewicht und deine Wochenrate über deine gesamte Historie an und verfolg deinen Fortschritt Richtung Zielgewicht. Maßband-Maße von neun Körperstellen – von der Taille bis zur Wade – erfasst du daneben in cm oder in.",
             },
             {
                 title: "Passt sich deiner Zeitzone an",
@@ -687,7 +698,7 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 title: "Export & volle Kontrolle über deine Daten",
-                body: "Nimm alles mit, was wir über dich speichern – Mahlzeiten, Wasser, Gewicht, Ziele und Profil, dazu deinen Kontodatensatz, die Nutzungstelemetrie und deine verbundenen Apps – als ein ZIP mit CSV-Dateien. Bisher lassen sich nur die Mahlzeiten wieder importieren. Lösch dein Konto und deine Daten, wann immer du willst.",
+                body: "Nimm alles mit, was wir über dich speichern – Mahlzeiten, Wasser, Gewicht, Körpermaße, Ziele und Profil, dazu deinen Kontodatensatz, die Nutzungstelemetrie und deine verbundenen Apps – als ein ZIP mit CSV-Dateien. Bisher lassen sich nur die Mahlzeiten wieder importieren. Lösch dein Konto und deine Daten, wann immer du willst.",
             },
         ],
     },
@@ -770,7 +781,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was ist Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP ist ein kostenloser Open-Source-MCP-Server (Model Context Protocol), der Claude, ChatGPT oder einen anderen MCP-Client in einen Kalorienzähler und Makro-Tracker verwandelt. Statt eine Lebensmitteldatenbank zu durchsuchen, sagst du deiner KI, was du gegessen hast, und sie trägt Kalorien, Makros, Ballaststoffe, Zucker und Koffein in dein eigenes Ernährungstagebuch ein.",
+                "Nutrition MCP ist ein kostenloser Open-Source-MCP-Server (Model Context Protocol), der Claude, ChatGPT oder einen anderen MCP-Client in einen Kalorienzähler und Makro-Tracker verwandelt. Statt eine Lebensmitteldatenbank zu durchsuchen, sagst du deiner KI, was du gegessen hast, und sie trägt Kalorien, Makros, Ballaststoffe, Zucker, zugesetzten Zucker und Koffein in dein eigenes Ernährungstagebuch ein.",
         },
         {
             question: "Was ist das Model Context Protocol (MCP)?",
@@ -780,7 +791,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Wie zähle ich Kalorien mit Claude oder ChatGPT?",
             visibleHtml:
-                "Verbinde Nutrition MCP einmal – in Claude über das Connector-Verzeichnis, in ChatGPT als benutzerdefinierte App mit der Server-URL – und melde dich an. Dann sag deiner KI in eigenen Worten, was du gegessen hast, zeig ihr ein Foto der Mahlzeit oder gib ihr einen Produkt-Barcode. Deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Zucker, und Nutrition MCP speichert den Eintrag in deinem Ernährungstagebuch. Frag jederzeit nach deinen heutigen Summen, Wochentrends oder deinem Fortschritt bei deinen Zielen.",
+                "Verbinde Nutrition MCP einmal – in Claude über das Connector-Verzeichnis, in ChatGPT als benutzerdefinierte App mit der Server-URL – und melde dich an. Dann sag deiner KI in eigenen Worten, was du gegessen hast, zeig ihr ein Foto der Mahlzeit oder gib ihr einen Produkt-Barcode. Deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Zucker und zugesetzten Zucker, und Nutrition MCP speichert den Eintrag in deinem Ernährungstagebuch. Frag jederzeit nach deinen heutigen Summen, Wochentrends oder deinem Fortschritt bei deinen Zielen.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -812,7 +823,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was kann ich erfassen?",
             visibleHtml:
-                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Wasser für jeden Eintrag – in eigenen Worten beschrieben oder per Produkt-Barcode aus Open Food Facts abgerufen. Auch Koffein wird erfasst, in Milligramm, der Einheit auf jedem Etikett; es liefert keine Kalorien. Alkohol lässt sich ebenfalls erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Außerdem kannst du dein Körpergewicht in kg oder lb erfassen und deinen Trend Richtung Zielgewicht verfolgen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Zeitraum ab, ändere oder lösche frühere Einträge, leg Ziele fest und verfolg Trends über die Zeit.",
+                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker, zugesetzter Zucker und Wasser für jeden Eintrag – in eigenen Worten beschrieben oder per Produkt-Barcode aus Open Food Facts abgerufen. Auch Koffein wird erfasst, in Milligramm, der Einheit auf jedem Etikett; es liefert keine Kalorien. Alkohol lässt sich ebenfalls erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Außerdem kannst du dein Körpergewicht in kg oder lb erfassen und deinen Trend Richtung Zielgewicht verfolgen. Auch Körpermaße (Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel und Wade) lassen sich in cm oder Zoll erfassen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Zeitraum ab, ändere oder lösche frühere Einträge, leg Ziele fest und verfolg Trends über die Zeit.",
         },
         {
             question: "Wie genau sind die Kalorienangaben?",

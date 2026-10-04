@@ -164,10 +164,12 @@
         "additionalProperties": false
     },
     "delete_account": null,
+    "delete_body_measurement": null,
     "delete_meal": null,
     "delete_water": null,
     "delete_weight": null,
     "export_all_data": null,
+    "get_body_measurements": null,
     "get_current_time": null,
     "get_goal_progress": {
         "type": "object",
@@ -850,6 +852,7 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false
     },
+    "log_body_measurement": null,
     "log_meal": {
         "type": "object",
         "properties": {
@@ -1096,6 +1099,7 @@
     "search_meals": null,
     "set_alcohol_tracking": null,
     "set_language": null,
+    "set_length_unit": null,
     "set_nutrition_goals": null,
     "set_timezone": null,
     "set_weight_unit": null,
@@ -1156,6 +1160,7 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false
     },
+    "update_body_measurement": null,
     "update_meal": {
         "type": "object",
         "properties": {

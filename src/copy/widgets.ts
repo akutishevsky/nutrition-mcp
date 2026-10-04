@@ -66,6 +66,7 @@ export interface WidgetStrings {
             carbs_g: string;
             fat_g: string;
             sugar_g: string;
+            added_sugar_g: string;
             alcohol_g: string;
             caffeine_mg: string;
             fiber_g: string;
@@ -101,6 +102,11 @@ export interface WidgetStrings {
         };
         /** A limit metric with nothing recorded at all. */
         noneLogged: string;
+        /** The figure of a limit cell with no recorded value against a limit
+         * the user set (today only added sugar, whose null means "not
+         * recorded", never 0). Distinct from noneLogged, which reads as
+         * "nothing was eaten" rather than "the figure is unknown". */
+        notRecorded: string;
         /** Default label above the calorie ring/figure when a widget doesn't
          * override it with its own calLabel. nutrition-summary and trends
          * always override; goal-progress and meal-logged rely on this
@@ -259,8 +265,61 @@ export interface WidgetStrings {
         windowAriaLabel: string;
         /** Template for a range button's aria-label. Placeholder: {n}. */
         rangeDaysAriaLabel: string;
-        /** Template for the strip's calorie caption. Placeholder: {range}. */
+        /** Template for the strip's calorie caption. Placeholder: {range}.
+         * Day view only; the period view labels its own denominator with
+         * perLoggedDay, so each view names what it divides by. */
         avgAllDays: string;
+        /** Period view (get_trends with group_by, rows from the result's
+         * `nutrition-mcp.com/period-averages` _meta). Short labels for the
+         * five-button `.seg-sm` control — Week · Month · Quarter · Year ·
+         * Days — which must fit a 320px card, so keep each to about six
+         * characters where the language allows. segDays switches back to
+         * the 7/14/30-day view. */
+        segWeek: string;
+        segMonth: string;
+        segQuarter: string;
+        segYear: string;
+        segDays: string;
+        /** Full-phrase aria-labels for the five buttons above. */
+        segWeekAria: string;
+        segMonthAria: string;
+        segQuarterAria: string;
+        segYearAria: string;
+        segDaysAria: string;
+        /** Card header in period mode, one per granularity. */
+        periodTitleWeek: string;
+        periodTitleMonth: string;
+        periodTitleQuarter: string;
+        periodTitleYear: string;
+        /** Denominator caption for a period row's averages: they divide by
+         * the days that have a log, not by calendar days. */
+        perLoggedDay: string;
+        /** Template for a period row's day count, right-aligned on its first
+         * line. Placeholders: {logged}, {total}. */
+        daysLogged: string;
+        /** Template for how many logged days had every targeted nutrient
+         * (calories, protein, carbs, fat) within its band. Placeholders: {k}
+         * (days on target), {n} (logged days). */
+        onTarget: string;
+        /** Logged days under half of that day's calorie target, flagged but
+         * kept in the average. Placeholder: {n}. Polish and Ukrainian carry
+         * few/many. */
+        possiblyIncomplete: PluralForms;
+        /** Chip on the current, still-running period. */
+        partial: string;
+        /** The single dim line of a period with no logged day. */
+        nothingLogged: string;
+        /** Note on a row whose period spans a goal change. */
+        targetsChanged: string;
+        /** Note on a row with days that predate the recorded goals history,
+         * so their targets are assumed. Placeholder: {date} (the first
+         * recorded date, already formatted for the locale). */
+        targetsAssumed: string;
+        /** One line at the top of the period view when no targets are set. */
+        noTargets: string;
+        /** Template for a quarter's period label. Placeholders: {q} (1–4),
+         * {year}. */
+        quarter: string;
     };
 
     /** templates/weight-trends.html's own top matter. No macro strip here. */
@@ -278,8 +337,11 @@ export interface WidgetStrings {
         /** Template for a range button's aria-label. Placeholder: {n}. */
         rangeAriaLabel: string;
         /** Template for the chart's aria-label. Placeholders: {from}, {to},
-         * {latest} (pre-formatted with unit). */
+         * {latest} (pre-formatted with unit). Names the smoothed trend line. */
+        /** The raw-weight chart shown when the host dropped `_meta`. */
         chartAriaLabel: string;
+        /** The trend chart (`_meta` present): raw dots plus the smoothed line. */
+        trendChartAriaLabel: string;
         latest: string;
         /** Fewer than 2 weigh-ins in the selected range. */
         needTwo: string;
@@ -294,6 +356,30 @@ export interface WidgetStrings {
         /** Template. Placeholder: {value} (pre-formatted with its unit). */
         target: string;
         noTarget: string;
+        /** Label for the trend weight (the EWMA), shown as the big number. */
+        trend: string;
+        /** Template. Placeholder: {value} (pre-formatted with its unit) — the
+         * latest raw scale reading, the small secondary figure. */
+        scaleToday: string;
+        /** Rate chip text. Placeholder: {amount} (signed, pre-formatted with
+         * its unit), e.g. "−0.4 kg/wk". */
+        perWeek: string;
+        /** aria-label on the rate chip. Placeholder: {amount} (signed,
+         * pre-formatted with its unit). */
+        rateAriaLabel: string;
+        /** Short label marking the chip as the 2-week rate, shown beside it
+         * in the long ranges (90/1y/All) so the chip keeps one meaning. */
+        rateTwoWeeks: string;
+        /** Range button labels for the long ranges (the day ranges show bare
+         * numbers; 90 uses rangeAriaLabel with {n} = 90 like 7/14/30). */
+        range1y: string;
+        rangeAll: string;
+        range1yAriaLabel: string;
+        rangeAllAriaLabel: string;
+        /** Template for the 1y/All change line, where {date} is a month
+         * (pre-formatted, e.g. "Mar 2024"). Placeholders: {change}
+         * (pre-formatted with unit), {date}. */
+        sinceMonth: string;
     };
 
     /** templates/import-meals.html's own strings — the file/map/preview/import
@@ -324,6 +410,7 @@ export interface WidgetStrings {
             fat_g: string;
             fiber_g: string;
             sugar_g: string;
+            added_sugar_g: string;
             alcohol_g: string;
             caffeine_mg: string;
             notes: string;
@@ -369,8 +456,6 @@ export interface WidgetStrings {
         /** Template. Placeholder: {n}. */
         columnFallback: string;
         /** Template. Placeholder: {column}. */
-        addedSugarNotice: string;
-        /** Template. Placeholder: {column}. */
         caffeineGramsNotice: string;
         /** Template. Placeholder: {column}. */
         alcoholNotice: string;
@@ -411,6 +496,7 @@ export interface WidgetStrings {
             fat_g: string;
             fiber_g: string;
             sugar_g: string;
+            added_sugar_g: string;
             alcohol_g: string;
             caffeine_mg: string;
         };
@@ -463,6 +549,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             carbs_g: "Carbs",
             fat_g: "Fat",
             sugar_g: "Sugar",
+            added_sugar_g: "Added sugar",
             alcohol_g: "Alcohol",
             caffeine_mg: "Caffeine",
             fiber_g: "Fiber",
@@ -486,6 +573,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             lb: "lb",
         },
         noneLogged: "none logged",
+        notRecorded: "not recorded",
         caloriesToday: "Calories today",
         caloriesOn: "Calories · {date}",
         tapHint: "Tap a metric for the meals behind it",
@@ -575,6 +663,33 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         windowAriaLabel: "Trend window",
         rangeDaysAriaLabel: "{n} days",
         avgAllDays: "{range}-day avg · all days",
+        segWeek: "Week",
+        segMonth: "Month",
+        segQuarter: "Qtr",
+        segYear: "Year",
+        segDays: "Days",
+        segWeekAria: "Show weekly averages",
+        segMonthAria: "Show monthly averages",
+        segQuarterAria: "Show quarterly averages",
+        segYearAria: "Show yearly averages",
+        segDaysAria: "Show daily trends",
+        periodTitleWeek: "Weekly averages",
+        periodTitleMonth: "Monthly averages",
+        periodTitleQuarter: "Quarterly averages",
+        periodTitleYear: "Yearly averages",
+        perLoggedDay: "per logged day",
+        daysLogged: "{logged}/{total} days",
+        onTarget: "on target {k}/{n}",
+        possiblyIncomplete: {
+            one: "{n} possibly incomplete",
+            other: "{n} possibly incomplete",
+        },
+        partial: "partial",
+        nothingLogged: "nothing logged",
+        targetsChanged: "targets changed mid-period",
+        targetsAssumed: "targets before {date} not recorded",
+        noTargets: "No targets set — averages only.",
+        quarter: "Q{q} {year}",
     },
     weightTrends: {
         loading: "Loading your weight trends…",
@@ -584,6 +699,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         windowAriaLabel: "Trend window",
         rangeAriaLabel: "Last {n} days",
         chartAriaLabel: "Weight from {from} to {to}, latest {latest}",
+        trendChartAriaLabel:
+            "Weight from {from} to {to} with a smoothed trend line, latest {latest}",
         latest: "Latest",
         needTwo: "need 2+ weigh-ins",
         sinceDate: "{change} since {date}",
@@ -593,6 +710,16 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         toGain: "{amount} to gain",
         target: "Target {value}",
         noTarget: "No target set",
+        trend: "Trend",
+        scaleToday: "Scale today {value}",
+        perWeek: "{amount}/wk",
+        rateAriaLabel: "Trend changing {amount} per week over the last 2 weeks",
+        rateTwoWeeks: "2-wk rate",
+        range1y: "1y",
+        rangeAll: "All",
+        range1yAriaLabel: "Last year",
+        rangeAllAriaLabel: "All history",
+        sinceMonth: "{change} since {date}",
     },
     importMeals: {
         loading: "Preparing import…",
@@ -610,6 +737,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             fat_g: "Fat (g)",
             fiber_g: "Fiber (g)",
             sugar_g: "Sugar, total (g)",
+            added_sugar_g: "Added sugar (g)",
             alcohol_g: "Alcohol (g)",
             caffeine_mg: "Caffeine (mg)",
             notes: "Notes",
@@ -655,8 +783,6 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         tabLabel: "tab",
         notInFile: "(not in this file)",
         columnFallback: "column {n}",
-        addedSugarNotice:
-            "This file has an added-sugar column ({column}) but no total-sugar column, so Sugar was left unmapped. Sugar is stored as TOTAL sugars, including what occurs naturally in fruit and milk, so mapping added sugar into it would under-report every row.",
         caffeineGramsNotice:
             "This file's caffeine column ({column}) is in grams, but caffeine is stored in milligrams, so Caffeine was left unmapped. Mapping it would record 0.18 where the label says 180 mg. Re-importing the same file later will not fill it in — those rows will already be logged and will be skipped as duplicates. If the header is mislabelled and the values really are milligrams, pick it above; if they really are grams, multiply them by 1000 in the file before importing, not after.",
         alcoholNotice:
@@ -702,6 +828,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             fat_g: "F",
             fiber_g: "Fib",
             sugar_g: "Sug",
+            added_sugar_g: "Add",
             alcohol_g: "Alc",
             caffeine_mg: "Caf",
         },

@@ -179,6 +179,8 @@ export const PAGE_ROUTES: Record<string, string> = {
     "/tools": "tools.html",
     "/privacy": "privacy.html",
     "/terms": "terms.html",
+    // The Apple Health sync setup guide (scripts/gen-apple-health.ts).
+    "/apple-health": "apple-health.html",
     ...ALT_PAGES,
 };
 

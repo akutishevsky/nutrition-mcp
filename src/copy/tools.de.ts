@@ -6,11 +6,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_DE: ToolsDoc = {
     meta: {
-        title: "36 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
+        title: "41 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
         description:
-            "Alle 36 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser und Gewicht tracken.",
+            "Alle 41 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
         ogDescription:
-            "Alle 36 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – inklusive CSV-Importer für deinen Verlauf aus einer anderen App, mit Beschreibungen und Beispielsätzen.",
+            "Alle 41 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – inklusive CSV-Importer für deinen Verlauf aus einer anderen App, mit Beschreibungen und Beispielsätzen.",
     },
     hero: {
         eyebrow: "Referenz",
@@ -18,7 +18,7 @@ export const TOOLS_DE: ToolsDoc = {
         titleEm: "kann",
         titleAfterEm: "",
         lead: "Du rufst diese Werkzeuge nie selbst auf – du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und der wählt das passende Werkzeug. Hier findest du jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt – jeweils mit Beschreibung und einem Beispielsatz, der es auslöst.",
-        countBold: "36 Werkzeuge",
+        countBold: "41 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
     categories: {
@@ -41,10 +41,10 @@ export const TOOLS_DE: ToolsDoc = {
                 "Behalte deine Flüssigkeitszufuhr neben dem Essen im Blick.",
         },
         weight: {
-            pillLabel: "Gewicht",
-            title: "Gewichts-Tracking",
+            pillLabel: "Körper",
+            title: "Gewicht & Körpermaße",
             description:
-                "Erfasse Messungen, sieh sie dir an und verfolge den Trend Richtung Zielgewicht.",
+                "Erfasse Wiegungen und Maßband-Maße, sieh sie dir an und verfolge deinen Gewichtstrend Richtung Zielgewicht.",
         },
         "goals-progress": {
             pillLabel: "Ziele",
@@ -86,7 +86,7 @@ export const TOOLS_DE: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus Ballaststoffen, Gesamtzucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen.",
+                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus Ballaststoffen, Gesamt- und zugesetztem Zucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen.",
             params: {
                 description: "Was gegessen wurde",
                 meal_type: "Frühstück, Mittagessen, Abendessen oder Snack",
@@ -98,6 +98,8 @@ export const TOOLS_DE: ToolsDoc = {
                     "Ballaststoffe in Gramm. Die KI soll das bei jeder Mahlzeit ausfüllen und den Wert aus den Zutaten schätzen, wenn kein Etikett ihn nennt, denn ein leeres Feld ist keine Null – es nimmt den ganzen Tag aus deinem Ballaststoffdurchschnitt heraus",
                 sugar_g:
                     "<b>Gesamt</b>zucker in Gramm – der Wert, der auf dem Etikett unter „davon Zucker“ steht, inklusive des natürlichen Zuckers in Obst und Milch, nicht nur zugesetzter Zucker. Wird bei jeder Mahlzeit nach denselben Regeln ausgefüllt wie Ballaststoffe",
+                added_sugar_g:
+                    "<b>Zugesetzter</b> Zucker in Gramm – Zucker, der bei Verarbeitung oder Zubereitung hinzugefügt wird (Haushaltszucker, Sirup, Honig, der Zucker in gesüßten Getränken und Lebensmitteln). Teil des Gesamtzuckers, nie mehr als dieser. Der natürliche Zucker in ganzem Obst, Gemüse und naturbelassener Milch zählt nicht als zugesetzt, ebenso wenig 100 % Fruchtsaft. Wird bei jeder Mahlzeit nach denselben Regeln ausgefüllt wie Ballaststoffe: Unverarbeitete Lebensmittel haben 0, der Zucker eines Softdrinks ist komplett zugesetzt, und die US-Etikettenzeile „Includes Xg Added Sugars“ wird genutzt, wenn es sie gibt. Gehört zu <code>sugar_g</code>: Eine Mahlzeit mit Gesamtzucker, aber ohne zugesetzten Zucker wird unter Umständen nicht gespeichert",
                 alcohol_g:
                     "Gramm <b>reinen Alkohols</b>, nicht die Menge des Getränks und nicht sein Alkoholgehalt in Prozent – die KI errechnet den Wert aus Menge und Stärke (ein 330-ml-Bier mit 5 % sind 13 g)",
                 caffeine_mg:
@@ -113,7 +115,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Hol dir die Nährwertangaben eines verpackten Produkts per Barcode (8- bis 14-stelliger EAN/UPC-Code) von Open Food Facts, dazu Nutri-Score und NOVA-Gruppe (Verarbeitungsgrad), sofern Open Food Facts sie kennt. Du kannst die Ziffern eintippen oder von einem Foto der Verpackung ablesen lassen; das Ergebnis lässt sich dann erfassen, umgerechnet auf die Menge, die du gegessen hast.",
+                "Hol dir die Nährwertangaben eines verpackten Produkts per Barcode (8- bis 14-stelliger EAN/UPC-Code) von Open Food Facts, dazu Nutri-Score und NOVA-Gruppe (Verarbeitungsgrad), sofern Open Food Facts sie kennt. Zugesetzter Zucker wird angezeigt, wenn Open Food Facts ihn angibt, und gekennzeichnet, wenn Open Food Facts ihn aus den Zutaten geschätzt hat. Du kannst die Ziffern eintippen oder von einem Foto der Verpackung ablesen lassen; das Ergebnis lässt sich dann erfassen, umgerechnet auf die Menge, die du gegessen hast.",
             params: {},
             example: "Scann diesen Barcode: 3017620422003",
             photoHint:
@@ -121,7 +123,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Öffne im Chat einen Importer, um deinen Verlauf aus einer anderen App zu übernehmen: Wähl die CSV, die du aus MyFitnessPal, Cronometer, Lose It!, MacroFactor oder einem anderen Tracker exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Zucker und Koffein zu – plus Alkohol, falls du die Alkohol-Erfassung eingeschaltet hast – und prüf in der Vorschau, was dazukommt, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, gespeichert wird erst, wenn du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
+                "Öffne im Chat einen Importer, um deinen Verlauf aus einer anderen App zu übernehmen: Wähl die CSV, die du aus MyFitnessPal, Cronometer, Lose It!, MacroFactor oder einem anderen Tracker exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Gesamt- und zugesetztem Zucker und Koffein zu – plus Alkohol, falls du die Alkohol-Erfassung eingeschaltet hast – und prüf in der Vorschau, was dazukommt, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, gespeichert wird erst, wenn du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
             params: {},
             example: "Importier meinen Mahlzeiten-Verlauf aus MyFitnessPal",
         },
@@ -129,7 +131,7 @@ export const TOOLS_DE: ToolsDoc = {
             description:
                 "Füge viele vergangene Mahlzeiten auf einmal hinzu – bis zu 50 pro Aufruf –, statt sie einzeln zu erfassen. Der Importer oben speichert über dieses Werkzeug, und die KI kann es auch direkt für Mahlzeitendaten nutzen, die du in den Chat eingefügt hast. Jede Zeile wird vorab geprüft, und was nicht passt, wird Zeile für Zeile gemeldet. Dieselben Zeilen erneut zu senden ist daher sicher und verdoppelt nichts, was schon erfasst ist – solange sich deine Zeitzone zwischendurch nicht geändert hat.",
             params: {
-                meals: "Die zu importierenden Zeilen in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann Uhrzeit, Mahlzeitentyp, Beschreibung, Notizen und dieselben Werte wie eine erfasste Mahlzeit enthalten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
+                meals: "Die zu importierenden Zeilen in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann Uhrzeit, Mahlzeitentyp, Beschreibung, Notizen und dieselben Werte wie eine erfasste Mahlzeit enthalten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>added_sugar_g</code> (zugesetzter Zucker, Teil des Gesamtzuckers), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
                 expected_row_count:
                     "Wie viele Zeilen dieser Aufruf enthält, gezählt in der Quelldatei, damit eine verlorene Zeile auffällt",
                 expected_total_kcal:
@@ -145,7 +147,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Ändere eine bereits erfasste Mahlzeit – Beschreibung, beliebige Makros, Ballaststoffe, Zucker, Alkohol oder Koffein, Uhrzeit oder Notizen. Darüber werden auch Lücken nachgetragen: Wurde eine Mahlzeit ohne Ballaststoffe oder Zucker erfasst, weist der Server darauf hin, und die KI trägt die Werte hier nach, sobald du zustimmst.",
+                "Ändere eine bereits erfasste Mahlzeit – Beschreibung, beliebige Makros, Ballaststoffe, Gesamt- oder zugesetzter Zucker, Alkohol oder Koffein, Uhrzeit oder Notizen. Darüber werden auch Lücken nachgetragen: Wurde eine Mahlzeit ohne Ballaststoffe, Zucker oder zugesetzten Zucker erfasst, weist der Server darauf hin, und die KI trägt die Werte hier nach, sobald du zustimmst.",
             params: {
                 id: "UUID der zu ändernden Mahlzeit",
                 description: "",
@@ -155,6 +157,8 @@ export const TOOLS_DE: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Gesamtzucker, nicht zugesetzter Zucker",
+                added_sugar_g:
+                    "Nur zugesetzter Zucker, nie mehr als der Gesamtzucker. Gehört zu <code>sugar_g</code>: Eine Änderung des Gesamtzuckers bei einer Mahlzeit ohne erfassten zugesetzten Zucker wird ohne diesen Wert unter Umständen nicht gespeichert",
                 alcohol_g:
                     "Gramm reinen Alkohols, nicht die Menge des Getränks",
                 caffeine_mg: "Milligramm, nicht Gramm",
@@ -214,7 +218,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps, ohne Tokens) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
+                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (jede Änderung deiner Ziele, mit Datum), profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps und Apple Health Sync, ohne Tokens), health_sync.csv (was Apple Health Sync in den letzten 8 Tagen gesendet hat) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
             params: {},
             example:
                 "Exportier alle meine Daten – Mahlzeiten, Wasser, Gewicht und Ziele",
@@ -300,7 +304,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "Sieh dir deinen Gewichtstrend über einen Zeitraum an: letzte Messung, Gesamtveränderung, gleitende 7/14/30-Tage-Durchschnitte, Min./Max. und Fortschritt zu deinem Zielgewicht.",
+                "Sieh dir deinen Gewichtstrend über einen Zeitraum an: ein geglättetes Trendgewicht, das tägliche Schwankungen ausgleicht, deine wöchentliche Veränderungsrate, letzte Messung, Gesamtveränderung, Min./Max. und Fortschritt zu deinem Zielgewicht. Das Diagramm zeigt außerdem 90 Tage, ein Jahr oder deinen gesamten Verlauf.",
             params: {
                 days: "Zeitraum in Tagen (Standard 30, maximal 365).",
             },
@@ -312,9 +316,57 @@ export const TOOLS_DE: ToolsDoc = {
             params: {},
             example: "Zeig mein Gewicht ab jetzt in lb an",
         },
+        log_body_measurement: {
+            description:
+                "Erfasse ein Maßband-Maß an einer Körperstelle – Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel oder Wade – in cm oder Zoll. Der Wert wird genau so gespeichert, wie du ihn eingibst, zusammen mit einem einheitlichen Wert, sodass ein Wechsel der Einheit nie eine Zahl verschiebt. Zahlen weit außerhalb eines realistischen Bereichs für die Körperstelle werden als wahrscheinliche Tippfehler abgelehnt.",
+            params: {
+                kind: "Welche Körperstelle: <code>waist</code>, <code>hips</code>, <code>neck</code>, <code>chest</code>, <code>shoulders</code>, <code>upper_arm</code>, <code>forearm</code>, <code>thigh</code> oder <code>calf</code>. Ein Wert pro Körperstelle; die Seite (links/rechts) kann in die Notizen.",
+                value: "Das Maß in <code>unit</code> (&gt; 0).",
+                unit: "<code>cm</code> oder <code>in</code>; Standard ist deine gespeicherte Längeneinheit.",
+                logged_at: "Wann gemessen wurde, falls nicht jetzt",
+                notes: "Zusätzliche Notizen",
+            },
+            example: "Trag meinen Taillenumfang ein – heute Morgen 82 cm",
+        },
+        get_body_measurements: {
+            description:
+                "Liste deine Körpermaße nach Tagen auf, älteste zuerst, auf Wunsch nur für eine Körperstelle. Ohne Datumsangaben umfasst das die letzten 30 Tage, pro Aufruf bis zu 366 Tage.",
+            params: {
+                kind: "Nur diese Körperstelle (z. B. <code>waist</code>)",
+                start_date: "Startdatum (JJJJ-MM-TT)",
+                end_date:
+                    "Enddatum (JJJJ-MM-TT), bis zu 366 Tage einschließlich des Starttags",
+            },
+            example: "Zeig mir meinen Taillenumfang der letzten drei Monate",
+        },
+        update_body_measurement: {
+            description:
+                "Korrigiere ein bestehendes Maß – den Wert, seine Einheit, den Zeitpunkt oder die Notizen. Die Körperstelle selbst bleibt fest; eine andere Körperstelle ist ein neuer Eintrag.",
+            params: {
+                id: "UUID des zu ändernden Maßes",
+                value: "Neuer Wert in <code>unit</code>.",
+                unit: "Standard ist die Einheit, in der der Eintrag erfasst wurde.",
+                logged_at: "ISO-8601-Zeitstempel",
+                notes: "Neue Notizen, die die bisherigen ersetzen",
+            },
+            example: "Der Hüftumfang war 98 cm, nicht 89",
+        },
+        delete_body_measurement: {
+            description: "Entferne einen Körpermaß-Eintrag.",
+            params: {
+                id: "UUID des zu löschenden Maßes",
+            },
+            example: "Lösch das heutige Halsmaß",
+        },
+        set_length_unit: {
+            description:
+                "Wähl, ob Körpermaße in Zentimetern oder Zoll angezeigt und eingegeben werden. Unabhängig von deiner Gewichtseinheit. Gespeicherte Werte bleiben unverändert – es ändert sich nur die Anzeige und wie Eingaben ohne Einheit gelesen werden.",
+            params: {},
+            example: "Nimm für meine Körpermaße ab jetzt Zoll",
+        },
         set_nutrition_goals: {
             description:
-                "Leg deine täglichen Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Alkohol, Koffein und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; Zucker, Alkohol und Koffein sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
+                "Leg deine täglichen Ziele für Kalorien, Makros, Ballaststoffe, Zucker, zugesetzten Zucker, Alkohol, Koffein und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; Gesamtzucker, zugesetzter Zucker, Alkohol und Koffein sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
             params: {
                 daily_calories:
                     "Tägliches Kalorienziel (kcal). Zum Löschen „null“ angeben.",
@@ -328,6 +380,8 @@ export const TOOLS_DE: ToolsDoc = {
                     "Tägliches Ballaststoffziel (Gramm), ein Minimum, das du erreichen willst. Zum Löschen „null“ angeben.",
                 daily_sugar_g:
                     "Tägliches Limit für <b>Gesamt</b>zucker (Gramm), ein Maximum, unter dem du bleiben willst. Gesamtzucker umfasst auch den natürlichen Zucker in Obst und Milch, daher liegen offizielle Empfehlungen für zugesetzten Zucker deutlich niedriger. Zum Löschen „null“ angeben.",
+                daily_added_sugar_g:
+                    "Tägliches Limit für <b>zugesetzten</b> Zucker (Gramm), ein Maximum, unter dem du bleiben willst. Zählt nur zugesetzten Zucker, nicht den natürlichen Zucker in Obst und Milch; offizielle Richtwerte für Zucker beziehen sich meist auf diesen Wert (die American Heart Association empfiehlt höchstens 25 g am Tag für Frauen und 36 g für Männer). 0 ist ein echtes Limit und heißt: gar keiner. Zum Löschen „null“ angeben.",
                 daily_alcohol_g:
                     "Tägliches Alkohol-Limit in Gramm <b>reinen Alkohols</b>, ein Maximum, unter dem du bleiben willst. Ein US-Standard-Drink entspricht 14 g, eine UK-Einheit 7,9 g. Zum Löschen „null“ angeben.",
                 daily_caffeine_mg:
@@ -362,12 +416,13 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Gleitende 7/14/30-Tage-Durchschnitte, Schwankungen, Erfassungsserien, Kaloriendurchschnitte nach Wochentag sowie deine besten und schlechtesten Tage nach Kalorien – vorberechnet, damit die KI sie nur noch wiedergeben muss.",
+                "Gleitende 7/14/30-Tage-Durchschnitte, Schwankungen, Erfassungsserien, Kaloriendurchschnitte nach Wochentag sowie deine besten und schlechtesten Tage nach Kalorien – vorberechnet, damit die KI sie nur noch wiedergeben muss. Mit group_by gibt es zusätzlich Durchschnitte pro Woche, Monat, Quartal oder Jahr – pro erfasstem Tag, Tage ohne Mahlzeiten zählen also nicht mit – verglichen mit den Zielen, die damals galten, samt der Anzahl der Tage im Zielbereich und der möglicherweise unvollständigen Tage.",
             params: {
                 days: "Zeitraum in Tagen (Standard 30, maximal 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> oder <code>year</code>: 26 Wochen, 24 Monate, 12 Quartale oder 5 Jahre bis einschließlich des Zeitraums, der das Enddatum enthält (standardmäßig heute). Die Spanne ist fest; <code>days</code> bestimmt weiterhin die gleitenden Durchschnitte.",
             },
-            example:
-                "Wie sehen meine Kalorien- und Makro-Trends der letzten 30 Tage aus?",
+            example: "Wie liefen meine Monate im Vergleich zu meinen Zielen?",
         },
         get_meal_patterns: {
             description:
@@ -380,7 +435,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_profile: {
             description:
-                "Sieh deine aktuellen Einstellungen auf einen Blick: Zeitzone (plus lokales Datum und Uhrzeit), Widget-Sprache, bevorzugte Gewichtseinheit, ob In-Chat-Widgets angezeigt werden und ob die Alkohol-Erfassung eingeschaltet ist.",
+                "Sieh deine aktuellen Einstellungen auf einen Blick: Zeitzone (plus lokales Datum und Uhrzeit), Widget-Sprache, bevorzugte Gewichts- und Längeneinheit, ob In-Chat-Widgets angezeigt werden und ob die Alkohol-Erfassung eingeschaltet ist.",
             params: {},
             example: "Welche Einstellungen habe ich gerade?",
         },
@@ -494,6 +549,21 @@ export const TOOLS_DE: ToolsDoc = {
                 answerHtml:
                     "Barcode-Daten stammen von Open Food Facts, einer von der Community gepflegten Datenbank – deshalb fehlen manche Produkte, und manche Einträge sind veraltet. Prüf, ob alle 8–14 Ziffern unter dem Barcode richtig gelesen wurden. Ist das Produkt nicht dabei, kann die KI anhand des Namens oder eines Fotos der Nährwerttabelle schätzen, und du kannst jeden Wert danach korrigieren. Wer das Produkt auf openfoodfacts.org einträgt, hilft allen. Open Food Facts hat keine Koffeindaten, deshalb stammt Koffein vom Etikett oder aus typischen Mengen.",
             },
+            "health-sync-yesterday": {
+                question: "Gestern ist noch nicht in Apple Health",
+                answerHtml:
+                    'Die Synchronisierung mit Apple Health sendet nur abgeschlossene Tage. Ein Tag gilt um 05:00 am nächsten Morgen in deiner Zeitzone als abgeschlossen: Gestern kommt also mit der ersten Synchronisierung nach 05:00 heute an, und heute erscheint erst morgen in Health. Eine Synchronisierung läuft, wenn eine Automation des Kurzbefehls auslöst (die Health-App öffnen, deinen Wecker beenden) oder wenn du <strong>Nutrition MCP Health</strong> in der Kurzbefehle-App ausführst und <strong>Sync now</strong> wählst. Ein verpasster Morgen wird von selbst nachgeholt: Jede Synchronisierung schaut über die letzten 7 Tage zurück. Tage richten sich nach der Zeitzone in deinem Profil (<a href="#get_profile"><code>get_profile</code></a>) oder, falls du nie eine festgelegt hast, nach der, die dein iPhone beim Verbinden gemeldet hat (<a href="#wrong-day">Mahlzeiten am falschen Tag</a>). Tage vor dem Verbinden werden nur gesendet, wenn du beim Verbinden gewählt hast, bis zu 7 frühere Tage nachzuholen.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health zeigt mehr als mein Chat",
+                answerHtml:
+                    "Apple Health kann einen Wert ergänzen, aber nie einen bereits vorhandenen verringern. Eine Mahlzeit, die du zu einem bereits gesendeten Tag hinzufügst, folgt als kleiner zusätzlicher Eintrag um 12:01, 12:02 und so weiter, solange der Tag innerhalb der letzten 7 Tage liegt. Löschst oder verkleinerst du eine Mahlzeit, nachdem ihr Tag gesendet wurde, bleibt Health höher, und der Kurzbefehl zeigt einen Hinweis, um wie viel. So behebst du es: Öffne die Health-App, geh zu <strong>Entdecken</strong> → <strong>Ernährung</strong>, öffne den betroffenen Wert, tippe auf <strong>Alle Daten anzeigen</strong>, lösch die Einträge dieses Tages von Kurzbefehle und trag die richtige Summe von Hand ein. Verwende nie <strong>Alle Daten von „Kurzbefehle“ löschen</strong>: Das entfernt auch, was deine anderen Kurzbefehle erfasst haben. Wirkt jeder Tag verdoppelt, schreibt eine andere App dieselben Werte, und Health addiert beide: Schalte eine davon in der Health-App unter <strong>Teilen</strong> → <strong>Apps</strong> aus.",
+            },
+            "health-sync-stopped": {
+                question: "Die Synchronisierung mit Apple Health hat aufgehört",
+                answerHtml:
+                    "Öffne die Kurzbefehle-App und führe <strong>Nutrition MCP Health</strong> von Hand aus: Er sagt dir, was schiefgelaufen ist. Bittet er dich, neu zu verbinden, ist die Verbindung beendet (nach 90 Tagen ohne Synchronisierung, 365 Tage nach dem Verbinden oder nach <strong>Disconnect</strong>): Führ ihn aus, melde dich auf der Seite, die er öffnet, mit demselben Konto an wie in deiner KI-App und schließ das innerhalb von 30 Minuten ab. Synchronisiert er, wenn du ihn ausführst, aber nicht von selbst, prüf, ob seine Automationen im Tab <strong>Automation</strong> der Kurzbefehle-App eingeschaltet und auf <strong>Sofort ausführen</strong> gestellt sind. Meldet ein Hinweis, dass ein Tag Apple Health nicht erreicht hat, erlaube Kurzbefehle in der Health-App unter <strong>Teilen</strong> → <strong>Apps</strong> → <strong>Kurzbefehle</strong>, jeden Ernährungswert zu schreiben, und führ ihn erneut aus. Verbindest du ein neues iPhone, ersetzt das die Verbindung des alten.",
+            },
             "export-link": {
                 question: "Der Download-Link meines Exports funktioniert nicht",
                 answerHtml:
@@ -502,7 +572,7 @@ export const TOOLS_DE: ToolsDoc = {
             "delete-account": {
                 question: "Wie lösche ich mein Konto?",
                 answerHtml:
-                    'Bitte die KI, dein Nutrition-MCP-Konto zu löschen (<a href="#delete_account"><code>delete_account</code></a>). Sie bittet dich um Bestätigung und löscht dann endgültig deine Mahlzeiten, Wasser- und Gewichtseinträge, Ziele, Einstellungen, die Aufzeichnung darüber, welche Werkzeuge deine KI-App verwendet hat, eine eventuelle Exportdatei, deine Anmeldedaten und das Konto selbst. Das lässt sich nicht rückgängig machen – exportiere deine Daten also vorher, wenn du eine Kopie behalten willst. Entferne danach den Connector aus deiner App. Meldest du dich später mit derselben E-Mail-Adresse wieder an, wird ein neues, leeres Konto angelegt.',
+                    'Bitte die KI, dein Nutrition-MCP-Konto zu löschen (<a href="#delete_account"><code>delete_account</code></a>). Sie bittet dich um Bestätigung und löscht dann endgültig deine Mahlzeiten, Wasser-, Gewichts- und Körpermaß-Einträge, Ziele, Einstellungen, die Aufzeichnung darüber, welche Werkzeuge deine KI-App verwendet hat, eine eventuelle Exportdatei, deine Anmeldedaten und das Konto selbst. Das lässt sich nicht rückgängig machen – exportiere deine Daten also vorher, wenn du eine Kopie behalten willst. Entferne danach den Connector aus deiner App. Meldest du dich später mit derselben E-Mail-Adresse wieder an, wird ein neues, leeres Konto angelegt.',
             },
             "report-a-problem": {
                 question:

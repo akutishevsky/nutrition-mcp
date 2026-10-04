@@ -16,9 +16,12 @@ import {
     searchMeals,
     deleteMeal,
     updateMeal,
+    type MealSugarGuard,
     deleteAllUserData,
     upsertNutritionGoals,
     getNutritionGoals,
+    getNutritionGoalsHistory,
+    hasMealsBefore,
     insertWater,
     getWaterByDate,
     getWaterInRange,
@@ -26,9 +29,18 @@ import {
     insertWeight,
     getWeightByDate,
     getWeightInRange,
+    getAllWeight,
     getLatestWeight,
     updateWeight,
     deleteWeight,
+    insertBodyMeasurement,
+    getBodyMeasurementsInRange,
+    getBodyMeasurement,
+    getSupabase,
+    updateBodyMeasurement,
+    deleteBodyMeasurement,
+    preferredLengthUnitFromProfile,
+    getPreferredLengthUnit,
     getUserTimezone,
     getPreferredWeightUnit,
     getUserLocale,
@@ -48,6 +60,7 @@ import {
     type NutritionGoals,
     type WaterEntry,
     type WeightEntry,
+    type BodyMeasurementEntry,
 } from "./supabase.js";
 import {
     DELETED_ACCOUNT_ANALYTICS_ID,
@@ -75,8 +88,10 @@ import {
     dayCarries,
     coveredDailyAverage,
     dateDiffDays,
+    addedSugarNotRecorded,
     type DailyBucket,
 } from "./insights.js";
+import { analyzeWeightHistory, defaultRangeFor } from "./weight-trend.js";
 import {
     toGrams,
     formatWeight,
@@ -85,9 +100,21 @@ import {
     pickWriteUnit,
     isPlausibleWeightGrams,
     type WeightUnit,
+    BODY_MEASUREMENT_KINDS,
+    type BodyMeasurementKind,
+    type LengthUnit,
+    isLengthUnit,
+    fromMillimetres,
+    assertPlausibleLength,
+    pickLengthWriteUnit,
+    measurementLabel,
 } from "./units.js";
 import { formatAlcohol, isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import { exportAllData } from "./export.js";
+import {
+    createSupabaseHealthSyncStore,
+    type HealthSyncLinkStatus,
+} from "./health-sync-store.js";
 import {
     runImport,
     buildSummaryText,
@@ -102,12 +129,39 @@ import {
 } from "./import.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
 import { formatMealSearchResults } from "./search.js";
-import { getWidgetHtml, MEAL_CONTRIBUTORS_META_KEY } from "./widgets.js";
+import {
+    ADDED_SUGAR_REQUIRED_FROM_ENV,
+    addedSugarError,
+    addedSugarExtra,
+    addedSugarMissing,
+    addedSugarMissingError,
+    addedSugarRequiredAt,
+    buildAddedSugarMeta,
+    parseAddedSugarRequiredFrom,
+} from "./added-sugar.js";
+import {
+    getWidgetHtml,
+    MEAL_CONTRIBUTORS_META_KEY,
+    WEIGHT_SERIES_META_KEY,
+    PERIOD_AVERAGES_META_KEY,
+    ADDED_SUGAR_META_KEY,
+    MEAL_BREAKDOWN_TOP_N,
+} from "./widgets.js";
+import {
+    GRANULARITIES,
+    buildPeriodAveragesMeta,
+    dayTotalsFromMeals,
+    formatPeriodContent,
+    targetsRecordedFrom,
+    yearSpanStart,
+    type Granularity,
+} from "./periods.js";
 import {
     clipDescription,
     formatMg,
     formatMealFull,
     renderMealListing,
+    MEAL_LISTING_MAX_CHARS,
     type AlcoholDisplay,
 } from "./meal-listing.js";
 
@@ -131,7 +185,7 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // declared once and spliced into SERVER_INSTRUCTIONS, log_meal and update_meal
 // so the three cannot drift.
 //
-// Fiber and sugar are unconditional; caffeine deliberately is NOT. That
+// Fiber, sugar and added sugar are unconditional; caffeine deliberately is NOT. That
 // asymmetry is the whole point of this block, and it is a read-side constraint
 // rather than a stylistic one: caffeine's display gate is `!= null` everywhere
 // (limitShown in shared/macros.js, recordedGoalLine and totalsPayloadOf here),
@@ -146,8 +200,9 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // zero, it excludes the entire DAY from that nutrient's averages and goal lines
 // (dayCarries in insights.ts), so one forgotten fiber figure silently deletes a
 // day from the user's fiber trend rather than making it slightly wrong.
-const NUTRIENT_COVERAGE = `Fiber, sugar and caffeine are tracked alongside the headline macros.
+const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar and caffeine are tracked alongside the headline macros.
 - fiber_g and sugar_g are read on every meal, like protein, carbs and fat. A missing value is stored as "not measured", not as zero, and leaves that whole day out of the user's fiber and sugar averages, goal lines and charts; an estimate keeps the day in. In order of accuracy, a figure comes from a nutrition label, a barcode lookup, the chain's or product's published per-item nutrition, or an estimate from the ingredients and the portion — an exact figure is no more required here than it is for protein. 0 is the correct value for food that has none (a steak, eggs, oil, black coffee).
+- added_sugar_g is read on every meal too, like sugar_g: the part of sugar_g added during processing or preparation, never more than sugar_g. It accompanies sugar_g: a call that gives sugar_g without added_sugar_g may be refused, with nothing saved. It is a classification more than a measurement — whole fruit, vegetables, plain milk, meat and rice are 0, and a soft drink's sugar is all added. A missing value is stored as "not recorded" and leaves that day out of the added-sugar average and limit.
 - caffeine_mg applies only to caffeine sources: coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. A label or a chain's published nutrition gives the figure where available; the field description lists typical amounts otherwise. For anything that is not a caffeine source the field is left out: an explicit 0 means "measured, and it was none", and it shows a caffeine row to a user who never consumes any.`;
 
 // Sent to clients in the initialize response (SDK ServerOptions.instructions).
@@ -158,9 +213,11 @@ const NUTRIENT_COVERAGE = `Fiber, sugar and caffeine are tracked alongside the h
 // conversation: the directory policy asks tool text to describe what the tool
 // does, not how Claude should behave, and to name no external tool (so no "search
 // the web") the user did not ask for.
-const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, goals, and trends, per-user with timezone support.
+const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, body measurements, goals, and trends, per-user with timezone support.
 
 All nutrition figures are estimates and this server does not provide medical or dietary advice.
+
+Body measurements are circumferences of nine sites (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf), stored with the number and unit (cm or in) they were given in; the server converts between units itself. They are recorded as given, with no targets or interpretation.
 
 Current time — some hosts put the current date and time in context and some do not; this server always knows both the clock and the user's timezone, and get_current_time returns them.
 - Entries that omit logged_at are stamped by the server with the current time, which is more accurate than a reconstructed one; something that just happened needs no time from the user.
@@ -169,7 +226,7 @@ Current time — some hosts put the current date and time in context and some do
 
 Recording a complete meal — this applies to every write path (log_meal, update_meal, a barcode lookup that is then logged, a meal copied from search_meals), not just to photos.
 ${NUTRIENT_COVERAGE}
-A meal saved without its fiber or sugar can be completed later: update_meal writes only the fields passed, so it fills in the missing figure once the user wants it filled in.
+A meal saved without its fiber, sugar or added sugar can be completed later: update_meal writes only the fields passed, so it fills in the missing figure once the user wants it filled in.
 
 Meals from photos:
 - A packaged product with a visible barcode: the digits printed under the barcode go to lookup_barcode.
@@ -226,6 +283,10 @@ interface DailyTotals {
     fat_g: number;
     fiber_g: number;
     sugar_g: number;
+    // Text only: totalsPayloadOf picks its fields by name and never emits this
+    // one, because every structuredContent shape that carries totals is frozen
+    // (see ADDED_SUGAR_META_KEY for where the widgets get it instead).
+    added_sugar_g: number;
     alcohol_g: number;
     // Milligrams, unlike every gram-valued field above it — the unit rides in
     // the name at every layer because caffeine is the one nutrient here whose
@@ -243,6 +304,7 @@ function emptyTotals(): DailyTotals {
         fat_g: 0,
         fiber_g: 0,
         sugar_g: 0,
+        added_sugar_g: 0,
         alcohol_g: 0,
         caffeine_mg: 0,
         water_ml: 0,
@@ -263,6 +325,7 @@ export function sumMeals(meals: Meal[]): DailyTotals {
         // zero, and that is what nutrientPresence below is for.
         totals.fiber_g += m.fiber_g ?? 0;
         totals.sugar_g += m.sugar_g ?? 0;
+        totals.added_sugar_g += m.added_sugar_g ?? 0;
         totals.alcohol_g += m.alcohol_g ?? 0;
         totals.caffeine_mg += m.caffeine_mg ?? 0;
     }
@@ -284,6 +347,7 @@ export function sumMeals(meals: Meal[]): DailyTotals {
 export interface NutrientPresence {
     fiber_g: boolean;
     sugar_g: boolean;
+    added_sugar_g: boolean;
     alcohol_g: boolean;
     caffeine_mg: boolean;
 }
@@ -292,6 +356,7 @@ export function nutrientPresence(meals: Meal[]): NutrientPresence {
     return {
         fiber_g: dayCarries(meals, "fiber_g"),
         sugar_g: dayCarries(meals, "sugar_g"),
+        added_sugar_g: dayCarries(meals, "added_sugar_g"),
         alcohol_g: dayCarries(meals, "alcohol_g"),
         caffeine_mg: dayCarries(meals, "caffeine_mg"),
     };
@@ -323,6 +388,7 @@ export function rangeAverages(
     recordedDays: {
         fiber_g: number;
         sugar_g: number;
+        added_sugar_g: number;
         alcohol_g: number;
         caffeine_mg: number;
     };
@@ -338,6 +404,7 @@ export function rangeAverages(
     const mealsByDay = perDay.map((d) => d.meals);
     const fiber = coveredDailyAverage(mealsByDay, "fiber_g");
     const sugar = coveredDailyAverage(mealsByDay, "sugar_g");
+    const addedSugar = coveredDailyAverage(mealsByDay, "added_sugar_g");
     const alcohol = coveredDailyAverage(mealsByDay, "alcohol_g");
     const caffeine = coveredDailyAverage(mealsByDay, "caffeine_mg");
     const n = perDay.length || 1;
@@ -349,6 +416,7 @@ export function rangeAverages(
             fat_g: sum.fat_g / n,
             fiber_g: fiber.avg ?? 0,
             sugar_g: sugar.avg ?? 0,
+            added_sugar_g: addedSugar.avg ?? 0,
             alcohol_g: alcohol.avg ?? 0,
             caffeine_mg: caffeine.avg ?? 0,
             water_ml: Math.round(sum.water_ml / n),
@@ -356,10 +424,40 @@ export function rangeAverages(
         recordedDays: {
             fiber_g: fiber.days,
             sugar_g: sugar.days,
+            added_sugar_g: addedSugar.days,
             alcohol_g: alcohol.days,
             caffeine_mg: caffeine.days,
         },
     };
+}
+
+/** get_nutrition_summary's added-sugar average, in text because no
+ *  structuredContent shape may carry it (the summary's `averages` schema is
+ *  frozen). Covered days only, like sugar (rangeAverages), against the limit
+ *  when one is set. Empty for a single day, whose section already prints the
+ *  figure. When no logged day recorded added sugar it is empty without a
+ *  limit, and "not recorded in this period" with one. */
+export function addedSugarAverageLine(
+    average: number,
+    recordedDays: number,
+    loggedDays: number,
+    limit: number | null,
+): string {
+    if (loggedDays < 2) return "";
+    if (recordedDays === 0) {
+        // With a limit set, the gap is stated rather than dropped (see
+        // addedSugarNotRecorded); without one there is nothing to report.
+        return hasActiveTarget(limit, "ceiling")
+            ? `\n\nAdded sugar, daily average: ${addedSugarNotRecorded("period", limit)}`
+            : "";
+    }
+    return `\n\n${formatGoalLine(
+        "Added sugar, daily average",
+        "g",
+        average,
+        limit,
+        "ceiling",
+    )}`;
 }
 
 /** The model-facing half of the #70 fix: says out loud that these averages
@@ -445,11 +543,9 @@ export function mealBreakdown(
     }));
 }
 
-// How many meals the summary widget lists per metric. MUST equal `CAP` in
-// public/widgets/src/shared/macros.js (mealList): the server keeps exactly the
-// rows that list can show, so a larger CAP there would list fewer meals than it
-// claims room for, and a smaller one would ship rows nobody sees.
-export const MEAL_BREAKDOWN_TOP_N = 8;
+// MEAL_BREAKDOWN_TOP_N lives in src/widgets.ts (Supabase-free, so the widget
+// harness can import it too); re-exported here for existing importers.
+export { MEAL_BREAKDOWN_TOP_N };
 
 // The metrics a summary's meal list can be opened on, in MEAL_BREAKDOWN_ITEM's
 // field names.
@@ -485,6 +581,15 @@ export type MealContributors = z.infer<typeof MEAL_CONTRIBUTORS>;
 // Defined in src/widgets.ts (so the side-effect-free widget harness can import
 // it too); re-exported here beside the MealContributors it carries.
 export { MEAL_CONTRIBUTORS_META_KEY };
+// Same arrangement for get_weight_trends' series (WeightSeriesMeta, built in
+// src/weight-trend.ts).
+export { WEIGHT_SERIES_META_KEY };
+// And for get_trends' per-period averages (PeriodAveragesMeta, built in
+// src/periods.ts), present only when `group_by` is set.
+export { PERIOD_AVERAGES_META_KEY };
+// And for the added-sugar figures (AddedSugarMeta) that five tools carry
+// beside their frozen structuredContent.
+export { ADDED_SUGAR_META_KEY };
 
 /** Zero contributors, for a window with no meals at all. `.nullable()` is not
  *  optional: the alcohol key is always present, null when tracking is off. */
@@ -514,20 +619,29 @@ export function emptyMealContributors(
 export function topMealBreakdown(
     rows: BreakdownRow[],
     alcohol: AlcoholDisplay,
-): { meals: BreakdownRow[]; contributors: MealContributors } {
+): {
+    meals: BreakdownRow[];
+    contributors: MealContributors;
+    /** Indices of the kept rows, in order — to pick the matching meals. */
+    kept: number[];
+} {
     const keep = new Set<number>();
     const contributors = emptyMealContributors(alcohol);
-    for (const key of BREAKDOWN_METRICS) {
-        const ranked = rows
-            .map((row, i) => ({ i, v: row[key] ?? 0 }))
+    const top = (values: number[]) =>
+        values
+            .map((v, i) => ({ i, v }))
             .filter((r) => r.v > 0)
             .sort((a, b) => b.v - a.v || a.i - b.i);
+    for (const key of BREAKDOWN_METRICS) {
+        const ranked = top(rows.map((row) => row[key] ?? 0));
         if (key !== "alcohol_g" || alcohol) contributors[key] = ranked.length;
         for (const r of ranked.slice(0, MEAL_BREAKDOWN_TOP_N)) keep.add(r.i);
     }
+    const kept = rows.map((_, i) => i).filter((i) => keep.has(i));
     return {
-        meals: rows.filter((_, i) => keep.has(i)),
+        meals: kept.map((i) => rows[i]!),
         contributors,
+        kept,
     };
 }
 
@@ -694,6 +808,9 @@ export function trendsDayPayloadOf(
             fat_g: bucket.fat_g,
             fiber_g: bucket.fiber_g,
             sugar_g: bucket.sugar_g,
+            // Never emitted by totalsPayloadOf (the days schema is frozen);
+            // the widget reads per-day added sugar from ADDED_SUGAR_META_KEY.
+            added_sugar_g: bucket.added_sugar_g,
             alcohol_g: bucket.alcohol_g,
             caffeine_mg: bucket.caffeine_mg,
             water_ml: bucket.waterMl,
@@ -766,7 +883,13 @@ const IMPORT_ROW_SCHEMA = z.object({
         .number()
         .optional()
         .describe(
-            "TOTAL sugars in grams, including sugar naturally present in fruit and milk — not added sugar. Map the export's 'Sugars' column straight across; do not try to subtract naturally occurring sugar.",
+            "TOTAL sugars in grams, including sugar naturally present in fruit and milk as well as added sugar — the figure an export's 'Sugars' column carries.",
+        ),
+    added_sugar_g: z.coerce
+        .number()
+        .optional()
+        .describe(
+            "Added sugars in grams — the figure an export's 'Added sugars' column carries. Part of sugar_g and never more than it; a row where it is more is reported as a per-row error.",
         ),
     alcohol_g: z.coerce
         .number()
@@ -930,9 +1053,21 @@ async function buildMealProgress(
         meals: mealBreakdown(meals, null, alcohol),
     };
 
+    // The day's added sugar, for the widget only: structuredContent's schema
+    // is frozen, so it rides in the result's _meta (ADDED_SUGAR_META_KEY).
+    // `meals` is the same list, in the same order, as the rows above — the
+    // widget joins the two by position.
+    const meta = {
+        [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+            goal: goals?.daily_added_sugar_g,
+            days: { [mealDate]: meals },
+            meals,
+        }),
+    };
+
     // tz goes back to the caller so its confirmation prints the meal's time
     // in the same zone this progress section bucketed it by.
-    return { progressSection, structuredContent, tz };
+    return { progressSection, structuredContent, meta, tz };
 }
 
 // Which way a target points. A floor is something to reach (calories, protein,
@@ -1027,6 +1162,7 @@ function recordedGoalLine(
 const ALL_RECORDED: NutrientPresence = {
     fiber_g: true,
     sugar_g: true,
+    added_sugar_g: true,
     alcohol_g: true,
     caffeine_mg: true,
 };
@@ -1080,6 +1216,25 @@ export function formatProgress(
             present.sugar_g,
             "ceiling",
         ),
+        // Its own ceiling, beside total sugar rather than instead of it: the
+        // public guidance figures (WHO, AHA, DGA) limit added or free sugar,
+        // and a 25 g total-sugar limit is spent by two bananas. Gated on
+        // presence like sugar, so a pre-column day prints nothing without a
+        // limit. With one, an unrecorded day gets the shared
+        // addedSugarNotRecorded wording rather than recordedGoalLine's terse
+        // "not recorded / 29g limit", which a model read past to report total
+        // sugar against the added-sugar limit.
+        present.added_sugar_g
+            ? formatGoalLine(
+                  "Added sugar",
+                  "g",
+                  totals.added_sugar_g,
+                  goals?.daily_added_sugar_g ?? null,
+                  "ceiling",
+              )
+            : hasActiveTarget(goals?.daily_added_sugar_g, "ceiling")
+              ? `Added sugar: ${addedSugarNotRecorded("day", goals.daily_added_sugar_g)}`
+              : null,
     ];
     // Alcohol is opt-in: stored either way, shown only when the user asked for
     // it (imported exports carry trace alcohol from recipes, and surfacing that
@@ -1144,8 +1299,12 @@ export function formatGoals(
     parts.push(`- Carbs: ${floor(goals.daily_carbs_g, (n) => `${n}g`)}`);
     parts.push(`- Fat: ${floor(goals.daily_fat_g, (n) => `${n}g`)}`);
     parts.push(`- Fiber: ${floor(goals.daily_fiber_g, (n) => `${n}g`)}`);
+    // "total" leads so the two sugar limits read apart at a glance.
     parts.push(
-        `- Sugar (total, max): ${ceiling(goals.daily_sugar_g, (n) => `${n}g`)}`,
+        `- Sugar, total (max): ${ceiling(goals.daily_sugar_g, (n) => `${n}g`)}`,
+    );
+    parts.push(
+        `- Added sugar (max): ${ceiling(goals.daily_added_sugar_g, (n) => `${n}g`)}`,
     );
     if (alcohol) {
         parts.push(
@@ -1187,12 +1346,39 @@ function formatWeightEntry(
     return `- ${formatWeight(entry.weight_g, unit)} at ${localTimeOf(entry.logged_at, tz, withDate)}${entry.notes ? ` (${entry.notes})` : ""} [id: ${entry.id}]`;
 }
 
+// In its own unit the value prints as typed (84.5 cm stays 84.5, not a mm round
+// trip); in the other unit it is converted from value_mm. value_entered is a
+// `numeric` column PostgREST may hand back as a string, hence Number().
+function formatMeasurementValue(
+    e: BodyMeasurementEntry,
+    unit: LengthUnit,
+): string {
+    return unit === e.entered_unit
+        ? `${Number(e.value_entered)} ${unit}`
+        : `${fromMillimetres(e.value_mm, unit)} ${unit}`;
+}
+
+// unit null = no saved preference: each row shows in the unit it was entered in.
+function formatMeasurementEntry(
+    e: BodyMeasurementEntry,
+    unit: LengthUnit | null,
+    tz: string,
+    withDate = false,
+): string {
+    return `- ${measurementLabel(e.kind)} ${formatMeasurementValue(e, unit ?? e.entered_unit)} at ${localTimeOf(e.logged_at, tz, withDate)}${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`;
+}
+
 // Shared `logged_at` description for every manual write tool. The three forms
 // and the "don't convert to UTC yourself" rule are the whole point: a model
 // knows the wall-clock time the user just said, but not the zone's historical
 // offset for that date, and guessing it lands the entry on the wrong day.
 const LOGGED_AT_FORMS =
     'Accepts a full ISO 8601 timestamp with an offset or Z ("2026-01-05T08:30:00+02:00"), an offset-less local time ("2026-01-05T08:30"), or a bare date ("2026-01-05", anchored at local noon). Offset-less values are resolved in the user\'s saved timezone, so pass the local time exactly as the user gives it and do NOT convert it to UTC yourself.';
+
+// Descriptive variant for tools added after the directory review: same three
+// forms, no imperative. The older tools move to it under #198.
+const LOGGED_AT_FORMS_PLAIN =
+    'Accepts a full ISO 8601 timestamp with an offset or Z ("2026-01-05T08:30:00+02:00"), an offset-less local time ("2026-01-05T08:30"), or a bare date ("2026-01-05", anchored at local noon). Offset-less values are read as wall-clock time in the user\'s saved timezone, and the server works out that date\'s UTC offset itself, so the local time as the user states it is the expected form.';
 
 // Appended to `logged_at` on the three "log it now" tools. This used to say
 // "ask the user" — which fired on every single log from any host that keeps the
@@ -1202,6 +1388,12 @@ const LOGGED_AT_FORMS =
 // server stamps `new Date()` and it genuinely knows the time.
 const LOGGED_AT_OMIT_IF_NOW =
     " The server knows the current time and the user's timezone, so there is no need to ask the user for it: for something that just happened, omit this field entirely and the server stamps the entry with the current time. Only supply it for an entry that happened at some other moment; get_current_time returns the user's local clock for working that moment out.";
+
+// Descriptive counterpart of LOGGED_AT_OMIT_IF_NOW for tools added after the
+// directory review: says what an omitted value means without telling the
+// assistant what to do. The older tools move to it under #198.
+const LOGGED_AT_OMITTED_PLAIN =
+    " Omitted, the server stamps the entry with the current time in the user's timezone; get_current_time returns the user's local clock.";
 
 // What the derived "auto:" key really guarantees: it hashes the RESOLVED
 // logged_at, and an omitted logged_at resolves to the arrival instant (ms), so
@@ -1217,6 +1409,17 @@ function idempotencyKeyDescription(
         `Optional key that makes a retry safe. Without one, the server derives a key from the ${entry}'s content and its resolved logged_at: replaying a call that carries an explicit logged_at returns the original ${entry} instead of adding another, but a call that omits logged_at is stamped with the moment it arrives, so replaying it adds a new ${entry}. ` +
         `If a call that omits logged_at may need to be retried (for example after a timeout), pass any unique string here, such as a UUID, and send the same value on the retry. ` +
         `Two genuinely separate ${entry}s with identical content and the same logged_at are also treated as one — ${sameTimeAdvice}. Never reuse a key for a different ${entry}.`
+    );
+}
+
+// Descriptive variant of idempotencyKeyDescription for tools added after the
+// directory review: the same guarantees, stated as behaviour rather than as
+// instructions to the assistant. The older tools move to it under #198.
+function idempotencyKeyDescriptionPlain(entry: string): string {
+    return (
+        `Optional key that makes a retry safe. Without one, the server derives a key from the ${entry}'s content and its resolved logged_at: replaying a call that carries an explicit logged_at returns the original ${entry} instead of adding another, but a call that omits logged_at is stamped with the moment it arrives, so replaying it adds a new ${entry}. ` +
+        `A call that repeats an earlier key, such as a retry after a timeout, returns the ${entry} that key already recorded rather than adding another, so any unique string (a UUID, for example) serves. ` +
+        `Two separate ${entry}s with identical content and the same logged_at are treated as one unless their logged_at values or keys differ, and a key repeated for a different ${entry} returns the earlier one instead of recording the new one.`
     );
 }
 
@@ -1314,6 +1517,16 @@ async function resolveWriteWeightUnit(
     return pickWriteUnit(explicit, await getPreferredWeightUnit(userId));
 }
 
+// The same contract for a body measurement's length unit: explicit, then the
+// saved length preference, then refuse. The weight unit is never consulted.
+async function resolveWriteLengthUnit(
+    userId: string,
+    explicit: LengthUnit | undefined,
+): Promise<LengthUnit> {
+    if (explicit) return explicit; // no profile read
+    return pickLengthWriteUnit(undefined, await getPreferredLengthUnit(userId));
+}
+
 // Reject magnitude mistakes (value typed in grams, an extra digit, a sub-unit
 // typo). Suggests the other unit when the same number would be plausible there.
 function assertPlausibleWeight(grams: number, unit: WeightUnit): void {
@@ -1361,6 +1574,12 @@ export const SUMMARY_RANGE_MAX_DAYS = 92;
 // character budget like MEAL_LISTING_MAX_CHARS: at most 366 short lines (a
 // weigh-in or two a day) stays proportionate on its own.
 export const WEIGHT_RANGE_MAX_DAYS = 366;
+
+// get_body_measurements: a year, like weight. Several sites a day, each
+// possibly several times, can outrun a year of weigh-ins, so the listing also
+// stops at MEAL_LISTING_MAX_CHARS on a whole-day boundary.
+export const BODY_MEASUREMENT_RANGE_MAX_DAYS = 366;
+const BODY_MEASUREMENT_DEFAULT_DAYS = 30;
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -1426,6 +1645,7 @@ const MEAL_ID_SOURCES =
 const WATER_ID_SOURCES = "get_water_today or get_water_by_date";
 const WEIGHT_ID_SOURCES =
     "get_weight_today, get_weight_by_date or get_weight_by_date_range";
+const MEASUREMENT_ID_SOURCES = "get_body_measurements";
 
 // A non-uuid id would otherwise reach Postgres and come back as a uuid cast
 // error. Echoed JSON-quoted and clipped: it is caller text. Worded like the
@@ -1468,15 +1688,16 @@ export function alcoholHiddenNote(
 // the top of a session; this note lands in the model's context at the exact
 // moment it left a nutrient out, which is the only feedback in the loop. Same
 // report-only shape as alcoholHiddenNote above — it never writes anything, and
-// it points at an offer, not a write: the gap is mentioned to the user and
-// update_meal fills it only if they want it filled (directory policy 2.D — no
-// write the user did not ask for).
+// it describes rather than directs: it names the gap, what a gap does to the
+// totals, and that update_meal can fill it — never what the assistant should
+// say or do (directory policy; see #190, #213).
 //
-// Deliberately limited to fiber_g and sugar_g. Both are estimable for every
-// food that exists, so a NULL on a meal the model just wrote is an omission and
-// not a fact, and the cost is not one imperfect number: a null excludes the
-// whole DAY from that nutrient's averages, goal lines and charts (dayCarries in
-// insights.ts), so a forgotten fiber figure deletes the day from the trend.
+// Deliberately limited to fiber_g, sugar_g and added_sugar_g. All three are
+// estimable for every food that exists (added sugar is a classification more
+// than a measurement: 0 for whole foods, all of it for a soft drink), so a
+// NULL on a meal the model just wrote is an omission and not a fact, and the
+// cost is not one imperfect number: a null excludes the whole DAY from that
+// nutrient's averages, goal lines and charts (dayCarries in insights.ts), so a forgotten fiber figure deletes the day from the trend.
 //
 // Caffeine is NOT checked here, and adding it would undo the suppression the
 // rest of this file is built around: most meals genuinely carry none, its
@@ -1487,9 +1708,73 @@ export function missingNutrientNote(meal: Meal): string {
     const missing = [
         meal.fiber_g == null ? "fiber_g" : null,
         meal.sugar_g == null ? "sugar_g" : null,
+        meal.added_sugar_g == null ? "added_sugar_g" : null,
     ].filter((f): f is string => f !== null);
     if (missing.length === 0) return "";
-    return `\n\n(Not recorded on this meal: ${missing.join(", ")}. A missing value is not a zero — it leaves the whole day out of that nutrient's totals, averages and goal line. Mention the gap to the user; if they want it filled, estimate the value from the ingredients (0 where the food genuinely has none) and update_meal can add it to id ${meal.id}.)`;
+    return `\n\n(Not recorded on this meal: ${missing.join(", ")}. A missing value is not a zero — it leaves the whole day out of that nutrient's totals, averages and goal line. update_meal can add the value to id ${meal.id}; 0 records a food that genuinely has none.)`;
+}
+
+// Whether log_meal / update_meal refuse sugar_g without added_sugar_g right
+// now. Read from the environment on every call, not once at import, so a test
+// (or an operator restarting with a new value) controls it without
+// mock.module; the clock is per call too, so the rule switches on by itself at
+// the configured instant. Why it is gated at all: see
+// ADDED_SUGAR_REQUIRED_FROM_ENV in added-sugar.ts — hosts cache tools/list
+// for days, and a client on a list from before added_sugar_g existed cannot
+// send the field.
+let warnedAddedSugarGate: string | null = null;
+export function addedSugarRequiredNow(nowMs: number = Date.now()): boolean {
+    const raw = process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+    // One warning per bad value, carrying nothing but the variable's name: an
+    // unparseable instant leaves the rule off, which is the safe direction.
+    if (
+        parseAddedSugarRequiredFrom(raw) === "invalid" &&
+        warnedAddedSugarGate !== raw
+    ) {
+        warnedAddedSugarGate = raw ?? null;
+        console.warn(
+            `[config] ${ADDED_SUGAR_REQUIRED_FROM_ENV} is not an ISO-8601 date or offset date-time; the added-sugar requirement stays off.`,
+        );
+    }
+    return addedSugarRequiredAt(raw, nowMs);
+}
+// At import, so a bad value is reported when the server starts rather than on
+// the first sugared meal.
+addedSugarRequiredNow();
+
+// update_meal's half of the added ≤ total rule (addedSugarError). A field the
+// call leaves out keeps its stored value, so the pair that ends up in the row
+// is the passed value merged over the stored one — backfilling only
+// added_sugar_g on a meal whose sugar_g is already stored has to be checked
+// against that sugar_g. `stored` is null when both were passed (no read
+// needed) or the meal does not exist (updateMeal reports that). Never clamps.
+export function updatedAddedSugarError(
+    fields: { sugar_g?: number; added_sugar_g?: number },
+    stored: Pick<Meal, "sugar_g" | "added_sugar_g"> | null,
+): string | null {
+    return addedSugarError(
+        fields.added_sugar_g !== undefined
+            ? fields.added_sugar_g
+            : stored?.added_sugar_g,
+        fields.sugar_g !== undefined ? fields.sugar_g : stored?.sugar_g,
+    );
+}
+
+// The stored pair updatedAddedSugarError checks a one-sided update against.
+// Two columns only, scoped to the user like every meal read; null when no such
+// meal exists, which updateMeal then reports with its own not-found text.
+async function storedMealSugars(
+    userId: string,
+    id: string,
+): Promise<Pick<Meal, "sugar_g" | "added_sugar_g"> | null> {
+    const { data, error } = await getSupabase()
+        .from("meals")
+        .select("sugar_g, added_sugar_g")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (error) throw new Error(`Failed to read meal: ${error.message}`);
+    return (data as Pick<Meal, "sugar_g" | "added_sugar_g"> | null) ?? null;
 }
 
 // lookup_barcode's two Open Food Facts fallbacks. A lookup is often only a
@@ -1521,6 +1806,28 @@ export function offNotFoundText(barcode: string): string {
 // a number it was forbidden to show the user for review. That is the widget's
 // choice, announced to the user on screen, not a rule this server enforces — see
 // startImportPayload for the full trade-off.
+/**
+ * get_profile's Apple Health sync line. `undefined` means the status could not
+ * be read (the line says so rather than failing the whole profile), `null`
+ * means no link. Dates and times are local to `tz`, like the rest of the
+ * profile. Describes only: connecting happens from the iPhone shortcut, not
+ * through any tool, so there is nothing here to offer.
+ */
+export function healthSyncProfileLine(
+    status: HealthSyncLinkStatus | null | undefined,
+    tz: string,
+): string {
+    if (status === undefined)
+        return "Apple Health sync: status unavailable right now.";
+    if (status === null) return "Apple Health sync: not connected.";
+    const connected = dateInTz(status.created_at, tz);
+    const sentThrough = status.sent_through ?? "nothing yet";
+    const lastSync = status.last_sync_at
+        ? formatLocalDateTime(status.last_sync_at, tz).slice(0, 16)
+        : "never";
+    return `Apple Health sync: connected ${connected}, sent through ${sentThrough}, last sync ${lastSync}.`;
+}
+
 // Exported for tests: the only way to exercise a tool handler end-to-end
 // (schema coercion, handler, response text) is to register the tools on a real
 // McpServer and call them through a client. Production still reaches this only
@@ -1535,7 +1842,7 @@ export function registerTools(
     // is exactly what a non-HTTP embedding should record.
     protocolEra?: "legacy" | "modern",
 ) {
-    // One context for all 36 tools. clientInfo is a getter, not a value: at
+    // One context for all 41 tools. clientInfo is a getter, not a value: at
     // registration time the SDK has not yet resolved who is calling, and on the
     // modern leg it backfills the identity per request before dispatch.
     const analytics = {
@@ -1625,7 +1932,7 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "Dietary fiber in grams. Send this on every meal — treat it as mandatory alongside protein, carbs and fat, and estimate it rather than omitting it, because a missing value is not a zero and excludes the whole day from the user's fiber average and goal. Prefer a label, a barcode lookup or published per-item nutrition where available; otherwise estimate using these anchors per 100 g: cooked lentils or beans 5-8 g, dry rolled oats 10 g, wholemeal bread 7 g, white bread 2.7 g, cooked wholewheat pasta 4 g (white 2 g), cooked brown rice 1.8 g (white 0.4 g), potato with skin 2 g, most vegetables 2-3 g, apple or pear with skin 2.4-3 g, banana 2.6 g, berries 5-7 g, almonds 12 g, chia 34 g. Meat, fish, eggs, dairy, oil and sugar contain none: send 0 there, do not omit the field.",
+                        "Dietary fiber in grams. Expected on every meal alongside protein, carbs and fat: a missing value is stored as not measured rather than as zero and leaves the whole day out of the user's fiber average and goal, while an estimate keeps the day in. Sources, most accurate first: a label, a barcode lookup, published per-item nutrition, an estimate. Reference values per 100 g: cooked lentils or beans 5-8 g, dry rolled oats 10 g, wholemeal bread 7 g, white bread 2.7 g, cooked wholewheat pasta 4 g (white 2 g), cooked brown rice 1.8 g (white 0.4 g), potato with skin 2 g, most vegetables 2-3 g, apple or pear with skin 2.4-3 g, banana 2.6 g, berries 5-7 g, almonds 12 g, chia 34 g. Meat, fish, eggs, dairy, oil and sugar contain none, so 0 is the correct value there rather than an omitted field.",
                     ),
                 sugar_g: z.coerce
                     .number()
@@ -1633,7 +1940,15 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "TOTAL sugars in grams — including sugar naturally present in fruit, milk and juice, not just added sugar. Report the whole figure a nutrition label or database gives for 'Sugars'; do not try to separate out added sugar. Send this on every meal, estimating rather than omitting it: a missing value is not a zero and drops the whole day out of the sugar average and limit. Anchors per 100 g when you have nothing better: milk 5 g, plain yogurt 4.7 g, fruit yogurt 12 g, apple 10 g, banana 12 g, orange 9 g, berries 5-10 g, dried dates 63 g, cola 10.6 g, orange juice 8.4 g, ketchup 22 g, milk chocolate 52 g, bread 3-5 g. Meat, fish, eggs, cheese, oil, rice, pasta and most vegetables are ~0: send 0 there, do not omit the field.",
+                        "TOTAL sugars in grams — the figure a nutrition label or database gives for 'Sugars', which includes sugar naturally present in fruit, milk and juice as well as added sugar. Expected on every meal: a missing value is stored as not measured rather than as zero and leaves the whole day out of the sugar average and limit, while an estimate keeps the day in. Reference values per 100 g: milk 5 g, plain yogurt 4.7 g, fruit yogurt 12 g, apple 10 g, banana 12 g, orange 9 g, berries 5-10 g, dried dates 63 g, cola 10.6 g, orange juice 8.4 g, ketchup 22 g, milk chocolate 52 g, bread 3-5 g. Meat, fish, eggs, cheese, oil, rice, pasta and most vegetables are ~0, so 0 is the correct value there rather than an omitted field.",
+                    ),
+                added_sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Added sugars in grams: sugars added during processing or preparation (table sugar, syrups, honey, sugar in sweetened drinks and foods). Part of sugar_g, never more than it. Sugar naturally present in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Expected on every meal: a missing value is stored as not measured rather than as zero and leaves that day out of the added-sugar average and limit. Reference values: whole fruit, vegetables, plain milk, plain yogurt, meat, fish, eggs, rice, pasta and 100% fruit juice are 0; a soft drink's sugar is all added (cola 10.6 g per 100 g); fruit yogurt is about 7 g added per 100 g; milk chocolate about 47 g per 100 g; ketchup about 18 g per 100 g; sweetened cereal about 25 g per 100 g. A US label states it directly, in the line 'Includes Xg Added Sugars'. 0 is the correct value for a food with none rather than an omitted field. It accompanies sugar_g: a call that gives sugar_g without added_sugar_g may be refused, with nothing saved.",
                     ),
                 alcohol_g: z.coerce
                     .number()
@@ -1649,7 +1964,7 @@ export function registerTools(
                     .max(MAX_CAFFEINE_MG)
                     .optional()
                     .describe(
-                        "Caffeine in MILLIGRAMS (mg) — this field is the one that is not in grams, and a value under 1 almost certainly means grams were sent by mistake. Typical amounts: a 240 ml brewed coffee 95 mg, a single espresso 63 mg, instant coffee 62 mg, black tea 47 mg, green tea 28 mg, a 355 ml cola 34 mg, a 250 ml energy drink 80 mg, decaf 2 mg. Scale them to what was actually drunk (a double espresso is 126 mg), and for a branded drink prefer the figure on the label or the chain's published nutrition. Caffeine adds no calories, so it never changes the kcal figure. Unlike fiber_g and sugar_g, this field is conditional, so decide it on every entry rather than skipping it by default: if the item is a caffeine source at all — coffee including decaf, tea, matcha, yerba mate, cola and other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets — send a figure, from the label or published nutrition where available and otherwise from the amounts above. Omit the field for anything that is not a caffeine source rather than sending 0 — a 0 records 'measured, and it was none', and one on a sandwich puts a caffeine row on the dashboard of a user who never drinks any.",
+                        "Caffeine in MILLIGRAMS (mg) — this field is the one that is not in grams, and a value under 1 almost certainly means grams were sent by mistake. Typical amounts: a 240 ml brewed coffee 95 mg, a single espresso 63 mg, instant coffee 62 mg, black tea 47 mg, green tea 28 mg, a 355 ml cola 34 mg, a 250 ml energy drink 80 mg, decaf 2 mg. Scale them to what was actually drunk (a double espresso is 126 mg), and for a branded drink prefer the figure on the label or the chain's published nutrition. Caffeine adds no calories, so it never changes the kcal figure. Unlike fiber_g, sugar_g and added_sugar_g, this field is conditional, so decide it on every entry rather than skipping it by default: if the item is a caffeine source at all — coffee including decaf, tea, matcha, yerba mate, cola and other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets — send a figure, from the label or published nutrition where available and otherwise from the amounts above. Omit the field for anything that is not a caffeine source rather than sending 0 — a 0 records 'measured, and it was none', and one on a sandwich puts a caffeine row on the dashboard of a user who never drinks any.",
                     ),
                 logged_at: z
                     .string()
@@ -1682,6 +1997,18 @@ export function registerTools(
             return withAnalytics(
                 "log_meal",
                 async () => {
+                    // Before anything is read or written. Sugar without added
+                    // sugar first: the pair check below cannot fire when
+                    // added_sugar_g is absent, so the two never compete.
+                    if (addedSugarRequiredNow() && addedSugarMissing(args))
+                        throw addedSugarMissingError();
+                    // A mismatch is the caller's to resolve, never clamped
+                    // (addedSugarError).
+                    const sugarError = addedSugarError(
+                        args.added_sugar_g,
+                        args.sugar_g,
+                    );
+                    if (sugarError) throw new ToolError(sugarError);
                     const { iso, note } = await resolveWriteTimestamp(
                         userId,
                         args.logged_at,
@@ -1696,7 +2023,7 @@ export function registerTools(
                         ? "Meal already logged — this matched an existing meal, so nothing new was added"
                         : "Meal logged";
 
-                    const { progressSection, structuredContent, tz } =
+                    const { progressSection, structuredContent, meta, tz } =
                         await buildMealProgress(
                             userId,
                             meal,
@@ -1716,6 +2043,7 @@ export function registerTools(
                             },
                         ],
                         structuredContent,
+                        _meta: meta,
                     };
                 },
                 analytics,
@@ -1990,7 +2318,7 @@ export function registerTools(
         {
             title: "Look Up Barcode",
             description:
-                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures come from the product's own label as transcribed by the Open Food Facts community, so they beat estimating — but they are not verified by this server and can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is) — pass these along if the user is asking about the product's quality, not just its macros; they're omitted, not \"n/a\", when OFF hasn't computed one for that product. If no product is found, estimate from the product description, or from the label if the user can share it. Two gaps to close yourself before logging: a fiber or sugar figure shown as n/a is missing data rather than a zero, so estimate it and pass it anyway; and Open Food Facts carries no caffeine at all, so for a coffee, tea, cola, energy drink or other caffeinated product take caffeine_mg from the label where available, otherwise from typical amounts.",
+                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures come from the product's own label as transcribed by the Open Food Facts community, so they beat estimating — but they are not verified by this server and can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is) — pass these along if the user is asking about the product's quality, not just its macros; they're omitted, not \"n/a\", when OFF hasn't computed one for that product. If no product is found, estimate from the product description, or from the label if the user can share it. Two gaps to close yourself before logging: a fiber, sugar or added-sugar figure shown as n/a is missing data rather than a zero, so estimate it and pass it anyway; and Open Food Facts carries no caffeine at all, so for a coffee, tea, cola, energy drink or other caffeinated product take caffeine_mg from the label where available, otherwise from typical amounts.",
             annotations: {
                 title: "Look Up Barcode",
                 readOnlyHint: true,
@@ -2448,15 +2776,15 @@ export function registerTools(
         },
     );
 
-    // UI resource for the get_weight_trends widget (weight-over-time line chart
-    // with a 7/14/30-day toggle and target line). Same contract as above.
+    // UI resource for the get_weight_trends widget (weight-over-time chart with
+    // a trend line, a range toggle and target line). Same contract as above.
     server.registerResource(
         "weight-trends-widget",
         WEIGHT_TRENDS_WIDGET_URI,
         {
             title: "Weight Trends",
             description:
-                "Interactive UI for get_weight_trends: a 7/14/30-day toggle over a weight-over-time chart (data-scaled axis, target line) plus latest/change/target stats, with automatic light/dark theming.",
+                "Interactive UI for get_weight_trends: a range toggle (up to the whole history) over a weight-over-time chart (daily weigh-ins, smoothed trend line, data-scaled axis, target line) plus trend weight, weekly rate, change and target stats, with automatic light/dark theming.",
             mimeType: APP_UI_MIME_TYPE,
         },
         async (uri) => {
@@ -2609,6 +2937,12 @@ export function registerTools(
                             _meta: {
                                 [MEAL_CONTRIBUTORS_META_KEY]:
                                     emptyMealContributors(alcohol),
+                                [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                                    goal: goals?.daily_added_sugar_g,
+                                    days: {},
+                                    meals: [],
+                                    contributorsOf: [],
+                                }),
                             },
                         };
                     }
@@ -2694,6 +3028,10 @@ export function registerTools(
                         recordedDays.sugar_g < days.length
                             ? `sugar ${recordedDays.sugar_g}`
                             : null,
+                        recordedDays.added_sugar_g > 0 &&
+                        recordedDays.added_sugar_g < days.length
+                            ? `added sugar ${recordedDays.added_sugar_g}`
+                            : null,
                         alcohol &&
                         recordedDays.alcohol_g > 0 &&
                         recordedDays.alcohol_g < days.length
@@ -2708,13 +3046,24 @@ export function registerTools(
                     const coverageNote = partial.length
                         ? `\n\n(Averaged over the days that record each figure, not all ${days.length}: ${partial.join(", ")}.)`
                         : "";
-
-                    const breakdown = topMealBreakdown(
-                        mealBreakdown(meals, tz, alcohol),
-                        alcohol,
+                    const addedSugarAverage = addedSugarAverageLine(
+                        rawAverages.added_sugar_g,
+                        recordedDays.added_sugar_g,
+                        days.length,
+                        goals?.daily_added_sugar_g ?? null,
                     );
 
+                    // Added sugar does not rank rows of its own: that would
+                    // change structuredContent.meals for every host, _meta or
+                    // not. Its list draws from the kept rows that carry a
+                    // value plus _meta's `extra` — its own top N that the
+                    // kept rows miss (addedSugarExtra) — and its exact
+                    // "N more" comes from _meta's contributors.
+                    const rows = mealBreakdown(meals, tz, alcohol);
+                    const breakdown = topMealBreakdown(rows, alcohol);
+
                     const footer =
+                        addedSugarAverage +
                         coverageNote +
                         loggedDayAverageNote(days.length, daysInRange) +
                         (goals
@@ -2752,6 +3101,22 @@ export function registerTools(
                         _meta: {
                             [MEAL_CONTRIBUTORS_META_KEY]:
                                 breakdown.contributors,
+                            // Same object, beside the contributors: `meals`
+                            // follows the kept rows' order exactly (the
+                            // widget joins by position), and `contributors`
+                            // counts over every meal in the range.
+                            [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                                goal: goals?.daily_added_sugar_g,
+                                days: Object.fromEntries(byDate),
+                                meals: breakdown.kept.map((i) => meals[i]!),
+                                contributorsOf: meals,
+                                extra: addedSugarExtra(
+                                    meals,
+                                    rows,
+                                    breakdown.kept,
+                                    MEAL_BREAKDOWN_TOP_N,
+                                ),
+                            }),
                         },
                     };
                 },
@@ -2766,7 +3131,7 @@ export function registerTools(
         {
             title: "Set Nutrition Goals",
             description:
-                "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target. Calories, protein, carbs, fat, fiber and water are targets to REACH; sugar, alcohol and caffeine are limits to STAY UNDER, and progress against them is worded accordingly. Every gram target is in grams and the caffeine limit is in MILLIGRAMS. For a limit, 0 is a real value meaning 'none at all' rather than 'unset'. Targets are the user's own choice; this server does not provide medical or dietary advice.",
+                "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target. Calories, protein, carbs, fat, fiber and water are targets to REACH; total sugar, added sugar, alcohol and caffeine are limits to STAY UNDER, and progress against them is worded accordingly. Every gram target is in grams and the caffeine limit is in MILLIGRAMS. For a limit, 0 is a real value meaning 'none at all' rather than 'unset'. Targets are the user's own choice; this server does not provide medical or dietary advice.",
             annotations: {
                 title: "Set Nutrition Goals",
                 readOnlyHint: false,
@@ -2824,7 +3189,16 @@ export function registerTools(
                     .nullable()
                     .optional()
                     .describe(
-                        "Daily TOTAL sugar limit (grams), treated as a maximum to stay under. Total sugars include sugar naturally present in fruit and milk, not only added sugar — say so when the user sets one, since public guidance figures usually refer to ADDED sugar and are therefore a much lower number. Null to clear.",
+                        "Daily TOTAL sugar limit (grams), treated as a maximum to stay under. Total sugars include sugar naturally present in fruit and milk as well as added sugar, so a total-sugar limit is reached sooner than the same number would be as an added-sugar limit; public guidance figures usually refer to added sugar, which daily_added_sugar_g limits. Null to clear.",
+                    ),
+                daily_added_sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_GOAL_G)
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Daily added-sugar limit (grams), a maximum to stay under. Counts only added sugars, not sugar naturally present in fruit and milk; public guidance figures for sugar usually refer to this measure. 0 means none. Null to clear.",
                     ),
                 daily_alcohol_g: z.coerce
                     .number()
@@ -2918,6 +3292,10 @@ export function registerTools(
                             args.daily_sugar_g === undefined
                                 ? (existing?.daily_sugar_g ?? null)
                                 : args.daily_sugar_g,
+                        daily_added_sugar_g:
+                            args.daily_added_sugar_g === undefined
+                                ? (existing?.daily_added_sugar_g ?? null)
+                                : args.daily_added_sugar_g,
                         daily_alcohol_g:
                             args.daily_alcohol_g === undefined
                                 ? (existing?.daily_alcohol_g ?? null)
@@ -3135,6 +3513,15 @@ export function registerTools(
                             // Single day → label rows by meal type in the widget.
                             meals: mealBreakdown(meals, null, alcohol),
                         },
+                        // Rows and meta.meals share one list and one order;
+                        // the widget joins them by position.
+                        _meta: {
+                            [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                                goal: goals?.daily_added_sugar_g,
+                                days: { [targetDate]: meals },
+                                meals,
+                            }),
+                        },
                     };
                 },
                 analytics,
@@ -3211,7 +3598,7 @@ export function registerTools(
             // backfill runs only once the user asks or agrees: an unrequested
             // write is what directory policy 2.D forbids.
             description:
-                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to backfill nutrition a meal was logged without: when a past meal has no fiber_g, sugar_g or (where it applies) caffeine_mg and the user asks or agrees to fill it in, estimate the value and pass just that field. Meal ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.\n\n" +
+                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to backfill nutrition a meal was logged without: when a past meal has no fiber_g, sugar_g, added_sugar_g or (where it applies) caffeine_mg and the user asks or agrees to fill it in, estimate the value and pass just that field. Meal ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.\n\n" +
                 NUTRIENT_COVERAGE,
             annotations: {
                 title: "Update Meal",
@@ -3243,7 +3630,7 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "Dietary fiber in grams. Every meal should carry one — pass it here for a meal logged without it, estimating from the ingredients if no label figure exists, and 0 for a food that genuinely has none (meat, fish, eggs, dairy, oil).",
+                        "Dietary fiber in grams. Only the fields passed are written, so this fills in the figure for a meal logged without one; 0 is the correct value for a food that has none (meat, fish, eggs, dairy, oil).",
                     ),
                 sugar_g: z.coerce
                     .number()
@@ -3251,7 +3638,15 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe(
-                        "TOTAL sugars in grams, including sugar naturally present in fruit and milk — not only added sugar. Every meal should carry one — pass it here for a meal logged without it, estimating if there is no label figure, and 0 for a food that genuinely has none.",
+                        "TOTAL sugars in grams, including sugar naturally present in fruit and milk as well as added sugar. Only the fields passed are written, so this fills in the figure for a meal logged without one; 0 is the correct value for a food that has none.",
+                    ),
+                added_sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Added sugars in grams: sugars added during processing or preparation (table sugar, syrups, honey, sugar in sweetened drinks and foods), part of sugar_g and never more than it. Sugar naturally present in whole fruit, vegetables and plain milk is not added, and neither is 100% fruit juice. Only the fields passed are written, so this fills in the figure for a meal logged without one, checked against the meal's stored sugar_g when sugar_g is not passed alongside it; 0 is the correct value for a food that has none (whole fruit, vegetables, plain milk, meat, rice), and a soft drink's sugar is all added. It accompanies sugar_g: a call that passes sugar_g without added_sugar_g, for a meal with no added sugar recorded, may be refused, leaving the meal unchanged.",
                     ),
                 alcohol_g: z.coerce
                     .number()
@@ -3290,15 +3685,54 @@ export function registerTools(
                         throw new ToolError(
                             notUuidText("meal", id, MEAL_ID_SOURCES),
                         );
+                    // The stored row is read only when exactly one of the
+                    // two sugar fields is passed — the backfill case. The
+                    // write is then conditional on the stored value the check
+                    // relied on (the side NOT passed), so a concurrent edit to
+                    // it makes updateMeal refuse rather than leave added
+                    // sugar above total; never clamped.
+                    const passedSugar = fields.sugar_g !== undefined;
+                    const passedAdded = fields.added_sugar_g !== undefined;
+                    let sugarGuard: MealSugarGuard | undefined;
+                    if (passedSugar || passedAdded) {
+                        const stored =
+                            passedSugar && passedAdded
+                                ? null
+                                : await storedMealSugars(userId, id);
+                        // sugar_g without added_sugar_g on a meal that has
+                        // none stored would leave total sugar with no added
+                        // part. `stored` is non-null here whenever only
+                        // sugar_g was passed and the meal exists; a missing
+                        // meal falls through to updateMeal's not-found text.
+                        if (
+                            stored &&
+                            addedSugarRequiredNow() &&
+                            addedSugarMissing(fields, stored.added_sugar_g)
+                        )
+                            throw addedSugarMissingError(id);
+                        const sugarError = updatedAddedSugarError(
+                            fields,
+                            stored,
+                        );
+                        if (sugarError) throw new ToolError(sugarError);
+                        // A null `stored` here means no such meal; updateMeal
+                        // reports that itself.
+                        if (stored)
+                            sugarGuard = passedSugar
+                                ? { added_sugar_g: stored.added_sugar_g }
+                                : { sugar_g: stored.sugar_g };
+                    }
                     const { iso, note } = await resolveWriteTimestamp(
                         userId,
                         fields.logged_at,
                     );
-                    const meal = await updateMeal(userId, id, {
-                        ...fields,
-                        logged_at: iso,
-                    });
-                    const { progressSection, structuredContent, tz } =
+                    const meal = await updateMeal(
+                        userId,
+                        id,
+                        { ...fields, logged_at: iso },
+                        sugarGuard,
+                    );
+                    const { progressSection, structuredContent, meta, tz } =
                         await buildMealProgress(
                             userId,
                             meal,
@@ -3317,6 +3751,7 @@ export function registerTools(
                             },
                         ],
                         structuredContent,
+                        _meta: meta,
                     };
                 },
                 analytics,
@@ -3853,7 +4288,7 @@ export function registerTools(
         {
             title: "Get Weight Trends",
             description:
-                "Weight trend over a window: latest reading, overall change, 7/14/30-day moving averages (to smooth day-to-day noise), min/max, and progress toward the target weight if one is set. Aggregates multiple weigh-ins per day by averaging. Defaults to the last 30 days ending today.",
+                "Weight trend over a window: latest reading, overall change, a smoothed trend weight with its weekly rate over the last 2 weeks (which filters out day-to-day water swings), min/max, and progress toward the target weight if one is set. Aggregates multiple weigh-ins per day by averaging. Defaults to the last 30 days ending today.",
             annotations: {
                 title: "Get Weight Trends",
                 readOnlyHint: true,
@@ -3908,69 +4343,58 @@ export function registerTools(
                     const locale = localeFromProfile(profile) ?? "en";
                     const endDate = end_date ?? todayInTz(tz);
                     const windowDays = days ?? 30;
-                    // The widget's toggle offers up to 30 days, so fetch at
-                    // least 30 regardless of the requested text window.
-                    const seriesDays = Math.max(windowDays, 30);
-                    const fetchStart = shiftLocalDate(
-                        endDate,
-                        -(seriesDays - 1),
-                    );
                     const requestedStart = shiftLocalDate(
                         endDate,
                         -(windowDays - 1),
                     );
+                    // One full-history read feeds everything: the trend's
+                    // warm-up (the EWMA runs from the first weigh-in ever, so
+                    // it is settled on the first day shown), the text window,
+                    // the 30-day structuredContent and the long-range series
+                    // in _meta. getAllWeight pages and reconciles against an
+                    // exact count, so a long history throws rather than
+                    // silently starting the trend late.
                     const [entries, goals] = await Promise.all([
-                        getWeightInRange(userId, fetchStart, endDate, tz),
+                        getAllWeight(userId),
                         getNutritionGoals(userId),
                     ]);
                     const targetG = goals?.target_weight_g ?? null;
+                    const analysis = analyzeWeightHistory(
+                        entries,
+                        tz,
+                        unit,
+                        endDate,
+                    );
 
-                    // Text summary respects the requested window.
-                    const textEntries =
-                        windowDays >= 30
-                            ? entries
-                            : entries.filter(
-                                  (e) =>
-                                      dateInTz(e.logged_at, tz) >=
-                                      requestedStart,
-                              );
-
-                    // Widget series: one value per logged day (same-day
-                    // weigh-ins averaged), in display units, within 30 days.
+                    // structuredContent is frozen (output-schemas.frozen.json):
+                    // one value per logged day (same-day weigh-ins averaged),
+                    // raw, in display units, within the last 30 days. Older
+                    // history only ever reaches the widget through _meta.
                     const seriesCutoff = shiftLocalDate(endDate, -29);
-                    const dailyG = new Map<
-                        string,
-                        { total: number; count: number }
-                    >();
-                    for (const e of entries) {
-                        const date = dateInTz(e.logged_at, tz);
-                        const cur = dailyG.get(date) ?? { total: 0, count: 0 };
-                        cur.total += e.weight_g;
-                        cur.count += 1;
-                        dailyG.set(date, cur);
+                    const widgetDays = analysis.days
+                        .filter((d) => d.date >= seriesCutoff)
+                        .map((d) => ({
+                            date: d.date,
+                            weight: fromGrams(d.weight_g, unit),
+                        }));
+
+                    let text = computeWeightTrend(
+                        entries,
+                        requestedStart,
+                        endDate,
+                        tz,
+                        targetG,
+                        unit,
+                    );
+                    // The structured `days` series is always the last 30 days
+                    // whatever window was asked for; say so, or a host that
+                    // charts it labels a 30-day chart with the text's window.
+                    if (windowDays !== 30 && widgetDays.length > 0) {
+                        text += `\n\nThe structured daily series covers the last 30 days only (${seriesCutoff} to ${endDate}); the figures above cover the requested ${windowDays}-day window.`;
                     }
-                    const widgetDays = [...dailyG.entries()]
-                        .filter(([date]) => date >= seriesCutoff)
-                        .map(([date, { total, count }]) => ({
-                            date,
-                            weight: fromGrams(total / count, unit),
-                        }))
-                        .sort((a, b) => (a.date < b.date ? -1 : 1));
 
                     return {
-                        content: [
-                            {
-                                type: "text",
-                                text: computeWeightTrend(
-                                    textEntries,
-                                    requestedStart,
-                                    endDate,
-                                    tz,
-                                    targetG,
-                                    unit,
-                                ),
-                            },
-                        ],
+                        content: [{ type: "text", text }],
                         structuredContent: {
                             end_date: endDate,
                             unit,
@@ -3978,11 +4402,15 @@ export function registerTools(
                                 targetG != null
                                     ? fromGrams(targetG, unit)
                                     : null,
-                            default_range: [7, 14, 30].includes(windowDays)
-                                ? windowDays
-                                : 30,
+                            default_range: defaultRangeFor(windowDays),
                             locale,
                             days: widgetDays,
+                        },
+                        // Trend, rate and the 90-day / weekly / monthly
+                        // series: _meta, not structuredContent, because the
+                        // output schema is frozen (see WEIGHT_SERIES_META_KEY).
+                        _meta: {
+                            [WEIGHT_SERIES_META_KEY]: analysis.meta,
                         },
                     };
                 },
@@ -4192,6 +4620,453 @@ export function registerTools(
     );
 
     server.registerTool(
+        "log_body_measurement",
+        {
+            title: "Log Body Measurement",
+            description:
+                "Log one body circumference measurement — waist, hips, neck, chest, shoulders, upper arm, forearm, thigh or calf — in centimetres or inches. Without `unit`, the user's saved length unit (set_length_unit) applies; with neither, the call fails and says a unit is needed. The server stores the number and unit exactly as given and does any cm/in conversion itself. Each entry is one site with no left/right field; a side or other detail goes in notes. A site can be measured several times a day. A number far outside a realistic range for the site is refused as a likely typo. Measurements are recorded as given, without targets or interpretation, and this server does not provide medical advice.",
+            annotations: {
+                title: "Log Body Measurement",
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                kind: z
+                    .enum(BODY_MEASUREMENT_KINDS)
+                    .describe(
+                        "Body site measured: waist, hips, neck, chest, shoulders, upper_arm (upper arm / biceps), forearm, thigh or calf.",
+                    ),
+                value: z.coerce
+                    .number()
+                    .positive()
+                    .describe(
+                        "Circumference in `unit` (> 0), as the user stated it.",
+                    ),
+                unit: z
+                    .enum(["cm", "in"])
+                    .optional()
+                    .describe(
+                        "Unit of the value: 'cm' or 'in'. Defaults to the user's saved length unit; with neither, the call fails.",
+                    ),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "When the measurement was taken (defaults to now). " +
+                            LOGGED_AT_FORMS_PLAIN +
+                            LOGGED_AT_OMITTED_PLAIN,
+                    ),
+                notes: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Optional notes (e.g. 'left side', 'at the navel', 'morning, relaxed').",
+                    ),
+                idempotency_key: z
+                    .string()
+                    .min(1)
+                    .max(255)
+                    .optional()
+                    .describe(idempotencyKeyDescriptionPlain("measurement")),
+            }),
+        },
+        async (args) => {
+            return withAnalytics(
+                "log_body_measurement",
+                async () => {
+                    const { iso, note, tz } = await resolveWriteTimestamp(
+                        userId,
+                        args.logged_at,
+                    );
+                    const unit = await resolveWriteLengthUnit(
+                        userId,
+                        args.unit,
+                    );
+                    const value_mm = assertPlausibleLength(
+                        args.kind,
+                        args.value,
+                        unit,
+                    );
+                    const { entry, deduplicated } = await insertBodyMeasurement(
+                        userId,
+                        {
+                            kind: args.kind,
+                            value_mm,
+                            value_entered: args.value,
+                            entered_unit: unit,
+                            logged_at: iso,
+                            notes: args.notes,
+                            idempotency_key: args.idempotency_key,
+                        },
+                    );
+                    const prefix = deduplicated
+                        ? "Already logged — this matched an existing entry, so nothing new was added"
+                        : "Body measurement logged";
+                    // Rendered from the stored row, so a deduplicated call
+                    // shows the entry that already exists.
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${prefix}: ${measurementLabel(entry.kind)} ${formatMeasurementValue(entry, entry.entered_unit)} at ${localTimeOf(entry.logged_at, tz, true)} (${tz})${entry.notes ? ` (${entry.notes})` : ""}. ID: ${entry.id}${note}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_body_measurements",
+        {
+            title: "Get Body Measurements",
+            description: `Get body measurements between two dates (inclusive), optionally for one site, oldest first and grouped by local day, each with the id that update_body_measurement and delete_body_measurement take. Defaults to the 30 days ending today; a range spans at most ${BODY_MEASUREMENT_RANGE_MAX_DAYS} days, and a long listing stops at a whole day and names the date to continue from. Values are shown in the user's saved length unit, or in the unit each was entered in when none is saved.`,
+            annotations: {
+                title: "Get Body Measurements",
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                kind: z
+                    .enum(BODY_MEASUREMENT_KINDS)
+                    .optional()
+                    .describe("Only this site. Omitted: every site."),
+                start_date: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Start date YYYY-MM-DD (default: 29 days before end_date).",
+                    ),
+                end_date: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "End date YYYY-MM-DD (default: today in the user's timezone).",
+                    ),
+            }),
+        },
+        async ({ kind, start_date, end_date }) => {
+            return withAnalytics(
+                "get_body_measurements",
+                async () => {
+                    // Before shiftLocalDate, which rolls bad dates over.
+                    if (start_date !== undefined)
+                        assertCalendarDate("start_date", start_date);
+                    if (end_date !== undefined)
+                        assertCalendarDate("end_date", end_date);
+                    const profile = await getProfile(userId);
+                    const tz = timezoneFromProfile(profile) ?? "UTC";
+                    const pref = preferredLengthUnitFromProfile(profile);
+                    const end = end_date ?? todayInTz(tz);
+                    const start =
+                        start_date ??
+                        shiftLocalDate(
+                            end,
+                            -(BODY_MEASUREMENT_DEFAULT_DAYS - 1),
+                        );
+                    assertDateRange(
+                        start,
+                        end,
+                        BODY_MEASUREMENT_RANGE_MAX_DAYS,
+                        "Split the range into yearly calls.",
+                    );
+                    const entries = await getBodyMeasurementsInRange(
+                        userId,
+                        start,
+                        end,
+                        tz,
+                        kind,
+                    );
+                    if (entries.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `No ${kind ? `${measurementLabel(kind).toLowerCase()} measurements` : "body measurements"} found between ${start} and ${end}.`,
+                                },
+                            ],
+                        };
+                    }
+
+                    const byDate = new Map<string, BodyMeasurementEntry[]>();
+                    for (const e of entries) {
+                        const date = dateInTz(e.logged_at, tz);
+                        const existing = byDate.get(date) ?? [];
+                        existing.push(e);
+                        byDate.set(date, existing);
+                    }
+
+                    // Whole days while they fit the budget; the first day is
+                    // always shown, however long.
+                    const header = timesAreLocal(tz);
+                    const sections: string[] = [];
+                    let length = header.length;
+                    let lastDate = "";
+                    let truncated = false;
+                    for (const [date, dayEntries] of [
+                        ...byDate.entries(),
+                    ].sort()) {
+                        const section = `## ${date}\n${dayEntries
+                            .map((e) => formatMeasurementEntry(e, pref, tz))
+                            .join("\n")}`;
+                        if (
+                            sections.length > 0 &&
+                            length + 2 + section.length > MEAL_LISTING_MAX_CHARS
+                        ) {
+                            truncated = true;
+                            break;
+                        }
+                        sections.push(section);
+                        length += 2 + section.length;
+                        lastDate = date;
+                    }
+                    const notice = truncated
+                        ? `\n\n(Listing stops after ${lastDate} to keep the response short; get_body_measurements with start_date ${shiftLocalDate(lastDate, 1)}, end_date ${end}${kind ? ` and kind ${kind}` : ""} returns the rest.)`
+                        : "";
+
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${header}\n\n${sections.join("\n\n")}${notice}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+                { start_date, end_date },
+            );
+        },
+    );
+
+    server.registerTool(
+        "update_body_measurement",
+        {
+            title: "Update Body Measurement",
+            description:
+                "Update an existing body measurement's value, unit, time or notes. The site (kind) cannot be changed; a measurement of a different site is a new entry. A new `value` is read in `unit`, which defaults to the unit the entry was originally entered in, not the saved preference. Passing `unit` without `value` re-reads the stored number in that unit, which corrects an entry logged with the wrong unit. A value far outside a realistic range for the site is refused.",
+            annotations: {
+                title: "Update Body Measurement",
+                readOnlyHint: false,
+                // Overwrites a stored record with no undo — "false" would mean
+                // "only additive updates", which this is not.
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the body measurement to update, from ${MEASUREMENT_ID_SOURCES}.`,
+                    ),
+                value: z.coerce
+                    .number()
+                    .positive()
+                    .optional()
+                    .describe("New circumference value, in `unit`."),
+                unit: z
+                    .enum(["cm", "in"])
+                    .optional()
+                    .describe(
+                        "Unit of the value. Defaults to the unit this entry was entered in.",
+                    ),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "When the measurement was taken. " +
+                            LOGGED_AT_FORMS_PLAIN,
+                    ),
+                notes: z.string().optional(),
+            }),
+        },
+        async ({ id, value, unit, logged_at, notes }) => {
+            return withAnalytics(
+                "update_body_measurement",
+                async () => {
+                    // Before resolveWriteTimestamp, which reads the profile.
+                    if (!isUuid(id))
+                        throw new ToolError(
+                            notUuidText(
+                                "body measurement",
+                                id,
+                                MEASUREMENT_ID_SOURCES,
+                            ),
+                        );
+                    // Worded without "update": categorizeError's tier 3 reads
+                    // any "date" substring as invalid_date_format.
+                    if (
+                        value === undefined &&
+                        unit === undefined &&
+                        logged_at === undefined &&
+                        notes === undefined
+                    )
+                        throw new ToolError(
+                            "Nothing to change: value, unit, logged_at or notes is needed.",
+                        );
+                    const { iso, note, tz } = await resolveWriteTimestamp(
+                        userId,
+                        logged_at,
+                    );
+                    const patch: {
+                        value_mm?: number;
+                        value_entered?: number;
+                        entered_unit?: LengthUnit;
+                        logged_at?: string;
+                        notes?: string | null;
+                    } = {};
+                    if (value !== undefined || unit !== undefined) {
+                        // Always read: the plausible range depends on the
+                        // row's kind, and a missing half comes from the row.
+                        const current = await getBodyMeasurement(userId, id);
+                        if (!current)
+                            throw new ToolError(
+                                `No body measurement found with id ${id}.`,
+                            );
+                        const u: LengthUnit = unit ?? current.entered_unit;
+                        const v = value ?? Number(current.value_entered);
+                        const kindOf: BodyMeasurementKind = current.kind;
+                        patch.value_mm = assertPlausibleLength(kindOf, v, u);
+                        patch.value_entered = v;
+                        patch.entered_unit = u;
+                    }
+                    if (iso !== undefined) patch.logged_at = iso;
+                    if (notes !== undefined) patch.notes = notes;
+                    const entry = await updateBodyMeasurement(
+                        userId,
+                        id,
+                        patch,
+                    );
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Body measurement updated (${tz} time):\n${formatMeasurementEntry(entry, entry.entered_unit, tz, true)}${note}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "delete_body_measurement",
+        {
+            title: "Delete Body Measurement",
+            description: "Delete a body measurement by ID.",
+            annotations: {
+                title: "Delete Body Measurement",
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the body measurement to delete, from ${MEASUREMENT_ID_SOURCES}.`,
+                    ),
+            }),
+        },
+        async ({ id }) => {
+            return withAnalytics(
+                "delete_body_measurement",
+                async () => {
+                    // Answered, not thrown: nothing with that id exists, the
+                    // same as a well-formed id that matches no row.
+                    if (!isUuid(id)) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: notUuidText(
+                                        "body measurement",
+                                        id,
+                                        MEASUREMENT_ID_SOURCES,
+                                    ),
+                                },
+                            ],
+                        };
+                    }
+                    const deleted = await deleteBodyMeasurement(userId, id);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: deleted
+                                    ? `Body measurement ${id} deleted.`
+                                    : `No body measurement found with id ${id}.`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "set_length_unit",
+        {
+            title: "Set Length Unit",
+            description:
+                "Set the user's preferred length unit for body measurements ('cm' or 'in'), or pass null to clear it. It decides how measurements are shown and which unit a number logged without `unit` is read in. Stored measurements keep the number and unit they were entered with; only display and default parsing change. It is independent of the weight unit. While unset, logging a measurement needs an explicit unit and each one is shown in the unit it was entered in.",
+            annotations: {
+                title: "Set Length Unit",
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                unit: z
+                    .enum(["cm", "in"])
+                    .nullable()
+                    .describe(
+                        "Preferred length unit: 'cm' or 'in'. null clears the preference.",
+                    ),
+            }),
+        },
+        async ({ unit }) => {
+            return withAnalytics(
+                "set_length_unit",
+                async () => {
+                    if (unit !== null && !isLengthUnit(unit)) {
+                        throw new ToolError(
+                            `Invalid length unit: ${unit}. Valid values are 'cm', 'in', or null to clear.`,
+                        );
+                    }
+                    const profile = await upsertProfile(userId, {
+                        preferred_length_unit: unit,
+                    });
+                    const saved = preferredLengthUnitFromProfile(profile);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: saved
+                                    ? `Preferred length unit set to ${saved}.`
+                                    : "Preferred length unit cleared. Logging a measurement now needs an explicit unit, and each measurement is shown in the unit it was entered in.",
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
         "set_widget_display",
         {
             title: "Set Widget Display",
@@ -4309,7 +5184,7 @@ export function registerTools(
         {
             title: "Get Trends",
             description:
-                "Rolling 7/14/30-day averages, standard deviation and coefficient of variation for calories, protein, carbs, fat, fiber, sugar, alcohol (when tracking is on), caffeine and water, with days within ±10% of each target or over each limit when goals are set; logging streaks; day-of-week calorie averages; and the best and worst day by calories (closest to and furthest from the calorie target when one is set, otherwise the lowest and highest). Pre-aggregated so you can narrate findings to the user without doing arithmetic. Defaults to the last 30 days ending today. Figures are estimates, not medical or dietary advice.",
+                "Rolling 7/14/30-day averages, standard deviation and coefficient of variation for calories, protein, carbs, fat, fiber, sugar, added sugar, alcohol (when tracking is on), caffeine and water, with days within ±10% of each target or over each limit when goals are set; logging streaks; day-of-week calorie averages; and the best and worst day by calories (closest to and furthest from the calorie target when one is set, otherwise the lowest and highest). Every figure arrives pre-computed. Defaults to the last 30 days ending today. With group_by (week, month, quarter or year) the result also lists calorie, protein, carb and fat averages per calendar period over a fixed span (26 weeks, 24 months, 12 quarters or 5 years), each divided by the days in that period with at least one meal logged rather than by calendar days, beside the targets in effect at the time, the days logged and the days on target. Figures are estimates, not medical or dietary advice.",
             annotations: {
                 title: "Get Trends",
                 readOnlyHint: true,
@@ -4329,6 +5204,12 @@ export function registerTools(
                     .string()
                     .optional()
                     .describe("Window end date YYYY-MM-DD (default today)."),
+                group_by: z
+                    .enum(GRANULARITIES as [Granularity, ...Granularity[]])
+                    .optional()
+                    .describe(
+                        "Adds per-period averages per logged day (days with no meals are excluded) against the targets in effect at the time: ISO weeks starting Monday (26 rows), months (24), quarters (12) or years (5), in the profile timezone, ending with the period that contains end_date. The span is fixed per granularity; `days` still sets the rolling-average window.",
+                    ),
             }),
             outputSchema: z.object({
                 end_date: z.string(),
@@ -4346,7 +5227,7 @@ export function registerTools(
             // Link the tool to its interactive trends UI (MCP Apps).
             ...uiMeta(TRENDS_WIDGET_URI),
         },
-        async ({ days, end_date }) => {
+        async ({ days, end_date, group_by }) => {
             return withAnalytics(
                 "get_trends",
                 async () => {
@@ -4364,11 +5245,35 @@ export function registerTools(
                         endDate,
                         -(seriesDays - 1),
                     );
-                    const [meals, water, goals] = await Promise.all([
-                        getMealsInRange(userId, startDate, endDate, tz),
-                        getWaterInRange(userId, startDate, endDate, tz),
-                        getNutritionGoals(userId),
-                    ]);
+                    // With group_by, one meal read covers every granularity's
+                    // span (5 calendar years) and the rolling window too: the
+                    // window is at most 365 days, always inside it, and
+                    // buildDailyBuckets drops meals outside its own range.
+                    // Without group_by, the reads are exactly what they were.
+                    const mealStart = group_by
+                        ? yearSpanStart(endDate) < startDate
+                            ? yearSpanStart(endDate)
+                            : startDate
+                        : startDate;
+                    // hasMealsBefore: meals before the span make its empty
+                    // early periods inner gaps (kept), not a lead-in
+                    // (dropped).
+                    const [meals, water, goals, history, loggedBefore] =
+                        await Promise.all([
+                            getMealsInRange(userId, mealStart, endDate, tz),
+                            getWaterInRange(userId, startDate, endDate, tz),
+                            getNutritionGoals(userId),
+                            group_by
+                                ? getNutritionGoalsHistory(userId)
+                                : Promise.resolve(null),
+                            group_by
+                                ? hasMealsBefore(
+                                      userId,
+                                      yearSpanStart(endDate),
+                                      tz,
+                                  )
+                                : Promise.resolve(false),
+                        ]);
                     const allBuckets = buildDailyBuckets(
                         meals,
                         water,
@@ -4383,16 +5288,54 @@ export function registerTools(
 
                     const goalsPayload = goalsPayloadOf(goals, alcohol);
 
+                    let text = computeTrends(
+                        gateAlcohol(textBuckets, alcohol),
+                        goals,
+                    );
+                    // Per-period averages: only with group_by, and then in
+                    // `content` and the result's `_meta`, never in
+                    // structuredContent — the output schema is frozen (see
+                    // PERIOD_AVERAGES_META_KEY). structuredContent stays
+                    // exactly what the `days` window gives without it.
+                    const periodMeta: Record<string, unknown> = {};
+                    if (group_by && history) {
+                        const spanStart = yearSpanStart(endDate);
+                        const meta = buildPeriodAveragesMeta(
+                            dayTotalsFromMeals(meals, spanStart, endDate, tz),
+                            history,
+                            endDate,
+                            group_by,
+                            tz,
+                            loggedBefore ? spanStart : null,
+                        );
+                        text += `\n\n${formatPeriodContent(
+                            meta.periods[group_by],
+                            group_by,
+                            targetsRecordedFrom(history, tz),
+                        )}`;
+                        periodMeta[PERIOD_AVERAGES_META_KEY] = meta;
+                    }
+
+                    // Added sugar per day of the 30-day series, for the
+                    // widget's own 7/14/30 re-average. Meals are grouped
+                    // here rather than read off the buckets, and only the
+                    // series' dates are keyed (with group_by the meal read
+                    // reaches years further back).
+                    const seriesMeals: Record<string, Meal[]> = {};
+                    for (const b of seriesBuckets) seriesMeals[b.date] = [];
+                    for (const meal of meals) {
+                        seriesMeals[dateInTz(meal.logged_at, tz)]?.push(meal);
+                    }
+
                     return {
-                        content: [
-                            {
-                                type: "text",
-                                text: computeTrends(
-                                    gateAlcohol(textBuckets, alcohol),
-                                    goals,
-                                ),
-                            },
-                        ],
+                        content: [{ type: "text", text }],
+                        _meta: {
+                            ...periodMeta,
+                            [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                                goal: goals?.daily_added_sugar_g,
+                                days: seriesMeals,
+                            }),
+                        },
                         structuredContent: {
                             end_date: endDate,
                             default_range: [7, 14, 30].includes(windowDays)
@@ -4491,7 +5434,7 @@ export function registerTools(
         {
             title: "Export All Data",
             description:
-                "Export EVERYTHING this server stores about the user — meals, water, weight, nutrition goals, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry and the AI-app connections (OAuth grants, without the tokens) — as a single ZIP archive (meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv, telemetry.csv, connections.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path — use it for a full backup, an account takeout, or a request for the meal history alone, in which case tell the user their meals are meals.csv inside the archive. Share the link with the user so they can download their data.",
+                "Export EVERYTHING this server stores about the user — meals, water, weight, body measurements, nutrition goals and every dated change to them, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path: it covers a full backup, an account takeout, and a request for the meal history alone, which is meals.csv inside the archive. The link is for the user to download the archive.",
             annotations: {
                 title: "Export All Data",
                 readOnlyHint: false,
@@ -4526,11 +5469,14 @@ export function registerTools(
                         `${counts.meals} meal${counts.meals === 1 ? "" : "s"}`,
                         `${counts.water} water ${counts.water === 1 ? "entry" : "entries"}`,
                         `${counts.weight} weight ${counts.weight === 1 ? "entry" : "entries"}`,
+                        `${counts.bodyMeasurements} body measurement${counts.bodyMeasurements === 1 ? "" : "s"}`,
                         goals ? "nutrition goals" : "no nutrition goals set",
+                        `${counts.goalsHistory} goal ${counts.goalsHistory === 1 ? "change" : "changes"}`,
                         profile ? "profile settings" : "no profile settings",
                         account ? "account details" : "no account record",
                         `${counts.telemetry} tool-usage telemetry ${counts.telemetry === 1 ? "row" : "rows"}`,
                         `${counts.connections} app connection ${counts.connections === 1 ? "record" : "records"}`,
+                        `${counts.healthSync} Apple Health sync ${counts.healthSync === 1 ? "day" : "days"}`,
                     ].join(", ");
                     return {
                         content: [
@@ -4604,7 +5550,7 @@ export function registerTools(
         {
             title: "Get Profile",
             description:
-                "Get the user's current settings in one call: timezone (plus local date and time), widget language, preferred weight unit, whether in-chat widgets are shown, and whether alcohol tracking is on — everything set_timezone, set_language, set_weight_unit, set_widget_display and set_alcohol_tracking each control. Prefer this over guessing a setting from context, and use it once instead of calling several separate settings tools when you need more than one.",
+                "Get the user's current settings in one call: timezone (plus local date and time), widget language, preferred weight unit, preferred length unit, whether in-chat widgets are shown, and whether alcohol tracking is on — everything set_timezone, set_language, set_weight_unit, set_length_unit, set_widget_display and set_alcohol_tracking each control. Prefer this over guessing a setting from context, and use it once instead of calling several separate settings tools when you need more than one.",
             annotations: {
                 title: "Get Profile",
                 readOnlyHint: true,
@@ -4617,10 +5563,25 @@ export function registerTools(
             return withAnalytics(
                 "get_profile",
                 async () => {
-                    const profile = await getProfile(userId);
+                    const [profile, healthSync] = await Promise.all([
+                        getProfile(userId),
+                        // Read beside the profile, and never allowed to fail
+                        // it: the sync status is one line of many, and the
+                        // rest of the profile is what this tool is for.
+                        createSupabaseHealthSyncStore()
+                            .getLinkStatus(userId)
+                            .catch((err: unknown) => {
+                                const ref = newErrorRef();
+                                console.warn(
+                                    `[get_profile] health-sync status error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+                                );
+                                return undefined;
+                            }),
+                    ]);
                     const tz = timezoneFromProfile(profile);
                     const locale = localeFromProfile(profile);
                     const weightUnit = preferredWeightUnitFromProfile(profile);
+                    const lengthUnit = preferredLengthUnitFromProfile(profile);
                     const widgetsEnabled = widgetsEnabledFromProfile(profile);
                     const alcoholEnabled =
                         alcoholTrackingEnabledFromProfile(profile);
@@ -4637,12 +5598,16 @@ export function registerTools(
                         weightUnit
                             ? `Weight unit: ${weightUnit}.`
                             : "Weight unit: not set. Weights display in kg by default, and logging requires an explicit unit ('kg' or 'lb').",
+                        lengthUnit
+                            ? `Length unit: ${lengthUnit}.`
+                            : "Length unit: not set. Body measurements display in the unit each was entered in, and logging one needs an explicit unit ('cm' or 'in').",
                         widgetsEnabled
                             ? "Widgets: enabled. Supported tools show a visual widget alongside their text."
                             : "Widgets: disabled. Supported tools return text and data only.",
                         alcoholEnabled
                             ? `Alcohol tracking: enabled, displayed in grams alongside ${drinkUnitLabel(drinkUnit)}${preferredDrinkUnitFromProfile(profile) ? "" : " (the default — no preference saved)"}.`
                             : "Alcohol tracking: disabled, so alcohol is hidden from meals, goals and progress. Alcohol already stored is kept, and anything logged with alcohol_g while it is off is still stored. The exception is the file importer, which skips a file's alcohol column while tracking is off and will not backfill it on a later re-import — so tracking has to be on before importing an export whose alcohol the user wants to keep. The user can enable it with set_alcohol_tracking.",
+                        healthSyncProfileLine(healthSync, tz ?? "UTC"),
                     ];
 
                     return {
@@ -4664,7 +5629,7 @@ export function registerTools(
         {
             title: "Set Timezone",
             description:
-                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). It decides which calendar day meals, water and weight are grouped into when they are read — a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and how a logged_at with no UTC offset is turned into an exact moment when it is written. That second part is permanent: an entry keeps the moment it was resolved to, so correcting the timezone later regroups existing entries under the new zone's days but does not re-read their original local times (a meal entered as 21:00 while the account was on UTC shows as 00:00 the next day once Europe/Kyiv is set in summer). Until one is set, the account uses UTC.",
+                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). It decides which calendar day meals, water, weight and body measurements are grouped into when they are read — a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and how a logged_at with no UTC offset is turned into an exact moment when it is written. That second part is permanent: an entry keeps the moment it was resolved to, so correcting the timezone later regroups existing entries under the new zone's days but does not re-read their original local times (a meal entered as 21:00 while the account was on UTC shows as 00:00 the next day once Europe/Kyiv is set in summer). Until one is set, the account uses UTC.",
             annotations: {
                 title: "Set Timezone",
                 readOnlyHint: false,
@@ -4798,7 +5763,7 @@ export function registerTools(
         {
             title: "Delete Nutrition Account",
             description:
-                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals, water, weight, goals, settings, exports, usage records and sign-in tokens). Irreversible. Always confirm with the user before calling this tool.",
+                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals, water, weight, body measurements, goals, settings, exports, usage records, sign-in tokens, and the Apple Health sync connection with its record of values sent). Totals already written to Apple Health stay on the user's iPhone. Irreversible. Always confirm with the user before calling this tool.",
             annotations: {
                 title: "Delete Nutrition Account",
                 readOnlyHint: false,

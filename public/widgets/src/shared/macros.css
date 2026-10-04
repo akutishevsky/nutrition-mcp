@@ -10,7 +10,9 @@
    Layout by role, mirroring the MACROS table in macros.js:
      cal    the calorie ring + its figure
      macro  one of the three protein/carbs/fat bars
-     limit  one cell of the "stay under" row (sugar, alcohol, caffeine, fiber)
+     limit  one cell of the "stay under" row (sugar, alcohol, caffeine,
+            fiber) — or, once added sugar is shown, of the two-column sugars
+            row above it (sugar, added sugar)
      bar    the full-width water line */
 
 .strip {
@@ -107,7 +109,7 @@
    One idiom for both rows: label + figure, a thin bar, and a caption. The
    column count comes from the markup as --lc (phone) / --lcw (wide), so the
    limits row handles one to four cells with no special case — alcohol simply
-   is or is not there. */
+   is or is not there. The sugars row (.pair) is always two columns. */
 .mgrid {
     display: grid;
     grid-template-columns: repeat(var(--lc, 3), minmax(0, 1fr));
@@ -240,6 +242,40 @@
    holds the 44px tap target together. */
 .mgrid.lim .mtile {
     justify-content: flex-start;
+}
+/* The sugars row: sugar and added sugar, two columns at every width, so both
+   names are spelled out in full. Half a 320px card is still ~127px, and
+   "ZUGESETZTER ZUCKER" / "TOEGEVOEGDE SUIKER" beside "35.2" need more — so
+   here, and only here, the figure drops under its name when the two do not
+   fit on one line, instead of the name ellipsising. It is never abbreviated.
+   Each cell's name, bar and caption sit on rows shared with its neighbour
+   (subgrid), so a cell whose figure wrapped does not push its bar below the
+   other cell's.
+   The tile is a grid here, and `.mgrid.lim .mtile`'s `flex-start` would pack
+   its one implicit `auto` column at content width — bar shorter than the
+   column, figure sitting right after the name. An explicit `minmax(0, 1fr)`
+   column stretched by `justify-content` fills the cell like every other tile.
+   The name tops the line rather than sharing a baseline with the figure, and
+   both share one line height: a baseline-aligned name sits lower beside the
+   larger figure than it does alone on a line, so a pair where only one figure
+   wrapped would otherwise show its two names ~3px apart. */
+.mgrid.lim.pair {
+    grid-template-rows: auto auto auto;
+}
+.mgrid.lim.pair .mtile {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+    row-gap: 4px;
+    align-content: start;
+}
+.mgrid.lim.pair .mtop {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    row-gap: 1px;
+    line-height: 17px;
 }
 
 /* ---- Tapping a metric --------------------------------------------------- */
@@ -487,6 +523,12 @@
         gap: 5px;
         padding: 5px 4px;
     }
+    .mgrid.lim.pair .mtile {
+        row-gap: 5px;
+    }
+    .mgrid.lim.pair .mtop {
+        line-height: 18px;
+    }
     .mkey,
     .mnum .msub,
     .mcap,
@@ -579,7 +621,10 @@
    asks for: the block is up to ~230px ("DAILY AVG · LOGGED DAYS") and four
    columns of ~78px truncate to "ALCO…" / "CAFFEI…". They stay a 2×2 until
    there is room for names, which is the only reason this row needs to know
-   how many cells it has. */
+   how many cells it has. From 860px four fit on one row. The row never holds
+   five: once added sugar is on show, sugar and added sugar move into the
+   sugars row above it (.mgrid.lim.pair, two columns at every width — the
+   only layout in which "ZUGESETZTER ZUCKER" fits beside its figure). */
 @media (min-width: 700px) and (max-width: 859px) {
     .mgrid.lim.n4 {
         grid-template-columns: repeat(2, minmax(0, 1fr));

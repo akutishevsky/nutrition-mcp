@@ -83,6 +83,50 @@ const I18N_RE = /\/\*@i18n@\*\//g;
  */
 export const MEAL_CONTRIBUTORS_META_KEY = "nutrition-mcp.com/meal-contributors";
 
+/**
+ * How many meals the summary widget lists per metric. MUST equal `CAP` in
+ * public/widgets/src/shared/macros.js (mealList): get_nutrition_summary keeps
+ * exactly the rows that list can show (topMealBreakdown in src/mcp.ts, plus
+ * added sugar's `extra` rows from addedSugarExtra), so a larger CAP there would
+ * list fewer meals than it claims room for, and a smaller one would ship rows
+ * nobody sees. Lives here rather than in mcp.ts so the widget harness, which
+ * cannot build the server, uses the same number; public/widgets/macros.test.ts
+ * checks CAP against it.
+ */
+export const MEAL_BREAKDOWN_TOP_N = 8;
+
+/**
+ * Where get_weight_trends puts its trend and long-range series (the
+ * WeightSeriesMeta built by analyzeWeightHistory in src/weight-trend.ts): the
+ * CallToolResult's `_meta`, for the same frozen-outputSchema reason as
+ * MEAL_CONTRIBUTORS_META_KEY above. The weight-trends template repeats this
+ * literal, and src/mcp.test.ts checks the assembled widget contains it. A host
+ * that drops `_meta` leaves the widget on its raw 7/14/30-day chart.
+ */
+export const WEIGHT_SERIES_META_KEY = "nutrition-mcp.com/weight-series";
+
+/**
+ * Where get_trends puts its per-period averages when called with `group_by`
+ * (the PeriodAveragesMeta built by buildPeriodAveragesMeta in src/periods.ts):
+ * the CallToolResult's `_meta`, for the same frozen-outputSchema reason as the
+ * two keys above. Absent without `group_by`. The trends template repeats this
+ * literal, and src/mcp.test.ts checks the assembled widget contains it. A host
+ * that drops `_meta` leaves the widget on its 7/14/30-day view.
+ */
+export const PERIOD_AVERAGES_META_KEY = "nutrition-mcp.com/period-averages";
+
+/**
+ * Where log_meal, update_meal, get_goal_progress, get_nutrition_summary and
+ * get_trends put their added-sugar figures (the AddedSugarMeta built in
+ * src/mcp.ts): the CallToolResult's `_meta`, for the same frozen-outputSchema
+ * reason as the keys above — none of those tools' structuredContent can gain an
+ * `added_sugar_g` field. Present on every return path of those tools. The
+ * templates that read it repeat this literal, and src/mcp.test.ts checks the
+ * assembled widgets contain it. A host that drops `_meta` leaves the strip
+ * without an added-sugar cell, exactly as before the field existed.
+ */
+export const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
     "nutrition-summary": "nutrition-summary.html",

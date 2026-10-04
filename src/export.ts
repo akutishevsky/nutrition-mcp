@@ -4,12 +4,15 @@ import {
     getAllMeals,
     getAllWater,
     getAllWeight,
+    getAllBodyMeasurements,
     getAllOAuthGrants,
     getAllToolAnalytics,
     getAuthAccount,
     getNutritionGoals,
+    getNutritionGoalsHistory,
     getProfile,
     timezoneFromProfile,
+    type BodyMeasurementEntry,
     type Meal,
     type NutritionGoals,
     type OAuthGrantRow,
@@ -19,7 +22,19 @@ import {
     type WeightEntry,
 } from "./supabase.js";
 import type { User } from "@supabase/supabase-js";
-import { formatLocalDateTime } from "./tz.js";
+import type { NutritionGoalsHistoryRow } from "./goals-history.js";
+import {
+    HEALTH_SYNC_CLIENT_ID,
+    HEALTH_SYNC_FIELDS,
+    HEALTH_SYNC_RETENTION_DAYS,
+} from "./health-sync.js";
+import {
+    createSupabaseHealthSyncStore,
+    type HealthSyncDayRow,
+    type HealthSyncLinkStatus,
+    type HealthSyncStore,
+} from "./health-sync-store.js";
+import { formatLocalDateTime, validateTz } from "./tz.js";
 import { fromGrams, isWeightUnit, type WeightUnit } from "./units.js";
 import { buildZip, type ZipEntry } from "./zip.js";
 
@@ -49,6 +64,11 @@ const CSV_COLUMNS = [
     "fat_g",
     "fiber_g",
     "sugar_g",
+    // Added sugars only (the US label definition) — a part of sugar_g, never
+    // more than it. Right after sugar_g so the pair reads together; the
+    // importer matches by header name, so exports from before this column
+    // existed still re-import.
+    "added_sugar_g",
     "alcohol_g",
     // Milligrams, and the header says so. Every other nutrient column here is
     // grams, so a bare "caffeine" header is exactly how a re-import — ours or
@@ -118,6 +138,7 @@ export function buildMealsCsv(meals: Meal[], tz: string): string {
                 csvEscape(m.fat_g),
                 csvEscape(m.fiber_g),
                 csvEscape(m.sugar_g),
+                csvEscape(m.added_sugar_g),
                 csvEscape(m.alcohol_g),
                 csvEscape(m.caffeine_mg),
                 csvEscape(m.notes),
@@ -219,6 +240,58 @@ export function buildWeightCsv(
 }
 
 /**
+ * Column order for body_measurements.csv. Parallel array with the row builder
+ * below.
+ *
+ * value_mm is what is stored; value_entered + entered_unit is what the user
+ * typed, which is already readable, so there is no preference-based display
+ * column (unlike weight_display).
+ */
+const BODY_MEASUREMENT_CSV_COLUMNS = [
+    "id",
+    "logged_at",
+    // The zone logged_at is rendered in, so an offset-less wall clock never
+    // re-resolves against a later account timezone (#97).
+    "timezone",
+    "kind",
+    "value_mm",
+    "value_entered",
+    "entered_unit",
+    "notes",
+    // When the entry was written; see the same column in water.csv.
+    "created_at",
+] as const;
+
+/**
+ * Build body_measurements.csv. Emits its header even with zero rows, like
+ * every other file in the archive.
+ */
+export function buildBodyMeasurementsCsv(
+    entries: BodyMeasurementEntry[],
+    tz: string,
+): string {
+    const rows = [BODY_MEASUREMENT_CSV_COLUMNS.join(",")];
+    for (const e of entries) {
+        rows.push(
+            [
+                csvEscape(e.id),
+                csvEscape(formatLocalDateTime(e.logged_at, tz)),
+                csvEscape(tz),
+                csvEscape(e.kind),
+                csvEscape(e.value_mm),
+                // As typed: the numeric column may come back as a string, and
+                // either way it is written through untouched.
+                csvEscape(e.value_entered),
+                csvEscape(e.entered_unit),
+                csvEscape(e.notes),
+                csvEscape(localOrNull(e.created_at, tz)),
+            ].join(","),
+        );
+    }
+    return rows.join("\n");
+}
+
+/**
  * Column order for goals.csv. Parallel array with the row builder below.
  *
  * `daily_caffeine_mg` is milligrams while its neighbours are grams, and
@@ -232,6 +305,7 @@ const GOALS_CSV_COLUMNS = [
     "daily_fat_g",
     "daily_fiber_g",
     "daily_sugar_g",
+    "daily_added_sugar_g",
     // Emitted unconditionally, NOT gated on the account's
     // alcohol_tracking_enabled preference. That opt-in governs *display* — what
     // the tools and widgets surface — while the export promises to hand back
@@ -245,6 +319,50 @@ const GOALS_CSV_COLUMNS = [
     "updated_at",
     "timezone",
 ] as const;
+
+/**
+ * Column order for goals_history.csv: when each set of targets took effect,
+ * the zone that wall clock is in, then the goal columns exactly as goals.csv
+ * names and formats them (target_weight_g stays canonical grams there too).
+ */
+const GOALS_HISTORY_CSV_COLUMNS = [
+    "effective_at",
+    "timezone",
+    ...GOALS_CSV_COLUMNS.filter((c) => c !== "updated_at" && c !== "timezone"),
+] as const;
+
+/**
+ * Build goals_history.csv: one row per change to the goals, oldest first (the
+ * order `getNutritionGoalsHistory` returns). The header is emitted even with
+ * no history, like every other file in the archive. Alcohol is not gated on
+ * the display opt-in, for the reason given on GOALS_CSV_COLUMNS.
+ */
+export function buildGoalsHistoryCsv(
+    history: readonly NutritionGoalsHistoryRow[],
+    tz: string,
+): string {
+    const rows = [GOALS_HISTORY_CSV_COLUMNS.join(",")];
+    for (const h of history) {
+        rows.push(
+            [
+                csvEscape(formatLocalDateTime(h.effective_at, tz)),
+                csvEscape(tz),
+                csvEscape(h.daily_calories),
+                csvEscape(h.daily_protein_g),
+                csvEscape(h.daily_carbs_g),
+                csvEscape(h.daily_fat_g),
+                csvEscape(h.daily_fiber_g),
+                csvEscape(h.daily_sugar_g),
+                csvEscape(h.daily_added_sugar_g),
+                csvEscape(h.daily_alcohol_g),
+                csvEscape(h.daily_caffeine_mg),
+                csvEscape(h.daily_water_ml),
+                csvEscape(h.target_weight_g),
+            ].join(","),
+        );
+    }
+    return rows.join("\n");
+}
 
 /**
  * Build goals.csv. A null record still emits the header row: every archive
@@ -265,6 +383,7 @@ export function buildGoalsCsv(
                 csvEscape(goals.daily_fat_g),
                 csvEscape(goals.daily_fiber_g),
                 csvEscape(goals.daily_sugar_g),
+                csvEscape(goals.daily_added_sugar_g),
                 csvEscape(goals.daily_alcohol_g),
                 csvEscape(goals.daily_caffeine_mg),
                 csvEscape(goals.daily_water_ml),
@@ -290,6 +409,9 @@ const PROFILE_CSV_COLUMNS = [
     "locale",
     "created_at",
     "updated_at",
+    // Raw: empty means set_length_unit never ran; never derived from the
+    // weight unit. Appended last so every earlier column keeps its position.
+    "preferred_length_unit",
 ] as const;
 
 /**
@@ -316,6 +438,7 @@ export function buildProfileCsv(profile: Profile | null, tz: string): string {
                 csvEscape(profile.locale),
                 csvEscape(formatLocalDateTime(profile.created_at, tz)),
                 csvEscape(formatLocalDateTime(profile.updated_at, tz)),
+                csvEscape(profile.preferred_length_unit),
             ].join(","),
         );
     }
@@ -477,6 +600,12 @@ export function buildTelemetryCsv(
  * below. No token, code, hash or PKCE column, by design: those are stored
  * only as hashes of secrets, and the export is a copy of your data, not a set
  * of credentials.
+ *
+ * The OAuth grants fill the first seven columns. The Apple Health sync link
+ * (one row of kind `health_sync`, at most) also fills the rest: when it was
+ * last used and last synced, which totals it sends, the first day it may send
+ * and the phone's own timezone, which is a stored setting and NOT the zone the
+ * timestamps here are rendered in — that one is `timezone`, as everywhere.
  */
 const CONNECTIONS_CSV_COLUMNS = [
     "kind",
@@ -485,13 +614,27 @@ const CONNECTIONS_CSV_COLUMNS = [
     "redirect_uri",
     "created_at",
     "expires_at",
+    "last_used_at",
+    "last_sync_at",
     "timezone",
+    "synced_fields",
+    "sync_start_date",
+    "device_timezone",
 ] as const;
 
-/** Build connections.csv: every stored OAuth grant for the account. */
+/** What connections.csv calls the Apple Health sync link. Our own text, not a
+ *  registrant's, so it needs no formula defusing. */
+const HEALTH_SYNC_CONNECTION_NAME = "Apple Health sync (iOS Shortcut)";
+
+/**
+ * Build connections.csv: every stored OAuth grant for the account, then the
+ * Apple Health sync link when there is one. The link's token is stored only as
+ * a hash and is never exported, like every other token here.
+ */
 export function buildConnectionsCsv(
     grants: OAuthGrantRow[],
     tz: string,
+    healthSync: HealthSyncLinkStatus | null = null,
 ): string {
     const out = [CONNECTIONS_CSV_COLUMNS.join(",")];
     for (const g of grants) {
@@ -503,7 +646,80 @@ export function buildConnectionsCsv(
                 csvThirdParty(g.redirect_uri),
                 csvEscape(localOrNull(g.created_at, tz)),
                 csvEscape(localOrNull(g.expires_at, tz)),
+                // Grants record no use or sync time, and none of the link's
+                // settings apply to them: empty, not zero.
+                "",
+                "",
                 csvEscape(tz),
+                "",
+                "",
+                "",
+            ].join(","),
+        );
+    }
+    if (healthSync) {
+        out.push(
+            [
+                csvEscape("health_sync"),
+                csvEscape(HEALTH_SYNC_CLIENT_ID),
+                csvEscape(HEALTH_SYNC_CONNECTION_NAME),
+                "",
+                csvEscape(localOrNull(healthSync.created_at, tz)),
+                csvEscape(localOrNull(healthSync.expires_at, tz)),
+                csvEscape(localOrNull(healthSync.last_used_at, tz)),
+                csvEscape(localOrNull(healthSync.last_sync_at, tz)),
+                csvEscape(tz),
+                csvEscape(healthSync.fields.join(" ")),
+                csvEscape(healthSync.sync_start_date),
+                csvEscape(healthSync.fallback_tz),
+            ].join(","),
+        );
+    }
+    return out.join("\n");
+}
+
+/**
+ * Column order for health_sync.csv: the record of what Apple Health sync sent,
+ * one row per day. Parallel array with the row builder below. The value
+ * columns are HEALTH_SYNC_FIELDS — the keys the Shortcut maps onto Health
+ * types, each named with its unit — so a field added there lands here too.
+ */
+const HEALTH_SYNC_CSV_COLUMNS = [
+    "date",
+    "timezone",
+    ...HEALTH_SYNC_FIELDS,
+    "topup_seq",
+    "first_sent_at",
+    "last_sent_at",
+] as const;
+
+/**
+ * Build health_sync.csv from the sent-values record, oldest day first. Unlike
+ * every other file, a row is rendered in ITS OWN timezone — the zone the day
+ * was counted in when it was sent, which can differ from the account's after
+ * the phone moved — and `timezone` names it for the date and both timestamps.
+ * A day that was offered but never acknowledged has empty values and times.
+ * An empty value cell means that total was not sent, not that it was zero.
+ */
+export function buildHealthSyncCsv(
+    rows: HealthSyncDayRow[],
+    tz: string,
+): string {
+    const out = [HEALTH_SYNC_CSV_COLUMNS.join(",")];
+    for (const r of rows) {
+        // Written by the server from a validated zone; a row that somehow
+        // holds an unknown one falls back to the account's rather than
+        // throwing the whole export away.
+        const zone = validateTz(r.timezone) ? r.timezone : tz;
+        const sent = r.sent_values ?? {};
+        out.push(
+            [
+                csvEscape(r.date),
+                csvEscape(zone),
+                ...HEALTH_SYNC_FIELDS.map((f) => csvEscape(sent[f])),
+                csvEscape(r.topup_seq),
+                csvEscape(localOrNull(r.first_sent_at, zone)),
+                csvEscape(localOrNull(r.last_sent_at, zone)),
             ].join(","),
         );
     }
@@ -519,11 +735,14 @@ export const EXPORT_ARCHIVE_FILES = [
     "meals.csv",
     "water.csv",
     "weight.csv",
+    "body_measurements.csv",
     "goals.csv",
+    "goals_history.csv",
     "profile.csv",
     "account.csv",
     "telemetry.csv",
     "connections.csv",
+    "health_sync.csv",
     "README.txt",
 ] as const;
 
@@ -550,8 +769,8 @@ export function buildExportReadme(opts: {
     // own wall clocks back needs to know whether the times they are looking at
     // are theirs or UTC's before they interpret a single one of them.
     const tzNote = tzConfigured
-        ? `Every timestamp in this archive is a local wall clock in ${tz}, the timezone set on your account. Each file repeats it in a "timezone" column so no file has to be read next to this one.`
-        : `No timezone has ever been set on this account, so every timestamp in this archive is expressed in UTC (that is also what the server assumes when it buckets your days). Set one with set_timezone and export again if you want your own wall clock. Each file repeats the zone in a "timezone" column.`;
+        ? `Every timestamp in this archive is a local wall clock in ${tz}, the timezone set on your account, except in health_sync.csv (see below). Each file repeats it in a "timezone" column so no file has to be read next to this one.`
+        : `No timezone has ever been set on this account, so every timestamp in this archive is expressed in UTC (that is also what the server assumes when it buckets your days), except in health_sync.csv (see below). Set one with set_timezone and export again if you want your own wall clock. Each file repeats the zone in a "timezone" column.`;
 
     return [
         "Nutrition MCP — full data export",
@@ -566,35 +785,41 @@ export function buildExportReadme(opts: {
         `meals.csv    ${rows(counts.meals)} — every meal you have logged: time, description, calories and macros.`,
         `water.csv    ${rows(counts.water)} — every water entry, in millilitres.`,
         `weight.csv   ${rows(counts.weight)} — every weigh-in, as stored grams and as ${weightUnit}.`,
+        `body_measurements.csv ${rows(counts.bodyMeasurements)} — every body measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf): the stored millimetres, and the value exactly as entered with its unit (cm or in).`,
         "goals.csv    your current daily targets — one row, or a header alone if you have never set goals.",
-        "profile.csv  your settings: timezone, preferred units, display toggles and widget language — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
+        `goals_history.csv ${rows(counts.goalsHistory)} — every change to your daily targets, oldest first: when the new values took effect (effective_at) and the targets from then on, in the same columns and units as goals.csv. Goals set before this history was kept appear once, as of their last change.`,
+        "profile.csv  your settings: timezone, preferred weight, length and drink units (empty preferred_length_unit = never chosen), display toggles and widget language — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
         'account.csv  your sign-in account: one "account" row (account id, email address, when the account was created, when the email was confirmed, last sign-in, sign-in methods) and one "identity" row per sign-in method (the provider, the provider\'s id for you, and any name or picture it sent — Google accounts created before September 27, 2026 may still hold them).',
         `telemetry.csv ${rows(counts.telemetry)} — one per tool call your AI app made: which tool, when, whether it succeeded, how long it took, the error category if it failed, the date-range length asked for, the MCP session id, the protocol revision and the app name it reported. None of it contains what you logged.`,
-        `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty.`,
+        `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty. If Apple Health sync is connected, its link is one more row of kind "health_sync": when it was created, last used and last synced, when it expires, which totals it sends (synced_fields), the first day it may send (sync_start_date) and the iPhone's own timezone (device_timezone, a saved setting — the timestamps are still in the "timezone" column's zone). Its token is not included either.`,
+        `health_sync.csv ${rows(counts.healthSync)} — what Apple Health sync sent to your iPhone, one row per day, kept for ${HEALTH_SYNC_RETENTION_DAYS} days: the daily totals sent (${HEALTH_SYNC_FIELDS.join(", ")}), how many later top-ups were sent for the day (topup_seq) and when the first and last were sent. Each row is in its own "timezone" — the zone the day was counted in, which can differ from your account's if your phone was elsewhere — and its date and times are wall clocks there. An empty value was not sent; a row with no values was offered but not yet confirmed by the phone. Alcohol is never sent.`,
         "README.txt   this file.",
         "",
         "Units",
         "-----",
         "The unit is part of every column name, because these columns do not all agree:",
         "  * _g columns are grams; alcohol_g and daily_alcohol_g are grams of pure ethanol, not the volume of the drink.",
+        "  * added_sugar_g counts only sugars added during processing or preparation; it is part of sugar_g (total sugars), never more than it. daily_added_sugar_g is the daily limit for added sugars, separate from daily_sugar_g (total sugars).",
         "  * caffeine_mg and daily_caffeine_mg are MILLIGRAMS, unlike every gram column beside them. A cup of coffee is about 95 mg.",
-        "  * amount_ml and daily_water_ml are millilitres.",
+        "  * amount_ml, daily_water_ml and water_ml are millilitres.",
         `  * weight_g and target_weight_g are grams — the canonical form the server stores. weight.csv also gives weight_display in ${weightUnit}, with weight_unit naming it, so you do not have to divide anything by hand.`,
-        "  * calories are kcal.",
+        "  * value_mm is millimetres, the canonical stored form; value_entered is the number as typed, in entered_unit.",
+        "  * calories and energy_kcal are kcal.",
         "An empty cell means nothing was ever recorded there. It does not mean zero — a meal logged before caffeine tracking existed has an empty caffeine_mg, not a 0.",
         "",
         "Re-importing",
         "------------",
         "Only meals.csv can be read back in. Hand it to start_meal_import (which parses it in your browser) or to bulk_import_meals; its column names are exactly the ones the importer expects, and re-importing the same file twice is a no-op rather than a set of duplicates.",
-        "Every other file is export-only — there is no import path for water, weight, goals, profile, account, telemetry or connections, so keep this archive if you want that history back.",
+        "Every other file is export-only — there is no import path for water, weight, body measurements, goals, profile, account, telemetry, connections or Apple Health sync, so keep this archive if you want that history back.",
         "",
         "Not in this archive",
         "-------------------",
         "This archive holds everything the service stores about you. What is not in it:",
         "  * the server runtime log — a short rolling buffer of requests that does not contain your account id or email, so it cannot be looked up by account;",
         "  * our providers' own short-lived operational logs (including the sign-in provider's audit records) and their rolling backups, which age out on their own schedule;",
-        "  * values kept only as one-way hashes for security: your password (held by the sign-in provider, which never returns it) and your tokens and sign-in codes;",
-        "  * internal bookkeeping: the de-duplication keys stored beside meals, water and weight entries, and the PKCE challenge of a pending sign-in;",
+        "  * values kept only as one-way hashes for security: your password (held by the sign-in provider, which never returns it) and your tokens and sign-in codes, including the Apple Health sync token (which also sits, unhashed, in the shortcut on your own devices);",
+        "  * internal bookkeeping: the de-duplication keys stored beside meals, water, weight and body measurement entries, the PKCE challenge of a pending sign-in, and Apple Health sync's lock against two syncs at once, its per-day count of how often a day was offered and its record of which notices were shown;",
+        "  * a pending Apple Health sync connect request, which lasts at most 30 minutes and is deleted once the shortcut finishes connecting;",
         "  * a sign-in session record at our sign-in provider (IP address and browser), if one was ever left behind after sign-in; it is deleted with your account.",
         "",
     ].join("\n");
@@ -604,8 +829,14 @@ export interface ExportCounts {
     meals: number;
     water: number;
     weight: number;
+    bodyMeasurements: number;
+    /** Rows in goals_history.csv. */
+    goalsHistory: number;
     telemetry: number;
+    /** OAuth grants plus the Apple Health sync link row, when there is one. */
     connections: number;
+    /** Days in health_sync.csv. */
+    healthSync: number;
 }
 
 export interface FullExportResult {
@@ -618,15 +849,28 @@ export interface FullExportResult {
 }
 
 /**
- * Build the whole-account archive — every log, the goals, the profile, the
- * Auth account, the tool telemetry and the OAuth grants —
+ * Build the whole-account archive — every log (meals, water, weight and body
+ * measurements), the goals and their history, the profile, the
+ * Auth account, the tool telemetry, the OAuth grants and the Apple Health sync
+ * link with its record of what was sent —
  * upload it to the private `exports` bucket under a fixed per-user path (so
  * each export overwrites the previous one), and return a signed download link
  * valid for EXPORT_TTL_SECONDS. This is the only export path: a meals-only CSV
  * tool used to sit beside it, and the archive absorbed it, which is why
  * `buildMealsCsv` still emits exactly the columns the importer reads.
  */
-export async function exportAllData(userId: string): Promise<FullExportResult> {
+export async function exportAllData(
+    userId: string,
+    // Injectable for tests; every other reader here is a supabase.ts function.
+    deps: {
+        healthSync?: HealthSyncStore;
+        getGoalsHistory?: (
+            userId: string,
+        ) => Promise<NutritionGoalsHistoryRow[]>;
+    } = {},
+): Promise<FullExportResult> {
+    const healthSync = deps.healthSync ?? createSupabaseHealthSyncStore();
+    const getGoalsHistory = deps.getGoalsHistory ?? getNutritionGoalsHistory;
     // One round of independent queries rather than each awaited in turn: an
     // account with years of history pages through meals, water, weight and
     // telemetry, and serialising those pushes the tool past the point where a
@@ -635,28 +879,39 @@ export async function exportAllData(userId: string): Promise<FullExportResult> {
         meals,
         water,
         weight,
+        bodyMeasurements,
         goals,
+        goalsHistory,
         profile,
         account,
         telemetry,
         connections,
+        healthSyncLink,
+        healthSyncDays,
     ] = await Promise.all([
         getAllMeals(userId),
         getAllWater(userId),
         getAllWeight(userId),
+        getAllBodyMeasurements(userId),
         getNutritionGoals(userId),
+        getGoalsHistory(userId),
         getProfile(userId),
         getAuthAccount(userId),
         getAllToolAnalytics(userId),
         getAllOAuthGrants(userId),
+        healthSync.getLinkStatus(userId),
+        healthSync.getDaysForExport(userId),
     ]);
 
     const counts: ExportCounts = {
         meals: meals.length,
         water: water.length,
         weight: weight.length,
+        bodyMeasurements: bodyMeasurements.length,
+        goalsHistory: goalsHistory.length,
         telemetry: telemetry.length,
-        connections: connections.length,
+        connections: connections.length + (healthSyncLink ? 1 : 0),
+        healthSync: healthSyncDays.length,
     };
 
     // Both preferences come off the profile row already in hand. The
@@ -698,11 +953,14 @@ export async function exportAllData(userId: string): Promise<FullExportResult> {
         "meals.csv": buildMealsCsv(meals, tz),
         "water.csv": buildWaterCsv(water, tz),
         "weight.csv": buildWeightCsv(weight, tz, weightUnit),
+        "body_measurements.csv": buildBodyMeasurementsCsv(bodyMeasurements, tz),
         "goals.csv": buildGoalsCsv(goals, tz),
+        "goals_history.csv": buildGoalsHistoryCsv(goalsHistory, tz),
         "profile.csv": buildProfileCsv(profile, tz),
         "account.csv": buildAccountCsv(account, tz),
         "telemetry.csv": buildTelemetryCsv(telemetry, tz),
-        "connections.csv": buildConnectionsCsv(connections, tz),
+        "connections.csv": buildConnectionsCsv(connections, tz, healthSyncLink),
+        "health_sync.csv": buildHealthSyncCsv(healthSyncDays, tz),
         "README.txt": buildExportReadme({
             generatedAt,
             tz,

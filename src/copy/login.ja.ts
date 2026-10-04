@@ -13,7 +13,7 @@ export const LOGIN_JA: LoginDoc = {
     showPasswordLabel: "パスワードを表示",
     hidePasswordLabel: "パスワードを非表示",
     consentNote:
-        "続行すると、16歳以上であることを確認し、{terms}と{privacy}に同意します。また、記録する食事・体重・アルコール（健康データにあたります）を本サービスが保存することにも同意します。",
+        "続行すると、16歳以上であることを確認し、{terms}と{privacy}に同意します。また、記録する食事・体重・体の計測値・アルコール（健康データにあたります）を本サービスが保存することにも同意します。",
     termsLinkText: "利用規約",
     privacyLinkText: "プライバシーポリシー",
     newHereNote:
@@ -44,4 +44,6 @@ export const LOGIN_CLIENT_NOTICE_JA: LoginClientNotice = {
         "{host}は、本サービスが把握しているアシスタントではありません。ご自身で{host}から接続を始めた場合にのみ、続行してください。",
     loopback:
         "このコンピューター上で動作しているプログラム（{host}）に戻ります。ご自身でこのプログラムから接続を始めた場合にのみ、続行してください。",
+    healthSync:
+        "サインインすると、このページを開いたデバイスで Apple Health との同期が接続されます。ご自身の iPhone の Nutrition MCP ショートカットから今これを始めたのでなければ、このページを閉じてください。",
 };

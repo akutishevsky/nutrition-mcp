@@ -2,11 +2,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_PL: ToolsDoc = {
     meta: {
-        title: "36 narzędzi: kalorie, makroskładniki, woda i waga",
+        title: "41 narzędzi: kalorie, makroskładniki, woda i waga",
         description:
-            "Wszystkie 36 narzędzi Nutrition MCP dla Claude, ChatGPT i innych aplikacji AI: posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda i waga.",
+            "Wszystkie 41 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
         ogDescription:
-            "Wszystkie 36 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
+            "Wszystkie 41 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
     },
     hero: {
         eyebrow: "Dokumentacja",
@@ -14,7 +14,7 @@ export const TOOLS_PL: ToolsDoc = {
         titleEm: "potrafi",
         titleAfterEm: " Twoje AI",
         lead: "Nie wywołujesz tych narzędzi samodzielnie — po prostu rozmawiasz z Claude, ChatGPT albo innym klientem MCP, a on sam dobiera właściwe narzędzie. Oto wszystkie narzędzia, które serwer Nutrition MCP udostępnia do śledzenia posiłków, kalorii i makroskładników, wody i wagi — z opisem działania i przykładowym poleceniem, które je uruchamia.",
-        countBold: "36 narzędzi",
+        countBold: "41 narzędzi",
         countTail: "w 7 obszarach",
     },
     categories: {
@@ -36,10 +36,10 @@ export const TOOLS_PL: ToolsDoc = {
             description: "Śledź, ile pijesz, obok tego, co jesz.",
         },
         weight: {
-            pillLabel: "Waga",
-            title: "Śledzenie wagi",
+            pillLabel: "Ciało",
+            title: "Waga i wymiary ciała",
             description:
-                "Zapisuj pomiary wagi, przeglądaj je i śledź, jak zbliżasz się do wagi docelowej.",
+                "Zapisuj pomiary wagi i obwodów ciała, przeglądaj je i śledź, jak Twoja waga zbliża się do wagi docelowej.",
         },
         "goals-progress": {
             pillLabel: "Cele",
@@ -81,7 +81,7 @@ export const TOOLS_PL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z błonnikiem, cukrami ogółem, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu.",
+                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z błonnikiem, cukrami ogółem i dodanymi, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu.",
             params: {
                 description: "Co zostało zjedzone",
                 meal_type: "śniadanie, obiad, kolacja lub przekąska",
@@ -93,6 +93,8 @@ export const TOOLS_PL: ToolsDoc = {
                     "Błonnik pokarmowy w gramach. AI ma za zadanie uzupełniać tę wartość przy każdym posiłku i szacować ją ze składników, gdy etykieta jej nie podaje — bo puste pole to nie zero: wyklucza cały dzień z Twojej średniej błonnika",
                 sugar_g:
                     "<b>Łączna</b> zawartość cukrów w gramach — wartość, którą etykieta podaje jako „w tym cukry”, obejmująca cukier naturalnie obecny w owocach i mleku, a nie tylko cukier dodany. Uzupełniana przy każdym posiłku na tych samych zasadach co błonnik",
+                added_sugar_g:
+                    "Cukry <b>dodane</b> w gramach — cukier dodany podczas przetwarzania lub przygotowania (cukier stołowy, syropy, miód, cukier w słodzonych napojach i produktach). Część cukrów ogółem, nigdy więcej niż one. Cukier naturalnie obecny w całych owocach, warzywach i zwykłym mleku nie jest dodany, podobnie jak ten w soku owocowym 100%. Uzupełniane przy każdym posiłku na tych samych zasadach co błonnik: nieprzetworzona żywność ma 0, cukier w słodzonym napoju gazowanym jest w całości dodany, a amerykański wiersz etykiety „Includes Xg Added Sugars” jest używany, gdy występuje. Towarzyszy polu <code>sugar_g</code>: posiłek z cukrami ogółem, ale bez cukrów dodanych, może nie zostać zapisany",
                 alcohol_g:
                     "Gramy <b>czystego etanolu</b>, a nie objętość napoju ani jego zawartość alkoholu w procentach — AI wylicza je z ilości i mocy napoju (330 ml piwa 5% to 13 g)",
                 caffeine_mg:
@@ -108,7 +110,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Pobierz z Open Food Facts wartości odżywcze z etykiety produktu paczkowanego po jego kodzie kreskowym (EAN/UPC, 8–14 cyfr), a także Nutri-Score i grupę przetworzenia NOVA, jeśli Open Food Facts je podaje. Cyfry możesz wpisać albo odczytać ze zdjęcia opakowania; wynik można potem zapisać, przeliczony na zjedzoną ilość.",
+                "Pobierz z Open Food Facts wartości odżywcze z etykiety produktu paczkowanego po jego kodzie kreskowym (EAN/UPC, 8–14 cyfr), a także Nutri-Score i grupę przetworzenia NOVA, jeśli Open Food Facts je podaje. Cukry dodane są pokazywane, gdy Open Food Facts je podaje, i oznaczane, gdy Open Food Facts oszacował je na podstawie składu. Cyfry możesz wpisać albo odczytać ze zdjęcia opakowania; wynik można potem zapisać, przeliczony na zjedzoną ilość.",
             params: {},
             example: "Zeskanuj ten kod kreskowy: 3017620422003",
             photoHint:
@@ -116,7 +118,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Otwórz w czacie importer, który przeniesie Twoją historię z innej aplikacji — wybierz plik CSV wyeksportowany z MyFitnessPal, Cronometer, Lose It!, MacroFactor lub innego licznika kalorii, dopasuj jego kolumny do kalorii, makroskładników, błonnika, cukru i kofeiny (a także alkoholu, jeśli masz włączone jego śledzenie) i przed potwierdzeniem sprawdź, co zostanie dodane. Plik jest odczytywany w Twojej przeglądarce, nic nie zostaje zapisane, dopóki nie zaakceptujesz podglądu, a ponowny import tego samego pliku nie tworzy duplikatów.",
+                "Otwórz w czacie importer, który przeniesie Twoją historię z innej aplikacji — wybierz plik CSV wyeksportowany z MyFitnessPal, Cronometer, Lose It!, MacroFactor lub innego licznika kalorii, dopasuj jego kolumny do kalorii, makroskładników, błonnika, cukrów ogółem i dodanych oraz kofeiny (a także alkoholu, jeśli masz włączone jego śledzenie) i przed potwierdzeniem sprawdź, co zostanie dodane. Plik jest odczytywany w Twojej przeglądarce, nic nie zostaje zapisane, dopóki nie zaakceptujesz podglądu, a ponowny import tego samego pliku nie tworzy duplikatów.",
             params: {},
             example: "Zaimportuj moją historię posiłków z MyFitnessPal",
         },
@@ -124,7 +126,7 @@ export const TOOLS_PL: ToolsDoc = {
             description:
                 "Dodaj za jednym razem do 50 wcześniejszych posiłków, zamiast zapisywać je po kolei. Korzysta z tego narzędzia opisany wyżej importer, a AI może go użyć bezpośrednio do danych posiłków wklejonych do czatu. Każdy wiersz jest najpierw sprawdzany, a wszystko, co nie pasuje, zostaje zgłoszone osobno dla każdego wiersza, więc ponowne wysłanie tych samych wierszy jest bezpieczne i nie zduplikuje już zapisanych posiłków — o ile w międzyczasie nie zmieniła się Twoja strefa czasowa.",
             params: {
-                meals: "Wiersze do zaimportowania, w kolejności z pliku źródłowego (1–50 na wywołanie). Każdy wiersz może zawierać czas, typ posiłku, opis, notatki i te same wartości co zapisany posiłek: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (cukry ogółem), <code>alcohol_g</code> (gramy czystego etanolu) i <code>caffeine_mg</code> (miligramy, nie gramy)",
+                meals: "Wiersze do zaimportowania, w kolejności z pliku źródłowego (1–50 na wywołanie). Każdy wiersz może zawierać czas, typ posiłku, opis, notatki i te same wartości co zapisany posiłek: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (cukry ogółem), <code>added_sugar_g</code> (cukry dodane, część cukrów ogółem), <code>alcohol_g</code> (gramy czystego etanolu) i <code>caffeine_mg</code> (miligramy, nie gramy)",
                 expected_row_count:
                     "Liczba wierszy w tym wywołaniu, policzona w pliku źródłowym, żeby wychwycić pominięty wiersz",
                 expected_total_kcal:
@@ -139,7 +141,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Zmień szczegóły zapisanego już posiłku — opis, dowolny makroskładnik, błonnik, cukier, alkohol lub kofeinę, godzinę albo notatki. W ten sposób uzupełnia się też luki: jeśli posiłek trafił do dziennika bez błonnika lub cukru, serwer to zgłasza, a AI uzupełnia brakujące dane tutaj, gdy się zgodzisz.",
+                "Zmień szczegóły zapisanego już posiłku — opis, dowolny makroskładnik, błonnik, cukry ogółem lub dodane, alkohol lub kofeinę, godzinę albo notatki. W ten sposób uzupełnia się też luki: jeśli posiłek trafił do dziennika bez błonnika, cukru lub cukrów dodanych, serwer to zgłasza, a AI uzupełnia brakujące dane tutaj, gdy się zgodzisz.",
             params: {
                 id: "UUID posiłku do zaktualizowania",
                 description: "",
@@ -149,6 +151,8 @@ export const TOOLS_PL: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Cukry ogółem, nie cukry dodane",
+                added_sugar_g:
+                    "Tylko cukry dodane, nigdy więcej niż cukry ogółem. Towarzyszy polu <code>sugar_g</code>: zmiana cukrów ogółem w posiłku bez zapisanych cukrów dodanych może nie zostać zapisana bez tej wartości",
                 alcohol_g: "Gramy czystego etanolu, nie objętość napoju",
                 caffeine_mg: "Miligramy, nie gramy",
                 logged_at: "",
@@ -202,7 +206,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI, bez żadnych tokenów) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
+                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (każda zmiana Twoich celów z datą), profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI i synchronizacja z Apple Health, bez żadnych tokenów), health_sync.csv (to, co synchronizacja z Apple Health wysłała w ciągu ostatnich 8 dni) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
             params: {},
             example:
                 "Wyeksportuj wszystkie moje dane — posiłki, wodę, wagę i cele",
@@ -285,7 +289,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "Zobacz trend wagi w wybranym okresie: ostatni pomiar, łączną zmianę, średnie kroczące 7-, 14- i 30-dniowe, minimum i maksimum oraz postęp w drodze do wagi docelowej.",
+                "Zobacz trend wagi w wybranym okresie: wygładzoną wagę trendu, która niweluje codzienne wahania, tempo zmian w skali tygodnia, ostatni pomiar, łączną zmianę, minimum i maksimum oraz postęp w drodze do wagi docelowej. Wykres może też pokazać 90 dni, rok lub całą historię.",
             params: {
                 days: "Długość okresu w dniach (domyślnie 30, maks. 365).",
             },
@@ -297,9 +301,57 @@ export const TOOLS_PL: ToolsDoc = {
             params: {},
             example: "Od teraz pokazuj moją wagę w funtach",
         },
+        log_body_measurement: {
+            description:
+                "Zapisz pomiar obwodu jednej partii ciała — talii, bioder, szyi, klatki piersiowej, barków, ramienia, przedramienia, uda lub łydki — w cm albo calach. Wartość jest przechowywana dokładnie tak, jak ją podasz, obok wartości w stałej jednostce, więc zmiana jednostki nigdy nie przesuwa liczby. Liczby daleko poza realnym zakresem dla danej partii ciała są odrzucane jako prawdopodobne literówki.",
+            params: {
+                kind: "Która partia ciała: <code>waist</code>, <code>hips</code>, <code>neck</code>, <code>chest</code>, <code>shoulders</code>, <code>upper_arm</code>, <code>forearm</code>, <code>thigh</code> lub <code>calf</code>. Jedna wartość na partię ciała; stronę (lewa/prawa) można podać w notatkach.",
+                value: "Wynik pomiaru w jednostce <code>unit</code> (&gt; 0).",
+                unit: "<code>cm</code> lub <code>in</code>; domyślnie zapisana jednostka długości.",
+                logged_at: "Kiedy wykonano pomiar, jeśli nie teraz",
+                notes: "Dodatkowe notatki",
+            },
+            example: "Zapisz obwód talii: dziś rano 82 cm",
+        },
+        get_body_measurements: {
+            description:
+                "Zobacz swoje wymiary ciała pogrupowane według dni, od najstarszych, opcjonalnie tylko dla jednej partii ciała. Bez podanych dat obejmuje ostatnie 30 dni, maksymalnie 366 dni na jedno wywołanie.",
+            params: {
+                kind: "Tylko ta partia ciała (np. <code>waist</code>)",
+                start_date: "Data początkowa (RRRR-MM-DD)",
+                end_date:
+                    "Data końcowa (RRRR-MM-DD), maksymalnie 366 dni wraz z dniem początkowym",
+            },
+            example: "Pokaż moje pomiary talii z ostatnich trzech miesięcy",
+        },
+        update_body_measurement: {
+            description:
+                "Popraw zapisany pomiar — wartość, jednostkę, datę i godzinę albo notatki. Partii ciała nie da się zmienić; pomiar innej partii to nowy wpis.",
+            params: {
+                id: "UUID pomiaru do zaktualizowania",
+                value: "Nowa wartość w jednostce <code>unit</code>.",
+                unit: "Domyślnie jednostka, w której zapisano pomiar.",
+                logged_at: "Znacznik czasu w formacie ISO 8601",
+                notes: "Nowe notatki",
+            },
+            example: "Obwód bioder to było 98 cm, a nie 89",
+        },
+        delete_body_measurement: {
+            description: "Usuń pomiar wymiaru ciała.",
+            params: {
+                id: "UUID pomiaru do usunięcia",
+            },
+            example: "Usuń dzisiejszy pomiar obwodu szyi",
+        },
+        set_length_unit: {
+            description:
+                "Wybierz, czy wymiary ciała mają być wyświetlane i wpisywane w centymetrach czy w calach. To ustawienie jest niezależne od jednostki wagi. Zapisane wartości się nie zmieniają — zmienia się tylko sposób wyświetlania i domyślna jednostka wpisywanych liczb.",
+            params: {},
+            example: "Pokazuj moje wymiary w calach",
+        },
         set_nutrition_goals: {
             description:
-                "Ustaw dzienne cele dla kalorii, makroskładników, błonnika, cukru, alkoholu, kofeiny i wody, a także opcjonalną wagę docelową. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; cukier, alkohol i kofeina to limity, których nie należy przekraczać — i tak też opisywany jest postęp. Zmieniają się tylko pola, które wskażesz; reszta pozostaje bez zmian.",
+                "Ustaw dzienne cele dla kalorii, makroskładników, błonnika, cukru, cukrów dodanych, alkoholu, kofeiny i wody, a także opcjonalną wagę docelową. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; cukry ogółem, cukry dodane, alkohol i kofeina to limity, których nie należy przekraczać — i tak też opisywany jest postęp. Zmieniają się tylko pola, które wskażesz; reszta pozostaje bez zmian.",
             params: {
                 daily_calories: "Dzienny cel kalorii (kcal). Null usuwa cel.",
                 daily_protein_g:
@@ -312,6 +364,8 @@ export const TOOLS_PL: ToolsDoc = {
                     "Dzienny cel błonnika (w gramach) — minimum do osiągnięcia. Null usuwa cel.",
                 daily_sugar_g:
                     "Dzienny limit cukrów <b>ogółem</b> (w gramach) — maksimum, którego nie należy przekraczać. Cukry ogółem obejmują też cukier naturalnie obecny w owocach i mleku, dlatego oficjalne zalecenia dotyczące cukrów dodanych podają znacznie niższą wartość. Null usuwa limit.",
+                daily_added_sugar_g:
+                    "Dzienny limit cukrów <b>dodanych</b> (w gramach) — maksimum, którego nie należy przekraczać. Obejmuje tylko cukry dodane, a nie cukier naturalnie obecny w owocach i mleku; oficjalne zalecenia dotyczące cukru zwykle odnoszą się właśnie do tej wartości (American Heart Association zaleca najwyżej 25 g dziennie dla kobiet i 36 g dla mężczyzn). 0 to prawdziwy limit oznaczający zero. Null usuwa limit.",
                 daily_alcohol_g:
                     "Dzienny limit alkoholu w gramach <b>czystego etanolu</b> — maksimum, którego nie należy przekraczać. Jedna amerykańska porcja standardowa to 14 g, jedna jednostka brytyjska 7,9 g. Null usuwa limit.",
                 daily_caffeine_mg:
@@ -346,12 +400,13 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Średnie kroczące 7-, 14- i 30-dniowe, zmienność, serie dni z wpisami, średnie kalorie według dni tygodnia oraz Twoje najlepsze i najgorsze dni pod względem kalorii — policzone z góry, więc AI może je po prostu opisać.",
+                "Średnie kroczące 7-, 14- i 30-dniowe, zmienność, serie dni z wpisami, średnie kalorie według dni tygodnia oraz Twoje najlepsze i najgorsze dni pod względem kalorii — policzone z góry, więc AI może je po prostu opisać. Z group_by podaje też średnie dla tygodni, miesięcy, kwartałów lub lat — na dzień z wpisami, więc dni bez posiłków się nie liczą — w porównaniu z celami obowiązującymi w danym czasie, wraz z liczbą dni w celu i dni, które mogą być niepełne.",
             params: {
                 days: "Długość okresu w dniach (domyślnie 30, maks. 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> lub <code>year</code>: 26 tygodni, 24 miesiące, 12 kwartałów lub 5 lat, kończąc na okresie zawierającym datę końcową (domyślnie dziś). Zakres jest stały; <code>days</code> nadal ustala średnie kroczące.",
             },
-            example:
-                "Jak wyglądają moje trendy kalorii i makroskładników z ostatnich 30 dni?",
+            example: "Jak wypadły moje miesiące w porównaniu z celami?",
         },
         get_meal_patterns: {
             description:
@@ -364,7 +419,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_profile: {
             description:
-                "Zobacz wszystkie aktualne ustawienia naraz: strefę czasową (wraz z lokalną datą i godziną), język widżetów, preferowaną jednostkę wagi oraz to, czy widżety w czacie i śledzenie alkoholu są włączone.",
+                "Zobacz wszystkie aktualne ustawienia naraz: strefę czasową (wraz z lokalną datą i godziną), język widżetów, preferowane jednostki wagi i długości oraz to, czy widżety w czacie i śledzenie alkoholu są włączone.",
             params: {},
             example: "Jakie mam teraz ustawienia?",
         },
@@ -477,6 +532,21 @@ export const TOOLS_PL: ToolsDoc = {
                 answerHtml:
                     "Dane kodów kreskowych pochodzą z Open Food Facts, bazy tworzonej przez społeczność, więc niektórych produktów brakuje, a niektóre wpisy są nieaktualne. Upewnij się, że wszystkie cyfry pod kodem kreskowym (od 8 do 14) zostały odczytane poprawnie. Jeśli produktu nie ma w bazie, AI może oszacować wartości na podstawie nazwy albo zdjęcia tabeli wartości odżywczych, a Ty możesz później poprawić dowolną liczbę. Dodanie produktu na openfoodfacts.org pomaga wszystkim. Open Food Facts nie ma danych o kofeinie, więc jej ilość pochodzi z etykiety albo z typowych wartości.",
             },
+            "health-sync-yesterday": {
+                question: "Wczorajszego dnia jeszcze nie ma w Apple Health",
+                answerHtml:
+                    'Synchronizacja z Apple Health wysyła tylko zakończone dni. Dzień uznaje się za zakończony o 05:00 następnego ranka w Twojej strefie czasowej, więc wczorajszy dzień trafia tam przy pierwszej synchronizacji po 05:00 dzisiaj, a dzisiejszy pojawi się w aplikacji Zdrowie dopiero jutro. Synchronizacja uruchamia się, gdy zadziała jedna z automatyzacji skrótu (otwarcie aplikacji Zdrowie, wyłączenie budzika), albo gdy uruchomisz <strong>Nutrition MCP Health</strong> w aplikacji Skróty i wybierzesz <strong>Sync now</strong>. Pominięty poranek nadrabia się sam: każda synchronizacja sięga 7 ostatnich dni. Dni liczone są w strefie czasowej z Twojego profilu (<a href="#get_profile"><code>get_profile</code></a>), a jeśli nigdy jej nie ustawiono, w tej, którą Twój telefon iPhone zgłosił przy łączeniu (<a href="#wrong-day">posiłki pod złym dniem</a>). Dni sprzed połączenia są wysyłane tylko wtedy, gdy przy łączeniu wybrano nadrobienie do 7 wcześniejszych dni.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health pokazuje więcej niż mój czat",
+                answerHtml:
+                    "Apple Health może dodać coś do wartości, ale nigdy nie obniży wartości, którą już ma. Posiłek dodany do dnia, który został już wysłany, trafia tam jako mały dodatkowy wpis o 12:01, 12:02 i tak dalej, o ile ten dzień mieści się w 7 ostatnich dniach. Jeśli usuniesz lub zmniejszysz posiłek po wysłaniu jego dnia, w aplikacji Zdrowie zostanie wyższa wartość, a skrót pokaże powiadomienie o różnicy. Aby to poprawić, otwórz aplikację Zdrowie, przejdź do <strong>Przeglądaj</strong> → <strong>Odżywianie</strong>, otwórz dany typ, stuknij <strong>Pokaż wszystkie dane</strong>, usuń wpisy z tego dnia pochodzące z aplikacji Skróty i wpisz poprawną sumę ręcznie. Nigdy nie używaj opcji <strong>Usuń wszystkie dane z „Skróty”</strong>: usuwa ona także to, co zapisały Twoje inne skróty. Jeśli każdy dzień wygląda na podwojony, inna aplikacja zapisuje te same typy, a aplikacja Zdrowie je sumuje: wyłącz jedną z nich w <strong>Udostępnianie</strong> → <strong>Aplikacje</strong> w aplikacji Zdrowie.",
+            },
+            "health-sync-stopped": {
+                question: "Synchronizacja z Apple Health przestała działać",
+                answerHtml:
+                    "Otwórz aplikację Skróty i uruchom <strong>Nutrition MCP Health</strong> ręcznie: skrót powie, co poszło nie tak. Jeśli prosi o ponowne połączenie, połączenie wygasło (po 90 dniach bez synchronizacji, 365 dniach od połączenia albo po wybraniu <strong>Disconnect</strong>): uruchom go, zaloguj się na otwartej stronie na to samo konto co w aplikacji AI i dokończ w ciągu 30 minut. Jeśli synchronizuje po ręcznym uruchomieniu, ale nie sam, sprawdź, czy jego automatyzacje na karcie <strong>Automatyzacja</strong> w aplikacji Skróty są włączone i ustawione na <strong>Uruchom natychmiast</strong>. Jeśli powiadomienie mówi, że dzień nie dotarł do Apple Health, pozwól aplikacji Skróty zapisywać każdy typ odżywiania w <strong>Udostępnianie</strong> → <strong>Aplikacje</strong> → <strong>Skróty</strong> w aplikacji Zdrowie, a potem uruchom skrót ponownie. Połączenie nowego telefonu iPhone zastępuje połączenie poprzedniego.",
+            },
             "export-link": {
                 question: "Link do pobrania eksportu nie działa",
                 answerHtml:
@@ -485,7 +555,7 @@ export const TOOLS_PL: ToolsDoc = {
             "delete-account": {
                 question: "Jak usunąć konto?",
                 answerHtml:
-                    'Poproś AI o usunięcie Twojego konta Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). AI poprosi o potwierdzenie, a następnie trwale usunie Twoje posiłki, wodę, wagę, cele, ustawienia, rejestr narzędzi, z których korzystała Twoja aplikacja AI, ewentualny plik eksportu, dane logowania i samo konto. Tego nie da się cofnąć, więc jeśli chcesz mieć kopię, najpierw wyeksportuj dane. Potem usuń konektor ze swojej aplikacji. Jeśli w przyszłości zalogujesz się ponownie tym samym adresem e-mail, powstanie nowe, puste konto.',
+                    'Poproś AI o usunięcie Twojego konta Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). AI poprosi o potwierdzenie, a następnie trwale usunie Twoje posiłki, wodę, wagę, wymiary ciała, cele, ustawienia, rejestr narzędzi, z których korzystała Twoja aplikacja AI, ewentualny plik eksportu, dane logowania i samo konto. Tego nie da się cofnąć, więc jeśli chcesz mieć kopię, najpierw wyeksportuj dane. Potem usuń konektor ze swojej aplikacji. Jeśli w przyszłości zalogujesz się ponownie tym samym adresem e-mail, powstanie nowe, puste konto.',
             },
             "report-a-problem": {
                 question: "Jak zgłosić błąd lub problem z bezpieczeństwem?",

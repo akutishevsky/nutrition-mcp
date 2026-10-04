@@ -190,7 +190,12 @@ const EX_META: Record<
     "weight-trend": {
         icon: "fa-solid fa-weight-scale",
         color: "wat",
-        tools: ["log_weight", "get_weight_trends"],
+        tools: [
+            "log_weight",
+            "get_weight_trends",
+            "log_body_measurement",
+            "get_body_measurements",
+        ],
     },
     "meal-patterns": {
         icon: "fa-solid fa-magnifying-glass-chart",

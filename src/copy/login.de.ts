@@ -13,7 +13,7 @@ export const LOGIN_DE: LoginDoc = {
     showPasswordLabel: "Passwort anzeigen",
     hidePasswordLabel: "Passwort verbergen",
     consentNote:
-        "Wenn du fortfährst, bestätigst du, dass du mindestens 16 Jahre alt bist, stimmst den {terms} und der {privacy} zu und willigst ein, dass wir die von dir erfassten Mahlzeiten-, Gewichts- und Alkoholangaben speichern – das sind Gesundheitsdaten.",
+        "Wenn du fortfährst, bestätigst du, dass du mindestens 16 Jahre alt bist, stimmst den {terms} und der {privacy} zu und willigst ein, dass wir die von dir erfassten Mahlzeiten-, Gewichts-, Körpermaß- und Alkoholangaben speichern – das sind Gesundheitsdaten.",
     termsLinkText: "Nutzungsbedingungen",
     privacyLinkText: "Datenschutzerklärung",
     newHereNote:
@@ -45,4 +45,6 @@ export const LOGIN_CLIENT_NOTICE_DE: LoginClientNotice = {
         "{host} ist kein Assistent, den wir kennen. Fahr nur dann fort, wenn du die Verbindung selbst von {host} aus gestartet hast.",
     loopback:
         "Du wirst zu einem Programm zurückgeleitet, das auf diesem Computer läuft ({host}). Fahr nur dann fort, wenn du diese Verbindung selbst von dort aus gestartet hast.",
+    healthSync:
+        "Mit der Anmeldung verbindest du die Synchronisierung mit Apple Health auf dem Gerät, das diese Seite geöffnet hat. Wenn du das nicht gerade eben selbst über den Nutrition MCP-Kurzbefehl auf deinem eigenen iPhone gestartet hast, schließ diese Seite.",
 };

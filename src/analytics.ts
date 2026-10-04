@@ -50,7 +50,8 @@ interface AnalyticsContext {
  *
  * Checked in three tiers. Tier 1 matches the *literal, fixed wording* of
  * validation/config errors this codebase throws itself (resolveWriteLoggedAt,
- * set_timezone, assertPlausibleWeight, widget assembly, missing env config,
+ * set_timezone, assertPlausibleWeight, assertPlausibleLength, widget
+ * assembly, missing env config,
  * …) — checked first so they don't get swallowed by tier 3's looser
  * keyword heuristics. Tier 2 is every src/supabase.ts persistence throw,
  * matched generically by its "Failed to <verb> <noun>: <cause>" prefix —
@@ -63,12 +64,18 @@ interface AnalyticsContext {
  * a keyword heuristic is possible.
  */
 export function categorizeError(error: unknown): string {
+    // A ToolError that names its own category wins over every wording rule:
+    // its text can carry words ("required", "date") the tiers below would
+    // misfile.
+    if (error instanceof ToolError && error.category) return error.category;
+
     const msg =
         error instanceof Error ? error.message.toLowerCase() : String(error);
 
     // ---- Tier 1: our own fixed message wording ----
 
-    // updateMeal / updateWeight (src/supabase.ts) pre-checks — a stale or
+    // updateMeal / updateWeight / updateBodyMeasurement (src/supabase.ts)
+    // pre-checks — a stale or
     // wrong id, not a DB outage, so it shouldn't share supabase_error's bucket.
     // First, and startsWith rather than includes: the not-found text echoes
     // the caller's id, which could otherwise carry a later check's phrase
@@ -76,9 +83,15 @@ export function categorizeError(error: unknown): string {
     if (
         msg.startsWith("no meal found with id") ||
         msg.startsWith("no weight entry found with id") ||
-        msg.startsWith("no water entry found with id")
+        msg.startsWith("no water entry found with id") ||
+        msg.startsWith("no body measurement found with id")
     )
         return "record_not_found";
+
+    // update_body_measurement with no field to change. Worded "Nothing to
+    // change" rather than "…to update" on purpose: "update" contains "date",
+    // which tier 3 would file as invalid_date_format.
+    if (msg.startsWith("nothing to change")) return "missing_required_param";
 
     // resolveWriteLoggedAt (src/tz.ts) and its unset-timezone re-throw
     // (src/mcp.ts) — both always carry one of these phrases regardless of
@@ -107,10 +120,13 @@ export function categorizeError(error: unknown): string {
     // ever throws the logged_at-shaped messages matched above).
     if (msg.includes("invalid timezone")) return "invalid_timezone";
 
-    // toGrams / gramsFromDrink (src/units.ts, src/alcohol.ts) and
-    // assertPlausibleWeight (src/mcp.ts) — a bad number, not a bad shape.
+    // toGrams / toMillimetres / assertPlausibleLength / gramsFromDrink
+    // (src/units.ts, src/alcohol.ts) and assertPlausibleWeight (src/mcp.ts) —
+    // a bad number, not a bad shape.
     if (
         msg.includes("outside the plausible body-weight range") ||
+        msg.includes("is outside the plausible range") ||
+        msg.includes("invalid length value") ||
         msg.includes("invalid weight value") ||
         msg.includes("invalid drink volume") ||
         msg.includes("invalid abv")
@@ -119,13 +135,18 @@ export function categorizeError(error: unknown): string {
 
     if (
         msg.includes("unsupported language") ||
-        msg.includes("invalid weight unit")
+        msg.includes("invalid weight unit") ||
+        msg.includes("invalid length unit")
     )
         return "invalid_param_value";
 
-    // pickWriteUnit (src/units.ts) — semantically missing_required_param,
-    // but its wording doesn't contain "missing" or "required".
-    if (msg.includes("no weight unit given and no preference set"))
+    // pickWriteUnit / pickLengthWriteUnit (src/units.ts) — semantically
+    // missing_required_param, but their wording doesn't contain "missing" or
+    // "required".
+    if (
+        msg.includes("no weight unit given and no preference set") ||
+        msg.includes("no length unit given and no preference set")
+    )
         return "missing_required_param";
 
     // Deploy/env config problems, not user- or DB-caused. The only throw site

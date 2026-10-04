@@ -59,7 +59,7 @@ export const INDEX_IT: IndexDoc = {
                 },
                 {
                     userText: "sì",
-                    aiText: "Colazione registrata: 480 kcal, 21 g di proteine e 126 mg di caffeina. Sei già a 51 g di zuccheri sui 60 g del tuo limite.",
+                    aiText: "Colazione registrata: 480 kcal, 21 g di proteine e 126 mg di caffeina. Gli zuccheri aggiunti sono a 20 g sui 25 g del tuo limite, soprattutto per il miele; il resto dei 51 g di zuccheri totali viene da frutta e yogurt.",
                     card: "meal-logged",
                     meal: {
                         description:
@@ -89,7 +89,7 @@ export const INDEX_IT: IndexDoc = {
                 },
                 {
                     userText: "cosa mi resta per cena?",
-                    aiText: "Ti restano 850 kcal e 84 g di proteine. Con gli zuccheri sei a 59 g sui 60 g del tuo limite.",
+                    aiText: "Ti restano 850 kcal e 84 g di proteine. Gli zuccheri aggiunti sono a 23 g sui 25 g del tuo limite, e la maggior parte dei 59 g di zuccheri totali di oggi viene dalla frutta.",
                     card: "nutrition-summary",
                 },
                 {
@@ -181,7 +181,7 @@ export const INDEX_IT: IndexDoc = {
         note: "È tutto facoltativo. Puoi farlo ora, più tardi o mai: inizia pure a registrare e imposta queste opzioni quando vuoi.",
         toolsCta: {
             heading: "Vuoi sapere cosa sa fare davvero?",
-            body: "Sfoglia tutti i 36 strumenti (registrazione, codici a barre, acqua, peso, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
+            body: "Sfoglia tutti i 41 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
             arrow: "Esplora gli strumenti",
         },
     },
@@ -207,10 +207,10 @@ export const INDEX_IT: IndexDoc = {
                 id: "log-meal",
                 title: "Registra a parole tue",
                 description:
-                    "Dillo come lo racconteresti a un amico. Se manca la porzione o non è chiaro di quale pasto si tratta, te lo chiede prima di stimare. Fibre e zuccheri finiscono in ogni voce, la caffeina in tutto ciò che ne contiene, e “verso le 7” diventa le 07:00 nel tuo fuso orario.",
+                    "Dillo come lo racconteresti a un amico. Se manca la porzione o non è chiaro di quale pasto si tratta, te lo chiede prima di stimare. Fibre, zuccheri e zuccheri aggiunti finiscono in ogni voce, la caffeina in tutto ciò che ne contiene, e “verso le 7” diventa le 07:00 nel tuo fuso orario.",
                 toolNotes: {
                     log_meal:
-                        "Salva la colazione con macro, fibre, zuccheri e la caffeina del caffè",
+                        "Salva la colazione con macro, fibre, zuccheri, zuccheri aggiunti e la caffeina del caffè",
                     log_water:
                         "Aggiunge i 500 ml delle 07:00 al totale d'acqua di oggi",
                     get_current_time:
@@ -312,7 +312,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "scan-barcode",
                 title: "Scansiona un codice a barre",
                 description:
-                    "Fotografa la confezione: le cifre sotto il codice a barre vengono cercate su Open Food Facts, poi ti chiede quanto ne hai consumato. Open Food Facts non riporta la caffeina, quindi quella si ricava dall'etichetta o da valori tipici; se mancano fibre o zuccheri, vengono stimati invece di restare vuoti.",
+                    "Fotografa la confezione: le cifre sotto il codice a barre vengono cercate su Open Food Facts, poi ti chiede quanto ne hai consumato. Gli zuccheri aggiunti vengono letti quando Open Food Facts li riporta. Open Food Facts non riporta la caffeina, quindi quella si ricava dall'etichetta o da valori tipici; se mancano fibre, zuccheri o zuccheri aggiunti, vengono stimati invece di restare vuoti.",
                 toolNotes: {
                     lookup_barcode:
                         "Recupera da Open Food Facts i valori in etichetta e il Nutri-Score del vasetto",
@@ -327,7 +327,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "È un vasetto da 150 g di yogurt greco bianco (0% di grassi): 87 kcal, 15 g di proteine e 5 g di zuccheri, e Open Food Facts gli dà Nutri-Score A. Hai mangiato tutto il vasetto?",
+                        text: "È un vasetto da 150 g di yogurt greco bianco (0% di grassi): 87 kcal, 15 g di proteine e 5 g di zuccheri, nessuno aggiunto, e Open Food Facts gli dà Nutri-Score A. Hai mangiato tutto il vasetto?",
                     },
                     {
                         from: "user",
@@ -350,7 +350,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "goals-progress",
                 title: "Fissa obiettivi, fai il punto",
                 description:
-                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
+                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri aggiunti, zuccheri totali, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Salva gli obiettivi di calorie e proteine e un limite di caffeina di 400 mg",
@@ -372,7 +372,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Fatto: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto rimane com'era: 220 g di carboidrati, 70 g di grassi, 30 g di fibre, 2,5 L d'acqua, il tuo limite di 60 g di zuccheri e il tuo peso obiettivo di 75 kg.",
+                        text: "Fatto: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto rimane com'era: 220 g di carboidrati, 70 g di grassi, 30 g di fibre, 2,5 L d'acqua, il tuo limite di 25 g di zuccheri aggiunti e il tuo peso obiettivo di 75 kg.",
                     },
                     {
                         from: "user",
@@ -380,7 +380,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Sei a 1540 kcal su 2000 e a 104 g di proteine su 160, quindi ti mancano 460 kcal e 56 g di proteine. Gli zuccheri sono a 40 g sui 60 g del tuo limite e la caffeina a 130 mg su 400: entrambi sotto il limite.",
+                        text: "Sei a 1540 kcal su 2000 e a 104 g di proteine su 160, quindi ti mancano 460 kcal e 56 g di proteine. Gli zuccheri aggiunti sono a 16 g sui 25 g del tuo limite e la caffeina a 130 mg su 400: entrambi sotto il limite.",
                     },
                 ],
                 cards: [
@@ -414,7 +414,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "In media 52 g al giorno, sotto il tuo limite di 60 g, ma l'hai superato in 4 giorni su 13.",
+                        text: "Gli zuccheri aggiunti sono stati in media 22 g al giorno, sotto il tuo limite di 25 g, ma l'hai superato in 5 giorni su 13. Gli zuccheri totali sono stati in media 52 g, soprattutto da frutta e latte.",
                     },
                 ],
                 cards: [
@@ -426,13 +426,17 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Tieni d'occhio il peso",
+                title: "Tieni d'occhio peso e misure",
                 description:
-                    "Registra una pesata in kg o lb e guarda l'andamento al di là delle oscillazioni quotidiane: media smussata, variazione nel mese e quanto manca all'obiettivo. Un valore impossibile, come una virgola dimenticata, viene bloccato prima di essere salvato.",
+                    "Registra una pesata in kg o lb e guarda l'andamento al di là delle oscillazioni quotidiane: media smussata, variazione nel mese e quanto manca all'obiettivo. Accanto al peso puoi registrare, in cm o pollici, le misure prese con il metro in nove zone del corpo, dalla vita al polpaccio. Un valore impossibile, come una virgola dimenticata, viene bloccato prima di essere salvato.",
                 toolNotes: {
                     log_weight: "Salva la pesata di stamattina: 78,4 kg",
                     get_weight_trends:
-                        "Smussa 30 giorni con medie mobili e calcola la distanza dall'obiettivo",
+                        "Smussa le oscillazioni quotidiane in un peso di tendenza e un ritmo settimanale e calcola la distanza dall'obiettivo",
+                    log_body_measurement:
+                        "Salva la misura del giro vita: 84 cm",
+                    get_body_measurements:
+                        "Trova l'ultima misura del giro vita da confrontare",
                 },
                 messages: [
                     {
@@ -442,6 +446,14 @@ export const INDEX_IT: IndexDoc = {
                     {
                         from: "ai",
                         text: "Salvati 78,4 kg. Hai perso 1,8 kg dall'11 febbraio (eri a 80,2 kg) e la tua media a 7 giorni è di 78,7 kg. Mancano 3,4 kg al tuo obiettivo di 75 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "anche il giro vita: 84 cm. rispetto a prima?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Salvato il giro vita a 84 cm. L'ultima misura era 86,5 cm il 14 febbraio, quindi 2,5 cm in meno.",
                     },
                 ],
                 cards: [
@@ -609,10 +621,10 @@ export const INDEX_IT: IndexDoc = {
                 id: "export-data",
                 title: "Porta via i tuoi dati",
                 description:
-                    "Con una sola richiesta raccoglie tutto ciò che è conservato su di te (pasti, acqua, pesate, obiettivi, impostazioni del profilo, dati dell'account, telemetria di utilizzo e app collegate) in uno ZIP di file CSV con un README. Gli orari sono nel tuo fuso orario, e meals.csv si reimporta direttamente.",
+                    "Con una sola richiesta raccoglie tutto ciò che è conservato su di te (pasti, acqua, pesate, misure corporee, obiettivi, impostazioni del profilo, dati dell'account, telemetria di utilizzo e app collegate) in uno ZIP di file CSV con un README. Gli orari sono nel tuo fuso orario, e meals.csv si reimporta direttamente.",
                 toolNotes: {
                     export_all_data:
-                        "Crea uno ZIP con otto file CSV e un README, scaricabile da un link valido 60 minuti",
+                        "Crea uno ZIP con nove file CSV e un README, scaricabile da un link valido 60 minuti",
                 },
                 messages: [
                     {
@@ -664,15 +676,15 @@ export const INDEX_IT: IndexDoc = {
         cards: [
             {
                 title: "Pasti a parole tue",
-                body: "Descrivi cosa hai mangiato: la tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e caffeina in milligrammi, e registra tutto.",
+                body: "Descrivi cosa hai mangiato: la tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e caffeina in milligrammi, e registra tutto.",
             },
             {
                 title: "Scansiona un codice a barre",
-                body: "Fotografa o digita il codice a barre di un prodotto e ottieni macro, fibre e zuccheri da Open Food Facts, calcolati in base a quanto ne hai mangiato.",
+                body: "Fotografa o digita il codice a barre di un prodotto e ottieni macro, fibre e zuccheri da Open Food Facts (anche gli zuccheri aggiunti, quando sono indicati), calcolati in base a quanto ne hai mangiato.",
             },
             {
                 title: "Obiettivi e progressi",
-                body: "Imposta obiettivi giornalieri di calorie, macro, fibre e acqua, più limiti da non superare per zuccheri, caffeina e alcol, e segui i progressi in tempo reale.",
+                body: "Imposta obiettivi giornalieri di calorie, macro, fibre e acqua, più limiti da non superare per zuccheri aggiunti, zuccheri totali, caffeina e alcol, e segui i progressi in tempo reale.",
             },
             {
                 title: "Riepiloghi e andamenti",
@@ -684,7 +696,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Monitoraggio del peso",
-                body: "Registra il tuo peso corporeo in kg o lb, visualizza gli andamenti a 7/14/30 giorni e segui i progressi verso un peso obiettivo.",
+                body: "Registra il tuo peso corporeo in kg o lb, visualizza il peso di tendenza smussato e il ritmo settimanale su tutto il tuo storico e segui i progressi verso un peso obiettivo. Accanto al peso puoi registrare, in cm o pollici, le misure prese con il metro in nove zone del corpo, dalla vita al polpaccio.",
             },
             {
                 title: "Fuso orario intelligente",
@@ -696,7 +708,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Esporta i tuoi dati: restano tuoi",
-                body: "Porta via tutto ciò che conserviamo su di te (pasti, acqua, peso, obiettivi e profilo, oltre ai dati dell'account, alla telemetria di utilizzo e alle app collegate) in un unico ZIP di file CSV. Per ora i pasti sono l'unica parte che si può reimportare. Puoi eliminare account e dati quando vuoi.",
+                body: "Porta via tutto ciò che conserviamo su di te (pasti, acqua, peso, misure corporee, obiettivi e profilo, oltre ai dati dell'account, alla telemetria di utilizzo e alle app collegate) in un unico ZIP di file CSV. Per ora i pasti sono l'unica parte che si può reimportare. Puoi eliminare account e dati quando vuoi.",
             },
         ],
     },
@@ -779,7 +791,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cos'è Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP è un server Model Context Protocol (MCP) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contacalorie e tracker delle macro. Invece di cercare in un database di alimenti, dici alla tua IA cosa hai mangiato e lei registra calorie, macro, fibre, zuccheri e caffeina nel tuo diario alimentare.",
+                "Nutrition MCP è un server Model Context Protocol (MCP) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contacalorie e tracker delle macro. Invece di cercare in un database di alimenti, dici alla tua IA cosa hai mangiato e lei registra calorie, macro, fibre, zuccheri, zuccheri aggiunti e caffeina nel tuo diario alimentare.",
         },
         {
             question: "Cos'è il Model Context Protocol (MCP)?",
@@ -789,7 +801,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Come si contano le calorie con Claude o ChatGPT?",
             visibleHtml:
-                "Collega Nutrition MCP una volta sola (in Claude dalla directory dei connettori, in ChatGPT come app personalizzata con l'URL del server) e accedi. Poi di' alla tua IA cosa hai mangiato a parole tue, mostrale una foto del pasto o dalle il codice a barre di un prodotto. La tua IA stima calorie, proteine, carboidrati, grassi, fibre e zuccheri, e Nutrition MCP salva la voce nel tuo diario alimentare. Chiedi in qualsiasi momento i totali di oggi, gli andamenti settimanali o i progressi verso i tuoi obiettivi.",
+                "Collega Nutrition MCP una volta sola (in Claude dalla directory dei connettori, in ChatGPT come app personalizzata con l'URL del server) e accedi. Poi di' alla tua IA cosa hai mangiato a parole tue, mostrale una foto del pasto o dalle il codice a barre di un prodotto. La tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri e zuccheri aggiunti, e Nutrition MCP salva la voce nel tuo diario alimentare. Chiedi in qualsiasi momento i totali di oggi, gli andamenti settimanali o i progressi verso i tuoi obiettivi.",
         },
         {
             question: "Funziona con ChatGPT?",
@@ -816,7 +828,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cosa posso monitorare?",
             visibleHtml:
-                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
+                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Anche le misure corporee (vita, fianchi, collo, torace, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
         },
         {
             question: "Quanto sono precisi i conteggi delle calorie?",

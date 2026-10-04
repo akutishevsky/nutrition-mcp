@@ -269,6 +269,10 @@
             // src/mcp.ts). Not structuredContent: hosts validate that against
             // a cached outputSchema, so it can never gain a field.
             const CONTRIBUTORS_META_KEY = "nutrition-mcp.com/meal-contributors";
+            // And the added-sugar figures (AddedSugarMeta, src/added-sugar.ts),
+            // under ADDED_SUGAR_META_KEY in src/widgets.ts — the same `_meta`
+            // object, for the same frozen-schema reason.
+            const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
 
             // What the server sends in `_meta` beside a bounded `meals`: per
             // metric, how many meals had a positive value. The days add up to
@@ -508,11 +512,30 @@
                 // Calorie ring + figure, the three macro bars, the limits row
                 // (sugar / alcohol / caffeine / fiber, whichever have data) and
                 // the water line. Tapping a tile reveals the meals behind it.
-                const panel = macroPanel(
+                // Added sugar joins the strip only when `_meta` carries it.
+                // Its figure is the mean over the days that RECORDED it — a
+                // day with sugar but no added-sugar figure drops out, the same
+                // rule the tool's own text applies — so it is not divided by
+                // the logged days the other averages use. Without `_meta`
+                // these are the payload's own objects, untouched.
+                const as = addedSugarPayload(
+                    resultMeta && resultMeta[ADDED_SUGAR_META_KEY],
+                );
+                const merged = withAddedSugar(
+                    as,
+                    addedSugarFor(
+                        as,
+                        days.map((d) => d.date),
+                    ),
                     data.averages,
                     data.goals,
-                    undefined,
                     data.meals,
+                );
+                const panel = macroPanel(
+                    merged.vals,
+                    merged.goal,
+                    undefined,
+                    merged.meals,
                     {
                         // "us" | "uk" for a user who tracks alcohol, null for
                         // one who does not — and null is also the case in which
@@ -527,9 +550,11 @@
                         // "N more meals" counts against the true per-metric
                         // counts from `_meta`, and — when a host dropped
                         // `_meta` — says "N or more" instead of guessing.
-                        contributors:
+                        contributors: withAddedSugarContributors(
+                            as,
                             (resultMeta && resultMeta[CONTRIBUTORS_META_KEY]) ||
-                            null,
+                                null,
+                        ),
                         bounded: true,
                         // Every meal in the window, so a list the server did
                         // not actually trim still counts exactly without _meta.
@@ -540,6 +565,11 @@
                         )
                             ? data.days.reduce((n, d) => n + d.meal_count, 0)
                             : null,
+                        // Added sugar ranks no rows into data.meals (that
+                        // schema is frozen), so `_meta` sends the meals among
+                        // its top 8 that the other metrics left out; they join
+                        // the added-sugar list only. null without them.
+                        extraRows: merged.extraRows,
                     },
                 );
 

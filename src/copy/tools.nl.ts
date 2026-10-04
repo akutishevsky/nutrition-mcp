@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_NL: ToolsDoc = {
     meta: {
-        title: "36 tools voor calorieën, macro's, water & gewicht",
+        title: "41 tools voor calorieën, macro's, water & gewicht",
         description:
-            "Alle 36 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water en gewicht bijhouden.",
+            "Alle 41 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
         ogDescription:
-            "Alle 36 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer om je geschiedenis uit een andere app over te zetten. Met beschrijvingen en voorbeeldzinnen.",
+            "Alle 41 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer om je geschiedenis uit een andere app over te zetten. Met beschrijvingen en voorbeeldzinnen.",
     },
     hero: {
         eyebrow: "Naslag",
@@ -20,7 +20,7 @@ export const TOOLS_NL: ToolsDoc = {
         titleEm: "doen",
         titleAfterEm: "",
         lead: "Je roept deze tools nooit zelf aan: je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hieronder staat elke tool die de Nutrition MCP-server biedt voor maaltijden, calorieën en macro's, water en gewicht, met wat hij doet en een zin waarmee je hem aan het werk zet.",
-        countBold: "36 tools",
+        countBold: "41 tools",
         countTail: "verdeeld over 7 categorieën",
     },
     categories: {
@@ -42,10 +42,10 @@ export const TOOLS_NL: ToolsDoc = {
             description: "Houd naast je eten ook bij hoeveel je drinkt.",
         },
         weight: {
-            pillLabel: "Gewicht",
-            title: "Gewicht bijhouden",
+            pillLabel: "Lichaam",
+            title: "Gewicht en lichaamsmaten",
             description:
-                "Log weegmomenten, bekijk ze terug en volg de trend richting je streefgewicht.",
+                "Log weegmomenten en omtrekmetingen, bekijk ze terug en volg de trend van je gewicht richting je streefgewicht.",
         },
         "goals-progress": {
             pillLabel: "Doelen",
@@ -86,7 +86,7 @@ export const TOOLS_NL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log wat je hebt gegeten, met calorieën en macro's, plus vezels, totale suikers, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web.",
+                "Log wat je hebt gegeten, met calorieën en macro's, plus vezels, totale en toegevoegde suikers, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web.",
             params: {
                 description: "Wat er is gegeten",
                 meal_type: "ontbijt, lunch, diner of snack",
@@ -98,6 +98,8 @@ export const TOOLS_NL: ToolsDoc = {
                     "Voedingsvezels in gram. De AI krijgt de opdracht dit bij elke maaltijd in te vullen en schat het aan de hand van de ingrediënten als het etiket geen waarde geeft, want een leeg veld is geen nul: daarmee valt de hele dag buiten je vezelgemiddelde",
                 sugar_g:
                     "<b>Totale</b> suikers in gram: het getal dat op het etiket bij “waarvan suikers” staat, inclusief de suiker die van nature in fruit en zuivel zit, niet alleen toegevoegde suiker. Wordt net als vezels bij elke maaltijd ingevuld",
+                added_sugar_g:
+                    "<b>Toegevoegde</b> suikers in gram: suiker die bij verwerking of bereiding is toegevoegd (kristalsuiker, siropen, honing, de suiker in gezoete dranken en producten). Onderdeel van de totale suikers, nooit meer dan dat. De suiker die van nature in heel fruit, groente en ongezoete melk zit, is niet toegevoegd, en die in 100% vruchtensap ook niet. Wordt net als vezels bij elke maaltijd ingevuld: onbewerkte producten zijn 0, de suiker in frisdrank is helemaal toegevoegd, en de Amerikaanse etiketregel “Includes Xg Added Sugars” wordt gebruikt als die er is. Hoort bij <code>sugar_g</code>: een maaltijd met totale suikers maar zonder toegevoegde suikers wordt mogelijk niet opgeslagen",
                 alcohol_g:
                     "Gram <b>zuivere ethanol</b>, niet het volume van de drank en niet het alcoholpercentage. De AI rekent het uit op basis van de hoeveelheid en de sterkte (een flesje bier van 330 ml met 5% is 13 g)",
                 caffeine_mg:
@@ -112,7 +114,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         lookup_barcode: {
             description:
-                "Haal de voedingswaarden van het etiket van een verpakt product op bij Open Food Facts via de barcode (EAN/UPC met 8–14 cijfers), plus de Nutri-Score en de NOVA-verwerkingsgroep als Open Food Facts die heeft. Je kunt de cijfers typen of laten aflezen van een foto van de verpakking; daarna kun je het resultaat loggen, omgerekend naar hoeveel je hebt gegeten.",
+                "Haal de voedingswaarden van het etiket van een verpakt product op bij Open Food Facts via de barcode (EAN/UPC met 8–14 cijfers), plus de Nutri-Score en de NOVA-verwerkingsgroep als Open Food Facts die heeft. Toegevoegde suiker wordt getoond als Open Food Facts die vermeldt, en gemarkeerd als Open Food Facts die uit de ingrediënten heeft geschat. Je kunt de cijfers typen of laten aflezen van een foto van de verpakking; daarna kun je het resultaat loggen, omgerekend naar hoeveel je hebt gegeten.",
             params: {},
             example: "Scan deze barcode: 3017620422003",
             photoHint:
@@ -120,7 +122,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Open een importvenster in de chat om je geschiedenis uit een andere app over te zetten. Kies de CSV die je uit MyFitnessPal, Cronometer, Lose It!, MacroFactor of een andere tracker hebt geëxporteerd, koppel de kolommen aan calorieën, macro's, vezels, suiker en cafeïne (plus alcohol als je alcoholregistratie hebt aangezet) en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je het voorbeeld goedkeurt, en hetzelfde bestand opnieuw importeren levert geen dubbele registraties op.",
+                "Open een importvenster in de chat om je geschiedenis uit een andere app over te zetten. Kies de CSV die je uit MyFitnessPal, Cronometer, Lose It!, MacroFactor of een andere tracker hebt geëxporteerd, koppel de kolommen aan calorieën, macro's, vezels, totale en toegevoegde suiker en cafeïne (plus alcohol als je alcoholregistratie hebt aangezet) en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je het voorbeeld goedkeurt, en hetzelfde bestand opnieuw importeren levert geen dubbele registraties op.",
             params: {},
             example: "Importeer mijn maaltijdgeschiedenis uit MyFitnessPal",
         },
@@ -128,7 +130,7 @@ export const TOOLS_NL: ToolsDoc = {
             description:
                 "Voeg een reeks eerdere maaltijden in één keer toe (tot 50 tegelijk) in plaats van ze één voor één te loggen. De importer hierboven schrijft via deze tool, en de AI kan hem ook zelf gebruiken voor maaltijdgegevens die je in de chat hebt geplakt. Elke rij wordt eerst gecontroleerd en wat niet klopt, wordt per rij gemeld. Dezelfde rijen opnieuw versturen is dus veilig en levert geen dubbele registraties op, zolang je tijdzone intussen niet is gewijzigd.",
             params: {
-                meals: "De rijen om te importeren, in de volgorde van het bronbestand (1–50 per aanroep). Elke rij kan een tijd, maaltijdtype, omschrijving, notities en dezelfde cijfers als een gelogde maaltijd bevatten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (totale suikers), <code>alcohol_g</code> (gram zuivere ethanol) en <code>caffeine_mg</code> (milligram, niet gram)",
+                meals: "De rijen om te importeren, in de volgorde van het bronbestand (1–50 per aanroep). Elke rij kan een tijd, maaltijdtype, omschrijving, notities en dezelfde cijfers als een gelogde maaltijd bevatten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (totale suikers), <code>added_sugar_g</code> (toegevoegde suikers, onderdeel van het totaal), <code>alcohol_g</code> (gram zuivere ethanol) en <code>caffeine_mg</code> (milligram, niet gram)",
                 expected_row_count:
                     "Hoeveel rijen deze aanroep bevat, geteld in het bronbestand, zodat een ontbrekende rij opvalt",
                 expected_total_kcal:
@@ -143,7 +145,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Wijzig een maaltijd die je al hebt gelogd: de omschrijving, een macro, vezels, suiker, alcohol of cafeïne, de tijd of de notities. Zo wordt ook een ontbrekende waarde achteraf aangevuld: is een maaltijd zonder vezels of suiker gelogd, dan meldt de server dat en vult de AI die waarde hier aan als je akkoord gaat.",
+                "Wijzig een maaltijd die je al hebt gelogd: de omschrijving, een macro, vezels, totale of toegevoegde suiker, alcohol of cafeïne, de tijd of de notities. Zo wordt ook een ontbrekende waarde achteraf aangevuld: is een maaltijd zonder vezels, suiker of toegevoegde suiker gelogd, dan meldt de server dat en vult de AI die waarde hier aan als je akkoord gaat.",
             params: {
                 id: "UUID van de te wijzigen maaltijd",
                 description: "",
@@ -153,6 +155,8 @@ export const TOOLS_NL: ToolsDoc = {
                 fat_g: "",
                 fiber_g: "",
                 sugar_g: "Totale suikers, niet toegevoegde suiker",
+                added_sugar_g:
+                    "Alleen toegevoegde suikers, nooit meer dan de totale suikers. Hoort bij <code>sugar_g</code>: een wijziging van de totale suikers bij een maaltijd zonder vastgelegde toegevoegde suikers wordt zonder deze waarde mogelijk niet opgeslagen",
                 alcohol_g: "Gram zuivere ethanol, niet het volume van de drank",
                 caffeine_mg: "Milligram, niet gram",
                 logged_at: "",
@@ -209,7 +213,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, water.csv, weight.csv, goals.csv, profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps, zonder tokens) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
+                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (elke wijziging van je doelen, met datum), profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps en Apple Health-synchronisatie, zonder tokens), health_sync.csv (wat Apple Health-synchronisatie de afgelopen 8 dagen heeft verstuurd) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
             params: {},
             example:
                 "Exporteer al mijn gegevens: maaltijden, water, gewicht en doelen",
@@ -294,7 +298,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_weight_trends: {
             description:
-                "Bekijk je gewichtstrend over een periode: laatste meting, totale verandering, voortschrijdende gemiddelden over 7/14/30 dagen, min/max en je voortgang richting je streefgewicht.",
+                "Bekijk je gewichtstrend over een periode: een afgevlakt trendgewicht dat dagelijkse schommelingen uitmiddelt, je wekelijkse veranderingstempo, laatste meting, totale verandering, min/max en je voortgang richting je streefgewicht. De grafiek kan ook 90 dagen, een jaar of je hele geschiedenis tonen.",
             params: {
                 days: "Periode in dagen (standaard 30, max 365).",
             },
@@ -306,9 +310,57 @@ export const TOOLS_NL: ToolsDoc = {
             params: {},
             example: "Gebruik voortaan lb voor mijn gewicht",
         },
+        log_body_measurement: {
+            description:
+                "Leg een omtrekmeting van één lichaamsdeel vast (taille, heupen, nek, borst, schouders, bovenarm, onderarm, dij of kuit) in cm of inch. De waarde wordt precies zo opgeslagen als je hem invoert, naast een vaste standaardwaarde, zodat wisselen van eenheid nooit een getal verschuift. Getallen ver buiten een realistisch bereik voor dat lichaamsdeel worden geweigerd als waarschijnlijke tikfout.",
+            params: {
+                kind: "Welk lichaamsdeel: <code>waist</code>, <code>hips</code>, <code>neck</code>, <code>chest</code>, <code>shoulders</code>, <code>upper_arm</code>, <code>forearm</code>, <code>thigh</code> of <code>calf</code>. Eén waarde per lichaamsdeel; een kant (links/rechts) kan in de notities.",
+                value: "De meting, in <code>unit</code> (&gt; 0).",
+                unit: "<code>cm</code> of <code>in</code>; standaard je opgeslagen lengte-eenheid.",
+                logged_at: "Wanneer je hebt gemeten, als dat niet nu was",
+                notes: "Extra notities",
+            },
+            example: "Log mijn taille: 82 cm vanochtend",
+        },
+        get_body_measurements: {
+            description:
+                "Bekijk je lichaamsmaten per dag, oudste eerst, eventueel voor één lichaamsdeel. Zonder datums gaat het om de afgelopen 30 dagen, met maximaal 366 dagen per aanroep.",
+            params: {
+                kind: "Alleen dit lichaamsdeel (bijv. <code>waist</code>)",
+                start_date: "Startdatum (JJJJ-MM-DD)",
+                end_date:
+                    "Einddatum (JJJJ-MM-DD), maximaal 366 dagen inclusief de startdatum",
+            },
+            example: "Toon mijn tailleomtrek van de afgelopen drie maanden",
+        },
+        update_body_measurement: {
+            description:
+                "Corrigeer een bestaande meting: de waarde, de eenheid, het tijdstip of de notities. Het lichaamsdeel zelf ligt vast; een ander lichaamsdeel is een nieuwe registratie.",
+            params: {
+                id: "UUID van de te wijzigen meting",
+                value: "Nieuwe waarde, in <code>unit</code>.",
+                unit: "Standaard de eenheid waarin de meting is vastgelegd.",
+                logged_at: "ISO 8601-tijdstempel",
+                notes: "Nieuwe notities",
+            },
+            example: "Die heupomtrek was 98 cm, niet 89",
+        },
+        delete_body_measurement: {
+            description: "Verwijder een lichaamsmeting.",
+            params: {
+                id: "UUID van de te verwijderen meting",
+            },
+            example: "Verwijder de nekmeting van vandaag",
+        },
+        set_length_unit: {
+            description:
+                "Kies of lichaamsmaten in centimeters of inches worden getoond en ingevoerd. Dit staat los van je gewichtseenheid. Opgeslagen waarden blijven hetzelfde; alleen de weergave verandert en de eenheid die wordt aangenomen als je er geen noemt.",
+            params: {},
+            example: "Gebruik inches voor mijn lichaamsmaten",
+        },
         set_nutrition_goals: {
             description:
-                "Stel je dagelijkse doelen in voor calorieën, macro's, vezels, suiker, alcohol, cafeïne en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; suiker, alcohol en cafeïne zijn limieten om onder te blijven, en zo wordt de voortgang ook verwoord. Alleen de velden die je noemt, worden bijgewerkt; de rest blijft zoals het was.",
+                "Stel je dagelijkse doelen in voor calorieën, macro's, vezels, suiker, toegevoegde suiker, alcohol, cafeïne en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; totale suiker, toegevoegde suiker, alcohol en cafeïne zijn limieten om onder te blijven, en zo wordt de voortgang ook verwoord. Alleen de velden die je noemt, worden bijgewerkt; de rest blijft zoals het was.",
             params: {
                 daily_calories:
                     "Dagelijks caloriedoel (kcal). Null om te wissen.",
@@ -321,6 +373,8 @@ export const TOOLS_NL: ToolsDoc = {
                     "Dagelijks vezeldoel (gram), een minimum om te halen. Null om te wissen.",
                 daily_sugar_g:
                     "Dagelijkse limiet voor <b>totale</b> suikers (gram), een maximum om onder te blijven. Totale suikers omvatten ook de suiker die van nature in fruit en zuivel zit; de officiële richtlijn voor toegevoegde suiker ligt daarom veel lager. Null om te wissen.",
+                daily_added_sugar_g:
+                    "Dagelijkse limiet voor <b>toegevoegde</b> suikers (gram), een maximum om onder te blijven. Telt alleen toegevoegde suikers, niet de suiker die van nature in fruit en zuivel zit; officiële richtlijnen voor suiker gaan meestal over deze maat (de American Heart Association houdt maximaal 25 g per dag aan voor vrouwen en 36 g voor mannen). 0 is een echte limiet en betekent helemaal niets. Null om te wissen.",
                 daily_alcohol_g:
                     "Dagelijkse alcohollimiet in gram <b>zuivere ethanol</b>, een maximum om onder te blijven. Eén Amerikaans standaardglas is 14 g, één Britse eenheid 7,9 g. Null om te wissen.",
                 daily_caffeine_mg:
@@ -355,12 +409,13 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Voortschrijdende gemiddelden over 7/14/30 dagen, variabiliteit, logreeksen, gemiddelde calorieën per dag van de week en je beste en slechtste dagen qua calorieën. Vooraf berekend, zodat de AI ze alleen nog hoeft na te vertellen.",
+                "Voortschrijdende gemiddelden over 7/14/30 dagen, variabiliteit, logreeksen, gemiddelde calorieën per dag van de week en je beste en slechtste dagen qua calorieën. Vooraf berekend, zodat de AI ze alleen nog hoeft na te vertellen. Met group_by geeft het ook gemiddelden per week, maand, kwartaal of jaar — per gelogde dag, dus dagen zonder maaltijden tellen niet mee — afgezet tegen de doelen die toen golden, met hoeveel dagen binnen het doel vielen en hoeveel mogelijk onvolledig zijn.",
             params: {
                 days: "Periode in dagen (standaard 30, max 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> of <code>year</code>: 26 weken, 24 maanden, 12 kwartalen of 5 jaar, tot en met de periode waarin de einddatum valt (standaard vandaag). De periode ligt vast; <code>days</code> bepaalt nog steeds de voortschrijdende gemiddelden.",
             },
-            example:
-                "Wat zijn mijn trends voor calorieën en macro's over de afgelopen 30 dagen?",
+            example: "Hoe gingen mijn maanden vergeleken met mijn doelen?",
         },
         get_meal_patterns: {
             description:
@@ -373,7 +428,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_profile: {
             description:
-                "Bekijk al je huidige instellingen in één keer: tijdzone (plus je lokale datum en tijd), de widgettaal, je gewichtseenheid, of de widgets in de chat worden getoond en of alcoholregistratie aanstaat.",
+                "Bekijk al je huidige instellingen in één keer: tijdzone (plus je lokale datum en tijd), de widgettaal, je gewichts- en lengte-eenheid, of de widgets in de chat worden getoond en of alcoholregistratie aanstaat.",
             params: {},
             example: "Wat zijn mijn huidige instellingen?",
         },
@@ -487,6 +542,21 @@ export const TOOLS_NL: ToolsDoc = {
                 answerHtml:
                     "Barcodegegevens komen van Open Food Facts, een communitydatabase, dus sommige producten ontbreken en sommige gegevens zijn verouderd. Controleer of alle 8–14 cijfers onder de barcode goed zijn gelezen. Staat het product er niet in, dan kan de AI een schatting maken op basis van de naam of een foto van het voedingsetiket, en je kunt elk getal achteraf corrigeren. Voeg je het product toe op openfoodfacts.org, dan heeft iedereen er wat aan. Open Food Facts heeft geen cafeïnegegevens, dus cafeïne komt van het etiket of wordt geschat op basis van gangbare hoeveelheden.",
             },
+            "health-sync-yesterday": {
+                question: "Gisteren staat nog niet in Apple Health",
+                answerHtml:
+                    'De synchronisatie met Apple Health stuurt alleen afgeronde dagen. Een dag is afgerond om 05:00 de volgende ochtend in jouw tijdzone, dus gisteren komt binnen met de eerste synchronisatie na 05:00 vandaag, en vandaag verschijnt pas morgen in Gezondheid. Een synchronisatie draait wanneer een van de automatiseringen van de opdracht afgaat (de Gezondheid-app openen, je wekker stoppen) of wanneer je <strong>Nutrition MCP Health</strong> in de Opdrachten-app uitvoert en <strong>Sync now</strong> kiest. Een gemiste ochtend wordt vanzelf ingehaald: elke synchronisatie kijkt terug over de laatste 7 dagen. Dagen volgen de tijdzone in je profiel (<a href="#get_profile"><code>get_profile</code></a>) of, als je er nooit een hebt ingesteld, de tijdzone die je iPhone bij het verbinden doorgaf (<a href="#wrong-day">maaltijden op de verkeerde dag</a>). Dagen van vóór het verbinden worden alleen gestuurd als je bij het verbinden koos om tot 7 eerdere dagen op te halen.',
+            },
+            "health-sync-higher": {
+                question: "Apple Health toont meer dan mijn chat",
+                answerHtml:
+                    "Apple Health kan iets bij een waarde optellen, maar een waarde die het al heeft nooit verlagen. Een maaltijd die je toevoegt aan een dag die al is verstuurd, volgt als een kleine extra invoer om 12:01, 12:02 enzovoort, zolang de dag binnen de laatste 7 dagen valt. Verwijder of verklein je een maaltijd nadat de dag is verstuurd, dan blijft Gezondheid hoger en toont de opdracht een melding met het verschil. Zo los je het op: open de Gezondheid-app, ga naar <strong>Blader</strong> → <strong>Voeding</strong>, open het betreffende type, tik op <strong>Toon alle gegevens</strong>, verwijder de invoer van die dag afkomstig van Opdrachten en voer het juiste totaal met de hand in. Gebruik nooit <strong>Verwijder alle gegevens van ‘Opdrachten’</strong>: dat wist ook wat je andere opdrachten hebben vastgelegd. Lijkt elke dag verdubbeld, dan schrijft een andere app dezelfde types en telt Gezondheid ze op: zet er één uit onder <strong>Deel</strong> → <strong>Apps</strong> in de Gezondheid-app.",
+            },
+            "health-sync-stopped": {
+                question: "De synchronisatie met Apple Health is gestopt",
+                answerHtml:
+                    "Open de Opdrachten-app en voer <strong>Nutrition MCP Health</strong> met de hand uit: de opdracht vertelt wat er misging. Vraagt ze je opnieuw te verbinden, dan is de verbinding beëindigd (na 90 dagen zonder synchronisatie, 365 dagen na het verbinden of na <strong>Disconnect</strong>): voer haar uit, log op de pagina die opent in met hetzelfde account als in je AI-app en rond dat binnen 30 minuten af. Synchroniseert ze als je haar uitvoert, maar niet vanzelf, controleer dan of haar automatiseringen in het tabblad <strong>Automatisering</strong> van Opdrachten aan staan en zijn ingesteld op <strong>Voer direct uit</strong>. Meldt een bericht dat een dag Apple Health niet heeft bereikt, geef Opdrachten dan in de Gezondheid-app onder <strong>Deel</strong> → <strong>Apps</strong> → <strong>Opdrachten</strong> toestemming om elk voedingstype te schrijven en voer haar opnieuw uit. Een nieuwe iPhone verbinden vervangt de verbinding van de oude.",
+            },
             "export-link": {
                 question: "Mijn downloadlink voor de export werkt niet",
                 answerHtml:
@@ -495,7 +565,7 @@ export const TOOLS_NL: ToolsDoc = {
             "delete-account": {
                 question: "Hoe verwijder ik mijn account?",
                 answerHtml:
-                    'Vraag de AI om je Nutrition MCP-account te verwijderen (<a href="#delete_account"><code>delete_account</code></a>). Die vraagt je om bevestiging en verwijdert daarna definitief je maaltijden, water, gewicht, doelen, instellingen, het overzicht van welke tools je AI-app heeft gebruikt, een eventueel exportbestand, je inloggegevens en het account zelf. Dit kan niet ongedaan worden gemaakt, dus exporteer eerst je gegevens als je een kopie wilt. Verwijder daarna de connector uit je app. Log je later opnieuw in met hetzelfde e-mailadres, dan krijg je een nieuw, leeg account.',
+                    'Vraag de AI om je Nutrition MCP-account te verwijderen (<a href="#delete_account"><code>delete_account</code></a>). Die vraagt je om bevestiging en verwijdert daarna definitief je maaltijden, water, gewicht, lichaamsmaten, doelen, instellingen, het overzicht van welke tools je AI-app heeft gebruikt, een eventueel exportbestand, je inloggegevens en het account zelf. Dit kan niet ongedaan worden gemaakt, dus exporteer eerst je gegevens als je een kopie wilt. Verwijder daarna de connector uit je app. Log je later opnieuw in met hetzelfde e-mailadres, dan krijg je een nieuw, leeg account.',
             },
             "report-a-problem": {
                 question: "Hoe meld ik een bug of een beveiligingsprobleem?",

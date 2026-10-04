@@ -4,6 +4,8 @@ import {
     getMealsInRange,
     getWaterInRange,
     getWeightInRange,
+    getBodyMeasurementsInRange,
+    hasMealsBefore,
 } from "./supabase.js";
 
 // The paged window reader behind every day and range read, driven for real.
@@ -19,11 +21,16 @@ import {
 // request it does not recognise is refused, never passed through — Bun
 // auto-loads .env, so the client may point at a real project.
 
-type Row = { id: string; user_id: string; logged_at: string };
+type Row = { id: string; user_id: string; logged_at: string; kind?: string };
 
 const USER = "11111111-1111-4111-8111-111111111111";
 const OTHER_USER = "22222222-2222-4222-8222-222222222222";
-const TABLES = ["meals", "water_log", "weight_log"] as const;
+const TABLES = [
+    "meals",
+    "water_log",
+    "weight_log",
+    "body_measurement_log",
+] as const;
 type Table = (typeof TABLES)[number];
 const WINDOW_ROWS = 2500;
 
@@ -31,6 +38,7 @@ const tables: Record<Table, Row[]> = {
     meals: [],
     water_log: [],
     weight_log: [],
+    body_measurement_log: [],
 };
 const requests: { table: Table; url: URL; prefer: string | null }[] = [];
 // The server's db-max-rows: a page asks for 1000 and gets at most this many.
@@ -41,8 +49,13 @@ let afterFirstPage: (() => void) | null = null;
 // Three rows per timestamp, so rows 999, 1000 and 1001 share one logged_at and
 // straddle the first page edge. All inside 2026-01-01 .. 2026-03-01 UTC, plus
 // rows the filters must drop: another user's, and one either side of the window.
+// Body-measurement rows alternate waist/hips, so a kind filter halves the window
+// (1,250 rows, still past one page).
 function seed(): void {
     for (const table of TABLES) {
+        const body = table === "body_measurement_log";
+        const kindOf = (i: number) =>
+            body ? { kind: i % 2 ? "waist" : "hips" } : {};
         const rows: Row[] = [];
         for (let i = 0; i < WINDOW_ROWS; i++) {
             const minute = Math.floor(i / 3);
@@ -52,6 +65,7 @@ function seed(): void {
                 logged_at: new Date(
                     Date.UTC(2026, 0, 1, 0, minute),
                 ).toISOString(),
+                ...kindOf(i),
             });
         }
         rows.push(
@@ -59,16 +73,19 @@ function seed(): void {
                 id: crypto.randomUUID(),
                 user_id: OTHER_USER,
                 logged_at: "2026-01-15T12:00:00.000Z",
+                ...kindOf(1),
             },
             {
                 id: crypto.randomUUID(),
                 user_id: USER,
                 logged_at: "2025-12-31T23:59:59.000Z",
+                ...kindOf(1),
             },
             {
                 id: crypto.randomUUID(),
                 user_id: USER,
                 logged_at: "2026-03-01T00:00:00.000Z",
+                ...kindOf(1),
             },
         );
         // Stored unordered: ordering is the query's job.
@@ -121,6 +138,43 @@ async function fakePostgrest(
     const table = url.pathname.replace(/^\/rest\/v1\//, "") as Table;
     if (req.method !== "GET" || !TABLES.includes(table)) refuse(req.url);
     const q = url.searchParams;
+    // Only body measurements have a kind column; PostgREST would 400 a kind
+    // filter anywhere else.
+    const kind = q.get("kind")?.replace(/^eq\./, "");
+    if (q.has("kind") && table !== "body_measurement_log") {
+        refuse(`kind filter on ${table}`);
+    }
+    // hasMealsBefore: one id below a bound, no order, no paging.
+    if (table === "meals" && q.get("select") === "id") {
+        const userId = q.get("user_id")?.replace(/^eq\./, "");
+        const bounds = q.getAll("logged_at");
+        const lt = bounds[0]?.startsWith("lt.") ? bounds[0].slice(3) : null;
+        if (!userId || bounds.length !== 1 || !lt || q.get("limit") !== "1") {
+            refuse(`unexpected existence probe ${url.search}`);
+        }
+        requests.push({ table, url, prefer: req.headers.get("prefer") });
+        // Postgres refuses anything it cannot read as a timestamp, which is
+        // what a Date's String() form is.
+        if (!/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(lt)) {
+            return new Response(
+                JSON.stringify({
+                    code: "22007",
+                    message: `invalid input syntax for type timestamp with time zone: "${lt}"`,
+                }),
+                {
+                    status: 400,
+                    headers: { "content-type": "application/json" },
+                },
+            );
+        }
+        const hit = tables.meals.find(
+            (r) => r.user_id === userId && r.logged_at < lt,
+        );
+        return new Response(JSON.stringify(hit ? [{ id: hit.id }] : []), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+        });
+    }
     if (q.get("select") !== "*") refuse(`select=${q.get("select")}`);
     if (q.get("order") !== "logged_at.asc,id.asc") {
         refuse(`order=${q.get("order")}`);
@@ -141,7 +195,10 @@ async function fakePostgrest(
     const matched = tables[table]
         .filter(
             (r) =>
-                r.user_id === userId && r.logged_at >= gte && r.logged_at < lt,
+                r.user_id === userId &&
+                r.logged_at >= gte &&
+                r.logged_at < lt &&
+                (kind === undefined || r.kind === kind),
         )
         .sort(byLoggedAtThenId);
     const page = matched.slice(offset, offset + Math.min(limit, maxRows));
@@ -192,6 +249,11 @@ const READERS = [
     ["getMealsInRange", "meals", getMealsInRange],
     ["getWaterInRange", "water_log", getWaterInRange],
     ["getWeightInRange", "weight_log", getWeightInRange],
+    [
+        "getBodyMeasurementsInRange",
+        "body_measurement_log",
+        getBodyMeasurementsInRange,
+    ],
 ] as const;
 
 describe("window readers page past the 1000-row cap", () => {
@@ -293,5 +355,80 @@ describe("window readers page past the 1000-row cap", () => {
             "gte.2026-01-01T22:00:00.000Z",
             "lt.2026-01-02T22:00:00.000Z",
         ]);
+    });
+});
+
+describe("hasMealsBefore", () => {
+    // Its bound was once handed to .lt() as a Date, which supabase-js
+    // stringifies with String() — a value Postgres refuses, so every
+    // get_trends call with group_by failed.
+    test("filters on the ISO instant of local midnight and answers from the rows", async () => {
+        reset();
+        expect(await hasMealsBefore(USER, "2026-01-02", "Europe/Kyiv")).toBe(
+            true,
+        );
+        expect(requests).toHaveLength(1);
+        const q = new URLSearchParams(requests[0]!.url.search);
+        expect(q.getAll("logged_at")).toEqual(["lt.2026-01-01T22:00:00.000Z"]);
+
+        reset();
+        expect(await hasMealsBefore(USER, "2025-12-31", "UTC")).toBe(false);
+    });
+});
+
+describe("body measurements filter by kind in the database", () => {
+    test("a kind filter returns only that site, in (logged_at, id) order", async () => {
+        reset();
+        const rows = await getBodyMeasurementsInRange(
+            USER,
+            "2026-01-01",
+            "2026-02-28",
+            "UTC",
+            "waist",
+        );
+        const expected = expectedWindow("body_measurement_log").filter(
+            (r) => r.kind === "waist",
+        );
+        expect(expected).toHaveLength(WINDOW_ROWS / 2);
+        expect(rows.map((r) => r.id)).toEqual(expected.map((r) => r.id));
+        expect(rows.every((r) => r.kind === "waist")).toBe(true);
+        expect(requests.every((r) => r.url.searchParams.get("kind"))).toBe(
+            true,
+        );
+        expect(requests.map((r) => r.url.searchParams.get("kind"))).toEqual([
+            "eq.waist",
+            "eq.waist",
+        ]);
+        expect(requests.map((r) => r.url.searchParams.get("offset"))).toEqual([
+            "0",
+            "1000",
+        ]);
+    });
+
+    // The exact count is of the filtered rows, so the truncation guard still
+    // holds under a filter.
+    test("a filtered read on a server capped at 500 rows throws", async () => {
+        reset();
+        maxRows = 500;
+        await expect(
+            getBodyMeasurementsInRange(
+                USER,
+                "2026-01-01",
+                "2026-02-28",
+                "UTC",
+                "waist",
+            ),
+        ).rejects.toThrow("result would be truncated");
+        expect(requests).toHaveLength(1);
+    });
+
+    test("the meal and weight readers send no kind parameter", async () => {
+        reset();
+        await getMealsInRange(USER, "2026-01-01", "2026-02-28", "UTC");
+        await getWeightInRange(USER, "2026-01-01", "2026-02-28", "UTC");
+        expect(requests.length).toBeGreaterThan(0);
+        expect(requests.some((r) => r.url.searchParams.has("kind"))).toBe(
+            false,
+        );
     });
 });

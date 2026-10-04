@@ -36,6 +36,9 @@ import {
     MEAL_BREAKDOWN_TOP_N,
     MEAL_CONTRIBUTORS,
     MEAL_CONTRIBUTORS_META_KEY,
+    WEIGHT_SERIES_META_KEY,
+    PERIOD_AVERAGES_META_KEY,
+    ADDED_SUGAR_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
     MAX_CALORIES,
@@ -49,7 +52,16 @@ import {
     MEALS_RANGE_MAX_DAYS,
     SUMMARY_RANGE_MAX_DAYS,
     WEIGHT_RANGE_MAX_DAYS,
+    BODY_MEASUREMENT_RANGE_MAX_DAYS,
+    healthSyncProfileLine,
+    updatedAddedSugarError,
+    addedSugarAverageLine,
+    addedSugarRequiredNow,
 } from "./mcp.js";
+import {
+    ADDED_SUGAR_REQUIRED_FROM_ENV,
+    addedSugarMissingText,
+} from "./added-sugar.js";
 import {
     Client,
     StreamableHTTPClientTransport,
@@ -70,6 +82,7 @@ import * as actualSupabase from "./supabase.js";
 const realSupabase = { ...actualSupabase };
 import { DELETED_ACCOUNT_ANALYTICS_ID } from "./analytics.js";
 import { ToolError } from "./errors.js";
+import { addedSugarExtra, type AddedSugarMeta } from "./added-sugar.js";
 import { formatFoodResult, type FoodResult } from "./foods.js";
 import {
     buildDailyBuckets,
@@ -83,15 +96,30 @@ import type {
     NutritionGoals,
     WaterEntry,
     WeightEntry,
+    BodyMeasurementEntry,
 } from "./supabase.js";
-import { dateInTz, formatLocalDateTime, weekdayInTz } from "./tz.js";
+import {
+    dateInTz,
+    formatLocalDateTime,
+    weekdayInTz,
+    todayInTz,
+    shiftLocalDate,
+} from "./tz.js";
 import { getWidgetHtml } from "./widgets.js";
+import { rateForDisplay } from "./weight-trend.js";
+import {
+    buildPeriodRows,
+    dayTotalsFromMeals,
+    PERIOD_ROW_COUNTS,
+} from "./periods.js";
+import type { NutritionGoalsHistoryRow } from "./goals-history.js";
 
 // Real uuids, because the id tools check the shape before touching the
 // database: a fixture like "m1" would never reach the stubs below.
 const MEAL_ID = "00000000-0000-4000-8000-000000000001";
 const WATER_ID = "00000000-0000-4000-8000-000000000002";
 const WEIGHT_ID = "00000000-0000-4000-8000-000000000003";
+const MEASUREMENT_ID = "00000000-0000-4000-8000-000000000004";
 
 function meal(over: Partial<Meal> = {}): Meal {
     return {
@@ -106,6 +134,7 @@ function meal(over: Partial<Meal> = {}): Meal {
         fat_g: 20,
         fiber_g: 6,
         sugar_g: 12,
+        added_sugar_g: null,
         alcohol_g: 14,
         // NULL on the base fixture on purpose: caffeine is the partial nutrient
         // where absence is the norm rather than a relic of pre-feature history,
@@ -128,6 +157,7 @@ function goals(over: Partial<NutritionGoals> = {}): NutritionGoals {
         daily_fat_g: 70,
         daily_fiber_g: 30,
         daily_sugar_g: 40,
+        daily_added_sugar_g: null,
         daily_alcohol_g: 28,
         // Milligrams, and the EFSA/FDA figure the tool description offers.
         daily_caffeine_mg: 400,
@@ -295,6 +325,7 @@ describe("nutrientPresence", () => {
         ).toEqual({
             fiber_g: true,
             sugar_g: false,
+            added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: false,
         });
@@ -304,12 +335,14 @@ describe("nutrientPresence", () => {
         expect(nutrientPresence([meal({ ...blank, fiber_g: 0 })])).toEqual({
             fiber_g: true,
             sugar_g: false,
+            added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: false,
         });
         expect(nutrientPresence([])).toEqual({
             fiber_g: false,
             sugar_g: false,
+            added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: false,
         });
@@ -329,6 +362,7 @@ describe("nutrientPresence", () => {
         ).toEqual({
             fiber_g: false,
             sugar_g: false,
+            added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: true,
         });
@@ -548,7 +582,7 @@ describe("alcohol opt-in gating", () => {
         const off = formatGoals(goals(), "kg", null);
         expect(off).not.toContain("Alcohol");
         expect(off).toContain("- Fiber: 30g");
-        expect(off).toContain("- Sugar (total, max): 40g");
+        expect(off).toContain("- Sugar, total (max): 40g");
     });
 
     test("meal text hides only the alcohol line when tracking is off", () => {
@@ -800,6 +834,7 @@ describe("gateAlcohol", () => {
         fat_g: 20,
         fiber_g: 6,
         sugar_g: 12,
+        added_sugar_g: 0,
         alcohol_g: 14,
         caffeine_mg: 95,
         mealTypes: new Set(["dinner"]),
@@ -967,6 +1002,56 @@ describe("summary and trends agree on the same window", () => {
         expect(trendAvg("Calories", "30d")).toBe(600);
         expect(trendsText).not.toContain("calendar-day average");
         expect(loggedDayAverageNote(byDate.size, 30)).toBe("");
+    });
+
+    // get_trends' group_by rows divide by logged days, like the summary,
+    // not by calendar days like the rolling averages above. Over the same
+    // dates, with gaps and uneven days, the two must give the same figures.
+    test("a period row's per-logged-day averages are the summary's", () => {
+        const july = meals
+            .filter((m) => m.logged_at.startsWith("2026-07"))
+            .filter((_, i) => i % 4 !== 1)
+            .map((m, i) =>
+                meal({
+                    ...m,
+                    calories: 400 + 37 * i,
+                    protein_g: 20 + i,
+                    carbs_g: 50 + (i % 5),
+                    fat_g: 15 + i / 7,
+                }),
+            );
+        const byDay = new Map<string, Meal[]>();
+        for (const m of july) {
+            const date = m.logged_at.slice(0, 10);
+            byDay.set(date, [...(byDay.get(date) ?? []), m]);
+        }
+        const summaryJuly = rangeAverages(
+            [...byDay.values()].map((dayMeals) => ({
+                meals: dayMeals,
+                totals: sumMeals(dayMeals),
+            })),
+        );
+        const [row] = buildPeriodRows(
+            dayTotalsFromMeals(july, "2026-07-01", END, "UTC"),
+            [],
+            END,
+            "month",
+            "UTC",
+        );
+        expect(row!.key).toBe("2026-07");
+        expect(row!.days).toBe(26);
+        expect(row!.logged_days).toBe(byDay.size);
+        expect(row!.logged_days).toBeLessThan(row!.days);
+        expect(row!.avg!.calories).toBeCloseTo(
+            summaryJuly.averages.calories,
+            9,
+        );
+        expect(row!.avg!.protein).toBeCloseTo(
+            summaryJuly.averages.protein_g,
+            9,
+        );
+        expect(row!.avg!.carbs).toBeCloseTo(summaryJuly.averages.carbs_g, 9);
+        expect(row!.avg!.fat).toBeCloseTo(summaryJuly.averages.fat_g, 9);
     });
 });
 
@@ -1336,6 +1421,10 @@ describe("trendsDayPayloadOf", () => {
         fat_g: 20,
         fiber_g: mealsForDay.reduce((s, m) => s + (m.fiber_g ?? 0), 0),
         sugar_g: mealsForDay.reduce((s, m) => s + (m.sugar_g ?? 0), 0),
+        added_sugar_g: mealsForDay.reduce(
+            (s, m) => s + (m.added_sugar_g ?? 0),
+            0,
+        ),
         alcohol_g: mealsForDay.reduce((s, m) => s + (m.alcohol_g ?? 0), 0),
         caffeine_mg: mealsForDay.reduce((s, m) => s + (m.caffeine_mg ?? 0), 0),
         mealTypes: new Set(["dinner"]),
@@ -1445,7 +1534,27 @@ const PROFILE_BASE: actualSupabase.Profile = {
     locale: null,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
+    preferred_length_unit: null,
 };
+
+/** A stored body measurement: waist 84.5 cm unless overridden. */
+function measurementRow(
+    over: Partial<BodyMeasurementEntry> = {},
+): BodyMeasurementEntry {
+    return {
+        id: MEASUREMENT_ID,
+        user_id: "u1",
+        kind: "waist",
+        value_mm: 845,
+        value_entered: 84.5,
+        entered_unit: "cm",
+        logged_at: "2026-08-07T08:00:00.000Z",
+        notes: null,
+        created_at: "2026-08-07T08:00:00.000Z",
+        idempotency_key: null,
+        ...over,
+    };
+}
 
 /** What the DB would hand back after a write: every nutrient absent unless the
  *  caller sent it. Building on the `meal()` fixture instead would silently give
@@ -1471,12 +1580,24 @@ const db = {
     profile: null as actualSupabase.Profile | null,
     goals: null as NutritionGoals | null,
     meals: [] as Meal[],
+    // Every getMealsInRange call's [start, end], in order: get_trends'
+    // group_by widens its one meal read to the 5-year span, and must not
+    // without group_by.
+    mealRangeArgs: [] as [string, string][],
+    // getNutritionGoalsHistory's rows, oldest first, and how often it ran.
+    goalsHistory: [] as NutritionGoalsHistoryRow[],
+    goalsHistoryReads: 0,
+    // hasMealsBefore's answer, and the dates it was asked about.
+    mealsBefore: false,
+    mealsBeforeArgs: [] as string[],
     water: [] as WaterEntry[],
     // getWaterByDate's rows (get_water_today / _by_date and buildMealProgress);
     // `water` above feeds the range reader.
     waterByDate: [] as WaterEntry[],
-    // getWeightInRange's rows.
+    // getWeightInRange's and getAllWeight's rows.
     weights: [] as WeightEntry[],
+    // Which weight reader ran, in order: "range" or "all".
+    weightReads: [] as string[],
     inserted: [] as Record<string, unknown>[],
     // Same capture as `inserted`, for the non-meal write paths. Each one
     // resolves logged_at independently, so each needs its own witness.
@@ -1484,6 +1605,17 @@ const db = {
     waterInserted: [] as Record<string, unknown>[],
     weightInserted: [] as Record<string, unknown>[],
     weightUpdates: [] as Record<string, unknown>[],
+    // Body measurements: the rows getBodyMeasurementsInRange and
+    // getBodyMeasurement read, and the write/read witnesses.
+    measurements: [] as BodyMeasurementEntry[],
+    measurementInserted: [] as Record<string, unknown>[],
+    measurementUpdates: [] as Record<string, unknown>[],
+    measurementRangeArgs: [] as {
+        s: string;
+        e: string;
+        tz: string;
+        kind: string | undefined;
+    }[],
     profilePatches: [] as Record<string, unknown>[],
     // Ids the delete stubs consider to exist. Deleting one removes it, so a
     // second delete of the same id reports "not found" like the real table.
@@ -1495,13 +1627,64 @@ const db = {
     // a raw Postgres/PostgREST failure, or for the real updateMeal's not-found
     // ToolError, neither of which the stubs otherwise produce.
     failWith: null as Error | null,
+    goalsHistoryFailure: null as Error | null,
     // Every call to a delete stub, found or not: stays 0 when a tool refuses
     // an id before it reaches the database.
     deleteCalls: 0,
     // What the insert stubs report as `deduplicated`: true stands in for a
     // write whose key matched an existing row.
     dedupe: false,
+    // get_profile's Apple Health sync status, as the health-sync store reads
+    // it through getSupabase(): the link row, and the latest acked date.
+    healthSyncLink: null as Record<string, unknown> | null,
+    healthSyncSentThrough: null as string | null,
+    // update_meal's reads of a stored meal's sugar pair: 0 when both sugar
+    // fields were passed, so the check needed no read.
+    storedMealReads: 0,
+    // The sugar guard update_meal handed updateMeal on each call (undefined
+    // when the write needed none), and a sugar edit the fake applies to the
+    // stored meal between update_meal's read and its write.
+    mealUpdateGuards: [] as (
+        Partial<Pick<Meal, "sugar_g" | "added_sugar_g">> | undefined
+    )[],
+    concurrentMealEdit: null as Partial<Meal> | null,
 };
+
+/** The two PostgREST reads behind HealthSyncStore.getLinkStatus, plus
+ *  update_meal's stored-sugar read (`meals` by id), and nothing else: any
+ *  other select through this stub has no chain to call. */
+function healthSyncSelect(table: string) {
+    let idFilter: string | null = null;
+    const chain = {
+        eq: (column: string, value: string) => {
+            if (column === "id") idFilter = value;
+            return chain;
+        },
+        gt: () => chain,
+        not: () => chain,
+        order: () => chain,
+        limit: async () => ({
+            data:
+                table === "health_sync_days" && db.healthSyncSentThrough
+                    ? [{ date: db.healthSyncSentThrough }]
+                    : [],
+            error: null,
+        }),
+        maybeSingle: async () => {
+            db.storedMealReads += table === "meals" ? 1 : 0;
+            return {
+                data:
+                    table === "health_sync_links"
+                        ? db.healthSyncLink
+                        : table === "meals"
+                          ? (db.meals.find((m) => m.id === idFilter) ?? null)
+                          : null,
+                error: null,
+            };
+        },
+    };
+    return chain;
+}
 
 mock.module("./supabase.js", () => ({
     ...actualSupabase,
@@ -1514,6 +1697,7 @@ mock.module("./supabase.js", () => ({
                 if (table === "tool_analytics") db.analyticsRows.push(row);
                 return { error: null };
             },
+            select: () => healthSyncSelect(table),
         }),
     }),
     deleteAllUserData: async () => {
@@ -1532,13 +1716,31 @@ mock.module("./supabase.js", () => ({
     // the window they ask for, and filtering here would only re-implement the
     // query under test. Paging, ordering and the count reconcile belong to the
     // real reader, driven against a stubbed fetch in supabase-window.test.ts.
-    getMealsInRange: async () => {
+    getMealsInRange: async (_userId: string, s: string, e: string) => {
+        db.mealRangeArgs.push([s, e]);
         if (db.failWith) throw db.failWith;
         return db.meals;
     },
+    // get_trends' group_by: the goal in effect on each past day.
+    getNutritionGoalsHistory: async () => {
+        db.goalsHistoryReads += 1;
+        return db.goalsHistory;
+    },
+    hasMealsBefore: async (_userId: string, date: string) => {
+        db.mealsBeforeArgs.push(date);
+        return db.mealsBefore;
+    },
     getWaterInRange: async () => db.water,
     // get_weight_by_date_range's reader; its range guard is what is under test.
-    getWeightInRange: async () => db.weights,
+    getWeightInRange: async () => {
+        db.weightReads.push("range");
+        return db.weights;
+    },
+    // get_weight_trends' one full-history read.
+    getAllWeight: async () => {
+        db.weightReads.push("all");
+        return db.weights;
+    },
     // get_goal_progress's standing weight metric: the newest staged entry.
     getLatestWeight: async () => db.weights.at(-1) ?? null,
     insertMeal: async (_userId: string, input: Record<string, unknown>) => {
@@ -1551,8 +1753,25 @@ mock.module("./supabase.js", () => ({
         _userId: string,
         id: string,
         fields: Record<string, unknown>,
+        guard?: Partial<Pick<Meal, "sugar_g" | "added_sugar_g">>,
     ) => {
         if (db.failWith) throw db.failWith;
+        db.mealUpdateGuards.push(guard);
+        // Mirrors the real guarded write: a concurrent edit (staged in
+        // db.concurrentMealEdit, applied between update_meal's read and this
+        // write) that moves a guarded column makes it write nothing and throw
+        // the conflict ToolError naming the values now stored.
+        const current = db.meals.find((m) => m.id === id);
+        if (current && db.concurrentMealEdit)
+            Object.assign(current, db.concurrentMealEdit);
+        if (current && guard) {
+            for (const column of ["sugar_g", "added_sugar_g"] as const) {
+                if (column in guard && guard[column] !== current[column])
+                    throw new ToolError(
+                        realSupabase.mealSugarConflictText(id, current),
+                    );
+            }
+        }
         db.mealUpdates.push(fields);
         const saved = storedMeal({ ...fields, id });
         db.meals = [saved];
@@ -1625,6 +1844,54 @@ mock.module("./supabase.js", () => ({
         db.deleteCalls += 1;
         return db.rowIds.delete(id);
     },
+    insertBodyMeasurement: async (
+        _userId: string,
+        input: Record<string, unknown>,
+    ) => {
+        db.measurementInserted.push(input);
+        const defined = Object.fromEntries(
+            Object.entries(input).filter(([, v]) => v !== undefined),
+        ) as Partial<BodyMeasurementEntry>;
+        return {
+            entry: measurementRow({ ...defined, idempotency_key: null }),
+            deduplicated: db.dedupe,
+        };
+    },
+    getBodyMeasurementsInRange: async (
+        _userId: string,
+        s: string,
+        e: string,
+        tz: string,
+        kind?: string,
+    ) => {
+        db.measurementRangeArgs.push({ s, e, tz, kind });
+        return kind
+            ? db.measurements.filter((m) => m.kind === kind)
+            : db.measurements;
+    },
+    getBodyMeasurement: async (_userId: string, id: string) =>
+        db.measurements.find((m) => m.id === id) ?? null,
+    updateBodyMeasurement: async (
+        _userId: string,
+        id: string,
+        fields: Record<string, unknown>,
+    ) => {
+        db.measurementUpdates.push(fields);
+        const current = db.measurements.find((m) => m.id === id);
+        if (!current)
+            throw new ToolError(`No body measurement found with id ${id}.`);
+        const defined = Object.fromEntries(
+            Object.entries(fields).filter(([, v]) => v !== undefined),
+        ) as Partial<BodyMeasurementEntry>;
+        return { ...current, ...defined };
+    },
+    deleteBodyMeasurement: async (_userId: string, id: string) => {
+        db.deleteCalls += 1;
+        return db.rowIds.delete(id);
+    },
+    getPreferredLengthUnit: async () =>
+        db.profile?.preferred_length_unit ?? null,
+    getAllBodyMeasurements: async () => [],
     countMeals: async () => db.meals.length,
     existingIdempotencyKeys: async () => new Set<string>(),
     existingMealIds: async (_userId: string, ids: string[]) =>
@@ -1636,6 +1903,9 @@ mock.module("./supabase.js", () => ({
         patch: Record<string, unknown>,
     ) => {
         db.goals = { ...goals(), ...patch } as NutritionGoals;
+        // The real function throws its history ToolError after the goal is
+        // saved, so the stub saves first too.
+        if (db.goalsHistoryFailure) throw db.goalsHistoryFailure;
         return db.goals;
     },
     upsertProfile: async (userId: string, patch: Record<string, unknown>) => {
@@ -1655,21 +1925,37 @@ afterAll(() => {
 beforeEach(() => {
     db.profile = { ...PROFILE_BASE };
     db.goals = null;
+    db.healthSyncLink = null;
+    db.healthSyncSentThrough = null;
+    db.storedMealReads = 0;
+    db.mealUpdateGuards = [];
+    db.concurrentMealEdit = null;
     db.meals = [];
+    db.mealRangeArgs = [];
+    db.goalsHistory = [];
+    db.goalsHistoryReads = 0;
+    db.mealsBefore = false;
+    db.mealsBeforeArgs = [];
     db.water = [];
     db.waterByDate = [];
     db.weights = [];
+    db.weightReads = [];
     db.inserted = [];
     db.mealUpdates = [];
     db.waterInserted = [];
     db.weightInserted = [];
     db.weightUpdates = [];
+    db.measurements = [];
+    db.measurementInserted = [];
+    db.measurementUpdates = [];
+    db.measurementRangeArgs = [];
     db.profilePatches = [];
     db.rowIds = new Set<string>();
     db.analyticsRows = [];
     db.accountWipes = 0;
     db.profileReads = [];
     db.failWith = null;
+    db.goalsHistoryFailure = null;
     db.deleteCalls = 0;
     db.dedupe = false;
 });
@@ -2057,22 +2343,27 @@ describe("missingNutrientNote", () => {
         fat_g: 20,
         fiber_g: null,
         sugar_g: null,
+        added_sugar_g: null,
         alcohol_g: null,
         caffeine_mg: null,
         notes: null,
         idempotency_key: null,
     } satisfies Meal;
 
-    test("names both missing fields and the meal id to repair", () => {
+    test("names every missing field and the meal id to repair", () => {
         const note = missingNutrientNote(base);
-        expect(note).toContain("fiber_g, sugar_g");
+        expect(note).toContain("fiber_g, sugar_g, added_sugar_g");
         expect(note).toContain("update_meal");
         expect(note).toContain(MEAL_ID);
         // The sentence that stops the model "fixing" it by sending 0s blindly.
         expect(note).toContain("A missing value is not a zero");
-        // Policy 2.D: the backfill is offered, not directed.
+        // Directory policy: the note describes the gap, never directs the
+        // assistant (#190, #213).
         expect(note).not.toContain("fill it in with update_meal");
-        expect(note).toContain("if they want it filled");
+        expect(note).not.toMatch(
+            /\bmention\b|\bestimate\b|\boffer\b|\bask\b|\btell\b/i,
+        );
+        expect(note).toContain("update_meal can add the value");
     });
 
     test("names only the field that is actually missing", () => {
@@ -2081,12 +2372,24 @@ describe("missingNutrientNote", () => {
         expect(note).not.toContain("fiber_g");
     });
 
+    // Added sugar is expected beside sugar, so a meal carrying total sugar
+    // but no added figure is still a gap — and only that field is named.
+    test("names added_sugar_g alone when only it is missing", () => {
+        const note = missingNutrientNote({ ...base, fiber_g: 6, sugar_g: 4 });
+        expect(note).toContain("Not recorded on this meal: added_sugar_g.");
+    });
+
     // An explicit 0 is a measurement — the point of the nudge is to turn
     // omissions into values, and 0 is a perfectly good value for a steak.
     test("an explicit zero satisfies it", () => {
-        expect(missingNutrientNote({ ...base, fiber_g: 0, sugar_g: 0 })).toBe(
-            "",
-        );
+        expect(
+            missingNutrientNote({
+                ...base,
+                fiber_g: 0,
+                sugar_g: 0,
+                added_sugar_g: 0,
+            }),
+        ).toBe("");
     });
 
     // If this ever starts asking for caffeine, the read side has to change
@@ -2096,6 +2399,7 @@ describe("missingNutrientNote", () => {
             ...base,
             fiber_g: 6,
             sugar_g: 4,
+            added_sugar_g: 0,
             caffeine_mg: null,
         });
         expect(note).toBe("");
@@ -2126,6 +2430,7 @@ describe("log_meal / update_meal chase missing fiber and sugar", () => {
                     calories: 700,
                     fiber_g: 0,
                     sugar_g: 0,
+                    added_sugar_g: 0,
                 }),
             );
             expect(text).not.toContain("update_meal");
@@ -2551,18 +2856,84 @@ describe("the nutrient-completeness rule reaches the write tools", () => {
         }
     });
 
-    test("fiber and sugar are described as mandatory, with a fallback", async () => {
+    test("fiber and sugar are described as expected, with reference values", async () => {
         const tools = await toolsOf();
         const props = tools.find((t) => t.name === "log_meal")?.inputSchema
             .properties as Record<string, { description?: string }>;
-        for (const key of ["fiber_g", "sugar_g"]) {
+        for (const key of ["fiber_g", "sugar_g", "added_sugar_g"]) {
             const d = props[key]?.description ?? "";
             expect(d, key).toContain("every meal");
-            // The last-resort anchors: without them "estimate it" is an
-            // instruction with nothing behind it.
+            // The last-resort anchors: without them an estimate has nothing
+            // behind it.
             expect(d, key).toContain("per 100 g");
-            expect(d, key).toContain("do not omit the field");
+            expect(d, key).toContain("0 is the correct value");
+            // Describes the field; never directs the assistant (#190).
+            expect(d, key).not.toMatch(/send (this|0)|do not omit|say so/i);
         }
+    });
+
+    // #213's guard, extended to every added-sugar text the model reads: the
+    // two meal fields, the import row, the goal and the coverage block.
+    test("added sugar is described, never directed, wherever it appears", async () => {
+        const tools = await toolsOf();
+        const prop = (tool: string, key: string, nested?: string) => {
+            const schema = tools.find((t) => t.name === tool)?.inputSchema as {
+                properties: Record<
+                    string,
+                    {
+                        description?: string;
+                        items?: {
+                            properties: Record<
+                                string,
+                                { description?: string }
+                            >;
+                        };
+                    }
+                >;
+            };
+            return nested
+                ? (schema.properties[nested]?.items?.properties[key]
+                      ?.description ?? "")
+                : (schema.properties[key]?.description ?? "");
+        };
+        const texts: Record<string, string> = {
+            log_meal: prop("log_meal", "added_sugar_g"),
+            update_meal: prop("update_meal", "added_sugar_g"),
+            import_row: prop("bulk_import_meals", "added_sugar_g", "meals"),
+            goal: prop("set_nutrition_goals", "daily_added_sugar_g"),
+        };
+        for (const [where, d] of Object.entries(texts)) {
+            expect(d.toLowerCase(), where).toContain("added");
+            expect(d, where).not.toMatch(
+                /send (this|0)|do not omit|say so|\boffer\b|ask the user|you should|\balways\b|\bmust\b/i,
+            );
+        }
+        // The definition the brief settled on, on both meal tools.
+        for (const where of ["log_meal", "update_meal"]) {
+            expect(texts[where], where).toContain("100% fruit juice");
+            expect(texts[where], where).toContain("never more than it");
+        }
+        expect(texts.import_row).toContain("'Added sugars' column");
+        expect(texts.goal).toContain("0 means none");
+        // The added_sugar_g-accompanies-sugar_g sentence, true whether or
+        // not the ADDED_SUGAR_REQUIRED_FROM gate is on ("may be refused").
+        for (const where of ["log_meal", "update_meal"]) {
+            expect(texts[where], where).toContain("It accompanies sugar_g");
+            expect(texts[where], where).toContain("may be refused");
+        }
+        const coverage =
+            tools.find((t) => t.name === "log_meal")?.description ?? "";
+        expect(coverage).toContain("added_sugar_g is read on every meal");
+        const accompanies =
+            coverage.match(/It accompanies sugar_g[^.]*\./)?.[0] ?? "";
+        expect(accompanies).toContain("may be refused");
+        expect(accompanies).not.toMatch(
+            /\bplease\b|\bmust\b|ask the user|\bretry\b|call again|you should|\balways\b/i,
+        );
+        const goalsTool =
+            tools.find((t) => t.name === "set_nutrition_goals")?.description ??
+            "";
+        expect(goalsTool).toContain("total sugar, added sugar, alcohol");
     });
 
     // The one field that must keep saying the opposite.
@@ -2577,6 +2948,778 @@ describe("the nutrient-completeness rule reaches the write tools", () => {
                 "send it on every meal",
             );
         }
+    });
+});
+
+// ---------- added sugar ----------
+//
+// Tracked beside total sugar with its own ceiling, never inside any frozen
+// structuredContent shape: every figure here reaches the model through
+// `content`. withTools arms the client's strict schema check, so each tool
+// call below also proves no structuredContent object gained a field.
+
+describe("added sugar", () => {
+    const banana = (id: string) =>
+        meal({
+            id,
+            description: "Banana (120 g)",
+            meal_type: "snack",
+            calories: 107,
+            protein_g: 1.3,
+            carbs_g: 27.4,
+            fat_g: 0.4,
+            fiber_g: 3.1,
+            sugar_g: 14.7,
+            added_sugar_g: 0,
+            alcohol_g: null,
+        });
+    const cola = meal({
+        id: "00000000-0000-4000-8000-0000000000c0",
+        description: "Cola (330 ml)",
+        meal_type: "snack",
+        calories: 139,
+        protein_g: 0,
+        carbs_g: 35,
+        fat_g: 0,
+        fiber_g: 0,
+        sugar_g: 35,
+        added_sugar_g: 35,
+        alcohol_g: null,
+    });
+
+    describe("added ≤ total is a ToolError, never clamped", () => {
+        test("log_meal refuses added above total in the same call", async () => {
+            await withTools(null, async (call) => {
+                const r = await call("log_meal", {
+                    description: "Sweetened yogurt",
+                    meal_type: "snack",
+                    sugar_g: 10,
+                    added_sugar_g: 12,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(
+                    "added_sugar_g (12 g) is more than sugar_g (10 g); added sugars are part of total sugars.",
+                );
+                expect(db.inserted).toHaveLength(0);
+            });
+        });
+
+        test("log_meal stores a consistent pair, and added sugar alone", async () => {
+            await withTools(null, async (call) => {
+                const r = await call("log_meal", {
+                    description: "Cola (330 ml)",
+                    meal_type: "snack",
+                    sugar_g: 35,
+                    added_sugar_g: "35",
+                });
+                expect(r.isError).toBeFalsy();
+                expect(db.inserted[0]!.added_sugar_g).toBe(35);
+                const alone = await call("log_meal", {
+                    description: "Honey (1 tbsp)",
+                    meal_type: "snack",
+                    added_sugar_g: 17,
+                });
+                expect(alone.isError).toBeFalsy();
+                expect(db.inserted[1]!.added_sugar_g).toBe(17);
+            });
+        });
+
+        test("update_meal checks added_sugar_g alone against the stored sugar_g", async () => {
+            db.meals = [meal({ sugar_g: 10, added_sugar_g: null })];
+            await withTools(null, async (call) => {
+                const r = await call("update_meal", {
+                    id: MEAL_ID,
+                    added_sugar_g: 12,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(
+                    "added_sugar_g (12 g) is more than sugar_g (10 g)",
+                );
+                expect(db.mealUpdates).toHaveLength(0);
+                expect(db.storedMealReads).toBe(1);
+
+                const ok = await call("update_meal", {
+                    id: MEAL_ID,
+                    added_sugar_g: 8,
+                });
+                expect(ok.isError).toBeFalsy();
+                expect(db.mealUpdates[0]!.added_sugar_g).toBe(8);
+            });
+        });
+
+        test("update_meal checks sugar_g alone against the stored added_sugar_g", async () => {
+            db.meals = [meal({ sugar_g: 40, added_sugar_g: 30 })];
+            await withTools(null, async (call) => {
+                const r = await call("update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(
+                    "added_sugar_g (30 g) is more than sugar_g (20 g)",
+                );
+                expect(db.mealUpdates).toHaveLength(0);
+            });
+        });
+
+        test("update_meal conditions a one-sided write on the stored value it checked", async () => {
+            db.meals = [meal({ sugar_g: 10, added_sugar_g: null })];
+            await withTools(null, async (call) => {
+                const added = await call("update_meal", {
+                    id: MEAL_ID,
+                    added_sugar_g: 8,
+                });
+                expect(added.isError).toBeFalsy();
+                expect(db.mealUpdateGuards[0]).toEqual({ sugar_g: 10 });
+            });
+            db.meals = [meal({ sugar_g: 40, added_sugar_g: null })];
+            await withTools(null, async (call) => {
+                const sugar = await call("update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                });
+                expect(sugar.isError).toBeFalsy();
+                // A null stored value is guarded as null (IS NULL).
+                expect(db.mealUpdateGuards[1]).toEqual({ added_sugar_g: null });
+            });
+        });
+
+        test("update_meal writes nothing when the checked value moved before the write", async () => {
+            db.meals = [meal({ sugar_g: 40, added_sugar_g: null })];
+            // Another update_meal lowers sugar_g after this call's check read
+            // sugar_g 40 and accepted added_sugar_g 30.
+            db.concurrentMealEdit = { sugar_g: 20 };
+            await withTools(null, async (call) => {
+                const r = await call("update_meal", {
+                    id: MEAL_ID,
+                    added_sugar_g: 30,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toBe(
+                    `The sugar values stored on meal ${MEAL_ID} changed while this edit was being applied, so nothing was written. Stored now: sugar_g 20 g, added_sugar_g not recorded.`,
+                );
+                expect(db.mealUpdates).toHaveLength(0);
+            });
+            const row = db.analyticsRows.find(
+                (r) => r.tool_name === "update_meal",
+            );
+            expect(row?.error_category).not.toBe("record_not_found");
+        });
+
+        test("update_meal passing both checks the pair without reading the row", async () => {
+            db.meals = [meal({ sugar_g: 5, added_sugar_g: 5 })];
+            await withTools(null, async (call) => {
+                const bad = await call("update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                    added_sugar_g: 25,
+                });
+                expect(bad.isError).toBe(true);
+                const ok = await call("update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                    added_sugar_g: 15,
+                });
+                expect(ok.isError).toBeFalsy();
+                expect(db.storedMealReads).toBe(0);
+                // Both values come from this call: nothing to condition on.
+                expect(db.mealUpdateGuards).toEqual([undefined]);
+            });
+        });
+
+        test("updatedAddedSugarError merges the passed value over the stored one", () => {
+            const stored = { sugar_g: 10, added_sugar_g: 4 };
+            expect(updatedAddedSugarError({ added_sugar_g: 10 }, stored)).toBe(
+                null,
+            );
+            expect(
+                updatedAddedSugarError({ added_sugar_g: 11 }, stored),
+            ).toContain("is more than sugar_g (10 g)");
+            expect(updatedAddedSugarError({ sugar_g: 3 }, stored)).toContain(
+                "added_sugar_g (4 g)",
+            );
+            // A side not recorded anywhere leaves nothing to compare against.
+            expect(
+                updatedAddedSugarError(
+                    { added_sugar_g: 50 },
+                    { sugar_g: null, added_sugar_g: null },
+                ),
+            ).toBe(null);
+            expect(updatedAddedSugarError({ added_sugar_g: 50 }, null)).toBe(
+                null,
+            );
+        });
+    });
+
+    // The rollout-gated refusal: sugar_g without added_sugar_g. The gate is an
+    // env var read per call, so these set and restore it rather than mock a
+    // module (see "Server wiring" in CLAUDE.md for why the gate exists).
+    describe("sugar_g without added_sugar_g (ADDED_SUGAR_REQUIRED_FROM)", () => {
+        const PAST = "2000-01-01T00:00:00Z";
+        const FUTURE = "2999-01-01T00:00:00Z";
+        async function withGate(
+            value: string | undefined,
+            run: () => Promise<void>,
+        ): Promise<void> {
+            const before = process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+            if (value === undefined)
+                delete process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+            else process.env[ADDED_SUGAR_REQUIRED_FROM_ENV] = value;
+            try {
+                await run();
+            } finally {
+                if (before === undefined)
+                    delete process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+                else process.env[ADDED_SUGAR_REQUIRED_FROM_ENV] = before;
+            }
+        }
+        const colaArgs = {
+            description: "Cola (330 ml)",
+            meal_type: "snack",
+            sugar_g: 35,
+        };
+
+        test.each([
+            ["unset", undefined],
+            ["empty", ""],
+            ["garbage", "next tuesday"],
+            ["offset-less time", "2000-01-01T00:00"],
+            ["in the future", FUTURE],
+        ])("gate %s: sugar alone is still saved", async (_label, value) => {
+            const warn = spyOn(console, "warn").mockImplementation(() => {});
+            try {
+                await withGate(value, async () => {
+                    expect(addedSugarRequiredNow()).toBe(false);
+                    await withTools(null, async (call) => {
+                        const r = await call("log_meal", colaArgs);
+                        expect(r.isError).toBeFalsy();
+                        expect(db.inserted).toHaveLength(1);
+                        expect(db.inserted[0]!.added_sugar_g).toBeUndefined();
+                    });
+                });
+            } finally {
+                warn.mockRestore();
+            }
+        });
+
+        test("an unparseable gate warns once, naming only the variable", () => {
+            const warn = spyOn(console, "warn").mockImplementation(() => {});
+            try {
+                return withGate("not-a-date-xyz", async () => {
+                    addedSugarRequiredNow();
+                    addedSugarRequiredNow();
+                    const lines = warn.mock.calls
+                        .map((c) => String(c[0]))
+                        .filter((l) =>
+                            l.includes(ADDED_SUGAR_REQUIRED_FROM_ENV),
+                        );
+                    expect(lines).toHaveLength(1);
+                    expect(lines[0]).not.toContain("not-a-date-xyz");
+                });
+            } finally {
+                warn.mockRestore();
+            }
+        });
+
+        test("the gate switches on at its instant", () =>
+            withGate("2026-10-05T00:00:00+03:00", async () => {
+                const at = Date.parse("2026-10-04T21:00:00Z");
+                expect(addedSugarRequiredNow(at - 1)).toBe(false);
+                expect(addedSugarRequiredNow(at)).toBe(true);
+            }));
+
+        test("gate past: log_meal refuses sugar without added sugar, writing nothing", () =>
+            withGate(PAST, async () => {
+                await withTools(null, async (call) => {
+                    for (const sugar_g of [35, 0]) {
+                        const r = await call("log_meal", {
+                            ...colaArgs,
+                            sugar_g,
+                        });
+                        expect(r.isError).toBe(true);
+                        expect(textOf(r)).toBe(addedSugarMissingText());
+                    }
+                });
+                expect(db.inserted).toHaveLength(0);
+                // Refused before the profile read behind the timestamp.
+                expect(db.profileReads).toHaveLength(0);
+                const rows = db.analyticsRows.filter(
+                    (r) => r.tool_name === "log_meal",
+                );
+                expect(rows).toHaveLength(2);
+                for (const row of rows) {
+                    expect(row.success).toBe(false);
+                    expect(row.error_category).toBe("added_sugar_missing");
+                }
+            }));
+
+        test("gate past: added sugar 0, or no sugar at all, is saved", () =>
+            withGate(PAST, async () => {
+                await withTools(null, async (call) => {
+                    const zero = await call("log_meal", {
+                        description: "Apple",
+                        meal_type: "snack",
+                        sugar_g: 10,
+                        added_sugar_g: 0,
+                    });
+                    expect(zero.isError).toBeFalsy();
+                    const none = await call("log_meal", {
+                        description: "Eggs",
+                        meal_type: "breakfast",
+                        calories: 150,
+                    });
+                    expect(none.isError).toBeFalsy();
+                    // The missing-nutrient note still names the gap.
+                    expect(textOf(none)).toContain("sugar_g, added_sugar_g");
+                });
+                expect(db.inserted).toHaveLength(2);
+            }));
+
+        test("gate past: the pair check still applies when both are given", () =>
+            withGate(PAST, async () => {
+                await withTools(null, async (call) => {
+                    const r = await call("log_meal", {
+                        ...colaArgs,
+                        sugar_g: 10,
+                        added_sugar_g: 12,
+                    });
+                    expect(r.isError).toBe(true);
+                    expect(textOf(r)).toContain(
+                        "added_sugar_g (12 g) is more than sugar_g (10 g)",
+                    );
+                });
+            }));
+
+        test("gate past: update_meal refuses sugar_g on a meal with no added sugar stored", () =>
+            withGate(PAST, async () => {
+                db.meals = [meal({ sugar_g: 10, added_sugar_g: null })];
+                await withTools(null, async (call) => {
+                    const r = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 35,
+                    });
+                    expect(r.isError).toBe(true);
+                    expect(textOf(r)).toBe(addedSugarMissingText(MEAL_ID));
+                    expect(textOf(r)).toContain(`meal ${MEAL_ID} is unchanged`);
+                    expect(db.mealUpdates).toHaveLength(0);
+                    // Both given: saved.
+                    const both = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 35,
+                        added_sugar_g: 35,
+                    });
+                    expect(both.isError).toBeFalsy();
+                });
+                expect(db.mealUpdates).toHaveLength(1);
+                const refused = db.analyticsRows.find(
+                    (r) => r.tool_name === "update_meal" && !r.success,
+                );
+                expect(refused?.error_category).toBe("added_sugar_missing");
+            }));
+
+        test("gate past: update_meal accepts sugar_g when added sugar is already stored", () =>
+            withGate(PAST, async () => {
+                db.meals = [meal({ sugar_g: 40, added_sugar_g: 30 })];
+                await withTools(null, async (call) => {
+                    const ok = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 35,
+                    });
+                    expect(ok.isError).toBeFalsy();
+                    // The existing added ≤ total check is untouched. (The
+                    // stub's updateMeal stores only the fields passed, so
+                    // re-stage the stored pair.)
+                    db.meals = [meal({ sugar_g: 40, added_sugar_g: 30 })];
+                    const low = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 20,
+                    });
+                    expect(low.isError).toBe(true);
+                    expect(textOf(low)).toContain(
+                        "added_sugar_g (30 g) is more than sugar_g (20 g)",
+                    );
+                });
+            }));
+
+        test("gate past: update_meal without sugar_g, and a missing meal, are unaffected", () =>
+            withGate(PAST, async () => {
+                db.meals = [meal({ sugar_g: null, added_sugar_g: null })];
+                await withTools(null, async (call) => {
+                    const r = await call("update_meal", {
+                        id: MEAL_ID,
+                        calories: 300,
+                    });
+                    expect(r.isError).toBeFalsy();
+                    const added = await call("update_meal", {
+                        id: MEAL_ID,
+                        added_sugar_g: 5,
+                    });
+                    expect(added.isError).toBeFalsy();
+                });
+                expect(db.mealUpdates).toHaveLength(2);
+                // No such meal: not the added-sugar refusal (the stub's
+                // updateMeal stands in for the real not-found check).
+                db.meals = [];
+                await withTools(null, async (call) => {
+                    const r = await call("update_meal", {
+                        id: MEAL_ID,
+                        sugar_g: 5,
+                    });
+                    expect(textOf(r)).not.toContain(
+                        "added_sugar_g is required",
+                    );
+                });
+            }));
+
+        test("gate past: bulk_import_meals is unaffected", () =>
+            withGate(PAST, async () => {
+                await withTools(null, async (call) => {
+                    const r = await call("bulk_import_meals", {
+                        meals: [
+                            {
+                                source_line: 2,
+                                description: "Cola",
+                                logged_at: "2026-07-20",
+                                calories: 139,
+                                sugar_g: 35,
+                            },
+                        ],
+                        expected_row_count: 1,
+                        dry_run: false,
+                    });
+                    expect(r.isError).toBeFalsy();
+                    expect(
+                        (r.structuredContent as { status: string }).status,
+                    ).toBe("success");
+                });
+                expect(db.inserted).toHaveLength(1);
+                expect(db.inserted[0]!.sugar_g).toBe(35);
+            }));
+
+        test("the refusal text describes, never directs", () => {
+            for (const text of [
+                addedSugarMissingText(),
+                addedSugarMissingText(MEAL_ID),
+            ]) {
+                expect(text).toContain("100% fruit juice");
+                expect(text).not.toMatch(
+                    /\bplease\b|you must|\bmust\b|ask the user|\bretry\b|call again|you should|\boffer\b/i,
+                );
+            }
+        });
+    });
+
+    describe("formatProgress / formatGoals", () => {
+        test("an added-sugar ceiling line follows Sugar", () => {
+            const day = [banana("b1"), banana("b2"), cola];
+            const text = formatProgress(
+                sumMeals(day),
+                goals({ daily_sugar_g: null, daily_added_sugar_g: 25 }),
+                null,
+                nutrientPresence(day),
+            );
+            const lines = text.split("\n");
+            const sugarAt = lines.findIndex((l) => l.startsWith("Sugar:"));
+            expect(lines[sugarAt]).toBe("Sugar: 64.4g");
+            expect(lines[sugarAt + 1]).toBe(
+                "Added sugar: 35 / 25g limit (140%, 10g over)",
+            );
+        });
+
+        test("0 is a real added-sugar ceiling", () => {
+            const zero = goals({ daily_added_sugar_g: 0 });
+            const clear = [meal({ added_sugar_g: 0 })];
+            expect(
+                formatProgress(
+                    sumMeals(clear),
+                    zero,
+                    null,
+                    nutrientPresence(clear),
+                ),
+            ).toContain("Added sugar: 0 / 0g limit (clear)");
+            const over = [meal({ added_sugar_g: 5 })];
+            expect(
+                formatProgress(
+                    sumMeals(over),
+                    zero,
+                    null,
+                    nutrientPresence(over),
+                ),
+            ).toContain("Added sugar: 5 / 0g limit (5g over)");
+            expect(formatGoals(zero)).toContain("- Added sugar (max): 0g");
+        });
+
+        // A meal logged before the column existed is NULL: "not recorded"
+        // when a limit is set, nothing at all otherwise — never "0g".
+        test("an unrecorded day is not recorded, not zero", () => {
+            const old = [meal({ added_sugar_g: null })];
+            const present = nutrientPresence(old);
+            expect(present.added_sugar_g).toBe(false);
+            expect(
+                formatProgress(
+                    sumMeals(old),
+                    goals({ daily_added_sugar_g: 25 }),
+                    null,
+                    present,
+                ),
+            ).toContain("Added sugar: not recorded on this day (limit 25g)");
+            const noLimit = formatProgress(
+                sumMeals(old),
+                goals(),
+                null,
+                present,
+            );
+            expect(noLimit).not.toContain("Added sugar");
+            // Total sugar is untouched by the missing added figure.
+            expect(noLimit).toContain("Sugar: 12 / 40g limit");
+        });
+
+        // The ChatGPT report: a cola logged with sugar_g 35 and no
+        // added_sugar_g. The added-sugar line must still be there, saying it
+        // was not recorded, so total sugar is never read against the
+        // added-sugar limit. 0 is a real ceiling, so it gets the line too.
+        test("a limit with nothing recorded prints the gap, 0 included", () => {
+            const cola = [meal({ sugar_g: 35, added_sugar_g: null })];
+            const present = nutrientPresence(cola);
+            for (const [limit, shown] of [
+                [29, "29"],
+                [0, "0"],
+                [27.5, "27.5"],
+            ] as const) {
+                const text = formatProgress(
+                    sumMeals(cola),
+                    goals({ daily_sugar_g: null, daily_added_sugar_g: limit }),
+                    null,
+                    present,
+                );
+                const lines = text.split("\n");
+                const sugarAt = lines.findIndex((l) => l.startsWith("Sugar:"));
+                expect(lines[sugarAt]).toBe("Sugar: 35g");
+                expect(lines[sugarAt + 1]).toBe(
+                    `Added sugar: not recorded on this day (limit ${shown}g)`,
+                );
+                expect(text).not.toMatch(/Added sugar: 35/);
+                // Describes the gap, never directs (#190's guard).
+                expect(lines[sugarAt + 1]).not.toMatch(
+                    /\b(ask|offer|should|estimate|call|tell|suggest|please|must)\b/i,
+                );
+            }
+            // No limit and nothing recorded: exactly as before, no line.
+            const none = formatProgress(
+                sumMeals(cola),
+                goals({ daily_sugar_g: null, daily_added_sugar_g: null }),
+                null,
+                present,
+            );
+            expect(none).not.toContain("Added sugar");
+            expect(none.split("\n")).toHaveLength(
+                formatProgress(
+                    sumMeals(cola),
+                    goals({ daily_sugar_g: null, daily_added_sugar_g: null }),
+                    null,
+                    { ...present, added_sugar_g: false },
+                ).split("\n").length,
+            );
+        });
+
+        test("goals list both sugar limits, labelled apart", () => {
+            const text = formatGoals(
+                goals({ daily_sugar_g: 50, daily_added_sugar_g: 25 }),
+            );
+            expect(text).toContain("- Sugar, total (max): 50g");
+            expect(text).toContain("- Added sugar (max): 25g");
+            expect(text.indexOf("Sugar, total")).toBeLessThan(
+                text.indexOf("Added sugar"),
+            );
+            expect(formatGoals(goals())).toContain(
+                "- Added sugar (max): not set",
+            );
+        });
+    });
+
+    describe("coverage", () => {
+        const day = (over: Partial<Meal>) => {
+            const meals = [meal(over)];
+            return { meals, totals: sumMeals(meals) };
+        };
+
+        test("a day with sugar but no added sugar drops out of the added-sugar average only", () => {
+            const { averages, recordedDays } = rangeAverages([
+                day({ sugar_g: 20, added_sugar_g: 10 }),
+                day({ sugar_g: 30, added_sugar_g: null }),
+            ]);
+            expect(recordedDays.sugar_g).toBe(2);
+            expect(averages.sugar_g).toBe(25);
+            expect(recordedDays.added_sugar_g).toBe(1);
+            expect(averages.added_sugar_g).toBe(10);
+        });
+
+        test("addedSugarAverageLine reads against the limit, and stays quiet when it has nothing to add", () => {
+            expect(addedSugarAverageLine(10, 1, 2, 25)).toBe(
+                "\n\nAdded sugar, daily average: 10 / 25g limit (40%, under)",
+            );
+            expect(addedSugarAverageLine(10, 2, 2, null)).toBe(
+                "\n\nAdded sugar, daily average: 10g",
+            );
+            // A single day already prints its own line.
+            expect(addedSugarAverageLine(10, 1, 1, 25)).toBe("");
+            // Nothing recorded is not an average of 0: silent without a
+            // limit, the gap stated with one (0 is a real limit).
+            expect(addedSugarAverageLine(0, 0, 3, null)).toBe("");
+            expect(addedSugarAverageLine(0, 0, 3, 25)).toBe(
+                "\n\nAdded sugar, daily average: not recorded in this period (limit 25g)",
+            );
+            expect(addedSugarAverageLine(0, 0, 3, 0)).toBe(
+                "\n\nAdded sugar, daily average: not recorded in this period (limit 0g)",
+            );
+            // A single day still defers to its own section.
+            expect(addedSugarAverageLine(0, 0, 1, 25)).toBe("");
+        });
+
+        test("get_nutrition_summary states an unrecorded range against the limit", async () => {
+            db.goals = goals({ daily_added_sugar_g: 29 });
+            db.meals = [
+                meal({
+                    logged_at: "2026-07-25T12:00:00.000Z",
+                    sugar_g: 35,
+                    added_sugar_g: null,
+                }),
+                meal({
+                    id: "00000000-0000-4000-8000-0000000000d3",
+                    logged_at: "2026-07-26T12:00:00.000Z",
+                    sugar_g: 20,
+                    added_sugar_g: null,
+                }),
+            ];
+            await withTools(null, async (call) => {
+                const r = await call("get_nutrition_summary", {
+                    start_date: "2026-07-25",
+                    end_date: "2026-07-26",
+                });
+                expect(r.isError).toBeFalsy();
+                const text = textOf(r);
+                expect(text).toContain(
+                    "Added sugar, daily average: not recorded in this period (limit 29g)",
+                );
+                expect(
+                    text.match(
+                        /Added sugar: not recorded on this day \(limit 29g\)/g,
+                    ),
+                ).toHaveLength(2);
+                // None recorded is not partial coverage: no coverage note.
+                expect(text).not.toContain("added sugar 0");
+                const meta = r._meta?.[ADDED_SUGAR_META_KEY] as AddedSugarMeta;
+                expect(meta.goal).toBe(29);
+                expect(meta.days).toEqual({
+                    "2026-07-25": null,
+                    "2026-07-26": null,
+                });
+            });
+            // Without a limit the text is exactly what it was.
+            db.goals = goals({ daily_added_sugar_g: null });
+            await withTools(null, async (call) => {
+                const text = textOf(
+                    await call("get_nutrition_summary", {
+                        start_date: "2026-07-25",
+                        end_date: "2026-07-26",
+                    }),
+                );
+                expect(text).not.toContain("Added sugar");
+            });
+        });
+
+        test("get_nutrition_summary averages added sugar in text over the days that record it", async () => {
+            db.goals = goals({ daily_added_sugar_g: 25 });
+            db.meals = [
+                meal({
+                    logged_at: "2026-07-25T12:00:00.000Z",
+                    sugar_g: 20,
+                    added_sugar_g: 10,
+                }),
+                meal({
+                    id: "00000000-0000-4000-8000-0000000000d2",
+                    logged_at: "2026-07-26T12:00:00.000Z",
+                    sugar_g: 30,
+                    added_sugar_g: null,
+                }),
+            ];
+            await withTools(null, async (call) => {
+                const r = await call("get_nutrition_summary", {
+                    start_date: "2026-07-25",
+                    end_date: "2026-07-26",
+                });
+                expect(r.isError).toBeFalsy();
+                const text = textOf(r);
+                expect(text).toContain(
+                    "Added sugar, daily average: 10 / 25g limit (40%, under)",
+                );
+                expect(text).toContain(
+                    "(Averaged over the days that record each figure, not all 2: added sugar 1.)",
+                );
+                expect(text).toContain(
+                    "Added sugar: not recorded on this day (limit 25g)",
+                );
+            });
+        });
+    });
+
+    describe("set_nutrition_goals", () => {
+        test("stores, keeps, clears and echoes the added-sugar limit", async () => {
+            await withTools(null, async (call) => {
+                const set = await call("set_nutrition_goals", {
+                    daily_added_sugar_g: 25,
+                });
+                expect(set.isError).toBeFalsy();
+                expect(db.goals!.daily_added_sugar_g).toBe(25);
+                expect(textOf(set)).toContain("- Added sugar (max): 25g");
+
+                await call("set_nutrition_goals", { daily_protein_g: 130 });
+                expect(db.goals!.daily_added_sugar_g).toBe(25);
+
+                const zero = await call("set_nutrition_goals", {
+                    daily_added_sugar_g: 0,
+                });
+                expect(textOf(zero)).toContain("- Added sugar (max): 0g");
+
+                await call("set_nutrition_goals", {
+                    daily_added_sugar_g: null,
+                });
+                expect(db.goals!.daily_added_sugar_g).toBeNull();
+
+                const bad = await call("set_nutrition_goals", {
+                    daily_added_sugar_g: MAX_GOAL_G + 1,
+                });
+                expect(bad.isError).toBe(true);
+            });
+        });
+    });
+
+    // The brief's acceptance day: two ~120 g bananas and a 330 ml cola.
+    test("acceptance: bananas and a cola against a 25 g added-sugar limit", async () => {
+        db.meals = [banana("b1"), banana("b2"), cola];
+        db.goals = goals({ daily_sugar_g: null, daily_added_sugar_g: 25 });
+        await withTools(null, async (call) => {
+            const r = await call("get_goal_progress", { date: "2026-07-26" });
+            expect(r.isError).toBeFalsy();
+            const text = textOf(r);
+            expect(text).toContain("Sugar: 64.4g");
+            expect(text).toContain(
+                "Added sugar: 35 / 25g limit (140%, 10g over)",
+            );
+        });
+        // With the old 25 g total limit kept as well, both lines show.
+        db.goals = goals({ daily_sugar_g: 25, daily_added_sugar_g: 25 });
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_goal_progress", { date: "2026-07-26" }),
+            );
+            expect(text).toContain(
+                "Sugar: 64.4 / 25g limit (258%, 39.4g over)",
+            );
+            expect(text).toContain(
+                "Added sugar: 35 / 25g limit (140%, 10g over)",
+            );
+        });
     });
 });
 
@@ -2811,6 +3954,13 @@ describe("delete tools distinguish deleted from not-found", () => {
             deleted: `Weight entry ${WEIGHT_ID} deleted.`,
             notFound: `No weight entry found with id ${WEIGHT_ID}.`,
         },
+        {
+            tool: "delete_body_measurement",
+            id: MEASUREMENT_ID,
+            seed: (id) => db.rowIds.add(id),
+            deleted: `Body measurement ${MEASUREMENT_ID} deleted.`,
+            notFound: `No body measurement found with id ${MEASUREMENT_ID}.`,
+        },
     ];
 
     for (const c of cases) {
@@ -2846,6 +3996,11 @@ describe("id params are validated before the database", () => {
         ["delete_meal", "meal", "get_meals_today"],
         ["delete_water", "water entry", "get_water_today"],
         ["delete_weight", "weight entry", "get_weight_today"],
+        [
+            "delete_body_measurement",
+            "body measurement",
+            "get_body_measurements",
+        ],
     ])(
         "%s answers a non-uuid id without touching the database",
         async (tool, kind, source) => {
@@ -2879,6 +4034,7 @@ describe("id params are validated before the database", () => {
     test.each([
         ["update_meal", "meal", "mealUpdates"],
         ["update_weight", "weight entry", "weightUpdates"],
+        ["update_body_measurement", "body measurement", "measurementUpdates"],
     ] as const)(
         "%s refuses a non-uuid id as record_not_found",
         async (tool, kind, updates) => {
@@ -2955,6 +4111,23 @@ describe("raw database errors never reach the model", () => {
             expect(textOf(r)).toBe(`No meal found with id ${MEAL_ID}.`);
         });
         expect(rowFor("update_meal").error_category).toBe("record_not_found");
+    });
+
+    // upsertNutritionGoals throws this ToolError when the goal saved but its
+    // history row did not; the tool must report it as written, not as a
+    // per-category message that would hide that the goal itself went through.
+    test("set_nutrition_goals reports a failed history insert verbatim", async () => {
+        const message =
+            "Failed to record this change in the goals history (ref 0123abcd). The new goals themselves were saved. Calling set_nutrition_goals again with the same values records the change, dated to when it was saved; it does not save anything twice.";
+        db.goalsHistoryFailure = new ToolError(message);
+        await withTools(null, async (call) => {
+            const r = await call("set_nutrition_goals", {
+                daily_calories: 1800,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toBe(message);
+        });
+        expect(db.goals?.daily_calories).toBe(1800);
     });
 
     // Resources bypass withAnalytics, and the SDK forwards a thrown message to
@@ -3092,6 +4265,30 @@ describe("date-range listings reject bad and oversized ranges", () => {
             );
             expect(textOf(over)).toContain("get_weight_trends");
         });
+    });
+
+    test("get_body_measurements has the same guard with a year's cap", async () => {
+        expect(BODY_MEASUREMENT_RANGE_MAX_DAYS).toBe(366);
+        await withTools(null, async (call) => {
+            const ok = await call("get_body_measurements", {
+                start_date: "2024-01-01",
+                end_date: "2024-12-31",
+            });
+            expect(ok.isError).toBeFalsy();
+            expect(textOf(ok)).toContain("No body measurements found");
+
+            const over = await call("get_body_measurements", {
+                start_date: "2024-01-01",
+                end_date: "2025-01-01",
+            });
+            expect(over.isError).toBe(true);
+            expect(textOf(over)).toContain(
+                `at most ${BODY_MEASUREMENT_RANGE_MAX_DAYS} days`,
+            );
+        });
+        expect(rowsFor("get_body_measurements")[1]!.error_category).toBe(
+            "date_range_too_long",
+        );
     });
 
     test("the summary cap is a quarter", () => {
@@ -3318,6 +4515,25 @@ describe("meal listings are compact by default", () => {
         });
     });
 
+    test("get_body_measurements prints local HH:MM, not the stored instant", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.measurements = [
+            measurementRow({ logged_at: KYIV_ISO, created_at: KYIV_ISO }),
+        ];
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_body_measurements", {
+                    start_date: "2026-01-01",
+                    end_date: "2026-01-31",
+                }),
+            );
+            expect(text).toContain("Times are local (Europe/Kyiv)");
+            expect(text).toContain("## 2026-01-15");
+            expect(text).toContain("- Waist 84.5 cm at 21:05");
+            expect(text).not.toContain("T19:05");
+        });
+    });
+
     test("write confirmations show local time", async () => {
         db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
         await withTools(null, async (call) => {
@@ -3361,6 +4577,50 @@ describe("meal listings are compact by default", () => {
         });
     });
 });
+
+/**
+ * The added-sugar gap topMealBreakdown leaves: 8 fruit-and-yogurt bowls lead
+ * every ranked metric (total sugar included) with little or no added sugar,
+ * and one sweetened drink carries the most added sugar of all while topping
+ * nothing that ranks rows — so it is not among structuredContent.meals.
+ */
+function addedSugarGapMeals(): Meal[] {
+    const bowls = Array.from({ length: 8 }, (_, i) =>
+        meal({
+            id: `00000000-0000-4000-8000-1000000000${String(i).padStart(2, "0")}`,
+            logged_at: `2026-01-${String(i + 2).padStart(2, "0")}T08:00:00.000Z`,
+            meal_type: "breakfast",
+            description: `fruit and yogurt bowl ${i}`,
+            calories: 400,
+            protein_g: 20,
+            carbs_g: 60,
+            fat_g: 10,
+            fiber_g: 8,
+            sugar_g: 40,
+            // One bowl has a little added sugar: it is kept already, so it
+            // must not come back in `extra`.
+            added_sugar_g: i === 3 ? 2 : 0,
+            alcohol_g: 5,
+            caffeine_mg: 60,
+        }),
+    );
+    const drink = meal({
+        id: "00000000-0000-4000-8000-200000000000",
+        logged_at: "2026-01-20T15:00:00.000Z",
+        meal_type: "snack",
+        description: "sweetened iced tea",
+        calories: 120,
+        protein_g: 0,
+        carbs_g: 30,
+        fat_g: 0,
+        fiber_g: 0,
+        sugar_g: 30,
+        added_sugar_g: 30,
+        alcohol_g: 0,
+        caffeine_mg: null,
+    });
+    return [...bowls, drink];
+}
 
 // ---------- the summary ships only the meals its widget can show ----------
 //
@@ -3488,6 +4748,65 @@ describe("get_nutrition_summary bounds its meal breakdown", () => {
         }
     });
 
+    test("the added-sugar list gets its top meals via _meta.extra, structuredContent.meals unchanged", async () => {
+        const meals = addedSugarGapMeals();
+        db.meals = meals;
+        for (const alcohol of ["us", null] as const) {
+            await withTools(alcohol, async (call) => {
+                const r = await summarize(call);
+                expect(r.isError).toBeFalsy();
+                const sc = r.structuredContent as unknown as SummaryPayload;
+                // Exactly what topMealBreakdown kept before `extra` existed:
+                // the drink tops nothing that ranks rows, so it is absent.
+                const before = topMealBreakdown(
+                    mealBreakdown(meals, "UTC", alcohol),
+                    alcohol,
+                ).meals;
+                expect(sc.meals).toEqual(before as Row[]);
+                expect(
+                    sc.meals.some(
+                        (m) => m.description === "sweetened iced tea",
+                    ),
+                ).toBe(false);
+
+                const meta = r._meta?.[ADDED_SUGAR_META_KEY] as AddedSugarMeta;
+                expect(meta.v).toBe(1);
+                expect(meta.contributors).toBe(2);
+                // The kept bowl with 2 g is in `meals`, so not in `extra`.
+                expect(meta.extra).toEqual([
+                    {
+                        description: "sweetened iced tea",
+                        meal_type: "snack",
+                        date: "2026-01-20",
+                        added_sugar_g: 30,
+                    },
+                ]);
+            });
+        }
+    });
+
+    test("extra rows are formatted exactly like breakdown rows", () => {
+        const meals = [
+            meal({
+                id: "00000000-0000-4000-8000-300000000000",
+                description: "y".repeat(500),
+                meal_type: null,
+                // 00:30 on the 11th in Kyiv, still the 10th in UTC.
+                logged_at: "2026-01-10T22:30:00.000Z",
+                added_sugar_g: 12.345,
+            }),
+        ];
+        const rows = mealBreakdown(meals, "Europe/Kyiv", null);
+        expect(addedSugarExtra(meals, rows, [], MEAL_BREAKDOWN_TOP_N)).toEqual([
+            {
+                description: `${"y".repeat(200)}…`,
+                meal_type: null,
+                date: "2026-01-11",
+                added_sugar_g: 12.3,
+            },
+        ]);
+    });
+
     test("the empty path carries zero contributors in _meta", async () => {
         for (const alcohol of ["us", null] as const) {
             await withTools(alcohol, async (call) => {
@@ -3530,6 +4849,8 @@ describe("date params are real calendar dates", () => {
         ["get_water_by_date", "date", "2026-99-99"],
         ["get_weight_by_date", "date", "2026-99-99"],
         ["get_meals_by_date", "date", "2026-02-30"],
+        ["get_body_measurements", "start_date", "2026-02-30"],
+        ["get_body_measurements", "end_date", "yesterday"],
     ])("%s refuses %s %p", async (tool, param, bad) => {
         await withTools(null, async (call) => {
             const r = await call(tool, { [param]: bad });
@@ -4204,6 +5525,41 @@ describe("manual write tools resolve logged_at in the profile timezone", () => {
         });
     });
 
+    test("log_body_measurement resolves an offset-less time the same way", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "waist",
+                value: 84.5,
+                unit: "cm",
+                logged_at: "2026-07-20T08:30:00",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(loggedAtOf(db.measurementInserted[0])).toBe(
+                "2026-07-20T05:30:00.000Z",
+            );
+        });
+    });
+
+    test("update_body_measurement resolves an offset-less time and omits an absent one", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.measurements = [measurementRow()];
+        await withTools(null, async (call) => {
+            await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                logged_at: "2026-07-20T08:30:00",
+            });
+            expect(loggedAtOf(db.measurementUpdates[0])).toBe(
+                "2026-07-20T05:30:00.000Z",
+            );
+            await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                notes: "morning",
+            });
+            expect(db.measurementUpdates[1]).not.toHaveProperty("logged_at");
+        });
+    });
+
     // The point of the whole change. The two routes do NOT dedupe against each
     // other — the importer stamps `import:` keys and log_meal derives `auto:`
     // ones — so both copies are stored either way. What must not differ is
@@ -4258,6 +5614,369 @@ describe("manual write tools resolve logged_at in the profile timezone", () => {
                 loggedAtOf(db.inserted[0])!,
             );
             expect(loggedAtOf(db.inserted[0])).toBe("2026-07-20T19:00:00.000Z");
+        });
+    });
+});
+
+// ---------- body measurements ----------
+//
+// Five tools over body_measurement_log. What is pinned here is the handler
+// logic: the unit rule (explicit, then the saved length unit, then refuse —
+// never the weight unit), the per-site plausibility check, the kind filter and
+// default window of the read, display in the preferred unit, and the update
+// path that re-reads a stored number in a corrected unit. The SQL side is in
+// supabase.test.ts / supabase-window.test.ts.
+describe("body measurements", () => {
+    const rowsFor = (tool: string) =>
+        db.analyticsRows.filter((r) => r.tool_name === tool);
+
+    test("an explicit unit is stored as entered, plus its millimetres", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "hips",
+                value: 40,
+                unit: "in",
+            });
+            expect(r.isError).toBeFalsy();
+            const text = textOf(r);
+            expect(text).toContain("Body measurement logged: Hips 40 in");
+            expect(text).toContain(`ID: ${MEASUREMENT_ID}`);
+        });
+        expect(db.measurementInserted).toHaveLength(1);
+        expect(db.measurementInserted[0]).toMatchObject({
+            kind: "hips",
+            value_mm: 1016,
+            value_entered: 40,
+            entered_unit: "in",
+        });
+    });
+
+    test("a saved length unit fills in a missing unit", async () => {
+        db.profile = { ...PROFILE_BASE, preferred_length_unit: "cm" };
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "waist",
+                value: 84.5,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain("Waist 84.5 cm");
+        });
+        expect(db.measurementInserted[0]).toMatchObject({
+            value_mm: 845,
+            entered_unit: "cm",
+        });
+    });
+
+    test("no unit and no saved length unit is refused", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "waist",
+                value: 84.5,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("No length unit given");
+            expect(textOf(r)).toContain("set_length_unit");
+        });
+        expect(db.measurementInserted).toHaveLength(0);
+        expect(rowsFor("log_body_measurement")[0]!.error_category).toBe(
+            "missing_required_param",
+        );
+    });
+
+    test("the weight unit is never used as a length unit", async () => {
+        db.profile = { ...PROFILE_BASE, preferred_weight_unit: "lb" };
+        await withTools(null, async (call) => {
+            const r = await call("log_body_measurement", {
+                kind: "waist",
+                value: 33,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("No length unit given");
+        });
+        expect(db.measurementInserted).toHaveLength(0);
+    });
+
+    test("an implausible value is refused, with the other unit only when it fits", async () => {
+        await withTools(null, async (call) => {
+            const mm = await call("log_body_measurement", {
+                kind: "waist",
+                value: 845,
+                unit: "cm",
+            });
+            expect(mm.isError).toBe(true);
+            expect(textOf(mm)).toContain("is outside the plausible range");
+
+            const swapped = await call("log_body_measurement", {
+                kind: "calf",
+                value: 10,
+                unit: "cm",
+            });
+            expect(swapped.isError).toBe(true);
+            expect(textOf(swapped)).toContain("As 10 in it would be in range");
+            // No hint when the number fits neither unit.
+            expect(textOf(mm)).not.toContain(" As ");
+        });
+        expect(db.measurementInserted).toHaveLength(0);
+        expect(rowsFor("log_body_measurement")[0]!.error_category).toBe(
+            "invalid_numeric_value",
+        );
+    });
+
+    test("the kind filter reaches the reader and only that site is listed", async () => {
+        db.measurements = [
+            measurementRow({ kind: "waist" }),
+            measurementRow({
+                id: "00000000-0000-4000-8000-000000000005",
+                kind: "neck",
+                value_mm: 380,
+                value_entered: 38,
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_body_measurements", {
+                    kind: "neck",
+                    start_date: "2026-08-01",
+                    end_date: "2026-08-31",
+                }),
+            );
+            expect(text).toContain("- Neck 38 cm");
+            expect(text).not.toContain("Waist");
+        });
+        expect(db.measurementRangeArgs[0]!.kind).toBe("neck");
+    });
+
+    test("the default window is the 30 days ending today in the user's zone", async () => {
+        const tz = "Pacific/Auckland";
+        db.profile = { ...PROFILE_BASE, timezone: tz };
+        db.measurements = [measurementRow()];
+        await withTools(null, async (call) => {
+            const r = await call("get_body_measurements", {});
+            expect(textOf(r)).toContain(`Times are local (${tz})`);
+            await call("get_body_measurements", {
+                start_date: "2026-01-01",
+            });
+            await call("get_body_measurements", { end_date: "2026-03-31" });
+        });
+        const today = todayInTz(tz);
+        expect(db.measurementRangeArgs[0]).toEqual({
+            s: shiftLocalDate(today, -29),
+            e: today,
+            tz,
+            kind: undefined,
+        });
+        expect(db.measurementRangeArgs[1]!.s).toBe("2026-01-01");
+        expect(db.measurementRangeArgs[1]!.e).toBe(today);
+        expect(db.measurementRangeArgs[2]!.s).toBe("2026-03-02");
+        expect(db.measurementRangeArgs[2]!.e).toBe("2026-03-31");
+        expect(
+            rowsFor("get_body_measurements")[0]!.date_range_days,
+        ).toBeUndefined();
+    });
+
+    test("a saved length unit converts the display; without one each row keeps its own", async () => {
+        db.measurements = [measurementRow()];
+        const range = { start_date: "2026-08-01", end_date: "2026-08-31" };
+        await withTools(null, async (call) => {
+            expect(
+                textOf(await call("get_body_measurements", range)),
+            ).toContain("- Waist 84.5 cm");
+            db.profile = { ...PROFILE_BASE, preferred_length_unit: "in" };
+            expect(
+                textOf(await call("get_body_measurements", range)),
+            ).toContain("- Waist 33.3 in");
+        });
+    });
+
+    test("a new value is read in the entry's own unit, not the preference", async () => {
+        db.profile = { ...PROFILE_BASE, preferred_length_unit: "cm" };
+        db.measurements = [
+            measurementRow({
+                value_mm: 813,
+                value_entered: 32,
+                entered_unit: "in",
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                value: 33,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain("Waist 33 in");
+        });
+        expect(db.measurementUpdates[0]).toMatchObject({
+            value_mm: 838,
+            value_entered: 33,
+            entered_unit: "in",
+        });
+    });
+
+    test("a unit alone re-reads the stored number in that unit", async () => {
+        db.measurements = [
+            measurementRow({
+                kind: "neck",
+                value_mm: 320,
+                value_entered: 32,
+                entered_unit: "cm",
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                unit: "in",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain("Neck 32 in");
+        });
+        expect(db.measurementUpdates[0]).toMatchObject({
+            value_mm: 813,
+            value_entered: 32,
+            entered_unit: "in",
+        });
+    });
+
+    test("update_body_measurement takes no kind", async () => {
+        const server = new McpServer(
+            { name: "nutrition-mcp-test", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", true, null);
+        const [clientTransport, serverTransport] =
+            InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "test-client", version: "0.0.0" });
+        await Promise.all([
+            server.connect(serverTransport),
+            client.connect(clientTransport),
+        ]);
+        try {
+            const { tools } = await client.listTools();
+            const update = tools.find(
+                (t) => t.name === "update_body_measurement",
+            )!;
+            expect(
+                Object.keys(update.inputSchema.properties ?? {}),
+            ).not.toContain("kind");
+            expect(
+                tools.find((t) => t.name === "log_body_measurement")!
+                    .inputSchema.properties,
+            ).toHaveProperty("kind");
+        } finally {
+            await client.close();
+            await server.close();
+        }
+    });
+
+    test("an update with nothing to change is refused before any write", async () => {
+        db.measurements = [measurementRow()];
+        await withTools(null, async (call) => {
+            const r = await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("Nothing to change");
+        });
+        expect(db.measurementUpdates).toHaveLength(0);
+        expect(rowsFor("update_body_measurement")[0]!.error_category).toBe(
+            "missing_required_param",
+        );
+    });
+
+    test("updating the value of a missing row is record_not_found", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("update_body_measurement", {
+                id: MEASUREMENT_ID,
+                value: 80,
+            });
+            expect(r.isError).toBe(true);
+            expect(
+                textOf(r).startsWith("No body measurement found with id"),
+            ).toBe(true);
+        });
+        expect(db.measurementUpdates).toHaveLength(0);
+        expect(rowsFor("update_body_measurement")[0]!.error_category).toBe(
+            "record_not_found",
+        );
+    });
+
+    test("set_length_unit saves, clears and refuses an unknown unit", async () => {
+        await withTools(null, async (call) => {
+            const set = await call("set_length_unit", { unit: "in" });
+            expect(textOf(set)).toContain("set to in");
+            expect(db.profilePatches[0]).toEqual({
+                preferred_length_unit: "in",
+            });
+
+            const cleared = await call("set_length_unit", { unit: null });
+            expect(textOf(cleared)).toContain("cleared");
+            expect(db.profilePatches[1]).toEqual({
+                preferred_length_unit: null,
+            });
+
+            const bad = await call("set_length_unit", { unit: "mm" });
+            expect(bad.isError).toBe(true);
+        });
+        expect(db.profilePatches).toHaveLength(2);
+    });
+
+    test("a long listing stops on a whole day and names where to continue", async () => {
+        const notes = "n".repeat(1000);
+        db.measurements = Array.from({ length: 50 }, (_, i) => {
+            const date = shiftLocalDate("2026-01-01", i);
+            return measurementRow({
+                id: `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+                logged_at: `${date}T08:00:00.000Z`,
+                notes,
+            });
+        });
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_body_measurements", {
+                    start_date: "2026-01-01",
+                    end_date: "2026-02-28",
+                    kind: "waist",
+                }),
+            );
+            const m = text.match(
+                /\(Listing stops after (\d{4}-\d{2}-\d{2}) to keep the response short; get_body_measurements with start_date (\d{4}-\d{2}-\d{2}), end_date 2026-02-28 and kind waist returns the rest\.\)$/,
+            );
+            expect(m).not.toBeNull();
+            expect(m![2]).toBe(shiftLocalDate(m![1]!, 1));
+            // The notice is the only thing past the budget, and the last day
+            // listed is complete.
+            const body = text.slice(0, text.lastIndexOf("\n\n(Listing"));
+            expect(body.length).toBeLessThanOrEqual(40_000);
+            expect(body).toContain(`## ${m![1]}`);
+            expect(body).not.toContain(`## ${m![2]}`);
+        });
+    });
+
+    test("notes reach the data layer as sent", async () => {
+        await withTools(null, async (call) => {
+            await call("log_body_measurement", {
+                kind: "upper_arm",
+                value: 34,
+                unit: "cm",
+                notes: "left\\nside",
+            });
+        });
+        expect(db.measurementInserted[0]!.notes).toBe("left\\nside");
+    });
+
+    test("a deduplicated log is rendered from the stored row", async () => {
+        db.dedupe = true;
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("log_body_measurement", {
+                    kind: "waist",
+                    value: 84.5,
+                    unit: "cm",
+                    logged_at: "2026-08-07T08:00:00Z",
+                }),
+            );
+            expect(text.startsWith("Already logged")).toBe(true);
+            expect(text).toContain("Waist 84.5 cm");
+            expect(text).toContain(`ID: ${MEASUREMENT_ID}`);
         });
     });
 });
@@ -4428,6 +6147,54 @@ describe("current-time disclosure", () => {
         });
     });
 
+    test("get_profile reports a saved length unit", async () => {
+        db.profile = { ...PROFILE_BASE, preferred_length_unit: "in" };
+        await withTools(null, async (call) => {
+            expect(textOf(await call("get_profile"))).toContain(
+                "Length unit: in.",
+            );
+        });
+    });
+
+    test("get_profile flags the length unit as unset without directing a call", async () => {
+        db.profile = null;
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_profile"));
+            expect(text).toContain("Length unit: not set.");
+            expect(text).not.toContain("Call set_");
+        });
+    });
+
+    test("get_profile reports Apple Health sync as not connected", async () => {
+        await withTools(null, async (call) => {
+            expect(textOf(await call("get_profile"))).toContain(
+                "Apple Health sync: not connected.",
+            );
+        });
+    });
+
+    test("get_profile reports a connected Apple Health sync in local time", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.healthSyncLink = {
+            kind: "shortcut",
+            fields: ["energy_kcal"],
+            fallback_tz: "Europe/Kyiv",
+            sync_start_date: "2026-09-26",
+            created_at: "2026-09-26T22:30:00.000Z",
+            last_used_at: "2026-10-02T05:10:00.000Z",
+            last_sync_at: "2026-10-02T05:10:30.000Z",
+            expires_at: "2026-12-31T05:10:00.000Z",
+        };
+        db.healthSyncSentThrough = "2026-10-01";
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_profile"));
+            // 22:30Z on the 26th is already the 27th in Kyiv.
+            expect(text).toContain(
+                "Apple Health sync: connected 2026-09-27, sent through 2026-10-01, last sync 2026-10-02 08:10.",
+            );
+        });
+    });
+
     test("get_current_time answers in the profile's zone, and is measured", async () => {
         db.profile = { ...PROFILE_BASE, timezone: "Asia/Tokyo" };
         await withTools(null, async (call) => {
@@ -4477,7 +6244,7 @@ describe("current-time disclosure", () => {
     // The shipped guidance is the actual fix: the three "log it now" tools used
     // to tell the model to ask the user for the time before calling them. Now
     // they tell it to omit the field and let the server stamp now.
-    test("log_meal, log_water and log_weight tell the model to omit logged_at, not to ask", async () => {
+    test("log_meal, log_water, log_weight and log_body_measurement tell the model to omit logged_at, not to ask", async () => {
         const server = new McpServer(
             { name: "t", version: "0.0.0" },
             { capabilities: { tools: {}, resources: {} } },
@@ -4488,24 +6255,50 @@ describe("current-time disclosure", () => {
         await Promise.all([server.connect(st), client.connect(ct)]);
         try {
             const { tools } = await client.listTools();
-            for (const name of ["log_meal", "log_water", "log_weight"]) {
-                const props = (
+            const propsOf = (name: string) =>
+                (
                     tools.find((t) => t.name === name)?.inputSchema as {
                         properties?: Record<string, { description?: string }>;
                     }
                 )?.properties;
-                const desc = props?.logged_at?.description ?? "";
+            for (const name of [
+                "log_meal",
+                "log_water",
+                "log_weight",
+                "log_body_measurement",
+            ]) {
+                const desc = propsOf(name)?.logged_at?.description ?? "";
                 expect(desc).not.toBe("");
                 expect(desc).not.toContain(
                     "ask the user before calling this tool",
                 );
-                // Asking the user is not prescribed: the text states that the
-                // server knows the time, so there is no need to ask (#102).
                 expect(desc).not.toMatch(/\b(?:do not|don't) ask the user\b/i);
+                expect(desc).toContain("get_current_time");
+            }
+            // The three older tools still carry the inherited wording: the
+            // server knows the time, so there is no need to ask (#102). They
+            // move to the descriptive form under #198.
+            for (const name of ["log_meal", "log_water", "log_weight"]) {
+                const desc = propsOf(name)?.logged_at?.description ?? "";
                 expect(desc).toContain("The server knows the current time");
                 expect(desc).toContain("no need to ask the user");
                 expect(desc).toContain("omit this field entirely");
-                expect(desc).toContain("get_current_time");
+            }
+            // log_body_measurement, added after the directory review, only
+            // describes what an omitted value means and what the key does.
+            const body = propsOf("log_body_measurement");
+            const bodyLoggedAt = body?.logged_at?.description ?? "";
+            expect(bodyLoggedAt).toContain(
+                "Omitted, the server stamps the entry with the current time",
+            );
+            for (const text of [
+                bodyLoggedAt,
+                body?.idempotency_key?.description ?? "",
+            ]) {
+                expect(text).not.toBe("");
+                expect(text).not.toMatch(
+                    /\b(?:never|do not|don't|no need to|omit this|only supply|pass any|send the same)\b/i,
+                );
             }
             // ...and the tool that replaces the question is actually reachable.
             expect(tools.map((t) => t.name)).toContain("get_current_time");
@@ -4554,7 +6347,9 @@ describe("export_all_data is on the tool surface", () => {
             "meals.csv",
             "water.csv",
             "weight.csv",
+            "body_measurements.csv",
             "goals.csv",
+            "goals_history.csv",
             "profile.csv",
             "account.csv",
             "telemetry.csv",
@@ -4607,20 +6402,22 @@ describe("every tool carries directory-ready annotations", () => {
 
         // destructiveHint is true exactly for tools that overwrite or remove a
         // user record — "false" means "only additive updates" in the spec, so
-        // the update_* tools and set_nutrition_goals belong here. The five
+        // the update_* tools and set_nutrition_goals belong here. The six
         // preference setters stay out on purpose: each replaces one visible
         // preference that get_profile shows and the user can set back.
         const DESTRUCTIVE = new Set([
             "delete_meal",
             "delete_water",
             "delete_weight",
+            "delete_body_measurement",
             "delete_account",
             "update_meal",
             "update_weight",
+            "update_body_measurement",
             "set_nutrition_goals",
         ]);
         const OPEN_WORLD = new Set(["lookup_barcode"]);
-        expect(tools.length).toBe(36);
+        expect(tools.length).toBe(41);
         for (const t of tools) {
             const a = t.annotations;
             expect(a?.title, t.name).toBeTruthy();
@@ -4945,6 +6742,7 @@ describe("tool text leaves writes and location to the user", () => {
                     "set_language",
                     "set_timezone",
                     "get_meal_patterns",
+                    "get_trends",
                 ]) {
                     expect(desc(name), name).not.toMatch(/\boffer\b/i);
                     expect(desc(name), name).not.toMatch(/narrate/i);
@@ -5045,7 +6843,12 @@ describe("tool text makes only claims the code keeps", () => {
                         (byName.get(name)!.inputSchema.properties ??
                             {}) as Record<string, { description?: string }>
                     ).idempotency_key?.description ?? "";
-                for (const name of ["log_meal", "log_water", "log_weight"]) {
+                for (const name of [
+                    "log_meal",
+                    "log_water",
+                    "log_weight",
+                    "log_body_measurement",
+                ]) {
                     const d = keyDescription(name);
                     expect(d, name).toContain("omits logged_at");
                     expect(d, name).toContain("adds a new");
@@ -5099,6 +6902,11 @@ describe("dedupe headers do not claim a retry", () => {
         ],
         ["log_water", { amount_ml: 250 }, "Water logged"],
         ["log_weight", { weight: 70, unit: "kg" }, "Weight logged"],
+        [
+            "log_body_measurement",
+            { kind: "waist", value: 84.5, unit: "cm" },
+            "Body measurement logged",
+        ],
     ];
 
     test.each(WRITES)(
@@ -5224,6 +7032,37 @@ describe("/mcp serves one tool surface on both protocol eras", () => {
         },
     );
 
+    // `extra` rides in _meta beside the frozen structuredContent: the client's
+    // outputSchema check (armed by listTools) must still pass on both legs.
+    test.each(ERAS)(
+        "get_nutrition_summary's added-sugar extra rows survive in _meta (%p)",
+        async (mode) => {
+            db.meals = addedSugarGapMeals();
+            await withHttpClient("u1", mode, async (client) => {
+                await client.listTools();
+                const r = await client.callTool({
+                    name: "get_nutrition_summary",
+                    arguments: {
+                        start_date: "2026-01-01",
+                        end_date: "2026-01-31",
+                    },
+                });
+                expect(r.isError).toBeFalsy();
+                const meta = r._meta?.[ADDED_SUGAR_META_KEY] as AddedSugarMeta;
+                expect(meta.extra?.map((e) => e.description)).toEqual([
+                    "sweetened iced tea",
+                ]);
+                expect(
+                    (
+                        r.structuredContent as {
+                            meals: { description: string }[];
+                        }
+                    ).meals.map((m) => m.description),
+                ).not.toContain("sweetened iced tea");
+            });
+        },
+    );
+
     // A widget is only usable if the resource read hands back the assembled,
     // fully-inlined document under the mcp-app mime type: the iframe CSP is
     // deny-all, so anything left un-inlined simply never loads.
@@ -5291,6 +7130,47 @@ describe("/mcp serves one tool surface on both protocol eras", () => {
             expect(new Set(db.profileReads)).toEqual(new Set(["mode-user"]));
         },
     );
+});
+
+// The added-sugar refusal reaches both eras as an isError result carrying the
+// text, and a gated-on success still validates against the frozen schema
+// (withHttpClient arms the client's advertised-schema check).
+describe("/mcp: the added-sugar refusal on both eras", () => {
+    test.each(ERAS)("refused and saved (%p)", async (mode) => {
+        const before = process.env.ADDED_SUGAR_REQUIRED_FROM;
+        process.env.ADDED_SUGAR_REQUIRED_FROM = "2000-01-01";
+        try {
+            await withHttpClient("u1", mode, async (client) => {
+                const refused = (await client.callTool({
+                    name: "log_meal",
+                    arguments: {
+                        description: "Cola",
+                        meal_type: "snack",
+                        sugar_g: 35,
+                    },
+                })) as ToolResult;
+                expect(refused.isError).toBe(true);
+                expect(textOf(refused)).toBe(addedSugarMissingText());
+                expect(db.inserted).toHaveLength(0);
+                const saved = (await client.callTool({
+                    name: "log_meal",
+                    arguments: {
+                        description: "Cola",
+                        meal_type: "snack",
+                        sugar_g: 35,
+                        added_sugar_g: 35,
+                    },
+                })) as ToolResult;
+                expect(saved.isError).toBeFalsy();
+                expect(saved.structuredContent).toBeDefined();
+            });
+            expect(db.inserted).toHaveLength(1);
+        } finally {
+            if (before === undefined)
+                delete process.env.ADDED_SUGAR_REQUIRED_FROM;
+            else process.env.ADDED_SUGAR_REQUIRED_FROM = before;
+        }
+    });
 });
 
 describe("/mcp still serves 2025-era clients unchanged", () => {
@@ -5835,4 +7715,1185 @@ describe("output schemas are frozen once deployed", () => {
         const html = await getWidgetHtml("nutrition-summary");
         expect(html).toContain(JSON.stringify(MEAL_CONTRIBUTORS_META_KEY));
     });
+});
+
+// ---------- get_weight_trends: trend weight and long-range series ----------
+
+/** A stored weigh-in at an exact instant. */
+function weighIn(logged_at: string, weight_g: number): WeightEntry {
+    return {
+        id: WEIGHT_ID,
+        user_id: "u1",
+        weight_g,
+        logged_at,
+        notes: null,
+        created_at: logged_at,
+        idempotency_key: null,
+    };
+}
+
+/** One 08:00 UTC weigh-in a day for `days` days from `from`, losing
+ *  `lossPerDay` grams a day from `startG`. */
+function dailyWeighIns(
+    from: string,
+    days: number,
+    startG: number,
+    lossPerDay = 0,
+): WeightEntry[] {
+    return Array.from({ length: days }, (_, i) =>
+        weighIn(
+            `${shiftLocalDate(from, i)}T08:00:00.000Z`,
+            startG - lossPerDay * i,
+        ),
+    );
+}
+
+/** The `_meta[WEIGHT_SERIES_META_KEY]` contract the widget reads (v1). Strict,
+ *  so a stray field fails here before it surprises the template. */
+const POINT = { weight: z.number(), trend: z.number() };
+const WEIGHT_SERIES = z.strictObject({
+    v: z.literal(1),
+    unit: z.string(),
+    daily: z.array(z.strictObject({ date: z.iso.date(), ...POINT })),
+    weekly: z.array(z.strictObject({ start: z.iso.date(), ...POINT })),
+    monthly: z.array(
+        z.strictObject({ month: z.string().regex(/^\d{4}-\d{2}$/), ...POINT }),
+    ),
+    first: z
+        .strictObject({ date: z.iso.date(), weight: z.number() })
+        .nullable(),
+    trend_latest: z.number().nullable(),
+    trend_date: z.iso.date().nullable(),
+    weekly_rate: z.number().nullable(),
+});
+
+describe("get_weight_trends", () => {
+    // Kyiv is UTC+3 in summer, so the day bucketing is visibly local: the
+    // 21:30Z weigh-in on May 31 is June 1 there, the 20:00Z one is not.
+    const FIXTURE = [
+        weighIn("2024-02-10T08:00:00.000Z", 92_000), // history only
+        weighIn("2026-05-31T20:00:00.000Z", 85_000), // May 31 local: warm-up
+        weighIn("2026-05-31T21:30:00.000Z", 80_000), // June 1 local
+        weighIn("2026-06-01T06:00:00.000Z", 81_000), // June 1 local
+        weighIn("2026-06-15T08:00:00.000Z", 79_940),
+        weighIn("2026-06-29T22:30:00.000Z", 79_000), // June 30 local
+        weighIn("2026-07-01T08:00:00.000Z", 70_000), // after end_date
+    ];
+
+    // The 30-day structuredContent the pre-trend handler produced for this
+    // fixture, written out by hand: same keys, same order, same values. It
+    // is frozen, so the full-history read must not change one byte of it.
+    const EXPECTED_STRUCTURED = {
+        end_date: "2026-06-30",
+        unit: "kg",
+        target: null,
+        default_range: 30,
+        locale: "en",
+        days: [
+            { date: "2026-06-01", weight: 80.5 },
+            { date: "2026-06-15", weight: 79.9 },
+            { date: "2026-06-30", weight: 79 },
+        ],
+    };
+
+    test.each(ERAS)(
+        "structuredContent validates against the frozen schema and the series rides in _meta (%p)",
+        async (mode) => {
+            db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+            db.weights = FIXTURE;
+            const frozen = (await Bun.file(
+                new URL("./output-schemas.frozen.json", import.meta.url),
+            ).json()) as Record<string, JsonSchemaType>;
+            const validate = new AjvJsonSchemaValidator().getValidator(
+                frozen.get_weight_trends!,
+            );
+            await withHttpClient("u1", mode, async (client) => {
+                await client.listTools();
+                const r = await client.callTool({
+                    name: "get_weight_trends",
+                    arguments: { end_date: "2026-06-30" },
+                });
+                expect(r.isError).toBeFalsy();
+                const result = validate(r.structuredContent);
+                expect(result.errorMessage).toBeUndefined();
+                expect(result.valid).toBe(true);
+                const meta = WEIGHT_SERIES.parse(
+                    r._meta?.[WEIGHT_SERIES_META_KEY],
+                );
+                expect(meta.unit).toBe("kg");
+                expect(meta.first).toEqual({ date: "2024-02-10", weight: 92 });
+                expect(meta.trend_date).toBe("2026-06-30");
+                // Nothing in _meta leaked into the frozen payload.
+                expect(Object.keys(r.structuredContent ?? {})).toEqual(
+                    Object.keys(EXPECTED_STRUCTURED),
+                );
+            });
+        },
+    );
+
+    test("structuredContent.days is byte for byte the pre-trend 30-day payload", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.weights = FIXTURE;
+        await withTools(null, async (call) => {
+            const r = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(JSON.stringify(r.structuredContent)).toBe(
+                JSON.stringify(EXPECTED_STRUCTURED),
+            );
+        });
+    });
+
+    test("one full-history read; warm-up and history days stay out of structuredContent", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.weights = FIXTURE;
+        await withTools(null, async (call) => {
+            const r = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(db.weightReads).toEqual(["all"]);
+            const days = (
+                r.structuredContent as { days: { date: string }[] }
+            ).days.map((d) => d.date);
+            expect(days).not.toContain("2026-05-31");
+            expect(days).not.toContain("2024-02-10");
+            expect(days).not.toContain("2026-07-01");
+            const meta = WEIGHT_SERIES.parse(r._meta?.[WEIGHT_SERIES_META_KEY]);
+            // The warm-up day was read and fed the trend: it is in the
+            // 90-day series, and the trend on June 1 is pulled toward 85 kg
+            // rather than seeded at 80.5.
+            expect(meta.daily.map((d) => d.date)).toEqual([
+                "2026-05-31",
+                "2026-06-01",
+                "2026-06-15",
+                "2026-06-30",
+            ]);
+            expect(meta.daily[1]!.trend).toBeGreaterThan(80.5);
+            // Weigh-ins after end_date never reach any series.
+            expect(meta.monthly.map((m) => m.month)).toEqual([
+                "2024-02",
+                "2026-05",
+                "2026-06",
+            ]);
+            // The text names the history the window does not show.
+            expect(textOf(r)).toContain(
+                `Since first weigh-in (2024-02-10, 92 kg): `,
+            );
+            expect(textOf(r)).toContain(`trend now ${meta.trend_latest} kg.`);
+        });
+    });
+
+    test("a 3-year user gets a monthly series of every month, and the text rate equals the chip's", async () => {
+        // 2023-07-01 … 2026-06-30: 1096 daily weigh-ins over 36 months.
+        db.weights = dailyWeighIns("2023-07-01", 1096, 100_000, 20);
+        await withTools(null, async (call) => {
+            const r = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(r.isError).toBeFalsy();
+            const meta = WEIGHT_SERIES.parse(r._meta?.[WEIGHT_SERIES_META_KEY]);
+            expect(meta.monthly).toHaveLength(36);
+            expect(meta.monthly[0]!.month).toBe("2023-07");
+            expect(meta.monthly.at(-1)!.month).toBe("2026-06");
+            expect(meta.weekly).toHaveLength(53);
+            expect(meta.daily).toHaveLength(90);
+            expect(meta.first).toEqual({ date: "2023-07-01", weight: 100 });
+            // 20 g a day is 0.14 kg a week: 2 decimals in _meta, and the
+            // 1 decimal both the text and the chip show.
+            expect(meta.weekly_rate).toBe(-0.14);
+            expect(rateForDisplay(meta.weekly_rate!)).toBe(-0.1);
+            // Exact glyphs: a real minus (U+2212) and one decimal, the same
+            // rule as the widget chip's signed().
+            expect(textOf(r)).toContain(
+                `Trend weight: ${meta.trend_latest} kg (−0.1 kg/week over the last 2 weeks)`,
+            );
+            expect(textOf(r)).not.toMatch(/\(-\d/);
+            // structuredContent still holds only the last 30 days.
+            expect(
+                (r.structuredContent as { days: unknown[] }).days,
+            ).toHaveLength(30);
+        });
+    });
+
+    test("default_range maps days to the widget's ranges", async () => {
+        db.weights = dailyWeighIns("2026-06-01", 30, 80_000);
+        const cases: [number, number][] = [
+            [7, 7],
+            [14, 14],
+            [30, 30],
+            [90, 90],
+            [365, 365],
+            [2, 30],
+            [45, 30],
+        ];
+        await withTools(null, async (call) => {
+            for (const [days, expected] of cases) {
+                const r = await call("get_weight_trends", {
+                    days,
+                    end_date: "2026-06-30",
+                });
+                expect(
+                    (r.structuredContent as { default_range: number })
+                        .default_range,
+                    `days=${days}`,
+                ).toBe(expected);
+            }
+        });
+    });
+
+    test("the text names the 30-day span of the structured series when the window differs", async () => {
+        db.weights = dailyWeighIns("2026-03-01", 122, 80_000);
+        const note = "The structured daily series covers the last 30 days only";
+        await withTools(null, async (call) => {
+            const r93 = await call("get_weight_trends", {
+                days: 93,
+                end_date: "2026-06-30",
+            });
+            expect(textOf(r93)).toContain(
+                `${note} (2026-06-01 to 2026-06-30); the figures above cover the requested 93-day window.`,
+            );
+            const r7 = await call("get_weight_trends", {
+                days: 7,
+                end_date: "2026-06-30",
+            });
+            expect(textOf(r7)).toContain(note);
+            const r30 = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(textOf(r30)).not.toContain(note);
+        });
+    });
+
+    test("no weigh-ins at all still returns the frozen payload and an empty series", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(r.structuredContent).toMatchObject({ days: [] });
+            expect(
+                WEIGHT_SERIES.parse(r._meta?.[WEIGHT_SERIES_META_KEY]),
+            ).toMatchObject({
+                daily: [],
+                weekly: [],
+                monthly: [],
+                first: null,
+                trend_latest: null,
+                weekly_rate: null,
+            });
+        });
+    });
+
+    // The widget cannot import the key, so it carries the literal; a rename
+    // on the server would otherwise pass every server test while every host
+    // silently fell back to the raw 7/14/30-day chart.
+    test("the weight-trends widget reads _meta under WEIGHT_SERIES_META_KEY", async () => {
+        expect(WEIGHT_SERIES_META_KEY).toBe("nutrition-mcp.com/weight-series");
+        const html = await getWidgetHtml("weight-trends");
+        expect(html).toContain(JSON.stringify(WEIGHT_SERIES_META_KEY));
+    });
+});
+
+// ---------- get_trends group_by: per-period averages in _meta ----------
+
+const PERIOD_TARGETS = z
+    .strictObject({
+        calories: z.number().nullable(),
+        protein: z.number().nullable(),
+        carbs: z.number().nullable(),
+        fat: z.number().nullable(),
+    })
+    .nullable();
+const PERIOD_ROW = z.strictObject({
+    key: z.string(),
+    start: z.iso.date(),
+    end: z.iso.date(),
+    days: z.number().int(),
+    partial: z.boolean(),
+    logged_days: z.number().int(),
+    avg: z
+        .strictObject({
+            calories: z.number(),
+            protein: z.number(),
+            carbs: z.number(),
+            fat: z.number(),
+        })
+        .nullable(),
+    targets: PERIOD_TARGETS,
+    targets_changed: z.boolean(),
+    targets_assumed: z.boolean(),
+    on_target_days: z.number().int().nullable(),
+    incomplete_days: z.number().int().nullable(),
+});
+const PERIOD_META = z.strictObject({
+    v: z.literal(1),
+    end_date: z.iso.date(),
+    group_by: z.enum(["week", "month", "quarter", "year"]),
+    targets_from: z.iso.date().nullable(),
+    periods: z.strictObject({
+        week: z.array(PERIOD_ROW),
+        month: z.array(PERIOD_ROW),
+        quarter: z.array(PERIOD_ROW),
+        year: z.array(PERIOD_ROW),
+    }),
+});
+
+/** A goals-history row: every column null unless given. */
+function historyRow(
+    effective_at: string,
+    over: Partial<NutritionGoalsHistoryRow> = {},
+): NutritionGoalsHistoryRow {
+    return {
+        effective_at,
+        daily_calories: null,
+        daily_protein_g: null,
+        daily_carbs_g: null,
+        daily_fat_g: null,
+        daily_fiber_g: null,
+        daily_sugar_g: null,
+        daily_added_sugar_g: null,
+        daily_alcohol_g: null,
+        daily_caffeine_mg: null,
+        daily_water_ml: null,
+        target_weight_g: null,
+        ...over,
+    };
+}
+
+describe("get_trends group_by", () => {
+    const END = "2026-07-31";
+    // One meal in late December 2025 (the first logged day, so every period
+    // before it is dropped), nothing from January to June (kept: the gap is
+    // the information), then most of July with varied totals.
+    const JULY_GAPS = new Set([5, 6, 12]);
+    const julyMeals = (): Meal[] => {
+        const out: Meal[] = [];
+        for (let d = 1; d <= 20; d++) {
+            if (JULY_GAPS.has(d)) continue;
+            const date = `2026-07-${String(d).padStart(2, "0")}`;
+            out.push(
+                meal({
+                    id: `jul-${d}-a`,
+                    logged_at: `${date}T08:00:00.000Z`,
+                    calories: 600 + 13 * d,
+                    protein_g: 30 + d,
+                    carbs_g: 70.5,
+                    fat_g: 20 + d / 3,
+                }),
+            );
+            if (d % 3 === 0) {
+                out.push(
+                    meal({
+                        id: `jul-${d}-b`,
+                        logged_at: `${date}T19:00:00.000Z`,
+                        calories: 1100,
+                        protein_g: 60,
+                        carbs_g: 120,
+                        fat_g: 41,
+                    }),
+                );
+            }
+        }
+        return out;
+    };
+    const FIXTURE = (): Meal[] => [
+        meal({
+            id: "dec",
+            logged_at: "2025-12-30T12:00:00.000Z",
+            calories: 1800,
+        }),
+        ...julyMeals(),
+    ];
+    // Goals recorded from July 10 (so July 1–9 assume them), raised on
+    // July 20 — a change inside July.
+    const HISTORY = [
+        historyRow("2026-07-10T09:00:00.000Z", {
+            daily_calories: 2000,
+            daily_protein_g: 120,
+            daily_carbs_g: 220,
+            daily_fat_g: 70,
+        }),
+        historyRow("2026-07-20T18:00:00.000Z", {
+            daily_calories: 2200,
+            daily_protein_g: 140,
+            daily_carbs_g: 240,
+            daily_fat_g: 70,
+        }),
+    ];
+
+    test.each(ERAS)(
+        "structuredContent validates against the frozen schema and the periods ride in _meta (%p)",
+        async (mode) => {
+            db.meals = FIXTURE();
+            db.goals = goals();
+            db.goalsHistory = HISTORY;
+            const frozen = (await Bun.file(
+                new URL("./output-schemas.frozen.json", import.meta.url),
+            ).json()) as Record<string, JsonSchemaType>;
+            const validate = new AjvJsonSchemaValidator().getValidator(
+                frozen.get_trends!,
+            );
+            await withHttpClient("u1", mode, async (client) => {
+                await client.listTools();
+                const r = await client.callTool({
+                    name: "get_trends",
+                    arguments: { end_date: END, group_by: "month" },
+                });
+                expect(r.isError).toBeFalsy();
+                const result = validate(r.structuredContent);
+                expect(result.errorMessage).toBeUndefined();
+                expect(result.valid).toBe(true);
+                const meta = PERIOD_META.parse(
+                    r._meta?.[PERIOD_AVERAGES_META_KEY],
+                );
+                expect(meta.end_date).toBe(END);
+                expect(meta.group_by).toBe("month");
+                // The widget's "targets before {date} not recorded" date:
+                // the first history row's local day.
+                expect(meta.targets_from).toBe("2026-07-10");
+                // Dec 2025 … Jul 2026, newest first: leading empty months
+                // dropped, the empty months inside the history kept.
+                expect(meta.periods.month.map((p) => p.key)).toEqual([
+                    "2026-07",
+                    "2026-06",
+                    "2026-05",
+                    "2026-04",
+                    "2026-03",
+                    "2026-02",
+                    "2026-01",
+                    "2025-12",
+                ]);
+                const feb = meta.periods.month.find(
+                    (p) => p.key === "2026-02",
+                )!;
+                expect(feb).toMatchObject({
+                    days: 28,
+                    logged_days: 0,
+                    avg: null,
+                });
+                expect(meta.periods.year.map((p) => p.key)).toEqual([
+                    "2026",
+                    "2025",
+                ]);
+                // Nothing in _meta leaked into the frozen payload.
+                expect(Object.keys(r.structuredContent ?? {})).toEqual([
+                    "end_date",
+                    "default_range",
+                    "drink_unit",
+                    "locale",
+                    "goals",
+                    "days",
+                ]);
+            });
+        },
+    );
+
+    test("without group_by: no _meta key, no history read, and today's read window and structuredContent", async () => {
+        db.meals = FIXTURE();
+        db.goals = goals();
+        db.goalsHistory = HISTORY;
+        await withTools(null, async (call) => {
+            const plain = await call("get_trends", { end_date: END });
+            expect(plain.isError).toBeFalsy();
+            expect(plain._meta?.[PERIOD_AVERAGES_META_KEY]).toBeUndefined();
+            expect(db.goalsHistoryReads).toBe(0);
+            expect(db.mealRangeArgs).toEqual([["2026-07-02", END]]);
+            // The pre-group_by payload, rebuilt from the same helpers the
+            // handler always used: same keys, same order, same values.
+            const start = shiftLocalDate(END, -29);
+            const expected = {
+                end_date: END,
+                default_range: 30,
+                drink_unit: null,
+                locale: "en",
+                goals: goalsPayloadOf(db.goals, null),
+                days: buildDailyBuckets(db.meals, [], start, END, "UTC").map(
+                    (b) => trendsDayPayloadOf(b, null),
+                ),
+            };
+            expect(JSON.stringify(plain.structuredContent)).toBe(
+                JSON.stringify(expected),
+            );
+            expect(textOf(plain)).not.toContain("per logged day");
+
+            // group_by leaves structuredContent alone and only appends text.
+            const grouped = await call("get_trends", {
+                end_date: END,
+                group_by: "month",
+            });
+            expect(JSON.stringify(grouped.structuredContent)).toBe(
+                JSON.stringify(expected),
+            );
+            expect(textOf(grouped).startsWith(textOf(plain))).toBe(true);
+            expect(db.goalsHistoryReads).toBe(1);
+            // One meal read, widened to the 5-year span.
+            expect(db.mealRangeArgs).toEqual([
+                ["2026-07-02", END],
+                ["2022-01-01", END],
+            ]);
+        });
+    });
+
+    test("days still sets the structured window when group_by is set", async () => {
+        db.meals = FIXTURE();
+        await withTools(null, async (call) => {
+            const plain = await call("get_trends", { end_date: END, days: 7 });
+            const grouped = await call("get_trends", {
+                end_date: END,
+                days: 7,
+                group_by: "week",
+            });
+            expect(JSON.stringify(grouped.structuredContent)).toBe(
+                JSON.stringify(plain.structuredContent),
+            );
+            expect(
+                (grouped.structuredContent as { default_range: number })
+                    .default_range,
+            ).toBe(7);
+        });
+    });
+
+    test("the text lists the requested granularity per logged day, with the goal notes", async () => {
+        db.meals = FIXTURE();
+        db.goalsHistory = HISTORY;
+        await withTools(null, async (call) => {
+            const month = textOf(
+                await call("get_trends", { end_date: END, group_by: "month" }),
+            );
+            expect(month).toContain(
+                "Averages per logged day (days with no meals are excluded), vs the targets in effect at the time.",
+            );
+            const july = month
+                .split("\n")
+                .find((l) => l.startsWith("Jul 2026 · "));
+            expect(july).toBeDefined();
+            expect(july).toContain("17/31 days logged");
+            expect(july).toContain("(target 2,200)");
+            expect(july).toContain("targets changed mid-period");
+            expect(july).toContain("targets before 2026-07-10 not recorded");
+            expect(month).toContain("Feb 2026 · 0/28 days logged");
+            // Newest first.
+            expect(month.indexOf("Jul 2026")).toBeLessThan(
+                month.indexOf("Dec 2025"),
+            );
+
+            const week = textOf(
+                await call("get_trends", { end_date: END, group_by: "week" }),
+            );
+            expect(week).toContain("Jul 27 – Aug 2, 2026 (partial)");
+            expect(week).not.toContain("Jul 2026 ·");
+        });
+    });
+
+    test("meals before the 5-year span keep its empty early periods as inner gaps", async () => {
+        db.meals = FIXTURE();
+        const years = async () => {
+            let rows: { key: string; logged_days: number }[] = [];
+            await withTools(null, async (call) => {
+                const r = await call("get_trends", {
+                    end_date: END,
+                    group_by: "year",
+                });
+                rows = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY])
+                    .periods.year;
+            });
+            return rows;
+        };
+        const cut = await years();
+        expect(cut.map((r) => r.key)).not.toContain("2022");
+        expect(db.mealsBeforeArgs).toEqual(["2022-01-01"]);
+
+        db.mealsBefore = true;
+        const kept = await years();
+        expect(kept.map((r) => r.key)).toEqual([
+            "2026",
+            "2025",
+            "2024",
+            "2023",
+            "2022",
+        ]);
+        expect(kept.at(-1)?.logged_days).toBe(0);
+    });
+
+    test("no goals history: averages only, no targets anywhere", async () => {
+        db.meals = FIXTURE();
+        db.goals = goals();
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "quarter",
+            });
+            expect(r.isError).toBeFalsy();
+            const meta = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY]);
+            for (const g of ["week", "month", "quarter", "year"] as const) {
+                for (const row of meta.periods[g]) {
+                    expect(row.targets).toBeNull();
+                    expect(row.on_target_days).toBeNull();
+                    expect(row.incomplete_days).toBeNull();
+                }
+            }
+            expect(textOf(r)).toContain("No nutrition targets are set.");
+            expect(textOf(r)).not.toContain("(target");
+        });
+    });
+
+    test("nothing logged in the span still validates and returns empty periods", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "year",
+            });
+            expect(r.isError).toBeFalsy();
+            const meta = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY]);
+            expect(meta.targets_from).toBeNull();
+            expect(meta.periods).toEqual({
+                week: [],
+                month: [],
+                quarter: [],
+                year: [],
+            });
+            expect(textOf(r)).toContain(
+                `no meals logged in the last ${PERIOD_ROW_COUNTS.year} years`,
+            );
+        });
+    });
+
+    test("an unknown granularity is refused before the database", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "day",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("group_by");
+            expect(db.mealRangeArgs).toEqual([]);
+        });
+    });
+
+    test("logged days add up across granularities", async () => {
+        db.meals = FIXTURE();
+        db.goalsHistory = HISTORY;
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "year",
+            });
+            const meta = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY]);
+            const logged = (g: "month" | "quarter" | "year") =>
+                meta.periods[g].reduce((n, p) => n + p.logged_days, 0);
+            // All 18 logged days sit inside every span but the 26 weeks'.
+            expect(logged("year")).toBe(18);
+            expect(logged("quarter")).toBe(18);
+            expect(logged("month")).toBe(18);
+            const q3 = meta.periods.quarter.find((p) => p.key === "2026-Q3")!;
+            const julyToSep = meta.periods.month.filter((p) =>
+                ["2026-07", "2026-08", "2026-09"].includes(p.key),
+            );
+            expect(julyToSep.reduce((n, p) => n + p.logged_days, 0)).toBe(
+                q3.logged_days,
+            );
+        });
+    });
+
+    // The acceptance cross-check: for a month inside get_nutrition_summary's
+    // 92-day cap, the month's per-logged-day averages are the summary's
+    // logged-day averages over the same dates. No water-only day here: the
+    // summary counts one as logged, a period row deliberately does not.
+    test("a month's per-logged-day averages equal get_nutrition_summary's over the same dates", async () => {
+        db.meals = julyMeals();
+        db.goalsHistory = HISTORY;
+        await withTools(null, async (call) => {
+            const summary = (
+                await call("get_nutrition_summary", {
+                    start_date: "2026-07-01",
+                    end_date: END,
+                })
+            ).structuredContent as {
+                logged_days: number;
+                averages: {
+                    calories: number;
+                    protein_g: number;
+                    carbs_g: number;
+                    fat_g: number;
+                };
+            };
+            const r = await call("get_trends", {
+                end_date: END,
+                group_by: "month",
+            });
+            const july = PERIOD_META.parse(r._meta?.[PERIOD_AVERAGES_META_KEY])
+                .periods.month[0]!;
+            expect(july.key).toBe("2026-07");
+            expect(july.partial).toBe(false);
+            expect(july.logged_days).toBe(summary.logged_days);
+            const r1 = (n: number) => Math.round(n * 10) / 10;
+            expect(Math.round(july.avg!.calories)).toBe(
+                summary.averages.calories,
+            );
+            expect(r1(july.avg!.protein)).toBe(summary.averages.protein_g);
+            expect(r1(july.avg!.carbs)).toBe(summary.averages.carbs_g);
+            expect(r1(july.avg!.fat)).toBe(summary.averages.fat_g);
+        });
+    });
+
+    // The widget cannot import the key, so it carries the literal; a rename
+    // on the server would otherwise pass every server test while every host
+    // silently stayed on the 7/14/30-day view.
+    test("the trends widget reads _meta under PERIOD_AVERAGES_META_KEY", async () => {
+        expect(PERIOD_AVERAGES_META_KEY).toBe(
+            "nutrition-mcp.com/period-averages",
+        );
+        const html = await getWidgetHtml("trends");
+        expect(html).toContain(JSON.stringify(PERIOD_AVERAGES_META_KEY));
+    });
+});
+
+// ---------- get_profile's Apple Health sync line, and the delete text ----------
+
+describe("healthSyncProfileLine", () => {
+    const link = {
+        kind: "shortcut" as const,
+        fields: ["energy_kcal"],
+        fallback_tz: null,
+        sync_start_date: "2026-09-26",
+        created_at: "2026-09-27T06:00:00.000Z",
+        last_used_at: null,
+        last_sync_at: null,
+        expires_at: "2026-12-26T06:00:00.000Z",
+        sent_through: null,
+    };
+
+    test("says plainly when nothing is connected or the status is unreadable", () => {
+        expect(healthSyncProfileLine(null, "UTC")).toBe(
+            "Apple Health sync: not connected.",
+        );
+        expect(healthSyncProfileLine(undefined, "UTC")).toBe(
+            "Apple Health sync: status unavailable right now.",
+        );
+    });
+
+    test("a link that has not synced yet says so instead of inventing dates", () => {
+        expect(healthSyncProfileLine(link, "America/New_York")).toBe(
+            "Apple Health sync: connected 2026-09-27, sent through nothing yet, last sync never.",
+        );
+    });
+
+    test("describes, never directs", () => {
+        for (const line of [
+            healthSyncProfileLine(null, "UTC"),
+            healthSyncProfileLine(undefined, "UTC"),
+            healthSyncProfileLine(link, "UTC"),
+        ])
+            expect(line).not.toMatch(/\b(call|offer|ask|tell|suggest)\b/i);
+    });
+});
+
+test("delete_account names the Apple Health sync connection and its record", async () => {
+    const server = new McpServer(
+        { name: "t", version: "0.0.0" },
+        { capabilities: { tools: {}, resources: {} } },
+    );
+    registerTools(server, "u1", true, null);
+    const [ct, st] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "c", version: "0.0.0" });
+    await Promise.all([server.connect(st), client.connect(ct)]);
+    const { tools } = await client.listTools();
+    await client.close();
+    await server.close();
+    const desc =
+        tools.find((t) => t.name === "delete_account")?.description ?? "";
+    expect(desc).toContain("Apple Health sync connection");
+    expect(desc).toContain("record of values sent");
+});
+
+// ---------- added sugar reaches the widgets through _meta ----------
+//
+// No structuredContent object may gain a field (the schemas are frozen), so
+// the five widget tools carry an AddedSugarMeta under ADDED_SUGAR_META_KEY in
+// the result's _meta instead. Driven over HTTP on both eras: withHttpClient
+// arms the client's advertised-schema check, so every call below also proves
+// structuredContent still validates against the frozen schema.
+describe("added sugar rides in _meta on every widget tool", () => {
+    // The payload's whole v1 contract, strictly: a stray key would mean the
+    // widget is reading something the server never promised.
+    const ADDED_SUGAR_META = z
+        .object({
+            v: z.literal(1),
+            goal: z.number().nullable(),
+            days: z.record(z.string(), z.number().nullable()).optional(),
+            meals: z.record(z.string(), z.number().nullable()).optional(),
+            contributors: z.number().int().min(0).optional(),
+            extra: z
+                .array(
+                    z.strictObject({
+                        description: z.string(),
+                        meal_type: z.string().nullable(),
+                        date: z.string().nullable(),
+                        added_sugar_g: z.number().positive(),
+                    }),
+                )
+                .max(MEAL_BREAKDOWN_TOP_N)
+                .optional(),
+        })
+        .strict();
+    type AddedSugarPayload = z.infer<typeof ADDED_SUGAR_META>;
+
+    const DAY = "2026-07-26";
+    const BANANA_1 = "00000000-0000-4000-8000-0000000000b1";
+    const BANANA_2 = "00000000-0000-4000-8000-0000000000b2";
+    const COLA = "00000000-0000-4000-8000-0000000000c1";
+
+    // The brief's acceptance day: two bananas (~120 g each) and a 330 ml
+    // cola — about 64 g total sugar, 35 g of it added, all from the cola.
+    function bananasAndCola(): Meal[] {
+        return [
+            meal({
+                id: BANANA_1,
+                logged_at: `${DAY}T08:00:00.000Z`,
+                description: "Banana",
+                calories: 107,
+                sugar_g: 14.7,
+                added_sugar_g: 0,
+                alcohol_g: 0,
+            }),
+            meal({
+                id: BANANA_2,
+                logged_at: `${DAY}T11:00:00.000Z`,
+                description: "Banana",
+                calories: 107,
+                sugar_g: 14.7,
+                added_sugar_g: 0,
+                alcohol_g: 0,
+            }),
+            meal({
+                id: COLA,
+                logged_at: `${DAY}T15:00:00.000Z`,
+                description: "Cola 330 ml",
+                calories: 139,
+                sugar_g: 35,
+                added_sugar_g: 35,
+                alcohol_g: 0,
+            }),
+        ];
+    }
+
+    async function call(
+        client: Client,
+        name: string,
+        args: Record<string, unknown>,
+    ): Promise<{ r: ToolResult; meta: AddedSugarPayload }> {
+        const r = (await client.callTool({
+            name,
+            arguments: args,
+        })) as unknown as ToolResult;
+        expect(r.isError).toBeFalsy();
+        expect(r.structuredContent).toBeDefined();
+        // Nothing added sugar touches may leak into structuredContent.
+        expect(JSON.stringify(r.structuredContent)).not.toContain(
+            "added_sugar",
+        );
+        const meta = ADDED_SUGAR_META.parse(r._meta?.[ADDED_SUGAR_META_KEY]);
+        return { r, meta };
+    }
+
+    // The widget joins meta.meals to the breakdown rows BY POSITION (the rows
+    // carry no id), so the two must have one length and one order.
+    function expectJoinable(r: ToolResult, meta: AddedSugarPayload) {
+        const rows = (r.structuredContent as { meals: unknown[] }).meals;
+        expect(Object.keys(meta.meals ?? {})).toHaveLength(rows.length);
+    }
+
+    describe.each(ERAS)("%p", (mode) => {
+        test("log_meal: goal, the day, and the shown meals", async () => {
+            db.goals = goals({ daily_added_sugar_g: 25 });
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "log_meal", {
+                    description: "Cola 330 ml",
+                    meal_type: "snack",
+                    calories: 139,
+                    sugar_g: 35,
+                    added_sugar_g: 35,
+                    logged_at: `${DAY}T15:00:00Z`,
+                });
+                expect(meta.goal).toBe(25);
+                expect(meta.days).toEqual({ [DAY]: 35 });
+                expect(meta.meals).toEqual({ [MEAL_ID]: 35 });
+                expect(meta).not.toHaveProperty("contributors");
+                expectJoinable(r, meta);
+            });
+        });
+
+        // The ChatGPT report, end to end: a 330 ml cola logged with sugar_g
+        // 35 and no added_sugar_g against a 29 g limit. The text states the
+        // gap instead of leaving total sugar to be read against the limit,
+        // and _meta still carries the goal beside a null (not recorded) day,
+        // which is what lets the widget show its "not recorded" cell.
+        test("log_meal without added_sugar_g: not recorded, goal kept", async () => {
+            db.goals = goals({ daily_sugar_g: null, daily_added_sugar_g: 29 });
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "log_meal", {
+                    description: "Cola 330 ml",
+                    meal_type: "snack",
+                    calories: 139,
+                    sugar_g: 35,
+                    logged_at: `${DAY}T15:00:00Z`,
+                });
+                const text = textOf(r);
+                expect(text).toContain("Sugar: 35g");
+                expect(text).toContain(
+                    "Added sugar: not recorded on this day (limit 29g)",
+                );
+                expect(text).not.toMatch(/Added sugar: 35|6g over/);
+                expect(meta).toEqual({
+                    v: 1,
+                    goal: 29,
+                    days: { [DAY]: null },
+                    meals: { [MEAL_ID]: null },
+                });
+            });
+        });
+
+        test("get_trends with a limit and nothing recorded keeps the goal", async () => {
+            db.goals = goals({ daily_added_sugar_g: 29 });
+            db.meals = [
+                meal({
+                    logged_at: `${DAY}T15:00:00.000Z`,
+                    sugar_g: 35,
+                    added_sugar_g: null,
+                }),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "get_trends", {
+                    days: 7,
+                    end_date: DAY,
+                });
+                expect(textOf(r)).toContain(
+                    "Added sugar: not recorded in this period (limit 29g)",
+                );
+                expect(meta.goal).toBe(29);
+                expect(meta.days?.[DAY]).toBeNull();
+                expect(
+                    Object.values(meta.days ?? {}).every((v) => v === null),
+                ).toBe(true);
+            });
+        });
+
+        test("log_meal with no goals and no added sugar still carries it", async () => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { meta } = await call(client, "log_meal", {
+                    description: "Toast",
+                    meal_type: "snack",
+                    calories: 80,
+                    logged_at: `${DAY}T08:00:00Z`,
+                });
+                // Not recorded: a null day and a null meal, never 0.
+                expect(meta).toEqual({
+                    v: 1,
+                    goal: null,
+                    days: { [DAY]: null },
+                    meals: { [MEAL_ID]: null },
+                });
+            });
+        });
+
+        test("update_meal: the same payload as log_meal", async () => {
+            db.goals = goals({ daily_added_sugar_g: 0 });
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "update_meal", {
+                    id: MEAL_ID,
+                    sugar_g: 20,
+                    added_sugar_g: 12,
+                    logged_at: `${DAY}T12:00:00Z`,
+                });
+                // 0 is a real ceiling, not "unset".
+                expect(meta.goal).toBe(0);
+                expect(meta.days).toEqual({ [DAY]: 12 });
+                expect(meta.meals).toEqual({ [MEAL_ID]: 12 });
+                expectJoinable(r, meta);
+            });
+        });
+
+        test("get_goal_progress: the acceptance day", async () => {
+            db.goals = goals({ daily_sugar_g: null, daily_added_sugar_g: 25 });
+            db.meals = bananasAndCola();
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "get_goal_progress", {
+                    date: DAY,
+                });
+                expect(meta.goal).toBe(25);
+                expect(meta.days).toEqual({ [DAY]: 35 });
+                expect(meta.meals).toEqual({
+                    [BANANA_1]: 0,
+                    [BANANA_2]: 0,
+                    [COLA]: 35,
+                });
+                expect(Object.keys(meta.meals!)).toEqual([
+                    BANANA_1,
+                    BANANA_2,
+                    COLA,
+                ]);
+                // A single day lists every meal; nothing to add.
+                expect(meta).not.toHaveProperty("extra");
+                expectJoinable(r, meta);
+            });
+        });
+
+        test("get_goal_progress: an empty day", async () => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { meta } = await call(client, "get_goal_progress", {
+                    date: DAY,
+                });
+                expect(meta).toEqual({
+                    v: 1,
+                    goal: null,
+                    days: { [DAY]: null },
+                    meals: {},
+                });
+            });
+        });
+
+        test("get_nutrition_summary: merged beside the contributors", async () => {
+            db.goals = goals({ daily_added_sugar_g: 25 });
+            // A pre-feature day (no added sugar recorded) beside the
+            // acceptance day: it is null, never 0.
+            db.meals = [
+                meal({
+                    id: "00000000-0000-4000-8000-0000000000a1",
+                    logged_at: "2026-07-25T12:00:00.000Z",
+                    added_sugar_g: null,
+                }),
+                ...bananasAndCola(),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(
+                    client,
+                    "get_nutrition_summary",
+                    { start_date: "2026-07-20", end_date: DAY },
+                );
+                expect(meta.goal).toBe(25);
+                expect(meta.days).toEqual({
+                    "2026-07-25": null,
+                    [DAY]: 35,
+                });
+                expect(meta.contributors).toBe(1);
+                expect(meta.meals?.[COLA]).toBe(35);
+                // Every meal is kept here, so nothing is left for `extra`.
+                expect(meta.extra).toEqual([]);
+                expectJoinable(r, meta);
+                // The contributors key is still there, in the same object.
+                expect(
+                    MEAL_CONTRIBUTORS.parse(
+                        r._meta?.[MEAL_CONTRIBUTORS_META_KEY],
+                    ).calories,
+                ).toBe(4);
+            });
+        });
+
+        test("get_nutrition_summary: the empty path", async () => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(
+                    client,
+                    "get_nutrition_summary",
+                    { start_date: "2026-07-20", end_date: DAY },
+                );
+                expect(meta).toEqual({
+                    v: 1,
+                    goal: null,
+                    days: {},
+                    meals: {},
+                    contributors: 0,
+                });
+                expect(
+                    MEAL_CONTRIBUTORS.parse(
+                        r._meta?.[MEAL_CONTRIBUTORS_META_KEY],
+                    ).calories,
+                ).toBe(0);
+            });
+        });
+
+        test("get_trends: goal and the 30-day series", async () => {
+            db.goals = goals({ daily_added_sugar_g: 25 });
+            db.meals = bananasAndCola();
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "get_trends", {
+                    days: 7,
+                    end_date: DAY,
+                });
+                expect(meta.goal).toBe(25);
+                const days = meta.days!;
+                // Every day of the series the widget can toggle across, so
+                // it can re-average 7/14/30 on its own.
+                const series = (
+                    r.structuredContent as { days: { date: string }[] }
+                ).days.map((d) => d.date);
+                expect(Object.keys(days).sort()).toEqual([...series].sort());
+                expect(series).toHaveLength(30);
+                expect(days[DAY]).toBe(35);
+                expect(days["2026-07-25"]).toBeNull();
+                expect(meta).not.toHaveProperty("meals");
+                expect(r._meta).not.toHaveProperty(PERIOD_AVERAGES_META_KEY);
+            });
+        });
+
+        test("get_trends: the empty series, and merged with period averages", async () => {
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "get_trends", {
+                    end_date: DAY,
+                    group_by: "month",
+                });
+                expect(meta.goal).toBeNull();
+                expect(Object.values(meta.days!)).toHaveLength(30);
+                expect(Object.values(meta.days!).every((v) => v === null)).toBe(
+                    true,
+                );
+                expect(r._meta?.[PERIOD_AVERAGES_META_KEY]).toBeDefined();
+            });
+        });
+    });
+
+    test("added sugar never changes which rows the summary keeps", () => {
+        // Eight meals lead every row metric; a ninth is last on all of them
+        // but first on added sugar. Ranking by added sugar would add it to
+        // structuredContent.meals for every host, _meta or not, so it stays
+        // out: the added-sugar list draws from the kept rows only.
+        const meals = [
+            meal({
+                id: "x0",
+                description: "sweet",
+                calories: 1,
+                protein_g: 0.1,
+                carbs_g: 0.1,
+                fat_g: 0.1,
+                fiber_g: 0.1,
+                sugar_g: 40,
+                added_sugar_g: 40,
+                alcohol_g: 0,
+            }),
+            ...Array.from({ length: 8 }, (_, i) =>
+                meal({
+                    id: `x${i + 1}`,
+                    description: `big ${i}`,
+                    sugar_g: 50 + i,
+                    added_sugar_g: 0,
+                    caffeine_mg: 80,
+                }),
+            ),
+        ];
+        const rows = mealBreakdown(meals, "UTC", "us");
+        const top = topMealBreakdown(rows, "us");
+        expect(top.kept).not.toContain(0);
+        expect(top.kept).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+        expect(top.meals).toEqual(top.kept.map((i) => rows[i]!));
+        expect(() => MEAL_CONTRIBUTORS.parse(top.contributors)).not.toThrow();
+    });
+
+    // Each widget repeats the key as a literal (it cannot import), so a
+    // rename on one side would silently drop the cell.
+    test.each(["nutrition-summary", "goal-progress", "meal-logged", "trends"])(
+        "the assembled %s widget reads the key",
+        async (key) => {
+            expect(await getWidgetHtml(key)).toContain(ADDED_SUGAR_META_KEY);
+        },
+    );
 });

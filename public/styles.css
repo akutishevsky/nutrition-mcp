@@ -163,7 +163,7 @@ html[lang="ja"] body {
    at phrase boundaries; browsers without it drop the declaration and keep
    `normal`, which never breaks inside a Latin word. `line-break: strict`
    additionally keeps small kana and prolonged-sound marks off a line start. */
-html[lang="ja"] :is(h1, h2, h3, .nm-h1) {
+html[lang="ja"] :is(h1, h2, h3, h4, .nm-h1) {
     word-break: normal;
     word-break: auto-phrase;
     line-break: strict;

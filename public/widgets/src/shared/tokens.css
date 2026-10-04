@@ -16,6 +16,7 @@
     --carbs: #10b981;
     --fiber: #0d9488;
     --sugar: #65a30d;
+    --added-sugar: #858a0b;
     --fat: #f43f7e;
     --alcohol: #a21caf;
     --caffeine: #8b5e34;
@@ -46,6 +47,7 @@
         --carbs: #34d399;
         --fiber: #14b8a6;
         --sugar: #a3e635;
+        --added-sugar: #d4d03a;
         --fat: #fb7199;
         --alcohol: #e879f9;
         --caffeine: #c69a6d;
@@ -71,6 +73,7 @@
     --carbs: #10b981;
     --fiber: #0d9488;
     --sugar: #65a30d;
+    --added-sugar: #858a0b;
     --fat: #f43f7e;
     --alcohol: #a21caf;
     --caffeine: #8b5e34;
@@ -93,6 +96,7 @@
     --carbs: #34d399;
     --fiber: #14b8a6;
     --sugar: #a3e635;
+    --added-sugar: #d4d03a;
     --fat: #fb7199;
     --alcohol: #e879f9;
     --caffeine: #c69a6d;

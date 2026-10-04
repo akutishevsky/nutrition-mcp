@@ -16,7 +16,7 @@ export const LOGIN_PL: LoginDoc = {
     // texts are in the accusative — Polish inflects them there, and the
     // nominative "Polityka prywatności" would read as a grammatical error.
     consentNote:
-        "Kontynuując, potwierdzasz, że masz ukończone 16 lat, akceptujesz {terms} i {privacy} oraz zgadzasz się, abyśmy przechowywali zapisywane przez Ciebie posiłki, wagę i spożycie alkoholu, które są danymi dotyczącymi zdrowia.",
+        "Kontynuując, potwierdzasz, że masz ukończone 16 lat, akceptujesz {terms} i {privacy} oraz zgadzasz się, abyśmy przechowywali zapisywane przez Ciebie posiłki, wagę, wymiary ciała i spożycie alkoholu, które są danymi dotyczącymi zdrowia.",
     termsLinkText: "Regulamin",
     privacyLinkText: "Politykę prywatności",
     newHereNote:
@@ -46,4 +46,6 @@ export const LOGIN_CLIENT_NOTICE_PL: LoginClientNotice = {
         "{host} nie jest znanym nam asystentem. Kontynuuj tylko wtedy, gdy to Ty rozpoczynasz połączenie z poziomu {host}.",
     loopback:
         "Wrócisz do programu działającego na tym komputerze ({host}). Kontynuuj tylko wtedy, gdy właśnie z niego rozpoczynasz to połączenie.",
+    healthSync:
+        "Logowanie łączy synchronizację z Apple Health na urządzeniu, na którym otwarto tę stronę. Jeśli nie rozpoczynasz tego właśnie teraz ze skrótu Nutrition MCP na swoim własnym urządzeniu iPhone, zamknij tę stronę.",
 };

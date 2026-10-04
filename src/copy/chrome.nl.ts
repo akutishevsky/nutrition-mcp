@@ -44,6 +44,7 @@ export const CHROME_NL: ChromeCopy = {
     footer: {
         tools: "Tools",
         troubleshooting: "Problemen oplossen",
+        appleHealth: "Apple Health",
         alternatives: "Alternatieven",
         howIBuiltThis: "Hoe ik dit heb gebouwd",
         demo: "Demo",

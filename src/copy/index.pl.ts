@@ -55,7 +55,7 @@ export const INDEX_PL: IndexDoc = {
                 },
                 {
                     userText: "tak",
-                    aiText: "Zapisano śniadanie: 480 kcal, 21 g białka i 126 mg kofeiny. Cukru masz już 51 g z limitu 60 g.",
+                    aiText: "Zapisano śniadanie: 480 kcal, 21 g białka i 126 mg kofeiny. Cukru dodanego masz 20 g z limitu 25 g, głównie z miodu; reszta z 51 g cukrów ogółem to owoce i jogurt.",
                     card: "meal-logged",
                     meal: {
                         description:
@@ -84,7 +84,7 @@ export const INDEX_PL: IndexDoc = {
                 },
                 {
                     userText: "ile zostało na kolację?",
-                    aiText: "Zostało 850 kcal i 84 g białka. Cukru masz 59 g z limitu 60 g.",
+                    aiText: "Zostało 850 kcal i 84 g białka. Cukru dodanego masz 23 g z limitu 25 g, a większość z dzisiejszych 59 g cukrów ogółem pochodzi z owoców.",
                     card: "nutrition-summary",
                 },
                 {
@@ -176,7 +176,7 @@ export const INDEX_PL: IndexDoc = {
         note: "Wszystko tu jest opcjonalne. Możesz to zrobić teraz, później albo wcale: po prostu zacznij zapisywać, a ustawienia zmień, kiedy zechcesz.",
         toolsCta: {
             heading: "Ciekawi Cię, co naprawdę potrafi?",
-            body: "Przejrzyj wszystkie 36 narzędzi — zapisywanie, kody kreskowe, woda, waga, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
+            body: "Przejrzyj wszystkie 41 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
             arrow: "Zobacz narzędzia",
         },
     },
@@ -202,10 +202,10 @@ export const INDEX_PL: IndexDoc = {
                 id: "log-meal",
                 title: "Zapisuj zwykłymi słowami",
                 description:
-                    "Napisz tak, jak do znajomego. Gdy brakuje wielkości porcji albo nie wiadomo, który to posiłek, AI dopyta, zanim cokolwiek oszacuje. Błonnik i cukry trafiają do każdego wpisu, kofeina do wszystkiego, co ją zawiera, a „koło 7” oznacza 07:00 w Twojej strefie czasowej.",
+                    "Napisz tak, jak do znajomego. Gdy brakuje wielkości porcji albo nie wiadomo, który to posiłek, AI dopyta, zanim cokolwiek oszacuje. Błonnik, cukry i cukier dodany trafiają do każdego wpisu, kofeina do wszystkiego, co ją zawiera, a „koło 7” oznacza 07:00 w Twojej strefie czasowej.",
                 toolNotes: {
                     log_meal:
-                        "Zapisuje śniadanie z makroskładnikami, błonnikiem, cukrami i kofeiną z kawy",
+                        "Zapisuje śniadanie z makroskładnikami, błonnikiem, cukrami, cukrem dodanym i kofeiną z kawy",
                     log_water:
                         "Dolicza 500 ml z 07:00 do dzisiejszej sumy wody",
                     get_current_time:
@@ -307,7 +307,7 @@ export const INDEX_PL: IndexDoc = {
                 id: "scan-barcode",
                 title: "Zeskanuj kod kreskowy",
                 description:
-                    "Zrób zdjęcie opakowania: cyfry spod kodu kreskowego są wyszukiwane w Open Food Facts, a AI pyta, ile tego było. Open Food Facts nie podaje kofeiny, więc jej ilość pochodzi z etykiety albo z typowych wartości; brakująca wartość błonnika czy cukrów zostaje oszacowana, a nie pominięta.",
+                    "Zrób zdjęcie opakowania: cyfry spod kodu kreskowego są wyszukiwane w Open Food Facts, a AI pyta, ile tego było. Cukier dodany jest odczytywany tam, gdzie Open Food Facts go podaje. Open Food Facts nie podaje kofeiny, więc jej ilość pochodzi z etykiety albo z typowych wartości; brakująca wartość błonnika, cukrów czy cukru dodanego zostaje oszacowana, a nie pominięta.",
                 toolNotes: {
                     lookup_barcode:
                         "Pobiera z Open Food Facts wartości z etykiety i Nutri-Score kubeczka",
@@ -322,7 +322,7 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "To kubeczek naturalnego jogurtu greckiego 150 g (0% tłuszczu): 87 kcal, 15 g białka i 5 g cukru, a Open Food Facts daje mu Nutri-Score A. Cały kubeczek?",
+                        text: "To kubeczek naturalnego jogurtu greckiego 150 g (0% tłuszczu): 87 kcal, 15 g białka i 5 g cukru, w tym ani grama dodanego, a Open Food Facts daje mu Nutri-Score A. Cały kubeczek?",
                     },
                     {
                         from: "user",
@@ -345,7 +345,7 @@ export const INDEX_PL: IndexDoc = {
                 id: "goals-progress",
                 title: "Ustaw cele, sprawdzaj postępy",
                 description:
-                    "Ustaw cele do osiągnięcia, np. kalorie i białko, oraz limity cukrów, alkoholu i kofeiny, których nie chcesz przekraczać; zmienia się tylko to, co wymienisz. Potem zapytaj o dowolny dzień, żeby zobaczyć, ile brakuje do każdego celu i jak wypadasz względem każdego limitu.",
+                    "Ustaw cele do osiągnięcia, np. kalorie i białko, oraz limity cukru dodanego, cukrów ogółem, alkoholu i kofeiny, których nie chcesz przekraczać; zmienia się tylko to, co wymienisz. Potem zapytaj o dowolny dzień, żeby zobaczyć, ile brakuje do każdego celu i jak wypadasz względem każdego limitu.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Zapisuje cele kalorii i białka oraz limit kofeiny 400 mg",
@@ -367,7 +367,7 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Gotowe: 2000 kcal i 160 g białka do osiągnięcia, kofeina poniżej 400 mg. Reszta bez zmian: 220 g węglowodanów, 70 g tłuszczu, 30 g błonnika, 2,5 l wody, limit cukru 60 g i waga docelowa 75 kg.",
+                        text: "Gotowe: 2000 kcal i 160 g białka do osiągnięcia, kofeina poniżej 400 mg. Reszta bez zmian: 220 g węglowodanów, 70 g tłuszczu, 30 g błonnika, 2,5 l wody, limit cukru dodanego 25 g i waga docelowa 75 kg.",
                     },
                     {
                         from: "user",
@@ -375,7 +375,7 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Masz 1540 z 2000 kcal i 104 ze 160 g białka, więc zostało 460 kcal i 56 g białka. Cukier: 40 g z limitu 60 g, kofeina: 130 z 400 mg, w obu przypadkach poniżej limitu.",
+                        text: "Masz 1540 z 2000 kcal i 104 ze 160 g białka, więc zostało 460 kcal i 56 g białka. Cukier dodany: 16 g z limitu 25 g, kofeina: 130 z 400 mg, w obu przypadkach poniżej limitu.",
                     },
                 ],
                 cards: [
@@ -409,7 +409,7 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Średnio 52 g dziennie, poniżej limitu 60 g, ale w 4 z 13 dni limit był przekroczony.",
+                        text: "Cukru dodanego średnio 22 g dziennie, poniżej limitu 25 g, ale w 5 z 13 dni limit był przekroczony. Cukrów ogółem średnio 52 g, głównie z owoców i mleka.",
                     },
                 ],
                 cards: [
@@ -421,13 +421,16 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 id: "weight-trend",
-                title: "Śledź swoją wagę",
+                title: "Śledź wagę i wymiary",
                 description:
-                    "Zapisz pomiar wagi w kg albo lb i zobacz trend ukryty pod codziennymi wahaniami: wygładzoną średnią, zmianę w ciągu miesiąca i to, ile zostało do wagi docelowej. Niemożliwy odczyt, np. ze zgubionym przecinkiem, zostaje wyłapany przed zapisem.",
+                    "Zapisz pomiar wagi w kg albo lb i zobacz trend ukryty pod codziennymi wahaniami: wygładzoną średnią, zmianę w ciągu miesiąca i to, ile zostało do wagi docelowej. Obok możesz zapisywać obwody dziewięciu partii ciała, od talii po łydkę, w cm albo calach. Niemożliwy odczyt, np. ze zgubionym przecinkiem, zostaje wyłapany przed zapisem.",
                 toolNotes: {
                     log_weight: "Zapisuje dzisiejsze poranne ważenie: 78,4 kg",
                     get_weight_trends:
-                        "Wygładza 30 dni średnimi kroczącymi i liczy, ile zostało do celu",
+                        "Wygładza codzienne wahania w wagę trendu i tempo tygodniowe oraz liczy, ile zostało do celu",
+                    log_body_measurement: "Zapisuje obwód talii: 84 cm",
+                    get_body_measurements:
+                        "Szuka poprzedniego pomiaru talii do porównania",
                 },
                 messages: [
                     {
@@ -437,6 +440,14 @@ export const INDEX_PL: IndexDoc = {
                     {
                         from: "ai",
                         text: "Zapisano 78,4 kg. Od 11 lutego ubyło Ci 1,8 kg (z 80,2 kg), a średnia z 7 dni to 78,7 kg. Do celu 75 kg zostało 3,4 kg.",
+                    },
+                    {
+                        from: "user",
+                        text: "w talii 84 cm. jak to wypada w porównaniu z ostatnim razem?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano obwód talii: 84 cm. Poprzedni pomiar z 14 lutego to 86,5 cm, czyli masz o 2,5 cm mniej.",
                     },
                 ],
                 cards: [
@@ -604,10 +615,10 @@ export const INDEX_PL: IndexDoc = {
                 id: "export-data",
                 title: "Zabierz swoje dane",
                 description:
-                    "Jedna prośba wystarczy, żeby spakować wszystko, co o Tobie przechowujemy — posiłki, wodę, pomiary wagi, cele, ustawienia profilu, dane konta, telemetrię użycia i połączone aplikacje — do ZIP-a z plikami CSV i plikiem README. Znaczniki czasu są w Twojej strefie czasowej, a meals.csv można od razu zaimportować z powrotem.",
+                    "Jedna prośba wystarczy, żeby spakować wszystko, co o Tobie przechowujemy — posiłki, wodę, pomiary wagi, wymiary ciała, cele, ustawienia profilu, dane konta, telemetrię użycia i połączone aplikacje — do ZIP-a z plikami CSV i plikiem README. Znaczniki czasu są w Twojej strefie czasowej, a meals.csv można od razu zaimportować z powrotem.",
                 toolNotes: {
                     export_all_data:
-                        "Pakuje osiem plików CSV i README do ZIP-a z linkiem ważnym 60 minut",
+                        "Pakuje dziewięć plików CSV i README do ZIP-a z linkiem ważnym 60 minut",
                 },
                 messages: [
                     {
@@ -664,15 +675,15 @@ export const INDEX_PL: IndexDoc = {
         cards: [
             {
                 title: "Posiłki opisane własnymi słowami",
-                body: "Opisz posiłek — Twoje AI oszacuje kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem i kofeinę w miligramach, a potem wszystko zapisze.",
+                body: "Opisz posiłek — Twoje AI oszacuje kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem, cukier dodany i kofeinę w miligramach, a potem wszystko zapisze.",
             },
             {
                 title: "Zeskanuj kod kreskowy",
-                body: "Zrób zdjęcie kodu kreskowego produktu albo wpisz go ręcznie i pobierz z Open Food Facts makroskładniki, błonnik i cukry, przeliczone na zjedzoną ilość.",
+                body: "Zrób zdjęcie kodu kreskowego produktu albo wpisz go ręcznie i pobierz z Open Food Facts makroskładniki, błonnik i cukry — a także cukier dodany, jeśli jest podany — przeliczone na zjedzoną ilość.",
             },
             {
                 title: "Cele i postępy",
-                body: "Ustaw dzienne cele kalorii, makroskładników, błonnika i wody, a do tego limity cukrów, kofeiny i alkoholu, których nie chcesz przekraczać — i na bieżąco sprawdzaj postępy.",
+                body: "Ustaw dzienne cele kalorii, makroskładników, błonnika i wody, a do tego limity cukru dodanego, cukrów ogółem, kofeiny i alkoholu, których nie chcesz przekraczać — i na bieżąco sprawdzaj postępy.",
             },
             {
                 title: "Podsumowania i trendy",
@@ -684,7 +695,7 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 title: "Śledzenie wagi",
-                body: "Zapisuj wagę w kg albo lb, oglądaj trendy z 7, 14 i 30 dni i śledź postępy w drodze do wagi docelowej.",
+                body: "Zapisuj wagę w kg albo lb, oglądaj wygładzoną wagę trendu i tempo tygodniowe z całej historii i śledź postępy w drodze do wagi docelowej. Obok możesz też zapisywać obwody dziewięciu partii ciała — od talii po łydkę — w cm albo calach.",
             },
             {
                 title: "Twoja strefa czasowa",
@@ -696,7 +707,7 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 title: "Eksport — dane należą do Ciebie",
-                body: "Pobierz wszystko, co o Tobie przechowujemy — posiłki, wodę, wagę, cele i profil, a do tego dane konta, telemetrię użycia i połączone aplikacje — w jednym ZIP-ie z plikami CSV. Na razie z powrotem można zaimportować tylko posiłki. Konto i dane usuniesz, kiedy tylko zechcesz.",
+                body: "Pobierz wszystko, co o Tobie przechowujemy — posiłki, wodę, wagę, wymiary ciała, cele i profil, a do tego dane konta, telemetrię użycia i połączone aplikacje — w jednym ZIP-ie z plikami CSV. Na razie z powrotem można zaimportować tylko posiłki. Konto i dane usuniesz, kiedy tylko zechcesz.",
             },
         ],
     },
@@ -782,7 +793,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Czym jest Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP to darmowy serwer Model Context Protocol (MCP) o otwartym kodzie źródłowym, który zamienia Claude, ChatGPT albo inną aplikację obsługującą MCP w licznik kalorii i makroskładników. Zamiast przeszukiwać bazę produktów, mówisz AI, co było na talerzu, a ono zapisuje kalorie, makroskładniki, błonnik, cukry i kofeinę w Twoim własnym dzienniczku żywieniowym.",
+                "Nutrition MCP to darmowy serwer Model Context Protocol (MCP) o otwartym kodzie źródłowym, który zamienia Claude, ChatGPT albo inną aplikację obsługującą MCP w licznik kalorii i makroskładników. Zamiast przeszukiwać bazę produktów, mówisz AI, co było na talerzu, a ono zapisuje kalorie, makroskładniki, błonnik, cukry, cukier dodany i kofeinę w Twoim własnym dzienniczku żywieniowym.",
         },
         {
             question: "Czym jest Model Context Protocol (MCP)?",
@@ -792,7 +803,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Jak liczyć kalorie z Claude albo ChatGPT?",
             visibleHtml:
-                "Połącz Nutrition MCP jeden raz — w Claude z katalogu konektorów, w ChatGPT jako własną aplikację z adresem URL serwera — i zaloguj się. Potem opisz AI własnymi słowami, co było na talerzu, pokaż mu zdjęcie posiłku albo podaj kod kreskowy produktu. Twoje AI oszacuje kalorie, białko, węglowodany, tłuszcz, błonnik i cukry, a Nutrition MCP zapisze wpis w Twoim dzienniku posiłków. W każdej chwili możesz zapytać o dzisiejsze sumy, tygodniowe trendy albo realizację celów.",
+                "Połącz Nutrition MCP jeden raz — w Claude z katalogu konektorów, w ChatGPT jako własną aplikację z adresem URL serwera — i zaloguj się. Potem opisz AI własnymi słowami, co było na talerzu, pokaż mu zdjęcie posiłku albo podaj kod kreskowy produktu. Twoje AI oszacuje kalorie, białko, węglowodany, tłuszcz, błonnik, cukry i cukier dodany, a Nutrition MCP zapisze wpis w Twoim dzienniku posiłków. W każdej chwili możesz zapytać o dzisiejsze sumy, tygodniowe trendy albo realizację celów.",
         },
         {
             // Widoczna odpowiedź celowo pomija adres URL serwera (podany już
@@ -823,7 +834,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Co mogę śledzić?",
             visibleHtml:
-                "Kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem i wodę w każdym wpisie — opisane własnymi słowami albo pobrane z kodu kreskowego produktu przez Open Food Facts. Śledzona jest też kofeina, w miligramach, czyli w jednostce używanej na każdej etykiecie; nie dodaje ona kalorii. Można też śledzić alkohol, w gramach czystego etanolu; pojawia się po włączeniu śledzenia alkoholu. Możesz również zapisywać masę ciała w kg albo lb i śledzić trendy w drodze do wagi docelowej. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, poprawiaj lub usuwaj wcześniejsze wpisy, ustawiaj cele i obserwuj trendy w czasie.",
+                "Kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem, cukier dodany i wodę w każdym wpisie — opisane własnymi słowami albo pobrane z kodu kreskowego produktu przez Open Food Facts. Śledzona jest też kofeina, w miligramach, czyli w jednostce używanej na każdej etykiecie; nie dodaje ona kalorii. Można też śledzić alkohol, w gramach czystego etanolu; pojawia się po włączeniu śledzenia alkoholu. Możesz również zapisywać masę ciała w kg albo lb i śledzić trendy w drodze do wagi docelowej. Wymiary ciała (talię, biodra, szyję, klatkę piersiową, barki, ramię, przedramię, udo i łydkę) też możesz zapisywać w cm albo calach. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, poprawiaj lub usuwaj wcześniejsze wpisy, ustawiaj cele i obserwuj trendy w czasie.",
         },
         {
             question: "Jak dokładne jest liczenie kalorii?",

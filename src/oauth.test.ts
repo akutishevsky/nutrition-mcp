@@ -10,19 +10,20 @@ import {
     type OAuthRouterDeps,
     type OAuthSession,
 } from "./oauth.js";
-import type {
-    AuthCodeData,
-    NewOAuthClient,
-    OAuthAuth,
-    OAuthStore,
+import {
+    HEALTH_SYNC_CLIENT_ID,
+    type AuthCodeData,
+    type NewOAuthClient,
+    type OAuthAuth,
+    type OAuthStore,
 } from "./oauth-store.js";
-import { pkceS256 } from "./oauth-validate.js";
+import { pkceS256, verifierMatchesChallenge } from "./oauth-validate.js";
 import { hashSecret } from "./token-hash.js";
 import { authorizationServerMetadata } from "./discovery.js";
 import { _resetBuckets } from "./rate-limit.js";
 import { SITE_LOCALES } from "./routes.js";
 import { SignInError, SignUpError } from "./auth-errors.js";
-import { LOGIN_ERRORS } from "./copy/login.js";
+import { LOGIN_CLIENT_NOTICE, LOGIN_ERRORS } from "./copy/login.js";
 
 // No env client is set up here: createOAuthRouter() no longer requires one,
 // and every test below registers its own client through POST /register. The
@@ -1198,6 +1199,285 @@ describe("consent notice", () => {
         expect(html).not.toContain("<script>Claude");
         expect(html).not.toContain("&lt;script&gt;Claude");
     });
+});
+
+// ---------- Built-in health-sync client ----------
+
+// The Apple Health pairing flow signs a phone in through this same router as
+// a first-party client of itself. It resolves in memory (no store row), is
+// accepted only with this server's own callback on the request's base URL,
+// gets its own consent notice, and its codes are redeemed by the server-side
+// callback straight from the store — /token refuses it.
+describe("health-sync first-party client", () => {
+    // fire() requests http://localhost, so that is getBaseUrl().
+    const OWN_CALLBACK = "http://localhost/health-sync/callback";
+
+    function hsAuthorize(redirect: string, extra: Record<string, string> = {}) {
+        return authorizePath({
+            client_id: HEALTH_SYNC_CLIENT_ID,
+            redirect_uri: redirect,
+            state: "connect-id-123",
+            ...extra,
+        });
+    }
+
+    test("is accepted with its own callback, without any store row", async () => {
+        _resetBuckets();
+        const { app, store } = buildTestApp();
+        const res = await fire(
+            app,
+            "GET",
+            hsAuthorize(OWN_CALLBACK),
+            "198.51.100.140",
+        );
+        expect(res.status).toBe(200);
+        expect(sessionIdFrom(await res.text())).toBeTruthy();
+        expect(store.dump().clients.has(HEALTH_SYNC_CLIENT_ID)).toBe(false);
+    });
+
+    test("the callback follows the request's forwarded base URL", async () => {
+        _resetBuckets();
+        const { app } = buildTestApp();
+        const res = await fire(
+            app,
+            "GET",
+            hsAuthorize("https://nutrition-mcp.com/health-sync/callback"),
+            "198.51.100.141",
+            {
+                headers: {
+                    "x-forwarded-proto": "https",
+                    "x-forwarded-host": "nutrition-mcp.com",
+                },
+            },
+        );
+        expect(res.status).toBe(200);
+    });
+
+    for (const foreign of [
+        CLAUDE_CALLBACK,
+        "https://evil.example/health-sync/callback",
+        "http://localhost:3000/health-sync/callback",
+        "http://127.0.0.1/health-sync/callback",
+        "http://localhost/health-sync/callback/",
+        "http://localhost/health-sync/callback?x=1",
+        "http://localhost/health-sync/other",
+        "nutrition-mcp://health-sync/callback",
+    ]) {
+        test(`refuses redirect ${foreign} with a JSON 400 and no Location`, async () => {
+            _resetBuckets();
+            const { app } = buildTestApp();
+            const res = await fire(
+                app,
+                "GET",
+                hsAuthorize(foreign),
+                "198.51.100.142",
+            );
+            expect(res.status).toBe(400);
+            expect(res.headers.get("Location")).toBeNull();
+            const body = (await res.json()) as { error: string };
+            expect(body.error).toBe("invalid_request");
+        });
+    }
+
+    test("refuses its plain-http callback when the base URL is https", async () => {
+        _resetBuckets();
+        const { app } = buildTestApp();
+        const res = await fire(
+            app,
+            "GET",
+            hsAuthorize("http://nutrition-mcp.com/health-sync/callback"),
+            "198.51.100.143",
+            {
+                headers: {
+                    "x-forwarded-proto": "https",
+                    "x-forwarded-host": "nutrition-mcp.com",
+                },
+            },
+        );
+        expect(res.status).toBe(400);
+        expect(res.headers.get("Location")).toBeNull();
+    });
+
+    test("shows its own notice, tinted, in the session's locale", async () => {
+        _resetBuckets();
+        const { app } = buildTestApp();
+        const en = clientNotice(
+            await (
+                await fire(
+                    app,
+                    "GET",
+                    hsAuthorize(OWN_CALLBACK),
+                    "198.51.100.144",
+                )
+            ).text(),
+        )!;
+        expect(en).toContain("data-warn");
+        expect(en).toContain(
+            LOGIN_CLIENT_NOTICE.en.healthSync.replaceAll("'", "&#39;"),
+        );
+        expect(en).not.toContain("sent back to");
+        expect(en).not.toContain("<strong>");
+
+        const de = clientNotice(
+            await (
+                await fire(
+                    app,
+                    "GET",
+                    hsAuthorize(OWN_CALLBACK, { locale: "de" }),
+                    "198.51.100.144",
+                )
+            ).text(),
+        )!;
+        expect(de).toContain(LOGIN_CLIENT_NOTICE.de.healthSync);
+    });
+
+    test("every locale has a placeholder-free health-sync notice", () => {
+        for (const locale of SITE_LOCALES) {
+            const text = LOGIN_CLIENT_NOTICE[locale].healthSync;
+            expect(text.length).toBeGreaterThan(20);
+            expect(text).not.toContain("{");
+            expect(text).toContain("Apple Health");
+            expect(text).toContain("Nutrition MCP");
+        }
+    });
+
+    test("no other client ever gets the health-sync notice", async () => {
+        _resetBuckets();
+        const { app } = buildTestApp();
+        const ip = "198.51.100.145";
+        for (const redirect of [
+            CLAUDE_CALLBACK,
+            // Even a registered client whose redirect is the very same path.
+            OWN_CALLBACK,
+        ]) {
+            const client = await registerClient(app, ip, {
+                redirect_uris: [redirect],
+                token_endpoint_auth_method: "none",
+            });
+            const res = await fire(
+                app,
+                "GET",
+                authorizePath({
+                    client_id: client.client_id,
+                    redirect_uri: redirect,
+                }),
+                ip,
+            );
+            expect(res.status).toBe(200);
+            const notice = clientNotice(await res.text())!;
+            expect(notice).not.toContain("Apple Health");
+        }
+    });
+
+    test("a normal registered client is unaffected", async () => {
+        _resetBuckets();
+        const { app, store } = buildTestApp();
+        const ip = "198.51.100.146";
+        const client = await registerClient(app, ip, {
+            token_endpoint_auth_method: "none",
+        });
+        const authorize = await fire(
+            app,
+            "GET",
+            authorizePath({ client_id: client.client_id }),
+            ip,
+        );
+        expect(authorize.status).toBe(200);
+        const code = codeFrom(
+            await postForm(
+                app,
+                "/approve",
+                ip,
+                {
+                    session_id: sessionIdFrom(await authorize.text())!,
+                    email: "a@example.com",
+                    password: "pw",
+                },
+                { cookie: bindingCookie(authorize) },
+            ),
+        );
+        const res = await postForm(app, "/token", ip, {
+            grant_type: "authorization_code",
+            code,
+            redirect_uri: CLAUDE_CALLBACK,
+            code_verifier: VERIFIER,
+            client_id: client.client_id,
+        });
+        expect(res.status).toBe(200);
+        expect(store.dump().touched).toContain(client.client_id);
+    });
+
+    async function hsCode(app: Hono, ip: string) {
+        const authorize = await fire(app, "GET", hsAuthorize(OWN_CALLBACK), ip);
+        expect(authorize.status).toBe(200);
+        const approve = await postForm(
+            app,
+            "/approve",
+            ip,
+            {
+                session_id: sessionIdFrom(await authorize.text())!,
+                email: "a@example.com",
+                password: "pw",
+            },
+            { cookie: bindingCookie(authorize) },
+        );
+        expect(approve.status).toBe(302);
+        const location = new URL(approve.headers.get("Location")!);
+        return { location, code: location.searchParams.get("code")! };
+    }
+
+    test("its code goes to the own callback and redeems at the store", async () => {
+        _resetBuckets();
+        const { app, store } = buildTestApp();
+        const { location, code } = await hsCode(app, "198.51.100.147");
+        expect(`${location.origin}${location.pathname}`).toBe(OWN_CALLBACK);
+        expect(location.searchParams.get("state")).toBe("connect-id-123");
+        expect(location.searchParams.get("iss")).toBeTruthy();
+
+        const data = await store.consumeAuthCode(code);
+        expect(data).not.toBeNull();
+        expect(data!.client_id).toBe(HEALTH_SYNC_CLIENT_ID);
+        expect(data!.redirect_uri).toBe(OWN_CALLBACK);
+        expect(data!.user_id).toBe("user-1");
+        expect(verifierMatchesChallenge(VERIFIER, data!.code_challenge)).toBe(
+            true,
+        );
+        expect(
+            verifierMatchesChallenge("x".repeat(43), data!.code_challenge),
+        ).toBe(false);
+        // Single-use.
+        expect(await store.consumeAuthCode(code)).toBeNull();
+        // Never stamped: it has no oauth_clients row.
+        expect(store.dump().touched).not.toContain(HEALTH_SYNC_CLIENT_ID);
+    });
+
+    test("/token refuses it and leaves the code unspent", async () => {
+        _resetBuckets();
+        const { app, store } = buildTestApp();
+        const ip = "198.51.100.148";
+        const { code } = await hsCode(app, ip);
+        const res = await postForm(app, "/token", ip, {
+            grant_type: "authorization_code",
+            code,
+            redirect_uri: OWN_CALLBACK,
+            code_verifier: VERIFIER,
+            client_id: HEALTH_SYNC_CLIENT_ID,
+        });
+        expect(res.status).toBe(401);
+        expect(((await res.json()) as { error: string }).error).toBe(
+            "invalid_client",
+        );
+        expect(store.dump().tokens.size).toBe(0);
+        expect(store.dump().refresh.size).toBe(0);
+        expect(await store.consumeAuthCode(code)).not.toBeNull();
+    });
+});
+
+test("verifierMatchesChallenge refuses a missing challenge or bad verifier", () => {
+    expect(verifierMatchesChallenge(VERIFIER, CHALLENGE)).toBe(true);
+    expect(verifierMatchesChallenge(VERIFIER, null)).toBe(false);
+    expect(verifierMatchesChallenge(VERIFIER, "")).toBe(false);
+    expect(verifierMatchesChallenge("short", pkceS256("short"))).toBe(false);
 });
 
 // ---------- Browser binding ----------

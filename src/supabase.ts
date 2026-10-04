@@ -5,12 +5,26 @@ import {
 } from "@supabase/supabase-js";
 import { zonedDayStartUtc, zonedNextDayStartUtc } from "./tz.js";
 import { decodeEscapeSequences } from "./normalize.js";
-import { isWeightUnit, toStoredInteger, type WeightUnit } from "./units.js";
+import {
+    isWeightUnit,
+    isLengthUnit,
+    toStoredInteger,
+    type WeightUnit,
+    type LengthUnit,
+    type BodyMeasurementKind,
+} from "./units.js";
 import { isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import { escapeLikePattern, tokenizeQuery } from "./search.js";
 import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
 import { hashSecret } from "./token-hash.js";
-import { ToolError } from "./errors.js";
+import { ToolError, newErrorRef } from "./errors.js";
+import {
+    GOAL_COLUMNS,
+    pickGoals,
+    sameGoals,
+    withCurrentGoals,
+    type NutritionGoalsHistoryRow,
+} from "./goals-history.js";
 import {
     SignInError,
     SignUpError,
@@ -174,6 +188,10 @@ export interface Meal {
     // Total sugars (not added sugar); alcohol is pure ethanol in grams.
     fiber_g: number | null;
     sugar_g: number | null;
+    // Added sugars (US label definition), part of sugar_g and never more than
+    // it. NULL means not recorded — rows logged before the column existed
+    // stay NULL and read as "not recorded", never as 0.
+    added_sugar_g: number | null;
     alcohol_g: number | null;
     // MILLIGRAMS, unlike every other nutrient here — labels and guidelines are
     // all stated in mg, so the unit rides in the name at every layer.
@@ -192,6 +210,8 @@ export interface MealInput {
     fat_g?: number;
     fiber_g?: number;
     sugar_g?: number;
+    // See Meal.added_sugar_g.
+    added_sugar_g?: number;
     alcohol_g?: number;
     // Milligrams — see Meal.caffeine_mg.
     caffeine_mg?: number;
@@ -340,6 +360,7 @@ export async function insertMeal(
             fat_g: meal.fat_g ?? null,
             fiber_g: meal.fiber_g ?? null,
             sugar_g: meal.sugar_g ?? null,
+            added_sugar_g: meal.added_sugar_g ?? null,
             alcohol_g: meal.alcohol_g ?? null,
             caffeine_mg: meal.caffeine_mg ?? null,
             logged_at: loggedAt,
@@ -389,6 +410,31 @@ export async function getMealsInRange(
     const endUtc = zonedNextDayStartUtc(endDate, tz);
 
     return selectLoggedWindow<Meal>("meals", "meals", userId, startUtc, endUtc);
+}
+
+/**
+ * Whether this user logged any meal before local `date` in `tz`. `get_trends`
+ * with `group_by` reads only its 5-year span, so this is how it tells a
+ * history that starts inside that span (empty periods before the first meal
+ * are dropped) from one that runs past its start (they are inner gaps, kept).
+ * One indexed row at most (`idx_meals_user_logged_at`).
+ */
+export async function hasMealsBefore(
+    userId: string,
+    date: string,
+    tz: string = "UTC",
+): Promise<boolean> {
+    const { data, error } = await getSupabase()
+        .from("meals")
+        .select("id")
+        .eq("user_id", userId)
+        // ISO, never the Date itself: supabase-js stringifies a filter value
+        // with String(), and Postgres rejects "Sat Jan 01 2022 00:00:00 GMT…".
+        .lt("logged_at", zonedDayStartUtc(date, tz).toISOString())
+        .limit(1);
+
+    if (error) throw new Error(`Failed to get meals: ${error.message}`);
+    return (data ?? []).length > 0;
 }
 
 /**
@@ -494,7 +540,8 @@ export async function fetchAllPages<T>(
     return all;
 }
 
-type LoggedTable = "meals" | "water_log" | "weight_log";
+type LoggedTable =
+    "meals" | "water_log" | "weight_log" | "body_measurement_log";
 
 /**
  * Every row with start <= logged_at < end, oldest first — the one path behind
@@ -510,7 +557,9 @@ type LoggedTable = "meals" | "water_log" | "weight_log";
  * import does exactly that). They are dropped here by id, keeping the first
  * copy, before any caller sums a meal twice. The first page's exact count then catches a server whose
  * max-rows is below the page size, whose short first page would otherwise end
- * the loop looking complete.
+ * the loop looking complete. The optional `filter` (body measurements by
+ * kind) is applied in the database, so the exact count — and with it the
+ * truncation check — covers only the filtered rows.
  */
 async function selectLoggedWindow<T extends { id: string }>(
     table: LoggedTable,
@@ -518,13 +567,16 @@ async function selectLoggedWindow<T extends { id: string }>(
     userId: string,
     startUtc: Date,
     endUtc: Date,
+    filter?: { kind: BodyMeasurementKind },
 ): Promise<T[]> {
     let expected: number | null = null;
     const fetched = await fetchAllPages<T>(async (from, to) => {
-        const { data, error, count } = await getSupabase()
+        let q = getSupabase()
             .from(table)
             .select("*", from === 0 ? { count: "exact" } : undefined)
-            .eq("user_id", userId)
+            .eq("user_id", userId);
+        if (filter) q = q.eq("kind", filter.kind);
+        const { data, error, count } = await q
             .gte("logged_at", startUtc.toISOString())
             .lt("logged_at", endUtc.toISOString())
             .order("logged_at", { ascending: true })
@@ -659,10 +711,32 @@ export async function deleteMeal(userId: string, id: string): Promise<boolean> {
     return (data?.length ?? 0) > 0;
 }
 
+/** The stored sugar values a caller's added ≤ total check relied on (see
+ *  update_meal in src/mcp.ts). Each key present makes updateMeal's write
+ *  conditional on that column still holding exactly that value — `null` means
+ *  IS NULL — so a concurrent edit between the check's read and this write
+ *  cannot leave added_sugar_g above sugar_g; the migration has no DB check. */
+export type MealSugarGuard = Partial<Pick<Meal, "sugar_g" | "added_sugar_g">>;
+
+function sugarText(value: number | null | undefined): string {
+    return value == null ? "not recorded" : `${value} g`;
+}
+
+/** The ToolError a guarded updateMeal throws when the guarded value moved.
+ *  Its wording avoids the words categorizeError's keyword tier keys on
+ *  ("update" holds "date", "separate" holds "rate"), so it is not misfiled. */
+export function mealSugarConflictText(
+    id: string,
+    current: Pick<Meal, "sugar_g" | "added_sugar_g">,
+): string {
+    return `The sugar values stored on meal ${id} changed while this edit was being applied, so nothing was written. Stored now: sugar_g ${sugarText(current.sugar_g)}, added_sugar_g ${sugarText(current.added_sugar_g)}.`;
+}
+
 export async function updateMeal(
     userId: string,
     id: string,
     fields: Partial<MealInput>,
+    guard?: MealSugarGuard,
 ): Promise<Meal> {
     const sb = getSupabase();
 
@@ -687,6 +761,8 @@ export async function updateMeal(
     if (fields.fat_g !== undefined) update.fat_g = fields.fat_g;
     if (fields.fiber_g !== undefined) update.fiber_g = fields.fiber_g;
     if (fields.sugar_g !== undefined) update.sugar_g = fields.sugar_g;
+    if (fields.added_sugar_g !== undefined)
+        update.added_sugar_g = fields.added_sugar_g;
     if (fields.alcohol_g !== undefined) update.alcohol_g = fields.alcohol_g;
     if (fields.caffeine_mg !== undefined)
         update.caffeine_mg = fields.caffeine_mg;
@@ -700,16 +776,45 @@ export async function updateMeal(
     const newKey = updatedMealIdempotencyKey(userId, existing as Meal, fields);
     if (newKey !== null) update.idempotency_key = newKey;
 
-    const { data, error } = await sb
+    let query = sb
         .from("meals")
         .update(update)
         .eq("id", id)
-        .eq("user_id", userId)
-        .select()
-        .single();
+        .eq("user_id", userId);
+    // Compared against exactly the value PostgREST returned on the guard's
+    // read: JSON numbers from a bare numeric column round-trip through eq.
+    for (const column of ["sugar_g", "added_sugar_g"] as const) {
+        if (!guard || !(column in guard)) continue;
+        const value = guard[column];
+        query =
+            value == null ? query.is(column, null) : query.eq(column, value);
+    }
+    // No `.single()`: a guard that no longer matches leaves zero rows, which
+    // must read as a conflict rather than a PostgREST coercion error.
+    const { data, error } = await query.select();
 
     if (error) throw new Error(`Failed to update meal: ${error.message}`);
-    return data as Meal;
+    const row = (data as Meal[] | null)?.[0];
+    if (row) return row;
+
+    // Nothing written. The row existed at the pre-check above, so either it
+    // was deleted since or a guarded value moved; tell them apart.
+    const { data: now, error: nowErr } = await sb
+        .from("meals")
+        .select("sugar_g, added_sugar_g")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (nowErr) throw new Error(`Failed to update meal: ${nowErr.message}`);
+    if (!now) throw new ToolError(`No meal found with id ${id}.`);
+    if (!guard)
+        throw new Error("Failed to update meal: no row matched the write");
+    throw new ToolError(
+        mealSugarConflictText(
+            id,
+            now as Pick<Meal, "sugar_g" | "added_sugar_g">,
+        ),
+    );
 }
 
 // ---------- Profiles ----------
@@ -725,6 +830,9 @@ export interface Profile {
     // this still null.
     timezone: string | null;
     preferred_weight_unit: WeightUnit | null;
+    // null = never set with set_length_unit; same contract as preferred_weight_unit.
+    // Coalesce through preferredLengthUnitFromProfile. Never derived from the weight unit.
+    preferred_length_unit: LengthUnit | null;
     widgets_enabled: boolean;
     alcohol_tracking_enabled: boolean;
     preferred_drink_unit: DrinkUnit | null;
@@ -778,7 +886,7 @@ export async function getUserLocale(userId: string): Promise<string> {
 // Returns the user's saved weight-unit preference, or null if they have never
 // chosen one. Write paths use null to refuse guessing; display paths coalesce
 // to "kg". Mirrors timezoneFromProfile/localeFromProfile — a caller that
-// already has a fetched profile (get_profile needs all five preferences at
+// already has a fetched profile (get_profile needs all six preferences at
 // once) should use this instead of the *FromProfile-less
 // getPreferredWeightUnit, which was the one preference without a pure
 // derivation until this existed.
@@ -793,6 +901,24 @@ export async function getPreferredWeightUnit(
     userId: string,
 ): Promise<WeightUnit | null> {
     return preferredWeightUnitFromProfile(await getProfile(userId));
+}
+
+// Returns the user's saved length-unit preference (body measurements), or null
+// if they have never chosen one. Same contract as preferredWeightUnitFromProfile:
+// write paths refuse to guess on null; display paths show each entry in the
+// unit it was entered in. Unknown column text degrades to null. Never derived
+// from the weight unit.
+export function preferredLengthUnitFromProfile(
+    profile: Profile | null | undefined,
+): LengthUnit | null {
+    const unit = profile?.preferred_length_unit;
+    return isLengthUnit(unit) ? unit : null;
+}
+
+export async function getPreferredLengthUnit(
+    userId: string,
+): Promise<LengthUnit | null> {
+    return preferredLengthUnitFromProfile(await getProfile(userId));
 }
 
 // The three display preferences below come in two halves: a pure
@@ -858,13 +984,14 @@ export async function getPreferredDrinkUnit(
 // Upsert the fields provided in `patch`, leaving other columns untouched. On
 // first insert, an omitted column falls back to its DB default where one
 // exists (widgets_enabled: true, alcohol_tracking_enabled: false); timezone,
-// preferred_weight_unit and preferred_drink_unit have none and land as NULL,
-// meaning "never chosen".
+// preferred_weight_unit, preferred_length_unit and preferred_drink_unit have
+// none and land as NULL, meaning "never chosen".
 export async function upsertProfile(
     userId: string,
     patch: {
         timezone?: string;
         preferred_weight_unit?: WeightUnit | null;
+        preferred_length_unit?: LengthUnit | null;
         widgets_enabled?: boolean;
         alcohol_tracking_enabled?: boolean;
         preferred_drink_unit?: DrinkUnit | null;
@@ -879,6 +1006,8 @@ export async function upsertProfile(
     // null is meaningful here (clears the preference), so only skip `undefined`.
     if (patch.preferred_weight_unit !== undefined)
         payload.preferred_weight_unit = patch.preferred_weight_unit;
+    if (patch.preferred_length_unit !== undefined)
+        payload.preferred_length_unit = patch.preferred_length_unit;
     if (patch.widgets_enabled !== undefined)
         payload.widgets_enabled = patch.widgets_enabled;
     if (patch.alcohol_tracking_enabled !== undefined)
@@ -910,6 +1039,9 @@ export interface NutritionGoals {
     // Total sugars, and pure ethanol. Both are ceilings ("stay under"), unlike
     // every other goal here, which is a floor — see formatGoalLine in mcp.ts.
     daily_sugar_g: number | null;
+    // Added sugars only (see Meal.added_sugar_g), a ceiling like sugar; 0 is a
+    // real limit ("none").
+    daily_added_sugar_g: number | null;
     daily_alcohol_g: number | null;
     // Milligrams, and a ceiling too — 0 means "none". numeric(7,2) in the DB,
     // since mg targets run three orders larger than the gram ones above.
@@ -926,6 +1058,7 @@ export interface NutritionGoalsInput {
     daily_fat_g?: number | null;
     daily_fiber_g?: number | null;
     daily_sugar_g?: number | null;
+    daily_added_sugar_g?: number | null;
     daily_alcohol_g?: number | null;
     daily_caffeine_mg?: number | null;
     daily_water_ml?: number | null;
@@ -936,6 +1069,16 @@ export async function upsertNutritionGoals(
     userId: string,
     input: NutritionGoalsInput,
 ): Promise<NutritionGoals> {
+    // The row as it was before this save, so recordGoalsHistory can date a
+    // change history missed at the time it was actually made.
+    const { data: priorData, error: priorErr } = await getSupabase()
+        .from("nutrition_goals")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (priorErr) throw new Error(`Failed to save goals: ${priorErr.message}`);
+    const prior = (priorData as NutritionGoals | null) ?? null;
+
     const { data, error } = await getSupabase()
         .from("nutrition_goals")
         .upsert(
@@ -954,6 +1097,7 @@ export async function upsertNutritionGoals(
                 daily_fat_g: input.daily_fat_g ?? null,
                 daily_fiber_g: input.daily_fiber_g ?? null,
                 daily_sugar_g: input.daily_sugar_g ?? null,
+                daily_added_sugar_g: input.daily_added_sugar_g ?? null,
                 daily_alcohol_g: input.daily_alcohol_g ?? null,
                 daily_caffeine_mg: input.daily_caffeine_mg ?? null,
                 daily_water_ml:
@@ -969,7 +1113,165 @@ export async function upsertNutritionGoals(
         .single();
 
     if (error) throw new Error(`Failed to save goals: ${error.message}`);
-    return data as NutritionGoals;
+    const saved = data as NutritionGoals;
+    await recordGoalsHistory(userId, prior, saved);
+    return saved;
+}
+
+/**
+ * Brings `nutrition_goals_history` up to date with this save. The comparison
+ * is against the user's latest history row, not against the `nutrition_goals`
+ * row alone, and it runs in two steps:
+ *
+ * 1. If the row as it was before this save (`prior`) differs from the latest
+ *    history row, history missed that change, and it is recorded at the
+ *    prior row's own `updated_at`, i.e. when it was actually made. Two cases
+ *    reach this: a history insert that failed earlier (the retry then dates
+ *    the change to the original save, not to the retry), and a goal set by
+ *    code that predates this table, between the migration's seed and the
+ *    deploy.
+ * 2. If the goals just saved differ from what history now ends with, they
+ *    are recorded at this save's `updated_at`.
+ *
+ * Values come from the rows as stored (integer and numeric rounding applied),
+ * and history's columns are typed the same, so an unchanged goal compares
+ * equal. One limit: `updated_at` is bumped on every save, so if a retry also
+ * fails, the next one dates the change to that failed retry rather than to
+ * the original save.
+ *
+ * A failure throws after the goal is saved: the tool reports an error, and
+ * calling it again with the same values heals the history. The raw cause is
+ * logged under a ref with no user id; the thrown ToolError says what happened
+ * without it.
+ */
+async function recordGoalsHistory(
+    userId: string,
+    prior: NutritionGoals | null,
+    saved: NutritionGoals,
+): Promise<void> {
+    const goals = pickGoals(saved as unknown as Record<string, unknown>);
+    try {
+        const { data: latestData, error: readErr } = await getSupabase()
+            .from("nutrition_goals_history")
+            .select(["effective_at", ...GOAL_COLUMNS].join(","))
+            .eq("user_id", userId)
+            .order("effective_at", { ascending: false })
+            .order("id", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        if (readErr) throw new Error(readErr.message);
+        const latest = latestData as unknown as Record<string, unknown> | null;
+        let tail = latest ? pickGoals(latest) : null;
+
+        if (prior) {
+            const priorGoals = pickGoals(
+                prior as unknown as Record<string, unknown>,
+            );
+            const priorAt = Date.parse(prior.updated_at);
+            const latestAt = latest
+                ? Date.parse(String(latest.effective_at))
+                : Number.NEGATIVE_INFINITY;
+            if (
+                !(tail && sameGoals(tail, priorGoals)) &&
+                Number.isFinite(priorAt) &&
+                priorAt > latestAt
+            ) {
+                const { error: missedErr } = await getSupabase()
+                    .from("nutrition_goals_history")
+                    .insert({
+                        user_id: userId,
+                        effective_at: prior.updated_at,
+                        ...priorGoals,
+                    });
+                if (missedErr) throw new Error(missedErr.message);
+                tail = priorGoals;
+            }
+        }
+
+        if (tail && sameGoals(tail, goals)) return;
+
+        const { error: insertErr } = await getSupabase()
+            .from("nutrition_goals_history")
+            .insert({
+                user_id: userId,
+                effective_at: saved.updated_at,
+                ...goals,
+            });
+        if (insertErr) throw new Error(insertErr.message);
+    } catch (err) {
+        const ref = newErrorRef();
+        console.warn(
+            `[goals-history] record failed ref=${ref}: ${JSON.stringify((err instanceof Error ? err.message : String(err)).slice(0, 500))}`,
+        );
+        throw new ToolError(
+            `Failed to record this change in the goals history (ref ${ref}). The new goals themselves were saved. Calling set_nutrition_goals again with the same values records the change, dated to when it was saved; it does not save anything twice.`,
+        );
+    }
+}
+
+/**
+ * Every change to the user's goals, oldest first, as `goalsOnDate`
+ * (src/goals-history.ts) expects: the stored history plus, through
+ * `withCurrentGoals`, a change the current `nutrition_goals` row holds that
+ * history does not yet (one saved by pre-history code after the migration
+ * ran, which the next save backfills at the same instant). Both reads run in
+ * parallel. This is the read path only (get_trends group_by, the export):
+ * `recordGoalsHistory` compares against the stored history on its own query
+ * and must keep doing so, or it would treat the merged entry as recorded.
+ */
+export async function getNutritionGoalsHistory(
+    userId: string,
+): Promise<NutritionGoalsHistoryRow[]> {
+    const [stored, current] = await Promise.all([
+        getStoredGoalsHistory(userId),
+        getNutritionGoals(userId),
+    ]);
+    return withCurrentGoals(stored, current);
+}
+
+/**
+ * The stored `nutrition_goals_history` rows, oldest first (`effective_at`,
+ * then `id`). Paged past PostgREST's row cap and reconciled against the first
+ * page's exact count like the window readers, throwing `result would be
+ * truncated` (category `read_truncated`) when short; repeats from an insert
+ * landing between pages are dropped by id first. A user changes goals rarely,
+ * so this is almost always one page.
+ */
+async function getStoredGoalsHistory(
+    userId: string,
+): Promise<NutritionGoalsHistoryRow[]> {
+    let expected: number | null = null;
+    const fetched = await fetchAllPages<Record<string, unknown>>(
+        async (from, to) => {
+            const { data, error, count } = await getSupabase()
+                .from("nutrition_goals_history")
+                .select(
+                    ["id", "effective_at", ...GOAL_COLUMNS].join(","),
+                    from === 0 ? { count: "exact" } : undefined,
+                )
+                .eq("user_id", userId)
+                .order("effective_at", { ascending: true })
+                .order("id", { ascending: true })
+                .range(from, to);
+            if (error)
+                throw new Error(
+                    `Failed to get goals history: ${error.message}`,
+                );
+            if (from === 0) expected = count ?? null;
+            return (data as unknown as Record<string, unknown>[]) ?? [];
+        },
+    );
+    const seen = new Set<unknown>();
+    const rows = fetched.filter((r) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+    });
+    assertWindowComplete("goals history", rows.length, expected);
+    return rows.map((r) => ({
+        effective_at: new Date(String(r.effective_at)).toISOString(),
+        ...pickGoals(r),
+    }));
 }
 
 export async function getNutritionGoals(
@@ -1383,6 +1685,240 @@ export async function deleteWeight(
     return (data?.length ?? 0) > 0;
 }
 
+// ---------- Body measurements ----------
+
+export interface BodyMeasurementEntry {
+    id: string;
+    user_id: string;
+    kind: BodyMeasurementKind;
+    // Canonical value; every conversion and comparison reads this.
+    value_mm: number;
+    // Exactly what the user typed, in entered_unit — shown back verbatim when
+    // displaying in that unit. A `numeric` column, which PostgREST may return
+    // as a string, so readers wrap it in Number().
+    value_entered: number;
+    entered_unit: LengthUnit;
+    logged_at: string;
+    notes: string | null;
+    created_at: string;
+    idempotency_key: string | null;
+}
+
+export interface BodyMeasurementInput {
+    kind: BodyMeasurementKind;
+    value_mm: number;
+    value_entered: number;
+    entered_unit: LengthUnit;
+    logged_at?: string;
+    notes?: string;
+    idempotency_key?: string;
+}
+
+export interface BodyMeasurementInsertResult {
+    entry: BodyMeasurementEntry;
+    deduplicated: boolean;
+}
+
+// The digest is POSITIONAL, so this field list is frozen once shipped (see
+// deriveIdempotencyKey). `kind` keeps waist 80 cm and hips 80 cm logged at the
+// same instant as two rows; value_mm (not value_entered/entered_unit) means
+// 80 cm and 31.5 in of the same site and instant are one measurement.
+export function bodyMeasurementIdempotencyKey(
+    userId: string,
+    input: Pick<BodyMeasurementInput, "kind" | "value_mm" | "notes">,
+    loggedAt: string,
+): string {
+    return deriveIdempotencyKey([
+        userId,
+        input.kind,
+        input.value_mm,
+        input.notes,
+        loggedAt,
+    ]);
+}
+
+export async function insertBodyMeasurement(
+    userId: string,
+    input: BodyMeasurementInput,
+): Promise<BodyMeasurementInsertResult> {
+    const sb = getSupabase();
+
+    // Resolve logged_at once so the digest and the persisted row agree — and,
+    // when omitted, this is the arrival time, so the derived key does not
+    // survive a retry.
+    const loggedAt = input.logged_at ?? new Date().toISOString();
+    // Decoded before hashing, unlike insertWeight/insertWater (issue #79),
+    // which will be aligned there.
+    const notes =
+        input.notes != null ? decodeEscapeSequences(input.notes) : undefined;
+    const idempotencyKey =
+        input.idempotency_key ??
+        bodyMeasurementIdempotencyKey(
+            userId,
+            { kind: input.kind, value_mm: input.value_mm, notes },
+            loggedAt,
+        );
+
+    const { data: existing, error: selErr } = await sb
+        .from("body_measurement_log")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+    if (selErr)
+        throw new Error(
+            `Failed to look up body measurement: ${selErr.message}`,
+        );
+    if (existing)
+        return { entry: existing as BodyMeasurementEntry, deduplicated: true };
+
+    const { data, error } = await sb
+        .from("body_measurement_log")
+        .insert({
+            user_id: userId,
+            kind: input.kind,
+            value_mm: input.value_mm,
+            value_entered: input.value_entered,
+            entered_unit: input.entered_unit,
+            logged_at: loggedAt,
+            notes: notes ?? null,
+            idempotency_key: idempotencyKey,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        if (error.code === "23505") {
+            const { data: existing, error: raceErr } = await sb
+                .from("body_measurement_log")
+                .select("*")
+                .eq("user_id", userId)
+                .eq("idempotency_key", idempotencyKey)
+                .maybeSingle();
+            if (raceErr)
+                throw new Error(
+                    `Failed to resolve idempotent body measurement: ${raceErr.message}`,
+                );
+            if (existing)
+                return {
+                    entry: existing as BodyMeasurementEntry,
+                    deduplicated: true,
+                };
+        }
+        throw new Error(`Failed to insert body measurement: ${error.message}`);
+    }
+    return { entry: data as BodyMeasurementEntry, deduplicated: false };
+}
+
+/** Every measurement in the local-date window, oldest first; `kind` narrows it in the database. */
+export async function getBodyMeasurementsInRange(
+    userId: string,
+    startDate: string,
+    endDate: string,
+    tz: string = "UTC",
+    kind?: BodyMeasurementKind,
+): Promise<BodyMeasurementEntry[]> {
+    return selectLoggedWindow<BodyMeasurementEntry>(
+        "body_measurement_log",
+        "body measurements",
+        userId,
+        zonedDayStartUtc(startDate, tz),
+        zonedNextDayStartUtc(endDate, tz),
+        kind ? { kind } : undefined,
+    );
+}
+
+/** One of the user's measurements by id, or null. */
+export async function getBodyMeasurement(
+    userId: string,
+    id: string,
+): Promise<BodyMeasurementEntry | null> {
+    const { data, error } = await getSupabase()
+        .from("body_measurement_log")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (error)
+        throw new Error(`Failed to look up body measurement: ${error.message}`);
+    return (data as BodyMeasurementEntry | null) ?? null;
+}
+
+/**
+ * Same shape as updateWeight. The three value fields describe one reading, so
+ * they travel together or not at all; `kind` is not editable. The idempotency
+ * key is not recomputed, as in weight.
+ */
+export async function updateBodyMeasurement(
+    userId: string,
+    id: string,
+    fields: {
+        value_mm?: number;
+        value_entered?: number;
+        entered_unit?: LengthUnit;
+        logged_at?: string;
+        notes?: string | null;
+    },
+): Promise<BodyMeasurementEntry> {
+    const valueFields = [
+        fields.value_mm,
+        fields.value_entered,
+        fields.entered_unit,
+    ].filter((v) => v !== undefined).length;
+    if (valueFields !== 0 && valueFields !== 3) {
+        // A handler bug, not caller input: deliberately a plain Error.
+        throw new Error(
+            "updateBodyMeasurement: value fields must be passed together",
+        );
+    }
+
+    const update: Record<string, unknown> = {};
+    if (valueFields === 3) {
+        update.value_mm = fields.value_mm;
+        update.value_entered = fields.value_entered;
+        update.entered_unit = fields.entered_unit;
+    }
+    if (fields.logged_at !== undefined) update.logged_at = fields.logged_at;
+    if (fields.notes !== undefined)
+        update.notes =
+            fields.notes != null
+                ? decodeEscapeSequences(fields.notes)
+                : fields.notes;
+
+    // No `.single()`: see updateWeight — a wrong id comes back as an empty
+    // array, answered with a ToolError below.
+    const { data, error } = await getSupabase()
+        .from("body_measurement_log")
+        .update(update)
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select();
+
+    if (error)
+        throw new Error(`Failed to update body measurement: ${error.message}`);
+    if (!data || data.length === 0)
+        throw new ToolError(`No body measurement found with id ${id}.`);
+    return data[0] as BodyMeasurementEntry;
+}
+
+/** Returns true if an entry was deleted, false if no matching row was found. */
+export async function deleteBodyMeasurement(
+    userId: string,
+    id: string,
+): Promise<boolean> {
+    const { data, error } = await getSupabase()
+        .from("body_measurement_log")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select("id");
+
+    if (error)
+        throw new Error(`Failed to delete body measurement: ${error.message}`);
+    return (data?.length ?? 0) > 0;
+}
+
 // ---------- Export-only readers (account, telemetry, connections) ----------
 
 /**
@@ -1439,6 +1975,24 @@ async function selectAllForUser<T>(
         );
     }
     return rows;
+}
+
+/**
+ * All of a user's body measurements, oldest first — used by export_all_data.
+ * Rides selectAllForUser, so it pages, dedupes by id and reconciles against
+ * the first page's exact count without a separate count query.
+ */
+export function getAllBodyMeasurements(
+    userId: string,
+): Promise<BodyMeasurementEntry[]> {
+    return selectAllForUser<BodyMeasurementEntry>(
+        "body_measurement_log",
+        "*",
+        "body measurements",
+        userId,
+        ["logged_at", "id"],
+        "id",
+    );
 }
 
 /** One tool_analytics row, as the export reads it back. */
@@ -1614,7 +2168,7 @@ export function exportArchivePath(userId: string): string {
  * EVERY key an export may have left in the bucket for this user, current and
  * historical. `deleteAllUserData` removes all of them, and that is the whole
  * reason this list exists rather than a single inlined path: the archive holds
- * the user's complete meal, water, weight, goals and profile history, so a key
+ * the user's complete meal, water, weight, body-measurement, goals and profile history, so a key
  * missed here survives the account that asked to be erased — and keeps
  * resolving through the signed URL the user was already handed, for the rest
  * of its hour. Renaming the archive without adding its old name to this list
@@ -1633,6 +2187,37 @@ export function exportStoragePaths(userId: string): string[] {
 
 export async function deleteAllUserData(userId: string): Promise<void> {
     const sb = getSupabase();
+
+    // Apple Health sync first: removing the link stops the Shortcut syncing
+    // (and writing another sent-values row) while the rest is being deleted.
+    // Pending connects are only attributable once claimed; unclaimed ones
+    // carry no user and lapse within 30 minutes.
+    const { error: hsLinkErr } = await sb
+        .from("health_sync_links")
+        .delete()
+        .eq("user_id", userId);
+    if (hsLinkErr)
+        throw new Error(
+            `Failed to delete Apple Health sync link: ${hsLinkErr.message}`,
+        );
+
+    const { error: hsDaysErr } = await sb
+        .from("health_sync_days")
+        .delete()
+        .eq("user_id", userId);
+    if (hsDaysErr)
+        throw new Error(
+            `Failed to delete Apple Health sync record: ${hsDaysErr.message}`,
+        );
+
+    const { error: hsPendingErr } = await sb
+        .from("health_sync_pending")
+        .delete()
+        .eq("user_id", userId);
+    if (hsPendingErr)
+        throw new Error(
+            `Failed to delete pending Apple Health sync: ${hsPendingErr.message}`,
+        );
 
     const { error: analyticsErr } = await sb
         .from("tool_analytics")
@@ -1654,6 +2239,25 @@ export async function deleteAllUserData(userId: string): Promise<void> {
         .eq("user_id", userId);
     if (weightErr)
         throw new Error(`Failed to delete weight log: ${weightErr.message}`);
+
+    const { error: measurementsErr } = await sb
+        .from("body_measurement_log")
+        .delete()
+        .eq("user_id", userId);
+    if (measurementsErr)
+        throw new Error(
+            `Failed to delete body measurements: ${measurementsErr.message}`,
+        );
+
+    // Goals history, just before the current goals row it records changes to.
+    const { error: goalsHistoryErr } = await sb
+        .from("nutrition_goals_history")
+        .delete()
+        .eq("user_id", userId);
+    if (goalsHistoryErr)
+        throw new Error(
+            `Failed to delete goals history: ${goalsHistoryErr.message}`,
+        );
 
     const { error: goalsErr } = await sb
         .from("nutrition_goals")

@@ -11,6 +11,11 @@ import {
     banRepeatAuthFailures,
 } from "./middleware.js";
 import { handleMcp, closeMcpHandler } from "./mcp.js";
+import {
+    accessLogPath,
+    createHealthSyncRouter,
+    isHealthSyncPath,
+} from "./health-sync-routes.js";
 import { startExportCleanup } from "./export.js";
 import { startOAuthCleanup } from "./oauth-cleanup.js";
 import {
@@ -58,8 +63,10 @@ app.use("*", async (c, next) => {
     // question the legacy retirement actually turns on. Absent when the
     // protocol did not carry it — see the note on mcpClient in middleware.ts.
     const client = c.get("mcpClient");
+    // accessLogPath: a health-sync connect link's id is a live pairing
+    // secret, and never reaches the log.
     console.log(
-        `[req] ${c.req.method} ${path} ${c.res.status} ${ms}ms ip=${ip}${era ? ` era=${era}` : ""}${client ? ` client=${client}` : ""}`,
+        `[req] ${c.req.method} ${accessLogPath(path)} ${c.res.status} ${ms}ms ip=${ip}${era ? ` era=${era}` : ""}${client ? ` client=${client}` : ""}`,
     );
 });
 
@@ -114,47 +121,63 @@ app.use(
     "*",
     bodyLimit({
         maxSize: 1024 * 1024,
-        onError: (c) => c.json({ error: "payload_too_large" }, 413),
+        // The Apple Health sync API answers in its own `ok` envelope, which
+        // is what the shortcut branches on; everything else keeps the flat
+        // shape.
+        onError: (c) =>
+            isHealthSyncPath(new URL(c.req.url).pathname)
+                ? c.json(
+                      {
+                          ok: false,
+                          error: "bad_request",
+                          message: "The request body is too large.",
+                      },
+                      413,
+                      { "Cache-Control": "private, no-store" },
+                  )
+                : c.json({ error: "payload_too_large" }, 413),
     }),
 );
 
-// CORS
-app.use(
-    "*",
-    cors({
-        origin: (origin) => {
-            if (!origin) return null;
-            if (
-                origin.match(/^https?:\/\/localhost(:\d+)?$/) ||
-                origin.match(/^https?:\/\/127\.0\.0\.1(:\d+)?$/)
-            ) {
-                return origin;
-            }
-            const allowed =
-                process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()) ??
-                [];
-            return allowed.includes(origin) ? origin : null;
-        },
-        allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
-        // allowHeaders is deliberately omitted so Hono reflects the preflight's
-        // Access-Control-Request-Headers verbatim (and appends
-        // Vary: Access-Control-Request-Headers). A static list structurally
-        // cannot work here: the 2026-07-28 revision defines an open-ended
-        // Mcp-Param-* family (sent whenever a tool declares x-mcp-header), and
-        // CORS allow-lists match exact names, not prefixes — so a pinned list
-        // silently breaks any such tool for browser clients. Reflection adds no
-        // exposure in this configuration: `origin` above is a strict allowlist,
-        // so only origins we already trust get an Allow-Origin at all, and
-        // credentials is false, so no cookies or Authorization are attached by
-        // the browser on our behalf.
-        exposeHeaders: [
-            "Mcp-Session-Id",
-            "Mcp-Protocol-Version",
-            "Content-Type",
-        ],
-        credentials: false,
-        maxAge: 86400,
-    }),
+// CORS. Not on the Apple Health sync paths (isHealthSyncPath): the shortcut
+// sends no Origin, the connect and callback pages are top-level navigations,
+// and no web page — not even a localhost or ALLOWED_ORIGINS one — has any
+// business reading a sync response or a link token cross-origin. Skipping
+// the middleware there means no Access-Control-* header is ever sent for
+// them, and a preflight simply finds no OPTIONS route.
+const corsMiddleware = cors({
+    origin: (origin) => {
+        if (!origin) return null;
+        if (
+            origin.match(/^https?:\/\/localhost(:\d+)?$/) ||
+            origin.match(/^https?:\/\/127\.0\.0\.1(:\d+)?$/)
+        ) {
+            return origin;
+        }
+        const allowed =
+            process.env.ALLOWED_ORIGINS?.split(",").map((o) => o.trim()) ?? [];
+        return allowed.includes(origin) ? origin : null;
+    },
+    allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+    // allowHeaders is deliberately omitted so Hono reflects the preflight's
+    // Access-Control-Request-Headers verbatim (and appends
+    // Vary: Access-Control-Request-Headers). A static list structurally
+    // cannot work here: the 2026-07-28 revision defines an open-ended
+    // Mcp-Param-* family (sent whenever a tool declares x-mcp-header), and
+    // CORS allow-lists match exact names, not prefixes — so a pinned list
+    // silently breaks any such tool for browser clients. Reflection adds no
+    // exposure in this configuration: `origin` above is a strict allowlist,
+    // so only origins we already trust get an Allow-Origin at all, and
+    // credentials is false, so no cookies or Authorization are attached by
+    // the browser on our behalf.
+    exposeHeaders: ["Mcp-Session-Id", "Mcp-Protocol-Version", "Content-Type"],
+    credentials: false,
+    maxAge: 86400,
+});
+app.use("*", (c, next) =>
+    isHealthSyncPath(new URL(c.req.url).pathname)
+        ? next()
+        : corsMiddleware(c, next),
 );
 
 // Shutdown gate. The signal handlers at the bottom of this file flip
@@ -204,6 +227,19 @@ app.use("*", async (c, next) => {
             { "Retry-After": "1" },
         );
     }
+    // The Apple Health sync API answers in its own `ok` envelope, which is
+    // what the shortcut branches on.
+    if (path.startsWith("/api/v1/health-sync/")) {
+        return c.json(
+            {
+                ok: false,
+                error: "unavailable",
+                message: "Nutrition MCP is restarting. Try again in a moment.",
+            },
+            503,
+            { "Retry-After": "1", "Cache-Control": "private, no-store" },
+        );
+    }
     // /health is gated too, on purpose: a health check that starts failing is
     // how the platform's load balancer learns to stop routing here, which is
     // exactly what draining wants. Everything else (landing page, OAuth,
@@ -231,6 +267,13 @@ app.get("/.well-known/glama.json", (c) => {
 
 // OAuth routes
 app.route("/", createOAuthRouter());
+
+// Apple Health sync: the shortcut's JSON API under /api/v1/health-sync/ and
+// the two pages the pairing flow opens in Safari (src/health-sync-routes.ts).
+// Its own auth (link tokens, never OAuth access tokens), rate limits and
+// error envelope; every handler catches its own errors, so none reaches
+// onError below.
+app.route("/", createHealthSyncRouter());
 
 // MCP endpoint (protected). banRepeatAuthFailures runs first so a client stuck
 // in a failed-auth retry loop is rejected before any token verification.
@@ -402,6 +445,13 @@ app.get("/tools", async (c) => {
     return c.html(await Bun.file("./public/tools.html").text());
 });
 app.get("/tools/", (c) => c.redirect("/tools", 301));
+
+// Apple Health sync setup guide (scripts/gen-apple-health.ts) — how to install,
+// connect and automate the Nutrition MCP Health shortcut.
+app.get("/apple-health", async (c) => {
+    return c.html(await Bun.file("./public/apple-health.html").text());
+});
+app.get("/apple-health/", (c) => c.redirect("/apple-health", 301));
 
 // SEO comparison / "alternative to X" landing pages. Each targets long-tail
 // queries like "myfitnesspal mcp" or "connect myfitnesspal to claude" and is a
