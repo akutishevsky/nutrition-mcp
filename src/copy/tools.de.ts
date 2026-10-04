@@ -214,7 +214,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps und Apple Health Sync, ohne Tokens), health_sync.csv (was Apple Health Sync in den letzten 8 Tagen gesendet hat) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
+                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (jede Änderung deiner Ziele, mit Datum), profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps und Apple Health Sync, ohne Tokens), health_sync.csv (was Apple Health Sync in den letzten 8 Tagen gesendet hat) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
             params: {},
             example:
                 "Exportier alle meine Daten – Mahlzeiten, Wasser, Gewicht und Ziele",
@@ -410,12 +410,13 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Gleitende 7/14/30-Tage-Durchschnitte, Schwankungen, Erfassungsserien, Kaloriendurchschnitte nach Wochentag sowie deine besten und schlechtesten Tage nach Kalorien – vorberechnet, damit die KI sie nur noch wiedergeben muss.",
+                "Gleitende 7/14/30-Tage-Durchschnitte, Schwankungen, Erfassungsserien, Kaloriendurchschnitte nach Wochentag sowie deine besten und schlechtesten Tage nach Kalorien – vorberechnet, damit die KI sie nur noch wiedergeben muss. Mit group_by gibt es zusätzlich Durchschnitte pro Woche, Monat, Quartal oder Jahr – pro erfasstem Tag, Tage ohne Mahlzeiten zählen also nicht mit – verglichen mit den Zielen, die damals galten, samt der Anzahl der Tage im Zielbereich und der möglicherweise unvollständigen Tage.",
             params: {
                 days: "Zeitraum in Tagen (Standard 30, maximal 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> oder <code>year</code>: 26 Wochen, 24 Monate, 12 Quartale oder 5 Jahre bis einschließlich des Zeitraums, der das Enddatum enthält (standardmäßig heute). Die Spanne ist fest; <code>days</code> bestimmt weiterhin die gleitenden Durchschnitte.",
             },
-            example:
-                "Wie sehen meine Kalorien- und Makro-Trends der letzten 30 Tage aus?",
+            example: "Wie liefen meine Monate im Vergleich zu meinen Zielen?",
         },
         get_meal_patterns: {
             description:

@@ -94,7 +94,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `update_body_measurement`  | Update a measurement's value, unit, time or notes (the site is fixed)                                                                            |
 | `delete_body_measurement`  | Delete a body measurement by ID                                                                                                                  |
 | `set_length_unit`          | Set the preferred length unit (`cm` or `in`; null to clear)                                                                                      |
-| `get_trends`               | 7/14/30-day averages, std dev, streaks, day-of-week calorie averages, best/worst day by calories                                                 |
+| `get_trends`               | 7/14/30-day averages, std dev, streaks, best/worst day; `group_by` week/month/quarter/year averages per logged day vs targets then in effect     |
 | `get_meal_patterns`        | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers)                                                |
 | `export_all_data`          | Export everything stored about you — logs, goals, profile, account, telemetry, app connections — as one ZIP of CSVs + README; 60-minute link     |
 | `get_profile`              | Get timezone (+ local date/time), widget language, weight and length units, widget display and alcohol tracking in one call                      |

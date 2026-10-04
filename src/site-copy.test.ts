@@ -168,6 +168,7 @@ const ARCHIVE_FILES = [
     "weight.csv",
     "body_measurements.csv",
     "goals.csv",
+    "goals_history.csv",
     "profile.csv",
     "account.csv",
     "telemetry.csv",

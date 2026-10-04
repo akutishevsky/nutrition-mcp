@@ -209,7 +209,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps en Apple Health-synchronisatie, zonder tokens), health_sync.csv (wat Apple Health-synchronisatie de afgelopen 8 dagen heeft verstuurd) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
+                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (elke wijziging van je doelen, met datum), profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps en Apple Health-synchronisatie, zonder tokens), health_sync.csv (wat Apple Health-synchronisatie de afgelopen 8 dagen heeft verstuurd) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
             params: {},
             example:
                 "Exporteer al mijn gegevens: maaltijden, water, gewicht en doelen",
@@ -403,12 +403,13 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_trends: {
             description:
-                "Voortschrijdende gemiddelden over 7/14/30 dagen, variabiliteit, logreeksen, gemiddelde calorieën per dag van de week en je beste en slechtste dagen qua calorieën. Vooraf berekend, zodat de AI ze alleen nog hoeft na te vertellen.",
+                "Voortschrijdende gemiddelden over 7/14/30 dagen, variabiliteit, logreeksen, gemiddelde calorieën per dag van de week en je beste en slechtste dagen qua calorieën. Vooraf berekend, zodat de AI ze alleen nog hoeft na te vertellen. Met group_by geeft het ook gemiddelden per week, maand, kwartaal of jaar — per gelogde dag, dus dagen zonder maaltijden tellen niet mee — afgezet tegen de doelen die toen golden, met hoeveel dagen binnen het doel vielen en hoeveel mogelijk onvolledig zijn.",
             params: {
                 days: "Periode in dagen (standaard 30, max 365).",
+                group_by:
+                    "<code>week</code>, <code>month</code>, <code>quarter</code> of <code>year</code>: 26 weken, 24 maanden, 12 kwartalen of 5 jaar, tot en met de periode waarin de einddatum valt (standaard vandaag). De periode ligt vast; <code>days</code> bepaalt nog steeds de voortschrijdende gemiddelden.",
             },
-            example:
-                "Wat zijn mijn trends voor calorieën en macro's over de afgelopen 30 dagen?",
+            example: "Hoe gingen mijn maanden vergeleken met mijn doelen?",
         },
         get_meal_patterns: {
             description:
