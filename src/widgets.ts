@@ -83,6 +83,16 @@ const I18N_RE = /\/\*@i18n@\*\//g;
  */
 export const MEAL_CONTRIBUTORS_META_KEY = "nutrition-mcp.com/meal-contributors";
 
+/**
+ * Where get_weight_trends puts its trend and long-range series (the
+ * WeightSeriesMeta built by analyzeWeightHistory in src/weight-trend.ts): the
+ * CallToolResult's `_meta`, for the same frozen-outputSchema reason as
+ * MEAL_CONTRIBUTORS_META_KEY above. The weight-trends template repeats this
+ * literal, and src/mcp.test.ts checks the assembled widget contains it. A host
+ * that drops `_meta` leaves the widget on its raw 7/14/30-day chart.
+ */
+export const WEIGHT_SERIES_META_KEY = "nutrition-mcp.com/weight-series";
+
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
     "nutrition-summary": "nutrition-summary.html",

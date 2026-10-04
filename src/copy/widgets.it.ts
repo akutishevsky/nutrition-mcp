@@ -130,6 +130,8 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         windowAriaLabel: "Periodo",
         rangeAriaLabel: "Ultimi {n} giorni",
         chartAriaLabel: "Peso da {from} a {to}, ultimo {latest}",
+        trendChartAriaLabel:
+            "Peso da {from} a {to} con linea di tendenza smussata, ultimo {latest}",
         latest: "Ultimo",
         needTwo: "servono almeno 2 pesate",
         sinceDate: "{change} da {date}",
@@ -139,6 +141,17 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         toGain: "{amount} da prendere",
         target: "Obiettivo {value}",
         noTarget: "Nessun obiettivo impostato",
+        trend: "Tendenza",
+        scaleToday: "Bilancia oggi {value}",
+        perWeek: "{amount}/sett.",
+        rateAriaLabel:
+            "La tendenza cambia di {amount} a settimana nelle ultime 2 settimane",
+        rateTwoWeeks: "ritmo 2 sett.",
+        range1y: "1 anno",
+        rangeAll: "Tutto",
+        range1yAriaLabel: "Ultimo anno",
+        rangeAllAriaLabel: "Tutta la cronologia",
+        sinceMonth: "{change} da {date}",
     },
     importMeals: {
         loading: "Preparazione dell'importazione…",

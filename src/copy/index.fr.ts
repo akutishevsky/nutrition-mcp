@@ -434,7 +434,7 @@ export const INDEX_FR: IndexDoc = {
                 toolNotes: {
                     log_weight: "Enregistre la pesée de ce matin : 78,4 kg",
                     get_weight_trends:
-                        "Lisse 30 jours en moyennes mobiles, avec l'écart à la cible",
+                        "Lisse les variations quotidiennes en un poids de tendance et un rythme hebdomadaire, avec l'écart à la cible",
                     log_body_measurement:
                         "Enregistre le tour de taille : 84 cm",
                     get_body_measurements:
@@ -699,7 +699,7 @@ export const INDEX_FR: IndexDoc = {
             },
             {
                 title: "Suivi du poids",
-                body: "Enregistre ton poids en kg ou en lb, consulte les tendances sur 7/14/30 jours et suis ta progression vers un poids cible. Les mensurations de neuf zones du corps, de la taille au mollet, s'y ajoutent en cm ou en pouces.",
+                body: "Enregistre ton poids en kg ou en lb, consulte ton poids de tendance lissé et ton rythme hebdomadaire sur tout ton historique et suis ta progression vers un poids cible. Les mensurations de neuf zones du corps, de la taille au mollet, s'y ajoutent en cm ou en pouces.",
             },
             {
                 title: "Ton fuseau horaire, pris en compte",

@@ -786,6 +786,27 @@ matter above the shared strip. Key rules that keep it sharp and legible:
   a zero-based axis. Metrics that hover in a narrow band (body weight) must scale the
   axis to `[min, max] ± ~18%` of the data instead — a zero-based weight chart
   flattens the trend into a straight line. See `weight-trends.html`.
+- **Raw = faint dots, trend = solid accent line.** When a series has a smoothed
+  companion (weight-trends with its `_meta` series: the EWMA trend weight), the
+  smoothed series is the one the chart is about. Draw it as the solid line
+  (`stroke: var(--accent)`, `stroke-width: 2`, round joins) with the usual 16%
+  area fill under it, and draw the raw readings as **dots only, no line** —
+  `r="2"`, `fill: var(--text-dim)`, `opacity: 0.55` — painted under the trend line
+  so the line stays on top. Above 45 points the dots become a grey smear, so drop
+  them and keep only the line and area. The Y domain covers raw, trend and target
+  together (still `± 18%`), and X is **date-proportional** (`x ∝ days since the
+first point`), never index-spaced: an index axis hides gaps between weigh-ins and
+  makes a smoothed line look steadier than the data was. Long ranges (weekly or
+  monthly buckets) follow the same rule with the bucket mean as the dot. A lone
+  point gets an accent `r="2.6"` marker, since there is no line to carry it.
+  Without a smoothed series (a host that dropped `_meta`) weight-trends keeps its
+  original single accent line with accent dots over an index axis.
+- **Date labels under the chart are `.tdates`** (start left, end right; one label
+  when they are the same day), as HTML beside the SVG — in weight-trends the SVG
+  and its `.tdates` sit together in a `.wcol` column. Daily ranges use
+  `shortDate` ("13 Jun"); ranges that cross a year use
+  `Intl.DateTimeFormat(locale, { month: "short", year: "numeric" })` ("Jul 2025"),
+  since `shortDate` has no year.
 
 ```css
 .chart {
@@ -905,15 +926,16 @@ with `psec`. Only the little track between label and figure is local to
   along as the track's `aria-label` and the row's `title`, with `·` spelled as a
   comma in the spoken name.
 
-Name collision worth knowing: `weight-trends.html` defines its **own** `.wrow` (a
-flex row holding the latest figure beside the chart). It includes neither
-`macros.css` nor this markup, so the two never meet — but do not assume `.wrow`
-means the same thing in both files.
+Not to be confused with `weight-trends.html`'s **`.wmain`** — the flex row holding
+the headline figure (`.wnow`) beside the chart. That widget includes neither
+`macros.css` nor this markup and has no `.wrow` of its own; the two rows share
+nothing but the subject.
 
 ## 7. Component: segmented control (`.seg`)
 
-A pill toggle for switching a view's mode/range (the trends and weight-trends
-7/14/30-day toggles). The **active** label uses `var(--bg)` on the accent fill so it
+A pill toggle for switching a view's mode/range (the trends 7/14/30-day toggle;
+weight-trends' 7 · 30 · 90 · 1y · All, or 7/14/30 when its `_meta` series is
+missing). The **active** label uses `var(--bg)` on the accent fill so it
 stays high-contrast in both themes — off-white on dark-green in light, black on
 light-green in dark — without theme-specific overrides.
 
@@ -934,7 +956,8 @@ it owns, but the two widgets with a range toggle include `seg.css` and not
 interactive thing on the page with no visible focus. The declaration is identical to
 `form.css`'s, so including both partials is a no-op.
 
-**Interactivity:** buttons carry a `data-*` value; delegate the click on a container
+**Interactivity:** buttons carry a `data-*` value — a **string id**, read as a
+string (`data-r="1y"`, `data-r="all"`; `Number()` turns those into `NaN`); delegate the click on a container
 that survives re-renders (e.g. `#root`), read the value, update state, and
 re-`paint()`. For a range/filter toggle, prefer sending a superset of data and
 slicing client-side over re-calling the tool — instant, no host round-trip.

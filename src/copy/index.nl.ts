@@ -425,7 +425,7 @@ export const INDEX_NL: IndexDoc = {
                 toolNotes: {
                     log_weight: "Slaat de weging van vanochtend op: 78,4 kg",
                     get_weight_trends:
-                        "Vlakt 30 dagen af tot voortschrijdende gemiddelden en de afstand tot je doel",
+                        "Vlakt dagelijkse schommelingen af tot een trendgewicht en een tempo per week, met de afstand tot je doel",
                     log_body_measurement: "Slaat de tailleomtrek van 84 cm op",
                     get_body_measurements:
                         "Zoekt de vorige taillemeting op om mee te vergelijken",
@@ -688,7 +688,7 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 title: "Gewicht bijhouden",
-                body: "Log je lichaamsgewicht in kg of lb, bekijk trends over 7/14/30 dagen en volg je voortgang richting een streefgewicht. Omtrekmaten van negen lichaamsdelen, van taille tot kuit, log je ernaast in cm of inch.",
+                body: "Log je lichaamsgewicht in kg of lb, bekijk je afgevlakte trendgewicht en tempo per week over je hele geschiedenis en volg je voortgang richting een streefgewicht. Omtrekmaten van negen lichaamsdelen, van taille tot kuit, log je ernaast in cm of inch.",
             },
             {
                 title: "In je eigen tijdzone",

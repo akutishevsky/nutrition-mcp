@@ -423,7 +423,7 @@ export const INDEX_DE: IndexDoc = {
                     log_weight:
                         "Speichert die Messung von heute Morgen: 78,4 kg",
                     get_weight_trends:
-                        "Glättet 30 Tage zu gleitenden Durchschnitten und zeigt den Abstand zum Ziel",
+                        "Glättet Tagesschwankungen zu einem Trendgewicht und einer Wochenrate und zeigt den Abstand zum Ziel",
                     log_body_measurement: "Speichert den Taillenumfang: 84 cm",
                     get_body_measurements:
                         "Sucht den letzten Taillenwert zum Vergleich",
@@ -686,7 +686,7 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 title: "Gewichts-Tracking",
-                body: "Erfasse dein Körpergewicht in kg oder lb, sieh dir 7/14/30-Tage-Trends an und verfolg deinen Fortschritt Richtung Zielgewicht. Maßband-Maße von neun Körperstellen – von der Taille bis zur Wade – erfasst du daneben in cm oder in.",
+                body: "Erfasse dein Körpergewicht in kg oder lb, sieh dir dein geglättetes Trendgewicht und deine Wochenrate über deine gesamte Historie an und verfolg deinen Fortschritt Richtung Zielgewicht. Maßband-Maße von neun Körperstellen – von der Taille bis zur Wade – erfasst du daneben in cm oder in.",
             },
             {
                 title: "Passt sich deiner Zeitzone an",

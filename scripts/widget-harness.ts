@@ -18,17 +18,34 @@
 //   ?fail=1             answer tools/call with a JSON-RPC error
 //   ?drinkUnit=us       alcohol tracking ON for import-meals (default: off/null)
 //   ?noMeta=1           deliver the tool result WITHOUT its _meta, as a host that
-//                       drops it would (nutrition-summary then shows "N or more")
+//                       drops it would (nutrition-summary then shows "N or more",
+//                       weight-trends falls back to its legacy 7/14/30 chart)
+//   ?sample=sparse      weight-trends: a 3-weigh-in user instead of 3 years of
+//                       history (the degraded states: no rate chip, no 1y/All)
+//   ?days=90            weight-trends: the tool's `days` argument, which picks
+//                       structuredContent.default_range (7/14/30/90/365, else 30)
+//   ?unit=lb            weight-trends: display unit (default kg)
+//   ?target=0           weight-trends: no target weight set
+//   ?locale=pl          structuredContent.locale (and hostContext.locale)
+//   ?theme=dark         hostContext.theme on ui/initialize (default light)
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
 
 import {
     getWidgetHtml,
     MEAL_CONTRIBUTORS_META_KEY,
+    WEIGHT_SERIES_META_KEY,
     WIDGET_TEMPLATES,
 } from "../src/widgets.js";
 import { runImport } from "../src/import.js";
 import type { MealInput, MealInsertResult } from "../src/supabase.js";
+import { shiftLocalDate } from "../src/tz.js";
+import { fromGrams, type WeightUnit } from "../src/units.js";
+import {
+    analyzeWeightHistory,
+    defaultRangeFor,
+    type WeightRow,
+} from "../src/weight-trend.js";
 
 // In-memory stand-in for insertMeal, mirroring its dedup contract, so the harness
 // can execute the REAL bulk_import_meals logic instead of returning canned data.
@@ -52,6 +69,92 @@ async function fakeInsert(input: MealInput): Promise<MealInsertResult> {
     return { meal: meal as never, deduplicated: false };
 }
 
+// get_weight_trends' tool result, built with the REAL src/weight-trend.ts the
+// handler uses (EWMA, buckets, rate), so what the widget draws here is what a
+// client would get for the same weigh-ins — not a hand-typed approximation.
+// "full" is ~3 years losing 92 → 80 kg with a plateau, day-to-day noise, a
+// three-week break and a few double weigh-ins; "sparse" is 3 weigh-ins in a
+// month, which is too few for a rate and too short for 1y/All.
+const WEIGHT_END = "2026-07-15";
+const WEIGHT_TZ = "Europe/Kyiv";
+function weightRows(sample: "full" | "sparse"): WeightRow[] {
+    const at = (date: string, hh = "07:30") => `${date}T${hh}:00+03:00`;
+    if (sample === "sparse") {
+        return [
+            {
+                logged_at: at(shiftLocalDate(WEIGHT_END, -24)),
+                weight_g: 84_300,
+            },
+            {
+                logged_at: at(shiftLocalDate(WEIGHT_END, -11)),
+                weight_g: 83_600,
+            },
+            { logged_at: at(shiftLocalDate(WEIGHT_END, -2)), weight_g: 83_900 },
+        ];
+    }
+    // Deterministic noise (mulberry32), so every reload draws the same chart.
+    let seed = 20261004;
+    const rand = () => {
+        seed = (seed + 0x6d2b79f5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const total = 3 * 365;
+    const rows: WeightRow[] = [];
+    for (let i = total; i >= 0; i--) {
+        const date = shiftLocalDate(WEIGHT_END, -i);
+        const p = (total - i) / total; // 0 → 1 over the history
+        // Loses fast, plateaus through the middle, then a slower second leg.
+        const base =
+            p < 0.35
+                ? 92 - (p / 0.35) * 7
+                : p < 0.6
+                  ? 85 + Math.sin(p * 40) * 0.4
+                  : 85 - ((p - 0.6) / 0.4) * 5;
+        if (i > 200 && i < 222) continue; // a three-week break
+        if (rand() < 0.3) continue; // skipped mornings
+        const kg = base + (rand() - 0.5) * 1.6;
+        rows.push({ logged_at: at(date), weight_g: Math.round(kg * 1000) });
+        if (rand() < 0.05) {
+            rows.push({
+                logged_at: at(date, "21:10"),
+                weight_g: Math.round((kg + 0.6) * 1000),
+            });
+        }
+    }
+    return rows;
+}
+function weightTrendsFixture(params: URLSearchParams) {
+    const sample = params.get("sample") === "sparse" ? "sparse" : "full";
+    const unit: WeightUnit = params.get("unit") === "lb" ? "lb" : "kg";
+    const days = Number(params.get("days") ?? 30) || 30;
+    const targetG = params.get("target") === "0" ? null : 78_000;
+    const a = analyzeWeightHistory(
+        weightRows(sample),
+        WEIGHT_TZ,
+        unit,
+        WEIGHT_END,
+    );
+    const cutoff = shiftLocalDate(WEIGHT_END, -29);
+    return {
+        result: {
+            end_date: WEIGHT_END,
+            unit,
+            target: targetG != null ? fromGrams(targetG, unit) : null,
+            default_range: defaultRangeFor(days),
+            locale: params.get("locale") ?? "en",
+            days: a.days
+                .filter((d) => d.date >= cutoff)
+                .map((d) => ({
+                    date: d.date,
+                    weight: fromGrams(d.weight_g, unit),
+                })),
+        },
+        meta: { [WEIGHT_SERIES_META_KEY]: a.meta },
+    };
+}
+
 const PORT = Number(process.env.HARNESS_PORT ?? 8787);
 const KEYS = Object.keys(WIDGET_TEMPLATES);
 
@@ -72,7 +175,9 @@ function indexPage(): string {
   <p>Pick a widget. Append query flags to simulate host behaviour:
      <code>?serverTools=0</code>, <code>?tools=0</code>, <code>?delay=3000</code>,
      <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>,
-     <code>?noMeta=1</code>.</p>
+     <code>?noMeta=1</code>, <code>?theme=dark</code>, <code>?locale=pl</code>;
+     weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
+     <code>?unit=lb</code>, <code>?target=0</code>.</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -88,6 +193,8 @@ function hostPage(widget: string, params: URLSearchParams): string {
     // is validated against a cached outputSchema and can never gain a field),
     // so this is how the "N or more smaller meals" fallback is previewed.
     const noMeta = params.get("noMeta") === "1";
+    const theme = params.get("theme") === "dark" ? "dark" : "light";
+    const locale = params.get("locale");
     // The alcohol opt-in, as every tool that touches alcohol sends it:
     // "us"/"uk" when the user tracks alcohol, null when they do not. Default
     // null, because that is the default account state and the state the
@@ -284,8 +391,10 @@ function hostPage(widget: string, params: URLSearchParams): string {
         ),
     };
     // Per-widget CallToolResult `_meta`, delivered beside structuredContent.
+    const weight = weightTrendsFixture(params);
     const METAS: Record<string, unknown> = {
         "nutrition-summary": summaryMeta,
+        "weight-trends": weight.meta,
     };
 
     const RESULTS: Record<string, unknown> = {
@@ -374,24 +483,21 @@ function hostPage(widget: string, params: URLSearchParams): string {
             widgets_enabled: true,
             drink_unit: drinkUnit,
         },
-        "weight-trends": {
-            range_days: 7,
-            unit: "kg",
-            days: days.map((d, i) => ({
-                date: d.date,
-                weight_kg: 82.4 - i * 0.1,
-                weight: 82.4 - i * 0.1,
-            })),
-        },
+        "weight-trends": weight.result,
     };
     // Probe and gallery paint their own UI; anything non-null will do.
-    const toolResult = RESULTS[widget] ?? { probe: true };
+    const baseResult = RESULTS[widget] ?? { probe: true };
+    // ?locale= reaches every widget through the field they all read first.
+    const toolResult =
+        locale && typeof baseResult === "object"
+            ? { ...baseResult, locale }
+            : baseResult;
     const toolMeta = noMeta ? null : (METAS[widget] ?? null);
 
     return `<!doctype html>
 <html><head><meta charset="utf-8"><title>host: ${widget}</title>
 <style>
-  body{font:13px/1.5 -apple-system,system-ui,sans-serif;margin:16px}
+  body{font:13px/1.5 -apple-system,system-ui,sans-serif;margin:16px${theme === "dark" ? ";background:#1c1c1e;color:#eee" : ""}}
   #frame{width:100%;height:130px;border:2px solid #888;border-radius:8px;transition:height .15s}
   #log{margin-top:12px;padding:8px;background:#111;color:#0f0;border-radius:6px;
        font:11px/1.5 ui-monospace,monospace;white-space:pre-wrap;max-height:300px;overflow:auto}
@@ -399,7 +505,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
 </style></head>
 <body>
   <strong>${widget}</strong>
-  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""}${noMeta ? " noMeta=1" : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"}</span>
+  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""}${noMeta ? " noMeta=1" : ""} theme=${theme}${locale ? " locale=" + locale : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"}</span>
   <div style="margin-top:8px"><iframe id="frame" sandbox="allow-scripts" src="/widget/${encodeURIComponent(widget)}"></iframe></div>
   <div style="margin-top:8px">
     <button onclick="hostRequest(1)">host req id=1</button>
@@ -414,6 +520,8 @@ const CFG = {
   delay: ${delay},
   maxHeight: ${maxHeight ? Number(maxHeight) : "null"},
   fail: ${failCalls},
+  theme: ${JSON.stringify(theme)},
+  locale: ${JSON.stringify(locale)},
 };
 const TOOL_RESULT = ${JSON.stringify(toolResult)};
 // The result's _meta (null with ?noMeta=1 or for a widget that has none). The
@@ -457,7 +565,8 @@ window.addEventListener("message", (e) => {
           "(clientInfo/capabilities is the MCP-core shape and is wrong here)");
       return;
     }
-    const hostContext = { theme: "light" };
+    const hostContext = { theme: CFG.theme };
+    if (CFG.locale) hostContext.locale = CFG.locale;
     if (CFG.maxHeight) hostContext.containerDimensions = { maxHeight: CFG.maxHeight };
     const hostCapabilities = {};
     if (CFG.serverTools) hostCapabilities.serverTools = {};

@@ -7,6 +7,7 @@ import {
     type DailyBucket,
 } from "./insights.js";
 import type { Meal, NutritionGoals, WeightEntry } from "./supabase.js";
+import { analyzeWeightHistory, rateForDisplay } from "./weight-trend.js";
 
 function entry(logged_at: string, weight_g: number): WeightEntry {
     return {
@@ -44,6 +45,13 @@ test("computeWeightTrend reports latest, change, range, and goal in kg", () => {
     expect(out).toContain("Min: 78.5 kg (on 2026-06-15)");
     expect(out).toContain("Max: 80 kg (on 2026-06-01)");
     expect(out).toContain("3.5 kg to lose to reach target of 75 kg");
+    // Gap-corrected EWMA: 80 → 79.32 → 78.76 kg. Only 2 weigh-ins in the
+    // last 21 days, so no rate, and the first weigh-in is inside the window,
+    // so no history line.
+    expect(out).toContain("Trend weight: 78.8 kg\n");
+    expect(out).not.toContain("/week");
+    expect(out).not.toContain("Since first weigh-in");
+    expect(out).not.toContain("Moving averages");
 });
 
 test("computeWeightTrend averages multiple weigh-ins on the same day", () => {
@@ -62,6 +70,8 @@ test("computeWeightTrend averages multiple weigh-ins on the same day", () => {
     );
     expect(out).toContain("(2 logged days)");
     expect(out).toContain("Max: 81 kg (on 2026-06-01)"); // averaged, not 82
+    // The trend is seeded with the averaged 81 kg, not either raw reading.
+    expect(out).toContain("Trend weight: 81 kg");
     expect(out).toContain("(Tip: set a target weight with set_nutrition_goals");
 });
 
@@ -81,12 +91,146 @@ test("computeWeightTrend renders in lb and reports gaining toward target", () =>
     expect(out).toContain("Latest: 168 lb (on 2026-06-10)");
     expect(out).toContain("Change over range: +3 lb");
     expect(out).toContain("to gain to reach target of 175 lb");
+    // 165 lb + (1 − 0.85^9) · 3 lb ≈ 167.3 lb.
+    expect(out).toContain("Trend weight: 167.3 lb");
 });
 
 test("computeWeightTrend handles an empty range", () => {
     expect(
         computeWeightTrend([], "2026-06-01", "2026-06-30", "UTC", null, "kg"),
     ).toBe("No weight logged between 2026-06-01 and 2026-06-30.");
+    // History before the window does not count as a reading inside it.
+    expect(
+        computeWeightTrend(
+            [entry("2026-05-01T08:00:00Z", 80000)],
+            "2026-06-01",
+            "2026-06-30",
+            "UTC",
+            null,
+            "kg",
+        ),
+    ).toBe("No weight logged between 2026-06-01 and 2026-06-30.");
+});
+
+/** One weigh-in a day from 2026-01-01, losing 100 g a day from 92 kg. */
+function linearLoss(days: number): WeightEntry[] {
+    const start = Date.parse("2026-01-01T08:00:00Z");
+    return Array.from({ length: days }, (_, i) =>
+        entry(new Date(start + i * 86_400_000).toISOString(), 92000 - 100 * i),
+    );
+}
+
+test("computeWeightTrend reports the trend's weekly rate and the history line", () => {
+    const out = computeWeightTrend(
+        linearLoss(181), // through 2026-06-30
+        "2026-06-01",
+        "2026-06-30",
+        "UTC",
+        null,
+        "kg",
+    );
+    // Window stats still use only the requested days.
+    expect(out).toContain(
+        "Weight trend — 2026-06-01 to 2026-06-30 (30 logged days)",
+    );
+    expect(out).toContain(
+        "Change over range: -2.9 kg (from 76.9 kg on 2026-06-01)",
+    );
+    expect(out).toContain("Min: 74 kg (on 2026-06-30)");
+    // A steady 100 g/day loss: the settled trend lags the scale by
+    // 0.1 · 0.85 / 0.15 ≈ 0.57 kg and falls 0.7 kg a week.
+    expect(out).toContain(
+        "Trend weight: 74.6 kg (−0.7 kg/week over the last 2 weeks)\n",
+    );
+    // 74.6 − 92 = −17.4, from the two printed figures.
+    expect(out).toContain(
+        "Since first weigh-in (2026-01-01, 92 kg): −17.4 kg; trend now 74.6 kg.",
+    );
+});
+
+test("computeWeightTrend's trend and rate match the widget's _meta", () => {
+    for (const unit of ["kg", "lb"] as const) {
+        const entries = linearLoss(181);
+        const out = computeWeightTrend(
+            entries,
+            "2026-06-24",
+            "2026-06-30",
+            "UTC",
+            null,
+            unit,
+        );
+        const { meta } = analyzeWeightHistory(
+            entries,
+            "UTC",
+            unit,
+            "2026-06-30",
+        );
+        const rate = rateForDisplay(meta.weekly_rate!);
+        expect(out).toContain(
+            `Trend weight: ${meta.trend_latest} ${unit} (${rate > 0 ? "+" : rate < 0 ? "−" : ""}${Math.abs(rate).toFixed(1)} ${unit}/week over the last 2 weeks)`,
+        );
+        expect(out).toContain(`trend now ${meta.trend_latest} ${unit}.`);
+    }
+});
+
+test("computeWeightTrend warms the trend up on history before the window", () => {
+    // 90 kg for two months, then 80 kg inside the window: with the warm-up
+    // the trend is still on its way down; without it, it would start at 80.
+    const before = Array.from({ length: 60 }, (_, i) =>
+        entry(
+            new Date(
+                Date.parse("2026-04-01T08:00:00Z") + i * 86_400_000,
+            ).toISOString(),
+            90000,
+        ),
+    );
+    const inWindow = [
+        entry("2026-06-01T08:00:00Z", 80000),
+        entry("2026-06-02T08:00:00Z", 80000),
+    ];
+    const warm = computeWeightTrend(
+        [...before, ...inWindow],
+        "2026-06-01",
+        "2026-06-02",
+        "UTC",
+        null,
+        "kg",
+    );
+    // The last 90 kg day is 2026-05-30, so 80 kg arrives over 3 days of
+    // gap-corrected steps: 90 − 10 · (1 − 0.85³) ≈ 86.1 kg.
+    expect(warm).toContain("Trend weight: 86.1 kg");
+    expect(warm).toContain(
+        "Since first weigh-in (2026-04-01, 90 kg): −3.9 kg; trend now 86.1 kg.",
+    );
+    const cold = computeWeightTrend(
+        inWindow,
+        "2026-06-01",
+        "2026-06-02",
+        "UTC",
+        null,
+        "kg",
+    );
+    expect(cold).toContain("Trend weight: 80 kg");
+    expect(cold).not.toContain("Since first weigh-in");
+});
+
+test("computeWeightTrend ignores weigh-ins after the window end", () => {
+    const entries = [
+        entry("2026-06-01T08:00:00Z", 80000),
+        entry("2026-06-02T08:00:00Z", 80000),
+        entry("2026-06-10T08:00:00Z", 70000), // after end_date
+    ];
+    const out = computeWeightTrend(
+        entries,
+        "2026-06-01",
+        "2026-06-02",
+        "UTC",
+        null,
+        "kg",
+    );
+    expect(out).toContain("Latest: 80 kg (on 2026-06-02)");
+    expect(out).toContain("Trend weight: 80 kg");
+    expect(out).not.toContain("70 kg");
 });
 
 // ---------- fiber / sugar / alcohol ----------

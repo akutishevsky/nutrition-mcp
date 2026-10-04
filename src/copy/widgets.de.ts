@@ -135,6 +135,8 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         windowAriaLabel: "Trendzeitraum",
         rangeAriaLabel: "Letzte {n} Tage",
         chartAriaLabel: "Gewicht vom {from} bis {to}, zuletzt {latest}",
+        trendChartAriaLabel:
+            "Gewicht vom {from} bis {to} mit geglätteter Trendlinie, zuletzt {latest}",
         latest: "Zuletzt",
         needTwo: "mindestens 2 Messungen nötig",
         sinceDate: "{change} seit {date}",
@@ -144,6 +146,17 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
         toGain: "noch {amount} zunehmen",
         target: "Ziel {value}",
         noTarget: "Kein Ziel gesetzt",
+        trend: "Trend",
+        scaleToday: "Waage heute {value}",
+        perWeek: "{amount}/Wo.",
+        rateAriaLabel:
+            "Trend ändert sich um {amount} pro Woche über die letzten 2 Wochen",
+        rateTwoWeeks: "2-Wochen-Rate",
+        range1y: "1 J.",
+        rangeAll: "Alle",
+        range1yAriaLabel: "Letztes Jahr",
+        rangeAllAriaLabel: "Gesamter Verlauf",
+        sinceMonth: "{change} seit {date}",
     },
     importMeals: {
         loading: "Import wird vorbereitet …",
