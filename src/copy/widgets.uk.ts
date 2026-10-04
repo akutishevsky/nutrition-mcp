@@ -146,6 +146,8 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         windowAriaLabel: "Період тренду",
         rangeAriaLabel: "Останні {n} днів",
         chartAriaLabel: "Вага з {from} по {to}, останнє значення {latest}",
+        trendChartAriaLabel:
+            "Вага з {from} по {to} зі згладженою лінією тренду, останнє значення {latest}",
         latest: "Останнє",
         needTwo: "потрібно 2+ зважування",
         sinceDate: "{change} з {date}",
@@ -160,6 +162,17 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         toGain: "лишилося набрати {amount}",
         target: "Ціль {value}",
         noTarget: "Ціль не встановлено",
+        trend: "Тренд",
+        scaleToday: "Ваги сьогодні {value}",
+        perWeek: "{amount}/тиж.",
+        rateAriaLabel:
+            "Тренд змінюється на {amount} за тиждень протягом останніх 2 тижнів",
+        rateTwoWeeks: "темп за 2 тиж.",
+        range1y: "1 р.",
+        rangeAll: "Усе",
+        range1yAriaLabel: "Останній рік",
+        rangeAllAriaLabel: "Уся історія",
+        sinceMonth: "{change} з {date}",
     },
     importMeals: {
         loading: "Підготовка імпорту…",

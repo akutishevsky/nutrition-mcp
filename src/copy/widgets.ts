@@ -278,8 +278,11 @@ export interface WidgetStrings {
         /** Template for a range button's aria-label. Placeholder: {n}. */
         rangeAriaLabel: string;
         /** Template for the chart's aria-label. Placeholders: {from}, {to},
-         * {latest} (pre-formatted with unit). */
+         * {latest} (pre-formatted with unit). Names the smoothed trend line. */
+        /** The raw-weight chart shown when the host dropped `_meta`. */
         chartAriaLabel: string;
+        /** The trend chart (`_meta` present): raw dots plus the smoothed line. */
+        trendChartAriaLabel: string;
         latest: string;
         /** Fewer than 2 weigh-ins in the selected range. */
         needTwo: string;
@@ -294,6 +297,30 @@ export interface WidgetStrings {
         /** Template. Placeholder: {value} (pre-formatted with its unit). */
         target: string;
         noTarget: string;
+        /** Label for the trend weight (the EWMA), shown as the big number. */
+        trend: string;
+        /** Template. Placeholder: {value} (pre-formatted with its unit) — the
+         * latest raw scale reading, the small secondary figure. */
+        scaleToday: string;
+        /** Rate chip text. Placeholder: {amount} (signed, pre-formatted with
+         * its unit), e.g. "−0.4 kg/wk". */
+        perWeek: string;
+        /** aria-label on the rate chip. Placeholder: {amount} (signed,
+         * pre-formatted with its unit). */
+        rateAriaLabel: string;
+        /** Short label marking the chip as the 2-week rate, shown beside it
+         * in the long ranges (90/1y/All) so the chip keeps one meaning. */
+        rateTwoWeeks: string;
+        /** Range button labels for the long ranges (the day ranges show bare
+         * numbers; 90 uses rangeAriaLabel with {n} = 90 like 7/14/30). */
+        range1y: string;
+        rangeAll: string;
+        range1yAriaLabel: string;
+        rangeAllAriaLabel: string;
+        /** Template for the 1y/All change line, where {date} is a month
+         * (pre-formatted, e.g. "Mar 2024"). Placeholders: {change}
+         * (pre-formatted with unit), {date}. */
+        sinceMonth: string;
     };
 
     /** templates/import-meals.html's own strings — the file/map/preview/import
@@ -584,6 +611,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         windowAriaLabel: "Trend window",
         rangeAriaLabel: "Last {n} days",
         chartAriaLabel: "Weight from {from} to {to}, latest {latest}",
+        trendChartAriaLabel:
+            "Weight from {from} to {to} with a smoothed trend line, latest {latest}",
         latest: "Latest",
         needTwo: "need 2+ weigh-ins",
         sinceDate: "{change} since {date}",
@@ -593,6 +622,16 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         toGain: "{amount} to gain",
         target: "Target {value}",
         noTarget: "No target set",
+        trend: "Trend",
+        scaleToday: "Scale today {value}",
+        perWeek: "{amount}/wk",
+        rateAriaLabel: "Trend changing {amount} per week over the last 2 weeks",
+        rateTwoWeeks: "2-wk rate",
+        range1y: "1y",
+        rangeAll: "All",
+        range1yAriaLabel: "Last year",
+        rangeAllAriaLabel: "All history",
+        sinceMonth: "{change} since {date}",
     },
     importMeals: {
         loading: "Preparing import…",
