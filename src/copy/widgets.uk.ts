@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
             lb: "фн",
         },
         noneLogged: "немає записів",
+        notRecorded: "не записано",
         caloriesToday: "Калорії сьогодні",
         caloriesOn: "Калорії · {date}",
         tapHint: "Торкнися показника, щоб побачити страви",

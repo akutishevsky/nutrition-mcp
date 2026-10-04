@@ -834,16 +834,19 @@ test("fiber and sugar earn a cell with data or a goal; alcohol's 0 always shows"
 
 // Added sugar is "data" like sugar, but it reaches the strip only through
 // `_meta`: undefined (no `_meta`, or a day that did not record it) is no cell
-// at all, even with a limit; a recorded 0 shows against a limit; 0 is a real
-// ceiling.
+// without a limit; a recorded value, 0 included, always shows (`zeroIsValue`);
+// 0 is a real ceiling.
 test("added sugar earns a cell with a value or a limit, never without `_meta`", () => {
     const bare = { calories: 500, protein_g: 20, carbs_g: 60, fat_g: 10 };
+    // A limit with no value is a "not recorded" cell (see the tests below);
+    // neither a limit nor a value is no cell at all.
     expect(
         limitKeys(macrosApi.macroPanel(bare, { added_sugar_g: 25 })),
-    ).toEqual([]);
+    ).toEqual(["Added sugar"]);
+    expect(limitKeys(macrosApi.macroPanel(bare, null))).toEqual([]);
     expect(
         limitKeys(macrosApi.macroPanel({ ...bare, added_sugar_g: 0 }, null)),
-    ).toEqual([]);
+    ).toEqual(["Added sugar"]);
     expect(
         limitKeys(
             macrosApi.macroPanel(
@@ -982,6 +985,238 @@ test("the bananas-and-cola day shows added sugar over its limit beside an unlimi
     );
     expect(both.sugar_g).toContain("limit 25 g, 38.9 g over");
     expect(both.added_sugar_g).toContain("limit 25 g, 10 g over");
+});
+
+// ---- added sugar not recorded, and a recorded 0 ---------------------------
+//
+// The ChatGPT cola: 330 ml logged with sugar_g 35 and no added_sugar_g, against
+// a 29 g added-sugar limit. The day's added-sugar figure is null ("not
+// recorded"), so `_meta` carries the limit and no value.
+const COLA_AS: AddedSugar = {
+    v: 1,
+    goal: 29,
+    days: { "2026-10-04": null },
+    meals: { cola: null },
+};
+const COLA_VALS = {
+    calories: 139,
+    protein_g: 0,
+    carbs_g: 35,
+    fat_g: 0,
+    fiber_g: 0,
+    sugar_g: 35,
+    alcohol_g: null,
+    caffeine_mg: 32,
+    water_ml: 0,
+};
+const COLA_MEALS = [
+    {
+        description: "Cola 330 ml",
+        meal_type: "snack",
+        calories: 139,
+        carbs_g: 35,
+        sugar_g: 35,
+        caffeine_mg: 32,
+    },
+];
+const colaStrip = (as: AddedSugar, goal: Vals | null = DAY_GOALS) => {
+    const p = macrosApi.addedSugarPayload(as);
+    const m = macrosApi.withAddedSugar(
+        p,
+        macrosApi.addedSugarFor(p, ["2026-10-04"]),
+        COLA_VALS,
+        goal,
+        COLA_MEALS,
+    );
+    return macrosApi.macroPanel(m.vals, m.goal, undefined, m.meals);
+};
+// The one added-sugar tile's markup, from its opening div to the next tile.
+const addedSugarTile = (html: string) => {
+    const i = html.indexOf('<span class="mkey">Added sugar</span>');
+    if (i < 0) return null;
+    const start = html.lastIndexOf('<div class="mtile', i);
+    const end = html.indexOf('<div class="mtile', i);
+    return html.slice(start, end < 0 ? undefined : end);
+};
+
+test("a limit with nothing recorded shows the cell as 'not recorded'", () => {
+    const html = colaStrip(COLA_AS);
+    // The sugars row opens: total sugar beside an added-sugar cell that says
+    // it is unknown — never a figure, never "none logged".
+    expect(limitKeys(html)).toEqual(["Sugar", "Added sugar", "Caffeine"]);
+    expect(limitRows(html)[0]!.keys).toEqual(["Sugar", "Added sugar"]);
+    const tile = addedSugarTile(html)!;
+    expect(tile).toContain('<span class="mnone">not recorded</span>');
+    expect(tile).not.toContain("none logged");
+    // An empty bar and the limit alone as the caption — no "29 g under".
+    expect(tile).toContain('class="mfill" style="width:0.0%');
+    expect(tile).toContain('<div class="mcap">limit 29 g</div>');
+    // Nothing behind it: not a button, not focusable, but named in full.
+    expect(tile).not.toContain('role="button"');
+    expect(tile).not.toContain("data-macro=");
+    expect(tile).not.toContain("tabindex");
+    expect(tile).toContain(
+        'role="group" aria-label="Added sugar, not recorded, limit 29 g"',
+    );
+    // Total sugar is still its own figure and still tappable.
+    expect(tileLabels(html).sugar_g).toBe(
+        "Sugar 35 g, no goal set. Show the meals that contributed.",
+    );
+});
+
+test("a limit of 0 with nothing recorded is still 'not recorded', not 'at limit'", () => {
+    const tile = addedSugarTile(colaStrip({ ...COLA_AS, goal: 0 }))!;
+    expect(tile).toContain('<span class="mnone">not recorded</span>');
+    expect(tile).toContain('<div class="mcap">limit 0 g</div>');
+    expect(tile).not.toContain("at limit");
+    expect(tile).not.toContain("var(--over)");
+});
+
+test("without a limit, nothing recorded keeps the cell hidden as before", () => {
+    const html = colaStrip({ ...COLA_AS, goal: null });
+    expect(limitKeys(html)).toEqual(["Sugar", "Caffeine"]);
+    expect(html).not.toContain("not recorded");
+    // …which is exactly the strip without any `_meta`.
+    expect(html).toBe(
+        macrosApi.macroPanel(COLA_VALS, DAY_GOALS, undefined, COLA_MEALS),
+    );
+});
+
+test("the summary's sparse days map: a missing date reads as not recorded", () => {
+    // get_nutrition_summary keys `days` only for dates with meals or water, and
+    // sends {} on its empty-range path with the goal still set. A date absent
+    // from the map is the same as a null one.
+    for (const days of [{}, { "2026-10-03": null }]) {
+        const p = macrosApi.addedSugarPayload({ v: 1, goal: 29, days });
+        const value = macrosApi.addedSugarFor(p, ["2026-10-03", "2026-10-04"]);
+        expect(value).toBeUndefined();
+        const m = macrosApi.withAddedSugar(
+            p,
+            value,
+            COLA_VALS,
+            DAY_GOALS,
+            null,
+        );
+        const tile = addedSugarTile(macrosApi.macroPanel(m.vals, m.goal))!;
+        expect(tile).toContain('<span class="mnone">not recorded</span>');
+        expect(tile).toContain('<div class="mcap">limit 29 g</div>');
+    }
+});
+
+test("'not recorded' is in every locale and differs from 'none logged'", () => {
+    for (const [loc, d] of Object.entries(WIDGET_STRINGS)) {
+        const s = (d as typeof WIDGET_STRINGS_EN).macros.notRecorded;
+        expect({ loc, ok: typeof s === "string" && s.length > 0 }).toEqual({
+            loc,
+            ok: true,
+        });
+        expect({ loc, s }).not.toEqual({
+            loc,
+            s: (d as typeof WIDGET_STRINGS_EN).macros.noneLogged,
+        });
+    }
+});
+
+test("trends shows 'not recorded' per range, only when no day in it recorded", () => {
+    // 30 days; only the oldest one recorded added sugar. The 7- and 14-day
+    // ranges hold no recorded day, the 30-day one does.
+    const dates = Array.from(
+        { length: 30 },
+        (_, i) => `2026-09-${String(i + 1).padStart(2, "0")}`,
+    );
+    const days: Record<string, number | null> = {};
+    for (const d of dates) days[d] = null;
+    days[dates[0]!] = 12;
+    const as = macrosApi.addedSugarPayload({ v: 1, goal: 29, days });
+    // As trends.html builds it: avgOf leaves added_sugar_g null.
+    const avg = { ...COLA_VALS, added_sugar_g: null };
+    const strip = (range: number) => {
+        const slice = dates.slice(-range);
+        const m = macrosApi.withAddedSugar(
+            as,
+            macrosApi.addedSugarFor(as, slice),
+            avg,
+            DAY_GOALS,
+            null,
+        );
+        return addedSugarTile(macrosApi.macroPanel(m.vals, m.goal))!;
+    };
+    expect(strip(7)).toContain("not recorded");
+    expect(strip(14)).toContain("not recorded");
+    expect(strip(30)).not.toContain("not recorded");
+    expect(strip(30)).toContain(">12</span>");
+    // No limit: every range hides the cell, as before.
+    const none = macrosApi.addedSugarPayload({ v: 1, goal: null, days });
+    const m = macrosApi.withAddedSugar(
+        none,
+        macrosApi.addedSugarFor(none, dates.slice(-7)),
+        avg,
+        DAY_GOALS,
+        null,
+    );
+    expect(addedSugarTile(macrosApi.macroPanel(m.vals, m.goal))).toBeNull();
+});
+
+test("a recorded 0 g of added sugar reads as 0, every other limit as 'none logged'", () => {
+    const zero = colaStrip({
+        ...COLA_AS,
+        days: { "2026-10-04": 0 },
+        meals: { cola: 0 },
+    });
+    const tile = addedSugarTile(zero)!;
+    expect(tile).toContain('<span class="mnum">0</span>');
+    expect(tile).toContain('<div class="mcap">limit 29 g</div>');
+    expect(tile).not.toContain("none logged");
+    expect(tile).not.toContain("not recorded");
+    // With no limit the unit rides beside the figure, as for any value.
+    const ctx = macrosApi.macroCtxOf({ added_sugar_g: 0 }, null);
+    const noGoal = macrosApi.macroLimit(macroOf("added_sugar_g"), ctx);
+    expect(noGoal).toContain(
+        '<span class="mnum">0<span class="msub"> g</span></span>',
+    );
+    expect(noGoal).not.toContain("none logged");
+    expect(noGoal).not.toContain("not recorded");
+    const bare = macrosApi.macroCtxOf(
+        { added_sugar_g: 0 },
+        { added_sugar_g: null },
+    );
+    expect(macrosApi.macroLimit(macroOf("added_sugar_g"), bare)).toBe(noGoal);
+    // Without a value and without a limit there is still no cell.
+    expect(
+        macrosApi.macroLimit(
+            macroOf("added_sugar_g"),
+            macrosApi.macroCtxOf({}, null),
+        ),
+    ).toBe("");
+    // Every other limit cell keeps its words for a 0.
+    const others = macrosApi.macroPanel(
+        { ...COLA_VALS, sugar_g: 0, fiber_g: 0, caffeine_mg: 0, alcohol_g: 0 },
+        { sugar_g: 25, fiber_g: 30, caffeine_mg: 400, alcohol_g: 20 },
+    );
+    expect(others.match(/none logged/g)?.length).toBe(4);
+    expect(others).not.toContain("not recorded");
+    // The property, not a key check: only added sugar declares either flag.
+    const flagged = (
+        macrosApi.MACROS as Array<
+            Macro & { zeroIsValue?: boolean; unrecordedWithGoal?: boolean }
+        >
+    )
+        .filter((m) => m.zeroIsValue || m.unrecordedWithGoal)
+        .map((m) => m.key);
+    expect(flagged).toEqual(["added_sugar_g"]);
+});
+
+test("a recorded 0 against a 0 limit reads as 0 at the limit", () => {
+    const tile = addedSugarTile(
+        colaStrip({
+            ...COLA_AS,
+            goal: 0,
+            days: { "2026-10-04": 0 },
+            meals: { cola: 0 },
+        }),
+    )!;
+    expect(tile).toContain('<span class="mnum">0</span>');
+    expect(tile).toContain("limit 0 g · at limit");
 });
 
 test("the added-sugar breakdown lists only meals with a value, joined by position", () => {

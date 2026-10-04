@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             lb: "lb",
         },
         noneLogged: "記録なし",
+        notRecorded: "未記録",
         caloriesToday: "今日のカロリー",
         caloriesOn: "{date}のカロリー",
         tapHint: "項目をタップすると食事ごとの内訳を表示",

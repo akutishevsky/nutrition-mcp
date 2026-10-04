@@ -52,6 +52,19 @@
 // recorded none of it is indistinguishable from a 0. The cell is earned by a
 // value above zero or by a goal of the user's own, which is the same rule the
 // carbs disclosure used when fiber and sugar lived inside it.
+//
+// `unrecordedWithGoal` earns a cell with NO value at all, as long as the user
+// set a limit for it: the cell then reads "not recorded" over an empty bar and
+// the limit, so a limit the user set never silently disappears on a day the
+// figure is simply unknown. Only added sugar has it — its null is "not
+// recorded", never 0, and its limit only ever reaches the strip from the
+// result's `_meta` (withAddedSugar), so a strip without `_meta` cannot take
+// this path.
+//
+// `zeroIsValue` prints a recorded 0 as the number it is rather than "none
+// logged". Only added sugar has it: every other limit's 0 may mean nothing was
+// entered, but an added-sugar 0 is a figure someone recorded (not recorded is
+// undefined, see above), and "none logged" beside it says the opposite.
 // The unit glyph a MACROS entry's `unit` code renders as in the widget's
 // language ("kcal" -> "ккал" in uk). The code itself stays the stable key the
 // logic compares against (see mealList); only what is printed is translated.
@@ -121,10 +134,12 @@ const MACROS = [
     // ceiling of its own beside total sugar rather than a sub-line of it. It
     // is in no structuredContent payload (those schemas are frozen); a
     // template merges it from the result's `_meta` with withAddedSugar, and
-    // without that `_meta` the value stays undefined and limitShown hides the
-    // cell — the strip is then exactly what it was before the field existed.
-    // "data", not "null": the per-day figure is null when not recorded, which
-    // the merge leaves undefined, so either way the gate is the value itself.
+    // without that `_meta` neither the value nor the limit reaches the strip,
+    // so limitShown hides the cell — the strip is then exactly what it was
+    // before the field existed. "data", not "null": the per-day figure is null
+    // when not recorded, which the merge leaves undefined; with a limit set
+    // such a day still shows the cell, reading "not recorded"
+    // (`unrecordedWithGoal`), and a recorded 0 prints as 0 (`zeroIsValue`).
     // Shown, it opens the "sugars" row: the pair sits two-up on a row of its
     // own, so both full names fit beside their figures at every width.
     {
@@ -138,6 +153,8 @@ const MACROS = [
         signal: "data",
         row: "sugars",
         opensRow: true,
+        unrecordedWithGoal: true,
+        zeroIsValue: true,
     },
     {
         key: "alcohol_g",
@@ -413,13 +430,13 @@ function macroCal(m, ctx, interactive) {
 // `cap` are what the two rows disagree on — a macro shows "95 /175" with the
 // amount left underneath, a limit shows the bare figure with the limit itself
 // underneath, because the limit appears nowhere else.
-function macroTile(m, b, num, cap, interactive) {
+function macroTile(m, b, num, cap, interactive, attrs) {
     const flag = b.over && m.direction === "ceiling";
     // `nogoal` keeps the caption on screen at phone widths, where it is
     // otherwise the first thing dropped — see macros.css.
     const cls = `mtile${b.pct == null ? " nogoal" : ""}${interactive ? " interactive" : ""}`;
     return `
-        <div class="${cls}"${interactiveAttrs(m, b, interactive)}>
+        <div class="${cls}"${interactiveAttrs(m, b, interactive)}${attrs || ""}>
           <div class="mtop">
             <span class="mkey">${esc(macroLabel(m))}</span>
             <span class="mnum"${flag ? ' style="color:var(--over)"' : ""}>${num}</span>
@@ -448,16 +465,29 @@ function macroBarTile(m, ctx, interactive) {
 // reading that stays on screen; for fiber and sugar a 0 could equally mean the
 // day predates the column, so the cell is earned by a value or by a goal.
 // Added sugar is "data" too, and is undefined whenever `_meta` did not carry a
-// recorded figure (see withAddedSugar), which the first test already hides.
+// recorded figure (see withAddedSugar): with a limit set that is a "not
+// recorded" cell (unrecordedShown), without one the cell stays hidden. Its
+// recorded values, 0 included, always earn the cell (`zeroIsValue`): undefined
+// already stands for "not recorded", so a 0 is a figure someone entered, and
+// with no limit it prints as "0 g".
 //
 // What the gate prevents is a "0 mg of 400 mg" line invented for someone who
 // has never recorded any — the same suppression the model-facing text applies
 // (recordedGoalLine in src/mcp.ts).
 function limitShown(m, ctx) {
     const v = ctx.vals?.[m.key];
-    if (v == null) return false;
-    if (m.signal === "null") return true;
+    if (v == null) return unrecordedShown(m, ctx);
+    if (m.signal === "null" || m.zeroIsValue) return true;
     return v > 0 || (ctx.goal ? (ctx.goal[m.key] ?? null) != null : false);
+}
+
+// A metric with no value is on show only when it opts in (`unrecordedWithGoal`)
+// and a limit is set — a finite number, 0 included, since a ceiling of 0 is a
+// real limit (see macroBits).
+function unrecordedShown(m, ctx) {
+    return (
+        !!m.unrecordedWithGoal && !!ctx.goal && Number.isFinite(ctx.goal[m.key])
+    );
 }
 
 // A limit cell. Alcohol's caption leads with the drink count as an intuitive
@@ -469,6 +499,23 @@ function macroLimit(m, ctx, interactive) {
     // never invent a reading the strip would have suppressed.
     if (!limitShown(m, ctx)) return "";
     const b = macroBits(m, ctx.vals, ctx.goal, ctx.wording);
+    // No value, but a limit (unrecordedShown): the figure slot says the day is
+    // unknown, the bar stays empty and the caption is the limit alone — never
+    // "at limit" or "29 g under", which would judge a figure nobody entered.
+    // Nothing is behind it, so it is never a button; its name says the same
+    // three things in one announcement.
+    if (ctx.vals?.[m.key] == null) {
+        const cap = b.targetStr;
+        const name = `${macroLabel(m)}, ${T.macros.notRecorded}, ${cap}`;
+        return macroTile(
+            m,
+            b,
+            `<span class="mnone">${esc(T.macros.notRecorded)}</span>`,
+            cap,
+            false,
+            ` role="group" aria-label="${esc(name)}"`,
+        );
+    }
     // The unit is already in the caption underneath ("limit 400 mg"), and
     // caffeine's milligrams are the one unit here that cannot be guessed — so
     // it is spelled out beside the figure only when there is no limit to
@@ -476,7 +523,7 @@ function macroLimit(m, ctx, interactive) {
     const unit =
         b.pct == null ? `<span class="msub"> ${esc(unitLabel(m))}</span>` : "";
     const num =
-        b.val > 0
+        b.val > 0 || m.zeroIsValue
             ? `${fmt(b.val, m.decimals)}${unit}`
             : `<span class="mnone">${esc(T.macros.noneLogged)}</span>`;
     let cap = b.targetStr;
@@ -729,8 +776,8 @@ function addedSugarFor(as, dates) {
 
 // Merge an AddedSugarMeta into the strip's inputs. `value` is the figure the
 // cell shows (addedSugarFor); undefined leaves `vals` without the key, so
-// limitShown hides the cell. Returns new objects and never mutates the
-// payload's own.
+// limitShown shows a "not recorded" cell when a limit is set and hides it
+// otherwise. Returns new objects and never mutates the payload's own.
 //
 // `meals` are the breakdown rows (MEAL_BREAKDOWN_ITEM), which carry no id, so
 // `as.meals` — keyed by meal id, built by the server from the same rows in the

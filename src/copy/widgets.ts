@@ -102,6 +102,11 @@ export interface WidgetStrings {
         };
         /** A limit metric with nothing recorded at all. */
         noneLogged: string;
+        /** The figure of a limit cell with no recorded value against a limit
+         * the user set (today only added sugar, whose null means "not
+         * recorded", never 0). Distinct from noneLogged, which reads as
+         * "nothing was eaten" rather than "the figure is unknown". */
+        notRecorded: string;
         /** Default label above the calorie ring/figure when a widget doesn't
          * override it with its own calLabel. nutrition-summary and trends
          * always override; goal-progress and meal-logged rely on this
@@ -568,6 +573,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             lb: "lb",
         },
         noneLogged: "none logged",
+        notRecorded: "not recorded",
         caloriesToday: "Calories today",
         caloriesOn: "Calories · {date}",
         tapHint: "Tap a metric for the meals behind it",

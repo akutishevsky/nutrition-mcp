@@ -603,7 +603,21 @@ uniformly:
   from a genuine zero. The cell is earned by a value above zero **or** by a goal of
   the user's own — the same rule the carbs disclosure applied when they lived
   inside it. Added sugar is in no `structuredContent` at all (see below), and an
-  unrecorded day never reaches `vals`, so its gate is the same.
+  unrecorded day never reaches `vals`, so its gate is the same — with one addition,
+  below.
+- **`unrecordedWithGoal`** (added sugar only) — a cell with **no value** is still
+  shown when the user set a limit for it (a finite goal, `0` included): the figure
+  reads **"not recorded"** (`T.macros.notRecorded`), the bar is empty and the
+  caption is the limit alone (never "at limit" or "29 g under", which would judge a
+  figure nobody entered). It is never a button — nothing is behind it — and carries
+  `role="group"` with one name: "Added sugar, not recorded, limit 29 g". A limit the
+  user set therefore never silently disappears on a day a model logged sugar
+  without splitting out the added part. The limit only reaches the strip from
+  `_meta`, so without `_meta` this path cannot run. Without a limit and without a
+  value the cell stays hidden.
+- **`zeroIsValue`** (added sugar only) — a recorded `0` prints as `0` (with the unit
+  when there is no limit to carry it) instead of "none logged": its null already
+  means "not recorded", so a `0` is a figure someone entered.
 
 ### Added sugar comes from `_meta`
 
@@ -622,7 +636,8 @@ macroPanel(merged.vals, merged.goal, wording, merged.meals, opts);
 - `addedSugarFor(as, dates)` is the mean over the dates whose figure is recorded —
   one date for goal-progress / meal-logged, the summary's days, trends' 7/14/30
   slice. A `null` day is "not recorded" and drops out rather than counting as 0;
-  no recorded day leaves it `undefined`, and so no cell.
+  no recorded day leaves it `undefined` — a "not recorded" cell when `as.goal` is
+  a limit, no cell otherwise. Trends decides this per 7/14/30 slice.
 - `withAddedSugar` returns the caller's own objects untouched when the payload is
   missing, malformed or not `v: 1` — **without `_meta` the strip is byte for byte
   what it was before** (`macros.test.ts` pins this).
@@ -650,7 +665,8 @@ What the gate prevents either way is a "0 mg of 400 mg" line invented for someon
 who never went near the limit — the same suppression the model-facing text applies
 (`recordedGoalLine` in `src/mcp.ts`). A metric that _is_ shown but reads zero says
 so in words: `.mnone` renders **"none logged"**, because a `0` in the figure slot
-looks like a measurement.
+looks like a measurement. Added sugar is the exception (`zeroIsValue`, above), and
+its "not recorded" is a different word for a different state: unknown, not none.
 
 Water is the contrast: it has no opt-in, so a `0` cannot mean anything but
 "untracked" and the whole line is dropped (`role: "bar"` cells render only above
@@ -749,8 +765,8 @@ one cell's figure wrapped.
 
 The pairing is declared on the `MACROS` entries, not in a key list: both carry
 `row: "sugars"`, and added sugar carries `opensRow: true` — the row exists only while
-a cell that opens it is shown. With added sugar hidden (no `_meta`, or no value and
-no limit) nothing moves, and the strip's markup is byte for byte what it was before
+a cell that opens it is shown — a "not recorded" added-sugar cell included. With
+added sugar hidden (no `_meta`, or no value and no limit) nothing moves, and the strip's markup is byte for byte what it was before
 the row existed. With added sugar shown and **sugar hidden** (a 0 g day with an
 added-sugar limit and no total limit), the sugars row holds added sugar alone at
 the **same half width** — it is the same cell it is beside sugar, at the same size,

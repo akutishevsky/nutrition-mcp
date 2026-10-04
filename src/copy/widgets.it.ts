@@ -32,6 +32,7 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             lb: "lb",
         },
         noneLogged: "nessun dato",
+        notRecorded: "non registrato",
         caloriesToday: "Calorie di oggi",
         caloriesOn: "Calorie · {date}",
         tapHint: "Tocca un valore per vedere da quali pasti proviene",

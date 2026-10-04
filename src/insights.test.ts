@@ -3,6 +3,7 @@ import {
     buildDailyBuckets,
     computeTrends,
     computeWeeklyDigest,
+    addedSugarNotRecorded,
     computeWeightTrend,
     type DailyBucket,
 } from "./insights.js";
@@ -649,11 +650,45 @@ test("computeTrends leaves days without added sugar out of its row only", () => 
     expect(sugar).toContain("  Days over limit: 30/30 days with data");
 });
 
-test("computeTrends drops the added-sugar row when no day carries it", () => {
+test("computeTrends drops the added-sugar row when no day carries it and no limit is set", () => {
     const buckets = twoDayBuckets({ sugar_g: 20 }, { sugar_g: 30 });
-    const out = computeTrends(buckets, goals({ daily_added_sugar_g: 25 }));
+    const out = computeTrends(buckets, goals());
     expect(out).toContain("Sugar:");
     expect(out).not.toContain("Added sugar");
+});
+
+// With a limit, a vanished row let total sugar be read against the
+// added-sugar limit (the ChatGPT cola report), so the gap is stated instead.
+test("computeTrends states an unrecorded window against the limit, 0 included", () => {
+    const buckets = twoDayBuckets({ sugar_g: 35 }, { sugar_g: 30 });
+    for (const [limit, shown] of [
+        [25, "25"],
+        [0, "0"],
+    ] as const) {
+        const out = computeTrends(
+            buckets,
+            goals({ daily_added_sugar_g: limit }),
+        );
+        const section = out
+            .split("\n\n")
+            .find((s) => s.startsWith("Added sugar"));
+        expect(section).toBe(
+            `Added sugar: not recorded in this period (limit ${shown}g)`,
+        );
+        expect(out.indexOf("Sugar:")).toBeLessThan(out.indexOf("Added sugar:"));
+    }
+});
+
+test("computeTrends keeps per-window 'no data' when some day records added sugar", () => {
+    const buckets = twoDayBuckets(
+        { sugar_g: 20, added_sugar_g: 5 },
+        {
+            sugar_g: 30,
+        },
+    );
+    const out = computeTrends(buckets, goals({ daily_added_sugar_g: 25 }));
+    expect(out).not.toContain("not recorded in this period");
+    expect(out).toContain("Added sugar:\n");
 });
 
 test("computeWeeklyDigest reports added sugar against its limit", () => {
@@ -722,13 +757,42 @@ test("computeWeeklyDigest honours an added-sugar limit of zero", () => {
     expect(over).toContain("  Added sugar: 3g / 0g limit (3g over)");
 });
 
-test("computeWeeklyDigest drops the added-sugar row with no data", () => {
+test("computeWeeklyDigest drops the added-sugar row with no data and no limit", () => {
     const out = computeWeeklyDigest(
         twoDayBuckets({ sugar_g: 20 }, { sugar_g: 30 }),
-        goals({ daily_added_sugar_g: 25 }),
+        goals(),
     );
     expect(out).toContain("  Sugar: 25g");
     expect(out).not.toContain("Added sugar");
+});
+
+test("computeWeeklyDigest states an unrecorded week against the limit", () => {
+    for (const limit of [25, 0]) {
+        const out = computeWeeklyDigest(
+            twoDayBuckets({ sugar_g: 20 }, { sugar_g: 30 }),
+            goals({ daily_added_sugar_g: limit }),
+        );
+        expect(out).toContain(
+            `  Sugar: 25g\n  Added sugar: not recorded in this period (limit ${limit}g)`,
+        );
+    }
+});
+
+test("addedSugarNotRecorded: one wording, rounded like every gram figure", () => {
+    expect(addedSugarNotRecorded("day", 29)).toBe(
+        "not recorded on this day (limit 29g)",
+    );
+    expect(addedSugarNotRecorded("period", 27.46)).toBe(
+        "not recorded in this period (limit 27.5g)",
+    );
+    // Describes the gap, never directs the reader.
+    for (const t of [
+        addedSugarNotRecorded("day", 0),
+        addedSugarNotRecorded("period", 25),
+    ])
+        expect(t).not.toMatch(
+            /\b(ask|offer|should|estimate|call|tell|suggest|please|must)\b/i,
+        );
 });
 
 // ---------- caffeine ----------

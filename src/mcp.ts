@@ -88,6 +88,7 @@ import {
     dayCarries,
     coveredDailyAverage,
     dateDiffDays,
+    addedSugarNotRecorded,
     type DailyBucket,
 } from "./insights.js";
 import { analyzeWeightHistory, defaultRangeFor } from "./weight-trend.js";
@@ -429,14 +430,22 @@ export function rangeAverages(
  *  structuredContent shape may carry it (the summary's `averages` schema is
  *  frozen). Covered days only, like sugar (rangeAverages), against the limit
  *  when one is set. Empty for a single day, whose section already prints the
- *  figure, and when no logged day recorded added sugar. */
+ *  figure. When no logged day recorded added sugar it is empty without a
+ *  limit, and "not recorded in this period" with one. */
 export function addedSugarAverageLine(
     average: number,
     recordedDays: number,
     loggedDays: number,
     limit: number | null,
 ): string {
-    if (loggedDays < 2 || recordedDays === 0) return "";
+    if (loggedDays < 2) return "";
+    if (recordedDays === 0) {
+        // With a limit set, the gap is stated rather than dropped (see
+        // addedSugarNotRecorded); without one there is nothing to report.
+        return hasActiveTarget(limit, "ceiling")
+            ? `\n\nAdded sugar, daily average: ${addedSugarNotRecorded("period", limit)}`
+            : "";
+    }
     return `\n\n${formatGoalLine(
         "Added sugar, daily average",
         "g",
@@ -1205,15 +1214,22 @@ export function formatProgress(
         // Its own ceiling, beside total sugar rather than instead of it: the
         // public guidance figures (WHO, AHA, DGA) limit added or free sugar,
         // and a 25 g total-sugar limit is spent by two bananas. Gated on
-        // presence exactly like sugar, so a pre-column day prints nothing.
-        recordedGoalLine(
-            "Added sugar",
-            "g",
-            totals.added_sugar_g,
-            goals?.daily_added_sugar_g ?? null,
-            present.added_sugar_g,
-            "ceiling",
-        ),
+        // presence like sugar, so a pre-column day prints nothing without a
+        // limit. With one, an unrecorded day gets the shared
+        // addedSugarNotRecorded wording rather than recordedGoalLine's terse
+        // "not recorded / 29g limit", which a model read past to report total
+        // sugar against the added-sugar limit.
+        present.added_sugar_g
+            ? formatGoalLine(
+                  "Added sugar",
+                  "g",
+                  totals.added_sugar_g,
+                  goals?.daily_added_sugar_g ?? null,
+                  "ceiling",
+              )
+            : hasActiveTarget(goals?.daily_added_sugar_g, "ceiling")
+              ? `Added sugar: ${addedSugarNotRecorded("day", goals.daily_added_sugar_g)}`
+              : null,
     ];
     // Alcohol is opt-in: stored either way, shown only when the user asked for
     // it (imported exports carry trace alcohol from recipes, and surfacing that
