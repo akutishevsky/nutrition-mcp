@@ -30,6 +30,7 @@ import {
 } from "./tz.js";
 import { decodeEscapeSequences } from "./normalize.js";
 import { toStoredInteger } from "./units.js";
+import { addedSugarError } from "./added-sugar.js";
 
 export type MealType = MealInput["meal_type"];
 
@@ -107,8 +108,12 @@ export interface ImportRow {
     fat_g?: number;
     fiber_g?: number;
     /** TOTAL sugars, including sugar naturally present in fruit and milk —
-     *  never "added sugar", which no export reliably carries. */
+     *  never "added sugar", which has its own field below. */
     sugar_g?: number;
+    /** Added sugars only (the US label definition): the part of sugar_g added
+     *  during processing or preparation, so never more than it. A row where it
+     *  is fails rather than being clamped. */
+    added_sugar_g?: number;
     /** Grams of pure ethanol. Stored whatever the caller sends, even when the
      *  profile has alcohol tracking off: that flag gates DISPLAY only, and
      *  dropping a value at the write layer would lose data silently. */
@@ -706,6 +711,7 @@ export function validateRow(
         ["fat_g", row.fat_g, MAX_MACRO_G, "g"],
         ["fiber_g", row.fiber_g, MAX_MACRO_G, "g"],
         ["sugar_g", row.sugar_g, MAX_MACRO_G, "g"],
+        ["added_sugar_g", row.added_sugar_g, MAX_MACRO_G, "g"],
         ["alcohol_g", row.alcohol_g, MAX_ALCOHOL_G, "g"],
         // The one row whose unit is not "g". numberError renders this unit into
         // the message, so a caffeine bound must never report grams.
@@ -713,6 +719,20 @@ export function validateRow(
     ] as const) {
         const err = checkMacro(field, value, max, unit);
         if (err) return fail(err);
+    }
+    // Added sugars are part of total sugars. Only binds when the row carries
+    // both — an import has no stored meal to compare a lone value against.
+    // Never clamped: either figure could be the wrong one.
+    const addedSugarMessage = addedSugarError(row.added_sugar_g, row.sugar_g);
+    if (addedSugarMessage) {
+        return fail({
+            code: "added_sugar_exceeds_sugar",
+            field: "added_sugar_g",
+            message: addedSugarMessage,
+            suggested_fix:
+                "The added-sugar and total-sugar columns may be mapped the wrong way round; a row without added_sugar_g imports with added sugar not recorded.",
+            retryable: true,
+        });
     }
 
     const input: MealInput = {
@@ -730,6 +750,8 @@ export function validateRow(
     if (row.fat_g !== undefined) input.fat_g = row.fat_g;
     if (row.fiber_g !== undefined) input.fiber_g = row.fiber_g;
     if (row.sugar_g !== undefined) input.sugar_g = row.sugar_g;
+    if (row.added_sugar_g !== undefined)
+        input.added_sugar_g = row.added_sugar_g;
     // Stored unconditionally. alcohol_tracking_enabled hides alcohol from the
     // rendered output; it must never suppress the write.
     if (row.alcohol_g !== undefined) input.alcohol_g = row.alcohol_g;
@@ -772,7 +794,8 @@ function sha256Hex(parts: (string | number | null | undefined)[]): string {
 /** Content digest of a resolved row. Excludes source_line so that re-exporting
  *  a file with lines added or removed still dedupes against a prior import. */
 export function rowContentDigest(userId: string, input: MealInput): string {
-    // DO NOT ADD fiber_g, sugar_g, alcohol_g OR caffeine_mg TO THIS ARRAY.
+    // DO NOT ADD fiber_g, sugar_g, added_sugar_g, alcohol_g OR caffeine_mg TO
+    // THIS ARRAY.
     //
     // The list below is not "the fields of a meal" — it is a frozen positional
     // hash input. Appending to it changes the digest of every row hashed from

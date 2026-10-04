@@ -64,6 +64,11 @@ const CSV_COLUMNS = [
     "fat_g",
     "fiber_g",
     "sugar_g",
+    // Added sugars only (the US label definition) — a part of sugar_g, never
+    // more than it. Right after sugar_g so the pair reads together; the
+    // importer matches by header name, so exports from before this column
+    // existed still re-import.
+    "added_sugar_g",
     "alcohol_g",
     // Milligrams, and the header says so. Every other nutrient column here is
     // grams, so a bare "caffeine" header is exactly how a re-import — ours or
@@ -133,6 +138,7 @@ export function buildMealsCsv(meals: Meal[], tz: string): string {
                 csvEscape(m.fat_g),
                 csvEscape(m.fiber_g),
                 csvEscape(m.sugar_g),
+                csvEscape(m.added_sugar_g),
                 csvEscape(m.alcohol_g),
                 csvEscape(m.caffeine_mg),
                 csvEscape(m.notes),
@@ -299,6 +305,7 @@ const GOALS_CSV_COLUMNS = [
     "daily_fat_g",
     "daily_fiber_g",
     "daily_sugar_g",
+    "daily_added_sugar_g",
     // Emitted unconditionally, NOT gated on the account's
     // alcohol_tracking_enabled preference. That opt-in governs *display* — what
     // the tools and widgets surface — while the export promises to hand back
@@ -346,6 +353,7 @@ export function buildGoalsHistoryCsv(
                 csvEscape(h.daily_fat_g),
                 csvEscape(h.daily_fiber_g),
                 csvEscape(h.daily_sugar_g),
+                csvEscape(h.daily_added_sugar_g),
                 csvEscape(h.daily_alcohol_g),
                 csvEscape(h.daily_caffeine_mg),
                 csvEscape(h.daily_water_ml),
@@ -375,6 +383,7 @@ export function buildGoalsCsv(
                 csvEscape(goals.daily_fat_g),
                 csvEscape(goals.daily_fiber_g),
                 csvEscape(goals.daily_sugar_g),
+                csvEscape(goals.daily_added_sugar_g),
                 csvEscape(goals.daily_alcohol_g),
                 csvEscape(goals.daily_caffeine_mg),
                 csvEscape(goals.daily_water_ml),
@@ -790,6 +799,7 @@ export function buildExportReadme(opts: {
         "-----",
         "The unit is part of every column name, because these columns do not all agree:",
         "  * _g columns are grams; alcohol_g and daily_alcohol_g are grams of pure ethanol, not the volume of the drink.",
+        "  * added_sugar_g counts only sugars added during processing or preparation; it is part of sugar_g (total sugars), never more than it. daily_added_sugar_g is the daily limit for added sugars, separate from daily_sugar_g (total sugars).",
         "  * caffeine_mg and daily_caffeine_mg are MILLIGRAMS, unlike every gram column beside them. A cup of coffee is about 95 mg.",
         "  * amount_ml, daily_water_ml and water_ml are millilitres.",
         `  * weight_g and target_weight_g are grams — the canonical form the server stores. weight.csv also gives weight_display in ${weightUnit}, with weight_unit naming it, so you do not have to divide anything by hand.`,

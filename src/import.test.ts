@@ -658,6 +658,210 @@ test("fiber, sugar, alcohol and caffeine are EXCLUDED from the content digest", 
     expect(inserted).toHaveLength(1);
 });
 
+// ---------- added sugar ----------
+
+test("added sugar rides through to the insert and stays NULL when absent", async () => {
+    const v = validateRow(
+        row({ source_line: 2, sugar_g: 30, added_sugar_g: 22 }),
+        0,
+        { tz: TZ, nowMs: NOW },
+        undefined,
+    );
+    expect(v.ok).toBe(true);
+    if (!v.ok) return;
+    expect(v.resolved.input.added_sugar_g).toBe(22);
+
+    // No column at all — every file from another app, and every export taken
+    // before this field existed — is "not recorded", never a 0.
+    const omitted = validateRow(
+        row({ source_line: 3, sugar_g: 30 }),
+        0,
+        { tz: TZ, nowMs: NOW },
+        undefined,
+    );
+    expect(omitted.ok).toBe(true);
+    if (omitted.ok)
+        expect("added_sugar_g" in omitted.resolved.input).toBe(false);
+
+    // Equal is fine (a can of cola), and a lone added value with no total has
+    // nothing to be checked against.
+    for (const over of [
+        { sugar_g: 39, added_sugar_g: 39 },
+        { added_sugar_g: 12 },
+        { sugar_g: 0, added_sugar_g: 0 },
+    ]) {
+        expect(
+            validateRow(
+                row({ source_line: 4, ...over }),
+                0,
+                { tz: TZ, nowMs: NOW },
+                undefined,
+            ).ok,
+        ).toBe(true);
+    }
+});
+
+test("added sugar is bounded like its gram siblings", () => {
+    for (const bad of [-1, Number.NaN, 1e9]) {
+        const v = validateRow(
+            row({ source_line: 2, added_sugar_g: bad }),
+            0,
+            { tz: TZ, nowMs: NOW },
+            undefined,
+        );
+        expect(v.ok).toBe(false);
+        if (!v.ok) expect(v.error.field).toBe("added_sugar_g");
+    }
+});
+
+test("added sugar above total sugar fails the row, never clamped", async () => {
+    const { deps, inserted } = makeStore();
+    const result = await runImport(
+        args([
+            row({ source_line: 2, description: "Toast" }),
+            row({ source_line: 3, sugar_g: 10, added_sugar_g: 12 }),
+        ]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(result.summary.failed).toBe(1);
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.description).toBe("Toast");
+
+    const failed = result.results.find((r) => r.source_line === 3)!;
+    expect(failed.status).toBe("failed");
+    expect(failed.error!.code).toBe("added_sugar_exceeds_sugar");
+    expect(failed.error!.field).toBe("added_sugar_g");
+    expect(failed.error!.message).toBe(
+        "added_sugar_g (12 g) is more than sugar_g (10 g); added sugars are part of total sugars.",
+    );
+    expect(failed.error!.retryable).toBe(true);
+});
+
+test("added sugar is EXCLUDED from the content digest, so a replay still dedupes", async () => {
+    // rowContentDigest is frozen (see the fiber/sugar test above): a file
+    // imported before this column existed and the same file re-exported with
+    // it must key identically, or the second import duplicates every meal.
+    const keyFor = (over: Partial<ImportRow>) => {
+        const v = validateRow(
+            row({ source_line: 2, description: "Cola", ...over }),
+            0,
+            { tz: TZ, nowMs: NOW },
+            undefined,
+        );
+        if (!v.ok) throw new Error("fixture should validate");
+        const resolved = [v.resolved];
+        assignIdempotencyKeys("user-1", resolved);
+        return resolved[0]!.input.idempotency_key!;
+    };
+    expect(keyFor({ sugar_g: 39, added_sugar_g: 39 })).toBe(
+        keyFor({ sugar_g: 39 }),
+    );
+    expect(keyFor({ added_sugar_g: 5 })).toBe(keyFor({}));
+
+    const { deps, inserted } = makeStore();
+    const first = await runImport(
+        args([row({ source_line: 2, sugar_g: 39 })]),
+        deps,
+    );
+    expect(first.summary.created).toBe(1);
+    const second = await runImport(
+        args([row({ source_line: 2, sugar_g: 39, added_sugar_g: 39 })]),
+        deps,
+    );
+    expect(second.summary.created).toBe(0);
+    expect(second.summary.deduplicated).toBe(1);
+    expect(inserted).toHaveLength(1);
+});
+
+test("an export with and without the added_sugar_g column both re-import", async () => {
+    // The importer's callers (the widget, a model reading a file) match
+    // columns by header name, so an export taken before added_sugar_g existed
+    // — the same file minus that one column — must still map cleanly. Built
+    // from buildMealsCsv and read with the widget's own CSV parser, so a
+    // renamed or misplaced column fails here rather than in a user's restore.
+    const { buildMealsCsv } = await import("./export.js");
+    const { parseCsv, findColumn } = await import("./csv.js");
+    const exported: Meal = {
+        id: EXPORTED_ID,
+        user_id: "user-1",
+        logged_at: "2026-01-15T10:00:00.000Z",
+        meal_type: "snack",
+        description: "Cola",
+        calories: 140,
+        protein_g: 0,
+        carbs_g: 39,
+        fat_g: 0,
+        fiber_g: 0,
+        sugar_g: 39,
+        added_sugar_g: 39,
+        alcohol_g: null,
+        caffeine_mg: 34,
+        notes: null,
+        idempotency_key: null,
+    };
+    const newCsv = buildMealsCsv([exported], TZ);
+    const dropColumn = (csv: string, name: string) => {
+        const lines = csv.split("\n").map((l) => l.split(","));
+        const at = lines[0]!.indexOf(name);
+        expect(at).toBeGreaterThan(-1);
+        return lines
+            .map((cells) => cells.filter((_, i) => i !== at).join(","))
+            .join("\n");
+    };
+    const oldCsv = dropColumn(newCsv, "added_sugar_g");
+
+    const toRows = (csv: string): ImportRow[] => {
+        const table = parseCsv(csv);
+        const col = (name: string) => findColumn(table.headers, [name]);
+        const num = (cells: string[], name: string) => {
+            const i = col(name);
+            return i < 0 || cells[i] === "" ? undefined : Number(cells[i]);
+        };
+        const str = (cells: string[], name: string) => {
+            const i = col(name);
+            return i < 0 || cells[i] === "" ? undefined : cells[i];
+        };
+        return table.rows.map((cells, n) => ({
+            source_line: table.sourceLines[n]!,
+            source_id: str(cells, "id"),
+            logged_at: str(cells, "logged_at"),
+            timezone: str(cells, "timezone"),
+            meal_type: str(cells, "meal_type"),
+            description: str(cells, "description"),
+            calories: num(cells, "calories"),
+            protein_g: num(cells, "protein_g"),
+            carbs_g: num(cells, "carbs_g"),
+            fat_g: num(cells, "fat_g"),
+            fiber_g: num(cells, "fiber_g"),
+            sugar_g: num(cells, "sugar_g"),
+            added_sugar_g: num(cells, "added_sugar_g"),
+            alcohol_g: num(cells, "alcohol_g"),
+            caffeine_mg: num(cells, "caffeine_mg"),
+            notes: str(cells, "notes"),
+        }));
+    };
+
+    const restoreNew = makeStore();
+    const fromNew = await runImport(args(toRows(newCsv)), restoreNew.deps);
+    expect(fromNew.summary.created).toBe(1);
+    expect(restoreNew.inserted[0]!.sugar_g).toBe(39);
+    expect(restoreNew.inserted[0]!.added_sugar_g).toBe(39);
+    expect(restoreNew.inserted[0]!.caffeine_mg).toBe(34);
+
+    const restoreOld = makeStore();
+    const fromOld = await runImport(args(toRows(oldCsv)), restoreOld.deps);
+    expect(fromOld.summary.created).toBe(1);
+    expect(fromOld.summary.failed).toBe(0);
+    expect(restoreOld.inserted[0]!.sugar_g).toBe(39);
+    expect("added_sugar_g" in restoreOld.inserted[0]!).toBe(false);
+    // Same meal either way: one key, so restoring the old file and then the
+    // new one (or the reverse) is still a single meal.
+    expect(restoreOld.inserted[0]!.idempotency_key).toBe(
+        restoreNew.inserted[0]!.idempotency_key,
+    );
+});
+
 // ---------- checkBatch ----------
 
 test("checkBatch catches a row-count mismatch", () => {
@@ -1237,6 +1441,18 @@ test("serialized output validates against the declared outputSchema on every pat
                 deps,
             );
         },
+        // The added <= total rule is a per-row error, so it too must come back
+        // as a complete result row inside the unchanged schema.
+        async added_sugar_exceeds_sugar() {
+            const { deps } = makeStore();
+            return runImport(
+                args([
+                    row({ source_line: 2 }),
+                    row({ source_line: 3, sugar_g: 10, added_sugar_g: 12 }),
+                ]),
+                deps,
+            );
+        },
         async insert_failure() {
             const { deps } = makeStore({
                 failOn: (i) => i.description === "Oatmeal",
@@ -1267,6 +1483,17 @@ test("serialized output validates against the declared outputSchema on every pat
                 `${name} failed output validation: ${JSON.stringify(parsed.error.issues)}`,
             );
         }
+        // Hosts validate against the cached, frozen schema with
+        // additionalProperties: false, so a result row (or its error) that
+        // gains a key — added sugar included — fails the whole call there.
+        const strict = schema.strict().safeParse(serialized);
+        const rowShape = schema.shape.results.element;
+        for (const r of serialized.results) {
+            expect(Object.keys(r).sort()).toEqual(
+                Object.keys(rowShape.shape).sort(),
+            );
+        }
+        expect(strict.success).toBe(true);
         // Required-but-nullable keys must be PRESENT, not merely undefined.
         for (const r of serialized.results) {
             for (const key of [
