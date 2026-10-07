@@ -26,6 +26,7 @@ import { PRIVACY_PL, TERMS_PL } from "./legal.pl.js";
 import { PRIVACY_IT, TERMS_IT } from "./legal.it.js";
 import { PRIVACY_UK, TERMS_UK } from "./legal.uk.js";
 import { PRIVACY_JA, TERMS_JA } from "./legal.ja.js";
+import { PRIVACY_TR, TERMS_TR } from "./legal.tr.js";
 
 export type LegalBlock =
     { type: "p"; html: string } | { type: "ul"; items: string[] };
@@ -740,6 +741,7 @@ export const PRIVACY: Partial<Record<SiteLocale, LegalDoc>> = {
     it: PRIVACY_IT,
     uk: PRIVACY_UK,
     ja: PRIVACY_JA,
+    tr: PRIVACY_TR,
 };
 
 export const TERMS: Partial<Record<SiteLocale, LegalDoc>> = {
@@ -752,4 +754,5 @@ export const TERMS: Partial<Record<SiteLocale, LegalDoc>> = {
     it: TERMS_IT,
     uk: TERMS_UK,
     ja: TERMS_JA,
+    tr: TERMS_TR,
 };

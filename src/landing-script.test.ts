@@ -5,7 +5,7 @@ import { LANDING_SCRIPT } from "../scripts/gen-index.js";
 
 // The landing page's inline JS lives as one hand-escaped string constant
 // (LANDING_SCRIPT in scripts/gen-index.ts) that is embedded verbatim into all
-// nine locales' index.html. Nothing else in the suite looks inside it, so
+// ten locales' index.html. Nothing else in the suite looks inside it, so
 // every i18n fix in it was revertible without a red test.
 //
 // Two halves here, and the DOM-contract half is the load-bearing one. The

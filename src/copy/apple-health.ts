@@ -30,6 +30,7 @@ import { APPLE_HEALTH_FR } from "./apple-health.fr.js";
 import { APPLE_HEALTH_PL } from "./apple-health.pl.js";
 import { APPLE_HEALTH_UK } from "./apple-health.uk.js";
 import { APPLE_HEALTH_JA } from "./apple-health.ja.js";
+import { APPLE_HEALTH_TR } from "./apple-health.tr.js";
 import { APPLE_HEALTH_DE } from "./apple-health.de.js";
 import { APPLE_HEALTH_NL } from "./apple-health.nl.js";
 import { APPLE_HEALTH_ES } from "./apple-health.es.js";
@@ -323,4 +324,5 @@ export const APPLE_HEALTH: Record<SiteLocale, AppleHealthDoc> = {
     nl: APPLE_HEALTH_NL,
     es: APPLE_HEALTH_ES,
     it: APPLE_HEALTH_IT,
+    tr: APPLE_HEALTH_TR,
 };

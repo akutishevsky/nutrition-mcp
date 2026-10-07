@@ -1,6 +1,6 @@
 // The project's GitHub star count, fetched by the server and cached in
 // memory, so the public site can show it without any visitor's browser ever
-// contacting GitHub (the privacy policy says so in all nine locales). Served
+// contacting GitHub (the privacy policy says so in all ten locales). Served
 // at GET /api/github-stars (src/index.ts) and painted into every
 // [data-gh-stars] badge by public/site.js.
 //

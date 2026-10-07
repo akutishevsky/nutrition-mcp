@@ -21,6 +21,7 @@ import { ALTERNATIVES_PL } from "./alternatives.pl.js";
 import { ALTERNATIVES_IT } from "./alternatives.it.js";
 import { ALTERNATIVES_UK } from "./alternatives.uk.js";
 import { ALTERNATIVES_JA, ALT_PAGE_META_JA } from "./alternatives.ja.js";
+import { ALTERNATIVES_TR, ALT_PAGE_META_TR } from "./alternatives.tr.js";
 
 /** One /alternatives comparison page's slug (a PAGE_ROUTES / ALT_PAGES key
  * minus the leading slash), matching APPS[].slug in scripts/gen-alternatives.ts. */
@@ -171,6 +172,7 @@ export const ALT_PAGE_META: Partial<Record<SiteLocale, AltPageMeta>> = {
             "Твій застосунок для харчування не має офіційного MCP-сервера. Nutrition MCP — безкоштовна альтернатива з відкритим кодом, яка працює в Claude чи ChatGPT — і імпортує твою історію з CSV-експорту.",
     },
     ja: ALT_PAGE_META_JA,
+    tr: ALT_PAGE_META_TR,
 };
 
 export const ALTERNATIVES_COPY: Partial<
@@ -422,4 +424,5 @@ export const ALTERNATIVES_COPY: Partial<
     it: ALTERNATIVES_IT,
     uk: ALTERNATIVES_UK,
     ja: ALTERNATIVES_JA,
+    tr: ALTERNATIVES_TR,
 };

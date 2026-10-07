@@ -662,6 +662,7 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
         it: "3 ottobre 2026",
         uk: "3 жовтня 2026 року",
         ja: "2026年10月3日",
+        tr: "3 Ekim 2026",
     };
     expect(dates).toEqual(
         Object.fromEntries(
@@ -737,6 +738,12 @@ const BRIEF13: Record<
         regions: "制裁および輸出管理",
         aggregateStats: "少なくとも3つのプロフィール",
         oldCarveOut: "最長1年",
+    },
+    tr: {
+        healthConsent: "sağlık verisidir",
+        regions: "yaptırım ve ihracat kontrolü yasaları",
+        aggregateStats: "en az üç profil",
+        oldCarveOut: "bir yıla kadar",
     },
 };
 
@@ -824,6 +831,12 @@ const GOALS_HISTORY: Record<
         stored: "目標とその変更履歴、プロフィール設定",
         access: "目標とその変更履歴",
         terms: "目標の変更履歴",
+    },
+    tr: {
+        dated: "Her değiştiklerinde ayrıca tarihli bir kopyasını saklıyoruz",
+        stored: "hedefler ve değişiklik geçmişleri, profil ayarların",
+        access: "hedeflerin ve hedef değişikliklerinin geçmişi",
+        terms: "hedef geçmişi",
     },
 };
 

@@ -1,7 +1,7 @@
 /**
  * Generates public/sitemap.xml from src/routes.ts's PAGE_ROUTES/LOCALES —
  * it used to be a hand-maintained static file, edited alongside content
- * changes. Now that pages exist in up to 8 locales each, hand-editing would
+ * changes. Now that pages exist in up to 9 locales each, hand-editing would
  * mean keeping ~88 possible URLs and their reciprocal hreflang annotations
  * in sync by eye, which is exactly the kind of mechanical bookkeeping this
  * generator family exists to replace (see scripts/gen-alternatives.ts).

@@ -386,8 +386,8 @@ export function localeFontLinks(locale: SiteLocale): string {
  * markup as a data-plural-<category> attribute and setNavBadge (in
  * public/site.js, which every page loads) picks one
  * with Intl.PluralRules. The forms cannot live in the script: site.js is one
- * file served to all nine locales (as LANDING_SCRIPT is one string embedded
- * byte-identically into all nine index.html files), so anything it names in
+ * file served to all ten locales (as LANDING_SCRIPT is one string embedded
+ * byte-identically into all ten index.html files), so anything it names in
  * its own source is wrong on eight of them — the same contract the odometer
  * caption and the #facts-live word already have.
  * The rendered .vh text is the `other` form, which is what a count of 0 (the

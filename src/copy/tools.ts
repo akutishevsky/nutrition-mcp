@@ -33,6 +33,7 @@ import { TOOLS_PL } from "./tools.pl.js";
 import { TOOLS_IT } from "./tools.it.js";
 import { TOOLS_UK } from "./tools.uk.js";
 import { TOOLS_JA } from "./tools.ja.js";
+import { TOOLS_TR } from "./tools.tr.js";
 
 // ------------------------------------------------------------- identity
 
@@ -1219,4 +1220,5 @@ export const TOOLS_COPY: Partial<Record<SiteLocale, ToolsDoc>> = {
     it: TOOLS_IT,
     uk: TOOLS_UK,
     ja: TOOLS_JA,
+    tr: TOOLS_TR,
 };

@@ -34,6 +34,7 @@ import { WIDGET_STRINGS_PL } from "./widgets.pl.js";
 import { WIDGET_STRINGS_IT } from "./widgets.it.js";
 import { WIDGET_STRINGS_UK } from "./widgets.uk.js";
 import { WIDGET_STRINGS_JA } from "./widgets.ja.js";
+import { WIDGET_STRINGS_TR } from "./widgets.tr.js";
 
 /** A count-sensitive string, selected at render time via Intl.PluralRules.
  * "one"/"other" are always carried; "few"/"many" are carried by Polish and
@@ -895,6 +896,7 @@ export const WIDGET_STRINGS: Partial<Record<SiteLocale, WidgetStrings>> = {
     it: WIDGET_STRINGS_IT,
     uk: WIDGET_STRINGS_UK,
     ja: WIDGET_STRINGS_JA,
+    tr: WIDGET_STRINGS_TR,
 };
 
 export function widgetStringsFor(locale: SiteLocale): WidgetStrings {
