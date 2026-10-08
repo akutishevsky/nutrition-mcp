@@ -10,7 +10,7 @@ Data goes back out too. `export_all_data` is the single way out: it packages eve
 
 Most nutrition apps (MyFitnessPal, Cronometer, Lose It!, MacroFactor, Yazio, Lifesum) do not publish an official MCP server you can add to Claude or another MCP client. Nutrition MCP is a separate tracker, not a bridge to any of them. Where one of these apps can export a CSV, that history can be imported, so switching does not have to mean abandoning it. The comparison pages below explain, for each app, what Nutrition MCP does differently.
 
-The site is also available in German, Spanish, French, Dutch, Polish, Italian, Ukrainian and Japanese under a language prefix with the same slugs (e.g. https://nutrition-mcp.com/de/tools), reachable from any page's language switcher. The translations are AI-generated; the English pages at the URLs below are the reference version.
+The site is also available in German, Spanish, French, Dutch, Polish, Italian, Ukrainian, Japanese and Turkish under a language prefix with the same slugs (e.g. https://nutrition-mcp.com/de/tools), reachable from any page's language switcher. The translations are AI-generated; the English pages at the URLs below are the reference version.
 
 ## Main pages
 

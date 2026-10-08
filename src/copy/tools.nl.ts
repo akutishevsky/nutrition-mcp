@@ -442,7 +442,7 @@ export const TOOLS_NL: ToolsDoc = {
             description:
                 "Stel de taal in van de widgets in de chat: de dashboards en grafieken, niet de taal waarin de AI je antwoordt.",
             params: {
-                locale: "ISO 639-1-code, bijv. <code>de</code>, <code>ja</code>. Ondersteund: Engels, Duits, Spaans, Frans, Nederlands, Pools, Italiaans, Oekraïens en Japans.",
+                locale: "ISO 639-1-code, bijv. <code>de</code>, <code>ja</code>. Ondersteund: Engels, Duits, Spaans, Frans, Nederlands, Pools, Italiaans, Oekraïens, Japans en Turks.",
             },
             example: "Toon mijn widgets in het Duits",
         },

@@ -24,6 +24,7 @@ import { CHROME_PL } from "./chrome.pl.js";
 import { CHROME_IT } from "./chrome.it.js";
 import { CHROME_UK } from "./chrome.uk.js";
 import { CHROME_JA } from "./chrome.ja.js";
+import { CHROME_TR } from "./chrome.tr.js";
 
 /**
  * A count-sensitive string, picked at render time with `Intl.PluralRules`.
@@ -64,7 +65,7 @@ export interface ChromeCopy {
          * and Ukrainian, where the case is chosen by the digit class.
          * liveBadge() emits every form as a data-plural-* attribute and
          * setNavBadge (in public/site.js, which every page loads) picks one
-         * with Intl.PluralRules — one script serves all nine locales, so
+         * with Intl.PluralRules — one script serves all ten locales, so
          * the forms have to reach it through the markup rather than live in
          * its source.
          *
@@ -84,7 +85,7 @@ export interface ChromeCopy {
      * The aria-labels on the three <nav> landmarks — the header's primary
      * nav, the mobile sheet, and the footer. These are the region names a
      * screen reader reads out when jumping between landmarks, and they
-     * were hardcoded English ("Primary" / "Menu" / "Footer") on all nine
+     * were hardcoded English ("Primary" / "Menu" / "Footer") on all ten
      * locales: invisible on the page, so nothing in a visual review would
      * ever catch them.
      *
@@ -129,7 +130,7 @@ export interface ChromeCopy {
     /**
      * The hamburger button's two accessible names. The button is one
      * control that toggles, so its label has to change with its state —
-     * and site.js is a single static file served to all nine locales, so
+     * and site.js is a single static file served to all ten locales, so
      * it cannot own either string. `openMenuAriaLabel` is rendered as the
      * button's initial aria-label and `closeMenuAriaLabel` rides along in
      * a `data-close-label` attribute; site.js reads both off the DOM.
@@ -262,6 +263,7 @@ export const CHROME_COPY: Partial<Record<SiteLocale, ChromeCopy>> = {
     it: CHROME_IT,
     uk: CHROME_UK,
     ja: CHROME_JA,
+    tr: CHROME_TR,
 };
 
 export function chromeFor(locale: SiteLocale): ChromeCopy {

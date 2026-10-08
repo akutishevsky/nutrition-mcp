@@ -4,7 +4,7 @@
     ).matches;
 
     // The page's own language, stamped on <html lang> by the generator. One
-    // script serves all nine locales, so it never names a locale of its own:
+    // script serves all ten locales, so it never names a locale of its own:
     // every number and every plural is formatted in the one it was rendered
     // in, and every word it shows was rendered into the markup.
     var NUM_LOCALE = document.documentElement.lang || "en";

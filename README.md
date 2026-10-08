@@ -230,7 +230,7 @@ An optional iOS Shortcut, **Nutrition MCP Health**, copies your daily totals int
 
 ## Troubleshooting
 
-The full version, in 9 languages, is at [nutrition-mcp.com/tools#troubleshooting](https://nutrition-mcp.com/tools#troubleshooting). In short:
+The full version, in 10 languages, is at [nutrition-mcp.com/tools#troubleshooting](https://nutrition-mcp.com/tools#troubleshooting). In short:
 
 - **Won't connect, or keeps asking to sign in:** remove the connector and add it again with exactly `https://nutrition-mcp.com/mcp`, then sign in with the same email and password (or Google account) as before — your data belongs to the account, not the connection. It stays connected as long as you use it at least every 90 days.
 - **`{"error":"session_expired"}` on the sign-in page:** the page is valid for 10 minutes and resets when the server restarts; reload it or start connecting again. `session_mismatch` means sign-in was finished in a different browser from the one that opened it.

@@ -449,7 +449,7 @@ export const TOOLS_DE: ToolsDoc = {
             description:
                 "Leg die Sprache der In-Chat-Widgets fest – also der Dashboards und Diagramme, nicht der Antworten der KI.",
             params: {
-                locale: "ISO-639-1-Code, z. B. <code>de</code>, <code>ja</code>. Unterstützt: Englisch, Deutsch, Spanisch, Französisch, Niederländisch, Polnisch, Italienisch, Ukrainisch, Japanisch.",
+                locale: "ISO-639-1-Code, z. B. <code>de</code>, <code>ja</code>. Unterstützt: Englisch, Deutsch, Spanisch, Französisch, Niederländisch, Polnisch, Italienisch, Ukrainisch, Japanisch, Türkisch.",
             },
             example: "Zeig meine Widgets auf Deutsch an",
         },

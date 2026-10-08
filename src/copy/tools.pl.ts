@@ -433,7 +433,7 @@ export const TOOLS_PL: ToolsDoc = {
             description:
                 "Ustaw język widżetów w czacie — paneli i wykresów, a nie odpowiedzi, które pisze do Ciebie AI.",
             params: {
-                locale: "Kod ISO 639-1, np. <code>de</code>, <code>ja</code>. Obsługiwane języki: angielski, niemiecki, hiszpański, francuski, niderlandzki, polski, włoski, ukraiński, japoński.",
+                locale: "Kod ISO 639-1, np. <code>de</code>, <code>ja</code>. Obsługiwane języki: angielski, niemiecki, hiszpański, francuski, niderlandzki, polski, włoski, ukraiński, japoński, turecki.",
             },
             example: "Pokazuj moje widżety po niemiecku",
         },

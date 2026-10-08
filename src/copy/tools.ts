@@ -33,6 +33,7 @@ import { TOOLS_PL } from "./tools.pl.js";
 import { TOOLS_IT } from "./tools.it.js";
 import { TOOLS_UK } from "./tools.uk.js";
 import { TOOLS_JA } from "./tools.ja.js";
+import { TOOLS_TR } from "./tools.tr.js";
 
 // ------------------------------------------------------------- identity
 
@@ -1081,7 +1082,7 @@ const TOOLS_EN: ToolsDoc = {
             description:
                 "Set the UI language for in-chat widgets — the dashboards and charts, not what the AI writes back to you.",
             params: {
-                locale: "ISO 639-1 code, e.g. <code>de</code>, <code>ja</code>. Supported: English, German, Spanish, French, Dutch, Polish, Italian, Ukrainian, Japanese.",
+                locale: "ISO 639-1 code, e.g. <code>de</code>, <code>ja</code>. Supported: English, German, Spanish, French, Dutch, Polish, Italian, Ukrainian, Japanese, Turkish.",
             },
             example: "Show my widgets in German",
         },
@@ -1219,4 +1220,5 @@ export const TOOLS_COPY: Partial<Record<SiteLocale, ToolsDoc>> = {
     it: TOOLS_IT,
     uk: TOOLS_UK,
     ja: TOOLS_JA,
+    tr: TOOLS_TR,
 };

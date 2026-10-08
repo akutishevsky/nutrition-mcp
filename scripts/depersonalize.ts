@@ -155,7 +155,7 @@ const INLINE_MAILTO_RULE: Rule = {
 /**
  * Global sweeps, run on every page after its page-specific rules (and before
  * DOMAIN_RULE, so the address is still recognisable). They key on tokens that
- * are identical in all 9 locales — the name is never transliterated, links are
+ * are identical in all 10 locales — the name is never transliterated, links are
  * links — so no rule needs to know any language's wording. All optional: which
  * page carries which token varies, and the residue guard at the end of this
  * file is what actually proves nothing was left behind.
@@ -631,7 +631,7 @@ console.log(
         "policy and terms now say [YOUR NAME] and your@email.com (and terms says " +
         "[YOUR DONATION PAGE] where donations are mentioned), and the footer has " +
         "no Contact, GitHub, Medium or Demo link until you add yours. Make those " +
-        "edits in the sources (src/copy/legal*.ts for all 9 locales, nav()/footer() " +
+        "edits in the sources (src/copy/legal*.ts for all 10 locales, nav()/footer() " +
         "in scripts/site-partials.ts), since `bun run gen:all` regenerates the pages " +
         "from them and brings the maintainer's details back. Also swap in your own " +
         "og.png / favicon.ico / favicon.svg / apple-touch-icon.png / icon-192.png / icon-512.png, adjust page copy (the privacy " +

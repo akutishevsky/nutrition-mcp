@@ -300,7 +300,7 @@ async function renderLangSwitcher(
     // Hand-written twin of the static switcher in scripts/site-partials.ts
     // (this one has to rebuild every href from the in-flight session, which
     // pathFor cannot do), so every fix there has to be repeated here — its
-    // three labels sat in English on all nine locales until this, long after
+    // three labels sat in English on all ten locales until this, long after
     // the generated pages were translated. role="group" is load-bearing, not
     // decoration: an aria-label on a bare <div> is exposed to nothing, so
     // without it the menu's label is inert however well translated.

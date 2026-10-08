@@ -32,6 +32,7 @@ import { ALT_UI_PL } from "./alt-ui.pl.js";
 import { ALT_UI_IT } from "./alt-ui.it.js";
 import { ALT_UI_UK } from "./alt-ui.uk.js";
 import { ALT_UI_JA } from "./alt-ui.ja.js";
+import { ALT_UI_TR } from "./alt-ui.tr.js";
 
 export interface AltFeature {
     title: string;
@@ -296,6 +297,7 @@ export const ALT_UI_COPY: Partial<Record<SiteLocale, AltUiCopy>> = {
     it: ALT_UI_IT,
     uk: ALT_UI_UK,
     ja: ALT_UI_JA,
+    tr: ALT_UI_TR,
 };
 
 export function altUiFor(locale: SiteLocale): AltUiCopy {
