@@ -451,7 +451,7 @@ export const TOOLS_FR: ToolsDoc = {
             description:
                 "Choisis la langue de l'interface des widgets interactifs dans le chat (tableaux de bord et graphiques), pas celle dans laquelle l'IA te répond.",
             params: {
-                locale: "Code ISO 639-1, par exemple <code>de</code>, <code>ja</code>. Langues prises en charge : anglais, allemand, espagnol, français, néerlandais, polonais, italien, ukrainien, japonais.",
+                locale: "Code ISO 639-1, par exemple <code>de</code>, <code>ja</code>. Langues prises en charge : anglais, allemand, espagnol, français, néerlandais, polonais, italien, ukrainien, japonais, turc.",
             },
             example: "Affiche mes widgets en allemand",
         },

@@ -437,7 +437,7 @@ export const TOOLS_TR: ToolsDoc = {
             description:
                 "Sohbet içi widget'ların arayüz dilini ayarla: panolar ve grafikler, yapay zekânın sana yazdıkları değil.",
             params: {
-                locale: "ISO 639-1 kodu, örn. <code>de</code>, <code>ja</code>. Desteklenenler: İngilizce, Almanca, İspanyolca, Fransızca, Felemenkçe, Lehçe, İtalyanca, Ukraynaca, Japonca.",
+                locale: "ISO 639-1 kodu, örn. <code>de</code>, <code>ja</code>. Desteklenenler: İngilizce, Almanca, İspanyolca, Fransızca, Felemenkçe, Lehçe, İtalyanca, Ukraynaca, Japonca, Türkçe.",
             },
             example: "Widget'larımı Almanca göster",
         },

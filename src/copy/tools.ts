@@ -1082,7 +1082,7 @@ const TOOLS_EN: ToolsDoc = {
             description:
                 "Set the UI language for in-chat widgets — the dashboards and charts, not what the AI writes back to you.",
             params: {
-                locale: "ISO 639-1 code, e.g. <code>de</code>, <code>ja</code>. Supported: English, German, Spanish, French, Dutch, Polish, Italian, Ukrainian, Japanese.",
+                locale: "ISO 639-1 code, e.g. <code>de</code>, <code>ja</code>. Supported: English, German, Spanish, French, Dutch, Polish, Italian, Ukrainian, Japanese, Turkish.",
             },
             example: "Show my widgets in German",
         },

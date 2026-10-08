@@ -75,7 +75,7 @@ describe("categorizeError", () => {
 
         // src/mcp.ts set_language
         [
-            "Unsupported language: xx. Use one of: en, de, es, fr, nl, pl, it, uk, ja.",
+            "Unsupported language: xx. Use one of: en, de, es, fr, nl, pl, it, uk, ja, tr.",
             "invalid_param_value",
         ],
         // src/mcp.ts set_weight_unit

@@ -135,7 +135,7 @@ export const INDEX_TR: IndexDoc = {
         },
         chatgpt: {
             steps: [
-                "<strong>ChatGPT on the web</strong> → <strong>Settings</strong> → <strong>Apps</strong> yolunu aç.",
+                "<strong>Web üzerindeki ChatGPT</strong> → <strong>Settings</strong> → <strong>Apps</strong> yolunu aç.",
                 "Açılan pencerenin altındaki <strong>Create app</strong> düğmesine tıkla. Görmüyorsan <strong>Advanced settings</strong> içinde <strong>Developer mode</strong> seçeneğini aç.",
                 "Ona bir ad ver, örneğin <strong>Nutrition</strong>.",
                 "<strong>Connection</strong> alanına <code>https://nutrition-mcp.com/mcp</code> adresini yapıştır.",

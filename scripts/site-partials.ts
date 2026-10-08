@@ -388,7 +388,7 @@ export function localeFontLinks(locale: SiteLocale): string {
  * with Intl.PluralRules. The forms cannot live in the script: site.js is one
  * file served to all ten locales (as LANDING_SCRIPT is one string embedded
  * byte-identically into all ten index.html files), so anything it names in
- * its own source is wrong on eight of them — the same contract the odometer
+ * its own source is wrong on nine of them — the same contract the odometer
  * caption and the #facts-live word already have.
  * The rendered .vh text is the `other` form, which is what a count of 0 (the
  * markup's resting state) selects in every locale that distinguishes forms.

@@ -975,7 +975,7 @@ test("troubleshooting #anchors resolve and ids collide with nothing", () => {
 });
 
 // The copy restates limits from the code. Each value is scraped from its
-// source, so changing a constant fails here until all 9 locale files say so.
+// source, so changing a constant fails here until all 10 locale files say so.
 const scrape = async (path: string, re: RegExp): Promise<string> => {
     const m = re.exec(await Bun.file(path).text());
     if (!m?.[1]) throw new Error(`${path}: ${re} matched nothing`);
@@ -1078,7 +1078,7 @@ test("the English troubleshooting copy states the limits in the code", () => {
 test("the ban cap is still the hour every locale's prose names", () => {
     // PINNED_DIGITS can't pin the cap: every locale writes it as "an hour" in
     // words. A different last BAN_DURATIONS_MS entry means rewriting that
-    // phrase in all 9 tools*.ts files (and README), not just English.
+    // phrase in all 10 tools*.ts files (and README), not just English.
     expect(LAST_BAN, "update 'at most an hour' in every locale").toBe("60");
 });
 

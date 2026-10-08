@@ -57,7 +57,7 @@ import { LANDING_CSS } from "./landing-css.js";
 // prettier-formatted JavaScript rather than a hand-escaped string; it holds
 // no copy (every word it shows is read out of the markup).
 //
-// Exported for src/landing-script.test.ts, which pins the nine generated
+// Exported for src/landing-script.test.ts, which pins the ten generated
 // pages against THIS constant. scripts/depersonalize.ts matches its
 // "live GitHub star count" and "recent Patreon posts" blocks by their
 // comment lines and closing `.catch(function () {});\n    }` — keep both
@@ -946,7 +946,7 @@ ${EMAIL_OFF_CLOSE}
 
 // Only when run as a script. src/landing-script.test.ts imports
 // LANDING_SCRIPT from here, and an unguarded write loop would regenerate the
-// nine pages as a side effect of that import — which is precisely the drift
+// ten pages as a side effect of that import — which is precisely the drift
 // the test exists to catch, silently repaired a millisecond before it looks.
 if (import.meta.main) {
     for (const [locale, doc] of Object.entries(INDEX) as [
