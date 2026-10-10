@@ -95,7 +95,7 @@ export const TOOLS_IT: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Registra cosa hai mangiato con calorie e macro, più fibre, zuccheri totali e aggiunti, alcol e caffeina quando i valori sono disponibili. Descrivilo a parole tue: l'IA stima i valori, ti chiede la porzione quando non è chiara e può prima recuperare i dati dell'etichetta da un codice a barre o dal web. Può anche ricevere gli ingredienti uno per uno, e in quel caso i totali sono la somma di quegli ingredienti.",
+                "Registra cosa hai mangiato con calorie e macro, più grassi saturi e trans, fibre, zuccheri totali e aggiunti, alcol e caffeina quando i valori sono disponibili. Descrivilo a parole tue: l'IA stima i valori, ti chiede la porzione quando non è chiara e può prima recuperare i dati dell'etichetta da un codice a barre o dal web. Può anche ricevere gli ingredienti uno per uno, e in quel caso i totali sono la somma di quegli ingredienti.",
             params: {
                 description: "Cosa hai mangiato",
                 meal_type: "colazione, pranzo, cena o spuntino",
@@ -103,6 +103,10 @@ export const TOOLS_IT: ToolsDoc = {
                 protein_g: "Proteine in grammi",
                 carbs_g: "Carboidrati in grammi",
                 fat_g: "Grassi in grammi",
+                saturated_fat_g:
+                    "Facoltativo. Grassi saturi in grammi, parte di fat_g e mai superiori a essa. Un valore vuoto viene salvato come non misurato e lascia quel giorno fuori dalla media e dal limite dei grassi saturi; 0 è il valore corretto per un alimento che non ne contiene.",
+                trans_fat_g:
+                    "Facoltativo. Grassi <b>trans</b> in grammi, un tipo di grasso a sé, non controllato rispetto a fat_g. Non hanno un limite e vengono mostrati solo dove sono stati registrati; 0 è il valore corretto per un alimento che non ne contiene.",
                 fiber_g:
                     "Fibre alimentari in grammi. All'IA viene chiesto di compilarlo per ogni pasto, stimandolo dagli ingredienti quando manca il valore in etichetta, perché un campo vuoto non vale zero: esclude l'intera giornata dalla tua media di fibre",
                 sugar_g:
@@ -159,7 +163,7 @@ export const TOOLS_IT: ToolsDoc = {
             description:
                 "Aggiunge in un colpo solo un blocco di pasti passati, fino a 50 alla volta, invece di registrarli uno per uno. L'importatore qui sopra salva i dati tramite questo strumento, e l'IA può usarlo direttamente per i pasti che hai incollato in chat. Ogni riga viene prima controllata e ogni problema viene segnalato riga per riga, quindi reinviare le stesse righe è sicuro e non duplica ciò che è già registrato, purché nel frattempo tu non abbia cambiato fuso orario.",
             params: {
-                meals: "Le righe da importare, nell'ordine del file di origine (1–50 per chiamata). Ogni riga può contenere un orario, il tipo di pasto, una descrizione, le note e gli stessi valori di un pasto registrato: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (zuccheri totali), <code>added_sugar_g</code> (zuccheri aggiunti, parte del totale), <code>alcohol_g</code> (grammi di etanolo puro) e <code>caffeine_mg</code> (milligrammi, non grammi)",
+                meals: "Le righe da importare, nell'ordine del file di origine (1–50 per chiamata). Ogni riga può contenere un orario, il tipo di pasto, una descrizione, le note e gli stessi valori di un pasto registrato: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (zuccheri totali), <code>added_sugar_g</code> (zuccheri aggiunti, parte del totale), <code>alcohol_g</code> (grammi di etanolo puro) e <code>caffeine_mg</code> (milligrammi, non grammi)",
                 expected_row_count:
                     "Quante righe contiene questa chiamata, contate nel file di origine, così ci si accorge se una riga va persa",
                 expected_total_kcal:
@@ -182,6 +186,10 @@ export const TOOLS_IT: ToolsDoc = {
                 protein_g: "",
                 carbs_g: "",
                 fat_g: "",
+                saturated_fat_g:
+                    "Facoltativo. Grassi saturi in grammi, parte di fat_g e mai superiori a essa. Un valore vuoto viene salvato come non misurato e lascia quel giorno fuori dalla media e dal limite dei grassi saturi; 0 è il valore corretto per un alimento che non ne contiene.",
+                trans_fat_g:
+                    "Facoltativo. Grassi <b>trans</b> in grammi, un tipo di grasso a sé, non controllato rispetto a fat_g. Non hanno un limite e vengono mostrati solo dove sono stati registrati; 0 è il valore corretto per un alimento che non ne contiene.",
                 fiber_g: "",
                 sugar_g: "Zuccheri totali, non zuccheri aggiunti",
                 added_sugar_g:
@@ -218,6 +226,10 @@ export const TOOLS_IT: ToolsDoc = {
                 protein_g: "Proteine in grammi per una porzione",
                 carbs_g: "Carboidrati in grammi per una porzione",
                 fat_g: "Grassi in grammi per una porzione",
+                saturated_fat_g:
+                    "Facoltativo. Grassi saturi in grammi, parte di fat_g e mai superiori a essa. Un valore vuoto viene salvato come non misurato e lascia quel giorno fuori dalla media e dal limite dei grassi saturi; 0 è il valore corretto per un alimento che non ne contiene.",
+                trans_fat_g:
+                    "Facoltativo. Grassi <b>trans</b> in grammi, un tipo di grasso a sé, non controllato rispetto a fat_g. Non hanno un limite e vengono mostrati solo dove sono stati registrati; 0 è il valore corretto per un alimento che non ne contiene.",
                 fiber_g: "Fibre alimentari in grammi per una porzione",
                 sugar_g: "Zuccheri totali in grammi per una porzione",
                 added_sugar_g:
@@ -266,6 +278,10 @@ export const TOOLS_IT: ToolsDoc = {
                 protein_g: "Proteine in grammi per una porzione",
                 carbs_g: "Carboidrati in grammi per una porzione",
                 fat_g: "Grassi in grammi per una porzione",
+                saturated_fat_g:
+                    "Facoltativo. Grassi saturi in grammi, parte di fat_g e mai superiori a essa. Un valore vuoto viene salvato come non misurato e lascia quel giorno fuori dalla media e dal limite dei grassi saturi; 0 è il valore corretto per un alimento che non ne contiene.",
+                trans_fat_g:
+                    "Facoltativo. Grassi <b>trans</b> in grammi, un tipo di grasso a sé, non controllato rispetto a fat_g. Non hanno un limite e vengono mostrati solo dove sono stati registrati; 0 è il valore corretto per un alimento che non ne contiene.",
                 fiber_g: "Fibre alimentari in grammi per una porzione",
                 sugar_g: "Zuccheri totali in grammi per una porzione",
                 added_sugar_g:
@@ -480,7 +496,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Imposta i tuoi obiettivi giornalieri di calorie, macro, fibre, zuccheri, zuccheri aggiunti, alcol, caffeina e acqua, più un peso obiettivo facoltativo. Calorie, proteine, carboidrati, grassi, fibre e acqua sono valori da raggiungere; zuccheri totali, zuccheri aggiunti, alcol e caffeina sono limiti da non superare, e i progressi vengono descritti di conseguenza. Aggiorna solo i campi che indichi; gli altri restano invariati.",
+                "Imposta i tuoi obiettivi giornalieri di calorie, macro, grassi saturi, fibre, zuccheri, zuccheri aggiunti, alcol, caffeina e acqua, più un peso obiettivo facoltativo. Calorie, proteine, carboidrati, grassi, fibre e acqua sono valori da raggiungere; grassi saturi, zuccheri totali, zuccheri aggiunti, alcol e caffeina sono limiti da non superare, e i progressi vengono descritti di conseguenza. Aggiorna solo i campi che indichi; gli altri restano invariati.",
             params: {
                 daily_calories:
                     "Obiettivo calorico giornaliero (kcal). Null per rimuoverlo.",
@@ -490,6 +506,8 @@ export const TOOLS_IT: ToolsDoc = {
                     "Obiettivo giornaliero di carboidrati (grammi). Null per rimuoverlo.",
                 daily_fat_g:
                     "Obiettivo giornaliero di grassi (grammi). Null per rimuoverlo.",
+                daily_saturated_fat_g:
+                    "Limite giornaliero di grassi saturi (grammi). Null per cancellarlo.",
                 daily_fiber_g:
                     "Obiettivo giornaliero di fibre (grammi), un minimo da raggiungere. Null per rimuoverlo.",
                 daily_sugar_g:
@@ -663,6 +681,11 @@ export const TOOLS_IT: ToolsDoc = {
                     "Un codice a barre non viene trovato, o i valori sembrano sbagliati",
                 answerHtml:
                     "I dati dei codici a barre vengono da Open Food Facts, un database collaborativo, quindi alcuni prodotti mancano e alcune schede non sono aggiornate. Assicurati che tutte le 8–14 cifre sotto il codice a barre siano state lette correttamente. Se il prodotto non c'è, l'IA può stimare i valori dal nome o da una foto della tabella nutrizionale, e puoi correggere qualsiasi valore in seguito. Aggiungere il prodotto su openfoodfacts.org aiuta tutti. Open Food Facts non ha dati sulla caffeina, quindi la caffeina si ricava dall'etichetta o da quantità tipiche.",
+            },
+            "usda-unavailable": {
+                question: "L’IA dice «USDA data is unavailable until …»",
+                answerHtml:
+                    "Le ricerche di alimenti generici passano da USDA FoodData Central con una chiave API condivisa da tutti gli utenti di questo server, e USDA limita quante richieste può fare quella chiave ogni ora. Il server smette di chiamare USDA in tre casi: quando USDA segnala che il suo limite è stato raggiunto, e in quel caso le chiamate si fermano per 60 minuti; mentre il margine orario residuo della chiave è quasi esaurito; e quando hai fatto 30 consultazioni USDA nell’ultima ora. Il messaggio indica l’orario in cui USDA torna disponibile, nel fuso orario del tuo profilo (UTC se non ne è impostato uno). I risultati di ricerca non vengono salvati, quindi le ricerche attendono fino ad allora. Un alimento consultato negli ultimi 30 giorni viene conservato sul server e continua a funzionare durante una pausa, e recuperare un alimento già salvato non conta sulle tue 30 all’ora. I nomi USDA sono solo in inglese, quindi cerca in inglese. I prodotti confezionati non sono interessati: cercali tramite codice a barre.",
             },
             "health-sync-yesterday": {
                 question: "Ieri non è ancora in Apple Health",

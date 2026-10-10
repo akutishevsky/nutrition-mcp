@@ -178,7 +178,7 @@ export const ALT_UI_EN: AltUiCopy = {
         features: [
             {
                 title: "Meals in plain language",
-                body: "Say &ldquo;oatmeal with banana and peanut butter&rdquo; — your AI estimates calories and macros, fiber, total sugar and caffeine included, and logs it. No database search. Log a meal ingredient by ingredient, or save the meals you eat often and log them again by name.",
+                body: "Say &ldquo;oatmeal with banana and peanut butter&rdquo; and your AI logs calories, macros, fiber, total sugar, caffeine, saturated and trans fat. Generic foods take their values from USDA FoodData Central when it has them, and estimates cover the rest; each number is tagged with where it came from. Log a meal ingredient by ingredient, or save the meals you eat often and log them again by name.",
             },
             {
                 title: "Barcode scanning — free",
@@ -186,7 +186,7 @@ export const ALT_UI_EN: AltUiCopy = {
             },
             {
                 title: "Weight &amp; goals",
-                body: "Log body weight in kg or lb, and tape measurements of nine body sites in cm or in, set calorie, macro, fiber, sugar, caffeine, and water goals — fiber a target to reach, sugar and caffeine limits to stay under — and track trends toward a goal weight. Alcohol tracking is there too, opt-in and off unless you turn it on.",
+                body: "Log body weight in kg or lb, and tape measurements of nine body sites in cm or in, set calorie, macro, saturated fat, fiber, sugar, caffeine, and water goals — fiber a target to reach, saturated fat, sugar and caffeine limits to stay under — and track trends toward a goal weight. Alcohol tracking is there too, opt-in and off unless you turn it on.",
             },
             {
                 title: "Summaries &amp; trends",
@@ -207,7 +207,7 @@ export const ALT_UI_EN: AltUiCopy = {
         compareTitle: "How they stack up",
         pros: [
             "Built as an MCP server — lives inside Claude &amp; ChatGPT",
-            "Describe meals in plain language; calories, macros, fiber, sugar &amp; caffeine estimated for you; save your usual meals to log in one line",
+            "Describe meals in plain language; USDA values for generic foods, estimates otherwise, each number tagged with its source; save your usual meals to log in one line",
             "Barcode scanning, trends, CSV import &amp; export — all free",
             "No separate app, no ads, open source",
         ],
@@ -240,7 +240,7 @@ export const ALT_UI_EN: AltUiCopy = {
                 "There is no official {app} connector for Claude, because {app} publishes no public MCP server. One option is Nutrition MCP, a free MCP server listed in the Claude directory: open it at https://claude.ai/directory/nutrition-mcp, click Connect, sign in, and start logging by conversation.",
             goodAltQ: "Is Nutrition MCP a good {app} alternative?",
             goodAltA:
-                "If you want to track calories, macros — fiber, total sugar, and caffeine included — water, and weight without opening a separate app or searching a food database, yes. Instead of tapping through a database, you describe what you ate in plain language, send a photo, or scan a barcode, and your AI logs it — completely free and open source.",
+                "If you want to track calories, macros — fiber, total sugar, caffeine, saturated and trans fat included — water, and weight without opening a separate app or tapping through a food diary, yes. You describe what you ate in plain language, send a photo, or scan a barcode, and your AI logs it. Generic foods take USDA FoodData Central values when it has them, packaged products come from Open Food Facts by barcode, and estimates cover the rest — completely free and open source.",
             importQ: "Can I import my {app} data?",
             readExportQ: "Does the AI read my export file when I import?",
             readExportA:
@@ -278,7 +278,7 @@ export const ALT_UI_EN: AltUiCopy = {
         importSub:
             "The usual reason people stay put is the years already logged. Ask to import and an importer opens right in the chat: pick your export, map the columns, preview what will be added, then confirm — or paste the export if your client has no in-chat panels.",
         importBody: [
-            "The file is parsed in your browser, not read by the AI — so the rows can't be mistyped on the way in, and you see the exact meals before any of them are written. Exports from MyFitnessPal, Cronometer, Lose It!, and MacroFactor have their columns recognised by name; any other CSV works too, you just point the mapper at each column once. What comes across is the date and time, food, meal, calories, protein, carbs, fat, fiber, total sugar, and caffeine in milligrams — and alcohol as well, if you've switched alcohol tracking on first.",
+            "The file is parsed in your browser, not read by the AI — so the rows can't be mistyped on the way in, and you see the exact meals before any of them are written. Exports from MyFitnessPal, Cronometer, Lose It!, and MacroFactor have their columns recognised by name; any other CSV works too, you just point the mapper at each column once. What comes across is the date and time, food, meal, calories, protein, carbs, fat, fiber, total sugar, and caffeine in milligrams, plus saturated and trans fat where the file carries them — and alcohol as well, if you've switched alcohol tracking on first.",
             "The awkward parts of real export files are handled: DD/MM/YYYY and MM/DD/YYYY dates, energy in kilojoules as well as kilocalories, semicolon-delimited European files whose numbers use comma decimals, quoted fields with line breaks inside them, trailing totals rows, and deleted-row flags. Column headings don't have to be English either — a German export's Kalorien or Ballaststoffe is recognised, and fiber, sugar, and caffeine are matched in Spanish, French, Italian, and Dutch too. Where a file is genuinely ambiguous — 05/06 could be May or June — the importer shows its reading next to a row from your own file and asks you to confirm rather than guessing. And each row carries a content fingerprint, so re-importing the same file reports the meals as already logged instead of duplicating them, as long as your timezone hasn't changed in between.",
         ],
 

@@ -18,12 +18,22 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_NL: IndexDoc = {
     title: "Nutrition MCP — Calorieteller voor Claude & ChatGPT",
     metaDescription:
-        "Calorieteller in Claude of ChatGPT: log maaltijden en macro's door te praten. Gratis, open source MCP-server met opgeslagen maaltijden, barcodes, gewicht en export.",
+        "Registreer maaltijden, calorieën en macro’s via Claude of ChatGPT. USDA-gegevens, barcodes, opgeslagen maaltijden en export. Gratis en open source.",
     ogDescription:
-        "Calorieteller in Claude of ChatGPT: log maaltijden en macro's door te praten. Gratis, open source MCP-server met opgeslagen maaltijden, barcodes, gewicht en export.",
+        "Registreer maaltijden, calorieën en macro’s via Claude of ChatGPT. USDA-gegevens, barcodes, opgeslagen maaltijden en export. Gratis en open source.",
     keywords:
         "calorieteller, calorieën tellen, calorieën bijhouden, macro's bijhouden, eetdagboek, voedingsdagboek, MCP-server, Claude AI, ChatGPT, macrotracker, barcodescanner, eten loggen, gewicht bijhouden, MyFitnessPal alternatief, opgeslagen maaltijden, ingrediënten, recepten bijhouden, AI-voeding, Model Context Protocol",
 
+    featureList: [
+        "Maaltijden in gewone taal registreren, met calorieën, macro’s, vezels, suiker en toegevoegde suiker",
+        "Bijhouden van verzadigd en transvet, met optionele limiet voor verzadigd vet",
+        "waarden uit USDA FoodData Central voor generieke voedingsmiddelen, anders schattingen",
+        "Barcodezoeken voor verpakte producten via Open Food Facts",
+        "Elke voedingswaarde met de bron erbij",
+        "Opgeslagen maaltijden en hun ingrediënten",
+        "Dagdoelen, limieten en voortgang, plus trends voor gewicht en lichaamsmaten",
+        "Export van al je gegevens als zip met csv-bestanden",
+    ],
     hero: {
         titleBeforeEm: "Houd je voeding bij door te ",
         titleEm: "praten",
@@ -104,7 +114,7 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 title: "Zeg gewoon wat je hebt gegeten",
-                body: "Omschrijf het in gewone taal, of stuur een foto van je maaltijd, een screenshot uit een bezorgapp of een barcode (het product wordt online opgezocht). Je macro's worden automatisch gelogd.",
+                body: "Beschrijf het in gewone woorden, of stuur een foto van je maaltijd, een screenshot uit een bezorgapp of een barcode (het product wordt opgezocht in Open Food Facts). Generieke voedingsmiddelen krijgen waarden uit USDA FoodData Central wanneer die beschikbaar zijn. Macro’s worden automatisch geregistreerd.",
             },
             {
                 title: "Bijhouden & bekijken",
@@ -338,6 +348,29 @@ export const INDEX_NL: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Griekse yoghurt naturel 0% (bakje van 150 g)"],
+            },
+            {
+                id: "usda-food",
+                title: "Generieke voedingsmiddelen van USDA",
+                description:
+                    "Noem een eenvoudig voedingsmiddel, dan zoekt je AI het op in USDA FoodData Central en rekent de waarden per 100 g om naar de grammen die je at. Wat het USDA-record niet bevat, wordt geschat in plaats van als nul getoond, en elke waarde toont zijn bron.",
+                toolNotes: {
+                    search_foods:
+                        "Zoekt de USDA-items op de Engelse naam “grilled chicken breast”",
+                    get_food_macros: "Rekent de USDA-waarden om naar 150 g",
+                    log_meal:
+                        "Registreert de lunch, elke waarde gemarkeerd als USDA of geschat",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "150 g gegrilde kipfilet als lunch",
+                    },
+                    {
+                        from: "ai",
+                        text: "Lunch geregistreerd: 248 kcal, 46,5 g eiwit en 5,4 g vet. Het eiwit en vet komen uit het record van USDA FoodData Central voor gegaarde kipfilet, omgerekend naar 150 g. Toegevoegde suiker staat niet in dat record, dus die wordt geschat.",
+                    },
+                ],
             },
             {
                 id: "saved-meal",
@@ -713,7 +746,7 @@ export const INDEX_NL: IndexDoc = {
         cards: [
             {
                 title: "Maaltijden in gewone taal",
-                body: "Omschrijf wat je hebt gegeten: je AI schat calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, toegevoegde suiker en cafeïne (in milligram) en logt het. Bewaar maaltijden die je vaak eet, met ingrediënten en al, en log ze daarna op naam.",
+                body: "Beschrijf wat je at: voor generieke voedingsmiddelen komen de waarden uit USDA FoodData Central wanneer die er zijn, en je AI schat de rest: calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker en cafeïne in milligram. Het wordt geregistreerd en elke waarde toont waar hij vandaan komt.",
             },
             {
                 title: "Scan een barcode",
@@ -721,7 +754,7 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 title: "Doelen & voortgang",
-                body: "Stel dagdoelen in voor calorieën, macro's, vezels en water, plus limieten voor toegevoegde suiker, totale suiker, cafeïne en alcohol om onder te blijven, en volg live je voortgang.",
+                body: "Stel dagelijkse doelen in voor calorieën, macro’s, vezels en water, plus limieten voor toegevoegde suiker, verzadigd vet, totale suiker, cafeïne en alcohol waaronder je wilt blijven, en volg de voortgang live.",
             },
             {
                 title: "Overzichten & trends",
@@ -752,7 +785,7 @@ export const INDEX_NL: IndexDoc = {
 
     why: {
         title: "Praten wint van tikken.",
-        sub: "Scan een barcode of zeg gewoon wat je hebt gegeten: geen database doorspitten, geen aparte app openen.",
+        sub: "Scan een barcode of zeg gewoon wat je hebt gegeten: geen losse voedingsmiddelen zelf opzoeken, geen aparte app openen.",
         oldHeading: "Traditionele apps",
         oldItems: [
             "Voor elk item een database doorzoeken",
@@ -763,7 +796,7 @@ export const INDEX_NL: IndexDoc = {
         newHeading: "Nutrition MCP",
         newItems: [
             "Maaltijden omschrijven in gewone taal",
-            "Calorieën en macro's worden voor je geschat",
+            "USDA-waarden voor generieke voedingsmiddelen, anders schattingen",
             "Werkt gratis in Claude of ChatGPT",
             "Trends, overzichten en doelen opvragen",
         ],
@@ -831,7 +864,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is een gratis, open source Model Context Protocol (MCP)-server die van Claude, ChatGPT of een andere MCP-client een calorieteller en macrotracker maakt. In plaats van een voedingsdatabase te doorzoeken, vertel je je AI wat je hebt gegeten en die legt de calorieën, macro's, vezels, suiker, toegevoegde suiker en cafeïne vast in je eigen eetdagboek.",
+                "Nutrition MCP is een gratis, open-source MCP-server (Model Context Protocol) die Claude, ChatGPT of een andere MCP-client verandert in een calorie- en macrotracker. In plaats van zelf elk product op te zoeken, vertel je je AI wat je at, en die registreert de calorieën, macro’s, vezels, suiker, toegevoegde suiker, verzadigd en transvet en cafeïne in je eigen voedingsdagboek.",
         },
         {
             question: "Wat is het Model Context Protocol (MCP)?",
@@ -841,7 +874,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Hoe tel ik calorieën met Claude of ChatGPT?",
             visibleHtml:
-                "Verbind Nutrition MCP één keer (in Claude via de connectordirectory, in ChatGPT als custom app met de server-URL) en log in. Vertel je AI daarna in je eigen woorden wat je hebt gegeten, laat een foto van de maaltijd zien of geef een productbarcode. Je AI schat de calorieën, eiwit, koolhydraten, vet, vezels, suiker en toegevoegde suiker, en Nutrition MCP slaat de registratie op in je eetdagboek. Vraag op elk moment naar je totalen van vandaag, je weektrends of je voortgang richting je doelen.",
+                "Verbind Nutrition MCP één keer – in Claude via de connectorenlijst, in ChatGPT als aangepaste app met de server-URL – en log in. Vertel daarna in je eigen woorden aan je AI wat je at, laat een foto van de maaltijd zien of geef een productbarcode. Bij generieke voedingsmiddelen komen de waarden uit USDA FoodData Central wanneer die er zijn, anders zijn het schattingen; een barcode wordt opgezocht in Open Food Facts. Nutrition MCP slaat het item op in je voedingsdagboek. Vraag op elk moment om de totalen van vandaag, weektrends of je voortgang richting je doelen.",
         },
         {
             // Het zichtbare antwoord laat de server-URL bewust weg (die staat
@@ -873,7 +906,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat kan ik bijhouden?",
             visibleHtml:
-                "Calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, toegevoegde suiker en water voor elke registratie, omschreven in gewone taal of via een productbarcode opgehaald uit Open Food Facts. Een maaltijd kun je per ingrediënt loggen, elk met een eigen hoeveelheid en voedingswaarden, en een maaltijd die je vaak eet kun je bewaren als opgeslagen maaltijd en daarna op naam opnieuw loggen. Cafeïne wordt ook bijgehouden, in milligram (de eenheid die op elk etiket staat), en levert geen calorieën op. Alcohol kan ook worden bijgehouden, in gram zuivere ethanol; het wordt getoond zodra je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht loggen in kg of lb en trends volgen richting een streefgewicht. Ook lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, dij en kuit) kun je in cm of inch loggen. Bekijk dagoverzichten, vraag maaltijden op over een periode, pas eerdere registraties aan of verwijder ze, stel doelen in en volg trends door de tijd.",
+                "Calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker en water voor elk item: in gewone taal beschreven, opgezocht als generiek voedingsmiddel in USDA FoodData Central, of uit een productbarcode via Open Food Facts. Een maaltijd kun je ingrediënt voor ingrediënt registreren, elk met een eigen hoeveelheid en voedingsstoffen, en een maaltijd die je vaak eet kun je bewaren als opgeslagen maaltijd en op naam opnieuw registreren. Cafeïne wordt ook bijgehouden, in milligram, de eenheid die elk etiket gebruikt, en het levert geen calorieën op. Alcohol kun je ook bijhouden, in gram zuivere ethanol; die wordt pas getoond als je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht in kg of lb registreren en trends richting een streefgewicht volgen. Lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, bovenbeen en kuit) kun je ook in cm of inches registreren. Bekijk dagelijkse overzichten, vraag maaltijden per periode op, wijzig of verwijder eerdere items, stel doelen in en volg trends in de tijd.",
         },
         {
             question:
@@ -884,7 +917,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Hoe nauwkeurig zijn de calorieën?",
             visibleHtml:
-                "Het zijn schattingen. Voor een maaltijd die je beschrijft of fotografeert, schat je AI de cijfers; bij een barcode komen ze uit de etiketgegevens van het product in Open Food Facts, die je AI omrekent naar de hoeveelheid die je hebt gegeten. Beide kunnen fout zijn, dus controleer alles wat ertoe doet: je kunt elke registratie corrigeren of verwijderen door het te vragen. Nutrition MCP is een hulpmiddel om te loggen, geen medisch of voedingsadvies: overleg met een arts of diëtist voordat je beslissingen over je gezondheid neemt, zeker als je zwanger bent, een medische aandoening hebt of een eetstoornis hebt gehad.",
+                "Generieke voedingsmiddelen gebruiken waarden uit USDA FoodData Central wanneer die beschikbaar zijn, en anders schattingen. De cijfers van een barcode komen uit de productgegevens in Open Food Facts, omgerekend naar de hoeveelheid die je had. Elke waarde toont waar hij vandaan komt (USDA, Open Food Facts, jijzelf of een schatting), en een label van USDA of Open Food Facts verschijnt alleen wanneer het cijfer overeenkomt met die gegevens voor de hoeveelheid die je registreerde. Schattingen en gegevens kunnen fout zijn, dus controleer wat belangrijk is; elk item kun je corrigeren of verwijderen door er gewoon om te vragen. Nutrition MCP is een registratietool, geen medisch of voedingsadvies: overleg met een arts of diëtist voordat je beslissingen over je gezondheid neemt, vooral als je zwanger bent, een medische aandoening hebt of ooit een eetstoornis hebt gehad.",
         },
         {
             question: "Houdt het alcohol bij?",
@@ -900,7 +933,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Zijn mijn gegevens privé?",
             visibleHtml:
-                'Je registraties worden opgeslagen in de EU en gekoppeld aan je eigen account, dat je bereikt via de AI-apps die je verbindt. Nutrition MCP verkoopt je gegevens nooit, deelt ze nooit met derden en gebruikt ze nooit voor advertenties; de startpagina toont alleen anonieme totalen over de hele site. Wat je AI via de tools leest, wordt naar de aanbieder van die AI gestuurd op grond van je eigen overeenkomst met die aanbieder. Je kunt op elk moment alles exporteren wat we over je opslaan, of je account en al je gegevens verwijderen. Alle details staan in het <a href="/privacy" data-link="privacy">privacybeleid</a>.',
+                'Je gegevens worden in de EU opgeslagen en zijn gekoppeld aan je eigen account, dat je bereikt via de AI-apps die je verbindt. Nutrition MCP verkoopt je gegevens nooit en deelt ze nooit met derden, behalve de productnamen die voor een opzoeking naar USDA FoodData Central of Open Food Facts worden gestuurd, en gebruikt ze nooit voor reclame; de startpagina toont alleen anonieme totalen voor de hele site. Alles wat je AI via de tools leest, wordt verstuurd naar de aanbieder van die AI, onder jouw eigen overeenkomst met hen. Je kunt alles exporteren wat we over je opslaan, of je account en alle gegevens ervan op elk moment verwijderen; het <a href="/privacy" data-link="privacy">privacybeleid</a> bevat de details.',
         },
     ],
 };

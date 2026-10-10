@@ -86,7 +86,7 @@ export const TOOLS_NL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log wat je hebt gegeten, met calorieën en macro's, plus vezels, totale en toegevoegde suikers, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web. Je kunt ook de ingrediënten één voor één meegeven; de totalen zijn dan de som van die ingrediënten.",
+                "Log wat je hebt gegeten, met calorieën en macro's, plus verzadigd en transvet, vezels, totale en toegevoegde suikers, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web. Je kunt ook de ingrediënten één voor één meegeven; de totalen zijn dan de som van die ingrediënten.",
             params: {
                 description: "Wat er is gegeten",
                 meal_type: "ontbijt, lunch, diner of snack",
@@ -94,6 +94,10 @@ export const TOOLS_NL: ToolsDoc = {
                 protein_g: "Eiwit in gram",
                 carbs_g: "Koolhydraten in gram",
                 fat_g: "Vet in gram",
+                saturated_fat_g:
+                    "Optioneel. Verzadigd vet in grammen, onderdeel van fat_g en nooit meer dan dat. Een lege waarde wordt opgeslagen als niet gemeten en laat die dag weg uit je gemiddelde en limiet voor verzadigd vet; 0 is de juiste waarde voor een voedingsmiddel zonder.",
+                trans_fat_g:
+                    "Optioneel. <b>Transvet</b> in grammen, een apart vettype dat niet tegen fat_g wordt gecontroleerd. Het heeft geen limiet en wordt alleen getoond waar het is vastgelegd; 0 is de juiste waarde voor een voedingsmiddel zonder.",
                 fiber_g:
                     "Voedingsvezels in gram. De AI krijgt de opdracht dit bij elke maaltijd in te vullen en schat het aan de hand van de ingrediënten als het etiket geen waarde geeft, want een leeg veld is geen nul: daarmee valt de hele dag buiten je vezelgemiddelde",
                 sugar_g:
@@ -123,7 +127,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         search_foods: {
             description:
-                "Zoekt generieke voedingsmiddelen van USDA FoodData Central (Foundation-, SR Legacy- en Survey/FNDDS-records) op Engelse naam en geeft tot 10 kandidaten terug, elk met het FoodData Central-id, de USDA-omschrijving, het gegevenstype en energie en macro's per 100 g. Zoekresultaten gebruiken de Engelse formulering van de USDA (bijv. 'cooked, boiled').",
+                "Zoekt generieke voedingsmiddelen van USDA FoodData Central (Foundation-, SR Legacy- en Survey/FNDDS-records) op Engelse naam en geeft tot 10 kandidaten terug, elk met het id van FoodData Central, de USDA-omschrijving, het gegevenstype en energie en macro's per 100 g. Zoekresultaten gebruiken de Engelse formulering van de USDA (bijv. 'cooked, boiled').",
             params: {
                 query: "De naam van het voedingsmiddel in het Engels, tot 200 tekens, bijv. banana of lentils, cooked",
             },
@@ -131,9 +135,9 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_food_macros: {
             description:
-                "Geeft de USDA FoodData Central-waarden van één generiek voedingsmiddel op basis van het FoodData Central-id: per 100 g en, als amount_g is opgegeven, omgerekend naar die hoeveelheid, met de porties die de USDA vermeldt. Een nutriënt die de USDA voor het voedingsmiddel niet registreert, wordt als niet geregistreerd gemeld, nooit als nul. Bevat de food_ref die de maaltijdtools voor deze waarden accepteren.",
+                "Geeft de waarden uit USDA FoodData Central van één generiek voedingsmiddel op basis van het id van FoodData Central: per 100 g en, als amount_g is opgegeven, omgerekend naar die hoeveelheid, met de porties die de USDA vermeldt. Een nutriënt die de USDA voor het voedingsmiddel niet registreert, wordt als niet geregistreerd gemeld, nooit als nul. Bevat de food_ref die de maaltijdtools voor deze waarden accepteren.",
             params: {
-                fdc_id: "Het FoodData Central-id van het voedingsmiddel, zoals vermeld door search_foods",
+                fdc_id: "Het id van FoodData Central voor het voedingsmiddel, zoals vermeld door search_foods",
                 amount_g:
                     "Optionele hoeveelheid in gram, groter dan 0 en tot 5.000, waarnaar de waarden worden omgerekend",
             },
@@ -149,7 +153,7 @@ export const TOOLS_NL: ToolsDoc = {
             description:
                 "Voeg een reeks eerdere maaltijden in één keer toe (tot 50 tegelijk) in plaats van ze één voor één te loggen. De importer hierboven schrijft via deze tool, en de AI kan hem ook zelf gebruiken voor maaltijdgegevens die je in de chat hebt geplakt. Elke rij wordt eerst gecontroleerd en wat niet klopt, wordt per rij gemeld. Dezelfde rijen opnieuw versturen is dus veilig en levert geen dubbele registraties op, zolang je tijdzone intussen niet is gewijzigd.",
             params: {
-                meals: "De rijen om te importeren, in de volgorde van het bronbestand (1–50 per aanroep). Elke rij kan een tijd, maaltijdtype, omschrijving, notities en dezelfde cijfers als een gelogde maaltijd bevatten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (totale suikers), <code>added_sugar_g</code> (toegevoegde suikers, onderdeel van het totaal), <code>alcohol_g</code> (gram zuivere ethanol) en <code>caffeine_mg</code> (milligram, niet gram)",
+                meals: "De rijen om te importeren, in de volgorde van het bronbestand (1–50 per aanroep). Elke rij kan een tijd, maaltijdtype, omschrijving, notities en dezelfde cijfers als een gelogde maaltijd bevatten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (totale suikers), <code>added_sugar_g</code> (toegevoegde suikers, onderdeel van het totaal), <code>alcohol_g</code> (gram zuivere ethanol) en <code>caffeine_mg</code> (milligram, niet gram)",
                 expected_row_count:
                     "Hoeveel rijen deze aanroep bevat, geteld in het bronbestand, zodat een ontbrekende rij opvalt",
                 expected_total_kcal:
@@ -172,6 +176,10 @@ export const TOOLS_NL: ToolsDoc = {
                 protein_g: "",
                 carbs_g: "",
                 fat_g: "",
+                saturated_fat_g:
+                    "Optioneel. Verzadigd vet in grammen, onderdeel van fat_g en nooit meer dan dat. Een lege waarde wordt opgeslagen als niet gemeten en laat die dag weg uit je gemiddelde en limiet voor verzadigd vet; 0 is de juiste waarde voor een voedingsmiddel zonder.",
+                trans_fat_g:
+                    "Optioneel. <b>Transvet</b> in grammen, een apart vettype dat niet tegen fat_g wordt gecontroleerd. Het heeft geen limiet en wordt alleen getoond waar het is vastgelegd; 0 is de juiste waarde voor een voedingsmiddel zonder.",
                 fiber_g: "",
                 sugar_g: "Totale suikers, niet toegevoegde suiker",
                 added_sugar_g:
@@ -208,6 +216,10 @@ export const TOOLS_NL: ToolsDoc = {
                 protein_g: "Eiwit in gram voor één portie",
                 carbs_g: "Koolhydraten in gram voor één portie",
                 fat_g: "Vet in gram voor één portie",
+                saturated_fat_g:
+                    "Optioneel. Verzadigd vet in grammen, onderdeel van fat_g en nooit meer dan dat. Een lege waarde wordt opgeslagen als niet gemeten en laat die dag weg uit je gemiddelde en limiet voor verzadigd vet; 0 is de juiste waarde voor een voedingsmiddel zonder.",
+                trans_fat_g:
+                    "Optioneel. <b>Transvet</b> in grammen, een apart vettype dat niet tegen fat_g wordt gecontroleerd. Het heeft geen limiet en wordt alleen getoond waar het is vastgelegd; 0 is de juiste waarde voor een voedingsmiddel zonder.",
                 fiber_g: "Voedingsvezels in gram voor één portie",
                 sugar_g: "Totale suikers in gram voor één portie",
                 added_sugar_g:
@@ -255,6 +267,10 @@ export const TOOLS_NL: ToolsDoc = {
                 protein_g: "Eiwit in gram voor één portie",
                 carbs_g: "Koolhydraten in gram voor één portie",
                 fat_g: "Vet in gram voor één portie",
+                saturated_fat_g:
+                    "Optioneel. Verzadigd vet in grammen, onderdeel van fat_g en nooit meer dan dat. Een lege waarde wordt opgeslagen als niet gemeten en laat die dag weg uit je gemiddelde en limiet voor verzadigd vet; 0 is de juiste waarde voor een voedingsmiddel zonder.",
+                trans_fat_g:
+                    "Optioneel. <b>Transvet</b> in grammen, een apart vettype dat niet tegen fat_g wordt gecontroleerd. Het heeft geen limiet en wordt alleen getoond waar het is vastgelegd; 0 is de juiste waarde voor een voedingsmiddel zonder.",
                 fiber_g: "Voedingsvezels in gram voor één portie",
                 sugar_g: "Totale suikers in gram voor één portie",
                 added_sugar_g:
@@ -470,7 +486,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Stel je dagelijkse doelen in voor calorieën, macro's, vezels, suiker, toegevoegde suiker, alcohol, cafeïne en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; totale suiker, toegevoegde suiker, alcohol en cafeïne zijn limieten om onder te blijven, en zo wordt de voortgang ook verwoord. Alleen de velden die je noemt, worden bijgewerkt; de rest blijft zoals het was.",
+                "Stel je dagelijkse doelen in voor calorieën, macro's, verzadigd vet, vezels, suiker, toegevoegde suiker, alcohol, cafeïne en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; verzadigd vet, totale suiker, toegevoegde suiker, alcohol en cafeïne zijn limieten om onder te blijven, en zo wordt de voortgang ook verwoord. Alleen de velden die je noemt, worden bijgewerkt; de rest blijft zoals het was.",
             params: {
                 daily_calories:
                     "Dagelijks caloriedoel (kcal). Null om te wissen.",
@@ -479,6 +495,8 @@ export const TOOLS_NL: ToolsDoc = {
                 daily_carbs_g:
                     "Dagelijks koolhydraatdoel (gram). Null om te wissen.",
                 daily_fat_g: "Dagelijks vetdoel (gram). Null om te wissen.",
+                daily_saturated_fat_g:
+                    "Dagelijkse limiet voor verzadigd vet (gram). Null om te wissen.",
                 daily_fiber_g:
                     "Dagelijks vezeldoel (gram), een minimum om te halen. Null om te wissen.",
                 daily_sugar_g:
@@ -651,6 +669,11 @@ export const TOOLS_NL: ToolsDoc = {
                     "Een barcode wordt niet gevonden, of de waarden lijken niet te kloppen",
                 answerHtml:
                     "Barcodegegevens komen van Open Food Facts, een communitydatabase, dus sommige producten ontbreken en sommige gegevens zijn verouderd. Controleer of alle 8–14 cijfers onder de barcode goed zijn gelezen. Staat het product er niet in, dan kan de AI een schatting maken op basis van de naam of een foto van het voedingsetiket, en je kunt elk getal achteraf corrigeren. Voeg je het product toe op openfoodfacts.org, dan heeft iedereen er wat aan. Open Food Facts heeft geen cafeïnegegevens, dus cafeïne komt van het etiket of wordt geschat op basis van gangbare hoeveelheden.",
+            },
+            "usda-unavailable": {
+                question: "De AI meldt „USDA data is unavailable until …“",
+                answerHtml:
+                    "Zoekopdrachten voor generieke voedingsmiddelen gaan naar USDA FoodData Central met één API-sleutel die alle gebruikers van deze server delen, en USDA beperkt hoeveel verzoeken die sleutel per uur mag doen. De server roept USDA in drie gevallen niet aan: nadat USDA meldt dat de limiet is bereikt, waarna aanroepen 60 minuten pauzeren; zolang het resterende uurcontingent van de sleutel bijna op is; en zodra je in het afgelopen uur 30 USDA-opzoekingen hebt gedaan. Het bericht geeft het tijdstip waarop USDA weer beschikbaar is, in de tijdzone van je profiel (UTC als er geen is ingesteld). Zoekresultaten worden niet opgeslagen, dus zoekopdrachten wachten tot dan. Een voedingsmiddel dat in de afgelopen 30 dagen is opgezocht, staat op de server en werkt ook tijdens een pauze; een opgeslagen voedingsmiddel ophalen telt niet mee voor je 30 per uur. USDA-namen zijn alleen in het Engels, dus zoek in het Engels. Verpakte producten zijn niet getroffen: zoek die op streepjescode.",
             },
             "health-sync-yesterday": {
                 question: "Gisteren staat nog niet in Apple Health",

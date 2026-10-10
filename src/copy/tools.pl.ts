@@ -81,7 +81,7 @@ export const TOOLS_PL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z błonnikiem, cukrami ogółem i dodanymi, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu. Może też przyjąć składniki jeden po drugim — wtedy wartości posiłku są sumą tych składników.",
+                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z tłuszczami nasyconymi i trans, błonnikiem, cukrami ogółem i dodanymi, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu. Może też przyjąć składniki jeden po drugim — wtedy wartości posiłku są sumą tych składników.",
             params: {
                 description: "Co zostało zjedzone",
                 meal_type: "śniadanie, obiad, kolacja lub przekąska",
@@ -89,6 +89,10 @@ export const TOOLS_PL: ToolsDoc = {
                 protein_g: "Białko w gramach",
                 carbs_g: "Węglowodany w gramach",
                 fat_g: "Tłuszcz w gramach",
+                saturated_fat_g:
+                    "Opcjonalnie. Tłuszcze nasycone w gramach, część fat_g i nigdy nie więcej niż ona. Pusta wartość jest zapisywana jako niezmierzona i wyłącza dzień ze średniej oraz limitu tłuszczów nasyconych; 0 to prawidłowa wartość dla produktu, który ich nie zawiera.",
+                trans_fat_g:
+                    "Opcjonalnie. Tłuszcze <b>trans</b> w gramach, osobny rodzaj tłuszczu, niesprawdzany względem fat_g. Nie mają limitu i są pokazywane tylko tam, gdzie zostały zapisane; 0 to prawidłowa wartość dla produktu, który ich nie zawiera.",
                 fiber_g:
                     "Błonnik pokarmowy w gramach. AI ma za zadanie uzupełniać tę wartość przy każdym posiłku i szacować ją ze składników, gdy etykieta jej nie podaje — bo puste pole to nie zero: wyklucza cały dzień z Twojej średniej błonnika",
                 sugar_g:
@@ -145,7 +149,7 @@ export const TOOLS_PL: ToolsDoc = {
             description:
                 "Dodaj za jednym razem do 50 wcześniejszych posiłków, zamiast zapisywać je po kolei. Korzysta z tego narzędzia opisany wyżej importer, a AI może go użyć bezpośrednio do danych posiłków wklejonych do czatu. Każdy wiersz jest najpierw sprawdzany, a wszystko, co nie pasuje, zostaje zgłoszone osobno dla każdego wiersza, więc ponowne wysłanie tych samych wierszy jest bezpieczne i nie zduplikuje już zapisanych posiłków — o ile w międzyczasie nie zmieniła się Twoja strefa czasowa.",
             params: {
-                meals: "Wiersze do zaimportowania, w kolejności z pliku źródłowego (1–50 na wywołanie). Każdy wiersz może zawierać czas, typ posiłku, opis, notatki i te same wartości co zapisany posiłek: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (cukry ogółem), <code>added_sugar_g</code> (cukry dodane, część cukrów ogółem), <code>alcohol_g</code> (gramy czystego etanolu) i <code>caffeine_mg</code> (miligramy, nie gramy)",
+                meals: "Wiersze do zaimportowania, w kolejności z pliku źródłowego (1–50 na wywołanie). Każdy wiersz może zawierać czas, typ posiłku, opis, notatki i te same wartości co zapisany posiłek: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (cukry ogółem), <code>added_sugar_g</code> (cukry dodane, część cukrów ogółem), <code>alcohol_g</code> (gramy czystego etanolu) i <code>caffeine_mg</code> (miligramy, nie gramy)",
                 expected_row_count:
                     "Liczba wierszy w tym wywołaniu, policzona w pliku źródłowym, żeby wychwycić pominięty wiersz",
                 expected_total_kcal:
@@ -168,6 +172,10 @@ export const TOOLS_PL: ToolsDoc = {
                 protein_g: "",
                 carbs_g: "",
                 fat_g: "",
+                saturated_fat_g:
+                    "Opcjonalnie. Tłuszcze nasycone w gramach, część fat_g i nigdy nie więcej niż ona. Pusta wartość jest zapisywana jako niezmierzona i wyłącza dzień ze średniej oraz limitu tłuszczów nasyconych; 0 to prawidłowa wartość dla produktu, który ich nie zawiera.",
+                trans_fat_g:
+                    "Opcjonalnie. Tłuszcze <b>trans</b> w gramach, osobny rodzaj tłuszczu, niesprawdzany względem fat_g. Nie mają limitu i są pokazywane tylko tam, gdzie zostały zapisane; 0 to prawidłowa wartość dla produktu, który ich nie zawiera.",
                 fiber_g: "",
                 sugar_g: "Cukry ogółem, nie cukry dodane",
                 added_sugar_g:
@@ -202,6 +210,10 @@ export const TOOLS_PL: ToolsDoc = {
                 protein_g: "Białko w gramach w jednej porcji",
                 carbs_g: "Węglowodany w gramach w jednej porcji",
                 fat_g: "Tłuszcz w gramach w jednej porcji",
+                saturated_fat_g:
+                    "Opcjonalnie. Tłuszcze nasycone w gramach, część fat_g i nigdy nie więcej niż ona. Pusta wartość jest zapisywana jako niezmierzona i wyłącza dzień ze średniej oraz limitu tłuszczów nasyconych; 0 to prawidłowa wartość dla produktu, który ich nie zawiera.",
+                trans_fat_g:
+                    "Opcjonalnie. Tłuszcze <b>trans</b> w gramach, osobny rodzaj tłuszczu, niesprawdzany względem fat_g. Nie mają limitu i są pokazywane tylko tam, gdzie zostały zapisane; 0 to prawidłowa wartość dla produktu, który ich nie zawiera.",
                 fiber_g: "Błonnik pokarmowy w gramach w jednej porcji",
                 sugar_g: "Cukry ogółem w gramach w jednej porcji",
                 added_sugar_g:
@@ -249,6 +261,10 @@ export const TOOLS_PL: ToolsDoc = {
                 protein_g: "Białko w gramach w jednej porcji",
                 carbs_g: "Węglowodany w gramach w jednej porcji",
                 fat_g: "Tłuszcz w gramach w jednej porcji",
+                saturated_fat_g:
+                    "Opcjonalnie. Tłuszcze nasycone w gramach, część fat_g i nigdy nie więcej niż ona. Pusta wartość jest zapisywana jako niezmierzona i wyłącza dzień ze średniej oraz limitu tłuszczów nasyconych; 0 to prawidłowa wartość dla produktu, który ich nie zawiera.",
+                trans_fat_g:
+                    "Opcjonalnie. Tłuszcze <b>trans</b> w gramach, osobny rodzaj tłuszczu, niesprawdzany względem fat_g. Nie mają limitu i są pokazywane tylko tam, gdzie zostały zapisane; 0 to prawidłowa wartość dla produktu, który ich nie zawiera.",
                 fiber_g: "Błonnik pokarmowy w gramach w jednej porcji",
                 sugar_g: "Cukry ogółem w gramach w jednej porcji",
                 added_sugar_g:
@@ -461,7 +477,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Ustaw dzienne cele dla kalorii, makroskładników, błonnika, cukru, cukrów dodanych, alkoholu, kofeiny i wody, a także opcjonalną wagę docelową. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; cukry ogółem, cukry dodane, alkohol i kofeina to limity, których nie należy przekraczać — i tak też opisywany jest postęp. Zmieniają się tylko pola, które wskażesz; reszta pozostaje bez zmian.",
+                "Ustaw dzienne cele dla kalorii, makroskładników, tłuszczów nasyconych, błonnika, cukru, cukrów dodanych, alkoholu, kofeiny i wody, a także opcjonalną wagę docelową. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; tłuszcze nasycone, cukry ogółem, cukry dodane, alkohol i kofeina to limity, których nie należy przekraczać — i tak też opisywany jest postęp. Zmieniają się tylko pola, które wskażesz; reszta pozostaje bez zmian.",
             params: {
                 daily_calories: "Dzienny cel kalorii (kcal). Null usuwa cel.",
                 daily_protein_g:
@@ -470,6 +486,8 @@ export const TOOLS_PL: ToolsDoc = {
                     "Dzienny cel węglowodanów (w gramach). Null usuwa cel.",
                 daily_fat_g:
                     "Dzienny cel tłuszczu (w gramach). Null usuwa cel.",
+                daily_saturated_fat_g:
+                    "Dzienny limit tłuszczów nasyconych (gramy). Null, aby go usunąć.",
                 daily_fiber_g:
                     "Dzienny cel błonnika (w gramach) — minimum do osiągnięcia. Null usuwa cel.",
                 daily_sugar_g:
@@ -642,6 +660,11 @@ export const TOOLS_PL: ToolsDoc = {
                 answerHtml:
                     "Dane kodów kreskowych pochodzą z Open Food Facts, bazy tworzonej przez społeczność, więc niektórych produktów brakuje, a niektóre wpisy są nieaktualne. Upewnij się, że wszystkie cyfry pod kodem kreskowym (od 8 do 14) zostały odczytane poprawnie. Jeśli produktu nie ma w bazie, AI może oszacować wartości na podstawie nazwy albo zdjęcia tabeli wartości odżywczych, a Ty możesz później poprawić dowolną liczbę. Dodanie produktu na openfoodfacts.org pomaga wszystkim. Open Food Facts nie ma danych o kofeinie, więc jej ilość pochodzi z etykiety albo z typowych wartości.",
             },
+            "usda-unavailable": {
+                question: "AI zgłasza „USDA data is unavailable until …”",
+                answerHtml:
+                    "Wyszukiwanie produktów ogólnych trafia do USDA FoodData Central z jednym kluczem API, który współdzielą wszyscy użytkownicy tego serwera, a USDA ogranicza, ile zapytań ten klucz może wysłać w ciągu godziny. Serwer przestaje wywoływać USDA w trzech przypadkach: gdy USDA zgłosi, że osiągnięto limit – wtedy wywołania są wstrzymane na 60 minut; gdy pozostały godzinny limit klucza jest prawie wyczerpany; oraz gdy w ostatniej godzinie wykonasz 30 wyszukiwań w USDA. Komunikat podaje godzinę, o której USDA znów będzie dostępne, w strefie czasowej Twojego profilu (UTC, jeśli nie ustawiono żadnej). Wyniki wyszukiwania nie są zapisywane, więc wyszukiwania czekają do tego czasu. Produkt wyszukany w ciągu ostatnich 30 dni jest przechowywany na serwerze i działa również podczas wstrzymania; pobranie zapisanego produktu nie liczy się do Twoich 30 na godzinę. Nazwy w USDA są tylko po angielsku, więc szukaj po angielsku. Produkty pakowane nie są objęte tym ograniczeniem: wyszukaj je po kodzie kreskowym.",
+            },
             "health-sync-yesterday": {
                 question: "Wczorajszego dnia jeszcze nie ma w Apple Health",
                 answerHtml:
@@ -670,7 +693,7 @@ export const TOOLS_PL: ToolsDoc = {
             "report-a-problem": {
                 question: "Jak zgłosić błąd lub problem z bezpieczeństwem?",
                 answerHtml:
-                    'Błędy zgłaszaj w <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: napisz, z jakiej aplikacji korzystasz (Claude, ChatGPT, …), jaka była Twoja prośba, co się stało i mniej więcej kiedy. Nigdy nie podawaj swojego hasła. Nie zgłaszaj problemów z bezpieczeństwem publicznie: zgłoś je prywatnie przez <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">prywatne zgłaszanie podatności w GitHubie</a> albo e-mailem, zgodnie z <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">polityką bezpieczeństwa</a>. We wszystkich innych sprawach napisz na <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
+                    'Błędy zgłaszaj w <a href="https://github.com/akutishevsky/nutrition-mcp/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>: napisz, z jakiej aplikacji korzystasz (Claude, ChatGPT, …), jaka była Twoja prośba, co się stało i mniej więcej kiedy. Nigdy nie podawaj swojego hasła. Nie zgłaszaj problemów z bezpieczeństwem publicznie: zgłoś je prywatnie przez <a href="https://github.com/akutishevsky/nutrition-mcp/security/advisories/new" target="_blank" rel="noopener noreferrer">prywatne zgłaszanie podatności w serwisie GitHub</a> albo e-mailem, zgodnie z <a href="https://github.com/akutishevsky/nutrition-mcp/security/policy" target="_blank" rel="noopener noreferrer">polityką bezpieczeństwa</a>. We wszystkich innych sprawach napisz na <a href="mailto:anton@nutrition-mcp.com">anton@nutrition-mcp.com</a>.',
             },
         },
     },

@@ -42,7 +42,7 @@ export const ALT_UI_IT: AltUiCopy = {
         features: [
             {
                 title: "Pasti descritti a parole",
-                body: "Di' &ldquo;porridge con banana e burro d'arachidi&rdquo;: la tua IA stima calorie e macro, comprese fibre, zuccheri totali e caffeina, e registra il pasto. Nessuna ricerca nel database. Registra un pasto ingrediente per ingrediente, oppure salva i pasti che mangi spesso e registrali di nuovo chiamandoli per nome.",
+                body: "Di' &ldquo;porridge con banana e burro d'arachidi&rdquo;: la tua IA registra calorie e macro, comprese fibre, zuccheri totali, caffeina, grassi saturi e grassi trans. I cibi generici prendono i valori da USDA FoodData Central quando c'è una corrispondenza, e stime coprono il resto; ogni cifra indica la sua fonte. Registra un pasto ingrediente per ingrediente, oppure salva i pasti che mangi spesso e registrali di nuovo chiamandoli per nome.",
             },
             {
                 title: "Scansione dei codici a barre, gratis",
@@ -50,7 +50,7 @@ export const ALT_UI_IT: AltUiCopy = {
             },
             {
                 title: "Peso e obiettivi",
-                body: "Registra il peso in kg o lb e le misure di nove zone del corpo in cm o pollici e imposta obiettivi per calorie, macro, fibre, zuccheri, caffeina e acqua: le fibre come traguardo da raggiungere, zuccheri e caffeina come limiti da non superare. Poi segui l'andamento verso il tuo peso obiettivo. C'è anche il monitoraggio dell'alcol, facoltativo e disattivato finché non lo attivi.",
+                body: "Registra il peso in kg o lb e le misure di nove zone del corpo in cm o pollici e imposta obiettivi per calorie, macro, fibre, zuccheri, caffeina, grassi saturi e acqua: le fibre come traguardo da raggiungere, grassi saturi, zuccheri e caffeina come limiti da non superare. Poi segui l'andamento verso il tuo peso obiettivo. C'è anche il monitoraggio dell'alcol, facoltativo e disattivato finché non lo attivi.",
             },
             {
                 title: "Riepiloghi e andamenti",
@@ -71,7 +71,7 @@ export const ALT_UI_IT: AltUiCopy = {
         compareTitle: "Messi a confronto",
         pros: [
             "Nato come server MCP: funziona dentro Claude e ChatGPT",
-            "Descrivi i pasti a parole e ottieni la stima di calorie, macro, fibre, zuccheri e caffeina; salva i tuoi pasti abituali per registrarli in una riga",
+            "Descrivi i pasti a parole e valori USDA per i cibi generici, stime per il resto, ogni cifra con la sua fonte; salva i tuoi pasti abituali per registrarli in una riga",
             "Scansione dei codici a barre, andamenti, importazione ed esportazione CSV: tutto gratis",
             "Nessuna app a parte, niente pubblicità, open source",
         ],
@@ -104,7 +104,7 @@ export const ALT_UI_IT: AltUiCopy = {
                 "Non esiste un connettore ufficiale di {app} per Claude, perché {app} non mette a disposizione alcun server MCP pubblico. Un'alternativa è Nutrition MCP, un server MCP gratuito presente nella directory di Claude: aprilo su https://claude.ai/directory/nutrition-mcp, clicca su Connect, accedi e inizia a registrare i pasti in chat.",
             goodAltQ: "Nutrition MCP è una buona alternativa a {app}?",
             goodAltA:
-                "Sì, se vuoi tenere traccia di calorie, macro (comprese fibre, zuccheri totali e caffeina), acqua e peso senza aprire un'app a parte né cercare in un database alimentare. Invece di scorrere voci su voci in un database, descrivi a parole cosa hai mangiato, invii una foto o scansioni un codice a barre, e la tua IA lo registra. Il tutto gratis e open source.",
+                "Sì, se vuoi tenere traccia di calorie, macro (comprese fibre, zuccheri totali, caffeina, grassi saturi e grassi trans), acqua e peso senza aprire un'app a parte né scorrere un diario alimentare. Descrivi a parole cosa hai mangiato, invii una foto o scansioni un codice a barre, e la tua IA lo registra. I cibi generici usano i valori di USDA FoodData Central quando ci sono, i prodotti confezionati arrivano da Open Food Facts tramite codice a barre, e le stime coprono il resto. Il tutto gratis e open source.",
             importQ: "Posso importare i miei dati da {app}?",
             readExportQ: "Quando importo, l'IA legge il file esportato?",
             readExportA:
@@ -142,7 +142,7 @@ export const ALT_UI_IT: AltUiCopy = {
         importSub:
             "Di solito si resta dove si è per via degli anni di dati già registrati. Chiedi di importare e l'importatore si apre direttamente in chat: scegli il file esportato, abbina le colonne, controlla l'anteprima di ciò che verrà aggiunto e conferma. Oppure incolla l'esportazione, se il tuo client non mostra pannelli in chat.",
         importBody: [
-            "Il file viene analizzato nel tuo browser, non letto dall'IA: così le righe non possono essere trascritte male durante l'importazione, e vedi esattamente quali pasti verranno aggiunti prima che ne venga scritto anche uno solo. Le esportazioni di MyFitnessPal, Cronometer, Lose It! e MacroFactor vengono riconosciute dai nomi delle colonne; funziona anche qualsiasi altro CSV, basta abbinare una volta ogni colonna nella schermata di abbinamento. Vengono importati data e ora, alimento, pasto, calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e caffeina in milligrammi, e anche l'alcol, se prima hai attivato il monitoraggio dell'alcol.",
+            "Il file viene analizzato nel tuo browser, non letto dall'IA: così le righe non possono essere trascritte male durante l'importazione, e vedi esattamente quali pasti verranno aggiunti prima che ne venga scritto anche uno solo. Le esportazioni di MyFitnessPal, Cronometer, Lose It! e MacroFactor vengono riconosciute dai nomi delle colonne; funziona anche qualsiasi altro CSV, basta abbinare una volta ogni colonna nella schermata di abbinamento. Vengono importati data e ora, alimento, pasto, calorie, proteine, carboidrati, grassi, fibre, zuccheri totali e caffeina in milligrammi, e anche grassi saturi e grassi trans quando il file li contiene, e anche l'alcol, se prima hai attivato il monitoraggio dell'alcol.",
             "Le insidie dei file esportati reali sono gestite: date in formato GG/MM/AAAA e MM/GG/AAAA, energia in kilojoule oltre che in kilocalorie, file europei separati da punto e virgola con la virgola come separatore decimale, campi tra virgolette che contengono degli a capo, righe di totali in fondo e indicatori di riga eliminata. Le intestazioni non devono nemmeno essere in inglese: Kalorien o Ballaststoffe di un'esportazione tedesca vengono riconosciute, e fibre, zuccheri e caffeina vengono abbinati anche in spagnolo, francese, italiano e olandese. Quando un file è davvero ambiguo (05/06 può essere maggio o giugno), l'importatore ti mostra come l'ha interpretato accanto a una riga del tuo file e ti chiede di confermare, invece di tirare a indovinare. E ogni riga porta un'impronta di contenuto: se reimporti lo stesso file, i pasti vengono segnalati come già registrati invece di essere duplicati, purché nel frattempo tu non abbia cambiato fuso orario.",
         ],
 

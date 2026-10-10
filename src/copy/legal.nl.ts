@@ -74,6 +74,14 @@ export const PRIVACY_NL: LegalDoc = {
                 },
                 {
                     type: "p",
+                    html: 'Als jij of je AI-assistent generieke levensmiddelen zoekt, stuurt onze server de zoektermen die je assistent gebruikt — zonder zoekoperatoren en afgekapt op 200 tekens — en de id\'s van FoodData Central voor de opgezochte levensmiddelen naar de API van <a href="https://fdc.nal.usda.gov" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a>, met onze eigen API-sleutel. Er wordt geen account-id, e-mailadres of logregel meegestuurd. De API wordt beheerd door het Amerikaanse ministerie van Landbouw, dus deze verzoeken verlaten de EU. De teruggestuurde records zijn openbare referentiegegevens: ze worden maximaal 30 dagen hergebruikt voordat ze opnieuw worden opgehaald, zijn niet aan een account gekoppeld en zijn geen persoonsgegevens.',
+                },
+                {
+                    type: "p",
+                    html: "Voedingswaarden uit FoodData Central worden zo geciteerd: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP is een onafhankelijk project; USDA beveelt deze dienst niet aan.",
+                },
+                {
+                    type: "p",
                     html: "Als je de synchronisatie met Apple Health koppelt, vraagt de opdracht op je iPhone onze server om de dagtotalen van je afgesloten dagen — calorieën, eiwit, koolhydraten, vet, vezels, cafeïne en, als je daarvoor koos, water — en schrijft die op die iPhone in Apple Health. Dat gebeurt op jouw verzoek en op jouw apparaat: onze server antwoordt alleen de opdracht en stuurt niets naar Apple. Zodra de totalen in Apple Health staan, worden ze daar bewaard en gedeeld volgens je eigen instellingen en je overeenkomst met Apple, niet de onze.",
                 },
                 {
@@ -257,6 +265,10 @@ export const TERMS_NL: LegalDoc = {
                     type: "p",
                     html: "Foto's van eten worden nooit naar onze server gestuurd. Je AI-assistent interpreteert de afbeelding zelf en stuurt ons alleen de tekst en cijfers die dat oplevert: een omschrijving, een maaltijdtype, calorieën, macro's, notities, een barcode.",
                 },
+                {
+                    type: "p",
+                    html: "Elke voedingswaarde vermeldt waar die vandaan komt. Bij generieke levensmiddelen zijn de waarden uit USDA FoodData Central wanneer er een passend record is, en anders schattingen. Elke waarde is gelabeld met de bron — USDA FoodData Central, Open Food Facts, een waarde die je zelf hebt opgegeven, of een schatting — en een record telt alleen als bron wanneer het overeenkomt met de geregistreerde hoeveelheid.",
+                },
             ],
         },
         {
@@ -326,7 +338,15 @@ export const TERMS_NL: LegalDoc = {
                 },
                 {
                     type: "p",
+                    html: "Gegevens over generieke levensmiddelen komen van de API van FoodData Central van het Amerikaanse ministerie van Landbouw (USDA). Wij sturen alleen de zoektermen en levensmiddel-id's die in ons privacybeleid staan beschreven; de gegevens die terugkomen zijn referentiegegevens, geen gegevens van jou.",
+                },
+                {
+                    type: "p",
                     html: 'Productgegevens bij barcodes &copy; bijdragers aan <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, beschikbaar onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
+                },
+                {
+                    type: "p",
+                    html: "Voedingswaarden uit FoodData Central worden zo geciteerd: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP is een onafhankelijk project; USDA beveelt deze dienst niet aan.",
                 },
                 {
                     type: "p",

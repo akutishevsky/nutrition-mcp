@@ -76,6 +76,14 @@ export const PRIVACY_TR: LegalDoc = {
                 },
                 {
                     type: "p",
+                    html: 'Sen ya da yapay zekâ asistanın genel gıdaları aradığında, sunucumuz asistanın kullandığı arama sözcüklerini — arama operatörlerinden arındırılmış ve 200 karakterle sınırlanmış hâlde — ve bakılan gıdaların FoodData Central kimliklerini, kendi API anahtarımızla birlikte <a href="https://fdc.nal.usda.gov" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a> API\'sine gönderir. Hesap kimliği, e-posta adresi ya da günlük kaydı gönderilmez. API, Amerika Birleşik Devletleri Tarım Bakanlığı tarafından işletildiği için bu istekler AB dışına çıkar. Dönen kayıtlar herkese açık referans verileridir: en fazla 30 gün yeniden kullanılır, sonra yeniden alınır; hiçbir hesapla ilişkilendirilmez ve kişisel veri değildir.',
+                },
+                {
+                    type: "p",
+                    html: "FoodData Central değerlerine şu biçimde atıf yapılır: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP bağımsız bir projedir; USDA bu hizmeti önermez.",
+                },
+                {
+                    type: "p",
                     html: "Apple Health eşitlemesini bağlarsan, iPhone cihazındaki kısayol sunucumuzdan tamamlanmış günlerinin günlük toplamlarını ister — kalori, protein, karbonhidrat, yağ, lif, kafein ve seçtiysen su — ve bunları o iPhone cihazındaki Apple Health uygulamasına yazar. Bu, senin isteğinle ve senin cihazında olur: sunucumuz yalnızca kısayola yanıt verir ve Apple tarafına hiçbir şey göndermez. Toplamlar bir kez Apple Health içine girdikten sonra orada senin kendi ayarlarına ve Apple ile olan sözleşmene göre saklanır ve paylaşılır, bizimkine göre değil.",
                 },
                 {
@@ -259,6 +267,10 @@ export const TERMS_TR: LegalDoc = {
                     type: "p",
                     html: "Yemek fotoğrafları sunucumuza hiçbir zaman gönderilmez. Yapay zekâ asistanın fotoğrafı kendi tarafında yorumlar ve bize yalnızca ortaya çıkan metin ile sayıları gönderir — bir açıklama, bir yemek türü, kalori, makrolar, notlar, bir barkod.",
                 },
+                {
+                    type: "p",
+                    html: "Her besin değeri kaynağını gösterir. Genel gıdalarda, uygun bir kayıt olduğunda değerler USDA FoodData Central kaynağından gelir; olmadığında tahminlerdir. Her değer kaynağıyla etiketlenir — USDA FoodData Central, Open Food Facts, kendi girdiğin bir değer ya da bir tahmin — ve bir kayıt yalnızca kaydettiğin miktarla eşleşirse kaynak sayılır.",
+                },
             ],
         },
         {
@@ -328,7 +340,15 @@ export const TERMS_TR: LegalDoc = {
                 },
                 {
                     type: "p",
+                    html: "Genel gıda verileri, Amerika Birleşik Devletleri Tarım Bakanlığı'nın (USDA) FoodData Central API kaynağından gelir. Ona yalnızca Gizlilik Politikamızda anlatılan arama sözcüklerini ve gıda kimliklerini göndeririz; kayıtları referans verisidir, senin verilerin değildir.",
+                },
+                {
+                    type: "p",
                     html: 'Barkod ürün verileri &copy; <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> katkıcıları, <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a> kapsamında kullanıma açıktır.',
+                },
+                {
+                    type: "p",
+                    html: "FoodData Central değerlerine şu biçimde atıf yapılır: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP bağımsız bir projedir; USDA bu hizmeti önermez.",
                 },
                 {
                     type: "p",

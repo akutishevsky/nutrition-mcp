@@ -65,6 +65,14 @@ export const PRIVACY_UK: LegalDoc = {
                 },
                 {
                     type: "p",
+                    html: 'Коли ти або твій ШІ-асистент шукаєте загальні продукти, наш сервер надсилає до API <a href="https://fdc.nal.usda.gov" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a> пошукові слова, які використав асистент, — очищені від операторів пошуку та обрізані до 200 символів — і ідентифікатори FoodData Central знайдених продуктів, із нашим власним ключем API. Ідентифікатор акаунта, адреса електронної пошти чи запис журналу не надсилаються. API належить Міністерству сільського господарства США, тож ці запити виходять за межі ЄС. Повернуті записи — це загальнодоступні довідкові дані: їх повторно використовують до 30 днів, перш ніж запитувати знову, вони не пов’язані з жодним акаунтом і не є персональними даними.',
+                },
+                {
+                    type: "p",
+                    html: "Значення з FoodData Central цитуються так: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP — незалежний проєкт; USDA не рекомендує цей сервіс.",
+                },
+                {
+                    type: "p",
                     html: "Якщо ти підключаєш синхронізацію з Apple Health, швидка команда на твоєму iPhone запитує в нашого сервера денні підсумки завершених днів — калорії, білки, вуглеводи, жири, клітковину, кофеїн і, якщо так обрано, воду — і записує їх в Apple Health на цьому iPhone. Це відбувається на твій запит і на твоєму пристрої: наш сервер лише відповідає швидкій команді й нічого не надсилає до Apple. Щойно підсумки потрапили до Apple Health, вони зберігаються й поширюються там відповідно до твоїх власних налаштувань і твоєї угоди з Apple, а не нашої.",
                 },
                 {
@@ -248,6 +256,10 @@ export const TERMS_UK: LegalDoc = {
                     type: "p",
                     html: "Фото їжі ніколи не надсилаються на наш сервер. Твій ШІ-асистент аналізує зображення на своєму боці й надсилає нам лише результат у вигляді тексту й чисел: опис, тип прийому їжі, калорії, макронутрієнти, нотатки, штрихкод.",
                 },
+                {
+                    type: "p",
+                    html: "Кожне поживне значення вказує, звідки воно. Для загальних продуктів це значення USDA FoodData Central, коли є відповідний запис, а інакше — оцінки. Кожне значення позначено джерелом — USDA FoodData Central, Open Food Facts, значення, яке ти вказав сам, або оцінка — і запис вважається джерелом лише тоді, коли відповідає записаній кількості.",
+                },
             ],
         },
         {
@@ -317,7 +329,15 @@ export const TERMS_UK: LegalDoc = {
                 },
                 {
                     type: "p",
+                    html: "Дані про загальні продукти надходять з API FoodData Central Міністерства сільського господарства США (USDA). Ми надсилаємо йому лише пошукові слова та ідентифікатори продуктів, описані в нашій Політиці конфіденційності; його записи — це довідкові дані, а не твої дані.",
+                },
+                {
+                    type: "p",
                     html: 'Дані про продукти за штрихкодами &copy; дописувачі <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, доступні за ліцензією <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
+                },
+                {
+                    type: "p",
+                    html: "Значення з FoodData Central цитуються так: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP — незалежний проєкт; USDA не рекомендує цей сервіс.",
                 },
                 {
                     type: "p",

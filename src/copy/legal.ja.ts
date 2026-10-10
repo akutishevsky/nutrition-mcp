@@ -87,6 +87,12 @@ export const PRIVACY_JA: LegalDoc = {
                     'あなたやAIアシスタントがバーコードを検索すると、本サービスのサーバーは<a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>にバーコードの数字だけを送信します。アカウント、メールアドレス、記録が送られることは一切ありません。返ってきた商品データは、どのユーザーにも紐づかない共有キャッシュに保存します。',
                 ),
                 p(
+                    'あなたやAIアシスタントが一般的な食品を検索すると、本サービスのサーバーは、アシスタントが使った検索語（検索演算子を取り除き、200文字以内に切り詰めたもの）と、検索された食品のFoodData CentralのIDを、本サービス専用のAPIキーを添えて<a href="https://fdc.nal.usda.gov" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a>のAPIに送信します。アカウントID、メールアドレス、ログの項目は送信しません。このAPIはアメリカ合衆国農務省が運営しているため、これらのリクエストはEU域外へ送られます。返される記録は公開されている参照データで、再利用される期間は最長30日間です。その後あらためて取得されます。アカウントとの紐づけはなく、個人データではありません。',
+                ),
+                p(
+                    "FoodData Centralの値の引用形式：U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCPは独立したプロジェクトであり、USDAは本サービスを推奨していません。",
+                ),
+                p(
                     "Apple Healthとの同期を接続すると、iPhoneのショートカットが本サービスのサーバーに締め済みの日の1日の合計（カロリー、たんぱく質、炭水化物、脂質、食物繊維、カフェイン、選択した場合は水分）を問い合わせ、そのiPhoneのApple Healthに書き込みます。これはあなたの依頼に基づき、あなたのデバイス上で行われます。本サービスのサーバーはショートカットに応答するだけで、Appleには何も送信しません。合計がApple Healthに入った後は、本サービスではなく、あなた自身の設定とAppleとの契約に従って保存・共有されます。",
                 ),
                 p("分析は2種類ありますが、どちらも記録の内容には触れません："),
@@ -233,6 +239,9 @@ export const TERMS_JA: LegalDoc = {
                 p(
                     "食事の写真が本サービスのサーバーに送信されることは一切ありません。AIアシスタントが写真を自身の側で解釈し、その結果のテキストと数値（説明、食事の種類、カロリー、マクロ栄養素、メモ、バーコード）だけが本サービスに送信されます。",
                 ),
+                p(
+                    "各栄養値には、その出典が表示されます。一般的な食品では、該当する記録がある場合はUSDA FoodData Centralの値を、ない場合は推定値を使用します。各値には出典（USDA FoodData Central、Open Food Facts、ご自身が入力した値、または推定値）が付き、記録は記録した分量と一致する場合にのみ出典とみなされます。",
+                ),
             ],
         },
         {
@@ -289,7 +298,13 @@ export const TERMS_JA: LegalDoc = {
                     "本サービスは第三者のサービスに依存しています。データベース、認証、エクスポートの保存にはSupabase、ホスティングにはDigitalOcean、すべてのリクエストが経由するネットワークには（ホスティング事業者を通じて）Cloudflare、バーコードデータにはOpen Food Facts、Apple Healthとの同期を接続した場合はAppleのショートカットアプリとヘルスケアアプリを利用しているほか、あなたが接続に使うAIアシスタントにも依存しています。",
                 ),
                 p(
+                    "一般的な食品のデータは、アメリカ合衆国農務省（USDA）のFoodData Central APIから取得します。送信するのは、プライバシーポリシーに記載された検索語と食品IDのみです。返される記録は参照データであり、あなたのデータではありません。",
+                ),
+                p(
                     'バーコードの商品データ：&copy; <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> contributors。<a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>の下で提供されています。',
+                ),
+                p(
+                    "FoodData Centralの値の引用形式：U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCPは独立したプロジェクトであり、USDAは本サービスを推奨していません。",
                 ),
                 p(
                     "ウェブサイト自体も、次のサービスを使用しています。トラフィックとページの使われ方を計測するGoogle AnalyticsとMicrosoft Clarity（同意がある場合）、フォントとアイコンを読み込むGoogle FontsとjsDelivr CDN、サインイン方法として選んだ場合のGoogleサインイン、そしてプロジェクトのスター数を取得するGitHub API（問い合わせるのはブラウザではなく本サービスのサーバーなので、訪問者のデータがGitHubに届くことはありません）です。このため、ページを読み込むとGoogle FontsとjsDelivrへのリクエストが発生し、これらの事業者にはIPアドレスとブラウザ情報が見える可能性があります。Google AnalyticsとMicrosoft Clarityへの接続は、解析に同意した後にのみ行われます。",

@@ -24,12 +24,22 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_TR: IndexDoc = {
     title: "Nutrition MCP — Claude ve ChatGPT için Kalori ve Makro Takibi",
     metaDescription:
-        "Claude veya ChatGPT ile konuşarak yemek, kalori ve makro kaydet. Kayıtlı yemekler, barkod, kilo takibi ve dışa aktarma sunan ücretsiz, açık kaynak MCP sunucusu.",
+        "Claude veya ChatGPT ile konuşarak öğün, kalori ve makroları kaydet. USDA verileri, barkod araması, kayıtlı öğünler ve dışa aktarma. Ücretsiz, açık kaynak.",
     ogDescription:
-        "Claude veya ChatGPT ile konuşarak yemek, kalori ve makro kaydet. Kayıtlı yemekler, barkod, kilo takibi ve dışa aktarma sunan ücretsiz, açık kaynak MCP sunucusu.",
+        "Claude veya ChatGPT ile konuşarak öğün, kalori ve makroları kaydet. USDA verileri, barkod araması, kayıtlı öğünler ve dışa aktarma. Ücretsiz, açık kaynak.",
     keywords:
         "beslenme takibi, yemek takibi, MCP sunucusu, Claude AI, ChatGPT, kalori sayacı, makro takibi, barkod okuyucu, yemek kaydı, diyet takibi, kilo takibi, kilo kaydı, kayıtlı yemekler, yemek malzemeleri, tarif takibi, yapay zekâ beslenme, Model Context Protocol",
 
+    featureList: [
+        "Öğünleri doğal dille kaydet: kalori, makro, lif, şeker ve eklenen şeker dahil",
+        "Doymuş ve trans yağ takibi, doymuş yağ için isteğe bağlı sınır",
+        "Genel gıdalarda USDA FoodData Central değerleri, diğerlerinde tahminler",
+        "Paketli ürünler için Open Food Facts üzerinden barkod araması",
+        "Her besin değeri kaynağıyla birlikte gösterilir",
+        "Kayıtlı öğünler ve malzemeleri",
+        "Günlük hedefler, sınırlar ve ilerleme; kilo ve vücut ölçüsü eğilimleri",
+        "Tüm verilerini CSV dosyalarından oluşan bir ZIP olarak dışa aktarma",
+    ],
     hero: {
         titleBeforeEm: "Beslenmeni yapay zekânla ",
         titleEm: "konuşarak",
@@ -110,7 +120,7 @@ export const INDEX_TR: IndexDoc = {
             },
             {
                 title: "Sadece ne yediğini söyle",
-                body: "Gündelik dille anlat; ya da yemeğinin fotoğrafını, bir yemek siparişi uygulamasından ekran görüntüsünü veya bir barkodu gönder (ürünü internetten arar). Makrolar otomatik kaydedilir.",
+                body: "Günlük dille anlat ya da öğününün fotoğrafını, bir teslimat uygulamasının ekran görüntüsünü veya barkodu gönder (ürün Open Food Facts üzerinde aranır). Genel gıdalarda, mevcutsa USDA FoodData Central değerleri kullanılır. Makrolar otomatik kaydedilir.",
             },
             {
                 title: "Takip et ve incele",
@@ -344,6 +354,29 @@ export const INDEX_TR: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Sade Yunan yoğurdu %0 (150 g kap)"],
+            },
+            {
+                id: "usda-food",
+                title: "Genel gıdalar için USDA FoodData Central",
+                description:
+                    "Sade bir gıda adı söyle; yapay zekân onu USDA FoodData Central üzerinde arar ve 100 g başına değerleri yediğin gram miktarına çevirir. Kayıtta olmayan değerler sıfır gibi gösterilmez, tahmin edilir ve her değer kaynağıyla birlikte gösterilir.",
+                toolNotes: {
+                    search_foods:
+                        "USDA kayıtlarını İngilizce adıyla “grilled chicken breast” olarak arar",
+                    get_food_macros: "USDA değerlerini 150 g’a çevirir",
+                    log_meal:
+                        "Öğleni kaydeder; her değer USDA ya da tahmin olarak etiketlenir",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "Öğlen 150 g ızgara tavuk göğsü",
+                    },
+                    {
+                        from: "ai",
+                        text: "Öğle yemeği kaydedildi: 248 kcal, 46,5 g protein ve 5,4 g yağ. Protein ve yağ, pişmiş tavuk göğsü için USDA FoodData Central kaydından, 150 g’a göre hesaplandı. Eklenen şeker bu kayıtta yok, bu yüzden tahmin edildi.",
+                    },
+                ],
             },
             {
                 id: "saved-meal",
@@ -719,7 +752,7 @@ export const INDEX_TR: IndexDoc = {
         cards: [
             {
                 title: "Gündelik dille yemekler",
-                body: "Ne yediğini anlat — yapay zekân kaloriyi, proteini, karbonhidratı, yağı, lifi, toplam şekeri, ilave şekeri ve miligram cinsinden kafeini tahmin edip kaydeder. Sık yediğin yemekleri malzemeleriyle birlikte kaydet, sonra adını söyleyerek yeniden gir.",
+                body: "Ne yediğini anlat: genel gıdalarda USDA FoodData Central değerleri mevcutsa kullanılır, kalanını yapay zekân tahmin eder: kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker ve kafein (miligram). Öğün kaydedilir ve her değer kaynağını gösterir.",
             },
             {
                 title: "Barkod okut",
@@ -727,7 +760,7 @@ export const INDEX_TR: IndexDoc = {
             },
             {
                 title: "Hedefler ve ilerleme",
-                body: "Günlük kalori, makro, lif ve su hedefleri, ayrıca altında kalmak için ilave şeker, toplam şeker, kafein ve alkol sınırları belirle; onlara doğru ilerlemeni canlı olarak gör.",
+                body: "Kalori, makro, lif ve su için günlük hedefler belirle; eklenen şeker, doymuş yağ, toplam şeker, kafein ve alkol için aşmak istemediğin sınırları da ekle ve ilerlemeni canlı izle.",
             },
             {
                 title: "Özetler ve eğilimler",
@@ -769,7 +802,7 @@ export const INDEX_TR: IndexDoc = {
         newHeading: "Nutrition MCP",
         newItems: [
             "Yemekleri gündelik dille anlat",
-            "Kalori ve makrolar senin için tahmin edilir",
+            "Genel gıdalarda USDA değerleri, diğerlerinde tahminler",
             "Claude ya da ChatGPT içinde ücretsiz çalışır",
             "Eğilimleri, özetleri ve hedefleri sor",
         ],
@@ -837,7 +870,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Nutrition MCP nedir?",
             visibleHtml:
-                "Nutrition MCP; Claude, ChatGPT ya da başka bir MCP istemcisini bir kalori ve makro takipçisine dönüştüren ücretsiz, açık kaynak bir Model Context Protocol (MCP) sunucusudur. Bir besin veri tabanında arama yapmak yerine yapay zekâna ne yediğini söylersin; o da kaloriyi, makroları, lifi, şekeri, ilave şekeri ve kafeini kendi yemek kaydına işler.",
+                "Nutrition MCP, Claude, ChatGPT veya başka bir MCP istemcisini kalori ve makro takipçisine dönüştüren ücretsiz, açık kaynaklı bir Model Context Protocol (MCP) sunucusudur. Her gıdayı tek tek aramak yerine yediğini yapay zekâna söylersin; o da kalori, makro, lif, şeker, eklenen şeker, doymuş ve trans yağ ile kafeini kendi yemek günlüğüne kaydeder.",
         },
         {
             question: "Model Context Protocol (MCP) nedir?",
@@ -847,7 +880,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Claude veya ChatGPT ile kalori nasıl takip edilir?",
             visibleHtml:
-                "Nutrition MCP bağlantısını bir kez kur — Claude içinde bağlayıcı dizininden, ChatGPT içinde sunucu adresiyle özel bir uygulama olarak — ve giriş yap. Sonra yapay zekâna kendi kelimelerinle ne yediğini söyle, yemeğin fotoğrafını göster ya da bir ürün barkodu ver. Yapay zekân kaloriyi, proteini, karbonhidratı, yağı, lifi, şekeri ve ilave şekeri tahmin eder, Nutrition MCP de kaydı yemek kaydına ekler. Bugünün toplamlarını, haftalık eğilimleri ya da hedeflerine ne kadar yaklaştığını istediğin zaman sor.",
+                "Nutrition MCP’yi bir kez bağla — Claude uygulamasında bağlayıcı dizininden, ChatGPT uygulamasında sunucu URL’siyle özel uygulama olarak — ve oturum aç. Sonra yediğini kendi cümlelerinle yapay zekâna anlat, öğünün fotoğrafını göster ya da ürünün barkodunu ver. Genel gıdalarda değerler, mevcutsa USDA FoodData Central kaynağından gelir, yoksa tahmindir; barkod Open Food Facts üzerinde aranır. Nutrition MCP kaydı yemek günlüğüne ekler. Bugünün toplamlarını, haftalık eğilimleri ya da hedeflerine ilerlemeni istediğin zaman sorabilirsin.",
         },
         {
             // Görünen yanıt sunucu adresini bilinçli olarak atlıyor (adres
@@ -879,7 +912,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Neleri takip edebilirim?",
             visibleHtml:
-                "Her kayıt için kalori, protein, karbonhidrat, yağ, lif, toplam şeker, ilave şeker ve su — gündelik dille anlatılmış ya da Open Food Facts üzerinden bir ürün barkoduyla getirilmiş. Bir yemek malzeme malzeme, her biri kendi miktarı ve besin değerleriyle kaydedilebilir; sık yediğin bir yemek de kayıtlı yemek olarak saklanıp adıyla yeniden kaydedilebilir. Kafein de takip edilir; her etiketin kullandığı birim olan miligram cinsinden ve hiç kalori eklemeden. Alkol da takip edilebilir, saf etanol gramı olarak; alkol takibini açtığında görünür hâle gelir. Vücut kilonu kg veya lb cinsinden kaydedip bir hedef kiloya doğru eğilimleri izleyebilirsin. Vücut ölçüleri (bel, kalça, boyun, göğüs, omuz, üst kol, ön kol, uyluk ve baldır) de cm veya inç cinsinden kaydedilebilir. Günlük özetleri görüntüle, yemekleri tarih aralığına göre sorgula, eski kayıtları güncelle ya da sil, hedefler belirle ve zaman içindeki eğilimleri izle.",
+                "Her kayıt için kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker ve su: doğal dille anlatılan, genel bir gıda olarak USDA FoodData Central üzerinde aranan ya da Open Food Facts üzerinden bir ürün barkodundan alınan değerler. Bir öğün malzeme malzeme kaydedilebilir; her malzemenin kendi miktarı ve besinleri olur. Sık yediğin bir öğünü kayıtlı öğün olarak saklayıp adıyla yeniden kaydedebilirsin. Kafein de miligram cinsinden takip edilir; bu, her etiketin kullandığı birimdir ve kalori eklemez. Alkol de saf etanol gramı cinsinden takip edilebilir; alkol takibini açtığında görünür. Vücut ağırlığını kg ya da lb olarak kaydedip hedef kiloya giden eğilimleri izleyebilirsin. Vücut ölçüleri (bel, kalça, boyun, göğüs, omuz, üst kol, ön kol, uyluk ve baldır) cm ya da inç olarak kaydedilebilir. Günlük özetleri görebilir, öğünleri tarih aralığına göre sorgulayabilir, geçmiş kayıtları düzenleyebilir ya da silebilir, hedef belirleyebilir ve zaman içindeki eğilimleri takip edebilirsin.",
         },
         {
             question:
@@ -890,7 +923,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Kalori sayıları ne kadar isabetli?",
             visibleHtml:
-                "Bunlar tahmindir. Anlattığın ya da fotoğrafladığın bir yemekte değerleri yapay zekân tahmin eder; barkodda ise değerler Open Food Facts içindeki ürün etiketi verisinden gelir ve yapay zekân bunları yediğin miktara göre ölçekler. İkisi de yanlış olabilir, bu yüzden önemli olan her şeyi kontrol et — sadece söyleyerek herhangi bir kaydı düzeltebilir ya da silebilirsin. Nutrition MCP bir kayıt aracıdır, tıbbi ya da diyet tavsiyesi değildir: sağlığınla ilgili karar vermeden önce bir doktora ya da diyetisyene danış, özellikle hamileysen, bir sağlık sorunun varsa ya da geçmişinde bir yeme bozukluğu varsa.",
+                "Genel gıdalarda, mevcut olduğunda USDA FoodData Central değerleri kullanılır; diğer durumlarda tahminler kullanılır. Barkod değerleri, Open Food Facts üzerindeki ürün kaydından alınır ve yediğin miktara göre hesaplanır. Her değerin kaynağı gösterilir (USDA, Open Food Facts, sen ya da bir tahmin); USDA veya Open Food Facts etiketi yalnızca rakam, kaydettiğin miktar için o kayıtla eşleştiğinde görünür. Tahminler ve kayıtlar yanlış olabilir, bu yüzden önemli olan her şeyi kontrol et; her kaydı sadece isteyerek düzeltebilir ya da silebilirsin. Nutrition MCP bir kayıt aracıdır, tıbbi ya da diyet tavsiyesi değildir: sağlığınla ilgili kararlar almadan önce bir doktora ya da diyetisyene danış; özellikle hamileysen, bir sağlık sorunun varsa ya da geçmişte yeme bozukluğu yaşadıysan.",
         },
         {
             question: "Alkolü takip ediyor mu?",
@@ -906,7 +939,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Verilerim gizli mi?",
             visibleHtml:
-                'Kayıtların AB içinde saklanır ve bağladığın yapay zekâ uygulamaları üzerinden eriştiğin kendi hesabına bağlıdır. Nutrition MCP verilerini asla satmaz, asla üçüncü taraflarla paylaşmaz ve asla reklam için kullanmaz; ana sayfa yalnızca site genelindeki anonim toplamları gösterir. Yapay zekânın araçlar üzerinden okuduğu her şey, o yapay zekânın sağlayıcısına seninle arasındaki anlaşma kapsamında gönderilir. Hakkında sakladığımız her şeyi istediğin zaman dışa aktarabilir ya da hesabını ve tüm verilerini silebilirsin — ayrıntılar <a href="/privacy" data-link="privacy">gizlilik politikasında</a>.',
+                'Verilerin AB’de saklanır ve bağladığın yapay zekâ uygulamaları üzerinden eriştiğin kendi hesabına bağlanır. Nutrition MCP verilerini asla satmaz ve üçüncü taraflarla paylaşmaz — bir gıda aramak için USDA FoodData Central ya da Open Food Facts kaynağına gönderilen gıda adları bunun dışındadır — ve asla reklam için kullanmaz; ana sayfa yalnızca site genelindeki anonim toplamları gösterir. Yapay zekân araçlar aracılığıyla okuduğu her şey, onunla kendi anlaşmana göre o yapay zekânın sağlayıcısına gönderilir. Hakkında sakladığımız her şeyi dışa aktarabilir ya da hesabını ve tüm verilerini istediğin zaman silebilirsin; ayrıntılar <a href="/privacy" data-link="privacy">gizlilik politikasında</a>.',
         },
     ],
 };

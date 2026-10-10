@@ -69,6 +69,12 @@ export const PRIVACY_ES: LegalDoc = {
                     'Cuando buscas un código de barras, directamente o a través de tu asistente de IA, nuestro servidor envía solo los dígitos del código a <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> (nunca tu cuenta, tu correo electrónico ni tus registros) y guarda los datos del producto que recibe en una caché compartida que no está vinculada a ningún usuario.',
                 ),
                 p(
+                    'Cuando tú o tu asistente de IA buscáis alimentos genéricos, nuestro servidor envía las palabras de búsqueda que usó tu asistente —sin operadores de búsqueda y recortadas a 200 caracteres— y los identificadores de FoodData Central de los alimentos consultados a la API de <a href="https://fdc.nal.usda.gov" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a>, con nuestra propia clave de API. No se envía ningún identificador de cuenta, dirección de correo electrónico ni entrada de registro. La API la opera el Departamento de Agricultura de los Estados Unidos, así que estas solicitudes salen de la UE. Los registros que devuelve son datos de referencia públicos: se reutilizan durante hasta 30 días antes de volver a consultarse, no están vinculados a ninguna cuenta y no son datos personales.',
+                ),
+                p(
+                    "Los valores de FoodData Central se citan así: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP es un proyecto independiente; USDA no respalda este servicio.",
+                ),
+                p(
                     "Si conectas la sincronización con Apple Health, el atajo de tu iPhone pide a nuestro servidor los totales diarios de tus días ya cerrados (calorías, proteínas, carbohidratos, grasas, fibra, cafeína y, si lo elegiste, agua) y los escribe en Apple Health en ese iPhone. Esto ocurre a petición tuya y en tu dispositivo: nuestro servidor solo responde al atajo y no envía nada a Apple. Una vez que los totales están en Apple Health, se guardan y se comparten allí según tus propios ajustes y tu acuerdo con Apple, no el nuestro.",
                 ),
                 p(
@@ -217,6 +223,9 @@ export const TERMS_ES: LegalDoc = {
                 p(
                     "Las fotos de comida nunca se envían a nuestro servidor. Tu asistente de IA interpreta la imagen por su cuenta y solo nos envía el texto y los números resultantes: una descripción, un tipo de comida, calorías, macros, notas, un código de barras.",
                 ),
+                p(
+                    "Cada cifra nutricional indica de dónde procede. En los alimentos genéricos, los valores son de USDA FoodData Central cuando hay un registro disponible, y estimaciones en caso contrario. Cada cifra lleva su origen —USDA FoodData Central, Open Food Facts, un valor que tú mismo indicaste o una estimación—, y un registro solo cuenta como origen si coincide con la cantidad que registraste.",
+                ),
             ],
         },
         {
@@ -271,7 +280,13 @@ export const TERMS_ES: LegalDoc = {
                     "El servicio depende de terceros: Supabase para la base de datos, la autenticación y el almacenamiento de exportaciones; DigitalOcean para el alojamiento; Cloudflare (a través de nuestro proveedor de alojamiento) para la red por la que pasa cada solicitud; Open Food Facts para los datos de códigos de barras; las apps Atajos y Salud de Apple, si conectas la sincronización con Apple Health, y el asistente de IA desde el que te conectes.",
                 ),
                 p(
+                    "Los datos de alimentos genéricos proceden de la API de FoodData Central del Departamento de Agricultura de los Estados Unidos (USDA). Solo le enviamos las palabras de búsqueda y los identificadores de alimentos descritos en nuestra Política de privacidad, y sus registros son datos de referencia, no tus datos.",
+                ),
+                p(
                     'Datos de productos por código de barras &copy; colaboradores de <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, disponibles bajo la <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
+                ),
+                p(
+                    "Los valores de FoodData Central se citan así: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP es un proyecto independiente; USDA no respalda este servicio.",
                 ),
                 p(
                     "Además, el propio sitio web usa, con tu consentimiento, Google Analytics y Microsoft Clarity para medir el tráfico y el uso de las páginas; Google Fonts y la CDN de jsDelivr para cargar fuentes e iconos; Google Sign-In, si eliges ese método de inicio de sesión, y la API de GitHub, que consulta nuestro servidor (no tu navegador) para obtener el número de estrellas del proyecto, de modo que ningún dato de los visitantes llega a GitHub. Por tanto, al cargar una página se envían solicitudes a Google Fonts y jsDelivr, que pueden ver tu dirección IP y tu navegador; con Google Analytics y Microsoft Clarity solo se establece contacto después de que aceptes la analítica.",

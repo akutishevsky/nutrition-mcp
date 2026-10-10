@@ -31,7 +31,7 @@ export const ALT_UI_TR: AltUiCopy = {
         features: [
             {
                 title: "Yemekleri gündelik dille anlat",
-                body: "&ldquo;Muzlu ve fıstık ezmeli yulaf lapası&rdquo; demen yeter: yapay zekân kaloriyi ve makroları, lif, toplam şeker ve kafein dahil, tahmin eder ve kaydeder. Veritabanında arama yapmana gerek yok. Bir yemeği malzeme malzeme kaydet ya da sık yediğin yemekleri saklayıp adlarıyla yeniden kaydet.",
+                body: "&ldquo;Muzlu ve fıstık ezmeli yulaf lapası&rdquo; demen yeter: yapay zekân kaloriyi ve makroları, lif, toplam şeker, kafein, doymuş yağ ve trans yağ dahil, kaydeder. Genel besinler için değerleri USDA FoodData Central kaynağından alınır, eşleşme yoksa tahminler devreye girer; her rakamın kaynağı yanında gösterilir. Bir yemeği malzeme malzeme kaydet ya da sık yediğin yemekleri saklayıp adlarıyla yeniden kaydet.",
             },
             {
                 title: "Barkod okutma — ücretsiz",
@@ -39,7 +39,7 @@ export const ALT_UI_TR: AltUiCopy = {
             },
             {
                 title: "Kilo &amp; hedefler",
-                body: "Vücut kilonu kg veya lb olarak, dokuz vücut bölgesinin mezura ölçülerini cm veya inç olarak kaydet; kalori, makro, lif, şeker, kafein ve su hedefleri belirle — lif ulaşılacak bir hedef, şeker ve kafein ise altında kalınacak sınırlar — ve hedef kiloya doğru eğilimleri izle. Alkol takibi de var: isteğe bağlı, sen açmadıkça kapalı.",
+                body: "Vücut kilonu kg veya lb olarak, dokuz vücut bölgesinin mezura ölçülerini cm veya inç olarak kaydet; kalori, makro, doymuş yağ, lif, şeker, kafein ve su hedefleri belirle — lif ulaşılacak bir hedef, doymuş yağ, şeker ve kafein ise altında kalınacak sınırlar — ve hedef kiloya doğru eğilimleri izle. Alkol takibi de var: isteğe bağlı, sen açmadıkça kapalı.",
             },
             {
                 title: "Özetler &amp; eğilimler",
@@ -60,7 +60,7 @@ export const ALT_UI_TR: AltUiCopy = {
         compareTitle: "Nasıl kıyaslanıyorlar",
         pros: [
             "Bir MCP sunucusu olarak yazıldı — Claude &amp; ChatGPT içinde yaşar",
-            "Yemekleri gündelik dille anlat; kalori, makrolar, lif, şeker &amp; kafein senin için tahmin edilir; her zamanki yemeklerini kaydet, tek satırla yeniden gir",
+            "Yemekleri gündelik dille anlat; genel besinler için USDA değerleri, kalan için tahminler, her rakam kaynağıyla birlikte; her zamanki yemeklerini kaydet, tek satırla yeniden gir",
             "Barkod okutma, eğilimler, CSV içe &amp; dışa aktarma — hepsi ücretsiz",
             "Ayrı bir uygulama yok, reklam yok, açık kaynak",
         ],
@@ -93,7 +93,7 @@ export const ALT_UI_TR: AltUiCopy = {
                 "Claude için resmî bir {app} bağlayıcısı yok, çünkü {app} herkese açık bir MCP sunucusu yayınlamıyor. Seçeneklerden biri Nutrition MCP: Claude dizininde yer alan ücretsiz bir MCP sunucusu. https://claude.ai/directory/nutrition-mcp adresinden aç, Connect düğmesine bas, giriş yap ve sohbet ederek kaydetmeye başla.",
             goodAltQ: "Nutrition MCP iyi bir {app} alternatifi mi?",
             goodAltA:
-                "Ayrı bir uygulama açmadan ya da yemek veritabanında arama yapmadan kaloriyi, makroları — lif, toplam şeker ve kafein dahil — suyu ve kiloyu takip etmek istiyorsan, evet. Veritabanında dokunarak gezinmek yerine ne yediğini gündelik dille anlatıyorsun, fotoğraf gönderiyorsun ya da barkod okutuyorsun; yapay zekân da kaydediyor — tamamen ücretsiz ve açık kaynak.",
+                "Ayrı bir uygulama açmadan ya da yemek günlüğünde dokunarak gezinmeden kaloriyi, makroları — lif, toplam şeker, kafein, doymuş yağ ve trans yağ dahil — suyu ve kiloyu takip etmek istiyorsan, evet. Ne yediğini gündelik dille anlatıyorsun, fotoğraf gönderiyorsun ya da barkod okutuyorsun; yapay zekân da kaydediyor. Genel besinler USDA FoodData Central değerlerini, paketli ürünler barkodla Open Food Facts verisini kullanır, kalan kısım için tahminler devreye girer — tamamen ücretsiz ve açık kaynak.",
             importQ: "{app} verilerimi içe aktarabilir miyim?",
             readExportQ:
                 "İçe aktarırken yapay zekâ dışa aktarım dosyamı okuyor mu?",
@@ -132,7 +132,7 @@ export const ALT_UI_TR: AltUiCopy = {
         importSub:
             "İnsanları yerinde tutan şey genelde yıllardır tuttukları kayıtlardır. İçe aktarmayı istediğinde doğrudan sohbet içinde bir içe aktarma penceresi açılır: dışa aktarım dosyanı seç, kolonları eşle, nelerin ekleneceğini önizle, sonra onayla — ya da istemcinde sohbet içi panel yoksa dışa aktarımı yapıştır.",
         importBody: [
-            "Dosya tarayıcında ayrıştırılır, yapay zekâ tarafından okunmaz — yani satırlar yolda yanlış yazılamaz ve hiçbiri yazılmadan önce yemekleri tam olarak görürsün. MyFitnessPal, Cronometer, Lose It! ve MacroFactor dışa aktarımlarının kolonları adlarından tanınır; başka her CSV de çalışır, eşleyiciye her kolonu bir kez göstermen yeter. Aktarılanlar: tarih ve saat, besin, yemek, kalori, protein, karbonhidrat, yağ, lif, toplam şeker ve miligram cinsinden kafein — alkol takibini önceden açtıysan alkol de.",
+            "Dosya tarayıcında ayrıştırılır, yapay zekâ tarafından okunmaz — yani satırlar yolda yanlış yazılamaz ve hiçbiri yazılmadan önce yemekleri tam olarak görürsün. MyFitnessPal, Cronometer, Lose It! ve MacroFactor dışa aktarımlarının kolonları adlarından tanınır; başka her CSV de çalışır, eşleyiciye her kolonu bir kez göstermen yeter. Aktarılanlar: tarih ve saat, besin, yemek, kalori, protein, karbonhidrat, yağ, lif, toplam şeker ve miligram cinsinden kafein, dosyada varsa doymuş yağ ve trans yağ — alkol takibini önceden açtıysan alkol de.",
             "Gerçek dışa aktarım dosyalarının zahmetli yanları çözülmüş durumda: GG/AA/YYYY ve AA/GG/YYYY tarihleri, kilokalorinin yanı sıra kilojul cinsinden enerji, sayılarında ondalık ayırıcı olarak virgül kullanan noktalı virgülle ayrılmış Avrupa dosyaları, içinde satır sonu olan tırnaklı alanlar, sonda duran toplam satırları ve silinmiş satır işaretleri. Kolon başlıklarının İngilizce olması da gerekmiyor — bir Alman dışa aktarımındaki Kalorien veya Ballaststoffe tanınır; lif, şeker ve kafein İspanyolca, Fransızca, İtalyanca ve Felemenkçe olarak da eşleştirilir. Bir dosya gerçekten belirsizse — 05/06 mayıs da haziran da olabilir — içe aktarma penceresi tahmin yürütmek yerine kendi okumasını senin dosyandan bir satırın yanında gösterir ve onaylamanı ister. Her satır da bir içerik parmak izi taşır; böylece aynı dosyayı yeniden içe aktardığında, arada saat dilimin değişmediği sürece yemekler çift kaydedilmek yerine zaten kaydedilmiş olarak bildirilir.",
         ],
 

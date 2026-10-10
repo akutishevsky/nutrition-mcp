@@ -1,6 +1,6 @@
 # Nutrition MCP
 
-A remote MCP server for personal nutrition tracking — log meals with calories, macros, fiber, total and added sugar and caffeine (optionally ingredient by ingredient), save meals you eat often and log them again by name, log water, body weight and body measurements, review nutrition history, and import an existing food diary from another app, all through conversation. Alcohol tracking is opt-in and off by default.
+A remote MCP server for personal nutrition tracking — log meals with calories, macros, fiber, total and added sugar, saturated and trans fat and caffeine (optionally ingredient by ingredient), look up generic foods in USDA FoodData Central and packaged products by barcode in Open Food Facts, record where each nutrient value came from, save meals you eat often and log them again by name, log water, body weight and body measurements, review nutrition history, and import an existing food diary from another app, all through conversation. Alcohol tracking is opt-in and off by default.
 
 [Help me pay for the servers on Patreon][patreon]
 
@@ -63,7 +63,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 
 | Tool                       | Description                                                                                                                                                                                                    |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `log_meal`                 | Log a meal with description, type, calories, macros, fiber, total and added sugar, alcohol, caffeine (mg), notes — from text or a photo of your plate                                                          |
+| `log_meal`                 | Log a meal with description, type, calories, macros, fiber, total and added sugar, saturated and trans fat, alcohol, caffeine (mg), notes — from text or a photo of your plate; each value records its source  |
 | `start_meal_import`        | Open the in-chat CSV importer: pick an export from another app, map its columns, preview, confirm                                                                                                              |
 | `bulk_import_meals`        | Write up to 50 imported rows per call — each row validated, duplicates skipped so a re-send is safe while the timezone is unchanged                                                                            |
 | `lookup_barcode`           | Look up a packaged product's label nutrition by barcode via Open Food Facts, including added sugar when listed (read from a photo or typed; data © OFF contributors, ODbL)                                     |
@@ -249,7 +249,8 @@ The full version, in 10 languages, is at [nutrition-mcp.com/tools#troubleshootin
 - **No charts or cards:** widgets need a host that supports MCP Apps; after `set_widget_display`, start a new conversation. The meal-logged card only appears once goals are set.
 - **Importer won't open or can't save:** ask the AI to import the file itself with `bulk_import_meals` (duplicates are skipped, so re-sending is safe as long as your timezone hasn't changed in between; set it before the first import). If you use the importer panel and want an alcohol column kept, turn alcohol tracking on first; the panel skips it while tracking is off.
 - **"Rate limit exceeded" / "Too many failed authentication attempts":** 60 requests a minute per account, 30 a minute per network on the sign-in pages. After 20 rejected connection attempts in a row, a network is paused for 5 minutes, growing to at most an hour — usually an old connector retrying; remove and re-add it.
-- **Barcode not found or wrong:** data comes from Open Food Facts (8–14 digits, no caffeine data; added sugar only when the product lists it, marked when Open Food Facts estimated it from the ingredients); the AI can estimate from the name or a label photo.
+- **Barcode not found or wrong:** data comes from Open Food Facts (8–14 digits, no caffeine data; added sugar only when the product lists it, marked when Open Food Facts estimated it from the ingredients); when no product is found, the name or a label photo can supply the figures instead.
+- **USDA data unavailable until a time is named:** USDA FoodData Central lookups (`search_foods`, `get_food_macros`) share one hourly quota across all users. After USDA's limit is reached, or when the key's hourly allowance is nearly used up, lookups pause for 60 minutes; each user is also capped at 30 lookups per hour. Foods looked up in the last 30 days keep working during a pause. USDA's names are in English, so search with English food names.
 - **Yesterday isn't in Apple Health yet:** days are sent once they are finished, at 05:00 the next morning in your timezone; the next sync after that (opening Health, stopping your alarm, or **Sync now**) brings it. Every sync covers the last 7 days.
 - **Apple Health shows more than chat:** Health can't lower a value it already has. Delete that day's entries from Shortcuts under Health → Browse → Nutrition → (type) → Show All Data and enter the right total by hand. Never use "Delete All Data from Shortcuts" — it also removes what your other shortcuts logged. If every day looks doubled, another app writes the same types; switch one off under Health → Sharing → Apps.
 - **Apple Health sync stopped:** run **Nutrition MCP Health** by hand to see why. If it asks to connect again (90 days without a sync, 365 days after connecting, or after Disconnect), sign in on the page it opens within 30 minutes. If it only syncs by hand, check its automations are on and set to Run Immediately; if a notice says a day didn't reach Health, allow Shortcuts to write every nutrition type under Health → Sharing → Apps → Shortcuts.
@@ -299,9 +300,21 @@ The project includes a `Dockerfile` for container-based deployment.
 - **Security vulnerabilities:** do **not** open a public issue. Report privately via [GitHub private vulnerability reporting](https://github.com/akutishevsky/nutrition-mcp/security/advisories/new) or email anton@nutrition-mcp.com — see [SECURITY.md](SECURITY.md). Machine-readable contact: https://nutrition-mcp.com/.well-known/security.txt
 - **Account deletion / your data:** the `delete_account` and `export_all_data` tools, or email the address above. See the [privacy policy](https://nutrition-mcp.com/privacy).
 
-## Data sources
+## Food data sources
 
-Barcode lookups (`lookup_barcode`) use product data from [Open Food Facts](https://world.openfoodfacts.org). Product data © Open Food Facts contributors, available under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/). Every lookup result names Open Food Facts and the licence.
+Nutrition figures come from three places, and each nutrient value records which one it came from (the user, a label or barcode record, USDA, or an estimate). The in-chat widgets show that source as a tag beside each number, per meal and per ingredient, and the export carries it in `nutrient_sources`. A value is tagged USDA or Open Food Facts only when it matches that record for the amount logged; the server checks this, so a value cannot claim a source it does not match.
+
+**USDA FoodData Central** (`search_foods`, `get_food_macros`) covers generic, unbranded foods from the Foundation, SR Legacy and Survey (FNDDS) data types, with values per 100 g scaled to the grams eaten and the portion sizes USDA lists. Its data is English-only, so search with English food names. A nutrient USDA does not record for a food is reported as not recorded and is never shown as zero. Requests send the search words (cleaned and up to 200 characters) or a FoodData Central id to USDA's API with this server's key, and no user identifier.
+
+Suggested citation for FoodData Central, from [fdc.nal.usda.gov](https://fdc.nal.usda.gov/):
+
+> U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/.
+
+Nutrition MCP is not endorsed by the U.S. Department of Agriculture.
+
+**Open Food Facts** (`lookup_barcode`) uses product data from [Open Food Facts](https://world.openfoodfacts.org) for packaged products, looked up by barcode. Product data © Open Food Facts contributors, available under the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/). Every lookup result names Open Food Facts and the licence.
+
+Values with no record behind them are estimates, or come from a label the user shares.
 
 ## License
 

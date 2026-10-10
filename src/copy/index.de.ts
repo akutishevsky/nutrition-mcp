@@ -14,12 +14,22 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_DE: IndexDoc = {
     title: "Nutrition MCP – Kalorien- & Makro-Tracker für Claude & ChatGPT",
     metaDescription:
-        "Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. Kostenloser Open-Source-MCP-Server mit gespeicherten Mahlzeiten, Barcode-Suche, Gewicht und Export.",
+        "Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. USDA-Werte, Barcode-Suche, gespeicherte Mahlzeiten und Export. Kostenlos, Open Source.",
     ogDescription:
-        "Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. Kostenloser Open-Source-MCP-Server mit gespeicherten Mahlzeiten, Barcode-Suche, Gewicht und Export.",
+        "Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. USDA-Werte, Barcode-Suche, gespeicherte Mahlzeiten und Export. Kostenlos, Open Source.",
     keywords:
         "Ernährungs-Tracker, Mahlzeiten-Tracker, MCP-Server, Claude AI, ChatGPT, Kalorienzähler, Kalorienzähler kostenlos, Makro-Tracker, Barcode-Scanner, Ernährungstagebuch, Essensprotokoll, Diät-Tracker, Gewichts-Tracker, Gewichtsprotokoll, gespeicherte Mahlzeiten, Zutaten, Rezept-Tracker, Yazio Alternative, KI-Ernährung, Model Context Protocol",
 
+    featureList: [
+        "Mahlzeiten in einfachen Worten erfassen, mit Kalorien, Makros, Ballaststoffen, Zucker und zugesetztem Zucker",
+        "Erfassung gesättigter und Transfettsäuren, mit optionalem Limit für gesättigte Fettsäuren",
+        "Werte aus USDA FoodData Central für allgemeine Lebensmittel, sonst Schätzungen",
+        "Barcode-Suche für verpackte Lebensmittel über Open Food Facts",
+        "Jeder Nährstoffwert mit Angabe, woher er stammt",
+        "Gespeicherte Mahlzeiten und ihre Zutaten",
+        "Tagesziele, Limits und Fortschritt sowie Trends bei Gewicht und Körpermaßen",
+        "Export aller deiner Daten als ZIP mit CSV-Dateien",
+    ],
     hero: {
         titleBeforeEm: "Erfasse deine Ernährung – einfach im ",
         titleEm: "Gespräch",
@@ -100,7 +110,7 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 title: "Sag einfach, was du gegessen hast",
-                body: "Beschreib es in eigenen Worten – oder schick ein Foto deines Essens, einen Screenshot aus einer Liefer-App oder einen Barcode (das Produkt wird online nachgeschlagen). Die Makros werden automatisch erfasst.",
+                body: "Beschreib es in einfachen Worten – oder schick ein Foto deiner Mahlzeit, einen Screenshot aus einer Lieferapp oder einen Barcode (der Produktname wird in Open Food Facts nachgeschlagen). Allgemeine Lebensmittel bekommen, wenn verfügbar, Werte aus USDA FoodData Central. Makros werden automatisch erfasst.",
             },
             {
                 title: "Erfassen & auswerten",
@@ -335,6 +345,29 @@ export const INDEX_DE: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Naturjoghurt griechischer Art 0 % (150-g-Becher)"],
+            },
+            {
+                id: "usda-food",
+                title: "Allgemeine Lebensmittel von USDA",
+                description:
+                    "Nenn ein einfaches Lebensmittel, und deine KI schlägt es in USDA FoodData Central nach und rechnet die Werte pro 100 g auf die Gramm um, die du gegessen hast. Was der Datensatz nicht enthält, wird geschätzt statt als Null angezeigt, und jeder Wert ist mit seiner Quelle gekennzeichnet.",
+                toolNotes: {
+                    search_foods:
+                        "Sucht die USDA-Einträge unter dem englischen Namen „grilled chicken breast“",
+                    get_food_macros: "Rechnet die USDA-Werte auf 150 g um",
+                    log_meal:
+                        "Erfasst das Mittagessen, jeder Wert mit USDA oder geschätzt gekennzeichnet",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "150 g gegrilltes Hähnchenbrustfilet zum Mittagessen",
+                    },
+                    {
+                        from: "ai",
+                        text: "Mittagessen erfasst: 248 kcal, 46,5 g Protein und 5,4 g Fett. Protein und Fett stammen aus dem Eintrag in USDA FoodData Central für gegartes Hähnchenbrustfilet, umgerechnet auf 150 g. Zugesetzter Zucker steht nicht in diesem Eintrag, deshalb wird er geschätzt.",
+                    },
+                ],
             },
             {
                 id: "saved-meal",
@@ -711,7 +744,7 @@ export const INDEX_DE: IndexDoc = {
         cards: [
             {
                 title: "Mahlzeiten in eigenen Worten",
-                body: "Beschreib, was du gegessen hast – deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker, zugesetzten Zucker und Koffein in Milligramm und erfasst alles. Speichere Mahlzeiten, die du oft isst, samt Zutaten und erfasse sie später einfach über ihren Namen.",
+                body: "Beschreib, was du gegessen hast – für allgemeine Lebensmittel gibt es Werte aus USDA FoodData Central, wenn vorhanden, den Rest schätzt deine KI: Kalorien, Protein, Kohlenhydrate, Fett, gesättigte und Transfettsäuren, Ballaststoffe, Gesamtzucker, zugesetzten Zucker und Koffein in Milligramm. Die Mahlzeit wird erfasst, und jeder Wert zeigt seine Quelle.",
             },
             {
                 title: "Barcode scannen",
@@ -719,7 +752,7 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 title: "Ziele & Fortschritt",
-                body: "Leg tägliche Ziele für Kalorien, Makros, Ballaststoffe und Wasser fest – dazu Limits für zugesetzten Zucker, Gesamtzucker, Koffein und Alkohol, unter denen du bleiben willst – und verfolg deinen Fortschritt live.",
+                body: "Leg tägliche Ziele für Kalorien, Makros, Ballaststoffe und Wasser fest – dazu Limits für zugesetzten Zucker, gesättigte Fettsäuren, Gesamtzucker, Koffein und Alkohol, unter denen du bleiben willst – und verfolge den Fortschritt live.",
             },
             {
                 title: "Übersichten & Trends",
@@ -750,7 +783,7 @@ export const INDEX_DE: IndexDoc = {
 
     why: {
         title: "Reden schlägt Tippen.",
-        sub: "Fotografier einen Barcode oder sag einfach, was du gegessen hast – kein Suchen in Datenbanken, keine extra App.",
+        sub: "Fotografier einen Barcode oder sag einfach, was du gegessen hast – kein Nachschlagen jedes Lebensmittels, keine extra App.",
         oldHeading: "Klassische Apps",
         oldItems: [
             "Jedes Lebensmittel in einer Datenbank suchen",
@@ -761,7 +794,7 @@ export const INDEX_DE: IndexDoc = {
         newHeading: "Nutrition MCP",
         newItems: [
             "Mahlzeiten in eigenen Worten beschreiben",
-            "Kalorien & Makros werden für dich geschätzt",
+            "USDA-Werte für allgemeine Lebensmittel, sonst Schätzungen",
             "Läuft kostenlos in Claude oder ChatGPT",
             "Trends, Übersichten und Ziele einfach abfragen",
         ],
@@ -826,7 +859,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was ist Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP ist ein kostenloser Open-Source-MCP-Server (Model Context Protocol), der Claude, ChatGPT oder einen anderen MCP-Client in einen Kalorienzähler und Makro-Tracker verwandelt. Statt eine Lebensmitteldatenbank zu durchsuchen, sagst du deiner KI, was du gegessen hast, und sie trägt Kalorien, Makros, Ballaststoffe, Zucker, zugesetzten Zucker und Koffein in dein eigenes Ernährungstagebuch ein.",
+                "Nutrition MCP ist ein kostenloser Open-Source-MCP-Server (Model Context Protocol), der Claude, ChatGPT oder einen anderen MCP-Client in einen Kalorienzähler und Makro-Tracker verwandelt. Statt jedes Lebensmittel selbst nachzuschlagen, sagst du deiner KI, was du gegessen hast, und sie trägt Kalorien, Makros, Ballaststoffe, Zucker, zugesetzten Zucker, gesättigte und Transfettsäuren sowie Koffein in dein persönliches Ernährungstagebuch ein.",
         },
         {
             question: "Was ist das Model Context Protocol (MCP)?",
@@ -836,7 +869,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Wie zähle ich Kalorien mit Claude oder ChatGPT?",
             visibleHtml:
-                "Verbinde Nutrition MCP einmal – in Claude über das Connector-Verzeichnis, in ChatGPT als benutzerdefinierte App mit der Server-URL – und melde dich an. Dann sag deiner KI in eigenen Worten, was du gegessen hast, zeig ihr ein Foto der Mahlzeit oder gib ihr einen Produkt-Barcode. Deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Zucker und zugesetzten Zucker, und Nutrition MCP speichert den Eintrag in deinem Ernährungstagebuch. Frag jederzeit nach deinen heutigen Summen, Wochentrends oder deinem Fortschritt bei deinen Zielen.",
+                "Verbinde Nutrition MCP einmal – in Claude über das Connector-Verzeichnis, in ChatGPT als benutzerdefinierte App mit der Server-URL – und melde dich an. Dann sag deiner KI in eigenen Worten, was du gegessen hast, zeig ihr ein Foto der Mahlzeit oder gib ihr einen Produkt-Barcode. Bei allgemeinen Lebensmitteln stammen die Werte, wenn vorhanden, aus USDA FoodData Central, sonst sind sie geschätzt; ein Barcode wird in Open Food Facts nachgeschlagen. Nutrition MCP speichert den Eintrag in deinem Ernährungstagebuch. Frag jederzeit nach den Tagessummen, Wochentrends oder deinem Fortschritt bei den Zielen.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -868,7 +901,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was kann ich erfassen?",
             visibleHtml:
-                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker, zugesetzter Zucker und Wasser für jeden Eintrag – in eigenen Worten beschrieben oder per Produkt-Barcode aus Open Food Facts abgerufen. Eine Mahlzeit lässt sich Zutat für Zutat erfassen, jede mit eigener Menge und eigenen Nährwerten, und eine Mahlzeit, die du oft isst, kannst du als gespeicherte Mahlzeit ablegen und später über ihren Namen erneut erfassen. Auch Koffein wird erfasst, in Milligramm, der Einheit auf jedem Etikett; es liefert keine Kalorien. Alkohol lässt sich ebenfalls erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Außerdem kannst du dein Körpergewicht in kg oder lb erfassen und deinen Trend Richtung Zielgewicht verfolgen. Auch Körpermaße (Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel und Wade) lassen sich in cm oder Zoll erfassen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Zeitraum ab, ändere oder lösche frühere Einträge, leg Ziele fest und verfolg Trends über die Zeit.",
+                "Kalorien, Protein, Kohlenhydrate, Fett, gesättigte und Transfettsäuren, Ballaststoffe, Gesamtzucker, zugesetzter Zucker und Wasser bei jedem Eintrag – in eigenen Worten beschrieben, für ein allgemeines Lebensmittel in USDA FoodData Central nachgeschlagen oder per Produkt-Barcode aus Open Food Facts. Eine Mahlzeit lässt sich Zutat für Zutat erfassen, jede mit eigener Menge und eigenen Nährwerten, und eine Mahlzeit, die du oft isst, kannst du als gespeicherte Mahlzeit ablegen und über ihren Namen erneut erfassen. Koffein wird ebenfalls erfasst, in Milligramm, der Einheit, die jedes Etikett verwendet; es hat keine Kalorien. Alkohol kannst du ebenfalls erfassen, in Gramm reinem Ethanol; er wird angezeigt, sobald du die Alkoholerfassung einschaltest. Du kannst außerdem dein Körpergewicht in kg oder lb erfassen und Trends in Richtung Zielgewicht verfolgen. Körpermaße (Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel und Wade) lassen sich ebenfalls in cm oder Zoll erfassen. Du kannst Tageszusammenfassungen ansehen, Mahlzeiten nach Zeitraum abfragen, vergangene Einträge ändern oder löschen, Ziele setzen und Trends über die Zeit verfolgen.",
         },
         {
             question:
@@ -879,7 +912,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Wie genau sind die Kalorienangaben?",
             visibleHtml:
-                "Es sind Schätzungen. Bei einer Mahlzeit, die du beschreibst oder fotografierst, schätzt deine KI die Werte; bei einem Barcode stammen sie aus den Etikettdaten des Produkts in Open Food Facts, die deine KI auf deine Menge umrechnet. Beides kann danebenliegen, also prüf alles, worauf es dir ankommt – du kannst jeden Eintrag korrigieren oder löschen, indem du einfach danach fragst. Nutrition MCP ist ein Werkzeug zum Erfassen, keine medizinische Beratung und keine Ernährungsberatung: Sprich mit einer Ärztin, einem Arzt oder einer Ernährungsfachkraft, bevor du Entscheidungen über deine Gesundheit triffst – besonders in der Schwangerschaft, bei einer Erkrankung oder wenn du schon einmal ein gestörtes Essverhalten hattest.",
+                "Allgemeine Lebensmittel nutzen Werte aus USDA FoodData Central, wenn vorhanden, sonst Schätzungen. Die Werte eines Barcodes stammen aus dem Produkteintrag in Open Food Facts, umgerechnet auf die Menge, die du hattest. Jeder Wert ist mit seiner Quelle gekennzeichnet (USDA, Open Food Facts, du oder eine Schätzung), und eine Kennzeichnung „USDA“ oder „Open Food Facts“ erscheint nur, wenn der Wert zum Datensatz für die erfasste Menge passt. Schätzungen und Datensätze können falsch sein, prüf also alles, was wichtig ist – jeden Eintrag kannst du einfach per Nachricht korrigieren oder löschen. Nutrition MCP ist ein Erfassungswerkzeug, keine medizinische oder ernährungsberatende Auskunft: Sprich vor Entscheidungen über deine Gesundheit mit einer Ärztin, einem Arzt oder einer Ernährungsberatung, besonders wenn du schwanger bist, eine Erkrankung hast oder früher eine Essstörung hattest.",
         },
         {
             question: "Wird Alkohol erfasst?",
@@ -895,7 +928,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Sind meine Daten privat?",
             visibleHtml:
-                'Deine Einträge werden in der EU gespeichert und mit deinem eigenen Konto verknüpft, auf das du über die verbundenen KI-Apps zugreifst. Nutrition MCP verkauft deine Daten nie, gibt sie nie an Dritte weiter und nutzt sie nie für Werbung; die Startseite zeigt nur anonyme Gesamtzahlen über die ganze Website. Was deine KI über die Werkzeuge liest, geht an den Anbieter dieser KI – im Rahmen deiner eigenen Vereinbarung mit ihm. Du kannst jederzeit alles exportieren, was wir über dich speichern, oder dein Konto samt allen Daten löschen – Details stehen in der <a href="/privacy" data-link="privacy">Datenschutzerklärung</a>.',
+                'Deine Einträge werden in der EU gespeichert und sind deinem eigenen Konto zugeordnet, das du über die KI-Apps erreichst, die du verbindest. Nutrition MCP verkauft deine Daten nie und gibt sie nie an Dritte weiter – außer die Lebensmittelnamen, die zum Nachschlagen an USDA FoodData Central oder Open Food Facts gesendet werden – und nutzt sie nie für Werbung; die Startseite zeigt nur anonyme Gesamtzahlen für die ganze Seite. Alles, was deine KI über die Werkzeuge liest, geht an den Anbieter dieser KI, nach deiner eigenen Vereinbarung mit ihm. Du kannst jederzeit alles exportieren, was wir über dich speichern, oder dein Konto und alle seine Daten löschen – die <a href="/privacy" data-link="privacy">Datenschutzerklärung</a> enthält die Details.',
         },
     ],
 };

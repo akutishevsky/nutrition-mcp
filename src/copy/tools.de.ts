@@ -86,7 +86,7 @@ export const TOOLS_DE: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus Ballaststoffen, Gesamt- und zugesetztem Zucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen. Du kannst auch die Zutaten einzeln angeben – dann ergibt die Summe der Zutaten die Gesamtwerte.",
+                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus gesättigten Fettsäuren und Transfetten, Ballaststoffen, Gesamt- und zugesetztem Zucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen. Du kannst auch die Zutaten einzeln angeben – dann ergibt die Summe der Zutaten die Gesamtwerte.",
             params: {
                 description: "Was gegessen wurde",
                 meal_type: "Frühstück, Mittagessen, Abendessen oder Snack",
@@ -94,6 +94,10 @@ export const TOOLS_DE: ToolsDoc = {
                 protein_g: "Protein in Gramm",
                 carbs_g: "Kohlenhydrate in Gramm",
                 fat_g: "Fett in Gramm",
+                saturated_fat_g:
+                    "Optional. Gesättigte Fettsäuren in Gramm, Teil von fat_g und nie mehr als dieser Wert. Ein leeres Feld wird als nicht gemessen gespeichert und lässt den Tag aus deinem Durchschnitt und Limit für gesättigte Fettsäuren heraus; 0 ist der richtige Wert für ein Lebensmittel ohne sie.",
+                trans_fat_g:
+                    "Optional. <b>Transfett</b> in Gramm, eine eigene Fettart, die nicht gegen fat_g geprüft wird. Es hat kein Limit und wird nur dort angezeigt, wo es erfasst wurde; 0 ist der richtige Wert für ein Lebensmittel ohne Transfett.",
                 fiber_g:
                     "Ballaststoffe in Gramm. Die KI soll das bei jeder Mahlzeit ausfüllen und den Wert aus den Zutaten schätzen, wenn kein Etikett ihn nennt, denn ein leeres Feld ist keine Null – es nimmt den ganzen Tag aus deinem Ballaststoffdurchschnitt heraus",
                 sugar_g:
@@ -150,7 +154,7 @@ export const TOOLS_DE: ToolsDoc = {
             description:
                 "Füge viele vergangene Mahlzeiten auf einmal hinzu – bis zu 50 pro Aufruf –, statt sie einzeln zu erfassen. Der Importer oben speichert über dieses Werkzeug, und die KI kann es auch direkt für Mahlzeitendaten nutzen, die du in den Chat eingefügt hast. Jede Zeile wird vorab geprüft, und was nicht passt, wird Zeile für Zeile gemeldet. Dieselben Zeilen erneut zu senden ist daher sicher und verdoppelt nichts, was schon erfasst ist – solange sich deine Zeitzone zwischendurch nicht geändert hat.",
             params: {
-                meals: "Die zu importierenden Zeilen in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann Uhrzeit, Mahlzeitentyp, Beschreibung, Notizen und dieselben Werte wie eine erfasste Mahlzeit enthalten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>added_sugar_g</code> (zugesetzter Zucker, Teil des Gesamtzuckers), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
+                meals: "Die zu importierenden Zeilen in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann Uhrzeit, Mahlzeitentyp, Beschreibung, Notizen und dieselben Werte wie eine erfasste Mahlzeit enthalten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>added_sugar_g</code> (zugesetzter Zucker, Teil des Gesamtzuckers), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
                 expected_row_count:
                     "Wie viele Zeilen dieser Aufruf enthält, gezählt in der Quelldatei, damit eine verlorene Zeile auffällt",
                 expected_total_kcal:
@@ -174,6 +178,10 @@ export const TOOLS_DE: ToolsDoc = {
                 protein_g: "",
                 carbs_g: "",
                 fat_g: "",
+                saturated_fat_g:
+                    "Optional. Gesättigte Fettsäuren in Gramm, Teil von fat_g und nie mehr als dieser Wert. Ein leeres Feld wird als nicht gemessen gespeichert und lässt den Tag aus deinem Durchschnitt und Limit für gesättigte Fettsäuren heraus; 0 ist der richtige Wert für ein Lebensmittel ohne sie.",
+                trans_fat_g:
+                    "Optional. <b>Transfett</b> in Gramm, eine eigene Fettart, die nicht gegen fat_g geprüft wird. Es hat kein Limit und wird nur dort angezeigt, wo es erfasst wurde; 0 ist der richtige Wert für ein Lebensmittel ohne Transfett.",
                 fiber_g: "",
                 sugar_g: "Gesamtzucker, nicht zugesetzter Zucker",
                 added_sugar_g:
@@ -213,6 +221,10 @@ export const TOOLS_DE: ToolsDoc = {
                 protein_g: "Protein in Gramm für eine Portion",
                 carbs_g: "Kohlenhydrate in Gramm für eine Portion",
                 fat_g: "Fett in Gramm für eine Portion",
+                saturated_fat_g:
+                    "Optional. Gesättigte Fettsäuren in Gramm, Teil von fat_g und nie mehr als dieser Wert. Ein leeres Feld wird als nicht gemessen gespeichert und lässt den Tag aus deinem Durchschnitt und Limit für gesättigte Fettsäuren heraus; 0 ist der richtige Wert für ein Lebensmittel ohne sie.",
+                trans_fat_g:
+                    "Optional. <b>Transfett</b> in Gramm, eine eigene Fettart, die nicht gegen fat_g geprüft wird. Es hat kein Limit und wird nur dort angezeigt, wo es erfasst wurde; 0 ist der richtige Wert für ein Lebensmittel ohne Transfett.",
                 fiber_g: "Ballaststoffe in Gramm für eine Portion",
                 sugar_g: "Gesamtzucker in Gramm für eine Portion",
                 added_sugar_g:
@@ -260,6 +272,10 @@ export const TOOLS_DE: ToolsDoc = {
                 protein_g: "Protein in Gramm für eine Portion",
                 carbs_g: "Kohlenhydrate in Gramm für eine Portion",
                 fat_g: "Fett in Gramm für eine Portion",
+                saturated_fat_g:
+                    "Optional. Gesättigte Fettsäuren in Gramm, Teil von fat_g und nie mehr als dieser Wert. Ein leeres Feld wird als nicht gemessen gespeichert und lässt den Tag aus deinem Durchschnitt und Limit für gesättigte Fettsäuren heraus; 0 ist der richtige Wert für ein Lebensmittel ohne sie.",
+                trans_fat_g:
+                    "Optional. <b>Transfett</b> in Gramm, eine eigene Fettart, die nicht gegen fat_g geprüft wird. Es hat kein Limit und wird nur dort angezeigt, wo es erfasst wurde; 0 ist der richtige Wert für ein Lebensmittel ohne Transfett.",
                 fiber_g: "Ballaststoffe in Gramm für eine Portion",
                 sugar_g: "Gesamtzucker in Gramm für eine Portion",
                 added_sugar_g:
@@ -477,7 +493,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Leg deine täglichen Ziele für Kalorien, Makros, Ballaststoffe, Zucker, zugesetzten Zucker, Alkohol, Koffein und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; Gesamtzucker, zugesetzter Zucker, Alkohol und Koffein sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
+                "Leg deine täglichen Ziele für Kalorien, Makros, gesättigte Fettsäuren, Ballaststoffe, Zucker, zugesetzten Zucker, Alkohol, Koffein und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; gesättigte Fettsäuren, Gesamtzucker, zugesetzter Zucker, Alkohol und Koffein sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
             params: {
                 daily_calories:
                     "Tägliches Kalorienziel (kcal). Zum Löschen „null“ angeben.",
@@ -487,6 +503,8 @@ export const TOOLS_DE: ToolsDoc = {
                     "Tägliches Kohlenhydratziel (Gramm). Zum Löschen „null“ angeben.",
                 daily_fat_g:
                     "Tägliches Fettziel (Gramm). Zum Löschen „null“ angeben.",
+                daily_saturated_fat_g:
+                    "Tägliche Obergrenze für gesättigte Fettsäuren (Gramm). Null zum Entfernen.",
                 daily_fiber_g:
                     "Tägliches Ballaststoffziel (Gramm), ein Minimum, das du erreichen willst. Zum Löschen „null“ angeben.",
                 daily_sugar_g:
@@ -659,6 +677,11 @@ export const TOOLS_DE: ToolsDoc = {
                     "Ein Barcode wird nicht gefunden, oder die Werte wirken falsch",
                 answerHtml:
                     "Barcode-Daten stammen von Open Food Facts, einer von der Community gepflegten Datenbank – deshalb fehlen manche Produkte, und manche Einträge sind veraltet. Prüf, ob alle 8–14 Ziffern unter dem Barcode richtig gelesen wurden. Ist das Produkt nicht dabei, kann die KI anhand des Namens oder eines Fotos der Nährwerttabelle schätzen, und du kannst jeden Wert danach korrigieren. Wer das Produkt auf openfoodfacts.org einträgt, hilft allen. Open Food Facts hat keine Koffeindaten, deshalb stammt Koffein vom Etikett oder aus typischen Mengen.",
+            },
+            "usda-unavailable": {
+                question: "Die KI meldet „USDA data is unavailable until …“",
+                answerHtml:
+                    "Generische Lebensmittel werden über USDA FoodData Central abgefragt, mit einem API-Schlüssel, den alle Nutzer dieses Servers teilen. USDA begrenzt, wie viele Anfragen dieser Schlüssel pro Stunde stellen darf. Der Server ruft USDA in drei Fällen nicht auf: nachdem USDA gemeldet hat, dass das Limit erreicht ist – dann pausiert er die Aufrufe 60 Minuten lang; solange das verbleibende Stundenkontingent des Schlüssels fast aufgebraucht ist; und sobald du in der letzten Stunde 30 USDA-Abfragen gemacht hast. Die Meldung nennt die Uhrzeit, zu der USDA wieder verfügbar ist, in der Zeitzone deines Profils (UTC, wenn keine gesetzt ist). Suchergebnisse werden nicht gespeichert, Suchen warten also bis dahin. Ein Lebensmittel, das in den letzten 30 Tagen abgefragt wurde, liegt auf dem Server und funktioniert auch während einer Pause; das Abrufen eines gespeicherten Lebensmittels zählt nicht auf deine 30 pro Stunde. USDA-Namen gibt es nur auf Englisch, suche also auf Englisch. Verpackte Produkte sind davon nicht betroffen: Schlag sie stattdessen über den Barcode nach.",
             },
             "health-sync-yesterday": {
                 question: "Gestern ist noch nicht in Apple Health",

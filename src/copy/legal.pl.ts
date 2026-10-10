@@ -69,6 +69,12 @@ export const PRIVACY_PL: LegalDoc = {
                     'Gdy Ty lub Twój asystent AI wyszukujecie kod kreskowy, nasz serwer wysyła do <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> wyłącznie cyfry kodu — nigdy danych Twojego konta, adresu e-mail ani wpisów — a zwrócone dane produktu przechowuje we wspólnej pamięci podręcznej, która nie jest powiązana z żadnym użytkownikiem.',
                 ),
                 p(
+                    'Gdy Ty lub Twój asystent AI wyszukujecie produkty ogólne, nasz serwer wysyła do API <a href="https://fdc.nal.usda.gov" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a> frazy wyszukiwania użyte przez asystenta — oczyszczone z operatorów wyszukiwania i przycięte do 200 znaków — oraz identyfikatory FoodData Central wyszukiwanych produktów, z naszym własnym kluczem API. Nie jest wysyłany identyfikator konta, adres e-mail ani wpis z dziennika. API prowadzi Departament Rolnictwa Stanów Zjednoczonych, więc te zapytania opuszczają UE. Zwracane rekordy to publiczne dane referencyjne: są ponownie wykorzystywane przez najwyżej 30 dni, zanim zostaną pobrane ponownie, nie są powiązane z żadnym kontem i nie są danymi osobowymi.',
+                ),
+                p(
+                    "Wartości z FoodData Central cytuje się tak: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP jest niezależnym projektem; USDA nie rekomenduje tej usługi.",
+                ),
+                p(
                     "Jeśli połączysz synchronizację z Apple Health, skrót w telefonie iPhone pobiera z naszego serwera sumy dzienne zakończonych dni — kalorie, białko, węglowodany, tłuszcz, błonnik, kofeinę oraz, jeśli tak wybrano, wodę — i zapisuje je w Apple Health na tym telefonie. Dzieje się to na Twoje życzenie i na Twoim urządzeniu: nasz serwer odpowiada wyłącznie skrótowi i niczego nie wysyła do Apple. Gdy sumy trafią do Apple Health, są tam przechowywane i udostępniane zgodnie z Twoimi ustawieniami i Twoją umową z Apple, a nie naszą.",
                 ),
                 p(
@@ -79,7 +85,7 @@ export const PRIVACY_PL: LegalDoc = {
                     "<strong>Telemetria serwera.</strong> Każde wywołanie narzędzia MCP zapisuje jeden wiersz telemetrii użycia — które narzędzie zostało uruchomione, czy się powiodło, ile trwało oraz która wersja protokołu MCP i która aplikacja AI (według podawanej przez nią nazwy i wersji) wykonała wywołanie. Wiersz jest powiązany z identyfikatorem Twojego konta, ale nie z treścią Twoich wpisów. Te dane służą nam do wykrywania wolnych i niedziałających narzędzi. Nie udostępniamy ich nikomu, a gdy usuwasz konto, są usuwane razem z całą resztą.",
                 ]),
                 p(
-                    "Ponieważ strona wczytuje czcionki i ikony z Google Fonts i jsDelivr, przy odwiedzaniu tych stron Twój adres IP trafia do tych dostawców. Liczbę gwiazdek projektu na GitHubie pobiera nasz serwer, a nie Twoja przeglądarka, więc GitHub nigdy nie widzi Twojej wizyty.",
+                    "Ponieważ strona wczytuje czcionki i ikony z Google Fonts i jsDelivr, przy odwiedzaniu tych stron Twój adres IP trafia do tych dostawców. Liczbę gwiazdek projektu w serwisie GitHub pobiera nasz serwer, a nie Twoja przeglądarka, więc GitHub nigdy nie widzi Twojej wizyty.",
                 ),
             ],
         },
@@ -217,6 +223,9 @@ export const TERMS_PL: LegalDoc = {
                 p(
                     "Zdjęcia jedzenia nigdy nie są wysyłane na nasz serwer. Twój asystent AI interpretuje zdjęcie po swojej stronie i przesyła nam wyłącznie wynik w postaci tekstu i liczb: opis, typ posiłku, kalorie, makroskładniki, notatki, kod kreskowy.",
                 ),
+                p(
+                    "Każda wartość odżywcza pokazuje, skąd pochodzi. Dla produktów ogólnych są to wartości USDA FoodData Central, gdy dostępny jest pasujący rekord, a w przeciwnym razie szacunki. Każda wartość ma oznaczone źródło — USDA FoodData Central, Open Food Facts, wartość podaną przez Ciebie samego albo szacunek — a rekord liczy się jako źródło tylko wtedy, gdy zgadza się z zapisaną ilością.",
+                ),
             ],
         },
         {
@@ -271,10 +280,16 @@ export const TERMS_PL: LegalDoc = {
                     "Usługa opiera się na podmiotach trzecich: Supabase (baza danych, uwierzytelnianie i przechowywanie eksportów), DigitalOcean (hosting), Cloudflare (za pośrednictwem naszego dostawcy hostingu; sieć, przez którą przechodzi każde żądanie), Open Food Facts (dane z kodów kreskowych), aplikacje Skróty i Zdrowie firmy Apple (jeśli połączysz synchronizację z Apple Health) oraz asystent AI, przez którego się łączysz.",
                 ),
                 p(
+                    "Dane o produktach ogólnych pochodzą z API FoodData Central Departamentu Rolnictwa USA (USDA). Wysyłamy mu tylko frazy wyszukiwania i identyfikatory produktów opisane w naszej Polityce prywatności, a jego rekordy są danymi referencyjnymi, a nie Twoimi danymi.",
+                ),
+                p(
                     'Dane produktów z kodów kreskowych &copy; współtwórcy <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, udostępniane na licencji <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
                 ),
                 p(
-                    "Sama strona internetowa korzysta też: za Twoją zgodą z Google Analytics i Microsoft Clarity do pomiaru ruchu i sposobu korzystania ze stron, z Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, z Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz z GitHub API, z którego liczbę gwiazdek projektu pobiera nasz serwer (a nie Twoja przeglądarka), dzięki czemu żadne dane odwiedzających nie trafiają do GitHuba. Wczytanie strony wysyła więc zapytania do Google Fonts i jsDelivr, które mogą widzieć Twój adres IP i przeglądarkę; z Google Analytics i Microsoft Clarity strona łączy się dopiero po wyrażeniu przez Ciebie zgody na analitykę.",
+                    "Wartości z FoodData Central cytuje się tak: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP jest niezależnym projektem; USDA nie rekomenduje tej usługi.",
+                ),
+                p(
+                    "Sama strona internetowa korzysta też: za Twoją zgodą z Google Analytics i Microsoft Clarity do pomiaru ruchu i sposobu korzystania ze stron, z Google Fonts i CDN jsDelivr do wczytywania czcionek i ikon, z Google Sign-In, jeśli wybierzesz ten sposób logowania, oraz z GitHub API, z którego liczbę gwiazdek projektu pobiera nasz serwer (a nie Twoja przeglądarka), dzięki czemu żadne dane odwiedzających nie trafiają do serwisu GitHub. Wczytanie strony wysyła więc zapytania do Google Fonts i jsDelivr, które mogą widzieć Twój adres IP i przeglądarkę; z Google Analytics i Microsoft Clarity strona łączy się dopiero po wyrażeniu przez Ciebie zgody na analitykę.",
                 ),
                 p(
                     "Za swoje regulaminy i dostępność odpowiadają te podmioty, a my nie ponosimy za nie odpowiedzialności.",
