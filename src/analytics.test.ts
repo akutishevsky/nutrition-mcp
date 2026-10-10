@@ -4,7 +4,12 @@ import {
     categorizeError,
     userFacingError,
 } from "./analytics.js";
-import { errorLogText, ToolError, toolErrorWithUserText } from "./errors.js";
+import {
+    errorLogText,
+    ToolError,
+    toolErrorWithUserText,
+    UpstreamError,
+} from "./errors.js";
 import { LoggedAtError } from "./tz.js";
 import { assertPlausibleLength, pickLengthWriteUnit } from "./units.js";
 
@@ -492,5 +497,24 @@ describe("ToolError logText (runtime log text without the user's own text)", () 
     test("the caller-facing text is still the message", () => {
         const err = toolErrorWithUserText("named", "unnamed");
         expect(userFacingError("t", err, "unknown", "abcd1234")).toBe("named");
+    });
+});
+
+describe("usda_unavailable", () => {
+    test("an UpstreamError buckets as usda_unavailable and the model text is the temporary message with the ref", () => {
+        const err = new UpstreamError(
+            "usda_unavailable",
+            "raw upstream detail https://x",
+        );
+        expect(categorizeError(err)).toBe("usda_unavailable");
+        const text = userFacingError(
+            "get_food_macros",
+            err,
+            "usda_unavailable",
+            "abcd1234",
+        );
+        expect(text).toContain("USDA FoodData Central");
+        expect(text).toContain("abcd1234");
+        expect(text).not.toContain("raw upstream detail");
     });
 });

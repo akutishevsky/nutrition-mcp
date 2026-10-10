@@ -283,12 +283,14 @@
             // before). `mode` is a string id: "week" | "month" | "quarter" |
             // "year" | "days". `range` stays a number (7 / 14 / 30).
             // `addedSugar` is the AddedSugarMeta from `_meta`, or null.
+            // `saturatedFat` is the SaturatedFatMeta from `_meta`, or null.
             const STATE = {
                 data: null,
                 range: 30,
                 periods: null,
                 mode: "days",
                 addedSugar: null,
+                saturatedFat: null,
             };
             let __widgetApi = null;
 
@@ -297,6 +299,10 @@
             // because the frozen outputSchema can gain no field. Must equal
             // ADDED_SUGAR_META_KEY in src/widgets.ts.
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            // And the saturated- and trans-fat series (SaturatedFatMeta,
+            // src/saturated-fat.ts), under the same frozen-schema reasoning.
+            // Must equal SATURATED_FAT_META_KEY in src/widgets.ts.
+            const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
 
             function render(data, meta) {
                 STATE.data = data;
@@ -304,6 +310,7 @@
                 STATE.addedSugar = addedSugarPayload(
                     meta && meta[ADDED_SUGAR_META_KEY],
                 );
+                STATE.saturatedFat = meta && meta[SATURATED_FAT_META_KEY];
                 const root = document.getElementById("root");
                 // The tool sends a bucket for every calendar day (zeros for
                 // unlogged days), so the array is basically never empty — treat
@@ -427,6 +434,18 @@
                     avg,
                     data.goals,
                     null,
+                );
+                // Saturated and trans fat, re-averaged over the same slice
+                // (withSaturatedFat), the way added sugar is above.
+                Object.assign(
+                    merged,
+                    withSaturatedFat(
+                        STATE.saturatedFat,
+                        slice.map((d) => d.date),
+                        merged.vals,
+                        merged.goal,
+                        merged.meals,
+                    ),
                 );
 
                 const logged = slice.filter(dayHasData).length;

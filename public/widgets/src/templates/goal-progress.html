@@ -335,11 +335,22 @@
             // because the frozen outputSchema can gain no field. Must equal
             // ADDED_SUGAR_META_KEY in src/widgets.ts.
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            // Where the same result carries the saturated- and trans-fat figures
+            // (SaturatedFatMeta, src/saturated-fat.ts), under the same frozen-schema
+            // reasoning as added sugar. Must equal SATURATED_FAT_META_KEY in
+            // src/widgets.ts.
+            const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
             // Where the same result carries each listed meal's ingredients
             // ({ v: 1, meals: [items | null, …] }, aligned with data.meals by
             // position), for the breakdown's expandable rows. Must equal
             // MEAL_ITEMS_META_KEY in src/widgets.ts.
             const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
+            // Where the same result carries each value's source (a USDA or OFF
+            // record, the user's own figure, or an estimate), position-aligned
+            // with the meals and their items. Must equal NUTRIENT_SOURCES_META_KEY
+            // in src/widgets.ts.
+            const NUTRIENT_SOURCES_META_KEY =
+                "nutrition-mcp.com/nutrient-sources";
 
             // `resultMeta` is the tool result's `_meta` (or null — see
             // bridge.js).
@@ -396,13 +407,30 @@
                     data.goals,
                     data.meals,
                 );
-                // Ingredients join the rows the same way, after added sugar;
-                // without `_meta` this is merged.meals itself.
-                const rows = withMealItems(
-                    mealItemsPayload(
-                        resultMeta && resultMeta[MEAL_ITEMS_META_KEY],
+                // Saturated and trans fat join the strip the same way, after added
+                // sugar (withSaturatedFat): each figure is the mean over the days that
+                // recorded it, and without `_meta` the strip is unchanged.
+                Object.assign(
+                    merged,
+                    withSaturatedFat(
+                        resultMeta && resultMeta[SATURATED_FAT_META_KEY],
+                        [data.date],
+                        merged.vals,
+                        merged.goal,
+                        merged.meals,
                     ),
-                    merged.meals,
+                );
+                // Ingredients join the rows the same way, last;
+                // without `_meta` this is merged.meals itself.
+                const itemsMeta = mealItemsPayload(
+                    resultMeta && resultMeta[MEAL_ITEMS_META_KEY],
+                );
+                const rows = withNutrientSources(
+                    nutrientSourcesPayload(
+                        resultMeta && resultMeta[NUTRIENT_SOURCES_META_KEY],
+                    ),
+                    withMealItems(itemsMeta, merged.meals),
+                    itemsMeta,
                 );
                 const panel = macroPanel(
                     merged.vals,

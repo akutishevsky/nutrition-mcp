@@ -1,4 +1,4 @@
-// Typed content for /tools (the "all 46 tools" reference page), rendered
+// Typed content for /tools (the "all 48 tools" reference page), rendered
 // by scripts/gen-tools.ts. Extracted verbatim from the previously
 // hand-authored public/tools.html — see CLAUDE.md's "Public site" section
 // for the generator family this belongs to, and gen-tools.ts's own header
@@ -129,9 +129,9 @@ export interface ToolIdentity {
 }
 
 /**
- * All 46 tools, in the exact document order of public/tools.html (grouped
+ * All 48 tools, in the exact document order of public/tools.html (grouped
  * by category — see CategoryId — for the reader). The *set* of names must
- * equal the 46 `server.registerTool()` calls in src/mcp.ts; the two orders
+ * equal the 48 `server.registerTool()` calls in src/mcp.ts; the two orders
  * differ (mcp.ts registers in its own order, unrelated to this page's
  * reader-facing grouping). "the registered tool set and every hand-typed
  * tool count agree" in src/site-copy.test.ts enforces the set and the
@@ -149,6 +149,8 @@ export const TOOLS: ToolIdentity[] = [
             { name: "protein_g", required: false },
             { name: "carbs_g", required: false },
             { name: "fat_g", required: false },
+            { name: "saturated_fat_g", required: false },
+            { name: "trans_fat_g", required: false },
             { name: "fiber_g", required: false },
             { name: "sugar_g", required: false },
             { name: "added_sugar_g", required: false },
@@ -166,6 +168,23 @@ export const TOOLS: ToolIdentity[] = [
         badges: ["lookup"],
         params: [],
         hasPhotoHint: true,
+    },
+    {
+        name: "search_foods",
+        category: "logging-food-meals",
+        badges: ["lookup"],
+        params: [{ name: "query", required: true }],
+        hasPhotoHint: false,
+    },
+    {
+        name: "get_food_macros",
+        category: "logging-food-meals",
+        badges: ["lookup"],
+        params: [
+            { name: "fdc_id", required: true },
+            { name: "amount_g", required: false },
+        ],
+        hasPhotoHint: false,
     },
     {
         name: "start_meal_import",
@@ -199,6 +218,8 @@ export const TOOLS: ToolIdentity[] = [
             { name: "protein_g", required: false },
             { name: "carbs_g", required: false },
             { name: "fat_g", required: false },
+            { name: "saturated_fat_g", required: false },
+            { name: "trans_fat_g", required: false },
             { name: "fiber_g", required: false },
             { name: "sugar_g", required: false },
             { name: "added_sugar_g", required: false },
@@ -231,6 +252,8 @@ export const TOOLS: ToolIdentity[] = [
             { name: "protein_g", required: false },
             { name: "carbs_g", required: false },
             { name: "fat_g", required: false },
+            { name: "saturated_fat_g", required: false },
+            { name: "trans_fat_g", required: false },
             { name: "fiber_g", required: false },
             { name: "sugar_g", required: false },
             { name: "added_sugar_g", required: false },
@@ -270,6 +293,8 @@ export const TOOLS: ToolIdentity[] = [
             { name: "protein_g", required: false },
             { name: "carbs_g", required: false },
             { name: "fat_g", required: false },
+            { name: "saturated_fat_g", required: false },
+            { name: "trans_fat_g", required: false },
             { name: "fiber_g", required: false },
             { name: "sugar_g", required: false },
             { name: "added_sugar_g", required: false },
@@ -490,6 +515,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "daily_protein_g", required: false },
             { name: "daily_carbs_g", required: false },
             { name: "daily_fat_g", required: false },
+            { name: "daily_saturated_fat_g", required: false },
             { name: "daily_fiber_g", required: false },
             { name: "daily_sugar_g", required: false },
             { name: "daily_added_sugar_g", required: false },
@@ -609,6 +635,7 @@ export const TROUBLESHOOTING_IDS = [
     "import-problems",
     "rate-limited",
     "barcode-not-found",
+    "usda-unavailable",
     "health-sync-yesterday",
     "health-sync-higher",
     "health-sync-stopped",
@@ -736,11 +763,11 @@ export interface ToolsDoc {
 
 const TOOLS_EN: ToolsDoc = {
     meta: {
-        title: "46 Calorie, Macro, Water & Weight Tools",
+        title: "48 Calorie, Macro, Water & Weight Tools",
         description:
-            "All 46 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
+            "All 48 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
         ogDescription:
-            "All 46 tools the Nutrition MCP server gives your AI, from saved meals to a CSV importer for your history — with descriptions and example prompts.",
+            "All 48 tools the Nutrition MCP server gives your AI, from saved meals to a CSV importer for your history — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
@@ -748,7 +775,7 @@ const TOOLS_EN: ToolsDoc = {
         titleEm: "do",
         titleAfterEm: "",
         lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals and saved meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
-        countBold: "46 tools",
+        countBold: "48 tools",
         countTail: "across 7 areas",
     },
     categories: {
@@ -814,7 +841,7 @@ const TOOLS_EN: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log what you ate with calories and macros — plus fiber, total and added sugar, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first. It can also take the ingredients one by one, and then the totals are the sum of those ingredients.",
+                "Log what you ate with calories and macros — plus saturated and trans fat, fiber, total and added sugar, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first. It can also take the ingredients one by one, and then the totals are the sum of those ingredients.",
             params: {
                 description: "What was eaten",
                 meal_type: "breakfast, lunch, dinner or snack",
@@ -822,6 +849,10 @@ const TOOLS_EN: ToolsDoc = {
                 protein_g: "Protein in grams",
                 carbs_g: "Carbohydrates in grams",
                 fat_g: "Fat in grams",
+                saturated_fat_g:
+                    "Optional. Saturated fat in grams, part of fat_g and never more than it. A blank is stored as not measured and leaves that day out of your saturated-fat average and limit; 0 is the right value for a food with none.",
+                trans_fat_g:
+                    "Optional. <b>Trans</b> fat in grams, a separate fat type that is not checked against fat_g. It has no limit and is shown only where it was recorded; 0 is the right value for a food with none.",
                 fiber_g:
                     "Dietary fiber in grams. The AI is told to fill this in on every meal, estimating from the ingredients when no label figure exists, because a blank is not a zero — it leaves the whole day out of your fiber average",
                 sugar_g:
@@ -849,6 +880,24 @@ const TOOLS_EN: ToolsDoc = {
             photoHint:
                 "…or send a photo of the package — the AI reads the barcode digits off it.",
         },
+        search_foods: {
+            description:
+                "Searches USDA FoodData Central generic foods (Foundation, SR Legacy and Survey/FNDDS records) by English food name and returns up to 10 candidates, each with its FoodData Central id, USDA description, data type and energy and macros per 100 g. Matches use USDA's English wording (e.g. 'cooked, boiled').",
+            params: {
+                query: "The food name in English, up to 200 characters, e.g. banana or lentils, cooked",
+            },
+            example: "What does USDA list for a raw banana?",
+        },
+        get_food_macros: {
+            description:
+                "Returns USDA FoodData Central values for one generic food by its FoodData Central id: per 100 g, and scaled to amount_g when given, with the portion sizes USDA lists. A nutrient USDA does not record for the food is reported as not recorded, never as zero. Includes the food_ref the meal tools accept for these values.",
+            params: {
+                fdc_id: "The FoodData Central id of the food, as listed by search_foods",
+                amount_g:
+                    "Optional amount in grams, above 0 and up to 5,000, to scale the values to",
+            },
+            example: "What are the USDA macros for 150 g of that banana?",
+        },
         start_meal_import: {
             description:
                 "Open an importer in the chat to bring your history over from another app — pick the CSV you exported from MyFitnessPal, Cronometer, Lose It!, MacroFactor or another tracker, match its columns to calories, macros, fiber, total and added sugar and caffeine — plus alcohol if you've turned alcohol tracking on — and review what will be added before you confirm. The file is read in your browser, nothing is saved until you approve the preview, and importing the same file again won't create duplicates.",
@@ -859,7 +908,7 @@ const TOOLS_EN: ToolsDoc = {
             description:
                 "Add a batch of past meals in one go — up to 50 at a time — instead of logging them one by one. The importer above writes through this, and the AI can use it directly for meal data you've pasted into the chat. Every row is checked first and anything that doesn't fit is reported row by row, so re-sending the same rows is safe and won't duplicate what's already logged, as long as your timezone hasn't changed in between.",
             params: {
-                meals: "The rows to import, in source-file order (1–50 per call). Each row can carry a time, meal type, description, notes and the same numbers as a logged meal: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (total sugars), <code>added_sugar_g</code> (added sugars, part of the total), <code>alcohol_g</code> (grams of pure ethanol) and <code>caffeine_mg</code> (milligrams, not grams)",
+                meals: "The rows to import, in source-file order (1–50 per call). Each row can carry a time, meal type, description, notes and the same numbers as a logged meal: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (total sugars), <code>added_sugar_g</code> (added sugars, part of the total), <code>alcohol_g</code> (grams of pure ethanol) and <code>caffeine_mg</code> (milligrams, not grams)",
                 expected_row_count:
                     "How many rows this call carries, counted from the source file, so a dropped row gets caught",
                 expected_total_kcal:
@@ -882,6 +931,10 @@ const TOOLS_EN: ToolsDoc = {
                 protein_g: "",
                 carbs_g: "",
                 fat_g: "",
+                saturated_fat_g:
+                    "Optional. Saturated fat in grams, part of fat_g and never more than it. A blank is stored as not measured and leaves that day out of your saturated-fat average and limit; 0 is the right value for a food with none.",
+                trans_fat_g:
+                    "Optional. <b>Trans</b> fat in grams, a separate fat type that is not checked against fat_g. It has no limit and is shown only where it was recorded; 0 is the right value for a food with none.",
                 fiber_g: "",
                 sugar_g: "Total sugars, not added sugar",
                 added_sugar_g:
@@ -916,6 +969,10 @@ const TOOLS_EN: ToolsDoc = {
                 protein_g: "Protein in grams for one serving",
                 carbs_g: "Carbohydrates in grams for one serving",
                 fat_g: "Fat in grams for one serving",
+                saturated_fat_g:
+                    "Optional. Saturated fat in grams, part of fat_g and never more than it. A blank is stored as not measured and leaves that day out of your saturated-fat average and limit; 0 is the right value for a food with none.",
+                trans_fat_g:
+                    "Optional. <b>Trans</b> fat in grams, a separate fat type that is not checked against fat_g. It has no limit and is shown only where it was recorded; 0 is the right value for a food with none.",
                 fiber_g: "Dietary fiber in grams for one serving",
                 sugar_g: "Total sugars in grams for one serving",
                 added_sugar_g:
@@ -964,6 +1021,10 @@ const TOOLS_EN: ToolsDoc = {
                 protein_g: "Protein in grams for one serving",
                 carbs_g: "Carbohydrates in grams for one serving",
                 fat_g: "Fat in grams for one serving",
+                saturated_fat_g:
+                    "Optional. Saturated fat in grams, part of fat_g and never more than it. A blank is stored as not measured and leaves that day out of your saturated-fat average and limit; 0 is the right value for a food with none.",
+                trans_fat_g:
+                    "Optional. <b>Trans</b> fat in grams, a separate fat type that is not checked against fat_g. It has no limit and is shown only where it was recorded; 0 is the right value for a food with none.",
                 fiber_g: "Dietary fiber in grams for one serving",
                 sugar_g: "Total sugars in grams for one serving",
                 added_sugar_g:
@@ -1173,12 +1234,14 @@ const TOOLS_EN: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Set your daily calorie, macro, fiber, sugar, added sugar, alcohol, caffeine and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; total sugar, added sugar, alcohol and caffeine are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
+                "Set your daily calorie, macro, saturated fat, fiber, sugar, added sugar, alcohol, caffeine and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; saturated fat, total sugar, added sugar, alcohol and caffeine are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
             params: {
                 daily_calories: "Daily calorie target (kcal). Null to clear.",
                 daily_protein_g: "Daily protein target (grams). Null to clear.",
                 daily_carbs_g: "Daily carbs target (grams). Null to clear.",
                 daily_fat_g: "Daily fat target (grams). Null to clear.",
+                daily_saturated_fat_g:
+                    "Daily saturated fat limit (grams). Null to clear.",
                 daily_fiber_g:
                     "Daily fiber target (grams), a minimum to reach. Null to clear.",
                 daily_sugar_g:
@@ -1345,6 +1408,11 @@ const TOOLS_EN: ToolsDoc = {
                 question: "A barcode isn't found, or its numbers look wrong",
                 answerHtml:
                     "Barcode data comes from Open Food Facts, a community database, so some products are missing and some entries are out of date. Make sure all 8–14 digits under the barcode were read correctly. If the product is not there, the AI can estimate from the name or from a photo of the nutrition label, and you can correct any figure afterwards. Adding the product on openfoodfacts.org helps everyone. Open Food Facts has no caffeine data, so caffeine comes from the label or typical amounts.",
+            },
+            "usda-unavailable": {
+                question: 'The AI says "USDA data is unavailable until …"',
+                answerHtml:
+                    "Generic-food lookups go to USDA FoodData Central with one API key shared by every user of this server, and USDA caps how many requests that key may make each hour. The server stops calling USDA in three cases: after USDA reports its limit is reached, which pauses calls for 60 minutes; while the key's remaining hourly allowance is nearly used up; and once you have made 30 USDA lookups in the last hour. The message gives the time USDA opens again, in your profile timezone (UTC when none is set). Search results are not stored, so searches wait until then. A food looked up in the last 30 days is kept on the server, so it still works during a pause, and fetching a stored food does not count toward your 30 an hour. USDA names are English only, so search in English. Packaged products are not affected: look them up by barcode instead.",
             },
             "health-sync-yesterday": {
                 question: "Yesterday isn't in Apple Health yet",

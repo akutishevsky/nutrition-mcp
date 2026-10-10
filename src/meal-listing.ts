@@ -21,6 +21,11 @@ import {
     type MealItemValues,
 } from "./meal-items.js";
 import { dateInTz, formatLocalDateTime } from "./tz.js";
+import {
+    formatSourcesLine,
+    parseNutrientSources,
+    parseSourceDetail,
+} from "./provenance.js";
 
 // How alcohol should be rendered for the current user: the drink unit to gloss
 // grams with, or null when alcohol tracking is OFF. Null is the gate, not a
@@ -105,6 +110,10 @@ export function formatMealFull(
         meal.protein_g != null ? `Protein: ${meal.protein_g}g` : null,
         meal.carbs_g != null ? `Carbs: ${meal.carbs_g}g` : null,
         meal.fat_g != null ? `Fat: ${meal.fat_g}g` : null,
+        meal.saturated_fat_g != null
+            ? `Saturated fat: ${meal.saturated_fat_g}g`
+            : null,
+        meal.trans_fat_g != null ? `Trans fat: ${meal.trans_fat_g}g` : null,
         meal.fiber_g != null ? `Fiber: ${meal.fiber_g}g` : null,
         fullSugar(meal),
         // Opt-in (see formatProgress in mcp.ts): a stored value stays hidden
@@ -128,6 +137,17 @@ export function formatMealFull(
     return [parts.filter(Boolean).join("\n"), block].filter(Boolean).join("\n");
 }
 
+/** The full listing's sources line for a meal, or "" when it says nothing (an
+ *  all-estimate or unlabelled meal). Compact listings never carry it. */
+function sourcesListingLine(m: Meal): string {
+    const line = formatSourcesLine(
+        parseNutrientSources(m.nutrient_sources ?? null),
+        parseSourceDetail(m.source_detail ?? null),
+        { refSent: false },
+    );
+    return line ? `\n${line}` : "";
+}
+
 /** One line per meal: local HH:MM, type, description (clipped at 200), the
  *  non-null figures, a "notes" flag in place of the note text, an item count
  *  when the meal was logged with ingredients, and the id update_meal /
@@ -143,6 +163,8 @@ export function formatMealCompact(
         meal.protein_g != null ? `P ${meal.protein_g}` : null,
         meal.carbs_g != null ? `C ${meal.carbs_g}` : null,
         meal.fat_g != null ? `F ${meal.fat_g}` : null,
+        meal.saturated_fat_g != null ? `sat ${meal.saturated_fat_g}` : null,
+        meal.trans_fat_g != null ? `trans ${meal.trans_fat_g}` : null,
         meal.fiber_g != null ? `fiber ${meal.fiber_g}` : null,
         // Without an added figure, sugar stays inside the shared " g" run as
         // it always has; with one it needs its own unit before the bracket.
@@ -210,7 +232,7 @@ export function renderMealListing(opts: {
     const format = (m: Meal, a: AlcoholDisplay, z: string): string =>
         compact
             ? formatMealCompact(m, a, z, itemsOf(m)?.length)
-            : formatMealFull(m, a, z, itemsOf(m));
+            : formatMealFull(m, a, z, itemsOf(m)) + sourcesListingLine(m);
     const mealSep = compact ? "\n" : "\n\n---\n\n";
     const daySep = compact ? "\n\n" : "\n\n===\n\n";
 

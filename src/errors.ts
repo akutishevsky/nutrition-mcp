@@ -58,11 +58,32 @@ export type ToolErrorCategory =
     // Ingredient lists and saved-meal item changes that cannot be applied
     // (src/meal-items.ts): wrong counts, partial fields, totals sent beside
     // items, item references that match nothing or several entries.
-    | "meal_items_invalid";
+    | "meal_items_invalid"
+    // A food_ref that cannot be used: a malformed id or amount, a basis that
+    // does not match the stored record (servings for a per-100 g record), or a
+    // meal-level food_ref beside items (src/provenance.ts).
+    | "food_ref_invalid";
 
 /** Short id tying a sanitized error the model sees to the server-side log line
  *  that carries the raw text. Eight hex characters: enough to find one line in
  *  a day's log, too short to mean anything on its own. */
 export function newErrorRef(): string {
     return crypto.randomUUID().slice(0, 8);
+}
+
+/** The upstream services whose failures are not the caller's fault. */
+export type UpstreamErrorCategory = "usda_unavailable";
+
+/** A failure of an upstream service (src/usda.ts), not of the request. Its
+ * message is fixed text for the runtime log only: withAnalytics replaces it
+ * for the model with the category's temporary message and a ref
+ * (userFacingError), so no upstream text or URL can reach the caller. */
+export class UpstreamError extends Error {
+    override name = "UpstreamError";
+    readonly category: UpstreamErrorCategory;
+
+    constructor(category: UpstreamErrorCategory, message: string) {
+        super(message);
+        this.category = category;
+    }
 }

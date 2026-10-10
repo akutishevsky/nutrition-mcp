@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_TR: ToolsDoc = {
     meta: {
-        title: "Kalori, makro, su ve kilo için 46 araç",
+        title: "Kalori, makro, su ve kilo için 48 araç",
         description:
-            "Claude, ChatGPT ve diğerleri için 46 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
+            "Claude, ChatGPT ve diğerleri için 48 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
         ogDescription:
-            "Nutrition MCP sunucusunun yapay zekâna sunduğu 46 aracın tamamı — kayıtlı yemeklerden geçmişin için bir CSV içe aktarıcıya kadar — açıklamaları ve örnek cümleleriyle.",
+            "Nutrition MCP sunucusunun yapay zekâna sunduğu 48 aracın tamamı — kayıtlı yemeklerden geçmişin için bir CSV içe aktarıcıya kadar — açıklamaları ve örnek cümleleriyle.",
     },
     hero: {
         eyebrow: "Başvuru",
@@ -20,7 +20,7 @@ export const TOOLS_TR: ToolsDoc = {
         titleEm: "her şey",
         titleAfterEm: "",
         lead: "Bu araçları hiçbir zaman kendin çağırmazsın: sadece Claude, ChatGPT ya da başka bir MCP istemcisiyle konuşursun, o da doğru aracı seçer. Aşağıda Nutrition MCP sunucusunun yemekler ve kayıtlı yemekler, kalori ve makrolar, su ve kilo için sunduğu her araç var; her birinin ne yaptığı ve onu çalıştıran bir cümleyle birlikte.",
-        countBold: "46 araç",
+        countBold: "48 araç",
         countTail: "7 alana yayılmış",
     },
     categories: {
@@ -86,7 +86,7 @@ export const TOOLS_TR: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Ne yediğini kalori ve makrolarla kaydet; sayılar varsa lif, toplam ve ilave şeker, alkol ve kafeinle birlikte. Günlük dille anlatman yeterli: yapay zekâ sayıları tahmin eder, porsiyon belirsizse sorar ve önce bir barkoddan ya da internetten etiket bilgisi çekebilir. Malzemeleri de tek tek verebilirsin; o zaman toplamlar bu malzemelerin toplamı olur.",
+                "Ne yediğini kalori ve makrolarla kaydet; sayılar varsa doymuş ve trans yağ, lif, toplam ve ilave şeker, alkol ve kafeinle birlikte. Günlük dille anlatman yeterli: yapay zekâ sayıları tahmin eder, porsiyon belirsizse sorar ve önce bir barkoddan ya da internetten etiket bilgisi çekebilir. Malzemeleri de tek tek verebilirsin; o zaman toplamlar bu malzemelerin toplamı olur.",
             params: {
                 description: "Ne yenildi",
                 meal_type: "kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün",
@@ -94,6 +94,10 @@ export const TOOLS_TR: ToolsDoc = {
                 protein_g: "Gram cinsinden protein",
                 carbs_g: "Gram cinsinden karbonhidrat",
                 fat_g: "Gram cinsinden yağ",
+                saturated_fat_g:
+                    "İsteğe bağlı. Doymuş yağ gram cinsinden, fat_g'nin parçasıdır ve asla ondan fazla olamaz. Boş bırakılan değer ölçülmemiş olarak kaydedilir ve o günü doymuş yağ ortalamanızın ve sınırınızın dışında bırakır; 0, bunu içermeyen bir gıda için doğru değerdir.",
+                trans_fat_g:
+                    "İsteğe bağlı. <b>Trans</b> yağ gram cinsinden; fat_g ile karşılaştırılmayan ayrı bir yağ türüdür. Sınırı yoktur ve yalnızca kaydedildiği yerlerde gösterilir; 0, bunu içermeyen bir gıda için doğru değerdir.",
                 fiber_g:
                     "Gram cinsinden lif. Yapay zekâdan bunu her yemekte doldurması, etiket değeri yoksa malzemelerden tahmin etmesi istenir; çünkü boş bir alan sıfır demek değildir ve o günün tamamını lif ortalamandan çıkarır",
                 sugar_g:
@@ -122,6 +126,24 @@ export const TOOLS_TR: ToolsDoc = {
             photoHint:
                 "…ya da paketin fotoğrafını gönder: yapay zekâ barkod hanelerini fotoğraftan okur.",
         },
+        search_foods: {
+            description:
+                "USDA FoodData Central genel gıdalarını (Foundation, SR Legacy ve Survey/FNDDS kayıtları) İngilizce gıda adına göre arar; her biri FoodData Central kimliği, USDA açıklaması, veri türü ile 100 g başına enerji ve makroları içeren en fazla 10 aday döndürür. Eşleşmeler USDA verisindeki İngilizce ifadeleri kullanır (ör. 'cooked, boiled').",
+            params: {
+                query: "İngilizce gıda adı, en fazla 200 karakter; ör. banana veya lentils, cooked",
+            },
+            example: "USDA çiğ muz için ne listeliyor?",
+        },
+        get_food_macros: {
+            description:
+                "Genel bir gıdanın USDA FoodData Central değerlerini FoodData Central kimliğiyle döndürür: 100 g başına ve amount_g verildiğinde o miktara ölçeklenmiş olarak, USDA tarafından listelenen porsiyon boyutlarıyla birlikte. USDA tarafından gıda için kaydedilmeyen bir besin öğesi, asla sıfır değil, kaydedilmemiş olarak bildirilir. Öğün araçlarının bu değerler için kabul ettiği food_ref'i de içerir.",
+            params: {
+                fdc_id: "Gıdanın FoodData Central kimliği; search_foods'un listelediği gibi",
+                amount_g:
+                    "İsteğe bağlı gram cinsinden miktar; 0'dan büyük ve 5.000'e kadar, değerlerin ölçekleneceği",
+            },
+            example: "Şu muzun 150 g'ı için USDA makroları nedir?",
+        },
         start_meal_import: {
             description:
                 "Geçmişini başka bir uygulamadan taşımak için sohbette bir içe aktarıcı aç: MyFitnessPal, Cronometer, Lose It!, MacroFactor ya da başka bir takip uygulamasından aldığın CSV dosyasını seç, kolonlarını kaloriye, makrolara, life, toplam ve ilave şekere ve kafeine — alkol takibini açtıysan alkole de — eşle ve onaylamadan önce nelerin ekleneceğini gözden geçir. Dosya tarayıcında okunur, önizlemeyi onaylamadan hiçbir şey kaydedilmez ve aynı dosyayı tekrar aktarmak kopya oluşturmaz.",
@@ -132,7 +154,7 @@ export const TOOLS_TR: ToolsDoc = {
             description:
                 "Geçmiş yemekleri tek tek kaydetmek yerine toplu olarak ekle: bir seferde en fazla 50 tane. Yukarıdaki içe aktarıcı da bunun üzerinden yazar ve yapay zekâ, sohbete yapıştırdığın yemek verileri için bu aracı doğrudan kullanabilir. Her satır önce denetlenir ve uymayan her şey satır satır bildirilir; böylece aynı satırları tekrar göndermek güvenlidir ve saat dilimin bu arada değişmediği sürece hâlihazırda kayıtlı olanı kopyalamaz.",
             params: {
-                meals: "İçe aktarılacak satırlar, kaynak dosyadaki sırayla (çağrı başına 1–50). Her satır bir saat, yemek türü, açıklama, notlar ve kayıtlı bir yemekle aynı sayıları taşıyabilir: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (toplam şeker), <code>added_sugar_g</code> (ilave şeker, toplamın bir parçası), <code>alcohol_g</code> (saf etanol gramı) ve <code>caffeine_mg</code> (miligram, gram değil)",
+                meals: "İçe aktarılacak satırlar, kaynak dosyadaki sırayla (çağrı başına 1–50). Her satır bir saat, yemek türü, açıklama, notlar ve kayıtlı bir yemekle aynı sayıları taşıyabilir: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (toplam şeker), <code>added_sugar_g</code> (ilave şeker, toplamın bir parçası), <code>alcohol_g</code> (saf etanol gramı) ve <code>caffeine_mg</code> (miligram, gram değil)",
                 expected_row_count:
                     "Bu çağrının kaç satır taşıdığı, kaynak dosyadan sayılmış hâliyle; böylece düşen bir satır yakalanır",
                 expected_total_kcal:
@@ -155,6 +177,10 @@ export const TOOLS_TR: ToolsDoc = {
                 protein_g: "",
                 carbs_g: "",
                 fat_g: "",
+                saturated_fat_g:
+                    "İsteğe bağlı. Doymuş yağ gram cinsinden, fat_g'nin parçasıdır ve asla ondan fazla olamaz. Boş bırakılan değer ölçülmemiş olarak kaydedilir ve o günü doymuş yağ ortalamanızın ve sınırınızın dışında bırakır; 0, bunu içermeyen bir gıda için doğru değerdir.",
+                trans_fat_g:
+                    "İsteğe bağlı. <b>Trans</b> yağ gram cinsinden; fat_g ile karşılaştırılmayan ayrı bir yağ türüdür. Sınırı yoktur ve yalnızca kaydedildiği yerlerde gösterilir; 0, bunu içermeyen bir gıda için doğru değerdir.",
                 fiber_g: "",
                 sugar_g: "Toplam şeker, ilave şeker değil",
                 added_sugar_g:
@@ -189,6 +215,10 @@ export const TOOLS_TR: ToolsDoc = {
                 protein_g: "Bir porsiyon için gram cinsinden protein",
                 carbs_g: "Bir porsiyon için gram cinsinden karbonhidrat",
                 fat_g: "Bir porsiyon için gram cinsinden yağ",
+                saturated_fat_g:
+                    "İsteğe bağlı. Doymuş yağ gram cinsinden, fat_g'nin parçasıdır ve asla ondan fazla olamaz. Boş bırakılan değer ölçülmemiş olarak kaydedilir ve o günü doymuş yağ ortalamanızın ve sınırınızın dışında bırakır; 0, bunu içermeyen bir gıda için doğru değerdir.",
+                trans_fat_g:
+                    "İsteğe bağlı. <b>Trans</b> yağ gram cinsinden; fat_g ile karşılaştırılmayan ayrı bir yağ türüdür. Sınırı yoktur ve yalnızca kaydedildiği yerlerde gösterilir; 0, bunu içermeyen bir gıda için doğru değerdir.",
                 fiber_g: "Bir porsiyon için gram cinsinden lif",
                 sugar_g: "Bir porsiyon için gram cinsinden toplam şeker",
                 added_sugar_g:
@@ -237,6 +267,10 @@ export const TOOLS_TR: ToolsDoc = {
                 protein_g: "Bir porsiyon için gram cinsinden protein",
                 carbs_g: "Bir porsiyon için gram cinsinden karbonhidrat",
                 fat_g: "Bir porsiyon için gram cinsinden yağ",
+                saturated_fat_g:
+                    "İsteğe bağlı. Doymuş yağ gram cinsinden, fat_g'nin parçasıdır ve asla ondan fazla olamaz. Boş bırakılan değer ölçülmemiş olarak kaydedilir ve o günü doymuş yağ ortalamanızın ve sınırınızın dışında bırakır; 0, bunu içermeyen bir gıda için doğru değerdir.",
+                trans_fat_g:
+                    "İsteğe bağlı. <b>Trans</b> yağ gram cinsinden; fat_g ile karşılaştırılmayan ayrı bir yağ türüdür. Sınırı yoktur ve yalnızca kaydedildiği yerlerde gösterilir; 0, bunu içermeyen bir gıda için doğru değerdir.",
                 fiber_g: "Bir porsiyon için gram cinsinden lif",
                 sugar_g: "Bir porsiyon için gram cinsinden toplam şeker",
                 added_sugar_g:
@@ -449,7 +483,7 @@ export const TOOLS_TR: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Günlük kalori, makro, lif, şeker, ilave şeker, alkol, kafein ve su hedeflerini, istersen bir de hedef vücut ağırlığını belirle. Kalori, protein, karbonhidrat, yağ, lif ve su ulaşılacak hedeflerdir; toplam şeker, ilave şeker, alkol ve kafein ise altında kalınacak sınırlardır ve ilerleme buna göre ifade edilir. Yalnızca adını verdiğin alanlar güncellenir, kalanlar olduğu gibi durur.",
+                "Günlük kalori, makro, doymuş yağ, lif, şeker, ilave şeker, alkol, kafein ve su hedeflerini, istersen bir de hedef vücut ağırlığını belirle. Kalori, protein, karbonhidrat, yağ, lif ve su ulaşılacak hedeflerdir; doymuş yağ, toplam şeker, ilave şeker, alkol ve kafein ise altında kalınacak sınırlardır ve ilerleme buna göre ifade edilir. Yalnızca adını verdiğin alanlar güncellenir, kalanlar olduğu gibi durur.",
             params: {
                 daily_calories:
                     "Günlük kalori hedefi (kcal). Temizlemek için null.",
@@ -458,6 +492,8 @@ export const TOOLS_TR: ToolsDoc = {
                 daily_carbs_g:
                     "Günlük karbonhidrat hedefi (gram). Temizlemek için null.",
                 daily_fat_g: "Günlük yağ hedefi (gram). Temizlemek için null.",
+                daily_saturated_fat_g:
+                    "Günlük doymuş yağ sınırı (gram). Kaldırmak için null.",
                 daily_fiber_g:
                     "Günlük lif hedefi (gram), ulaşılacak bir alt sınır. Temizlemek için null.",
                 daily_sugar_g:
@@ -630,6 +666,11 @@ export const TOOLS_TR: ToolsDoc = {
                     "Bir barkod bulunamıyor ya da değerleri yanlış görünüyor",
                 answerHtml:
                     "Barkod verileri, bir topluluk veritabanı olan Open Food Facts kaynağından gelir; bu yüzden bazı ürünler eksiktir ve bazı kayıtlar güncelliğini yitirmiştir. Barkodun altındaki 8–14 hanenin tamamının doğru okunduğundan emin ol. Ürün orada yoksa yapay zekâ addan ya da besin etiketinin fotoğrafından tahmin edebilir ve sonrasında her değeri düzeltebilirsin. Ürünü openfoodfacts.org üzerinde eklemek herkesin işine yarar. Open Food Facts kafein verisi tutmadığı için kafein, etiketten ya da tipik miktarlardan gelir.",
+            },
+            "usda-unavailable": {
+                question: "Yapay zekâ „USDA data is unavailable until …“ diyor",
+                answerHtml:
+                    "Genel gıda aramaları, bu sunucunun tüm kullanıcılarının paylaştığı tek bir API anahtarıyla USDA FoodData Central kaynağına gider; USDA bu anahtarın saatte kaç istek yapabileceğini sınırlar. Sunucu üç durumda USDA çağrısını bırakır: USDA sınıra ulaşıldığını bildirdiğinde, bu durumda çağrılar 60 dakika duraklatılır; anahtarın kalan saatlik kotası neredeyse tükendiğinde; ve son bir saatte 30 USDA sorgusu yaptığında. Mesaj, USDA verisinin yeniden kullanılabilir olacağı saati profilindeki saat dilimine göre verir (ayarlı değilse UTC). Arama sonuçları saklanmaz, bu yüzden aramalar o zamana kadar bekler. Son 30 günde sorgulanan bir gıda sunucuda tutulur ve duraklatma sırasında da çalışmaya devam eder; saklı bir gıdayı getirmek saatte 30 hakkına sayılmaz. USDA adları yalnızca İngilizcedir, bu yüzden İngilizce ara. Paketli ürünler etkilenmez: onları barkodla arayın.",
             },
             "health-sync-yesterday": {
                 question: "Dün hâlâ Apple Health içinde görünmüyor",

@@ -37,12 +37,12 @@ export const PRIVACY_TR: LegalDoc = {
                 {
                     type: "ul",
                     items: [
-                        "<strong>Yemek kayıtları</strong> — açıklama, yemek türü, kalori, makrolar, lif, toplam şeker, ilave şeker, gram cinsinden alkol, miligram cinsinden kafein, notlar ve zaman damgaları. Bir yemeği malzemeleriyle kaydedersen her malzeme de tutulur — adı, miktarı, birimi ve besin değerleri — ve varsa kaydedildiği kayıtlı yemek de. Yemek fotoğraflarını yapay zekâ asistanın yorumlar; bunlar bize hiçbir zaman yüklenmez ve bizde saklanmaz.",
+                        "<strong>Yemek kayıtları</strong> — açıklama, yemek türü, kalori, makrolar, lif, toplam şeker, ilave şeker, doymuş yağ, trans yağ, gram cinsinden alkol, miligram cinsinden kafein, notlar ve zaman damgaları. Her besin değeri ayrıca kaynağını da kaydeder: girilen miktar için eşleştiği bir USDA FoodData Central ya da Open Food Facts kaydı, kendi girdiğin bir değer ya da bir tahmin. Bir yemeği malzemeleriyle kaydedersen her malzeme de tutulur — adı, miktarı, birimi ve besin değerleri — ve varsa kaydedildiği kayıtlı yemek de. Yemek fotoğraflarını yapay zekâ asistanın yorumlar; bunlar bize hiçbir zaman yüklenmez ve bizde saklanmaz.",
                         "<strong>Kayıtlı yemekler</strong> — adı, açıklaması, varsayılan yemek türü ve porsiyon başına değerleri, varsa malzemeleri (her biri için ad, miktar, birim ve besin değerleri) ve oluşturulduğu ile son değiştirildiği zaman. Kayıtlı yemekten kaydettiğin yemekler kendi değerlerinin kendi kopyasını tutar; kayıtlı yemeği değiştirmek ya da silmek onları olduğu gibi bırakır.",
                         "<strong>Su kayıtları</strong> — miktar, notlar ve zaman damgaları.",
                         "<strong>Kilo kayıtları</strong> — kilo, notlar ve zaman damgaları. Bu bir sağlık verisidir ve diğer kayıtlarınla tamamen aynı şekilde ele alınır.",
                         "<strong>Vücut ölçüsü kayıtları</strong> — hangi bölgenin ölçüldüğü (bel, kalça, boyun, göğüs, omuzlar, üst kol, ön kol, uyluk ya da baldır), değer tam senin girdiğin gibi ve birimi (cm veya in), notlar ve zaman damgaları. Bu bir sağlık verisidir ve diğer kayıtlarınla tamamen aynı şekilde ele alınır.",
-                        "<strong>Hedefler</strong> — günlük kalori, protein, karbonhidrat, yağ, lif, şeker, ilave şeker, alkol, kafein ve su hedeflerin ile hedef kilon. Her değiştiklerinde ayrıca tarihli bir kopyasını saklıyoruz, böylece geçmiş bir gün, o gün geçerli olan hedeflerle karşılaştırılabilir.",
+                        "<strong>Hedefler</strong> — günlük kalori, protein, karbonhidrat, yağ, doymuş yağ, lif, şeker, ilave şeker, alkol, kafein ve su hedeflerin ile hedef kilon. Her değiştiklerinde ayrıca tarihli bir kopyasını saklıyoruz, böylece geçmiş bir gün, o gün geçerli olan hedeflerle karşılaştırılabilir.",
                         "<strong>Profil ayarları</strong> — IANA saat dilimin, tercih ettiğin kilo birimi, vücut ölçüleri için tercih ettiğin uzunluk birimi, alkol takibinin açık olup olmadığı ve hangi standart içki üzerinden gösterildiği, sohbet içi widget'ların etkin olup olmadığı ve bu widget'ların hangi dilde gösterildiği.",
                         "<strong>Apple Health eşitlemesi</strong> — yalnızca iPhone cihazındaki Nutrition MCP Health kısayolu üzerinden bağlarsan: bağlantının kendisi (hangi günlük toplamları gönderdiği, suyun dahil olup olmadığı, hangi tarihten başladığı, telefonunun bildirdiği saat dilimi — ki bu yalnızca profilinde saat dilimi yokken kullanılır — ve ne zaman oluşturulduğu, en son ne zaman kullanıldığı ve en son ne zaman eşitlendiği); son 8 günün her biri için, Apple Health tarafına daha önce gönderilen toplamlar ve gönderim zamanı, böylece bir gün bir kez gönderilir ve sonrasında yalnızca eklenenlerle tamamlanır; ve bağlanma sırasında, 30 dakikaya kadar bekleyen bir bağlanma isteği. Alkol hiçbir zaman gönderilmez.",
                         "<strong>Araç kullanım telemetrisi</strong> — her MCP araç çağrısı için: hangi aracın çalıştığı, başarılı olup olmadığı, ne kadar sürdüğü, başarısız olduğunda kaba bir hata kategorisi, sorduğun tarih aralığının gün cinsinden uzunluğu, MCP oturum kimliği, yapay zekâ uygulamanın hangi MCP protokol revizyonuyla bağlandığı ve bu uygulamanın kendisi için bildirdiği ad ile sürüm (örneğin &ldquo;claude-ai/1.0&rdquo;), bunları gönderdiğinde. Hesap kimliğinle ilişkilendirilir. Kayıtlarının içeriğini asla içermez.",
@@ -73,6 +73,14 @@ export const PRIVACY_TR: LegalDoc = {
                 {
                     type: "p",
                     html: 'Sen ya da yapay zekâ asistanın bir barkod sorguladığında, sunucumuz yalnızca barkod rakamlarını <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> tarafına gönderir — hesabını, e-posta adresini ya da kayıtlarını asla — ve dönen ürün verilerini, hiçbir kullanıcıyla ilişkilendirilmeyen paylaşımlı bir önbellekte tutar.',
+                },
+                {
+                    type: "p",
+                    html: 'Sen ya da yapay zekâ asistanın genel gıdaları aradığında, sunucumuz asistanın kullandığı arama sözcüklerini — arama operatörlerinden arındırılmış ve 200 karakterle sınırlanmış hâlde — ve bakılan gıdaların FoodData Central kimliklerini, kendi API anahtarımızla birlikte <a href="https://fdc.nal.usda.gov" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a> API\'sine gönderir. Hesap kimliği, e-posta adresi ya da günlük kaydı gönderilmez. API, Amerika Birleşik Devletleri Tarım Bakanlığı tarafından işletildiği için bu istekler AB dışına çıkar. Dönen kayıtlar herkese açık referans verileridir: en fazla 30 gün yeniden kullanılır, sonra yeniden alınır; hiçbir hesapla ilişkilendirilmez ve kişisel veri değildir.',
+                },
+                {
+                    type: "p",
+                    html: "FoodData Central değerlerine şu biçimde atıf yapılır: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP bağımsız bir projedir; USDA bu hizmeti önermez.",
                 },
                 {
                     type: "p",
@@ -160,7 +168,7 @@ export const PRIVACY_TR: LegalDoc = {
                 {
                     type: "ul",
                     items: [
-                        "<strong>Erişim ve taşınabilirlik</strong> — yapay zekâ asistanından verilerini dışa aktarmasını iste. Hakkında sakladığımız her şeyi içeren CSV dosyalarından oluşan bir ZIP alırsın: yemek kayıtların (meals.csv), kaydettiğin yemeklerin malzemeleri (meal_items.csv), kayıtlı yemeklerin (saved_meals.csv) ve onların malzemeleri (saved_meal_items.csv), su, kilo ve vücut ölçüsü kayıtların, hedeflerin ve hedef değişikliklerinin geçmişi, ayarların, hesap kaydın (e-posta adresi, giriş yöntemleri ve giriş tarihleri ve Google tarafından gönderilmiş bir ad ya da fotoğraf varsa onlar), araç kullanım telemetrin, yapay zekâ uygulamalarını ve Apple Health eşitlemesini bağlı tutan bağlantılar (belirteçlerin kendileri hariç) ve son 8 günde Apple Health tarafına gönderilen günlük toplamların kaydı. İçinde olmayanlar: güvenlik için yalnızca tek yönlü hash olarak tuttuğumuz değerler (şifren ve bağlantılarının belirteçleri), yineleme tespiti anahtarları gibi dahili kayıt tutma verileri, hesap kimliğini içermeyen sunucu çalışma kaydı ve sağlayıcılarımızın kendi kısa ömürlü kayıtları ile dönen yedekleri.",
+                        "<strong>Erişim ve taşınabilirlik</strong> — yapay zekâ asistanından verilerini dışa aktarmasını iste. Hakkında sakladığımız her şeyi, her besin değerinin kaynağıyla (USDA FoodData Central ya da Open Food Facts kaydı, kendi girdiğin bir değer ya da tahmin) birlikte içeren CSV dosyalarından oluşan bir ZIP alırsın: yemek kayıtların (meals.csv, doymuş yağ ve trans yağ sütunlarıyla), kaydettiğin yemeklerin malzemeleri (meal_items.csv), kayıtlı yemeklerin (saved_meals.csv) ve onların malzemeleri (saved_meal_items.csv), su, kilo ve vücut ölçüsü kayıtların, hedeflerin ve hedef değişikliklerinin geçmişi, ayarların, hesap kaydın (e-posta adresi, giriş yöntemleri ve giriş tarihleri ve Google tarafından gönderilmiş bir ad ya da fotoğraf varsa onlar), araç kullanım telemetrin, yapay zekâ uygulamalarını ve Apple Health eşitlemesini bağlı tutan bağlantılar (belirteçlerin kendileri hariç) ve son 8 günde Apple Health tarafına gönderilen günlük toplamların kaydı. İçinde olmayanlar: güvenlik için yalnızca tek yönlü hash olarak tuttuğumuz değerler (şifren ve bağlantılarının belirteçleri), yineleme tespiti anahtarları gibi dahili kayıt tutma verileri, hesap kimliğini içermeyen sunucu çalışma kaydı ve sağlayıcılarımızın kendi kısa ömürlü kayıtları ile dönen yedekleri.",
                         "<strong>Düzeltme</strong> — yapay zekâ asistanından herhangi bir yemek, su, kilo ya da vücut ölçüsü kaydını ya da kayıtlı bir yemeği düzeltmesini veya silmesini ya da hedeflerini ve ayarlarını değiştirmesini iste.",
                         "<strong>Silme</strong> — yapay zekâ asistanından hesabını silmesini iste; bu, her şeyi tek seferde kaldırır.",
                         "<strong>İtiraz ve kısıtlama</strong> — bize e-posta gönder.",
@@ -259,6 +267,10 @@ export const TERMS_TR: LegalDoc = {
                     type: "p",
                     html: "Yemek fotoğrafları sunucumuza hiçbir zaman gönderilmez. Yapay zekâ asistanın fotoğrafı kendi tarafında yorumlar ve bize yalnızca ortaya çıkan metin ile sayıları gönderir — bir açıklama, bir yemek türü, kalori, makrolar, notlar, bir barkod.",
                 },
+                {
+                    type: "p",
+                    html: "Her besin değeri kaynağını gösterir. Genel gıdalarda, uygun bir kayıt olduğunda değerler USDA FoodData Central kaynağından gelir; olmadığında tahminlerdir. Her değer kaynağıyla etiketlenir — USDA FoodData Central, Open Food Facts, kendi girdiğin bir değer ya da bir tahmin — ve bir kayıt yalnızca kaydettiğin miktarla eşleşirse kaynak sayılır.",
+                },
             ],
         },
         {
@@ -328,7 +340,15 @@ export const TERMS_TR: LegalDoc = {
                 },
                 {
                     type: "p",
+                    html: "Genel gıda verileri, Amerika Birleşik Devletleri Tarım Bakanlığı'nın (USDA) FoodData Central API kaynağından gelir. Ona yalnızca Gizlilik Politikamızda anlatılan arama sözcüklerini ve gıda kimliklerini göndeririz; kayıtları referans verisidir, senin verilerin değildir.",
+                },
+                {
+                    type: "p",
                     html: 'Barkod ürün verileri &copy; <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> katkıcıları, <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a> kapsamında kullanıma açıktır.',
+                },
+                {
+                    type: "p",
+                    html: "FoodData Central değerlerine şu biçimde atıf yapılır: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP bağımsız bir projedir; USDA bu hizmeti önermez.",
                 },
                 {
                     type: "p",

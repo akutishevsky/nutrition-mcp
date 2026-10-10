@@ -37,6 +37,11 @@ import {
     type HealthSyncLinkStatus,
     type HealthSyncStore,
 } from "./health-sync-store.js";
+import {
+    PROVENANCE_EXPORT_VERSION,
+    type NutrientSources,
+    type SourceDetail,
+} from "./provenance.js";
 import { formatLocalDateTime, validateTz } from "./tz.js";
 import { fromGrams, isWeightUnit, type WeightUnit } from "./units.js";
 import { buildZip, type ZipEntry } from "./zip.js";
@@ -45,6 +50,19 @@ const EXPORT_BUCKET = "exports";
 // Signed link lifetime. The cleanup sweep ages files out on the same horizon.
 const EXPORT_TTL_SECONDS = 60 * 60; // 60 minutes
 const SWEEP_INTERVAL_MS = 10 * 60 * 1000; // every 10 minutes
+
+/**
+ * The provenance columns every nutrient-bearing file ends with. Each row of this
+ * server's own export writes provenance_version "1" as the marker the importer
+ * looks for: a file without it is third-party, so its nutrient_sources cells are
+ * never read. nutrient_sources and source_detail are JSON text, empty where a row
+ * has no provenance (rows written before it existed, never back-labelled).
+ */
+const PROVENANCE_CSV_COLUMNS = [
+    "provenance_version",
+    "nutrient_sources",
+    "source_detail",
+] as const;
 
 /**
  * Column order for the export. This list and the positional row builder in
@@ -65,6 +83,12 @@ const CSV_COLUMNS = [
     "protein_g",
     "carbs_g",
     "fat_g",
+    // Parts of fat_g, placed right after it so the fat columns read together.
+    // Both are null where nothing was recorded, never 0. The importer matches
+    // by header name, so an export written before these columns existed still
+    // re-imports.
+    "saturated_fat_g",
+    "trans_fat_g",
     "fiber_g",
     "sugar_g",
     // Added sugars only (the US label definition) — a part of sugar_g, never
@@ -83,6 +107,9 @@ const CSV_COLUMNS = [
     // name) and any reader that mapped the earlier columns by position keep
     // working; the importer ignores a column it does not know.
     "saved_meal_id",
+    // Provenance (src/provenance.ts), appended for the same reason. The three
+    // columns are PROVENANCE_CSV_COLUMNS below, shared with the other files.
+    ...PROVENANCE_CSV_COLUMNS,
 ] as const;
 
 /**
@@ -113,16 +140,47 @@ function localOrNull(
 }
 
 /**
- * csvEscape for text a third party chose — an OAuth client's registered name
- * and redirect, the name and session id an MCP client reports. A spreadsheet
+ * The leading-apostrophe defence for text a third party chose: a spreadsheet
  * runs a cell starting with = + - @ as a formula, so a client the user once
- * authorized could plant one in their export; a leading apostrophe makes it
- * text. Not used for the user's own logs: meals.csv must stay importable and
- * byte-identical.
+ * authorized could plant one in their export. Not used for the user's own logs:
+ * meals.csv must stay importable and byte-identical.
+ */
+function defuseFormula(value: string): string {
+    return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
+/**
+ * csvEscape for text a third party chose — an OAuth client's registered name
+ * and redirect, the name and session id an MCP client reports — defused by
+ * defuseFormula.
  */
 function csvThirdParty(value: string | null | undefined): string {
-    if (value != null && /^[=+\-@\t\r]/.test(value)) value = `'${value}`;
-    return csvEscape(value);
+    return csvEscape(value == null ? value : defuseFormula(value));
+}
+
+/**
+ * The three provenance cells of a row, in PROVENANCE_CSV_COLUMNS order. The
+ * names inside source_detail are third-party text (a food database's product
+ * name), so each is defused before the JSON is written; a JSON cell never starts
+ * with a formula character, so the defusing has to reach inside it.
+ */
+function provenanceCells(
+    sources: NutrientSources | null | undefined,
+    detail: SourceDetail | null | undefined,
+): string[] {
+    const safeDetail = detail
+        ? Object.fromEntries(
+              Object.entries(detail).map(([key, entry]) => [
+                  key,
+                  { ...entry, name: defuseFormula(entry.name) },
+              ]),
+          )
+        : null;
+    return [
+        csvEscape(PROVENANCE_EXPORT_VERSION),
+        csvEscape(sources ? JSON.stringify(sources) : null),
+        csvEscape(safeDetail ? JSON.stringify(safeDetail) : null),
+    ];
 }
 
 /**
@@ -144,6 +202,8 @@ export function buildMealsCsv(meals: Meal[], tz: string): string {
                 csvEscape(m.protein_g),
                 csvEscape(m.carbs_g),
                 csvEscape(m.fat_g),
+                csvEscape(m.saturated_fat_g),
+                csvEscape(m.trans_fat_g),
                 csvEscape(m.fiber_g),
                 csvEscape(m.sugar_g),
                 csvEscape(m.added_sugar_g),
@@ -151,6 +211,7 @@ export function buildMealsCsv(meals: Meal[], tz: string): string {
                 csvEscape(m.caffeine_mg),
                 csvEscape(m.notes),
                 csvEscape(m.saved_meal_id),
+                ...provenanceCells(m.nutrient_sources, m.source_detail),
             ].join(","),
         );
     }
@@ -168,6 +229,8 @@ const NUTRIENT_CSV_COLUMNS = [
     "protein_g",
     "carbs_g",
     "fat_g",
+    "saturated_fat_g",
+    "trans_fat_g",
     "fiber_g",
     "sugar_g",
     "added_sugar_g",
@@ -175,9 +238,17 @@ const NUTRIENT_CSV_COLUMNS = [
     "caffeine_mg",
 ] as const;
 
+// The two optional-in-the-row columns are optional here too, because the rows
+// they type come from the same optional NutrientValues the write path uses, so
+// a row read from a database that predates them is still a valid input.
 type ExportNutrients = {
-    [K in (typeof NUTRIENT_CSV_COLUMNS)[number]]: number | null;
-};
+    [
+        K in Exclude<
+            (typeof NUTRIENT_CSV_COLUMNS)[number],
+            "saturated_fat_g" | "trans_fat_g"
+        >
+    ]: number | null;
+} & { saturated_fat_g?: number | null; trans_fat_g?: number | null };
 
 /** A logged meal's ingredient row, as getAllMealItems returns it. */
 export interface MealItemExportRow extends ExportNutrients {
@@ -188,6 +259,8 @@ export interface MealItemExportRow extends ExportNutrients {
     name: string;
     amount: number | null;
     unit: string | null;
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 /** A saved meal, as getAllSavedMeals returns it: values per serving. */
@@ -199,6 +272,8 @@ export interface SavedMealExportRow extends ExportNutrients {
     meal_type: string | null;
     created_at: string;
     updated_at: string;
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 /** A saved meal's ingredient row, as getAllSavedMealItems returns it. */
@@ -210,6 +285,8 @@ export interface SavedMealItemExportRow extends ExportNutrients {
     name: string;
     amount: number | null;
     unit: string | null;
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 function nutrientCells(n: ExportNutrients): string[] {
@@ -228,6 +305,7 @@ const MEAL_ITEMS_CSV_COLUMNS = [
     "amount",
     "unit",
     ...NUTRIENT_CSV_COLUMNS,
+    ...PROVENANCE_CSV_COLUMNS,
 ] as const;
 
 /**
@@ -245,6 +323,7 @@ export function buildMealItemsCsv(items: MealItemExportRow[]): string {
                 csvEscape(i.amount),
                 csvEscape(i.unit),
                 ...nutrientCells(i),
+                ...provenanceCells(i.nutrient_sources, i.source_detail),
             ].join(","),
         );
     }
@@ -265,6 +344,7 @@ const SAVED_MEALS_CSV_COLUMNS = [
     "created_at",
     "updated_at",
     "timezone",
+    ...PROVENANCE_CSV_COLUMNS,
 ] as const;
 
 /** Build saved_meals.csv, timestamps in `tz`. Header-only when there are none. */
@@ -284,6 +364,7 @@ export function buildSavedMealsCsv(
                 csvEscape(formatLocalDateTime(s.created_at, tz)),
                 csvEscape(formatLocalDateTime(s.updated_at, tz)),
                 csvEscape(tz),
+                ...provenanceCells(s.nutrient_sources, s.source_detail),
             ].join(","),
         );
     }
@@ -301,6 +382,7 @@ const SAVED_MEAL_ITEMS_CSV_COLUMNS = [
     "amount",
     "unit",
     ...NUTRIENT_CSV_COLUMNS,
+    ...PROVENANCE_CSV_COLUMNS,
 ] as const;
 
 /**
@@ -320,6 +402,7 @@ export function buildSavedMealItemsCsv(
                 csvEscape(i.amount),
                 csvEscape(i.unit),
                 ...nutrientCells(i),
+                ...provenanceCells(i.nutrient_sources, i.source_detail),
             ].join(","),
         );
     }
@@ -481,6 +564,9 @@ const GOALS_CSV_COLUMNS = [
     "daily_protein_g",
     "daily_carbs_g",
     "daily_fat_g",
+    // The daily limit for saturated fat. There is no trans-fat goal, so no
+    // daily_trans_fat_g column.
+    "daily_saturated_fat_g",
     "daily_fiber_g",
     "daily_sugar_g",
     "daily_added_sugar_g",
@@ -529,6 +615,7 @@ export function buildGoalsHistoryCsv(
                 csvEscape(h.daily_protein_g),
                 csvEscape(h.daily_carbs_g),
                 csvEscape(h.daily_fat_g),
+                csvEscape(h.daily_saturated_fat_g),
                 csvEscape(h.daily_fiber_g),
                 csvEscape(h.daily_sugar_g),
                 csvEscape(h.daily_added_sugar_g),
@@ -559,6 +646,7 @@ export function buildGoalsCsv(
                 csvEscape(goals.daily_protein_g),
                 csvEscape(goals.daily_carbs_g),
                 csvEscape(goals.daily_fat_g),
+                csvEscape(goals.daily_saturated_fat_g),
                 csvEscape(goals.daily_fiber_g),
                 csvEscape(goals.daily_sugar_g),
                 csvEscape(goals.daily_added_sugar_g),
@@ -963,10 +1051,10 @@ export function buildExportReadme(opts: {
         "",
         "Files",
         "-----",
-        `meals.csv    ${rows(counts.meals)} — every meal you have logged: time, description, calories and macros, and saved_meal_id, the saved meal it was logged from (empty when it was not logged from one).`,
+        `meals.csv    ${rows(counts.meals)} — every meal you have logged: time, description, calories and macros, saved_meal_id, the saved meal it was logged from (empty when it was not logged from one), and the nutrient_sources and source_detail columns described under "Where the values came from".`,
         `meal_items.csv ${rows(counts.mealItems)} — the ingredients of meals you logged with an itemised list: one row per ingredient with its amount, unit and nutrients. Joined to meals.csv by meal_id; position orders the ingredients within a meal. A meal's totals in meals.csv are the sum of its ingredients, with calories rounded to a whole number and the other values to two decimals, so a calorie total can differ from the sum of the ingredients' calories by up to half a calorie.`,
         `saved_meals.csv ${rows(counts.savedMeals)} — your saved meals: name, description, default meal type and the values for one serving, when each was created and last changed (in its "timezone" column's zone). Editing or deleting a saved meal does not change meals you already logged from it.`,
-        `saved_meal_items.csv ${rows(counts.savedMealItems)} — the ingredients of saved meals, one row per ingredient, joined to saved_meals.csv by saved_meal_id. When a saved meal has ingredients, its values in saved_meals.csv are their sum, rounded the same way: calories to a whole number, the other values to two decimals.`,
+        `saved_meal_items.csv ${rows(counts.savedMealItems)} — the ingredients of saved meals, one row per ingredient, joined to saved_meals.csv by saved_meal_id. When a saved meal has ingredients, its values in saved_meals.csv are their sum, rounded the same way: calories to a whole number, the other values to two decimals. Each ingredient carries its own nutrient_sources and source_detail, as described under "Where the values came from".`,
         `water.csv    ${rows(counts.water)} — every water entry, in millilitres.`,
         `weight.csv   ${rows(counts.weight)} — every weigh-in, as stored grams and as ${weightUnit}.`,
         `body_measurements.csv ${rows(counts.bodyMeasurements)} — every body measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf): the stored millimetres, and the value exactly as entered with its unit (cm or in).`,
@@ -979,11 +1067,18 @@ export function buildExportReadme(opts: {
         `health_sync.csv ${rows(counts.healthSync)} — what Apple Health sync sent to your iPhone, one row per day, kept for ${HEALTH_SYNC_RETENTION_DAYS} days: the daily totals sent (${HEALTH_SYNC_FIELDS.join(", ")}), how many later top-ups were sent for the day (topup_seq) and when the first and last were sent. Each row is in its own "timezone" — the zone the day was counted in, which can differ from your account's if your phone was elsewhere — and its date and times are wall clocks there. An empty value was not sent; a row with no values was offered but not yet confirmed by the phone. Alcohol is never sent.`,
         "README.txt   this file.",
         "",
+        "Where the values came from",
+        "--------------------------",
+        "nutrient_sources (in meals.csv, meal_items.csv, saved_meals.csv and saved_meal_items.csv) is JSON that labels each nutrient value with its source: usda or openfoodfacts when the value matches that food record for the amount given (ref is the record's FoodData Central id or barcode); user when you gave the value yourself; estimate when nothing matched, which is also what a value logged by name or by hand gets. A meal-level value built from several items can read mixed, with each source's share in whole percent. A match means the number agrees with the food record for the amount given; it does not check that the amount itself was right.",
+        "source_detail is JSON keyed usda:<id> or openfoodfacts:<barcode>, one entry per record the labels point at: the food's name, its data type when the record has one, the grams or servings the values were scaled to, and when the record was fetched. Names come from the food database, and a leading apostrophe is added where a spreadsheet would otherwise read the name as a formula.",
+        "A cell is empty where the value was recorded before these labels were kept; an empty cell is never a source. provenance_version is 1 on every row of this export and marks the file as one that carries these columns.",
+        "",
         "Units",
         "-----",
         "The unit is part of every column name, because these columns do not all agree:",
         "  * _g columns are grams; alcohol_g and daily_alcohol_g are grams of pure ethanol, not the volume of the drink.",
         "  * added_sugar_g counts only sugars added during processing or preparation; it is part of sugar_g (total sugars), never more than it. daily_added_sugar_g is the daily limit for added sugars, separate from daily_sugar_g (total sugars).",
+        "  * saturated_fat_g and trans_fat_g are parts of fat_g, in grams. daily_saturated_fat_g is the daily limit for saturated fat; trans fat has no daily limit.",
         "  * caffeine_mg and daily_caffeine_mg are MILLIGRAMS, unlike every gram column beside them. A cup of coffee is about 95 mg.",
         "  * amount_ml, daily_water_ml and water_ml are millilitres.",
         `  * weight_g and target_weight_g are grams — the canonical form the server stores. weight.csv also gives weight_display in ${weightUnit}, with weight_unit naming it, so you do not have to divide anything by hand.`,

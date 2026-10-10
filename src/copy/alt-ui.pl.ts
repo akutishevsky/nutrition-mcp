@@ -29,7 +29,7 @@ export const ALT_UI_PL: AltUiCopy = {
         features: [
             {
                 title: "Posiłki opisane zwykłymi słowami",
-                body: "Powiedz &bdquo;owsianka z bananem i masłem orzechowym&rdquo;, a Twoje AI oszacuje kalorie i makroskładniki — łącznie z błonnikiem, cukrami ogółem i kofeiną — i zapisze posiłek. Bez przeszukiwania bazy produktów. Posiłek możesz zapisać składnik po składniku, a te, które jadasz często, zachować i potem dodawać po samej nazwie.",
+                body: "Powiedz &bdquo;owsianka z bananem i masłem orzechowym&rdquo;, a Twoje AI zapisze kalorie i makroskładniki — łącznie z błonnikiem, cukrami ogółem, kofeiną, tłuszczami nasyconymi i tłuszczami trans. Produkty ogólne biorą wartości z USDA FoodData Central, jeśli tam są, a szacunki pokrywają resztę; każda liczba pokazuje, skąd pochodzi. Posiłek możesz zapisać składnik po składniku, a te, które jadasz często, zachować i potem dodawać po samej nazwie.",
             },
             {
                 title: "Skaner kodów kreskowych za darmo",
@@ -37,7 +37,7 @@ export const ALT_UI_PL: AltUiCopy = {
             },
             {
                 title: "Waga i cele",
-                body: "Zapisuj wagę w kg lub lb i obwody dziewięciu partii ciała w cm lub calach, ustaw cele dla kalorii, makroskładników, błonnika, cukru, kofeiny i wody — błonnik jako cel do osiągnięcia, cukier i kofeinę jako limity, których nie przekraczasz — i śledź, jak zbliżasz się do wagi docelowej. Jest też śledzenie alkoholu: opcjonalne i wyłączone, dopóki go nie włączysz.",
+                body: "Zapisuj wagę w kg lub lb i obwody dziewięciu partii ciała w cm lub calach, ustaw cele dla kalorii, makroskładników, tłuszczów nasyconych, błonnika, cukru, kofeiny i wody — błonnik jako cel do osiągnięcia, tłuszcze nasycone, cukier i kofeinę jako limity, których nie przekraczasz — i śledź, jak zbliżasz się do wagi docelowej. Jest też śledzenie alkoholu: opcjonalne i wyłączone, dopóki go nie włączysz.",
             },
             {
                 title: "Podsumowania i trendy",
@@ -58,7 +58,7 @@ export const ALT_UI_PL: AltUiCopy = {
         compareTitle: "Jak wypadają w porównaniu",
         pros: [
             "Zbudowany jako serwer MCP — działa w Claude i ChatGPT",
-            "Opisujesz posiłki zwykłymi słowami, a kalorie, makroskładniki, błonnik, cukier i kofeina są szacowane za Ciebie; swoje stałe posiłki zapiszesz i dodasz jednym zdaniem",
+            "Opisujesz posiłki zwykłymi słowami, a wartości z USDA dla produktów ogólnych, szacunki dla reszty, każda liczba z podanym źródłem; swoje stałe posiłki zapiszesz i dodasz jednym zdaniem",
             "Skaner kodów kreskowych, trendy, import i eksport CSV — wszystko za darmo",
             "Bez osobnej aplikacji, bez reklam, open source",
         ],
@@ -91,7 +91,7 @@ export const ALT_UI_PL: AltUiCopy = {
                 "Oficjalnego konektora {app} dla Claude nie ma, bo {app} nie udostępnia publicznego serwera MCP. Jedną z opcji jest Nutrition MCP — darmowy serwer MCP dostępny w katalogu Claude: otwórz go pod adresem https://claude.ai/directory/nutrition-mcp, kliknij Connect, zaloguj się i zacznij zapisywać w rozmowie.",
             goodAltQ: "Czy Nutrition MCP to dobra alternatywa dla {app}?",
             goodAltA:
-                "Tak, jeśli chcesz śledzić kalorie, makroskładniki (łącznie z błonnikiem, cukrami ogółem i kofeiną), wodę i wagę bez otwierania osobnej aplikacji i przeszukiwania bazy produktów. Zamiast klikać po bazie danych, opisujesz posiłek zwykłymi słowami, wysyłasz zdjęcie albo skanujesz kod kreskowy, a Twoje AI go zapisuje — całkowicie za darmo i open source.",
+                "Tak, jeśli chcesz śledzić kalorie, makroskładniki (łącznie z błonnikiem, cukrami ogółem, kofeiną, tłuszczami nasyconymi i tłuszczami trans), wodę i wagę bez otwierania osobnej aplikacji i przewijania dziennika posiłków. Opisujesz posiłek zwykłymi słowami, wysyłasz zdjęcie albo skanujesz kod kreskowy, a Twoje AI go zapisuje. Produkty ogólne korzystają z wartości USDA FoodData Central, jeśli tam są, produkty paczkowane pochodzą z Open Food Facts przez kod kreskowy, a szacunki pokrywają resztę — całkowicie za darmo i open source.",
             importQ: "Czy mogę zaimportować dane z {app}?",
             readExportQ: "Czy AI czyta mój plik eksportu podczas importu?",
             readExportA:
@@ -129,11 +129,11 @@ export const ALT_UI_PL: AltUiCopy = {
         importSub:
             "Ludzie zwykle zostają przy starej aplikacji, bo mają w niej lata historii. Poproś o import, a importer otworzy się od razu w czacie: wybierz plik eksportu, dopasuj kolumny, sprawdź podgląd tego, co zostanie dodane, i potwierdź — albo wklej eksport, jeśli Twoja aplikacja nie ma paneli w czacie.",
         importBody: [
-            "Plik jest odczytywany w Twojej przeglądarce, a nie przez AI — więc wiersze nie zostaną po drodze błędnie przepisane, a zanim cokolwiek zostanie zapisane, widzisz dokładnie te posiłki, które zostaną dodane. W eksportach z MyFitnessPal, Cronometer, Lose It! i MacroFactor kolumny są rozpoznawane po nazwie; każdy inny CSV też zadziała — wystarczy raz wskazać, co oznacza każda kolumna. Przenoszą się: data i godzina, produkt, posiłek, kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem i kofeina w miligramach — a także alkohol, jeśli najpierw włączysz jego śledzenie.",
+            "Plik jest odczytywany w Twojej przeglądarce, a nie przez AI — więc wiersze nie zostaną po drodze błędnie przepisane, a zanim cokolwiek zostanie zapisane, widzisz dokładnie te posiłki, które zostaną dodane. W eksportach z MyFitnessPal, Cronometer, Lose It! i MacroFactor kolumny są rozpoznawane po nazwie; każdy inny CSV też zadziała — wystarczy raz wskazać, co oznacza każda kolumna. Przenoszą się: data i godzina, produkt, posiłek, kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem i kofeina w miligramach, a gdy plik je zawiera, także tłuszcze nasycone i tłuszcze trans — a także alkohol, jeśli najpierw włączysz jego śledzenie.",
             "Importer radzi sobie z niewygodnymi szczegółami prawdziwych eksportów: datami DD/MM/RRRR i MM/DD/RRRR, energią w kilodżulach i kilokaloriach, europejskimi plikami rozdzielanymi średnikami z przecinkiem dziesiętnym, polami w cudzysłowach ze znakami nowego wiersza w środku, końcowymi wierszami sum i znacznikami usuniętych wierszy. Nagłówki kolumn nie muszą być po angielsku — niemieckie Kalorien czy Ballaststoffe zostaną rozpoznane, a błonnik, cukier i kofeina są dopasowywane także po hiszpańsku, francusku, włosku i niderlandzku. Gdy plik jest naprawdę niejednoznaczny — 05/06 może oznaczać maj albo czerwiec — importer pokazuje swoją interpretację obok wiersza z Twojego pliku i prosi o potwierdzenie, zamiast zgadywać. A każdy wiersz ma swój odcisk treści, więc ponowny import tego samego pliku zgłosi posiłki jako już zapisane, zamiast je zdublować — o ile w międzyczasie nie zmieniła się Twoja strefa czasowa.",
         ],
 
         ctaSub: "Za darmo i open source — działa z Claude, ChatGPT i każdym klientem MCP.",
-        ctaStarGithub: "Postaw gwiazdkę na GitHubie",
+        ctaStarGithub: "Postaw gwiazdkę w serwisie GitHub",
     },
 };

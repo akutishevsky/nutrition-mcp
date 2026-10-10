@@ -35,12 +35,12 @@ export const PRIVACY_NL: LegalDoc = {
                 {
                     type: "ul",
                     items: [
-                        "<strong>Maaltijdregistraties</strong> — omschrijving, maaltijdtype, calorieën, macro's, vezels, totale suikers, toegevoegde suikers, alcohol in gram, cafeïne in milligram, notities en tijdstempels. Als je een maaltijd met de ingrediënten ervan logt, bewaren we ook die ingrediënten — naam, hoeveelheid, eenheid en voedingswaarden — samen met de opgeslagen maaltijd waaruit de registratie is gemaakt, als die er is. Foto's van eten worden door je AI-assistent geïnterpreteerd en nooit naar ons geüpload of door ons opgeslagen.",
+                        "<strong>Maaltijdregistraties</strong> — omschrijving, maaltijdtype, calorieën, macro's, vezels, totale suikers, toegevoegde suikers, verzadigd vet, transvet, alcohol in gram, cafeïne in milligram, notities en tijdstempels. Elke voedingswaarde vermeldt bovendien de herkomst: een record van USDA FoodData Central of Open Food Facts waarmee de waarde overeenkomt voor de geregistreerde hoeveelheid, een waarde die je zelf hebt opgegeven, of een schatting. Als je een maaltijd met de ingrediënten ervan logt, bewaren we ook die ingrediënten — naam, hoeveelheid, eenheid en voedingswaarden — samen met de opgeslagen maaltijd waaruit de registratie is gemaakt, als die er is. Foto's van eten worden door je AI-assistent geïnterpreteerd en nooit naar ons geüpload of door ons opgeslagen.",
                         "<strong>Opgeslagen maaltijden</strong> — een maaltijd die je onder een naam bewaart: de naam, omschrijving, standaard maaltijdtype en waarden per portie, de ingrediënten als je die hebt opgegeven (naam, hoeveelheid, eenheid en voedingswaarden per ingrediënt), en wanneer ze zijn aangemaakt en voor het laatst gewijzigd. Maaltijden die je uit een opgeslagen maaltijd logt, houden hun eigen kopie van de waarden; het wijzigen of verwijderen van de opgeslagen maaltijd laat ze dus zoals ze waren.",
                         "<strong>Waterregistraties</strong> — hoeveelheid, notities en tijdstempels.",
                         "<strong>Gewichtsregistraties</strong> — gewicht, notities en tijdstempels. Dit zijn gezondheidsgegevens; ze worden precies zo behandeld als je overige registraties.",
                         "<strong>Registraties van lichaamsmaten</strong> — welk lichaamsdeel is gemeten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, dij of kuit), de waarde zoals je die invoerde en de eenheid ervan (cm of inch), notities en tijdstempels. Dit zijn gezondheidsgegevens; ze worden precies zo behandeld als je overige registraties.",
-                        "<strong>Doelen</strong> — je dagelijkse doelen voor calorieën, eiwit, koolhydraten, vet, vezels, suiker, toegevoegde suikers, alcohol, cafeïne en water, plus je streefgewicht. Telkens als ze veranderen, bewaren we ook een gedateerde kopie, zodat een eerdere dag kan worden vergeleken met de doelen die op die dag golden.",
+                        "<strong>Doelen</strong> — je dagelijkse doelen voor calorieën, eiwit, koolhydraten, vet, verzadigd vet, vezels, suiker, toegevoegde suikers, alcohol, cafeïne en water, plus je streefgewicht. Telkens als ze veranderen, bewaren we ook een gedateerde kopie, zodat een eerdere dag kan worden vergeleken met de doelen die op die dag golden.",
                         "<strong>Profielinstellingen</strong> — je IANA-tijdzone, je voorkeurseenheid voor gewicht, je voorkeurseenheid voor lengte bij lichaamsmaten, of alcoholregistratie aanstaat en in welk standaardglas alcohol wordt weergegeven, of widgets in de chat zijn ingeschakeld en in welke taal die widgets worden weergegeven.",
                         "<strong>Synchronisatie met Apple Health</strong> — alleen als je die koppelt vanuit de opdracht Nutrition MCP Health op je iPhone: de koppeling (welke dagtotalen ze verstuurt, of water erbij zit, vanaf welke datum ze geldt, de tijdzone die je iPhone doorgaf en die alleen wordt gebruikt zolang je profiel er geen heeft, en wanneer ze is aangemaakt, voor het laatst gebruikt en voor het laatst gesynchroniseerd); voor elk van de laatste 8 dagen de totalen die al naar Apple Health zijn gestuurd en wanneer, zodat elke dag één keer wordt verstuurd en daarna alleen wordt aangevuld met wat erbij kwam; en, terwijl je koppelt, een openstaand koppelverzoek van maximaal 30 minuten. Alcohol wordt nooit verstuurd.",
                         "<strong>Gebruikstelemetrie van tools</strong> — per aanroep van een MCP-tool: welke tool werd uitgevoerd, of de aanroep slaagde, hoe lang die duurde, een globale foutcategorie als die mislukte, het aantal dagen van een opgevraagde datumperiode, de MCP-sessie-ID, met welke revisie van het MCP-protocol je AI-app verbinding maakte, en de naam en versie die die app over zichzelf opgeeft (bijvoorbeeld &ldquo;claude-ai/1.0&rdquo;), als de app die meestuurt. Dit is gekoppeld aan je account-ID en bevat nooit de inhoud van je registraties.",
@@ -71,6 +71,14 @@ export const PRIVACY_NL: LegalDoc = {
                 {
                     type: "p",
                     html: 'Als jij of je AI-assistent een barcode opzoekt, stuurt onze server alleen de cijfers van de barcode naar <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a> — nooit je account, e-mailadres of registraties — en bewaart de productgegevens die terugkomen in een gedeelde cache die aan geen enkele gebruiker is gekoppeld.',
+                },
+                {
+                    type: "p",
+                    html: 'Als jij of je AI-assistent generieke levensmiddelen zoekt, stuurt onze server de zoektermen die je assistent gebruikt — zonder zoekoperatoren en afgekapt op 200 tekens — en de id\'s van FoodData Central voor de opgezochte levensmiddelen naar de API van <a href="https://fdc.nal.usda.gov" target="_blank" rel="noopener noreferrer">USDA FoodData Central</a>, met onze eigen API-sleutel. Er wordt geen account-id, e-mailadres of logregel meegestuurd. De API wordt beheerd door het Amerikaanse ministerie van Landbouw, dus deze verzoeken verlaten de EU. De teruggestuurde records zijn openbare referentiegegevens: ze worden maximaal 30 dagen hergebruikt voordat ze opnieuw worden opgehaald, zijn niet aan een account gekoppeld en zijn geen persoonsgegevens.',
+                },
+                {
+                    type: "p",
+                    html: "Voedingswaarden uit FoodData Central worden zo geciteerd: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP is een onafhankelijk project; USDA beveelt deze dienst niet aan.",
                 },
                 {
                     type: "p",
@@ -158,7 +166,7 @@ export const PRIVACY_NL: LegalDoc = {
                 {
                     type: "ul",
                     items: [
-                        "<strong>Inzage en overdraagbaarheid</strong> — vraag je AI-assistent om je gegevens te exporteren. Je krijgt een ZIP met CSV-bestanden met alles wat we over je bewaren: je maaltijdregistraties (meals.csv), de ingrediënten van elke gelogde maaltijd (meal_items.csv), je opgeslagen maaltijden (saved_meals.csv) en hun ingrediënten (saved_meal_items.csv), je registraties van water, gewicht en lichaamsmaten, je doelen en de geschiedenis van je doelwijzigingen, je instellingen, je accountgegevens (e-mailadres, inlogmethoden en inlogdatums, en een eventuele naam of foto die Google meestuurde), je gebruikstelemetrie van tools, de koppelingen waarmee je AI-apps en de synchronisatie met Apple Health ingelogd blijven (zonder de tokens zelf), en het overzicht van de dagtotalen die de afgelopen 8 dagen naar Apple Health zijn gestuurd. Niet inbegrepen zijn: de waarden die we om veiligheidsredenen alleen als eenrichtingshash bewaren (je wachtwoord en de tokens van je koppelingen), interne administratie zoals sleutels voor duplicaatdetectie, het runtimelog van de server, dat je account-ID niet bevat, en de eigen kortlevende logs en doorlopende back-ups van onze dienstverleners.",
+                        "<strong>Inzage en overdraagbaarheid</strong> — vraag je AI-assistent om je gegevens te exporteren. Je krijgt een ZIP met CSV-bestanden met alles wat we over je bewaren, inclusief de herkomst van elke voedingswaarde (een record van USDA FoodData Central of Open Food Facts, een waarde die je zelf hebt opgegeven, of een schatting): je maaltijdregistraties (meals.csv, met de kolommen voor verzadigd vet en transvet), de ingrediënten van elke gelogde maaltijd (meal_items.csv), je opgeslagen maaltijden (saved_meals.csv) en hun ingrediënten (saved_meal_items.csv), je registraties van water, gewicht en lichaamsmaten, je doelen en de geschiedenis van je doelwijzigingen, je instellingen, je accountgegevens (e-mailadres, inlogmethoden en inlogdatums, en een eventuele naam of foto die Google meestuurde), je gebruikstelemetrie van tools, de koppelingen waarmee je AI-apps en de synchronisatie met Apple Health ingelogd blijven (zonder de tokens zelf), en het overzicht van de dagtotalen die de afgelopen 8 dagen naar Apple Health zijn gestuurd. Niet inbegrepen zijn: de waarden die we om veiligheidsredenen alleen als eenrichtingshash bewaren (je wachtwoord en de tokens van je koppelingen), interne administratie zoals sleutels voor duplicaatdetectie, het runtimelog van de server, dat je account-ID niet bevat, en de eigen kortlevende logs en doorlopende back-ups van onze dienstverleners.",
                         "<strong>Rectificatie</strong> — vraag je AI-assistent om een registratie van een maaltijd, water, gewicht of lichaamsmaat of een opgeslagen maaltijd te corrigeren of te verwijderen, of om je doelen en instellingen aan te passen.",
                         "<strong>Gegevenswissing</strong> — vraag je AI-assistent om je account te verwijderen; daarmee verdwijnt alles in één keer.",
                         "<strong>Bezwaar en beperking van de verwerking</strong> — stuur ons een e-mail.",
@@ -257,6 +265,10 @@ export const TERMS_NL: LegalDoc = {
                     type: "p",
                     html: "Foto's van eten worden nooit naar onze server gestuurd. Je AI-assistent interpreteert de afbeelding zelf en stuurt ons alleen de tekst en cijfers die dat oplevert: een omschrijving, een maaltijdtype, calorieën, macro's, notities, een barcode.",
                 },
+                {
+                    type: "p",
+                    html: "Elke voedingswaarde vermeldt waar die vandaan komt. Bij generieke levensmiddelen zijn de waarden uit USDA FoodData Central wanneer er een passend record is, en anders schattingen. Elke waarde is gelabeld met de bron — USDA FoodData Central, Open Food Facts, een waarde die je zelf hebt opgegeven, of een schatting — en een record telt alleen als bron wanneer het overeenkomt met de geregistreerde hoeveelheid.",
+                },
             ],
         },
         {
@@ -326,7 +338,15 @@ export const TERMS_NL: LegalDoc = {
                 },
                 {
                     type: "p",
+                    html: "Gegevens over generieke levensmiddelen komen van de API van FoodData Central van het Amerikaanse ministerie van Landbouw (USDA). Wij sturen alleen de zoektermen en levensmiddel-id's die in ons privacybeleid staan beschreven; de gegevens die terugkomen zijn referentiegegevens, geen gegevens van jou.",
+                },
+                {
+                    type: "p",
                     html: 'Productgegevens bij barcodes &copy; bijdragers aan <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener noreferrer">Open Food Facts</a>, beschikbaar onder de <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener noreferrer">Open Database License (ODbL)</a>.',
+                },
+                {
+                    type: "p",
+                    html: "Voedingswaarden uit FoodData Central worden zo geciteerd: U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/. Nutrition MCP is een onafhankelijk project; USDA beveelt deze dienst niet aan.",
                 },
                 {
                     type: "p",

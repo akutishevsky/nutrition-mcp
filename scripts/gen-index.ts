@@ -177,6 +177,11 @@ const EX_META: Record<
         color: "car",
         tools: ["lookup_barcode", "log_meal"],
     },
+    "usda-food": {
+        icon: "fa-solid fa-database",
+        color: "fib",
+        tools: ["search_foods", "get_food_macros", "log_meal"],
+    },
     "saved-meal": {
         icon: "fa-solid fa-bookmark",
         color: "pro",
@@ -842,6 +847,7 @@ function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
         description: doc.metaDescription,
         url,
         image: `${SITE}/og.png`,
+        featureList: doc.featureList,
         inLanguage: HTML_LANG[locale],
         applicationCategory: "HealthApplication",
         operatingSystem: "Any",

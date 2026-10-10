@@ -36,7 +36,7 @@ export const ALT_UI_DE: AltUiCopy = {
         features: [
             {
                 title: "Mahlzeiten in eigenen Worten",
-                body: "Sag „Haferflocken mit Banane und Erdnussbutter“ – deine KI schätzt Kalorien und Makros samt Ballaststoffen, Gesamtzucker und Koffein und erfasst die Mahlzeit. Keine Datenbanksuche. Erfasse eine Mahlzeit Zutat für Zutat oder speichere Mahlzeiten, die du oft isst, und erfasse sie später einfach über ihren Namen.",
+                body: "Sag „Haferflocken mit Banane und Erdnussbutter“ – deine KI erfasst Kalorien, Makros samt Ballaststoffen, Gesamtzucker, Koffein, gesättigten Fettsäuren und Transfetten. Generische Lebensmittel bekommen ihre Werte aus USDA FoodData Central, sofern es dort einen Eintrag gibt, Schätzungen decken den Rest ab; jede Zahl ist mit ihrer Quelle markiert. Erfasse eine Mahlzeit Zutat für Zutat oder speichere Mahlzeiten, die du oft isst, und erfasse sie später einfach über ihren Namen.",
             },
             {
                 title: "Barcode-Scan – kostenlos",
@@ -44,7 +44,7 @@ export const ALT_UI_DE: AltUiCopy = {
             },
             {
                 title: "Gewicht &amp; Ziele",
-                body: "Erfasse dein Körpergewicht in kg oder lb und Maßband-Maße von neun Körperstellen in cm oder in, leg Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Koffein und Wasser fest – Ballaststoffe als Ziel, das du erreichen willst, Zucker und Koffein als Limits, unter denen du bleiben willst – und verfolge deinen Trend in Richtung Zielgewicht. Auch Alkohol lässt sich erfassen – per Opt-in und standardmäßig aus, bis du es einschaltest.",
+                body: "Erfasse dein Körpergewicht in kg oder lb und Maßband-Maße von neun Körperstellen in cm oder in, leg Ziele für Kalorien, Makros, Ballaststoffe, Zucker, Koffein, gesättigte Fettsäuren und Wasser fest – Ballaststoffe als Ziel, das du erreichen willst, gesättigte Fettsäuren, Zucker und Koffein als Limits, unter denen du bleiben willst – und verfolge deinen Trend in Richtung Zielgewicht. Auch Alkohol lässt sich erfassen – per Opt-in und standardmäßig aus, bis du es einschaltest.",
             },
             {
                 title: "Übersichten &amp; Trends",
@@ -65,7 +65,7 @@ export const ALT_UI_DE: AltUiCopy = {
         compareTitle: "Der direkte Vergleich",
         pros: [
             "Als MCP-Server gebaut – läuft direkt in Claude &amp; ChatGPT",
-            "Mahlzeiten in eigenen Worten beschreiben – Kalorien, Makros, Ballaststoffe, Zucker &amp; Koffein werden für dich geschätzt; Stammgerichte speichern und mit einer Zeile erfassen",
+            "Mahlzeiten in eigenen Worten beschreiben – USDA-Werte für generische Lebensmittel, sonst Schätzungen, jede Zahl mit ihrer Quelle markiert; Stammgerichte speichern und mit einer Zeile erfassen",
             "Barcode-Scan, Trends, CSV-Import &amp; -Export – alles kostenlos",
             "Keine separate App, keine Werbung, Open Source",
         ],
@@ -98,7 +98,7 @@ export const ALT_UI_DE: AltUiCopy = {
                 "Es gibt keinen offiziellen {app}-Connector für Claude, weil {app} keinen öffentlichen MCP-Server anbietet. Eine Möglichkeit ist Nutrition MCP, ein kostenloser MCP-Server aus dem Claude-Verzeichnis: Öffne ihn unter https://claude.ai/directory/nutrition-mcp, klick auf Connect, melde dich an und erfasse ab dann alles im Gespräch.",
             goodAltQ: "Ist Nutrition MCP eine gute {app}-Alternative?",
             goodAltA:
-                "Ja, wenn du Kalorien, Makros (samt Ballaststoffen, Gesamtzucker und Koffein), Wasser und Gewicht erfassen willst, ohne eine separate App zu öffnen oder eine Lebensmitteldatenbank zu durchsuchen. Statt dich durch eine Datenbank zu tippen, beschreibst du in eigenen Worten, was du gegessen hast, schickst ein Foto oder scannst einen Barcode, und deine KI erfasst es – komplett kostenlos und Open Source.",
+                "Ja, wenn du Kalorien, Makros (samt Ballaststoffen, Gesamtzucker, Koffein, gesättigten Fettsäuren und Transfetten), Wasser und Gewicht erfassen willst, ohne eine separate App zu öffnen oder dich durch ein Ernährungstagebuch zu tippen. Du beschreibst in eigenen Worten, was du gegessen hast, schickst ein Foto oder scannst einen Barcode, und deine KI erfasst es. Generische Lebensmittel nehmen Werte aus USDA FoodData Central, wenn es welche gibt, verpackte Produkte kommen per Barcode von Open Food Facts, und Schätzungen decken den Rest ab – komplett kostenlos und Open Source.",
             importQ: "Kann ich meine {app}-Daten importieren?",
             readExportQ: "Liest die KI beim Import meine Exportdatei?",
             readExportA:
@@ -136,7 +136,7 @@ export const ALT_UI_DE: AltUiCopy = {
         importSub:
             "Meist bleibt man wegen der Jahre an Einträgen, die schon drinstecken. Sag, dass du importieren willst, und direkt im Chat öffnet sich ein Importer: Wähl deinen Export, ordne die Spalten zu, prüf in der Vorschau, was dazukommt, und bestätige – oder füg den Export ein, wenn dein Client keine In-Chat-Panels hat.",
         importBody: [
-            "Die Datei wird in deinem Browser eingelesen, nicht von der KI – so kann beim Übertragen keine Zeile vertippt werden, und du siehst die genauen Mahlzeiten, bevor auch nur eine davon gespeichert wird. Exporte von MyFitnessPal, Cronometer, Lose It! und MacroFactor werden an ihren Spaltennamen erkannt; jede andere CSV funktioniert auch, du ordnest jede Spalte nur einmal zu. Übernommen werden Datum und Uhrzeit, Lebensmittel, Mahlzeitentyp, Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Koffein in Milligramm – und auch Alkohol, wenn du die Alkohol-Erfassung vorher eingeschaltet hast.",
+            "Die Datei wird in deinem Browser eingelesen, nicht von der KI – so kann beim Übertragen keine Zeile vertippt werden, und du siehst die genauen Mahlzeiten, bevor auch nur eine davon gespeichert wird. Exporte von MyFitnessPal, Cronometer, Lose It! und MacroFactor werden an ihren Spaltennamen erkannt; jede andere CSV funktioniert auch, du ordnest jede Spalte nur einmal zu. Übernommen werden Datum und Uhrzeit, Lebensmittel, Mahlzeitentyp, Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker und Koffein in Milligramm sowie gesättigte und trans Fettsäuren, sofern die Datei sie enthält – und auch Alkohol, wenn du die Alkohol-Erfassung vorher eingeschaltet hast.",
             "Der Importer kommt mit den Tücken echter Exportdateien zurecht: Datumsangaben im Format TT.MM.JJJJ und MM/TT/JJJJ, Energie in Kilojoule ebenso wie in Kilokalorien, europäische Dateien mit Semikolon als Trennzeichen und Komma als Dezimalzeichen, Felder in Anführungszeichen mit Zeilenumbrüchen darin, Summenzeilen am Ende und Markierungen für gelöschte Zeilen. Auch die Spaltenüberschriften müssen nicht auf Englisch sein – Kalorien oder Ballaststoffe aus einem deutschen Export werden erkannt, und Ballaststoffe, Zucker und Koffein werden auch auf Spanisch, Französisch, Italienisch und Niederländisch zugeordnet. Wo eine Datei wirklich mehrdeutig ist – 05/06 kann Mai oder Juni sein –, zeigt dir der Importer seine Lesart neben einer Zeile aus deiner eigenen Datei und lässt dich bestätigen, statt zu raten. Und jede Zeile trägt einen Inhalts-Fingerabdruck: Importierst du dieselbe Datei erneut, werden die Mahlzeiten als bereits erfasst gemeldet statt verdoppelt – solange sich deine Zeitzone zwischendurch nicht geändert hat.",
         ],
 

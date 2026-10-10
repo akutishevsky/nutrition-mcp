@@ -8,12 +8,13 @@ import { dateInTz } from "./tz.js";
  * `withCurrentGoals`) and `upsertNutritionGoals` writes them.
  */
 
-/** The eleven goal columns, shared by `nutrition_goals` and its history. */
+/** The twelve goal columns, shared by `nutrition_goals` and its history. */
 export const GOAL_COLUMNS = [
     "daily_calories",
     "daily_protein_g",
     "daily_carbs_g",
     "daily_fat_g",
+    "daily_saturated_fat_g",
     "daily_fiber_g",
     "daily_sugar_g",
     "daily_added_sugar_g",
@@ -25,7 +26,14 @@ export const GOAL_COLUMNS = [
 
 export type GoalColumn = (typeof GOAL_COLUMNS)[number];
 
-export type GoalValues = Record<GoalColumn, number | null>;
+/** Every goal column. daily_saturated_fat_g is optional in the type so a goal
+ * set written before the column existed still type-checks; pickGoals always
+ * sets it (null when absent). */
+export type GoalValues = Record<
+    Exclude<GoalColumn, "daily_saturated_fat_g">,
+    number | null
+> &
+    Partial<Record<"daily_saturated_fat_g", number | null>>;
 
 export interface NutritionGoalsHistoryRow extends GoalValues {
     /** ISO instant the values took effect. */

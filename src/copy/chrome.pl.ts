@@ -25,7 +25,7 @@ export const CHROME_PL: ChromeCopy = {
         footer: "Stopka",
     },
 
-    githubAriaLabel: "Repozytorium na GitHubie",
+    githubAriaLabel: "Repozytorium w serwisie GitHub",
     changeLanguageAriaLabel: "Zmień język",
     languageTitle: "Język",
     theme: {

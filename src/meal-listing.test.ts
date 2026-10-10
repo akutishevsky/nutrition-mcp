@@ -585,3 +585,53 @@ describe("ingredients in listings", () => {
         expect(full.text).toContain("  1. Стріпси");
     });
 });
+
+describe("sources line in the full listing", () => {
+    const SOURCED = meal({
+        nutrient_sources: {
+            calories: { s: "usda", ref: "171477" },
+            protein_g: { s: "estimate" },
+        },
+        source_detail: { "usda:171477": { name: "Chicken", amount_g: 150 } },
+    } as Partial<Meal>);
+
+    test("full mode names the record and what the figures match", () => {
+        const { text } = renderMealListing({
+            meals: [SOURCED],
+            tz: KYIV,
+            alcohol: null,
+            detail: "full",
+            grouped: false,
+        });
+        expect(text).toContain(
+            "Sources: calories match USDA FoodData Central 171477 for 150 g; protein estimated.",
+        );
+    });
+
+    test("compact mode never carries the line", () => {
+        const { text } = renderMealListing({
+            meals: [SOURCED],
+            tz: KYIV,
+            alcohol: null,
+            detail: "compact",
+            grouped: false,
+        });
+        expect(text).not.toContain("Sources:");
+    });
+
+    test("an unlabelled or all-estimate meal adds no line", () => {
+        const estimates = meal({
+            nutrient_sources: { calories: { s: "estimate" } },
+        } as Partial<Meal>);
+        for (const m of [meal(), estimates]) {
+            const { text } = renderMealListing({
+                meals: [m],
+                tz: KYIV,
+                alcohol: null,
+                detail: "full",
+                grouped: false,
+            });
+            expect(text).not.toContain("Sources:");
+        }
+    });
+});
