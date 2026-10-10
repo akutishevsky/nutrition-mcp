@@ -24,11 +24,11 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_IT: IndexDoc = {
     title: "Nutrition MCP — Contacalorie e macro per Claude e ChatGPT",
     metaDescription:
-        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con codici a barre, peso ed esportazione completa dei dati.",
+        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con pasti salvati, codici a barre, peso ed esportazione.",
     ogDescription:
-        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con codici a barre, peso ed esportazione completa dei dati.",
+        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con pasti salvati, codici a barre, peso ed esportazione.",
     keywords:
-        "tracker nutrizionale, registro pasti, server MCP, Claude AI, ChatGPT, conta calorie, contacalorie AI, app calorie, tracker macro, scanner codice a barre, registrazione pasti, diario alimentare, tracker peso, registro peso, nutrizione IA, Model Context Protocol",
+        "tracker nutrizionale, registro pasti, server MCP, Claude AI, ChatGPT, conta calorie, contacalorie AI, app calorie, tracker macro, scanner codice a barre, registrazione pasti, diario alimentare, tracker peso, registro peso, pasti salvati, ingredienti dei pasti, ricette, nutrizione IA, Model Context Protocol",
 
     hero: {
         titleBeforeEm: "Tieni traccia di ciò che mangi ",
@@ -345,6 +345,51 @@ export const INDEX_IT: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Yogurt greco bianco 0% (vasetto da 150 g)"],
+            },
+            {
+                id: "saved-meal",
+                title: "Salva i tuoi pasti abituali",
+                description:
+                    "Salva un pasto che mangi spesso, con i suoi ingredienti, e registralo di nuovo chiamandolo per nome. Escludi un ingrediente o cambiane la quantità solo per quella volta, oppure registra più di una porzione: il pasto salvato resta com'era.",
+                toolNotes: {
+                    log_saved_meal:
+                        "Registra la bowl senza panna acida e con il pollo raddoppiato a 240 g",
+                    save_meal:
+                        "Conserva i sei ingredienti della bowl e i valori per una porzione, senza aggiungerla a oggi",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "salvami la burrito bowl così la registro al volo: 150 g di riso, 120 g di pollo, 100 g di fagioli neri, 60 g di salsa, 30 g di formaggio, 30 g di panna acida",
+                    },
+                    {
+                        from: "ai",
+                        text: "Ho salvato “Burrito bowl” con i suoi 6 ingredienti, per una porzione: 725 kcal, 59 g di proteine, 22 g di grassi. Salvarla non la aggiunge a oggi: quando la mangi, basta nominarla.",
+                    },
+                    {
+                        from: "user",
+                        text: "a pranzo ho preso la burrito bowl. oggi senza panna acida e con doppio pollo",
+                    },
+                    {
+                        from: "ai",
+                        text: "Registrato il pranzo dalla tua Burrito bowl, senza panna acida e con 240 g di pollo: 865 kcal e 95 g di proteine. La bowl salvata resta com'era per la prossima volta.",
+                    },
+                    {
+                        from: "user",
+                        text: "da dove arriva la maggior parte di quelle proteine?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dal pollo: 74 dei 95 g. I fagioli neri ne aggiungono 9 g, il formaggio 7 g, il riso 4 g e la salsa 1 g.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: ["Burrito bowl (senza panna acida, doppio pollo)"],
             },
             {
                 id: "goals-progress",
@@ -676,7 +721,7 @@ export const INDEX_IT: IndexDoc = {
         cards: [
             {
                 title: "Pasti a parole tue",
-                body: "Descrivi cosa hai mangiato: la tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e caffeina in milligrammi, e registra tutto.",
+                body: "Descrivi cosa hai mangiato: la tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e caffeina in milligrammi, e registra tutto. Salva i pasti che mangi spesso, ingredienti compresi, e registrali di nuovo chiamandoli per nome.",
             },
             {
                 title: "Scansiona un codice a barre",
@@ -828,7 +873,13 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cosa posso monitorare?",
             visibleHtml:
-                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Anche le misure corporee (vita, fianchi, collo, torace, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
+                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Un pasto si può registrare ingrediente per ingrediente, ciascuno con la sua quantità e i suoi valori nutrizionali, e un pasto che mangi spesso si può conservare come pasto salvato e registrare di nuovo chiamandolo per nome. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Anche le misure corporee (vita, fianchi, collo, torace, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
+        },
+        {
+            question:
+                "Posso salvare i pasti che mangio spesso, o le mie ricette?",
+            visibleHtml:
+                "Sì. Chiedi di salvare un pasto con un nome, solo con i totali oppure come ricetta con i suoi ingredienti, e vengono conservati i suoi valori per una porzione. La volta successiva basta nominarlo e viene registrato in un solo passaggio: in proporzione alle porzioni, con un singolo ingrediente portato alla quantità che hai mangiato davvero oppure escluso. La voce registrata è una copia, quindi modificare o eliminare in seguito il pasto salvato non cambia mai i pasti già registrati da esso. I pasti salvati fanno parte dell'esportazione dei tuoi dati.",
         },
         {
             question: "Quanto sono precisi i conteggi delle calorie?",
