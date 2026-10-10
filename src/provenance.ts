@@ -502,7 +502,11 @@ function pruneDetail(
  * value changed takes the fresh tag `changed` provides for it (from
  * resolveNutrientSources over the changed keys) or loses its label when none is
  * given. An unchanged nutrient keeps its stored tag, so a legacy row's untagged
- * nutrient stays untagged. A nutrient now null has no entry.
+ * nutrient stays untagged, with one exception: a nutrient in `restated` (the
+ * caller sent its value again and named it user_stated) takes the fresh tag
+ * whether or not the value moved, so re-stating a figure labels it as the
+ * user's own. A nutrient the call does not send is never in `restated`, so its
+ * stored tag is kept whatever user_stated says. A nutrient now null has no entry.
  *
  * source_detail is per record but the amount is per use: one record id carries
  * one amount. So when the fresh detail sets a record to a different amount than
@@ -515,7 +519,10 @@ export function mergeProvenance(input: {
     oldSources: NutrientSources | null;
     oldDetail: SourceDetail | null;
     changed: { sources: NutrientSources; detail: SourceDetail | null };
+    /** Nutrients the caller sent with a value and named user_stated. */
+    restated?: readonly MealNutrientKey[];
 }): { sources: NutrientSources; detail: SourceDetail | null } {
+    const restated = new Set<MealNutrientKey>(input.restated ?? []);
     const oldDetail = input.oldDetail ?? {};
     const freshDetail = input.changed.detail ?? {};
     // True when an unchanged record tag's stored amount is replaced by the
@@ -538,9 +545,13 @@ export function mergeProvenance(input: {
     for (const key of PROVENANCE_NUTRIENT_KEYS) {
         if (input.newValues[key] == null) continue;
         const changed = (input.oldValues[key] ?? null) !== input.newValues[key];
-        if (changed) {
+        if (changed || restated.has(key)) {
+            // A restated key the caller named user_stated is "user" even if
+            // the resolver returned no tag for it: its stored label never
+            // survives a restatement by accident.
             const tag = input.changed.sources[key];
             if (tag) sources[key] = tag;
+            else if (restated.has(key)) sources[key] = { s: "user" };
         } else {
             const tag = input.oldSources?.[key];
             if (tag)
@@ -1133,6 +1144,27 @@ export type RecordLookup = (
     source: RecordSource,
     id: string,
 ) => Promise<ReferenceRecord | null>;
+
+/**
+ * Wraps a RecordLookup so each distinct (source, id) is read at most once for
+ * as long as the wrapper lives. A whole import shares one wrapper, so N rows
+ * that name the same record cost one lookup rather than N. A failed lookup is
+ * remembered as a miss too, the same as reverifyImported treats it.
+ */
+export function memoizeRecordLookup(lookup: RecordLookup): RecordLookup {
+    const found = new Map<string, Promise<ReferenceRecord | null>>();
+    return (source, id) => {
+        const k = detailKey(source, id);
+        let hit = found.get(k);
+        if (!hit) {
+            // The async wrapper turns a synchronous throw from `lookup` into a
+            // rejection, so it is remembered as a miss like any other failure.
+            hit = (async () => lookup(source, id))().catch(() => null);
+            found.set(k, hit);
+        }
+        return hit;
+    };
+}
 
 export interface ReverifyResult {
     sources: NutrientSources | null;

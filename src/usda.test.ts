@@ -961,3 +961,21 @@ describe("formatUsdaRecord", () => {
         expect(text).not.toMatch(/For 150 g: \n/);
     });
 });
+
+test("usdaRecordFromPayload keeps only the meal nutrient keys of per100g", () => {
+    const record = usdaRecordFromPayload({
+        fdc_id: 171477,
+        name: "Croissant, plain",
+        data_type: "SR Legacy",
+        per100g: {
+            calories: 400,
+            protein_g: 8,
+            vitamin_c_mg: 3,
+            sodium_mg: 200,
+            fat_g: -1,
+        },
+        portions: [],
+    });
+    expect(record).not.toBeNull();
+    expect(record!.per100g).toEqual({ calories: 400, protein_g: 8 });
+});

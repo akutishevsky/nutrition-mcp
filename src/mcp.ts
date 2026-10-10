@@ -16,7 +16,10 @@ import {
     searchMeals,
     deleteMeal,
     updateMeal,
-    type MealSugarGuard,
+    type MealSnapshotGuard,
+    snapshotGuardOf,
+    SnapshotConflictError,
+    updateSavedMealIfUnchanged,
     deleteAllUserData,
     upsertNutritionGoals,
     getNutritionGoals,
@@ -486,7 +489,9 @@ export function nutrientPresence(meals: Meal[]): NutrientPresence {
 export function rangeAverages(
     perDay: Array<{ meals: Meal[]; totals: DailyTotals }>,
 ): {
-    averages: DailyTotals;
+    // No trans fat average: nothing reads one (trans fat has no limit and is
+    // shown per day only), so it is not zero-filled over every day here.
+    averages: Omit<DailyTotals, "trans_fat_g">;
     recordedDays: {
         saturated_fat_g: number;
         fiber_g: number;
@@ -503,7 +508,6 @@ export function rangeAverages(
         sum.carbs_g += totals.carbs_g;
         sum.fat_g += totals.fat_g;
         sum.saturated_fat_g += totals.saturated_fat_g;
-        sum.trans_fat_g += totals.trans_fat_g;
         sum.water_ml += totals.water_ml;
     }
     const mealsByDay = perDay.map((d) => d.meals);
@@ -521,7 +525,6 @@ export function rangeAverages(
             carbs_g: sum.carbs_g / n,
             fat_g: sum.fat_g / n,
             saturated_fat_g: saturated.avg ?? 0,
-            trans_fat_g: sum.trans_fat_g / n,
             fiber_g: fiber.avg ?? 0,
             sugar_g: sugar.avg ?? 0,
             added_sugar_g: addedSugar.avg ?? 0,
@@ -540,15 +543,14 @@ export function rangeAverages(
     };
 }
 
-/** get_nutrition_summary's added-sugar average, in text because no
- *  structuredContent shape may carry it (the summary's `averages` schema is
- *  frozen). Covered days only, like sugar (rangeAverages), against the limit
- *  when one is set. Empty for a single day, whose section already prints the
- *  figure. When no logged day recorded added sugar it is empty without a
- *  limit, and "not recorded in this period" with one. */
 // The summary's daily-average line for a limited partial nutrient (added sugar,
-// saturated fat): the same rule for both, so only the label differs.
-function ceilingAverageLine(
+// saturated fat): the same rule for both, so only the label differs. Text,
+// because no structuredContent shape may carry it (the summary's `averages`
+// schema is frozen). Covered days only, like sugar (rangeAverages), against the
+// limit when one is set. Empty for a single day, whose section already prints
+// the figure. When no logged day recorded the nutrient it is empty without a
+// limit, and "not recorded in this period" with one.
+export function ceilingAverageLine(
     label: string,
     average: number,
     recordedDays: number,
@@ -570,36 +572,6 @@ function ceilingAverageLine(
         limit,
         "ceiling",
     )}`;
-}
-
-export function addedSugarAverageLine(
-    average: number,
-    recordedDays: number,
-    loggedDays: number,
-    limit: number | null,
-): string {
-    return ceilingAverageLine(
-        "Added sugar",
-        average,
-        recordedDays,
-        loggedDays,
-        limit,
-    );
-}
-
-export function saturatedFatAverageLine(
-    average: number,
-    recordedDays: number,
-    loggedDays: number,
-    limit: number | null,
-): string {
-    return ceilingAverageLine(
-        "Saturated fat",
-        average,
-        recordedDays,
-        loggedDays,
-        limit,
-    );
 }
 
 /** The model-facing half of the #70 fix: says out loud that these averages
@@ -911,7 +883,9 @@ export function goalsPayloadOf(
  *  has to answer the question; a caller that forgets it gets null, which is the
  *  safe answer (a hidden stat line) rather than an invented zero. */
 export function totalsPayloadOf(
-    totals: DailyTotals,
+    // Trans fat is optional here: no payload built from these totals emits it.
+    totals: Omit<DailyTotals, "trans_fat_g"> &
+        Partial<Pick<DailyTotals, "trans_fat_g">>,
     alcohol: AlcoholDisplay,
     caffeineRecorded: boolean,
 ) {
@@ -2113,21 +2087,27 @@ function itemSourcesNoteFor(
     return block ? `\n${block}` : "";
 }
 
-/** The labels a plain-meal update gives the row: the nutrients whose value
- *  changed take the fresh labels, the rest keep the stored ones (mergeProvenance).
- *  Null when no nutrient is sent (nothing changes) or the meal is missing (the
- *  update itself reports that). */
-async function mergedPlainLabels(
-    userId: string,
-    id: string,
-    fields: Partial<Record<MealNutrientKey, number | null | undefined>>,
+/** How many times a meal or saved-meal write re-reads and redoes its checks and
+ *  label merge when a concurrent edit moved the row under it, before it gives
+ *  up with a ToolError asking for the edit to be sent again. */
+const SNAPSHOT_WRITE_ATTEMPTS = 3;
+
+function snapshotConflictError(noun: string): ToolError {
+    return new ToolError(
+        `The ${noun} changed while this edit was being saved, so nothing was written. Send the same edit again.`,
+    );
+}
+
+/** The labels a plain-meal update gives the row, merged from the row as it was
+ *  read (`old`): a nutrient whose value the call changes takes the fresh labels,
+ *  the rest keep theirs (mergeProvenance). */
+async function plainLabelsFor(
+    old: Meal,
+    fields: Partial<MealInput>,
     foodRef: FoodRefArg | undefined,
     userStated: MealNutrientKey[] | undefined,
-): Promise<{ sources: NutrientSources; detail: SourceDetail | null } | null> {
+): Promise<{ sources: NutrientSources; detail: SourceDetail | null }> {
     const sent = MEAL_NUTRIENT_KEYS.filter((k) => fields[k] !== undefined);
-    if (sent.length === 0) return null;
-    const old = await getMealById(userId, id);
-    if (!old) return null;
     const oldValues = loggedValuesOf(old);
     const newValues: LoggedValues = { ...oldValues };
     for (const key of sent) newValues[key] = fields[key] ?? null;
@@ -2138,7 +2118,140 @@ async function mergedPlainLabels(
         oldSources: parseNutrientSources(old.nutrient_sources ?? null),
         oldDetail: parseSourceDetail(old.source_detail ?? null),
         changed,
+        restated: restatedKeys(userStated, sent),
     });
+}
+
+/** The nutrients a call both sends a value for and names user_stated. A
+ *  user_stated key the call does not send is not here: its stored label stays. */
+function restatedKeys(
+    userStated: readonly MealNutrientKey[] | undefined,
+    sent: readonly MealNutrientKey[],
+): MealNutrientKey[] {
+    return (userStated ?? []).filter((k) => sent.includes(k));
+}
+
+/** The plain-meal write of update_meal. The sugar checks, the label merge and
+ *  the write all come from ONE read of the row, and the write is conditional on
+ *  the row still holding that read (updateMeal's snapshot guard). A concurrent
+ *  edit therefore makes this re-read and redo its checks and merge, so two edits
+ *  to one meal can neither drop each other's labels nor leave a label that
+ *  describes a value no longer stored. A call that sends no nutrient reads
+ *  nothing and writes unguarded, since it changes no value or label. */
+async function writePlainMealUpdate(
+    userId: string,
+    id: string,
+    fields: Partial<MealInput>,
+    foodRef: FoodRefArg | undefined,
+    userStated: MealNutrientKey[] | undefined,
+    checkSugar: (stored: Meal | null) => void,
+): Promise<{ meal: Meal; note: string }> {
+    const sent = MEAL_NUTRIENT_KEYS.filter((k) => fields[k] !== undefined);
+    for (let attempt = 1; ; attempt++) {
+        const old = sent.length > 0 ? await getMealById(userId, id) : null;
+        if (sent.length > 0) checkSugar(old);
+        const labels = old
+            ? await plainLabelsFor(old, fields, foodRef, userStated)
+            : null;
+        const { iso, note } = await resolveWriteTimestamp(
+            userId,
+            fields.logged_at,
+        );
+        try {
+            const meal = await updateMeal(
+                userId,
+                id,
+                {
+                    ...fields,
+                    logged_at: iso,
+                    ...(labels
+                        ? {
+                              nutrient_sources: labels.sources,
+                              source_detail: labels.detail,
+                          }
+                        : {}),
+                },
+                old ? snapshotGuardOf(old) : undefined,
+            );
+            return { meal, note };
+        } catch (err) {
+            if (!(err instanceof SnapshotConflictError)) throw err;
+            if (attempt >= SNAPSHOT_WRITE_ATTEMPTS)
+                throw snapshotConflictError("meal");
+        }
+    }
+}
+
+/** The totals path of update_saved_meal (no items: an itemized saved meal's
+ *  totals change through its items, which are refused here). Its checks, label
+ *  merge and guarded row write come from one read, retried like
+ *  writePlainMealUpdate. Null when this user has no saved meal with `id`. */
+async function writeSavedMealTotals(
+    userId: string,
+    id: string,
+    base: Partial<SavedMealInput>,
+    sentTotals: MealNutrientKey[],
+    totals: Partial<NutrientValues>,
+    foodRef: FoodRefArg | undefined,
+    userStated: MealNutrientKey[] | undefined,
+): Promise<SavedMealWithItems | null> {
+    for (let attempt = 1; ; attempt++) {
+        const current = await getSavedMeal(userId, id);
+        if (!current) return null;
+        if (current.items.length > 0)
+            throw new ToolError(
+                `This saved meal's totals are the sum of its ${current.items.length} item${current.items.length === 1 ? "" : "s"}, so they change through items (the full new list) rather than directly.`,
+                { category: "meal_items_invalid" },
+            );
+        // Checked against the stored partner of whichever sugar field is not
+        // sent, as update_meal does.
+        const addedNow =
+            totals.added_sugar_g !== undefined
+                ? totals.added_sugar_g
+                : current.added_sugar_g;
+        const sugarNow =
+            totals.sugar_g !== undefined ? totals.sugar_g : current.sugar_g;
+        const sugarError = addedSugarError(
+            addedNow ?? undefined,
+            sugarNow ?? undefined,
+        );
+        if (sugarError) throw new ToolError(sugarError);
+        if (
+            addedSugarRequiredNow() &&
+            totals.sugar_g !== undefined &&
+            totals.added_sugar_g === undefined &&
+            current.added_sugar_g === null
+        )
+            throw savedMealAddedSugarMissingError(id);
+        // The changed totals take the fresh labels; the rest keep theirs.
+        const oldValues = loggedValuesOf(current);
+        const newValues = loggedValuesOf({ ...current, ...totals });
+        const labels = mergeProvenance({
+            oldValues,
+            newValues,
+            oldSources: parseNutrientSources(current.nutrient_sources ?? null),
+            oldDetail: parseSourceDetail(current.source_detail ?? null),
+            changed: await labelRow(foodRef, newValues, userStated),
+            restated: restatedKeys(userStated, sentTotals),
+        });
+        try {
+            return await updateSavedMealIfUnchanged(
+                userId,
+                id,
+                {
+                    ...base,
+                    ...totals,
+                    nutrient_sources: labels.sources,
+                    source_detail: labels.detail,
+                },
+                snapshotGuardOf(current),
+            );
+        } catch (err) {
+            if (!(err instanceof SnapshotConflictError)) throw err;
+            if (attempt >= SNAPSHOT_WRITE_ATTEMPTS)
+                throw snapshotConflictError("saved meal");
+        }
+    }
 }
 
 const SAVED_MEAL_ID_SOURCES = "get_saved_meals or search_meals";
@@ -2564,23 +2677,6 @@ export function updatedAddedSugarError(
             : stored?.added_sugar_g,
         fields.sugar_g !== undefined ? fields.sugar_g : stored?.sugar_g,
     );
-}
-
-// The stored pair updatedAddedSugarError checks a one-sided update against.
-// Two columns only, scoped to the user like every meal read; null when no such
-// meal exists, which updateMeal then reports with its own not-found text.
-async function storedMealSugars(
-    userId: string,
-    id: string,
-): Promise<Pick<Meal, "sugar_g" | "added_sugar_g"> | null> {
-    const { data, error } = await getSupabase()
-        .from("meals")
-        .select("sugar_g, added_sugar_g")
-        .eq("id", id)
-        .eq("user_id", userId)
-        .maybeSingle();
-    if (error) throw new Error(`Failed to read meal: ${error.message}`);
-    return (data as Pick<Meal, "sugar_g" | "added_sugar_g"> | null) ?? null;
 }
 
 // lookup_barcode's two Open Food Facts fallbacks. A lookup is often only a
@@ -4154,19 +4250,6 @@ export function registerTools(
                     const coverageNote = partial.length
                         ? `\n\n(Averaged over the days that record each figure, not all ${days.length}: ${partial.join(", ")}.)`
                         : "";
-                    const addedSugarAverage = addedSugarAverageLine(
-                        rawAverages.added_sugar_g,
-                        recordedDays.added_sugar_g,
-                        days.length,
-                        goals?.daily_added_sugar_g ?? null,
-                    );
-                    const saturatedFatAverage = saturatedFatAverageLine(
-                        rawAverages.saturated_fat_g,
-                        recordedDays.saturated_fat_g,
-                        days.length,
-                        goals?.daily_saturated_fat_g ?? null,
-                    );
-
                     // Added sugar does not rank rows of its own: that would
                     // change structuredContent.meals for every host, _meta or
                     // not. Its list draws from the kept rows that carry a
@@ -4185,8 +4268,20 @@ export function registerTools(
                     );
 
                     const footer =
-                        addedSugarAverage +
-                        saturatedFatAverage +
+                        ceilingAverageLine(
+                            "Added sugar",
+                            rawAverages.added_sugar_g,
+                            recordedDays.added_sugar_g,
+                            days.length,
+                            goals?.daily_added_sugar_g ?? null,
+                        ) +
+                        ceilingAverageLine(
+                            "Saturated fat",
+                            rawAverages.saturated_fat_g,
+                            recordedDays.saturated_fat_g,
+                            days.length,
+                            goals?.daily_saturated_fat_g ?? null,
+                        ) +
                         coverageNote +
                         loggedDayAverageNote(days.length, daysInRange) +
                         (goals
@@ -4886,7 +4981,6 @@ export function registerTools(
                     let itemsChecked: Awaited<
                         ReturnType<typeof checkedItemsWithSources>
                     > | null = null;
-                    let sugarGuard: MealSugarGuard | undefined;
                     if (rawItems !== undefined) {
                         // Items replace the totals: the totals fields may not
                         // come alongside, and each item is checked on its own.
@@ -4905,42 +4999,27 @@ export function registerTools(
                                 { category: "meal_items_invalid" },
                             );
                     }
-                    // The stored row is read only when exactly one of the
-                    // two sugar fields is passed — the backfill case. The
-                    // write is then conditional on the stored value the check
-                    // relied on (the side NOT passed), so a concurrent edit to
-                    // it makes updateMeal refuse rather than leave added
-                    // sugar above total; never clamped.
+                    // The sugar checks run on the row the plain write is computed
+                    // from (writePlainMealUpdate). A pair sent together needs no
+                    // stored partner, so it is checked from this call alone.
                     const passedSugar = fields.sugar_g !== undefined;
                     const passedAdded = fields.added_sugar_g !== undefined;
-                    if (itemsChecked === null && (passedSugar || passedAdded)) {
-                        const stored =
-                            passedSugar && passedAdded
-                                ? null
-                                : await storedMealSugars(userId, id);
-                        // sugar_g without added_sugar_g on a meal that has
-                        // none stored would leave total sugar with no added
-                        // part. `stored` is non-null here whenever only
-                        // sugar_g was passed and the meal exists; a missing
-                        // meal falls through to updateMeal's not-found text.
+                    const checkPairedSugar = (stored: Meal | null): void => {
+                        if (!passedSugar && !passedAdded) return;
+                        const partner =
+                            passedSugar && passedAdded ? null : stored;
                         if (
-                            stored &&
+                            partner &&
                             addedSugarRequiredNow() &&
-                            addedSugarMissing(fields, stored.added_sugar_g)
+                            addedSugarMissing(fields, partner.added_sugar_g)
                         )
                             throw addedSugarMissingError(id);
                         const sugarError = updatedAddedSugarError(
                             fields,
-                            stored,
+                            partner,
                         );
                         if (sugarError) throw new ToolError(sugarError);
-                        // A null `stored` here means no such meal; updateMeal
-                        // reports that itself.
-                        if (stored)
-                            sugarGuard = passedSugar
-                                ? { added_sugar_g: stored.added_sugar_g }
-                                : { sugar_g: stored.sugar_g };
-                    }
+                    };
                     // A plain meal's changed nutrients take fresh labels and the
                     // rest keep theirs; an itemized meal's labels come from its
                     // items (already in itemsChecked).
@@ -4952,48 +5031,38 @@ export function registerTools(
                         );
                         if (foodRef !== undefined) parseFoodRef(foodRef);
                     }
-                    const plainLabels = itemsChecked
-                        ? null
-                        : await mergedPlainLabels(
-                              userId,
-                              id,
-                              fields,
-                              foodRef,
-                              userStated,
-                          );
-                    const { iso, note } = await resolveWriteTimestamp(
-                        userId,
-                        fields.logged_at,
-                    );
-                    const meal = itemsChecked
-                        ? await replaceMealItems(
-                              userId,
-                              id,
-                              {
-                                  ...fields,
-                                  ...itemsChecked.totals,
-                                  logged_at: iso,
-                                  nutrient_sources: itemsChecked.sources,
-                                  source_detail: itemsChecked.detail,
-                              },
-                              itemsChecked.items,
-                          )
-                        : await updateMeal(
-                              userId,
-                              id,
-                              {
-                                  ...fields,
-                                  logged_at: iso,
-                                  ...(plainLabels
-                                      ? {
-                                            nutrient_sources:
-                                                plainLabels.sources,
-                                            source_detail: plainLabels.detail,
-                                        }
-                                      : {}),
-                              },
-                              sugarGuard,
-                          );
+                    let written: { meal: Meal; note: string };
+                    if (itemsChecked) {
+                        const { iso, note } = await resolveWriteTimestamp(
+                            userId,
+                            fields.logged_at,
+                        );
+                        written = {
+                            meal: await replaceMealItems(
+                                userId,
+                                id,
+                                {
+                                    ...fields,
+                                    ...itemsChecked.totals,
+                                    logged_at: iso,
+                                    nutrient_sources: itemsChecked.sources,
+                                    source_detail: itemsChecked.detail,
+                                },
+                                itemsChecked.items,
+                            ),
+                            note,
+                        };
+                    } else {
+                        written = await writePlainMealUpdate(
+                            userId,
+                            id,
+                            fields,
+                            foodRef,
+                            userStated,
+                            checkPairedSugar,
+                        );
+                    }
+                    const { meal, note } = written;
                     const { progressSection, structuredContent, meta, tz } =
                         await buildMealProgress(
                             userId,
@@ -5798,86 +5867,46 @@ export function registerTools(
                             sources: checked.sources,
                             detail: checked.detail,
                         };
-                    } else if (sentTotals.length > 0) {
-                        const current = await getSavedMeal(userId, id);
-                        if (!current) throw notFound();
-                        if (current.items.length > 0)
-                            throw new ToolError(
-                                `This saved meal's totals are the sum of its ${current.items.length} item${current.items.length === 1 ? "" : "s"}, so they change through items (the full new list) rather than directly.`,
-                                { category: "meal_items_invalid" },
-                            );
-                        // Checked against the stored partner of whichever
-                        // sugar field is not sent, as update_meal does.
-                        const addedNow =
-                            fields.added_sugar_g !== undefined
-                                ? fields.added_sugar_g
-                                : current.added_sugar_g;
-                        const sugarNow =
-                            fields.sugar_g !== undefined
-                                ? fields.sugar_g
-                                : current.sugar_g;
-                        const sugarError = addedSugarError(
-                            addedNow ?? undefined,
-                            sugarNow ?? undefined,
-                        );
-                        if (sugarError) throw new ToolError(sugarError);
-                        if (
-                            addedSugarRequiredNow() &&
-                            fields.sugar_g !== undefined &&
-                            fields.added_sugar_g === undefined &&
-                            current.added_sugar_g === null
-                        )
-                            throw savedMealAddedSugarMissingError(id);
-                        totals = Object.fromEntries(
-                            sentTotals.map((k) => [k, fields[k]]),
-                        ) as Partial<NutrientValues>;
-                        // The changed totals take the fresh labels; the rest
-                        // keep theirs (mergeProvenance, as update_meal does).
-                        const oldValues = loggedValuesOf(current);
-                        const newValues = loggedValuesOf({
-                            ...current,
-                            ...totals,
-                        });
-                        labels = mergeProvenance({
-                            oldValues,
-                            newValues,
-                            oldSources: parseNutrientSources(
-                                current.nutrient_sources ?? null,
-                            ),
-                            oldDetail: parseSourceDetail(
-                                current.source_detail ?? null,
-                            ),
-                            changed: await labelRow(
-                                foodRef,
-                                newValues,
-                                userStated,
-                            ),
-                        });
                     }
-
+                    const base: Partial<SavedMealInput> = {
+                        ...(name !== undefined ? { name } : {}),
+                        ...(description !== undefined ? { description } : {}),
+                        ...(fields.meal_type !== undefined
+                            ? { meal_type: fields.meal_type }
+                            : {}),
+                    };
                     let updated: SavedMealWithItems | null;
                     try {
-                        updated = await updateSavedMeal(
-                            userId,
-                            id,
-                            {
-                                ...totals,
-                                ...(name !== undefined ? { name } : {}),
-                                ...(description !== undefined
-                                    ? { description }
-                                    : {}),
-                                ...(fields.meal_type !== undefined
-                                    ? { meal_type: fields.meal_type }
-                                    : {}),
-                                ...(labels
-                                    ? {
-                                          nutrient_sources: labels.sources,
-                                          source_detail: labels.detail,
-                                      }
-                                    : {}),
-                            },
-                            items,
-                        );
+                        updated =
+                            rawItems === undefined && sentTotals.length > 0
+                                ? await writeSavedMealTotals(
+                                      userId,
+                                      id,
+                                      base,
+                                      sentTotals,
+                                      Object.fromEntries(
+                                          sentTotals.map((k) => [k, fields[k]]),
+                                      ) as Partial<NutrientValues>,
+                                      foodRef,
+                                      userStated,
+                                  )
+                                : await updateSavedMeal(
+                                      userId,
+                                      id,
+                                      {
+                                          ...totals,
+                                          ...base,
+                                          ...(labels
+                                              ? {
+                                                    nutrient_sources:
+                                                        labels.sources,
+                                                    source_detail:
+                                                        labels.detail,
+                                                }
+                                              : {}),
+                                      },
+                                      items,
+                                  );
                     } catch (err) {
                         if (err instanceof SavedMealNameTaken)
                             throw savedMealNameTakenError(

@@ -31,6 +31,7 @@ import {
     getNutritionGoalsHistory,
     insertMeal,
     updateMeal,
+    SnapshotConflictError,
     replaceMealItems,
     type Meal,
     type MealInput,
@@ -1809,21 +1810,22 @@ describe("meal writes persist added_sugar_g", () => {
         expect(updated.sugar_g).toBe(30);
     });
 
-    test("a guard that no longer holds writes nothing and throws the conflict ToolError", async () => {
+    test("a guard that no longer holds writes nothing and throws SnapshotConflictError", async () => {
         await insertMeal(USER, {
             ...meal({ sugar_g: 20 }),
             logged_at: LOGGED_AT,
         });
         // The check read sugar_g 40; a concurrent edit has since stored 20.
+        // The caller (update_meal) re-reads and redoes its checks on this.
         const err = await updateMeal(
             USER,
             MEAL_ID,
             { added_sugar_g: 30 },
             { sugar_g: 40 },
         ).catch((e: unknown) => e);
-        expect(err).toBeInstanceOf(ToolError);
+        expect(err).toBeInstanceOf(SnapshotConflictError);
         expect((err as Error).message).toBe(
-            `The sugar values stored on meal ${MEAL_ID} changed while this edit was being applied, so nothing was written. Stored now: sugar_g 20 g, added_sugar_g not recorded.`,
+            `row ${MEAL_ID} changed since it was read`,
         );
         expect(patches).toHaveLength(0);
         expect(rows[0]?.added_sugar_g ?? null).toBe(null);

@@ -803,32 +803,73 @@ export async function deleteMeal(userId: string, id: string): Promise<boolean> {
     return (data?.length ?? 0) > 0;
 }
 
-/** The stored sugar values a caller's added ≤ total check relied on (see
- *  update_meal in src/mcp.ts). Each key present makes updateMeal's write
- *  conditional on that column still holding exactly that value — `null` means
- *  IS NULL — so a concurrent edit between the check's read and this write
- *  cannot leave added_sugar_g above sugar_g; the migration has no DB check. */
-export type MealSugarGuard = Partial<Pick<Meal, "sugar_g" | "added_sugar_g">>;
+/** The stored values a write was computed from: every nutrient column of a
+ *  meal or saved meal, and its two label columns. A write conditional on this
+ *  snapshot (guardedBy) only lands while the row still holds exactly what its
+ *  checks and label merge read, so a concurrent edit makes the caller re-read
+ *  and redo them instead of overwriting the other edit's labels or sugar.
+ *  `null` means IS NULL; an object label compares as jsonb. */
+export type MealSnapshotGuard = Partial<
+    Record<(typeof NUTRIENT_KEYS)[number], number | null>
+> & {
+    nutrient_sources?: unknown;
+    source_detail?: unknown;
+};
 
-function sugarText(value: number | null | undefined): string {
-    return value == null ? "not recorded" : `${value} g`;
+/** A guarded write found its row, but the row no longer holds the snapshot. */
+export class SnapshotConflictError extends Error {
+    override name = "SnapshotConflictError";
+    constructor(readonly rowId: string) {
+        super(`row ${rowId} changed since it was read`);
+    }
 }
 
-/** The ToolError a guarded updateMeal throws when the guarded value moved.
- *  Its wording avoids the words categorizeError's keyword tier keys on
- *  ("update" holds "date", "separate" holds "rate"), so it is not misfiled. */
-export function mealSugarConflictText(
-    id: string,
-    current: Pick<Meal, "sugar_g" | "added_sugar_g">,
-): string {
-    return `The sugar values stored on meal ${id} changed while this edit was being applied, so nothing was written. Stored now: sugar_g ${sugarText(current.sugar_g)}, added_sugar_g ${sugarText(current.added_sugar_g)}.`;
+/** The one filter shape guardedBy needs, so it works on any PostgREST builder
+ *  of a table without the table's column typing getting in the way. */
+interface GuardFilter {
+    is(column: string, value: null): GuardFilter;
+    eq(column: string, value: unknown): GuardFilter;
 }
 
+/** Adds one equality filter per guard entry to a PostgREST update. */
+function guardedBy<Q>(query: Q, guard: MealSnapshotGuard): Q {
+    let filter = query as unknown as GuardFilter;
+    for (const [column, value] of Object.entries(guard)) {
+        if (value === undefined) continue;
+        if (value === null) filter = filter.is(column, null);
+        // A label is compared by its jsonb value, which PostgREST casts from
+        // the text; a number compares by its numeric value.
+        else if (typeof value === "object")
+            filter = filter.eq(column, JSON.stringify(value));
+        else filter = filter.eq(column, value);
+    }
+    return filter as unknown as Q;
+}
+
+/** The snapshot of one row as a guard: all eleven nutrient columns and both
+ *  label columns, with a missing column read as null. */
+export function snapshotGuardOf(
+    row: {
+        nutrient_sources?: unknown;
+        source_detail?: unknown;
+    } & Partial<Record<(typeof NUTRIENT_KEYS)[number], number | null>>,
+): MealSnapshotGuard {
+    const guard: MealSnapshotGuard = {
+        nutrient_sources: row.nutrient_sources ?? null,
+        source_detail: row.source_detail ?? null,
+    };
+    for (const key of NUTRIENT_KEYS) guard[key] = row[key] ?? null;
+    return guard;
+}
+
+/** Updates a logged meal. With `guard`, the write lands only while the row
+ *  still holds that snapshot (see MealSnapshotGuard); otherwise it throws
+ *  SnapshotConflictError and writes nothing. */
 export async function updateMeal(
     userId: string,
     id: string,
     fields: Partial<MealInput>,
-    guard?: MealSugarGuard,
+    guard?: MealSnapshotGuard,
 ): Promise<Meal> {
     const sb = getSupabase();
 
@@ -881,14 +922,7 @@ export async function updateMeal(
         .update(update)
         .eq("id", id)
         .eq("user_id", userId);
-    // Compared against exactly the value PostgREST returned on the guard's
-    // read: JSON numbers from a bare numeric column round-trip through eq.
-    for (const column of ["sugar_g", "added_sugar_g"] as const) {
-        if (!guard || !(column in guard)) continue;
-        const value = guard[column];
-        query =
-            value == null ? query.is(column, null) : query.eq(column, value);
-    }
+    if (guard) query = guardedBy(query, guard);
     // No `.single()`: a guard that no longer matches leaves zero rows, which
     // must read as a conflict rather than a PostgREST coercion error.
     const { data, error } = await query.select();
@@ -898,10 +932,10 @@ export async function updateMeal(
     if (row) return row;
 
     // Nothing written. The row existed at the pre-check above, so either it
-    // was deleted since or a guarded value moved; tell them apart.
+    // was deleted since or the guarded snapshot moved; tell them apart.
     const { data: now, error: nowErr } = await sb
         .from("meals")
-        .select("sugar_g, added_sugar_g")
+        .select("id")
         .eq("id", id)
         .eq("user_id", userId)
         .maybeSingle();
@@ -909,12 +943,7 @@ export async function updateMeal(
     if (!now) throw new ToolError(`No meal found with id ${id}.`);
     if (!guard)
         throw new Error("Failed to update meal: no row matched the write");
-    throw new ToolError(
-        mealSugarConflictText(
-            id,
-            now as Pick<Meal, "sugar_g" | "added_sugar_g">,
-        ),
-    );
+    throw new SnapshotConflictError(id);
 }
 
 // ---------- Food records (provenance) ----------
@@ -1497,6 +1526,52 @@ export async function countSavedMeals(userId: string): Promise<number> {
         .eq("user_id", userId);
     if (error) throw new Error(`Failed to count saved meals: ${error.message}`);
     return count ?? 0;
+}
+
+/** Updates a saved meal's own figures and labels (no items) as one guarded
+ *  row write: it lands only while the row still holds `guard`, else it throws
+ *  SnapshotConflictError. A name taken by another saved meal throws
+ *  SavedMealNameTaken. Null when this user has no saved meal with `id`. */
+export async function updateSavedMealIfUnchanged(
+    userId: string,
+    id: string,
+    fields: Partial<SavedMealInput>,
+    guard: MealSnapshotGuard,
+): Promise<SavedMealWithItems | null> {
+    if (!isUuid(id)) return null;
+    const sb = getSupabase();
+    const query = sb
+        .from("saved_meals")
+        .update({
+            ...savedMealFields(fields),
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .eq("user_id", userId);
+    const { data, error } = await guardedBy(query, guard).select("*");
+    if (error) {
+        if (error.code === "23505")
+            throw new SavedMealNameTaken(
+                await savedMealIdByName(userId, fields.name),
+            );
+        throw new Error(`Failed to update saved meal: ${error.message}`);
+    }
+    const row = (data as Record<string, unknown>[] | null)?.[0];
+    if (row) {
+        const [withItem] = await withItems(userId, [savedMealFromRow(row)]);
+        return withItem ?? null;
+    }
+    // Nothing written: gone, or the guarded snapshot moved.
+    const { data: still, error: stillErr } = await sb
+        .from("saved_meals")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (stillErr)
+        throw new Error(`Failed to update saved meal: ${stillErr.message}`);
+    if (!still) return null;
+    throw new SnapshotConflictError(id);
 }
 
 /** Updates a saved meal. `items` replaces its ingredients when given, and

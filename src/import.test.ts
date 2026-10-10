@@ -2109,3 +2109,19 @@ test("a row that deduplicates is not re-verified, so its downgrade is not report
     expect(second.summary.deduplicated).toBe(1);
     expect(second.warnings.join(" ")).not.toContain("estimates");
 });
+
+test("a big own-export import reads each distinct record once, however many rows name it", async () => {
+    const { deps, inserted } = makeStore();
+    const looked: string[] = [];
+    deps.foodRecord = async (source, id) => {
+        looked.push(`${source}:${id}`);
+        return lookupCroissant()!(source, id);
+    };
+    const rows = [1, 2, 3, 4, 5].map((n) =>
+        ownExportRow({ source_line: n + 1, description: `Croissant ${n}` }),
+    );
+    const result = await runImport(args(rows), deps);
+    expect(result.summary.created).toBe(5);
+    expect(inserted).toHaveLength(5);
+    expect(looked).toEqual(["usda:171477"]);
+});

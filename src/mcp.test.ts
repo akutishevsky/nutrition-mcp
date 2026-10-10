@@ -57,7 +57,7 @@ import {
     BODY_MEASUREMENT_RANGE_MAX_DAYS,
     healthSyncProfileLine,
     updatedAddedSugarError,
-    addedSugarAverageLine,
+    ceilingAverageLine,
     addedSugarRequiredNow,
 } from "./mcp.js";
 import {
@@ -96,6 +96,18 @@ import { NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
 // in place, so restoring from the live `actualSupabase` afterwards would hand
 // the next file the mock again. Restore from this copy.
 const realSupabase = { ...actualSupabase };
+
+type ConcurrentEdit<T> = Partial<T> | ((row: T) => Partial<T>);
+
+/** A stored row no longer holds a write's guard (the fake's SnapshotConflictError
+ *  test): compares every guarded column the way the real jsonb / IS NULL filter does. */
+function storedMoved(row: object, guard: object): boolean {
+    return Object.entries(guard).some(
+        ([column, value]) =>
+            JSON.stringify(value ?? null) !==
+            JSON.stringify((row as Record<string, unknown>)[column] ?? null),
+    );
+}
 import { DELETED_ACCOUNT_ANALYTICS_ID } from "./analytics.js";
 import { ToolError } from "./errors.js";
 import { addedSugarExtra, type AddedSugarMeta } from "./added-sugar.js";
@@ -400,6 +412,11 @@ describe("nutrientPresence", () => {
 });
 
 describe("rangeAverages", () => {
+    test("the averages carry no trans fat: nothing reads one, so none is zero-filled", () => {
+        const { averages } = rangeAverages([]);
+        expect(averages).not.toHaveProperty("trans_fat_g");
+    });
+
     const day = (over: Partial<Meal>, water = 0) => {
         const meals = [meal(over)];
         const totals = sumMeals(meals);
@@ -1607,6 +1624,36 @@ function storedMeal(input: Record<string, unknown>): Meal {
     });
 }
 
+function fakeUpdateSavedMeal(
+    id: string,
+    fields: Record<string, unknown>,
+    items: MealItemValues[] | null,
+) {
+    const current = db.savedMeals.find((s) => s.id === id);
+    if (!current) return null;
+    const name = fields.name as string | undefined;
+    const clash =
+        name !== undefined
+            ? db.savedMeals.find(
+                  (s) =>
+                      s.id !== id &&
+                      s.name.toLowerCase() === name.toLowerCase(),
+              )
+            : undefined;
+    if (clash) throw new realSupabase.SavedMealNameTaken(clash.id);
+    db.savedMealUpdates.push({ id, fields, items });
+    const defined = Object.fromEntries(
+        Object.entries(fields).filter(([, v]) => v !== undefined),
+    );
+    const next = {
+        ...current,
+        ...defined,
+        items: items ?? current.items,
+    } as SavedMealWithItems;
+    db.savedMeals = db.savedMeals.map((s) => (s.id === id ? next : s));
+    return next;
+}
+
 const db = {
     profile: null as actualSupabase.Profile | null,
     goals: null as NutritionGoals | null,
@@ -1675,10 +1722,13 @@ const db = {
     // The sugar guard update_meal handed updateMeal on each call (undefined
     // when the write needed none), and a sugar edit the fake applies to the
     // stored meal between update_meal's read and its write.
-    mealUpdateGuards: [] as (
-        Partial<Pick<Meal, "sugar_g" | "added_sugar_g">> | undefined
-    )[],
-    concurrentMealEdit: null as Partial<Meal> | null,
+    mealUpdateGuards: [] as (Record<string, unknown> | undefined)[],
+    // Applied between a write's read and its write. An object applies once
+    // (then clears) unless concurrentEditPersists; a function computes the
+    // change from the stored row, so a persisting edit moves it every time.
+    concurrentMealEdit: null as ConcurrentEdit<Meal> | null,
+    concurrentSavedMealEdit: null as ConcurrentEdit<SavedMealWithItems> | null,
+    concurrentEditPersists: false,
     // Ingredients by meal id, as the store's meal_items rows read back.
     mealItems: new Map<string, MealItemValues[]>(),
     // When set, getMealItems throws it (the widget payload's read failing).
@@ -1815,25 +1865,25 @@ mock.module("./supabase.js", () => ({
         _userId: string,
         id: string,
         fields: Record<string, unknown>,
-        guard?: Partial<Pick<Meal, "sugar_g" | "added_sugar_g">>,
+        guard?: Record<string, unknown>,
     ) => {
         if (db.failWith) throw db.failWith;
         db.mealUpdateGuards.push(guard);
         // Mirrors the real guarded write: a concurrent edit (staged in
-        // db.concurrentMealEdit, applied between update_meal's read and this
-        // write) that moves a guarded column makes it write nothing and throw
-        // the conflict ToolError naming the values now stored.
+        // db.concurrentMealEdit, applied between the caller's read and this
+        // write) that moves any guarded column or label makes it write nothing
+        // and throw SnapshotConflictError.
         const current = db.meals.find((m) => m.id === id);
-        if (current && db.concurrentMealEdit)
-            Object.assign(current, db.concurrentMealEdit);
-        if (current && guard) {
-            for (const column of ["sugar_g", "added_sugar_g"] as const) {
-                if (column in guard && guard[column] !== current[column])
-                    throw new ToolError(
-                        realSupabase.mealSugarConflictText(id, current),
-                    );
-            }
+        if (current && db.concurrentMealEdit) {
+            const edit = db.concurrentMealEdit;
+            Object.assign(
+                current,
+                typeof edit === "function" ? edit(current) : edit,
+            );
+            if (!db.concurrentEditPersists) db.concurrentMealEdit = null;
         }
+        if (current && guard && storedMoved(current, guard))
+            throw new realSupabase.SnapshotConflictError(id);
         db.mealUpdates.push(fields);
         const saved = storedMeal({ ...fields, id });
         db.meals = [saved];
@@ -1999,8 +2049,10 @@ mock.module("./supabase.js", () => ({
         db.foodCacheReads.push(`${source}:${id}`);
         return db.foodRecords.get(`${source}:${id}`) ?? null;
     },
-    getMealById: async (_userId: string, id: string) =>
-        db.meals.find((m) => m.id === id) ?? null,
+    getMealById: async (_userId: string, id: string) => {
+        db.storedMealReads += 1;
+        return db.meals.find((m) => m.id === id) ?? null;
+    },
     replaceMealItems: async (
         _userId: string,
         id: string,
@@ -2100,30 +2152,28 @@ mock.module("./supabase.js", () => ({
         id: string,
         fields: Record<string, unknown>,
         items: MealItemValues[] | null,
+    ) => fakeUpdateSavedMeal(id, fields, items),
+    // The totals path's guarded write: the same row update, refused (as the
+    // real one is) when the stored row no longer holds the guard.
+    updateSavedMealIfUnchanged: async (
+        _userId: string,
+        id: string,
+        fields: Record<string, unknown>,
+        guard: Record<string, unknown>,
     ) => {
         const current = db.savedMeals.find((s) => s.id === id);
         if (!current) return null;
-        const name = fields.name as string | undefined;
-        const clash =
-            name !== undefined
-                ? db.savedMeals.find(
-                      (s) =>
-                          s.id !== id &&
-                          s.name.toLowerCase() === name.toLowerCase(),
-                  )
-                : undefined;
-        if (clash) throw new realSupabase.SavedMealNameTaken(clash.id);
-        db.savedMealUpdates.push({ id, fields, items });
-        const defined = Object.fromEntries(
-            Object.entries(fields).filter(([, v]) => v !== undefined),
-        );
-        const next = {
-            ...current,
-            ...defined,
-            items: items ?? current.items,
-        } as SavedMealWithItems;
-        db.savedMeals = db.savedMeals.map((s) => (s.id === id ? next : s));
-        return next;
+        if (db.concurrentSavedMealEdit) {
+            const edit = db.concurrentSavedMealEdit;
+            Object.assign(
+                current,
+                typeof edit === "function" ? edit(current) : edit,
+            );
+            if (!db.concurrentEditPersists) db.concurrentSavedMealEdit = null;
+        }
+        if (storedMoved(current, guard))
+            throw new realSupabase.SnapshotConflictError(id);
+        return fakeUpdateSavedMeal(id, fields, null);
     },
     deleteSavedMeal: async (_userId: string, id: string) => {
         const current = db.savedMeals.find((s) => s.id === id);
@@ -2150,6 +2200,8 @@ beforeEach(() => {
     db.storedMealReads = 0;
     db.mealUpdateGuards = [];
     db.concurrentMealEdit = null;
+    db.concurrentSavedMealEdit = null;
+    db.concurrentEditPersists = false;
     db.mealItems = new Map();
     db.mealItemsFailure = null;
     db.itemReplacements = [];
@@ -3300,7 +3352,12 @@ describe("added sugar", () => {
                     added_sugar_g: 8,
                 });
                 expect(added.isError).toBeFalsy();
-                expect(db.mealUpdateGuards[0]).toEqual({ sugar_g: 10 });
+                // The guard is the whole row as it was read (every nutrient
+                // column and both labels), so the sugar it checked is in it.
+                expect(db.mealUpdateGuards[0]).toMatchObject({
+                    sugar_g: 10,
+                    added_sugar_g: null,
+                });
             });
             db.meals = [meal({ sugar_g: 40, added_sugar_g: null })];
             await withTools(null, async (call) => {
@@ -3310,14 +3367,18 @@ describe("added sugar", () => {
                 });
                 expect(sugar.isError).toBeFalsy();
                 // A null stored value is guarded as null (IS NULL).
-                expect(db.mealUpdateGuards[1]).toEqual({ added_sugar_g: null });
+                expect(db.mealUpdateGuards[1]).toMatchObject({
+                    sugar_g: 40,
+                    added_sugar_g: null,
+                });
             });
         });
 
-        test("update_meal writes nothing when the checked value moved before the write", async () => {
+        test("update_meal writes nothing when the checked value moved before the write, and re-checks the new value", async () => {
             db.meals = [meal({ sugar_g: 40, added_sugar_g: null })];
             // Another update_meal lowers sugar_g after this call's check read
-            // sugar_g 40 and accepted added_sugar_g 30.
+            // sugar_g 40 and accepted added_sugar_g 30. The write is refused,
+            // the row is re-read, and the check now fails on the stored 20 g.
             db.concurrentMealEdit = { sugar_g: 20 };
             await withTools(null, async (call) => {
                 const r = await call("update_meal", {
@@ -3325,10 +3386,13 @@ describe("added sugar", () => {
                     added_sugar_g: 30,
                 });
                 expect(r.isError).toBe(true);
-                expect(textOf(r)).toBe(
-                    `The sugar values stored on meal ${MEAL_ID} changed while this edit was being applied, so nothing was written. Stored now: sugar_g 20 g, added_sugar_g not recorded.`,
+                expect(textOf(r)).toContain(
+                    "added_sugar_g (30 g) is more than sugar_g (20 g)",
                 );
                 expect(db.mealUpdates).toHaveLength(0);
+                // One guarded write (refused by the concurrent edit); the
+                // re-read then fails the check before any second write.
+                expect(db.mealUpdateGuards).toHaveLength(1);
             });
             const row = db.analyticsRows.find(
                 (r) => r.tool_name === "update_meal",
@@ -3336,7 +3400,7 @@ describe("added sugar", () => {
             expect(row?.error_category).not.toBe("record_not_found");
         });
 
-        test("update_meal passing both checks the pair without reading the row", async () => {
+        test("update_meal passing both checks the pair from this call", async () => {
             db.meals = [meal({ sugar_g: 5, added_sugar_g: 5 })];
             await withTools(null, async (call) => {
                 const bad = await call("update_meal", {
@@ -3351,9 +3415,14 @@ describe("added sugar", () => {
                     added_sugar_g: 15,
                 });
                 expect(ok.isError).toBeFalsy();
-                expect(db.storedMealReads).toBe(0);
-                // Both values come from this call: nothing to condition on.
-                expect(db.mealUpdateGuards).toEqual([undefined]);
+                // The row is read for its labels either way; only the good
+                // call writes, guarded by the row it read.
+                expect(db.storedMealReads).toBe(2);
+                expect(db.mealUpdateGuards).toHaveLength(1);
+                expect(db.mealUpdateGuards[0]).toMatchObject({
+                    sugar_g: 5,
+                    added_sugar_g: 5,
+                });
             });
         });
 
@@ -3784,26 +3853,26 @@ describe("added sugar", () => {
             expect(averages.added_sugar_g).toBe(10);
         });
 
-        test("addedSugarAverageLine reads against the limit, and stays quiet when it has nothing to add", () => {
-            expect(addedSugarAverageLine(10, 1, 2, 25)).toBe(
+        test("ceilingAverageLine (added sugar) reads against the limit, and stays quiet when it has nothing to add", () => {
+            expect(ceilingAverageLine("Added sugar", 10, 1, 2, 25)).toBe(
                 "\n\nAdded sugar, daily average: 10 / 25g limit (40%, under)",
             );
-            expect(addedSugarAverageLine(10, 2, 2, null)).toBe(
+            expect(ceilingAverageLine("Added sugar", 10, 2, 2, null)).toBe(
                 "\n\nAdded sugar, daily average: 10g",
             );
             // A single day already prints its own line.
-            expect(addedSugarAverageLine(10, 1, 1, 25)).toBe("");
+            expect(ceilingAverageLine("Added sugar", 10, 1, 1, 25)).toBe("");
             // Nothing recorded is not an average of 0: silent without a
             // limit, the gap stated with one (0 is a real limit).
-            expect(addedSugarAverageLine(0, 0, 3, null)).toBe("");
-            expect(addedSugarAverageLine(0, 0, 3, 25)).toBe(
+            expect(ceilingAverageLine("Added sugar", 0, 0, 3, null)).toBe("");
+            expect(ceilingAverageLine("Added sugar", 0, 0, 3, 25)).toBe(
                 "\n\nAdded sugar, daily average: not recorded in this period (limit 25g)",
             );
-            expect(addedSugarAverageLine(0, 0, 3, 0)).toBe(
+            expect(ceilingAverageLine("Added sugar", 0, 0, 3, 0)).toBe(
                 "\n\nAdded sugar, daily average: not recorded in this period (limit 0g)",
             );
             // A single day still defers to its own section.
-            expect(addedSugarAverageLine(0, 0, 1, 25)).toBe("");
+            expect(ceilingAverageLine("Added sugar", 0, 0, 1, 25)).toBe("");
         });
 
         test("get_nutrition_summary states an unrecorded range against the limit", async () => {
@@ -9517,6 +9586,142 @@ describe("log_saved_meal", () => {
             });
             expect(r.isError).toBe(true);
             expect(textOf(r)).toContain("has no items");
+        });
+    });
+});
+
+describe("concurrent edits to one meal keep each other's labels", () => {
+    test("a label edit landing between an update's read and its write is kept, not overwritten", async () => {
+        db.meals = [
+            meal({
+                protein_g: 25,
+                fat_g: 20,
+                nutrient_sources: {
+                    protein_g: { s: "estimate" },
+                    fat_g: { s: "estimate" },
+                },
+            }),
+        ];
+        // Another edit restates protein_g as the user's own figure, after this
+        // call has read the row and before it writes.
+        db.concurrentMealEdit = {
+            protein_g: 30,
+            nutrient_sources: {
+                protein_g: { s: "user" },
+                fat_g: { s: "estimate" },
+            },
+        };
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", { id: MEAL_ID, fat_g: 22 });
+            expect(r.isError).toBeFalsy();
+        });
+        // The first write was refused; the retry merged onto the stored row,
+        // so the protein label the other edit wrote survives.
+        expect(db.mealUpdates).toHaveLength(1);
+        expect(db.mealUpdates[0]!.nutrient_sources).toEqual({
+            protein_g: { s: "user" },
+            fat_g: { s: "estimate" },
+        });
+    });
+
+    test("a row that keeps moving is refused after the bounded retries, with nothing written", async () => {
+        db.meals = [meal({ fat_g: 20 })];
+        db.concurrentEditPersists = true;
+        db.concurrentMealEdit = (row) => ({ fat_g: (row.fat_g ?? 0) + 1 });
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", { id: MEAL_ID, fat_g: 5 });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain(
+                "changed while this edit was being saved, so nothing was written. Send the same edit again.",
+            );
+        });
+        expect(db.mealUpdates).toHaveLength(0);
+        expect(db.mealUpdateGuards).toHaveLength(3);
+    });
+
+    test("update_meal restates a value the call sends again as the user's own figure", async () => {
+        db.meals = [
+            meal({
+                protein_g: 25,
+                nutrient_sources: { protein_g: { s: "estimate" } },
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", {
+                id: MEAL_ID,
+                protein_g: 25,
+                user_stated: ["protein_g"],
+            });
+            expect(r.isError).toBeFalsy();
+        });
+        expect(db.mealUpdates.at(-1)!.nutrient_sources).toEqual({
+            protein_g: { s: "user" },
+        });
+    });
+
+    test("update_meal keeps the stored label of a user_stated nutrient the call does not send", async () => {
+        db.meals = [
+            meal({
+                protein_g: 25,
+                fat_g: 20,
+                nutrient_sources: { protein_g: { s: "estimate" } },
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", {
+                id: MEAL_ID,
+                fat_g: 22,
+                user_stated: ["protein_g"],
+            });
+            expect(r.isError).toBeFalsy();
+        });
+        expect(db.mealUpdates.at(-1)!.nutrient_sources).toEqual({
+            protein_g: { s: "estimate" },
+            fat_g: { s: "estimate" },
+        });
+    });
+
+    test("update_saved_meal's totals path keeps a label edit that landed after its read", async () => {
+        db.savedMeals = [
+            savedMealRow({
+                protein_g: 10,
+                nutrient_sources: { protein_g: { s: "estimate" } },
+            }),
+        ];
+        db.concurrentSavedMealEdit = {
+            protein_g: 12,
+            nutrient_sources: { protein_g: { s: "user" } },
+        };
+        await withTools(null, async (call) => {
+            const r = await call("update_saved_meal", {
+                id: SAVED_ID,
+                fat_g: 7,
+            });
+            expect(r.isError).toBeFalsy();
+        });
+        expect(db.savedMealUpdates.at(-1)!.fields.nutrient_sources).toEqual({
+            protein_g: { s: "user" },
+            fat_g: { s: "estimate" },
+        });
+    });
+
+    test("update_saved_meal restates an unchanged total as the user's own figure", async () => {
+        db.savedMeals = [
+            savedMealRow({
+                protein_g: 10,
+                nutrient_sources: { protein_g: { s: "estimate" } },
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("update_saved_meal", {
+                id: SAVED_ID,
+                protein_g: 10,
+                user_stated: ["protein_g"],
+            });
+            expect(r.isError).toBeFalsy();
+        });
+        expect(db.savedMealUpdates.at(-1)!.fields.nutrient_sources).toEqual({
+            protein_g: { s: "user" },
         });
     });
 });

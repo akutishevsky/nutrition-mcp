@@ -32,12 +32,16 @@ import { decodeEscapeSequences } from "./normalize.js";
 import { toStoredInteger } from "./units.js";
 import { addedSugarError } from "./added-sugar.js";
 import {
+    detailKey,
     importedProvenance,
+    memoizeRecordLookup,
     reverifyImported,
     type NutrientSources,
     type RecordLookup,
+    type RecordSource,
     type SourceDetail,
 } from "./provenance.js";
+import type { MealNutrientKey } from "./meal-items.js";
 
 export type MealType = MealInput["meal_type"];
 
@@ -820,6 +824,9 @@ export function validateRow(
     };
 }
 
+/** Record reads in flight at once while an import prefetches its records. */
+const RECORD_PREFETCH_CONCURRENCY = 8;
+
 /**
  * Re-verifies the imported provenance of each row against the stored food
  * records (src/provenance.ts reverifyImported) and writes the result onto the
@@ -830,7 +837,33 @@ async function reverifyRows(
     rows: ResolvedRow[],
     lookup: RecordLookup | undefined,
 ): Promise<number> {
-    const lookupRecord: RecordLookup = lookup ?? (async () => null);
+    // One memo for the whole import: each distinct record is read once however
+    // many rows name it. The distinct set is read up front, a few at a time, so
+    // the row loop below finds every record already in hand.
+    const lookupRecord = memoizeRecordLookup(lookup ?? (async () => null));
+    const distinct = new Map<string, [RecordSource, string]>();
+    for (const row of rows) {
+        const detail = row.provenance?.detail ?? null;
+        for (const [key, tag] of Object.entries(
+            row.provenance?.sources ?? {},
+        )) {
+            // Only the tags reverifyImported will look up: a record-backed tag
+            // with a value, and an amount in source_detail to check it against.
+            if (!tag || row.input[key as MealNutrientKey] == null) continue;
+            if (tag.s !== "usda" && tag.s !== "openfoodfacts") continue;
+            if (tag.ref === undefined) continue;
+            const k = detailKey(tag.s, tag.ref);
+            if (detail?.[k]) distinct.set(k, [tag.s, tag.ref]);
+        }
+    }
+    const pairs = [...distinct.values()];
+    for (let i = 0; i < pairs.length; i += RECORD_PREFETCH_CONCURRENCY) {
+        await Promise.all(
+            pairs
+                .slice(i, i + RECORD_PREFETCH_CONCURRENCY)
+                .map(([source, id]) => lookupRecord(source, id)),
+        );
+    }
     let downgraded = 0;
     for (const row of rows) {
         if (!row.provenance) continue;

@@ -9,7 +9,7 @@
 // Central id, nutrients per 100 g; a nutrient the record does not carry is
 // absent from per100g, which means "not recorded", never 0.
 
-import type { MealNutrientKey } from "./meal-items.js";
+import { MEAL_NUTRIENT_KEYS, type MealNutrientKey } from "./meal-items.js";
 
 /** The food_cache `source` value of a USDA record. */
 export const USDA_CACHE_SOURCE = "usda" as const;
@@ -43,9 +43,9 @@ export function usdaSourceId(fdcId: number): string {
 }
 
 /** Turns a raw food_cache payload into a UsdaRecord, or null when it is not one.
- * Shape checks only: the nutrient values are kept as numbers or null, anything
- * else under a nutrient key is dropped. A row that fails here reads as a miss,
- * so a bad row can never label a value. */
+ * Shape checks only: a nutrient value is kept only as a finite non-negative
+ * number, and any key that is not a meal nutrient key is dropped. A row that
+ * fails here reads as a miss, so a bad row can never label a value. */
 export function usdaRecordFromPayload(payload: unknown): UsdaRecord | null {
     if (!payload || typeof payload !== "object") return null;
     const p = payload as Record<string, unknown>;
@@ -65,9 +65,12 @@ export function usdaRecordFromPayload(payload: unknown): UsdaRecord | null {
     if (!p.per100g || typeof p.per100g !== "object") return null;
     const raw = p.per100g as Record<string, unknown>;
     const per100g: UsdaRecord["per100g"] = {};
-    for (const [key, value] of Object.entries(raw)) {
+    // Only the meal nutrient keys are kept: a key we do not map (an unknown or
+    // a future nutrient in the cached payload) is dropped, never copied through.
+    for (const key of MEAL_NUTRIENT_KEYS) {
+        const value = raw[key];
         if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
-            (per100g as Record<string, number>)[key] = value;
+            per100g[key] = value;
         }
     }
     const portions = Array.isArray(p.portions)

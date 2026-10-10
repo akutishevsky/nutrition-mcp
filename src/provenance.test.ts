@@ -11,6 +11,7 @@ import {
     META_NAME_CHARS,
     MAX_SOURCE_NAME_CHARS,
     mergeProvenance,
+    memoizeRecordLookup,
     parseFoodRef,
     parseNutrientSources,
     parseSourceDetail,
@@ -637,6 +638,75 @@ describe("mergeProvenance (update_meal on a plain meal)", () => {
     });
 });
 
+describe("mergeProvenance restated nutrients", () => {
+    const oldValues: LoggedValues = { calories: 200, fiber_g: 3, sugar_g: 5 };
+    const oldSources: NutrientSources = {
+        calories: { s: "estimate" },
+        fiber_g: { s: "estimate" },
+        sugar_g: { s: "estimate" },
+    };
+
+    test("a restated nutrient whose value did not move takes the user's label", () => {
+        const out = mergeProvenance({
+            oldValues,
+            newValues: { calories: 200, fiber_g: 3, sugar_g: 5 },
+            oldSources,
+            oldDetail: null,
+            changed: resolveNutrientSources({
+                values: { fiber_g: 3 },
+                userStated: ["fiber_g"],
+            }),
+            restated: ["fiber_g"],
+        });
+        expect(out.sources).toEqual({
+            calories: { s: "estimate" },
+            fiber_g: { s: "user" },
+            sugar_g: { s: "estimate" },
+        });
+    });
+
+    test("a restated nutrient keeps the record a matching lookup gave it", () => {
+        const out = mergeProvenance({
+            oldValues,
+            newValues: { calories: 200, fiber_g: 3, sugar_g: 5 },
+            oldSources,
+            oldDetail: null,
+            changed: {
+                sources: { fiber_g: { s: "usda", ref: FDC } },
+                detail: { [`usda:${FDC}`]: { name: "Chicken", amount_g: 100 } },
+            },
+            restated: ["fiber_g"],
+        });
+        expect(out.sources.fiber_g).toEqual({ s: "usda", ref: FDC });
+    });
+
+    test("a restated nutrient with no fresh tag becomes user, never keeps a stale label", () => {
+        const out = mergeProvenance({
+            oldValues,
+            newValues: { calories: 200, fiber_g: 3, sugar_g: 5 },
+            oldSources: { ...oldSources, fiber_g: { s: "usda", ref: FDC } },
+            oldDetail: null,
+            changed: { sources: {}, detail: null },
+            restated: ["fiber_g"],
+        });
+        expect(out.sources.fiber_g).toEqual({ s: "user" });
+    });
+
+    test("a nutrient not in restated keeps its stored label even when changed labels exist for it", () => {
+        // The caller did not restate sugar_g (or did not send it): its stored
+        // estimate stays, whatever the fresh resolution would have said.
+        const out = mergeProvenance({
+            oldValues,
+            newValues: { calories: 200, fiber_g: 3, sugar_g: 5 },
+            oldSources,
+            oldDetail: null,
+            changed: { sources: { sugar_g: { s: "user" } }, detail: null },
+            restated: [],
+        });
+        expect(out.sources.sugar_g).toEqual({ s: "estimate" });
+    });
+});
+
 describe("deriveMealProvenance (items)", () => {
     const usdaTag = (ref: string) => ({ s: "usda" as const, ref });
 
@@ -1221,5 +1291,33 @@ describe("formatItemSourcesBlock (per-ingredient model lines)", () => {
         expect(lines).toHaveLength(2);
         expect(lines[1]!.startsWith("- line one line two ")).toBe(true);
         expect(lines[1]!.length).toBeLessThan(140);
+    });
+});
+
+describe("memoizeRecordLookup", () => {
+    test("one lookup per distinct (source, id), misses included", async () => {
+        let calls = 0;
+        const memo = memoizeRecordLookup(async (source, id) => {
+            calls += 1;
+            return id === "gone" ? null : ({ id, source } as never);
+        });
+        await Promise.all([
+            memo("usda", "1"),
+            memo("usda", "1"),
+            memo("usda", "gone"),
+            memo("usda", "gone"),
+        ]);
+        expect(calls).toBe(2);
+    });
+
+    test("a synchronous throw is remembered as a miss, not thrown", async () => {
+        let calls = 0;
+        const memo = memoizeRecordLookup((): Promise<never> => {
+            calls += 1;
+            throw new Error("boom");
+        });
+        expect(await memo("usda", "1")).toBeNull();
+        expect(await memo("usda", "1")).toBeNull();
+        expect(calls).toBe(1);
     });
 });
