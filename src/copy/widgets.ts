@@ -146,6 +146,12 @@ export interface WidgetStrings {
          * true count, so there may or may not be more. No placeholder.
          */
         moreMealsMaybe: string;
+        /**
+         * How many ingredients a meal row in a breakdown holds, read out as
+         * the accessible text behind the row's small count badge (the badge
+         * itself shows only the number). Placeholder: {n}.
+         */
+        ingredientCount: PluralForms;
     };
 
     /** shared/bridge.js — text the host bridge itself paints, around
@@ -592,6 +598,10 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             other: "+ {n} or more smaller meals",
         },
         moreMealsMaybe: "+ possibly more smaller meals",
+        ingredientCount: {
+            one: "{n} ingredient",
+            other: "{n} ingredients",
+        },
     },
     bridge: {
         settingsFooter:
