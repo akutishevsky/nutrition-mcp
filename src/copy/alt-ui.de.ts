@@ -52,7 +52,7 @@ export const ALT_UI_DE: AltUiCopy = {
             },
             {
                 title: "Import &amp; volle Kontrolle über deine Daten",
-                body: "Importier deinen Mahlzeiten-Verlauf aus dem CSV-Export einer anderen App – eingelesen in deinem Browser, nicht von der KI. Nimm jederzeit alles wieder mit: ein ZIP mit deinen Mahlzeiten, Wasser, Gewicht, Körpermaßen, Zielen und deinem Profil, dazu deinen Kontodaten, der Nutzungs-Telemetrie und deinen verbundenen Apps, als CSV-Dateien. Bisher lassen sich nur Mahlzeiten wieder importieren. Oder lösch dein Konto – genauso einfach.",
+                body: "Importier deinen Mahlzeiten-Verlauf aus dem CSV-Export einer anderen App – eingelesen in deinem Browser, nicht von der KI. Nimm jederzeit alles wieder mit: ein ZIP mit deinen Mahlzeiten, gespeicherten Mahlzeiten, Wasser, Gewicht, Körpermaßen, Zielen und deinem Profil, dazu deinen Kontodaten, der Nutzungs-Telemetrie und deinen verbundenen Apps, als CSV-Dateien. Bisher lassen sich nur Mahlzeiten wieder importieren. Oder lösch dein Konto – genauso einfach.",
             },
             {
                 title: "Open Source &amp; kostenlos",

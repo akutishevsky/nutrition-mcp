@@ -45,7 +45,7 @@ export const ALT_UI_NL: AltUiCopy = {
             },
             {
                 title: "Importeer je gegevens en houd ze in eigen hand",
-                body: "Importeer je maaltijdgeschiedenis uit de CSV-export van een andere app; je browser verwerkt het bestand, niet de AI. Haal alles weer op wanneer je wilt: één ZIP-bestand met je maaltijden, water, gewicht, lichaamsmaten, doelen en profiel, plus je accountgegevens, gebruikstelemetrie en gekoppelde apps, als CSV-bestanden. Voorlopig kun je alleen maaltijden weer importeren. Of verwijder je account, net zo makkelijk.",
+                body: "Importeer je maaltijdgeschiedenis uit de CSV-export van een andere app; je browser verwerkt het bestand, niet de AI. Haal alles weer op wanneer je wilt: één ZIP-bestand met je maaltijden, opgeslagen maaltijden, water, gewicht, lichaamsmaten, doelen en profiel, plus je accountgegevens, gebruikstelemetrie en gekoppelde apps, als CSV-bestanden. Voorlopig kun je alleen maaltijden weer importeren. Of verwijder je account, net zo makkelijk.",
             },
             {
                 title: "Open source &amp; gratis",

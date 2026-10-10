@@ -15,11 +15,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_IT: ToolsDoc = {
     meta: {
-        title: "41 strumenti per calorie, macro, acqua e peso",
+        title: "46 strumenti per calorie, macro, acqua e peso",
         description:
-            "I 41 strumenti per Claude, ChatGPT e altre IA: registra pasti, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
+            "I 46 strumenti per Claude, ChatGPT e altre IA: registra pasti, salva i pasti che mangi spesso, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
         ogDescription:
-            "Tutti i 41 strumenti che il server Nutrition MCP mette a disposizione della tua IA, compreso un importatore CSV per portare lo storico da un'altra app, con descrizioni ed esempi di richieste.",
+            "Tutti i 46 strumenti che il server Nutrition MCP mette a disposizione della tua IA, compreso un importatore CSV per portare lo storico da un'altra app, con descrizioni ed esempi di richieste.",
     },
     hero: {
         eyebrow: "Guida di riferimento",
@@ -27,7 +27,7 @@ export const TOOLS_IT: ToolsDoc = {
         titleEm: "fare",
         titleAfterEm: "",
         lead: "Non devi mai usarli direttamente: parli con Claude, ChatGPT o un altro client MCP e l'assistente sceglie lo strumento giusto. Ecco tutti gli strumenti che il server Nutrition MCP offre per pasti, calorie e macro, acqua e peso, con cosa fa ciascuno e una frase che lo attiva.",
-        countBold: "41 strumenti",
+        countBold: "46 strumenti",
         countTail: "in 7 aree",
     },
     categories: {
@@ -95,7 +95,7 @@ export const TOOLS_IT: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Registra cosa hai mangiato con calorie e macro, più fibre, zuccheri totali e aggiunti, alcol e caffeina quando i valori sono disponibili. Descrivilo a parole tue: l'IA stima i valori, ti chiede la porzione quando non è chiara e può prima recuperare i dati dell'etichetta da un codice a barre o dal web.",
+                "Registra cosa hai mangiato con calorie e macro, più fibre, zuccheri totali e aggiunti, alcol e caffeina quando i valori sono disponibili. Descrivilo a parole tue: l'IA stima i valori, ti chiede la porzione quando non è chiara e può prima recuperare i dati dell'etichetta da un codice a barre o dal web. Può anche ricevere gli ingredienti uno per uno, e in quel caso i totali sono la somma di quegli ingredienti.",
             params: {
                 description: "Cosa hai mangiato",
                 meal_type: "colazione, pranzo, cena o spuntino",
@@ -116,6 +116,7 @@ export const TOOLS_IT: ToolsDoc = {
                 logged_at:
                     "Quando l'hai mangiato, se non è adesso: ti permette di registrare qualcosa a posteriori",
                 notes: "Note aggiuntive",
+                items: "Ingredienti, una riga per ciascuno, con quantità e valori nutrizionali: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code> e <code>fat_g</code> su ogni ingrediente; <code>fiber_g</code>, <code>sugar_g</code> e <code>added_sugar_g</code> su tutti gli ingredienti o su nessuno; <code>alcohol_g</code> e <code>caffeine_mg</code> solo sugli ingredienti che li contengono, sommati su quegli ingredienti. I totali del pasto sono allora la somma degli ingredienti, quindi invia ingredienti oppure totali, non entrambi",
             },
             example:
                 "Registra per pranzo una burrito bowl di pollo con guacamole extra",
@@ -155,7 +156,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Modifica i dettagli di un pasto già registrato: la descrizione, qualsiasi macro, fibre, zuccheri totali o aggiunti, alcol o caffeina, l'orario o le note. Serve anche a colmare i vuoti: se un pasto è stato registrato senza fibre, zuccheri o zuccheri aggiunti, il server lo segnala e, se sei d'accordo, l'IA li aggiunge qui.",
+                "Modifica i dettagli di un pasto già registrato: la descrizione, qualsiasi macro, fibre, zuccheri totali o aggiunti, alcol o caffeina, l'orario o le note. Serve anche a colmare i vuoti: se un pasto è stato registrato senza fibre, zuccheri o zuccheri aggiunti, il server lo segnala e, se sei d'accordo, l'IA li aggiunge qui. Su un pasto registrato con gli ingredienti, i totali cambiano tramite la sua lista di ingredienti.",
             params: {
                 id: "UUID del pasto da aggiornare",
                 description: "",
@@ -172,6 +173,7 @@ export const TOOLS_IT: ToolsDoc = {
                 caffeine_mg: "Milligrammi, non grammi",
                 logged_at: "",
                 notes: "",
+                items: "La lista completa degli ingredienti, che sostituisce quella esistente. I totali del pasto diventano la somma di questa lista, quindi con essa non si possono inviare i campi dei totali",
             },
             example:
                 "In realtà quel pranzo era di 600 calorie, non 500: correggilo",
@@ -183,9 +185,92 @@ export const TOOLS_IT: ToolsDoc = {
             },
             example: "Elimina lo spuntino che ho registrato oggi pomeriggio",
         },
+        save_meal: {
+            description:
+                "Salva con un nome un pasto che mangi spesso, come la tua colazione abituale, con i suoi valori per una porzione e, se li hai, i suoi ingredienti. Puoi inserire tu i valori oppure copiarli da un pasto già registrato. Salvare non aggiunge nulla al tuo diario: quando mangi il pasto salvato, registralo con log_saved_meal.",
+            params: {
+                name: "Il nome con cui salvarlo, unico tra i tuoi pasti salvati (da 1 a 100 caratteri)",
+                from_meal_id:
+                    "UUID di un pasto registrato da cui copiare valori e ingredienti",
+                description: "Di cosa si tratta. Predefinito: il nome",
+                meal_type:
+                    "colazione, pranzo, cena o spuntino: il valore predefinito al momento della registrazione",
+                items: "Ingredienti, una riga per ciascuno, con quantità e valori nutrizionali. La loro somma diventa i valori del pasto salvato, quindi invia ingredienti oppure valori, non entrambi",
+                calories: "Calorie totali per una porzione",
+                protein_g: "Proteine in grammi per una porzione",
+                carbs_g: "Carboidrati in grammi per una porzione",
+                fat_g: "Grassi in grammi per una porzione",
+                fiber_g: "Fibre alimentari in grammi per una porzione",
+                sugar_g: "Zuccheri totali in grammi per una porzione",
+                added_sugar_g:
+                    "Zuccheri aggiunti in grammi per una porzione, mai più degli zuccheri totali. Accompagna <code>sugar_g</code>",
+                alcohol_g:
+                    "Grammi di etanolo puro per una porzione, non il volume della bevanda",
+                caffeine_mg:
+                    "Milligrammi di caffeina per una porzione, non grammi",
+            },
+            example: "Salva questo come la mia colazione abituale",
+        },
+        log_saved_meal: {
+            description:
+                "Registra un pasto salvato come voce del diario, da adesso oppure da un orario che indichi. La voce riceve una copia dei valori e degli ingredienti salvati, riportati alle porzioni indicate, con singoli ingredienti eventualmente portati alla quantità effettivamente mangiata o esclusi solo per questa volta. Le modifiche successive al pasto salvato lasciano invariati i pasti già registrati da esso.",
+            params: {
+                saved_meal:
+                    "Il nome del pasto salvato, oppure il suo ID da get_saved_meals o search_meals",
+                servings:
+                    "Quante porzioni registrare: più di 0 e fino a 20 (predefinito 1)",
+                item_amounts:
+                    "Le quantità di singoli ingredienti effettivamente mangiate in questa voce, per nome o posizione. Prima le porzioni ridimensionano il pasto salvato, poi questi valori fissano la quantità degli ingredienti indicati; i loro valori nutrizionali si adeguano in proporzione",
+                leave_out:
+                    "Ingredienti da togliere da questa voce, per nome o posizione",
+                meal_type:
+                    "colazione, pranzo, cena o spuntino: sostituisce il tipo predefinito del pasto salvato",
+                description:
+                    "Descrizione di questa voce. Predefinito: la descrizione del pasto salvato",
+                logged_at: "Quando l'hai mangiato, se non è adesso",
+                notes: "Note aggiuntive",
+                idempotency_key:
+                    "Una chiave che rende nullo un tentativo ripetuto, così la stessa voce non viene registrata due volte",
+            },
+            example: "Registra la mia colazione abituale, mezza porzione",
+        },
+        update_saved_meal: {
+            description:
+                "Modifica il nome, la descrizione, il tipo di pasto predefinito, gli ingredienti o i valori per porzione di un pasto salvato. I pasti già registrati da esso mantengono i loro valori.",
+            params: {
+                id: "UUID del pasto salvato da aggiornare",
+                name: "Nuovo nome, unico tra i tuoi pasti salvati",
+                description: "Nuova descrizione",
+                meal_type:
+                    "Nuovo tipo di pasto predefinito: colazione, pranzo, cena o spuntino",
+                items: "La lista completa degli ingredienti, che sostituisce quella esistente. La loro somma diventa i valori del pasto salvato, quindi con essa non si possono inviare i campi dei valori",
+                calories: "Calorie totali per una porzione",
+                protein_g: "Proteine in grammi per una porzione",
+                carbs_g: "Carboidrati in grammi per una porzione",
+                fat_g: "Grassi in grammi per una porzione",
+                fiber_g: "Fibre alimentari in grammi per una porzione",
+                sugar_g: "Zuccheri totali in grammi per una porzione",
+                added_sugar_g:
+                    "Zuccheri aggiunti in grammi per una porzione, mai più degli zuccheri totali. Accompagna <code>sugar_g</code>",
+                alcohol_g:
+                    "Grammi di etanolo puro per una porzione, non il volume della bevanda",
+                caffeine_mg:
+                    "Milligrammi di caffeina per una porzione, non grammi",
+            },
+            example:
+                "La mia colazione abituale ora ha 350 calorie per porzione: aggiornala",
+        },
+        delete_saved_meal: {
+            description:
+                "Elimina un pasto salvato. I pasti già registrati da esso mantengono i loro valori.",
+            params: {
+                id: "UUID del pasto salvato da eliminare",
+            },
+            example: "Elimina il pasto salvato chiamato vecchio pranzo",
+        },
         search_meals: {
             description:
-                "Cerca tra i tuoi pasti passati per parola chiave e li raggruppa nelle varianti che ricorrono: quante volte hai registrato ciascuna, quando l'ultima volta e le sue calorie tipiche. È così che l'IA confronta la foto del tuo piatto con il modo in cui hai davvero registrato quel pasto in passato, ed è così che funziona “registra la mia solita colazione”.",
+                "Cerca tra i tuoi pasti passati per parola chiave e li raggruppa nelle varianti che ricorrono: quante volte hai registrato ciascuna, quando l'ultima volta e le sue calorie tipiche. È così che l'IA confronta la foto del tuo piatto con il modo in cui hai davvero registrato quel pasto in passato, ed è così che funziona “registra la mia solita colazione”. Cerca anche nei nomi degli ingredienti di un pasto ed elenca i tuoi pasti salvati il cui nome, descrizione o ingredienti corrispondono.",
             params: {
                 queries:
                     "Parole chiave alternative per l'alimento, in qualsiasi lingua tu abbia usato per registrare",
@@ -221,9 +306,18 @@ export const TOOLS_IT: ToolsDoc = {
             },
             example: "Elenca i miei pasti da lunedì a venerdì",
         },
+        get_saved_meals: {
+            description:
+                "Vedi i tuoi pasti salvati con i loro valori per porzione e i loro ingredienti, eventualmente solo quelli il cui nome contiene un certo testo.",
+            params: {
+                name_contains:
+                    "Solo i pasti salvati il cui nome contiene questo testo",
+            },
+            example: "Quali pasti ho salvato?",
+        },
         export_all_data: {
             description:
-                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (ogni modifica ai tuoi obiettivi, con data), profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate e la sincronizzazione con Apple Health, senza alcun token), health_sync.csv (ciò che la sincronizzazione con Apple Health ha inviato negli ultimi 8 giorni) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
+                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, meal_items.csv (gli ingredienti di ogni pasto registrato), saved_meals.csv e saved_meal_items.csv (i tuoi pasti salvati e i loro ingredienti), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (ogni modifica ai tuoi obiettivi, con data), profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate e la sincronizzazione con Apple Health, senza alcun token), health_sync.csv (ciò che la sincronizzazione con Apple Health ha inviato negli ultimi 8 giorni) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
             params: {},
             example:
                 "Esporta tutti i miei dati: pasti, acqua, peso e obiettivi",
@@ -576,7 +670,7 @@ export const TOOLS_IT: ToolsDoc = {
             "delete-account": {
                 question: "Come elimino il mio account?",
                 answerHtml:
-                    "Chiedi all'IA di eliminare il tuo account Nutrition MCP (<a href=\"#delete_account\"><code>delete_account</code></a>). Ti chiederà di confermare, poi eliminerà definitivamente pasti, acqua, peso, misure corporee, obiettivi, impostazioni, il registro degli strumenti usati dalla tua app di IA, eventuali file di esportazione, i tuoi dati di accesso e l'account stesso. L'operazione non si può annullare, quindi, se vuoi una copia dei tuoi dati, esportali prima. Poi rimuovi il connettore dalla tua app. Se in futuro accedi di nuovo con la stessa email, verrà creato un nuovo account vuoto.",
+                    "Chiedi all'IA di eliminare il tuo account Nutrition MCP (<a href=\"#delete_account\"><code>delete_account</code></a>). Ti chiederà di confermare, poi eliminerà definitivamente pasti, pasti salvati, acqua, peso, misure corporee, obiettivi, impostazioni, il registro degli strumenti usati dalla tua app di IA, eventuali file di esportazione, i tuoi dati di accesso e l'account stesso. L'operazione non si può annullare, quindi, se vuoi una copia dei tuoi dati, esportali prima. Poi rimuovi il connettore dalla tua app. Se in futuro accedi di nuovo con la stessa email, verrà creato un nuovo account vuoto.",
             },
             "report-a-problem": {
                 question: "Come segnalo un bug o un problema di sicurezza?",

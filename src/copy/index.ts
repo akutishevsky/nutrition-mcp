@@ -564,7 +564,7 @@ const INDEX_EN: IndexDoc = {
         note: "Everything here is optional. You can do it now, later, or never — just start logging and set these whenever you like.",
         toolsCta: {
             heading: "Curious what it can actually do?",
-            body: "Browse all 41 tools — logging, barcodes, water, weight and body measurements, goals, and trends — with a description and an example prompt for each.",
+            body: "Browse all 46 tools — logging, barcodes, water, weight and body measurements, goals, and trends — with a description and an example prompt for each.",
             arrow: "Explore the tools",
         },
     },
@@ -1001,10 +1001,10 @@ const INDEX_EN: IndexDoc = {
                 id: "export-data",
                 title: "Take your data",
                 description:
-                    "One request packs everything stored about you — meals, water, weigh-ins, body measurements, goals, profile settings, your account record, usage telemetry and app connections — into a ZIP of CSV files with a README. Timestamps use your timezone, and meals.csv imports straight back in.",
+                    "One request packs everything stored about you — meals, saved meals and their ingredients, water, weigh-ins, body measurements, goals, profile settings, your account record, usage telemetry and app connections — into a ZIP of CSV files with a README. Timestamps use your timezone, and meals.csv imports straight back in.",
                 toolNotes: {
                     export_all_data:
-                        "Zips nine CSV files and a README behind a 60-minute link",
+                        "Zips every CSV file and a README behind a 60-minute link",
                 },
                 messages: [
                     {
@@ -1088,7 +1088,7 @@ const INDEX_EN: IndexDoc = {
             },
             {
                 title: "Export & own your data",
-                body: "Take everything we store about you — meals, water, weight, body measurements, goals, and profile, plus your account record, usage telemetry, and connected apps — as one ZIP of CSV files. Meals are the only part that can be imported back in for now. Delete your account and data whenever you want.",
+                body: "Take everything we store about you — meals, saved meals and their ingredients, water, weight, body measurements, goals, and profile, plus your account record, usage telemetry, and connected apps — as one ZIP of CSV files. Meals are the only part that can be imported back in for now. Delete your account and data whenever you want.",
             },
         ],
     },

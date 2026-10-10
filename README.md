@@ -74,6 +74,11 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `get_nutrition_summary`    | Daily nutrition totals + goal progress for a date range, up to 92 days per call                                                                                            |
 | `update_meal`              | Update any fields of an existing meal                                                                                                                                      |
 | `delete_meal`              | Delete a meal by ID                                                                                                                                                        |
+| `save_meal`                | Save a meal under a name, with values per serving and optional ingredients, to log again later                                                                             |
+| `log_saved_meal`           | Log a saved meal, scaled by servings, with single ingredients set to the amount eaten or left out                                                                          |
+| `get_saved_meals`          | List saved meals with their values and ingredients, optionally filtered by name                                                                                            |
+| `update_saved_meal`        | Change a saved meal's name, values or ingredients; meals already logged from it keep theirs                                                                                |
+| `delete_saved_meal`        | Delete a saved meal; meals already logged from it keep their values                                                                                                        |
 | `set_nutrition_goals`      | Set daily calorie, macro, fiber and water targets to reach, total-sugar/added-sugar/alcohol/caffeine limits to stay under, plus an optional target weight                  |
 | `get_nutrition_goals`      | Get the current daily targets and limits                                                                                                                                   |
 | `get_goal_progress`        | Get intake vs. targets and limits for a given day (default: today), plus latest weight vs. target                                                                          |
@@ -96,7 +101,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `set_length_unit`          | Set the preferred length unit (`cm` or `in`; null to clear)                                                                                                                |
 | `get_trends`               | 7/14/30-day averages, std dev, streaks, best/worst day; `group_by` week/month/quarter/year averages per logged day vs targets then in effect                               |
 | `get_meal_patterns`        | Pre-aggregated behavioural patterns (breakfast effect, late dinner, weekend vs weekday, outliers)                                                                          |
-| `export_all_data`          | Export everything stored about you — logs, goals, profile, account, telemetry, app connections — as one ZIP of CSVs + README; 60-minute link                               |
+| `export_all_data`          | Export everything stored about you — logs, saved meals and ingredients, goals, profile, account, telemetry, app connections — as one ZIP of CSVs + README; 60-minute link  |
 | `get_profile`              | Get timezone (+ local date/time), widget language, weight and length units, widget display and alcohol tracking in one call                                                |
 | `set_timezone`             | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                                                                                                  |
 | `set_language`             | Set the UI language for in-chat widgets (dashboards, charts) — not the language the AI replies in                                                                          |

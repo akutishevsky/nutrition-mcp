@@ -1,4 +1,4 @@
-// Typed content for /tools (the "all 41 tools" reference page), rendered
+// Typed content for /tools (the "all 46 tools" reference page), rendered
 // by scripts/gen-tools.ts. Extracted verbatim from the previously
 // hand-authored public/tools.html — see CLAUDE.md's "Public site" section
 // for the generator family this belongs to, and gen-tools.ts's own header
@@ -129,9 +129,9 @@ export interface ToolIdentity {
 }
 
 /**
- * All 41 tools, in the exact document order of public/tools.html (grouped
+ * All 46 tools, in the exact document order of public/tools.html (grouped
  * by category — see CategoryId — for the reader). The *set* of names must
- * equal the 41 `server.registerTool()` calls in src/mcp.ts; the two orders
+ * equal the 46 `server.registerTool()` calls in src/mcp.ts; the two orders
  * differ (mcp.ts registers in its own order, unrelated to this page's
  * reader-facing grouping). "the registered tool set and every hand-typed
  * tool count agree" in src/site-copy.test.ts enforces the set and the
@@ -156,6 +156,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "caffeine_mg", required: false },
             { name: "logged_at", required: false },
             { name: "notes", required: false },
+            { name: "items", required: false },
         ],
         hasPhotoHint: true,
     },
@@ -205,11 +206,80 @@ export const TOOLS: ToolIdentity[] = [
             { name: "caffeine_mg", required: false },
             { name: "logged_at", required: false },
             { name: "notes", required: false },
+            { name: "items", required: false },
         ],
         hasPhotoHint: false,
     },
     {
         name: "delete_meal",
+        category: "logging-food-meals",
+        badges: ["remove"],
+        params: [{ name: "id", required: true }],
+        hasPhotoHint: false,
+    },
+    {
+        name: "save_meal",
+        category: "logging-food-meals",
+        badges: ["log"],
+        params: [
+            { name: "name", required: true },
+            { name: "from_meal_id", required: false },
+            { name: "description", required: false },
+            { name: "meal_type", required: false },
+            { name: "items", required: false },
+            { name: "calories", required: false },
+            { name: "protein_g", required: false },
+            { name: "carbs_g", required: false },
+            { name: "fat_g", required: false },
+            { name: "fiber_g", required: false },
+            { name: "sugar_g", required: false },
+            { name: "added_sugar_g", required: false },
+            { name: "alcohol_g", required: false },
+            { name: "caffeine_mg", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "log_saved_meal",
+        category: "logging-food-meals",
+        badges: ["log", "widget"],
+        params: [
+            { name: "saved_meal", required: true },
+            { name: "servings", required: false },
+            { name: "item_amounts", required: false },
+            { name: "leave_out", required: false },
+            { name: "meal_type", required: false },
+            { name: "description", required: false },
+            { name: "logged_at", required: false },
+            { name: "notes", required: false },
+            { name: "idempotency_key", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "update_saved_meal",
+        category: "logging-food-meals",
+        badges: ["edit"],
+        params: [
+            { name: "id", required: true },
+            { name: "name", required: false },
+            { name: "description", required: false },
+            { name: "meal_type", required: false },
+            { name: "items", required: false },
+            { name: "calories", required: false },
+            { name: "protein_g", required: false },
+            { name: "carbs_g", required: false },
+            { name: "fat_g", required: false },
+            { name: "fiber_g", required: false },
+            { name: "sugar_g", required: false },
+            { name: "added_sugar_g", required: false },
+            { name: "alcohol_g", required: false },
+            { name: "caffeine_mg", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "delete_saved_meal",
         category: "logging-food-meals",
         badges: ["remove"],
         params: [{ name: "id", required: true }],
@@ -252,6 +322,13 @@ export const TOOLS: ToolIdentity[] = [
             { name: "end_date", required: true },
             { name: "detail", required: false },
         ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "get_saved_meals",
+        category: "reviewing-your-meals",
+        badges: ["view"],
+        params: [{ name: "name_contains", required: false }],
         hasPhotoHint: false,
     },
     {
@@ -659,11 +736,11 @@ export interface ToolsDoc {
 
 const TOOLS_EN: ToolsDoc = {
     meta: {
-        title: "41 Calorie, Macro, Water & Weight Tools",
+        title: "46 Calorie, Macro, Water & Weight Tools",
         description:
-            "All 41 Nutrition MCP tools for Claude, ChatGPT and more: log meals, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
+            "All 46 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
         ogDescription:
-            "All 41 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
+            "All 46 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
@@ -671,7 +748,7 @@ const TOOLS_EN: ToolsDoc = {
         titleEm: "do",
         titleAfterEm: "",
         lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
-        countBold: "41 tools",
+        countBold: "46 tools",
         countTail: "across 7 areas",
     },
     categories: {
@@ -737,7 +814,7 @@ const TOOLS_EN: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log what you ate with calories and macros — plus fiber, total and added sugar, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first.",
+                "Log what you ate with calories and macros — plus fiber, total and added sugar, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first. It can also take the ingredients one by one, and then the totals are the sum of those ingredients.",
             params: {
                 description: "What was eaten",
                 meal_type: "breakfast, lunch, dinner or snack",
@@ -758,6 +835,7 @@ const TOOLS_EN: ToolsDoc = {
                 logged_at:
                     "When you ate it, if not now — lets you log something after the fact",
                 notes: "Additional notes",
+                items: "Ingredients, one row each, with their amounts and nutrients: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code> and <code>fat_g</code> on every item; <code>fiber_g</code>, <code>sugar_g</code> and <code>added_sugar_g</code> on every item or on none; <code>alcohol_g</code> and <code>caffeine_mg</code> only on the items that contain them, summed over those items. The meal's totals are then the sum of the items, so send items or totals, not both",
             },
             example: "Log a chicken burrito bowl with extra guac for lunch",
             photoHint:
@@ -796,7 +874,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Change the details of a meal you already logged — its description, any macro, fiber, total or added sugar, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber, sugar or added sugar, the server says so and the AI fills it in here once you agree.",
+                "Change the details of a meal you already logged — its description, any macro, fiber, total or added sugar, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber, sugar or added sugar, the server says so and the AI fills it in here once you agree. On a meal logged with ingredients, the totals change through its ingredient list.",
             params: {
                 id: "UUID of the meal to update",
                 description: "",
@@ -812,6 +890,7 @@ const TOOLS_EN: ToolsDoc = {
                 caffeine_mg: "Milligrams, not grams",
                 logged_at: "",
                 notes: "",
+                items: "The full ingredient list, replacing the existing one. The meal's totals become the sum of this list, so the totals fields can't be sent with it",
             },
             example: "Actually that lunch was 600 calories, not 500 — fix it",
         },
@@ -822,9 +901,92 @@ const TOOLS_EN: ToolsDoc = {
             },
             example: "Delete the snack I logged this afternoon",
         },
+        save_meal: {
+            description:
+                "Save a meal you eat often under a name, such as your usual breakfast, with its values for one serving and, if you have them, its ingredients. Give the values yourself or copy them from a meal you already logged. Saving adds nothing to your diary; log the saved meal with log_saved_meal when you eat it.",
+            params: {
+                name: "The name to save it under, unique among your saved meals (1–100 characters)",
+                from_meal_id:
+                    "UUID of a logged meal to copy its values and ingredients from",
+                description: "What the saved meal is. Defaults to its name",
+                meal_type:
+                    "breakfast, lunch, dinner or snack — the default when you log it",
+                items: "Ingredients, one row each, with their amounts and nutrients. Their sum becomes the saved meal's values, so send items or values, not both",
+                calories: "Total calories for one serving",
+                protein_g: "Protein in grams for one serving",
+                carbs_g: "Carbohydrates in grams for one serving",
+                fat_g: "Fat in grams for one serving",
+                fiber_g: "Dietary fiber in grams for one serving",
+                sugar_g: "Total sugars in grams for one serving",
+                added_sugar_g:
+                    "Added sugars in grams for one serving, never more than total sugars. It accompanies <code>sugar_g</code>",
+                alcohol_g:
+                    "Grams of pure ethanol for one serving, not the volume of the drink",
+                caffeine_mg:
+                    "Milligrams of caffeine for one serving, not grams",
+            },
+            example: "Save this as my usual breakfast",
+        },
+        log_saved_meal: {
+            description:
+                "Log a saved meal as a meal entry from now or from a time you give. The entry gets a copy of the saved values and ingredients, scaled by servings, with single ingredients optionally set to the amount actually eaten or left out for this one time. Later changes to the saved meal leave meals already logged from it as they are.",
+            params: {
+                saved_meal:
+                    "The saved meal's name, or its ID from get_saved_meals or search_meals",
+                servings:
+                    "How many servings to log: more than 0 and up to 20 (default 1)",
+                item_amounts:
+                    "The amounts of single ingredients actually eaten in this entry, by name or position. Servings scales the saved meal first, then these set the named ingredients' amounts, and their nutrients scale in proportion",
+                leave_out:
+                    "Ingredients to drop from this entry, by name or position",
+                meal_type:
+                    "breakfast, lunch, dinner or snack — overrides the saved meal's default",
+                description:
+                    "Description for this entry. Defaults to the saved meal's description",
+                logged_at: "When you ate it, if not now",
+                notes: "Additional notes",
+                idempotency_key:
+                    "A key that makes a retried call a no-op, so the same entry is not logged twice",
+            },
+            example: "Log my usual breakfast, half a serving",
+        },
+        update_saved_meal: {
+            description:
+                "Change a saved meal's name, description, default meal type, ingredients or values per serving. Meals already logged from it keep their values.",
+            params: {
+                id: "UUID of the saved meal to update",
+                name: "New name, unique among your saved meals",
+                description: "New description",
+                meal_type:
+                    "New default meal type: breakfast, lunch, dinner or snack",
+                items: "The full ingredient list, replacing the existing one. Its sum becomes the saved meal's values, so the values fields can't be sent with it",
+                calories: "Total calories for one serving",
+                protein_g: "Protein in grams for one serving",
+                carbs_g: "Carbohydrates in grams for one serving",
+                fat_g: "Fat in grams for one serving",
+                fiber_g: "Dietary fiber in grams for one serving",
+                sugar_g: "Total sugars in grams for one serving",
+                added_sugar_g:
+                    "Added sugars in grams for one serving, never more than total sugars. It accompanies <code>sugar_g</code>",
+                alcohol_g:
+                    "Grams of pure ethanol for one serving, not the volume of the drink",
+                caffeine_mg:
+                    "Milligrams of caffeine for one serving, not grams",
+            },
+            example:
+                "My usual breakfast now has 350 calories per serving — update it",
+        },
+        delete_saved_meal: {
+            description:
+                "Delete a saved meal. Meals already logged from it keep their values.",
+            params: {
+                id: "UUID of the saved meal to delete",
+            },
+            example: "Delete the saved meal called old lunch",
+        },
         search_meals: {
             description:
-                'Search your past meals by keyword and see them grouped into your recurring variations — how often each was logged, when last, and its typical calories. This is how the AI checks a photo of your plate against how you\'ve actually logged that meal before, and how "log my usual breakfast" works.',
+                "Search your past meals by keyword and see them grouped into your recurring variations — how often each was logged, when last, and its typical calories. This is how the AI checks a photo of your plate against how you've actually logged that meal before, and how \"log my usual breakfast\" works. It also matches the names of a meal's ingredients, and lists your saved meals whose name, description or ingredients match.",
             params: {
                 queries:
                     "Food keyword alternatives, in any language you've logged in",
@@ -859,9 +1021,17 @@ const TOOLS_EN: ToolsDoc = {
             },
             example: "List my meals from Monday to Friday",
         },
+        get_saved_meals: {
+            description:
+                "See your saved meals with their values per serving and their ingredients, optionally only those whose name includes some text.",
+            params: {
+                name_contains: "Only saved meals whose name includes this text",
+            },
+            example: "What meals have I saved?",
+        },
         export_all_data: {
             description:
-                "Export everything the service stores about you as a single ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (every change to your goals, dated), profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps and Apple Health sync, without any tokens), health_sync.csv (what Apple Health sync sent over the last 8 days), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
+                "Export everything the service stores about you as a single ZIP — meals.csv, meal_items.csv (the ingredients of each logged meal), saved_meals.csv and saved_meal_items.csv (your saved meals and their ingredients), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (every change to your goals, dated), profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps and Apple Health sync, without any tokens), health_sync.csv (what Apple Health sync sent over the last 8 days), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
             params: {},
             example: "Export all of my data — meals, water, weight, and goals",
         },
@@ -1199,7 +1369,7 @@ const TOOLS_EN: ToolsDoc = {
             "delete-account": {
                 question: "How do I delete my account?",
                 answerHtml:
-                    'Ask the AI to delete your Nutrition MCP account (<a href="#delete_account"><code>delete_account</code></a>). It will ask you to confirm, then permanently delete your meals, water, weight, body measurements, goals, settings, the record of which tools your AI app used, any export file, your sign-in and the account itself. This cannot be undone, so export your data first if you want a copy. Then remove the connector from your app. Signing in again with the same email later creates a new, empty account.',
+                    'Ask the AI to delete your Nutrition MCP account (<a href="#delete_account"><code>delete_account</code></a>). It will ask you to confirm, then permanently delete your meals, saved meals, water, weight, body measurements, goals, settings, the record of which tools your AI app used, any export file, your sign-in and the account itself. This cannot be undone, so export your data first if you want a copy. Then remove the connector from your app. Signing in again with the same email later creates a new, empty account.',
             },
             "report-a-problem": {
                 question: "How do I report a bug or a security issue?",

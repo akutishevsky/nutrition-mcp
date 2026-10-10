@@ -37,7 +37,8 @@ export const PRIVACY_TR: LegalDoc = {
                 {
                     type: "ul",
                     items: [
-                        "<strong>Yemek kayıtları</strong> — açıklama, yemek türü, kalori, makrolar, lif, toplam şeker, ilave şeker, gram cinsinden alkol, miligram cinsinden kafein, notlar ve zaman damgaları. Yemek fotoğraflarını yapay zekâ asistanın yorumlar; bunlar bize hiçbir zaman yüklenmez ve bizde saklanmaz.",
+                        "<strong>Yemek kayıtları</strong> — açıklama, yemek türü, kalori, makrolar, lif, toplam şeker, ilave şeker, gram cinsinden alkol, miligram cinsinden kafein, notlar ve zaman damgaları. Bir yemeği malzemeleriyle kaydedersen her malzeme de tutulur — adı, miktarı, birimi ve besin değerleri — ve varsa kaydedildiği kayıtlı yemek de. Yemek fotoğraflarını yapay zekâ asistanın yorumlar; bunlar bize hiçbir zaman yüklenmez ve bizde saklanmaz.",
+                        "<strong>Kayıtlı yemekler</strong> — adı, açıklaması, varsayılan yemek türü ve porsiyon başına değerleri, varsa malzemeleri (her biri için ad, miktar, birim ve besin değerleri) ve oluşturulduğu ile son değiştirildiği zaman. Kayıtlı yemekten kaydettiğin yemekler kendi değerlerinin kendi kopyasını tutar; kayıtlı yemeği değiştirmek ya da silmek onları olduğu gibi bırakır.",
                         "<strong>Su kayıtları</strong> — miktar, notlar ve zaman damgaları.",
                         "<strong>Kilo kayıtları</strong> — kilo, notlar ve zaman damgaları. Bu bir sağlık verisidir ve diğer kayıtlarınla tamamen aynı şekilde ele alınır.",
                         "<strong>Vücut ölçüsü kayıtları</strong> — hangi bölgenin ölçüldüğü (bel, kalça, boyun, göğüs, omuzlar, üst kol, ön kol, uyluk ya da baldır), değer tam senin girdiğin gibi ve birimi (cm veya in), notlar ve zaman damgaları. Bu bir sağlık verisidir ve diğer kayıtlarınla tamamen aynı şekilde ele alınır.",
@@ -63,7 +64,7 @@ export const PRIVACY_TR: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: "Yemek, su, kilo, vücut ölçüsü ve hedef verilerin yalnızca beslenme takibi servisini sunmak için ve anonim, toplu biçimde ana sayfadaki herkese açık istatistikler için kullanılır. Bunları <strong>asla satmıyoruz, asla üçüncü taraflarla paylaşmıyoruz ve asla reklam için kullanmıyoruz</strong>; hiçbir reklam ya da profilleme sistemine de aktarmıyoruz. Aşağıda anlatılan Apple Health eşitlemesi bunu değiştirmez: bu, senin kendi başlattığın, kendi iPhone cihazına yapılan bir aktarımdır ve Apple tarafına hiçbir şey göndermiyoruz.",
+                    html: "Yemek, kayıtlı yemek, su, kilo, vücut ölçüsü ve hedef verilerin yalnızca beslenme takibi servisini sunmak için ve anonim, toplu biçimde ana sayfadaki herkese açık istatistikler için kullanılır. Bunları <strong>asla satmıyoruz, asla üçüncü taraflarla paylaşmıyoruz ve asla reklam için kullanmıyoruz</strong>; hiçbir reklam ya da profilleme sistemine de aktarmıyoruz. Aşağıda anlatılan Apple Health eşitlemesi bunu değiştirmez: bu, senin kendi başlattığın, kendi iPhone cihazına yapılan bir aktarımdır ve Apple tarafına hiçbir şey göndermiyoruz.",
                 },
                 {
                     type: "p",
@@ -108,7 +109,7 @@ export const PRIVACY_TR: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: "Yemek, su, kilo ve vücut ölçüsü kayıtların, hedefler ve değişiklik geçmişleri, profil ayarların ve araç kullanım telemetrin hesabın var olduğu sürece tutulur — bunların hiçbirinin ayrı bir son kullanma tarihi ya da planlı bir temizliği yok. Hesabını sildiğinde bunların tamamı, aşağıda anlatıldığı gibi anında ve geri dönüşsüz biçimde silinir. Geriye kalan tek izler şunlar: hesap kimliğin olmadan kaydedilen, silme işleminin kendisine ait telemetri satırı; yukarıda anlatılan ve hesap kimliğini hiçbir zaman taşımayan kısa ömürlü sunucu çalışma kaydı; veritabanı sağlayıcımızın sınırlı bir süre tuttuğu kendi operasyonel kayıtları (bizim planımızda 7 güne kadar); ve kendi takvimine göre eskiyip düşen dönen yedekleri.",
+                    html: "Yemek kayıtların, kayıtlı yemeklerin, su, kilo ve vücut ölçüsü kayıtların, hedefler ve değişiklik geçmişleri, profil ayarların ve araç kullanım telemetrin hesabın var olduğu sürece tutulur — bunların hiçbirinin ayrı bir son kullanma tarihi ya da planlı bir temizliği yok. Hesabını sildiğinde bunların tamamı, aşağıda anlatıldığı gibi anında ve geri dönüşsüz biçimde silinir. Geriye kalan tek izler şunlar: hesap kimliğin olmadan kaydedilen, silme işleminin kendisine ait telemetri satırı; yukarıda anlatılan ve hesap kimliğini hiçbir zaman taşımayan kısa ömürlü sunucu çalışma kaydı; veritabanı sağlayıcımızın sınırlı bir süre tuttuğu kendi operasyonel kayıtları (bizim planımızda 7 güne kadar); ve kendi takvimine göre eskiyip düşen dönen yedekleri.",
                 },
                 {
                     type: "p",
@@ -129,7 +130,7 @@ export const PRIVACY_TR: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: "Nutrition MCP sunucusuna bağlıyken yapay zekâ asistanından <strong>hesabını silmesini</strong> isteyerek hesabını ve ilişkili tüm verileri dilediğin an silebilirsin. Bu işlem anında ve geri dönüşsüzdür. Yemek, su, kilo ve vücut ölçüsü kayıtların, hedefler ve değişiklik geçmişleri, profil ayarların, depoda hâlâ duran bir dışa aktarma arşivi, araç kullanım telemetrin, erişim belirteçlerin, Apple Health eşitleme bağlantın ve gönderilenlere ait kaydı ve hesabın kendisi kaldırılır. Buna, alkol takibi açık olsun ya da olmasın, şimdiye kadar kaydettiğin her alkol değeri de dahildir. Kısayolun Apple Health içine daha önce yazdığı toplamlar iPhone cihazında, sunucularımızda değil; sen Health uygulamasında silene kadar orada kalırlar.",
+                    html: "Nutrition MCP sunucusuna bağlıyken yapay zekâ asistanından <strong>hesabını silmesini</strong> isteyerek hesabını ve ilişkili tüm verileri dilediğin an silebilirsin. Bu işlem anında ve geri dönüşsüzdür. Yemek kayıtların ve her birinin malzemeleri, kayıtlı yemeklerin ve malzemeleri, su, kilo ve vücut ölçüsü kayıtların, hedefler ve değişiklik geçmişleri, profil ayarların, depoda hâlâ duran bir dışa aktarma arşivi, araç kullanım telemetrin, erişim belirteçlerin, Apple Health eşitleme bağlantın ve gönderilenlere ait kaydı ve hesabın kendisi kaldırılır. Buna, alkol takibi açık olsun ya da olmasın, şimdiye kadar kaydettiğin her alkol değeri de dahildir. Kısayolun Apple Health içine daha önce yazdığı toplamlar iPhone cihazında, sunucularımızda değil; sen Health uygulamasında silene kadar orada kalırlar.",
                 },
             ],
         },
@@ -159,8 +160,8 @@ export const PRIVACY_TR: LegalDoc = {
                 {
                     type: "ul",
                     items: [
-                        "<strong>Erişim ve taşınabilirlik</strong> — yapay zekâ asistanından verilerini dışa aktarmasını iste. Hakkında sakladığımız her şeyi içeren CSV dosyalarından oluşan bir ZIP alırsın: yemek, su, kilo ve vücut ölçüsü kayıtların, hedeflerin ve hedef değişikliklerinin geçmişi, ayarların, hesap kaydın (e-posta adresi, giriş yöntemleri ve giriş tarihleri ve Google tarafından gönderilmiş bir ad ya da fotoğraf varsa onlar), araç kullanım telemetrin, yapay zekâ uygulamalarını ve Apple Health eşitlemesini bağlı tutan bağlantılar (belirteçlerin kendileri hariç) ve son 8 günde Apple Health tarafına gönderilen günlük toplamların kaydı. İçinde olmayanlar: güvenlik için yalnızca tek yönlü hash olarak tuttuğumuz değerler (şifren ve bağlantılarının belirteçleri), yineleme tespiti anahtarları gibi dahili kayıt tutma verileri, hesap kimliğini içermeyen sunucu çalışma kaydı ve sağlayıcılarımızın kendi kısa ömürlü kayıtları ile dönen yedekleri.",
-                        "<strong>Düzeltme</strong> — yapay zekâ asistanından herhangi bir yemek, su, kilo ya da vücut ölçüsü kaydını düzeltmesini veya silmesini ya da hedeflerini ve ayarlarını değiştirmesini iste.",
+                        "<strong>Erişim ve taşınabilirlik</strong> — yapay zekâ asistanından verilerini dışa aktarmasını iste. Hakkında sakladığımız her şeyi içeren CSV dosyalarından oluşan bir ZIP alırsın: yemek kayıtların (meals.csv), kaydettiğin yemeklerin malzemeleri (meal_items.csv), kayıtlı yemeklerin (saved_meals.csv) ve onların malzemeleri (saved_meal_items.csv), su, kilo ve vücut ölçüsü kayıtların, hedeflerin ve hedef değişikliklerinin geçmişi, ayarların, hesap kaydın (e-posta adresi, giriş yöntemleri ve giriş tarihleri ve Google tarafından gönderilmiş bir ad ya da fotoğraf varsa onlar), araç kullanım telemetrin, yapay zekâ uygulamalarını ve Apple Health eşitlemesini bağlı tutan bağlantılar (belirteçlerin kendileri hariç) ve son 8 günde Apple Health tarafına gönderilen günlük toplamların kaydı. İçinde olmayanlar: güvenlik için yalnızca tek yönlü hash olarak tuttuğumuz değerler (şifren ve bağlantılarının belirteçleri), yineleme tespiti anahtarları gibi dahili kayıt tutma verileri, hesap kimliğini içermeyen sunucu çalışma kaydı ve sağlayıcılarımızın kendi kısa ömürlü kayıtları ile dönen yedekleri.",
+                        "<strong>Düzeltme</strong> — yapay zekâ asistanından herhangi bir yemek, su, kilo ya da vücut ölçüsü kaydını ya da kayıtlı bir yemeği düzeltmesini veya silmesini ya da hedeflerini ve ayarlarını değiştirmesini iste.",
                         "<strong>Silme</strong> — yapay zekâ asistanından hesabını silmesini iste; bu, her şeyi tek seferde kaldırır.",
                         "<strong>İtiraz ve kısıtlama</strong> — bize e-posta gönder.",
                         "<strong>Şikâyet</strong> — yaşadığın ya da çalıştığın yerdeki veri koruma kurumuna şikâyette bulunabilirsin. Önce bize düzeltme şansı verirsen memnun oluruz.",
@@ -293,7 +294,7 @@ export const TERMS_TR: LegalDoc = {
                 },
                 {
                     type: "p",
-                    html: "Yapay zekâ asistanından dışa aktarmasını isteyerek tüm verilerini dilediğin an dışa aktarabilirsin. Dışa aktarma; yemekler, su, kilo, vücut ölçüleri, hedefler, hedef geçmişi, profil ayarları, hesap kaydı, araç kullanım telemetrisi, bağlı yapay zekâ uygulamaları ve Apple Health eşitlemesi için CSV dosyaları içeren bir ZIP arşividir; alkol takibi açık olsun ya da olmasın alkol dahildir. Geri verdiğimiz indirme bağlantısı özeldir ve 60 dakika sonra sona erer.",
+                    html: "Yapay zekâ asistanından dışa aktarmasını isteyerek tüm verilerini dilediğin an dışa aktarabilirsin. Dışa aktarma; yemekler ve malzemeleri, kayıtlı yemekler ve malzemeleri, su, kilo, vücut ölçüleri, hedefler, hedef geçmişi, profil ayarları, hesap kaydı, araç kullanım telemetrisi, bağlı yapay zekâ uygulamaları ve Apple Health eşitlemesi için CSV dosyaları içeren bir ZIP arşividir; alkol takibi açık olsun ya da olmasın alkol dahildir. Geri verdiğimiz indirme bağlantısı özeldir ve 60 dakika sonra sona erer.",
                 },
                 {
                     type: "p",

@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_TR: ToolsDoc = {
     meta: {
-        title: "Kalori, makro, su ve kilo için 41 araç",
+        title: "Kalori, makro, su ve kilo için 46 araç",
         description:
-            "Claude, ChatGPT ve diğerleri için 41 Nutrition MCP aracının tamamı: yemek kaydet, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
+            "Claude, ChatGPT ve diğerleri için 46 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
         ogDescription:
-            "Nutrition MCP sunucusunun yapay zekâna sunduğu 41 aracın tamamı — başka bir uygulamadaki geçmişini taşımak için CSV içe aktarıcı dahil — açıklamaları ve örnek cümleleriyle.",
+            "Nutrition MCP sunucusunun yapay zekâna sunduğu 46 aracın tamamı — başka bir uygulamadaki geçmişini taşımak için CSV içe aktarıcı dahil — açıklamaları ve örnek cümleleriyle.",
     },
     hero: {
         eyebrow: "Başvuru",
@@ -20,7 +20,7 @@ export const TOOLS_TR: ToolsDoc = {
         titleEm: "her şey",
         titleAfterEm: "",
         lead: "Bu araçları hiçbir zaman kendin çağırmazsın: sadece Claude, ChatGPT ya da başka bir MCP istemcisiyle konuşursun, o da doğru aracı seçer. Aşağıda Nutrition MCP sunucusunun yemekler, kalori ve makrolar, su ve kilo için sunduğu her araç var; her birinin ne yaptığı ve onu çalıştıran bir cümleyle birlikte.",
-        countBold: "41 araç",
+        countBold: "46 araç",
         countTail: "7 alana yayılmış",
     },
     categories: {
@@ -86,7 +86,7 @@ export const TOOLS_TR: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Ne yediğini kalori ve makrolarla kaydet; sayılar varsa lif, toplam ve ilave şeker, alkol ve kafeinle birlikte. Günlük dille anlatman yeterli: yapay zekâ sayıları tahmin eder, porsiyon belirsizse sorar ve önce bir barkoddan ya da internetten etiket bilgisi çekebilir.",
+                "Ne yediğini kalori ve makrolarla kaydet; sayılar varsa lif, toplam ve ilave şeker, alkol ve kafeinle birlikte. Günlük dille anlatman yeterli: yapay zekâ sayıları tahmin eder, porsiyon belirsizse sorar ve önce bir barkoddan ya da internetten etiket bilgisi çekebilir. Malzemeleri de tek tek verebilirsin; o zaman toplamlar bu malzemelerin toplamı olur.",
             params: {
                 description: "Ne yenildi",
                 meal_type: "kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün",
@@ -107,6 +107,7 @@ export const TOOLS_TR: ToolsDoc = {
                 logged_at:
                     "Şimdi değilse, ne zaman yediğin: sonradan kaydetmeni sağlar",
                 notes: "Ek notlar",
+                items: "Malzemeler, her satırda kendi miktarı ve besin değerleriyle. Her malzemede <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code> ve <code>fat_g</code> bulunmalı; <code>fiber_g</code>, <code>sugar_g</code> ve <code>added_sugar_g</code> ya her malzemede ya hiçbirinde bulunmalı; <code>alcohol_g</code> ve <code>caffeine_mg</code> yalnızca onları içeren malzemelerde bulunur ve bu malzemeler üzerinden toplanır. Yemeğin toplamları o zaman malzemelerin toplamı olur, bu yüzden malzemeleri ya da toplamları gönder, ikisini birden değil",
             },
             example:
                 "Öğle yemeğine ekstra guacamoleli tavuklu burrito bowl kaydet",
@@ -146,7 +147,7 @@ export const TOOLS_TR: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Kaydettiğin bir yemeğin ayrıntılarını değiştir: açıklamasını, herhangi bir makroyu, lifi, toplam ya da ilave şekeri, alkolü ya da kafeini, saatini ya da notlarını. Eksikler de burada tamamlanır: bir yemek lifi, şekeri ya da ilave şekeri olmadan girildiyse sunucu bunu söyler ve sen kabul edince yapay zekâ buradan doldurur.",
+                "Kaydettiğin bir yemeğin ayrıntılarını değiştir: açıklamasını, herhangi bir makroyu, lifi, toplam ya da ilave şekeri, alkolü ya da kafeini, saatini ya da notlarını. Eksikler de burada tamamlanır: bir yemek lifi, şekeri ya da ilave şekeri olmadan girildiyse sunucu bunu söyler ve sen kabul edince yapay zekâ buradan doldurur. Malzemeyle kaydedilmiş bir yemekte toplamlar malzeme listesi üzerinden değişir.",
             params: {
                 id: "Güncellenecek yemeğin UUID değeri",
                 description: "",
@@ -162,6 +163,7 @@ export const TOOLS_TR: ToolsDoc = {
                 caffeine_mg: "Miligram, gram değil",
                 logged_at: "",
                 notes: "",
+                items: "Tam malzeme listesi; mevcut listenin yerini alır. Yemeğin toplamları bu listenin toplamı olur, bu yüzden toplam alanları bununla birlikte gönderilemez",
             },
             example: "Aslında o öğle yemeği 500 değil 600 kaloriydi, düzelt",
         },
@@ -172,9 +174,92 @@ export const TOOLS_TR: ToolsDoc = {
             },
             example: "Bu öğleden sonra kaydettiğim ara öğünü sil",
         },
+        save_meal: {
+            description:
+                "Sık yediğin bir yemeği, örneğin her zamanki kahvaltını, bir adla kaydet; bir porsiyon için değerleri ve varsa malzemeleriyle birlikte. Değerleri kendin ver ya da zaten kaydettiğin bir yemekten kopyala. Kaydetmek günlüğüne bir şey eklemez; yediğinde kayıtlı yemeği log_saved_meal ile kaydet.",
+            params: {
+                name: "Altında kaydedileceği ad; kayıtlı yemeklerin arasında benzersiz olmalı (1–100 karakter)",
+                from_meal_id:
+                    "Değerlerini ve malzemelerini kopyalayacağın kaydettiğin bir yemeğin UUID değeri",
+                description: "Kayıtlı yemeğin ne olduğu. Varsayılan olarak adı",
+                meal_type:
+                    "kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün — kaydederken varsayılan olarak kullanılır",
+                items: "Malzemeler, her satırda kendi miktarı ve besin değerleriyle. Toplamları kayıtlı yemeğin değerleri olur; bu yüzden malzemeleri ya da değerleri gönder, ikisini birden değil",
+                calories: "Bir porsiyon için toplam kalori",
+                protein_g: "Bir porsiyon için gram cinsinden protein",
+                carbs_g: "Bir porsiyon için gram cinsinden karbonhidrat",
+                fat_g: "Bir porsiyon için gram cinsinden yağ",
+                fiber_g: "Bir porsiyon için gram cinsinden lif",
+                sugar_g: "Bir porsiyon için gram cinsinden toplam şeker",
+                added_sugar_g:
+                    "Bir porsiyon için gram cinsinden ilave şeker; asla toplam şekerden fazla olamaz. <code>sugar_g</code> ile birlikte gider",
+                alcohol_g:
+                    "Bir porsiyon için saf etanol gramı, içeceğin hacmi değil",
+                caffeine_mg:
+                    "Bir porsiyon için miligram cinsinden kafein, gram değil",
+            },
+            example: "Bunu her zamanki kahvaltım olarak kaydet",
+        },
+        log_saved_meal: {
+            description:
+                "Kayıtlı bir yemeği, şimdi ya da verdiğin bir zamandan itibaren yemek kaydı olarak kaydet. Kayıt, kayıtlı değerlerin ve malzemelerinin bir kopyasını alır; porsiyon sayısına göre ölçeklenir ve tek seferlik olarak tek tek malzemeler gerçekten yenen miktara ayarlanabilir ya da çıkarılabilir. Kayıtlı yemekte sonradan yapılan değişiklikler, ondan kaydedilmiş yemekleri olduğu gibi bırakır.",
+            params: {
+                saved_meal:
+                    "Kayıtlı yemeğin adı ya da get_saved_meals veya search_meals'ten gelen kimliği",
+                servings:
+                    "Kaç porsiyon kaydedileceği: 0'dan büyük ve en fazla 20 (varsayılan 1)",
+                item_amounts:
+                    "Bu kayıtta tek tek malzemelerden gerçekten yenen miktarlar, ad ya da sıra numarasıyla. Önce porsiyon sayısı kayıtlı yemeği ölçekler, sonra bu değerler belirtilen malzemelerin miktarını belirler; besin değerleri oranına göre ölçeklenir",
+                leave_out:
+                    "Bu kayıttan çıkarılacak malzemeler, ad ya da sıra numarasıyla",
+                meal_type:
+                    "kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün — kayıtlı yemeğin varsayılanının yerine geçer",
+                description:
+                    "Bu kayıt için açıklama. Varsayılan olarak kayıtlı yemeğin açıklaması",
+                logged_at: "Ne zaman yediğin, şimdi değilse",
+                notes: "Ek notlar",
+                idempotency_key:
+                    "Tekrar deneyen bir çağrıyı etkisiz kılan anahtar; böylece aynı kayıt iki kez eklenmez",
+            },
+            example: "Her zamanki kahvaltımı kaydet, yarım porsiyon",
+        },
+        update_saved_meal: {
+            description:
+                "Kayıtlı bir yemeğin adını, açıklamasını, varsayılan yemek türünü, malzemelerini ya da porsiyon başına değerlerini değiştir. Ondan kaydedilmiş yemekler kendi değerlerini korur.",
+            params: {
+                id: "Güncellenecek kayıtlı yemeğin UUID değeri",
+                name: "Yeni ad; kayıtlı yemeklerin arasında benzersiz olmalı",
+                description: "Yeni açıklama",
+                meal_type:
+                    "Yeni varsayılan yemek türü: kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün",
+                items: "Tam malzeme listesi; mevcut listenin yerini alır. Toplamı kayıtlı yemeğin değerleri olur; bu yüzden değer alanları bununla birlikte gönderilemez",
+                calories: "Bir porsiyon için toplam kalori",
+                protein_g: "Bir porsiyon için gram cinsinden protein",
+                carbs_g: "Bir porsiyon için gram cinsinden karbonhidrat",
+                fat_g: "Bir porsiyon için gram cinsinden yağ",
+                fiber_g: "Bir porsiyon için gram cinsinden lif",
+                sugar_g: "Bir porsiyon için gram cinsinden toplam şeker",
+                added_sugar_g:
+                    "Bir porsiyon için gram cinsinden ilave şeker; asla toplam şekerden fazla olamaz. <code>sugar_g</code> ile birlikte gider",
+                alcohol_g:
+                    "Bir porsiyon için saf etanol gramı, içeceğin hacmi değil",
+                caffeine_mg:
+                    "Bir porsiyon için miligram cinsinden kafein, gram değil",
+            },
+            example:
+                "Her zamanki kahvaltımın porsiyonu artık 350 kalori — güncelle",
+        },
+        delete_saved_meal: {
+            description:
+                "Kayıtlı bir yemeği sil. Ondan kaydedilmiş yemekler kendi değerlerini korur.",
+            params: {
+                id: "Silinecek kayıtlı yemeğin UUID değeri",
+            },
+            example: "Eski öğle yemeği adlı kayıtlı yemeği sil",
+        },
         search_meals: {
             description:
-                "Geçmiş yemeklerini anahtar kelimeyle ara ve tekrarlayan varyasyonlarına gruplanmış hâlde gör: her birinin kaç kez kaydedildiği, en son ne zaman kaydedildiği ve tipik kalorisi. Yapay zekâ tabağının fotoğrafını o yemeği daha önce nasıl kaydettiğinle böyle karşılaştırır, “her zamanki kahvaltımı kaydet” de böyle çalışır.",
+                "Geçmiş yemeklerini anahtar kelimeyle ara ve tekrarlayan varyasyonlarına gruplanmış hâlde gör: her birinin kaç kez kaydedildiği, en son ne zaman kaydedildiği ve tipik kalorisi. Yapay zekâ tabağının fotoğrafını o yemeği daha önce nasıl kaydettiğinle böyle karşılaştırır, “her zamanki kahvaltımı kaydet” de böyle çalışır. Bir yemeğin malzeme adlarında da arar ve adı, açıklaması ya da malzemeleri eşleşen kayıtlı yemeklerini de listeler.",
             params: {
                 queries:
                     "Yemek anahtar kelimesi alternatifleri, kayıt tuttuğun herhangi bir dilde",
@@ -209,9 +294,18 @@ export const TOOLS_TR: ToolsDoc = {
             },
             example: "Pazartesiden cumaya yemeklerimi listele",
         },
+        get_saved_meals: {
+            description:
+                "Kayıtlı yemeklerini, porsiyon başına değerleri ve malzemeleriyle gör; istersen yalnızca adında belirli bir metin geçenleri.",
+            params: {
+                name_contains:
+                    "Yalnızca adında bu metin geçen kayıtlı yemekler",
+            },
+            example: "Hangi yemekleri kaydettim?",
+        },
         export_all_data: {
             description:
-                "Servisin senin hakkında sakladığı her şeyi tek bir ZIP olarak dışa aktar: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (hedeflerindeki her değişiklik, tarihiyle), profile.csv, account.csv (giriş hesabın), telemetry.csv (araç kullanım kayıtları), connections.csv (bağlı yapay zekâ uygulamaların ve Apple Health eşitlemesi, hiçbir token olmadan), health_sync.csv (Apple Health eşitlemesinin son 8 günde gönderdikleri) ve kolonları, birimleri ve neyin dahil olmadığını anlatan bir README.txt. Ardından 60 dakika geçerli, özel bir indirme bağlantısı verir. Şimdilik geri aktarılabilen tek bölüm yemekler.",
+                "Servisin senin hakkında sakladığı her şeyi tek bir ZIP olarak dışa aktar: meals.csv, meal_items.csv (kaydettiğin yemeklerin malzemeleri), saved_meals.csv ve saved_meal_items.csv (kayıtlı yemeklerin ve malzemelerinin), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (hedeflerindeki her değişiklik, tarihiyle), profile.csv, account.csv (giriş hesabın), telemetry.csv (araç kullanım kayıtları), connections.csv (bağlı yapay zekâ uygulamaların ve Apple Health eşitlemesi, hiçbir token olmadan), health_sync.csv (Apple Health eşitlemesinin son 8 günde gönderdikleri) ve kolonları, birimleri ve neyin dahil olmadığını anlatan bir README.txt. Ardından 60 dakika geçerli, özel bir indirme bağlantısı verir. Şimdilik geri aktarılabilen tek bölüm yemekler.",
             params: {},
             example:
                 "Tüm verilerimi dışa aktar: yemekler, su, kilo ve hedefler",
@@ -560,7 +654,7 @@ export const TOOLS_TR: ToolsDoc = {
             "delete-account": {
                 question: "Hesabımı nasıl silerim?",
                 answerHtml:
-                    'Yapay zekâdan Nutrition MCP hesabını silmesini iste (<a href="#delete_account"><code>delete_account</code></a>). Onaylamanı ister, sonra yemeklerini, suyunu, kilonu, vücut ölçülerini, hedeflerini, ayarlarını, yapay zekâ uygulamanın hangi araçları kullandığına dair kaydı, varsa dışa aktarma dosyanı, girişini ve hesabın kendisini kalıcı olarak siler. Bu geri alınamaz, bu yüzden bir kopya istiyorsan önce verilerini dışa aktar. Ardından konektörü uygulamandan kaldır. Daha sonra aynı e-postayla tekrar giriş yapmak yeni ve boş bir hesap oluşturur.',
+                    'Yapay zekâdan Nutrition MCP hesabını silmesini iste (<a href="#delete_account"><code>delete_account</code></a>). Onaylamanı ister, sonra yemeklerini, kayıtlı yemeklerini, suyunu, kilonu, vücut ölçülerini, hedeflerini, ayarlarını, yapay zekâ uygulamanın hangi araçları kullandığına dair kaydı, varsa dışa aktarma dosyanı, girişini ve hesabın kendisini kalıcı olarak siler. Bu geri alınamaz, bu yüzden bir kopya istiyorsan önce verilerini dışa aktar. Ardından konektörü uygulamandan kaldır. Daha sonra aynı e-postayla tekrar giriş yapmak yeni ve boş bir hesap oluşturur.',
             },
             "report-a-problem": {
                 question:
