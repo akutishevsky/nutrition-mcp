@@ -3,7 +3,7 @@
     "name": "io.github.akutishevsky/nutrition-mcp",
     "title": "Nutrition MCP",
     "description": "Nutrition tracking: log meals and macros, USDA and Open Food Facts lookups, history, app import.",
-    "version": "1.28.0",
+    "version": "1.29.0",
     "websiteUrl": "https://nutrition-mcp.com/",
     "icons": [
         {
