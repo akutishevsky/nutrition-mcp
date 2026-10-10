@@ -2,6 +2,9 @@ import {
     getSupabase,
     exportArchivePath,
     getAllMeals,
+    getAllMealItems,
+    getAllSavedMeals,
+    getAllSavedMealItems,
     getAllWater,
     getAllWeight,
     getAllBodyMeasurements,
@@ -75,6 +78,11 @@ const CSV_COLUMNS = [
     // anyone else's — turns 180 mg into 180 g.
     "caffeine_mg",
     "notes",
+    // The saved meal this entry was logged from, or empty. Appended after
+    // notes rather than inserted, so the importer (which matches by header
+    // name) and any reader that mapped the earlier columns by position keep
+    // working; the importer ignores a column it does not know.
+    "saved_meal_id",
 ] as const;
 
 /**
@@ -142,6 +150,176 @@ export function buildMealsCsv(meals: Meal[], tz: string): string {
                 csvEscape(m.alcohol_g),
                 csvEscape(m.caffeine_mg),
                 csvEscape(m.notes),
+                csvEscape(m.saved_meal_id),
+            ].join(","),
+        );
+    }
+    return rows.join("\n");
+}
+
+/**
+ * The nutrient columns shared by meal_items.csv, saved_meals.csv and
+ * saved_meal_items.csv, in the order `nutrientCells` writes them. Same units as
+ * meals.csv: grams, with caffeine_mg in milligrams. Values are per ingredient as
+ * logged (items) or per serving (saved meals).
+ */
+const NUTRIENT_CSV_COLUMNS = [
+    "calories",
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "fiber_g",
+    "sugar_g",
+    "added_sugar_g",
+    "alcohol_g",
+    "caffeine_mg",
+] as const;
+
+type ExportNutrients = {
+    [K in (typeof NUTRIENT_CSV_COLUMNS)[number]]: number | null;
+};
+
+/** A logged meal's ingredient row, as getAllMealItems returns it. */
+export interface MealItemExportRow extends ExportNutrients {
+    id: string;
+    meal_id: string;
+    user_id: string;
+    position: number;
+    name: string;
+    amount: number | null;
+    unit: string | null;
+}
+
+/** A saved meal, as getAllSavedMeals returns it: values per serving. */
+export interface SavedMealExportRow extends ExportNutrients {
+    id: string;
+    user_id: string;
+    name: string;
+    description: string;
+    meal_type: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+/** A saved meal's ingredient row, as getAllSavedMealItems returns it. */
+export interface SavedMealItemExportRow extends ExportNutrients {
+    id: string;
+    saved_meal_id: string;
+    user_id: string;
+    position: number;
+    name: string;
+    amount: number | null;
+    unit: string | null;
+}
+
+function nutrientCells(n: ExportNutrients): string[] {
+    return NUTRIENT_CSV_COLUMNS.map((column) => csvEscape(n[column]));
+}
+
+/**
+ * Column order for meal_items.csv. Parallel array with the row builder below.
+ * It joins meals.csv by `meal_id`; `position` orders the ingredients within a
+ * meal. The meal's own totals are in meals.csv and are the sum of these rows.
+ */
+const MEAL_ITEMS_CSV_COLUMNS = [
+    "meal_id",
+    "position",
+    "name",
+    "amount",
+    "unit",
+    ...NUTRIENT_CSV_COLUMNS,
+] as const;
+
+/**
+ * Build meal_items.csv: one row per ingredient of every meal logged with items.
+ * Header-only when no meal has items.
+ */
+export function buildMealItemsCsv(items: MealItemExportRow[]): string {
+    const rows = [MEAL_ITEMS_CSV_COLUMNS.join(",")];
+    for (const i of items) {
+        rows.push(
+            [
+                csvEscape(i.meal_id),
+                csvEscape(i.position),
+                csvEscape(i.name),
+                csvEscape(i.amount),
+                csvEscape(i.unit),
+                ...nutrientCells(i),
+            ].join(","),
+        );
+    }
+    return rows.join("\n");
+}
+
+/**
+ * Column order for saved_meals.csv. Parallel array with the row builder below.
+ * The timestamps are rendered in `tz` and `timezone` names that zone, like
+ * every other file here.
+ */
+const SAVED_MEALS_CSV_COLUMNS = [
+    "id",
+    "name",
+    "description",
+    "meal_type",
+    ...NUTRIENT_CSV_COLUMNS,
+    "created_at",
+    "updated_at",
+    "timezone",
+] as const;
+
+/** Build saved_meals.csv, timestamps in `tz`. Header-only when there are none. */
+export function buildSavedMealsCsv(
+    saved: SavedMealExportRow[],
+    tz: string,
+): string {
+    const rows = [SAVED_MEALS_CSV_COLUMNS.join(",")];
+    for (const s of saved) {
+        rows.push(
+            [
+                csvEscape(s.id),
+                csvEscape(s.name),
+                csvEscape(s.description),
+                csvEscape(s.meal_type),
+                ...nutrientCells(s),
+                csvEscape(formatLocalDateTime(s.created_at, tz)),
+                csvEscape(formatLocalDateTime(s.updated_at, tz)),
+                csvEscape(tz),
+            ].join(","),
+        );
+    }
+    return rows.join("\n");
+}
+
+/**
+ * Column order for saved_meal_items.csv. Same shape as meal_items.csv, joined
+ * to saved_meals.csv by `saved_meal_id`.
+ */
+const SAVED_MEAL_ITEMS_CSV_COLUMNS = [
+    "saved_meal_id",
+    "position",
+    "name",
+    "amount",
+    "unit",
+    ...NUTRIENT_CSV_COLUMNS,
+] as const;
+
+/**
+ * Build saved_meal_items.csv: one row per ingredient of every saved meal that
+ * has ingredients. Header-only when none do.
+ */
+export function buildSavedMealItemsCsv(
+    items: SavedMealItemExportRow[],
+): string {
+    const rows = [SAVED_MEAL_ITEMS_CSV_COLUMNS.join(",")];
+    for (const i of items) {
+        rows.push(
+            [
+                csvEscape(i.saved_meal_id),
+                csvEscape(i.position),
+                csvEscape(i.name),
+                csvEscape(i.amount),
+                csvEscape(i.unit),
+                ...nutrientCells(i),
             ].join(","),
         );
     }
@@ -733,6 +911,9 @@ export function buildHealthSyncCsv(
  */
 export const EXPORT_ARCHIVE_FILES = [
     "meals.csv",
+    "meal_items.csv",
+    "saved_meals.csv",
+    "saved_meal_items.csv",
     "water.csv",
     "weight.csv",
     "body_measurements.csv",
@@ -782,7 +963,10 @@ export function buildExportReadme(opts: {
         "",
         "Files",
         "-----",
-        `meals.csv    ${rows(counts.meals)} — every meal you have logged: time, description, calories and macros.`,
+        `meals.csv    ${rows(counts.meals)} — every meal you have logged: time, description, calories and macros, and saved_meal_id, the saved meal it was logged from (empty when it was not logged from one).`,
+        `meal_items.csv ${rows(counts.mealItems)} — the ingredients of meals you logged with an itemised list: one row per ingredient with its amount, unit and nutrients. Joined to meals.csv by meal_id; position orders the ingredients within a meal. A meal's totals in meals.csv are the sum of its ingredients, with calories rounded to a whole number and the other values to two decimals, so a calorie total can differ from the sum of the ingredients' calories by up to half a calorie.`,
+        `saved_meals.csv ${rows(counts.savedMeals)} — your saved meals: name, description, default meal type and the values for one serving, when each was created and last changed (in its "timezone" column's zone). Editing or deleting a saved meal does not change meals you already logged from it.`,
+        `saved_meal_items.csv ${rows(counts.savedMealItems)} — the ingredients of saved meals, one row per ingredient, joined to saved_meals.csv by saved_meal_id. When a saved meal has ingredients, its values in saved_meals.csv are their sum, rounded the same way: calories to a whole number, the other values to two decimals.`,
         `water.csv    ${rows(counts.water)} — every water entry, in millilitres.`,
         `weight.csv   ${rows(counts.weight)} — every weigh-in, as stored grams and as ${weightUnit}.`,
         `body_measurements.csv ${rows(counts.bodyMeasurements)} — every body measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf): the stored millimetres, and the value exactly as entered with its unit (cm or in).`,
@@ -810,7 +994,7 @@ export function buildExportReadme(opts: {
         "Re-importing",
         "------------",
         "Only meals.csv can be read back in. Hand it to start_meal_import (which parses it in your browser) or to bulk_import_meals; its column names are exactly the ones the importer expects, and re-importing the same file twice is a no-op rather than a set of duplicates.",
-        "Every other file is export-only — there is no import path for water, weight, body measurements, goals, profile, account, telemetry, connections or Apple Health sync, so keep this archive if you want that history back.",
+        "Every other file is export-only — there is no import path for meal ingredients, saved meals, water, weight, body measurements, goals, profile, account, telemetry, connections or Apple Health sync, so keep this archive if you want that history back.",
         "",
         "Not in this archive",
         "-------------------",
@@ -827,6 +1011,12 @@ export function buildExportReadme(opts: {
 
 export interface ExportCounts {
     meals: number;
+    /** Rows in meal_items.csv: ingredients of logged meals. */
+    mealItems: number;
+    /** Rows in saved_meals.csv. */
+    savedMeals: number;
+    /** Rows in saved_meal_items.csv: ingredients of saved meals. */
+    savedMealItems: number;
     water: number;
     weight: number;
     bodyMeasurements: number;
@@ -849,8 +1039,9 @@ export interface FullExportResult {
 }
 
 /**
- * Build the whole-account archive — every log (meals, water, weight and body
- * measurements), the goals and their history, the profile, the
+ * Build the whole-account archive — every log (meals and their ingredients,
+ * saved meals and their ingredients, water, weight and body measurements), the
+ * goals and their history, the profile, the
  * Auth account, the tool telemetry, the OAuth grants and the Apple Health sync
  * link with its record of what was sent —
  * upload it to the private `exports` bucket under a fixed per-user path (so
@@ -877,6 +1068,9 @@ export async function exportAllData(
     // host gives up on it.
     const [
         meals,
+        mealItems,
+        savedMeals,
+        savedMealItems,
         water,
         weight,
         bodyMeasurements,
@@ -890,6 +1084,9 @@ export async function exportAllData(
         healthSyncDays,
     ] = await Promise.all([
         getAllMeals(userId),
+        getAllMealItems(userId),
+        getAllSavedMeals(userId),
+        getAllSavedMealItems(userId),
         getAllWater(userId),
         getAllWeight(userId),
         getAllBodyMeasurements(userId),
@@ -905,6 +1102,9 @@ export async function exportAllData(
 
     const counts: ExportCounts = {
         meals: meals.length,
+        mealItems: mealItems.length,
+        savedMeals: savedMeals.length,
+        savedMealItems: savedMealItems.length,
         water: water.length,
         weight: weight.length,
         bodyMeasurements: bodyMeasurements.length,
@@ -951,6 +1151,9 @@ export async function exportAllData(
         // importer's column aliases, so a column renamed for the look of it
         // here breaks a re-import silently.
         "meals.csv": buildMealsCsv(meals, tz),
+        "meal_items.csv": buildMealItemsCsv(mealItems),
+        "saved_meals.csv": buildSavedMealsCsv(savedMeals, tz),
+        "saved_meal_items.csv": buildSavedMealItemsCsv(savedMealItems),
         "water.csv": buildWaterCsv(water, tz),
         "weight.csv": buildWeightCsv(weight, tz, weightUnit),
         "body_measurements.csv": buildBodyMeasurementsCsv(bodyMeasurements, tz),
