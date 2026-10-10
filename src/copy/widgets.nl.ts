@@ -56,6 +56,16 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             one: "{n} ingrediënt",
             other: "{n} ingrediënten",
         },
+        sourceUsda: "USDA",
+        sourceOff: "OFF",
+        sourceUser: "eigen",
+        sourceEst: "sch.",
+        sourceMixed: "gemengd",
+        sourceRecordUsda: "FoodData Central",
+        sourceRecordOff: "barcode",
+        sourceDataType: "gegevenstype",
+        sourceAria: "Bron: {source}",
+        sourceDetailsAria: "Bronnen tonen",
     },
     bridge: {
         settingsFooter:

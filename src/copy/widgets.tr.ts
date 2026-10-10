@@ -56,6 +56,16 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
             one: "{n} malzeme",
             other: "{n} malzeme",
         },
+        sourceUsda: "USDA",
+        sourceOff: "OFF",
+        sourceUser: "kendi",
+        sourceEst: "tahm.",
+        sourceMixed: "karışık",
+        sourceRecordUsda: "FoodData Central",
+        sourceRecordOff: "barkod",
+        sourceDataType: "veri türü",
+        sourceAria: "Kaynak: {source}",
+        sourceDetailsAria: "Kaynak ayrıntılarını göster",
     },
     bridge: {
         settingsFooter:

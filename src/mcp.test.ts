@@ -10913,7 +10913,7 @@ describe("nutrient provenance on the write paths", () => {
             expect(labels.calories).toEqual({
                 s: "usda",
                 ref: "171477",
-                name: "x".repeat(60),
+                name: `${"x".repeat(59)}…`,
                 data_type: "Foundation",
             });
             expect(JSON.stringify(r.structuredContent)).not.toContain(
@@ -10964,7 +10964,207 @@ describe("nutrient provenance on the write paths", () => {
             expect(r._meta ?? {}).not.toHaveProperty(NUTRIENT_SOURCES_META_KEY);
         });
     });
+
+    // The ingredient lines a model reads under an itemized write (content only).
+    const ITEM_CHICKEN = {
+        calories: 248,
+        protein_g: 46.5,
+        carbs_g: 0,
+        fat_g: 5.4,
+        fiber_g: 0,
+        sugar_g: 0,
+        added_sugar_g: 0,
+    };
+    const CHICKEN_ITEM_LINE =
+        "- Chicken breast: USDA 171477 (150 g) for calories, protein, carbs, fat, fiber, sugar, added sugar";
+
+    test("log_meal: an itemized meal names each ingredient's record in the model text", async () => {
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Lunch",
+                meal_type: "lunch",
+                items: [
+                    {
+                        name: "Chicken breast",
+                        amount: 150,
+                        unit: "g",
+                        ...ITEM_CHICKEN,
+                        food_ref: CHICKEN_REF,
+                    },
+                    {
+                        name: "Rice",
+                        amount: 100,
+                        unit: "g",
+                        calories: 130,
+                        protein_g: 2.7,
+                        carbs_g: 28,
+                        fat_g: 0.3,
+                        fiber_g: 0.4,
+                        sugar_g: 0.1,
+                        added_sugar_g: 0,
+                    },
+                ],
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain(
+                `Ingredient sources:\n${CHICKEN_ITEM_LINE}`,
+            );
+            // Rice has no label beyond an estimate, so it gets no line.
+            expect(textOf(r)).not.toContain("- Rice:");
+        });
+    });
+
+    test("log_meal: an itemized meal with no record or user label gets no ingredient block", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Lunch",
+                meal_type: "lunch",
+                items: [
+                    {
+                        name: "Rice",
+                        amount: 100,
+                        unit: "g",
+                        calories: 130,
+                        protein_g: 2.7,
+                        carbs_g: 28,
+                        fat_g: 0.3,
+                    },
+                ],
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).not.toContain("Ingredient sources:");
+        });
+    });
+
+    test("update_meal: an itemized update names the ingredient records too", async () => {
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        db.meals = [storedMeal({ id: MEAL_ID, description: "Plate" })];
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", {
+                id: MEAL_ID,
+                items: [
+                    {
+                        name: "Chicken breast",
+                        amount: 150,
+                        unit: "g",
+                        ...ITEM_CHICKEN,
+                        food_ref: CHICKEN_REF,
+                    },
+                ],
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain(
+                `Ingredient sources:\n${CHICKEN_ITEM_LINE}`,
+            );
+        });
+    });
+
+    test("save_meal: an itemized saved meal names the ingredient records", async () => {
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        await withTools(null, async (call) => {
+            const r = await call("save_meal", {
+                name: "Chicken plate",
+                meal_type: "lunch",
+                items: [
+                    {
+                        name: "Chicken breast",
+                        amount: 150,
+                        unit: "g",
+                        ...ITEM_CHICKEN,
+                        food_ref: CHICKEN_REF,
+                    },
+                ],
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain(
+                `Ingredient sources:\n${CHICKEN_ITEM_LINE}`,
+            );
+        });
+    });
+
+    test("log_saved_meal: a logged copy names the ingredient records it keeps", async () => {
+        db.savedMeals = [
+            savedMealRow({
+                items: [
+                    ingredient(1, "Chicken breast", {
+                        calories: 248,
+                        nutrient_sources: {
+                            calories: TAG,
+                            protein_g: TAG,
+                        },
+                        source_detail: {
+                            "usda:171477": {
+                                name: USDA_CHICKEN.name,
+                                amount_g: 150,
+                            },
+                        },
+                    }),
+                ],
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", {
+                saved_meal: SAVED_ID,
+                meal_type: "dinner",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain(
+                "Ingredient sources:\n- Chicken breast: USDA 171477 (150 g) for calories, protein",
+            );
+        });
+    });
+
+    test("item names reach the caller but never a console log line", async () => {
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        const marker = "Zebrafish-Secret-Name";
+        const logged: string[] = [];
+        const spies = [
+            spyOn(console, "log"),
+            spyOn(console, "warn"),
+            spyOn(console, "error"),
+            spyOn(console, "info"),
+            spyOn(console, "debug"),
+        ].map((spy) =>
+            spy.mockImplementation((...args: unknown[]) => {
+                logged.push(args.map(String).join(" "));
+            }),
+        );
+        try {
+            await withTools(null, async (call) => {
+                const r = await call("log_meal", {
+                    description: "Lunch",
+                    meal_type: "lunch",
+                    items: [
+                        {
+                            name: marker,
+                            amount: 150,
+                            unit: "g",
+                            ...ITEM_CHICKEN,
+                            food_ref: CHICKEN_REF,
+                        },
+                    ],
+                });
+                expect(r.isError).toBeFalsy();
+                expect(textOf(r)).toContain(marker);
+            });
+        } finally {
+            for (const spy of spies) spy.mockRestore();
+        }
+        expect(logged.join("\n")).not.toContain(marker);
+    });
 });
+
+// The three templates that read the nutrient-sources key carry its literal, so
+// the assembled widget can find the labels in _meta (see the widget tests).
+test.each(["nutrition-summary", "goal-progress", "meal-logged"])(
+    "the %s widget reads _meta under NUTRIENT_SOURCES_META_KEY",
+    async (key) => {
+        expect(await getWidgetHtml(key)).toContain(
+            JSON.stringify(NUTRIENT_SOURCES_META_KEY),
+        );
+    },
+);
 
 describe("log_saved_meal re-derives the meal's labels from the items it keeps", () => {
     const TAG = { s: "usda", ref: "171477" } as const;

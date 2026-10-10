@@ -63,6 +63,16 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
             many: "{n} składników",
             other: "{n} składników",
         },
+        sourceUsda: "USDA",
+        sourceOff: "OFF",
+        sourceUser: "własne",
+        sourceEst: "szac.",
+        sourceMixed: "mieszane",
+        sourceRecordUsda: "FoodData Central",
+        sourceRecordOff: "kod kreskowy",
+        sourceDataType: "typ danych",
+        sourceAria: "Źródło: {source}",
+        sourceDetailsAria: "Pokaż szczegóły źródła",
     },
     bridge: {
         settingsFooter:

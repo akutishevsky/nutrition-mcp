@@ -60,6 +60,16 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             one: "{n} Zutat",
             other: "{n} Zutaten",
         },
+        sourceUsda: "USDA",
+        sourceOff: "OFF",
+        sourceUser: "eigene",
+        sourceEst: "gesch.",
+        sourceMixed: "gemischt",
+        sourceRecordUsda: "FoodData Central",
+        sourceRecordOff: "Barcode",
+        sourceDataType: "Datentyp",
+        sourceAria: "Quelle: {source}",
+        sourceDetailsAria: "Quellendetails anzeigen",
     },
     bridge: {
         settingsFooter:

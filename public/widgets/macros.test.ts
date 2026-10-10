@@ -17,7 +17,12 @@ function fmt(n: number, decimals?: number) {
     const r = decimals ? n.toFixed(decimals) : Math.round(n);
     return Number(r).toLocaleString();
 }
-const esc = (s: unknown) => String(s);
+// The same escaping every template's esc() applies to text it inserts.
+const esc = (s: unknown) =>
+    String(s).replace(
+        /[&<>"]/g,
+        (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!,
+    );
 
 type Bits = { goalLine: string; over: boolean; pct: number | null };
 type Macro = { key: string; direction?: string };
@@ -46,9 +51,11 @@ const macrosApi = await (async () => {
         "fmt",
         "esc",
         "WIDGET_STRINGS",
-        `${i18nSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, addedSugarPayload, addedSugarFor, withAddedSugar, withAddedSugarContributors, mealItemsPayload, withMealItems, saturatedFatPayload, withSaturatedFat };`,
+        `${i18nSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, addedSugarPayload, addedSugarFor, withAddedSugar, withAddedSugarContributors, mealItemsPayload, withMealItems, saturatedFatPayload, withSaturatedFat, nutrientSourcesPayload, withNutrientSources, sourceToggle, mealRowToggle };`,
     );
     return factory(fmt, esc, { en: WIDGET_STRINGS_EN }) as {
+        sourceToggle: (btn: unknown) => void;
+        mealRowToggle: (btn: unknown) => void;
         macroBits: (
             m: Macro,
             vals: Record<string, number>,
@@ -2520,4 +2527,616 @@ test("ingredient rows show each item's saturated fat, biggest first", () => {
     expect(html.indexOf("Cheese")).toBeLessThan(html.indexOf("Bread"));
     expect(html).toContain("6.1");
     expect(html).toContain("Toastie");
+});
+
+// ---- Nutrient sources (USDA / OFF / yours / est. tags) --------------------
+// Built the way the server builds `_meta["nutrition-mcp.com/nutrient-sources"]`
+// (src/provenance.ts metaFor): per row, per nutrient, one tag.
+const sourcesApi = macrosApi as unknown as {
+    nutrientSourcesPayload: (raw: unknown) => unknown;
+    withNutrientSources: (
+        payload: unknown,
+        meals: unknown[],
+        items: MealItemsPayload | null,
+    ) => unknown[];
+};
+type El = {
+    tag: string;
+    attrs: Record<string, string>;
+    ancestors: El[];
+};
+const VOID_TAGS = new Set(["br", "img", "input", "hr", "meta", "link"]);
+// Every element in a fragment, with its ancestors: the nesting the browser
+// would build, read through Bun's HTMLRewriter (no DOM library is installed).
+async function elementsOf(html: string): Promise<El[]> {
+    const all: El[] = [];
+    const stack: El[] = [];
+    await new HTMLRewriter()
+        .on("*", {
+            element(el) {
+                const node: El = {
+                    tag: el.tagName,
+                    attrs: Object.fromEntries(el.attributes),
+                    ancestors: [...stack],
+                };
+                all.push(node);
+                if (!el.selfClosing && !VOID_TAGS.has(el.tagName)) {
+                    stack.push(node);
+                    el.onEndTag(() => {
+                        stack.pop();
+                    });
+                }
+            },
+        })
+        .transform(new Response(html))
+        .text();
+    return all;
+}
+const classOf = (e: El) => (e.attrs.class ?? "").split(/\s+/);
+const srcTags = (els: El[]) =>
+    els.filter((e) => classOf(e).includes("src-tag"));
+
+const SOURCE_KFC = {
+    calories: {
+        s: "usda",
+        ref: "171477",
+        name: "Chicken, fried, KFC",
+        data_type: "Survey (FNDDS)",
+    },
+    protein_g: { s: "estimate" },
+    fat_g: {
+        s: "mixed",
+        parts: [
+            { s: "usda", share: 67 },
+            { s: "estimate", share: 33 },
+        ],
+    },
+    carbs_g: { s: "user" },
+    fiber_g: { s: "openfoodfacts", ref: "5449000000996", name: "Cola" },
+};
+const SOURCE_KFC_ITEMS = [
+    {
+        calories: { s: "usda", ref: "170000", name: "Coleslaw" },
+        carbs_g: { s: "estimate" },
+    },
+    null,
+    { fat_g: { s: "user" } },
+];
+const SOURCE_FUSILLI_ITEMS = [
+    {
+        calories: { s: "usda", ref: "169723", name: "Pasta, dry" },
+        fiber_g: { s: "usda", ref: "169723" },
+    },
+    // Pesto has no fiber figure, so its tag is never shown.
+    { fiber_g: { s: "estimate" } },
+];
+const SOURCES = {
+    v: 1,
+    meals: [
+        { meal: SOURCE_KFC, items: SOURCE_KFC_ITEMS },
+        null,
+        { meal: { calories: { s: "user" } }, items: SOURCE_FUSILLI_ITEMS },
+    ],
+};
+const itemsPayload = () => macrosApi.mealItemsPayload(ITEMS_META);
+const rowsWithSources = (payload: unknown = SOURCES) =>
+    sourcesApi.withNutrientSources(
+        sourcesApi.nutrientSourcesPayload(payload),
+        withItems(),
+        itemsPayload(),
+    ) as ItemRow[];
+
+test("rows without sources are byte-identical to today's", () => {
+    const fat = macroOf("fat_g");
+    const plain = macrosApi.mealList(fat, withItems());
+    const nulls = sourcesApi.withNutrientSources(
+        sourcesApi.nutrientSourcesPayload({
+            v: 1,
+            meals: [
+                { meal: null, items: null },
+                null,
+                { meal: null, items: null },
+            ],
+        }),
+        withItems(),
+        itemsPayload(),
+    );
+    expect(macrosApi.mealList(fat, nulls)).toBe(plain);
+    expect(plain).not.toContain("src-");
+    expect(plain).not.toContain("has-src");
+});
+
+test("a tag is shown only where the row has a value", async () => {
+    // Fibre: the KFC meal's own tag, and Fusilli's item whose fibre is 4 g.
+    // Pesto's fibre is null, so its estimate tag is not shown.
+    const html = macrosApi.mealList(macroOf("fiber_g"), rowsWithSources());
+    const els = await elementsOf(html);
+    expect(srcTags(els)).toHaveLength(2);
+    const pestoItem = html
+        .split(/<li class="md-item/)
+        .map((chunk) => chunk.split("</li>")[0]!)
+        .find((chunk) => chunk.includes("Pesto"));
+    expect(pestoItem).toBeDefined();
+    expect(pestoItem!).not.toContain("src-tag");
+    // A null value on an item that has no tag at all is a plain "–" row.
+    expect(html).toContain('role="img" aria-label="not recorded">–</span>');
+});
+
+test("a meal row and its ingredient rows carry tags, each with a reveal", async () => {
+    const html = macrosApi.mealList(macroOf("calories"), rowsWithSources());
+    const els = await elementsOf(html);
+    const buttons = els.filter((e) => "data-src-open" in e.attrs);
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
+    // Each reveal is a hidden div, named by its button's aria-controls.
+    for (const b of buttons) {
+        expect(b.tag).toBe("button");
+        expect(b.attrs.type).toBe("button");
+        expect(b.attrs["aria-expanded"]).toBe("false");
+        const reveal = els.find((e) => e.attrs.id === b.attrs["aria-controls"]);
+        expect(reveal).toBeDefined();
+        expect(classOf(reveal!)).toContain("src-detail");
+        expect(reveal!.attrs.hidden).toBeDefined();
+    }
+    // The meal's tag is a sibling of the row's own button, never inside it.
+    const mealTag = buttons.find((b) =>
+        (b.attrs.class ?? "").includes("src-usda"),
+    );
+    expect(mealTag).toBeDefined();
+    expect(mealTag!.ancestors.some((a) => classOf(a).includes("md-open"))).toBe(
+        false,
+    );
+    // Ingredient tags sit inside the open list, never a button in a button.
+    const itemTag = buttons.find(
+        (b) =>
+            (b.attrs.class ?? "").includes("src-usda") &&
+            b.ancestors.some((a) => classOf(a).includes("md-items")),
+    );
+    expect(itemTag).toBeDefined();
+    expect(
+        buttons.every((b) => !b.ancestors.some((a) => a.tag === "button")),
+    ).toBe(true);
+    expect(html).toContain(
+        '<button type="button" class="src-tag src-usda" data-src-open aria-expanded="false" aria-controls="md-items-src-calories-0" aria-label="Source: USDA, Show source details">USDA</button>',
+    );
+    expect(html).toContain(
+        '<div class="src-detail" id="md-items-src-calories-0" hidden aria-live="off">Chicken, fried, KFC · FoodData Central 171477 · data type: Survey (FNDDS)</div>',
+    );
+    // A row that gained a tag is marked for the flex layout, and only that row.
+    expect(html).toContain('<li class="md-row has-items has-src">');
+});
+
+test("a mixed tag reveals its parts with whole-percent shares", () => {
+    const html = macrosApi.mealList(macroOf("fat_g"), rowsWithSources());
+    expect(html).toContain(
+        '<button type="button" class="src-tag src-mixed" data-src-open',
+    );
+    expect(html).toContain("USDA 67% · est. 33%</div>");
+});
+
+test("a static tag is a labelled span, not a button", async () => {
+    const html = macrosApi.mealList(macroOf("protein_g"), rowsWithSources());
+    const els = await elementsOf(html);
+    const estimate = srcTags(els).find((e) =>
+        classOf(e).includes("src-estimate"),
+    );
+    expect(estimate).toBeDefined();
+    expect(estimate!.tag).toBe("span");
+    expect(estimate!.attrs.role).toBe("img");
+    expect(estimate!.attrs["aria-label"]).toBe("Source: est.");
+    expect("data-src-open" in estimate!.attrs).toBe(false);
+});
+
+test("the alcohol row takes its tag like any other", () => {
+    const meals = [{ description: "Pint", meal_type: "dinner", alcohol_g: 17 }];
+    const rows = sourcesApi.withNutrientSources(
+        sourcesApi.nutrientSourcesPayload({
+            v: 1,
+            meals: [
+                {
+                    meal: {
+                        alcohol_g: {
+                            s: "usda",
+                            ref: "174848",
+                            name: "Beer, regular",
+                        },
+                    },
+                    items: null,
+                },
+            ],
+        }),
+        meals,
+        null,
+    );
+    const html = macrosApi.mealList(macroOf("alcohol_g"), rows);
+    expect(html).toContain('class="src-tag src-usda"');
+    expect(html).toContain("Beer, regular · FoodData Central 174848");
+});
+
+test("names, ids and kinds are escaped or refused, never rendered raw", () => {
+    const hostile = sourcesApi.withNutrientSources(
+        sourcesApi.nutrientSourcesPayload({
+            v: 1,
+            meals: [
+                {
+                    meal: {
+                        calories: {
+                            s: "openfoodfacts",
+                            ref: "5449000000996",
+                            name: '<img src=x onerror="alert(1)">Cola',
+                        },
+                    },
+                    items: null,
+                },
+            ],
+        }),
+        [{ description: "Cola", calories: 140 }],
+        null,
+    );
+    const html = macrosApi.mealList(macroOf("calories"), hostile);
+    expect(html).not.toContain("<img");
+    expect(html).toContain(
+        "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;Cola",
+    );
+});
+
+test("a name longer than 60 characters is cut to the server's own cap", () => {
+    const long = "x".repeat(200);
+    const rows = sourcesApi.withNutrientSources(
+        sourcesApi.nutrientSourcesPayload({
+            v: 1,
+            meals: [
+                {
+                    meal: { calories: { s: "usda", ref: "1", name: long } },
+                    items: null,
+                },
+            ],
+        }),
+        [{ description: "Cola", calories: 140 }],
+        null,
+    );
+    const html = macrosApi.mealList(macroOf("calories"), rows);
+    expect(html).toContain("x".repeat(60) + " · FoodData Central 1</div>");
+    expect(html).not.toContain("x".repeat(61));
+});
+
+test("untrusted sources are refused, and only the bad tag is lost", () => {
+    const meals = [{ description: "Cola", calories: 140, protein_g: 0 }];
+    const row = (tag: unknown) =>
+        sourcesApi.withNutrientSources(
+            sourcesApi.nutrientSourcesPayload({
+                v: 1,
+                meals: [{ meal: { calories: tag }, items: null }],
+            }),
+            meals,
+            null,
+        );
+    const tagged = (tag: unknown) =>
+        macrosApi.mealList(macroOf("calories"), row(tag));
+    // an unknown kind
+    expect(tagged({ s: "bogus" })).not.toContain("src-tag");
+    // a ref that is not digits
+    expect(tagged({ s: "usda", ref: "17<7" })).not.toContain("src-tag");
+    // a ref on a kind that names no record
+    expect(tagged({ s: "user", ref: "171477" })).not.toContain("src-tag");
+    // a non-finite or out-of-range share
+    expect(
+        tagged({
+            s: "mixed",
+            parts: [{ s: "usda", share: Number.POSITIVE_INFINITY }],
+        }),
+    ).not.toContain("src-tag");
+    expect(
+        tagged({ s: "mixed", parts: [{ s: "usda", share: 101 }] }),
+    ).not.toContain("src-tag");
+    // a mixed tag whose part names a kind it does not know
+    expect(
+        tagged({ s: "mixed", parts: [{ s: "mixed", share: 50 }] }),
+    ).not.toContain("src-tag");
+    // a mixed tag that names one kind twice
+    expect(
+        tagged({
+            s: "mixed",
+            parts: [
+                { s: "usda", share: 50 },
+                { s: "usda", share: 50 },
+            ],
+        }),
+    ).not.toContain("src-tag");
+    // a mixed tag whose shares do not sum to 100
+    expect(
+        tagged({
+            s: "mixed",
+            parts: [
+                { s: "usda", share: 60 },
+                { s: "estimate", share: 30 },
+            ],
+        }),
+    ).not.toContain("src-tag");
+    // a valid tag still renders
+    expect(tagged({ s: "user" })).toContain('class="src-tag src-user"');
+    // a payload that is not an object, has no meals array, or is another version
+    expect(sourcesApi.nutrientSourcesPayload(null)).toBeNull();
+    expect(sourcesApi.nutrientSourcesPayload([])).toBeNull();
+    expect(sourcesApi.nutrientSourcesPayload({ v: 2, meals: [] })).toBeNull();
+    expect(sourcesApi.nutrientSourcesPayload({ v: 1, meals: "x" })).toBeNull();
+    // a length mismatch joins nothing: the rows are the same object
+    const same = sourcesApi.withNutrientSources(
+        sourcesApi.nutrientSourcesPayload({ v: 1, meals: [] }),
+        meals,
+        null,
+    );
+    expect(same).toBe(meals);
+});
+
+test("a slot whose item count disagrees drops its item tags, and keeps the meal's", () => {
+    const short = {
+        v: 1,
+        meals: [
+            { meal: SOURCE_KFC, items: [SOURCE_KFC_ITEMS[0]] },
+            null,
+            {
+                meal: null,
+                items: [...SOURCE_FUSILLI_ITEMS, SOURCE_FUSILLI_ITEMS[0]],
+            },
+        ],
+    };
+    const rows = rowsWithSources(short);
+    const kfc = rows[0]! as Record<string, unknown> & {
+        items: Record<string, unknown>[];
+    };
+    expect(kfc.sourceTags).toBeDefined();
+    expect(kfc.items.every((it) => it.sourceTags === undefined)).toBe(true);
+    // one item too many for its raw slot: that slot drops its tags too
+    const fusilli = rows[2]! as Record<string, unknown> & {
+        items: Record<string, unknown>[];
+    };
+    expect(fusilli.items.every((it) => it.sourceTags === undefined)).toBe(true);
+});
+
+test("the sources payload is aligned by position, not by description", () => {
+    const meals = [{ description: "Only meal", calories: 500 }];
+    const rows = sourcesApi.withNutrientSources(
+        sourcesApi.nutrientSourcesPayload({
+            v: 1,
+            meals: [{ meal: { calories: { s: "user" } }, items: null }],
+        }),
+        meals,
+        null,
+    ) as Record<string, unknown>[];
+    expect(rows[0]!.sourceTags).toEqual({ calories: { s: "user" } });
+    // the rows the caller passed are not changed
+    expect(meals[0]).not.toHaveProperty("sourceTags");
+});
+
+// A minimal element tree for driving sourceToggle / mealRowToggle. No DOM
+// library is installed, and these functions only need closest, contains,
+// querySelector(All) over a few selectors, classList, hidden and attributes.
+class FakeNode {
+    tag: string;
+    attrs = new Map<string, string>();
+    classes = new Set<string>();
+    hidden = false;
+    parentElement: FakeNode | null = null;
+    children: FakeNode[] = [];
+    classList = {
+        toggle: (c: string, on?: boolean) => {
+            const want = on ?? !this.classes.has(c);
+            if (want) this.classes.add(c);
+            else this.classes.delete(c);
+            return want;
+        },
+        contains: (c: string) => this.classes.has(c),
+    };
+    constructor(tag: string, attrs: Record<string, string> = {}) {
+        this.tag = tag;
+        for (const [k, v] of Object.entries(attrs)) {
+            if (k === "class")
+                v.split(/\s+/).forEach((c) => this.classes.add(c));
+            else this.attrs.set(k, v);
+        }
+    }
+    add(...kids: FakeNode[]) {
+        for (const k of kids) {
+            k.parentElement = this;
+            this.children.push(k);
+        }
+        return this;
+    }
+    getAttribute(n: string) {
+        return this.attrs.has(n) ? this.attrs.get(n)! : null;
+    }
+    setAttribute(n: string, v: string) {
+        this.attrs.set(n, v);
+    }
+    matches(compound: string) {
+        const re = /\.([\w-]+)|\[([\w-]+)(?:='([^']*)')?\]/g;
+        let m: RegExpExecArray | null;
+        let any = false;
+        while ((m = re.exec(compound))) {
+            any = true;
+            if (m[1]) {
+                if (!this.classes.has(m[1])) return false;
+            } else if (m[2]) {
+                if (!this.attrs.has(m[2])) return false;
+                if (m[3] !== undefined && this.attrs.get(m[2]) !== m[3])
+                    return false;
+            }
+        }
+        return any;
+    }
+    closest(sel: string): FakeNode | null {
+        for (let e: FakeNode | null = this; e; e = e.parentElement) {
+            if (e.matches(sel)) return e;
+        }
+        return null;
+    }
+    contains(n: FakeNode | null): boolean {
+        for (let e = n; e; e = e.parentElement) if (e === this) return true;
+        return false;
+    }
+    descendants(): FakeNode[] {
+        const out: FakeNode[] = [];
+        const walk = (n: FakeNode) =>
+            n.children.forEach((c) => {
+                out.push(c);
+                walk(c);
+            });
+        walk(this);
+        return out;
+    }
+    querySelectorAll(sel: string): FakeNode[] {
+        if (sel.startsWith(":scope > ")) {
+            const compound = sel.slice(":scope > ".length);
+            return this.children.filter((c) => c.matches(compound));
+        }
+        return this.descendants().filter((c) => c.matches(sel));
+    }
+    querySelector(sel: string): FakeNode | null {
+        return this.querySelectorAll(sel)[0] ?? null;
+    }
+}
+const fakeReveal = () => {
+    const d = new FakeNode("div", { class: "src-detail" });
+    d.hidden = true;
+    return d;
+};
+const fakeTag = () =>
+    new FakeNode("button", {
+        class: "src-tag src-usda",
+        "data-src-open": "",
+        "aria-expanded": "false",
+    });
+// Row A: a meal-level tag and an ingredient with its own tag. Row B: the same
+// shape with one ingredient. Built the way mealRowWithItems / sourceTagHtml
+// lay them out, so each reveal is a sibling of its own tag.
+function disclosureFixture() {
+    const root = new FakeNode("div", { class: "macro-detail" });
+    const list = new FakeNode("ul", { class: "md-list" });
+    root.add(list);
+    const row = (name: string) => {
+        const btn = new FakeNode("button", {
+            "data-meal-open": "",
+            "aria-expanded": "false",
+        });
+        const tag = fakeTag();
+        const reveal = fakeReveal();
+        const ingTag = fakeTag();
+        const ingReveal = fakeReveal();
+        const items = new FakeNode("ul", {
+            class: "md-items",
+            "aria-live": "off",
+        });
+        items.hidden = true;
+        items.add(new FakeNode("li").add(ingTag, ingReveal));
+        const li = new FakeNode("li", { class: `md-row has-items ${name}` });
+        li.add(btn, tag, reveal, items);
+        list.add(li);
+        return { btn, tag, reveal, ingTag, ingReveal, items, li };
+    };
+    return { root, a: row("a"), b: row("b") };
+}
+const expandedDisclosures = (root: FakeNode) => ({
+    rows: root
+        .querySelectorAll("[data-meal-open]")
+        .filter((b) => b.getAttribute("aria-expanded") === "true").length,
+    tags: root
+        .querySelectorAll("[data-src-open]")
+        .filter((t) => t.getAttribute("aria-expanded") === "true").length,
+});
+
+test("the breakdown holds one open disclosure: a row or a reveal, not both", () => {
+    // A meal-level tag sits beside its row's button, so opening it closes that
+    // row. Both are visible otherwise.
+    const f = disclosureFixture();
+    macrosApi.mealRowToggle(f.a.btn);
+    expect(f.a.li.classes.has("open")).toBe(true);
+    macrosApi.sourceToggle(f.a.tag);
+    expect(f.a.btn.getAttribute("aria-expanded")).toBe("false");
+    expect(f.a.items.hidden).toBe(true);
+    expect(f.a.reveal.hidden).toBe(false);
+    expect(f.a.tag.getAttribute("aria-expanded")).toBe("true");
+    expect(expandedDisclosures(f.root)).toEqual({ rows: 0, tags: 1 });
+});
+
+test("an ingredient reveal stays inside its open row, which is its context", () => {
+    // The ingredient's tag is inside the row's item list, so that row stays
+    // open with it. Nothing else opens alongside.
+    const f = disclosureFixture();
+    macrosApi.mealRowToggle(f.a.btn);
+    macrosApi.sourceToggle(f.a.ingTag);
+    expect(f.a.btn.getAttribute("aria-expanded")).toBe("true");
+    expect(f.a.items.hidden).toBe(false);
+    expect(f.a.ingReveal.hidden).toBe(false);
+    expect(f.a.reveal.hidden).toBe(true);
+    expect(expandedDisclosures(f.root)).toEqual({ rows: 1, tags: 1 });
+});
+
+test("opening a reveal on another row closes the open row and its reveals", () => {
+    const f = disclosureFixture();
+    macrosApi.mealRowToggle(f.a.btn);
+    macrosApi.sourceToggle(f.a.ingTag);
+    macrosApi.sourceToggle(f.b.tag);
+    expect(f.a.btn.getAttribute("aria-expanded")).toBe("false");
+    expect(f.a.items.hidden).toBe(true);
+    expect(f.a.ingReveal.hidden).toBe(true);
+    expect(f.b.reveal.hidden).toBe(false);
+    expect(expandedDisclosures(f.root)).toEqual({ rows: 0, tags: 1 });
+});
+
+test("opening a row closes any open reveal, and tapping an open tag closes it", () => {
+    const f = disclosureFixture();
+    macrosApi.sourceToggle(f.a.tag);
+    macrosApi.mealRowToggle(f.b.btn);
+    expect(f.a.reveal.hidden).toBe(true);
+    expect(f.a.tag.getAttribute("aria-expanded")).toBe("false");
+    expect(expandedDisclosures(f.root)).toEqual({ rows: 1, tags: 0 });
+    macrosApi.sourceToggle(f.a.tag);
+    expect(f.a.reveal.hidden).toBe(false);
+    expect(expandedDisclosures(f.root)).toEqual({ rows: 0, tags: 1 });
+    macrosApi.sourceToggle(f.a.tag);
+    expect(f.a.reveal.hidden).toBe(true);
+    expect(expandedDisclosures(f.root)).toEqual({ rows: 0, tags: 0 });
+});
+
+test("a tag and its reveal are native elements, so Enter and Space need no handler", async () => {
+    const html = macrosApi.mealList(macroOf("fat_g"), rowsWithSources());
+    const els = await elementsOf(html);
+    for (const e of srcTags(els)) {
+        if ("data-src-open" in e.attrs) expect(e.tag).toBe("button");
+    }
+    const js = await Bun.file(`${SRC}/shared/macros.js`).text();
+    // no keydown branch for tags: the click the browser synthesises is enough
+    expect(js).not.toMatch(/data-src-open[\s\S]{0,80}keydown/);
+});
+
+test("every template that reads the nutrient-sources key merges it through withNutrientSources", async () => {
+    for (const name of ["nutrition-summary", "goal-progress", "meal-logged"]) {
+        const html = await Bun.file(`${SRC}/templates/${name}.html`).text();
+        expect(html).toContain('"nutrition-mcp.com/nutrient-sources"');
+        expect(html).toContain("withNutrientSources(");
+    }
+});
+
+test("every locale carries the source strings, with the {source} placeholder", () => {
+    for (const [locale, dict] of Object.entries(WIDGET_STRINGS)) {
+        const m = (dict as { macros: Record<string, unknown> }).macros;
+        for (const k of [
+            "sourceUsda",
+            "sourceOff",
+            "sourceUser",
+            "sourceEst",
+            "sourceMixed",
+            "sourceRecordUsda",
+            "sourceRecordOff",
+            "sourceDataType",
+            "sourceAria",
+            "sourceDetailsAria",
+        ]) {
+            expect([locale, typeof m[k]]).toEqual([locale, "string"]);
+        }
+        expect([locale, m.sourceAria as string]).toEqual([
+            locale,
+            expect.stringContaining("{source}"),
+        ]);
+    }
 });

@@ -154,6 +154,19 @@ export interface WidgetStrings {
          * itself shows only the number). Placeholder: {n}.
          */
         ingredientCount: PluralForms;
+        /** Source tag on a nutrient value (USDA / OFF / yours / est. / mixed) — shared/macros.js. */
+        sourceUsda: string;
+        sourceOff: string;
+        sourceUser: string;
+        sourceEst: string;
+        sourceMixed: string;
+        sourceRecordUsda: string;
+        sourceRecordOff: string;
+        sourceDataType: string;
+        /** aria-label on a source tag; placeholder {source}, the tag's visible text. */
+        sourceAria: string;
+        /** aria-label on the source tag's reveal button. */
+        sourceDetailsAria: string;
     };
 
     /** shared/bridge.js — text the host bridge itself paints, around
@@ -610,6 +623,16 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             one: "{n} ingredient",
             other: "{n} ingredients",
         },
+        sourceUsda: "USDA",
+        sourceOff: "OFF",
+        sourceUser: "yours",
+        sourceEst: "est.",
+        sourceMixed: "mixed",
+        sourceRecordUsda: "FoodData Central",
+        sourceRecordOff: "barcode",
+        sourceDataType: "data type",
+        sourceAria: "Source: {source}",
+        sourceDetailsAria: "Show source details",
     },
     bridge: {
         settingsFooter:

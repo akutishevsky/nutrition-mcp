@@ -1047,12 +1047,16 @@ const MEAL_ITEM_NUTRIENTS = [
 
 // One slot's items, validated: it arrives from the host, so it is untrusted.
 // Keeps only objects with a non-empty string name and rebuilds each from the
-// whitelisted fields alone, every number finite or null. Anything else is [].
-function mealItemsOf(slot) {
+// whitelisted fields alone, every number finite or null. Anything else is
+// skipped. Each kept item keeps its position in the raw slot (`index`), which
+// the nutrient-sources join needs: the server's item labels align with the raw
+// list, not with the validated one.
+function mealItemEntries(slot) {
     if (!Array.isArray(slot)) return [];
     const out = [];
-    for (const it of slot) {
+    for (let index = 0; index < slot.length; index++) {
         if (out.length >= MEAL_ITEMS_CAP) break;
+        const it = slot[index];
         if (!it || typeof it !== "object") continue;
         if (typeof it.name !== "string" || it.name === "") continue;
         const item = {
@@ -1063,9 +1067,13 @@ function mealItemsOf(slot) {
         for (const k of MEAL_ITEM_NUTRIENTS) {
             item[k] = Number.isFinite(it[k]) ? it[k] : null;
         }
-        out.push(item);
+        out.push({ index, item });
     }
     return out;
+}
+
+function mealItemsOf(slot) {
+    return mealItemEntries(slot).map((e) => e.item);
 }
 
 // Join a meal-items payload onto the breakdown rows as `meal.items`, by
@@ -1080,6 +1088,205 @@ function withMealItems(payload, meals) {
         const items = mealItemsOf(payload.meals[i]);
         return items.length ? Object.assign({}, meal, { items }) : meal;
     });
+}
+
+// ---- Nutrient sources, from the result's `_meta` ---------------------------
+// Where each value came from: a USDA or Open Food Facts record, the user's own
+// figure, or an estimate (src/provenance.ts). It travels in the result's `_meta`
+// under "nutrition-mcp.com/nutrient-sources" (NUTRIENT_SOURCES_META_KEY in
+// src/widgets.ts), as `{ v: 1, meals: [{ meal, items } | null, …] }`, aligned by
+// position with the breakdown rows and, inside a slot, with the meal-items
+// payload's item order. Each template reads the key and merges it here, last.
+// A missing, malformed or future-versioned payload merges nothing, and the
+// rows are exactly what they were before the field existed.
+//
+// Untrusted, like everything in `_meta`: each tag is rebuilt from whitelisted
+// fields and a tag that does not validate is dropped (that value gets no tag).
+const SOURCE_KINDS = ["usda", "openfoodfacts", "user", "estimate"];
+const SOURCE_RECORD_KINDS = ["usda", "openfoodfacts"];
+// Must equal PROVENANCE_NUTRIENT_KEYS in src/provenance.ts.
+const SOURCE_NUTRIENT_KEYS = [
+    "calories",
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "saturated_fat_g",
+    "trans_fat_g",
+    "fiber_g",
+    "sugar_g",
+    "added_sugar_g",
+    "alcohol_g",
+    "caffeine_mg",
+];
+// Translated word per tag kind. The brand words (USDA, OFF) are the same in
+// every locale; the rest are T.macros entries.
+const SOURCE_WORD_KEY = {
+    usda: "sourceUsda",
+    openfoodfacts: "sourceOff",
+    user: "sourceUser",
+    estimate: "sourceEst",
+    mixed: "sourceMixed",
+};
+const SOURCE_RECORD_KEY = {
+    usda: "sourceRecordUsda",
+    openfoodfacts: "sourceRecordOff",
+};
+// Must equal META_NAME_CHARS in src/provenance.ts; the server never sends more.
+const SOURCE_NAME_CHARS = 60;
+const SOURCE_DATA_TYPE_CHARS = 40;
+// Parts of a mixed tag: at most one per kind.
+const SOURCE_PARTS_CAP = 4;
+// Same shape the server accepts for a FoodData Central id or a barcode.
+const SOURCE_REF_RE = /^\d{1,14}$/;
+
+function nutrientSourcesPayload(raw) {
+    return raw &&
+        typeof raw === "object" &&
+        !Array.isArray(raw) &&
+        raw.v === 1 &&
+        Array.isArray(raw.meals)
+        ? raw
+        : null;
+}
+
+// One value's tag, rebuilt from whitelisted fields, or null.
+function sourceTagOf(raw) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    if (raw.s === "mixed") {
+        if (
+            !Array.isArray(raw.parts) ||
+            raw.parts.length === 0 ||
+            raw.parts.length > SOURCE_PARTS_CAP
+        )
+            return null;
+        const parts = [];
+        const kinds = new Set();
+        let total = 0;
+        for (const p of raw.parts) {
+            if (!p || typeof p !== "object" || Array.isArray(p)) return null;
+            if (!SOURCE_KINDS.includes(p.s)) return null;
+            if (kinds.has(p.s)) return null;
+            kinds.add(p.s);
+            if (!Number.isFinite(p.share) || p.share < 0 || p.share > 100)
+                return null;
+            total += p.share;
+            parts.push({ s: p.s, share: p.share });
+        }
+        // The server sends whole-percent shares that sum to exactly 100
+        // (parseNutrientSources in src/provenance.ts); anything else is not one.
+        if (Math.abs(total - 100) > 0.01) return null;
+        return { s: "mixed", parts };
+    }
+    if (!SOURCE_KINDS.includes(raw.s)) return null;
+    const tag = { s: raw.s };
+    if (raw.ref !== undefined) {
+        // Only a record-backed tag names a record.
+        if (!SOURCE_RECORD_KINDS.includes(raw.s)) return null;
+        if (typeof raw.ref !== "string" || !SOURCE_REF_RE.test(raw.ref))
+            return null;
+        tag.ref = raw.ref;
+    }
+    if (typeof raw.name === "string" && raw.name !== "")
+        tag.name = raw.name.slice(0, SOURCE_NAME_CHARS);
+    if (typeof raw.data_type === "string" && raw.data_type !== "")
+        tag.data_type = raw.data_type.slice(0, SOURCE_DATA_TYPE_CHARS);
+    return tag;
+}
+
+// One row's tags keyed by nutrient, or null when none survive.
+function sourceTagsOf(raw) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    const out = {};
+    for (const key of SOURCE_NUTRIENT_KEYS) {
+        const tag = sourceTagOf(raw[key]);
+        if (tag) out[key] = tag;
+    }
+    return Object.keys(out).length ? out : null;
+}
+
+// The ingredient tags for one slot, aligned with `meal.items`. Null unless
+// the slot's own item count equals the raw item list the items were built
+// from, so a mismatch drops that slot's item tags and nothing else.
+function itemSourceTagsFor(slot, meal, i, itemsPayload) {
+    if (!Array.isArray(meal.items) || meal.items.length === 0) return null;
+    if (!itemsPayload || !Array.isArray(slot.items)) return null;
+    const raw = itemsPayload.meals[i];
+    if (!Array.isArray(raw) || slot.items.length !== raw.length) return null;
+    const entries = mealItemEntries(raw);
+    if (entries.length !== meal.items.length) return null;
+    const tags = entries.map((e) => sourceTagsOf(slot.items[e.index]));
+    return tags.some(Boolean) ? tags : null;
+}
+
+// Join the sources payload onto the breakdown rows as `sourceTags` (and each
+// item's `sourceTags`), by position and only when the counts agree. Any
+// mismatch returns `meals` itself. Rows that carry no tag stay the same object.
+function withNutrientSources(payload, meals, itemsPayload) {
+    if (!payload || !Array.isArray(meals)) return meals;
+    if (payload.meals.length !== meals.length) return meals;
+    return meals.map((meal, i) => {
+        const slot = payload.meals[i];
+        if (!slot || typeof slot !== "object") return meal;
+        const tags = sourceTagsOf(slot.meal);
+        const itemTags = itemSourceTagsFor(slot, meal, i, itemsPayload);
+        if (!tags && !itemTags) return meal;
+        const out = Object.assign({}, meal);
+        if (tags) out.sourceTags = tags;
+        if (itemTags) {
+            out.items = meal.items.map((it, k) =>
+                itemTags[k]
+                    ? Object.assign({}, it, { sourceTags: itemTags[k] })
+                    : it,
+            );
+        }
+        return out;
+    });
+}
+
+// The reveal line for one tag: the record or product name, its id and its data
+// type, or for a mixed tag the parts with their whole-percent shares. Every
+// piece is user- or host-supplied text, so each is escaped. Empty when there is
+// nothing to reveal, which makes the tag static.
+function sourceRevealBits(t) {
+    if (t.s === "mixed") {
+        return t.parts.map(
+            (p) =>
+                `${esc(T.macros[SOURCE_WORD_KEY[p.s]])} ${esc(String(Math.round(p.share)))}%`,
+        );
+    }
+    const bits = [];
+    if (t.name !== undefined) bits.push(esc(t.name));
+    if (t.ref !== undefined)
+        bits.push(esc(`${T.macros[SOURCE_RECORD_KEY[t.s]]} ${t.ref}`));
+    if (t.data_type !== undefined)
+        bits.push(esc(`${T.macros.sourceDataType}: ${t.data_type}`));
+    return bits;
+}
+
+// The tag for one value and the reveal line it opens, or empty strings when the
+// value has no tag. `id` is the reveal's id and must be unique in the document.
+// A USDA, OFF or mixed tag with something to show is a native button (a
+// sibling of the row's own button, never inside it); anything else is a plain
+// label, with role="img" and an accessible name, as the "–" figure is.
+function sourceTagHtml(tags, key, id) {
+    const t = tags && tags[key];
+    if (!t) return { tag: "", detail: "" };
+    const word = T.macros[SOURCE_WORD_KEY[t.s]];
+    const aria = esc(tpl(T.macros.sourceAria, { source: word }));
+    const cls = `src-tag src-${t.s}`;
+    const bits = sourceRevealBits(t);
+    if (!bits.length) {
+        return {
+            tag: `<span class="${cls}" role="img" aria-label="${aria}">${esc(word)}</span>`,
+            detail: "",
+        };
+    }
+    return {
+        tag: `<button type="button" class="${cls}" data-src-open aria-expanded="false" aria-controls="${id}" aria-label="${aria}, ${esc(T.macros.sourceDetailsAria)}">${esc(word)}</button>`,
+        // aria-live="off": the reveal sits inside the live breakdown, so without
+        // it a tapped tag would read its text aloud as an addition (as md-items).
+        detail: `<div class="src-detail" id="${id}" hidden aria-live="off">${bits.join(" · ")}</div>`,
+    };
 }
 
 // ---- Interactive breakdown ------------------------------------------------
@@ -1145,14 +1352,20 @@ function mealList(m, meals, ctx) {
                 : meal.meal_type
                   ? esc(meal.meal_type)
                   : "";
+            const prefix = (ctx && ctx.idPrefix) || "md-items";
+            const src = sourceTagHtml(
+                meal.sourceTags,
+                m.key,
+                `${prefix}-src-${m.key}-${i}`,
+            );
             if (Array.isArray(meal.items) && meal.items.length) {
-                return mealRowWithItems(m, meal, v, sub, decimals, i, ctx);
+                return mealRowWithItems(m, meal, v, sub, decimals, i, ctx, src);
             }
             return `
-        <li class="md-row">
-          <span class="md-val" style="color:${m.color}">${fmt(v, decimals)}<span class="md-unit">${esc(unitLabel(m))}</span></span>
+        <li class="md-row${src.tag ? " has-src" : ""}">
+          <span class="md-val" style="color:${m.color}">${fmt(v, decimals)}<span class="md-unit">${esc(unitLabel(m))}</span></span>${src.tag}
           <span class="md-name">${esc(meal.description || T.macros.untitledMeal)}</span>
-          ${sub ? `<span class="md-sub">${sub}</span>` : ""}
+          ${sub ? `<span class="md-sub">${sub}</span>` : ""}${src.detail}
         </li>`;
         })
         .join("");
@@ -1181,29 +1394,42 @@ function mealList(m, meals, ctx) {
 // breakdown is announced; content made visible inside a live region counts
 // as an addition, so without aria-live="off" opening a row would read every
 // item aloud after the button's own "expanded". aria-expanded is the feedback.
-function mealRowWithItems(m, meal, v, sub, decimals, i, ctx) {
+function mealRowWithItems(
+    m,
+    meal,
+    v,
+    sub,
+    decimals,
+    i,
+    ctx,
+    src = { tag: "", detail: "" },
+) {
     const prefix = (ctx && ctx.idPrefix) || "md-items";
     const id = `${prefix}-${m.key}-${i}`;
     const n = meal.items.length;
     return `
-        <li class="md-row has-items">
+        <li class="md-row has-items${src.tag ? " has-src" : ""}">
           <button type="button" class="md-open" data-meal-open aria-expanded="false" aria-controls="${id}">
             <span class="md-val" style="color:${m.color}">${fmt(v, decimals)}<span class="md-unit">${esc(unitLabel(m))}</span></span>
             <span class="md-name">${esc(meal.description || T.macros.untitledMeal)}</span>
             ${sub ? `<span class="md-sub">${sub}</span>` : ""}
             <span class="md-count" aria-hidden="true">${n}</span><span class="md-chev" aria-hidden="true">›</span>
             <span class="sr-only">${esc(plural(T.macros.ingredientCount, n))}</span>
-          </button>
-          <ul class="md-items" id="${id}" aria-live="off" hidden>${mealItemRows(m, meal.items, decimals)}</ul>
+          </button>${src.tag}${src.detail}
+          <ul class="md-items" id="${id}" aria-live="off" hidden>${mealItemRows(m, meal.items, decimals, `${prefix}-src-${m.key}-${i}`)}</ul>
         </li>`;
 }
 
 // One meal's items, biggest first by the metric on show. An item with no value
 // for it reads "–" and sorts last; a recorded 0 is a value and reads "0". The
 // sort is stable, so ties keep the order the items were logged in.
-function mealItemRows(m, items, decimals) {
+function mealItemRows(m, items, decimals, srcBase) {
     return items
-        .map((it) => ({ it, v: Number.isFinite(it[m.key]) ? it[m.key] : null }))
+        .map((it, k) => ({
+            it,
+            k,
+            v: Number.isFinite(it[m.key]) ? it[m.key] : null,
+        }))
         .sort((a, b) =>
             a.v === null
                 ? b.v === null
@@ -1213,7 +1439,7 @@ function mealItemRows(m, items, decimals) {
                   ? -1
                   : b.v - a.v,
         )
-        .map(({ it, v }) => {
+        .map(({ it, k, v }) => {
             const val =
                 v === null
                     ? `<span class="md-none" role="img" aria-label="${esc(T.macros.notRecorded)}">–</span>`
@@ -1221,7 +1447,12 @@ function mealItemRows(m, items, decimals) {
             const amt = Number.isFinite(it.amount)
                 ? `<span class="md-iamt">${esc(String(it.amount))}${it.unit ? ` ${esc(it.unit)}` : ""}</span>`
                 : "";
-            return `<li class="md-item"><span class="md-ival">${val}</span><span class="md-iname">${esc(it.name)}</span>${amt}</li>`;
+            // No value, no tag: a "–" figure has no source to name.
+            const src =
+                v === null
+                    ? { tag: "", detail: "" }
+                    : sourceTagHtml(it.sourceTags, m.key, `${srcBase}-${k}`);
+            return `<li class="md-item${src.tag ? " has-src" : ""}"><span class="md-ival">${val}</span>${src.tag}<span class="md-iname">${esc(it.name)}</span>${amt}${src.detail}</li>`;
         })
         .join("");
 }
@@ -1281,14 +1512,67 @@ function mealRowToggle(btn) {
     const scope = btn.closest(".macro-detail") || btn.closest(".md-list");
     if (!scope) return;
     const opening = btn.getAttribute("aria-expanded") !== "true";
+    // Opening a row closes every source reveal in the breakdown: one open
+    // disclosure at a time, and a row's own reveals go with it when it closes.
+    scope
+        .querySelectorAll("[data-src-open]")
+        .forEach((t) => sourceSet(t, false));
     scope.querySelectorAll("[data-meal-open]").forEach((b) => {
-        const on = b === btn && opening;
-        b.setAttribute("aria-expanded", on ? "true" : "false");
-        const row = b.closest(".md-row");
-        if (row) row.classList.toggle("open", on);
-        const list = row && row.querySelector(".md-items");
-        if (list) list.hidden = !on;
+        mealSet(b, b === btn && opening);
     });
+}
+
+// Set one meal row's disclosure (its button, its item list and its open class).
+// Closing a row also closes the source reveals inside it.
+function mealSet(b, on) {
+    b.setAttribute("aria-expanded", on ? "true" : "false");
+    const row = b.closest(".md-row");
+    if (row) row.classList.toggle("open", on);
+    const list = row && row.querySelector(".md-items");
+    if (list) list.hidden = !on;
+    if (!on && row) {
+        row.querySelectorAll("[data-src-open]").forEach((t) =>
+            sourceSet(t, false),
+        );
+    }
+}
+
+// Set one source tag's reveal. The reveal is the tag's own sibling, so the
+// tag's parent is the row (or the ingredient) it belongs to.
+function sourceSet(t, on) {
+    t.setAttribute("aria-expanded", on ? "true" : "false");
+    const reveal =
+        t.parentElement &&
+        t.parentElement.querySelector(":scope > .src-detail");
+    if (reveal) reveal.hidden = !on;
+}
+
+// Open or close one source reveal. Only one reveal is open per breakdown, and
+// opening it closes any meal row that does not contain it: a tag on a meal row
+// or on one of its ingredients may stay open with that row, because the row is
+// its context, but nothing else is.
+function sourceToggle(btn) {
+    const scope = btn.closest(".macro-detail") || btn.closest(".md-list");
+    if (!scope) return;
+    const opening = btn.getAttribute("aria-expanded") !== "true";
+    scope.querySelectorAll("[data-src-open]").forEach((t) => {
+        if (t !== btn) sourceSet(t, false);
+    });
+    if (opening) {
+        scope
+            .querySelectorAll("[data-meal-open][aria-expanded='true']")
+            .forEach((b) => {
+                const row = b.closest(".md-row");
+                if (!row) return;
+                // An ingredient's tag lives inside its row's item list, so that
+                // row is the context it is read in and stays open. Any other
+                // open row, including the row a meal-level tag sits on, closes:
+                // one open disclosure at a time.
+                const inItems = !!btn.closest(".md-items");
+                if (!row.contains(btn) || !inItems) mealSet(b, false);
+            });
+    }
+    sourceSet(btn, opening);
 }
 
 // Delegated once per document. No-ops on non-interactive strips (no
@@ -1308,7 +1592,13 @@ if (typeof document !== "undefined" && !window.__macroWired) {
             return;
         }
         // Before the tile lookup: a row button is a native <button>, so Enter
-        // and Space arrive here as clicks and need no keydown branch.
+        // and Space arrive here as clicks and need no keydown branch. A source
+        // tag is a native button too, and sits beside (never inside) a row's.
+        const srcTag = e.target.closest("[data-src-open]");
+        if (srcTag) {
+            sourceToggle(srcTag);
+            return;
+        }
         const mealRow = e.target.closest("[data-meal-open]");
         if (mealRow) {
             mealRowToggle(mealRow);

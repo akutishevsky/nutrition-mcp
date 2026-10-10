@@ -725,6 +725,68 @@ macroPanel(merged.vals, merged.goal, wording, rows, opts);
   the open row spans both columns. Added-sugar `extra` rows are rebuilt from four
   fields, so they never carry items and never get an expander.
 
+### Nutrient sources come from `_meta`: source tags in the breakdown
+
+Each value in a breakdown row can say where it came from: a USDA or Open Food
+Facts record, the user's own figure, an estimate, or a mix. The server sends this
+under `"nutrition-mcp.com/nutrient-sources"` (`NUTRIENT_SOURCES_META_KEY` in
+`src/widgets.ts`), as `{ v: 1, meals: [{ meal, items } | null, …] }`, aligned by
+position with `structuredContent.meals`, and `items` aligned with the meal-items
+payload's item order. Each template spells the key and merges it **last**:
+
+```js
+const rows = withNutrientSources(
+    nutrientSourcesPayload(resultMeta && resultMeta[NUTRIENT_SOURCES_META_KEY]),
+    withMealItems(itemsMeta, merged.meals),
+    itemsMeta,
+);
+```
+
+- The payload is untrusted. `sourceTagOf` rebuilds each tag from whitelisted
+  fields: `s` in the four kinds (or `mixed` with 1–4 parts, each a kind and a
+  finite share 0–100), `ref` digits only and only on a record-backed kind,
+  `name` cut to 60 characters, `data_type` to 40. A tag that fails is dropped;
+  that value gets no tag. A payload that is not `v: 1`, has no `meals` array, or
+  whose length differs from the rows joins nothing.
+- A slot's item tags are dropped (the meal's own are kept) when the slot's item
+  count differs from the raw meal-items list. Items join by their raw position,
+  because `mealItemEntries` skips invalid items.
+- **Only a value that shows gets a tag.** A row is listed only with a positive
+  value, and an ingredient with a null figure reads "–" and gets no tag, even if
+  the payload names one.
+- Tags are labels, never HTML. Every interpolated string (name, ref, data type,
+  the translated word) goes through `esc`.
+
+**Tag text and kinds.** `USDA` and `OFF` are the brand words, never translated or
+inflected; `yours`, `est.` and `mixed` are `T.macros` strings. The styles are
+`.src-usda` / `.src-openfoodfacts` (accent), `.src-user` and `.src-mixed` (plain,
+outlined), `.src-estimate` (quietest, dashed). All are small mono labels from
+`shared/macros.css`, and they read in both themes.
+
+**Reveal.** A USDA, OFF or mixed tag with something to show is a native
+`<button data-src-open>` with `aria-expanded` and `aria-controls`, over a
+`<div class="src-detail" hidden>` holding one line: the record or product name,
+its id (`FoodData Central 171477`, `barcode 5449000000996`), its data type, or for
+a mixed tag the parts with whole-percent shares (`USDA 67% · est. 33%`). The
+user and estimate tags, and a record tag with nothing to name, are plain spans
+with `role="img"` and an `aria-label`.
+
+- **Placement.** On a plain row the tag sits right after the value. A meal row
+  with ingredients keeps its disclosure button, which must not contain another
+  button, so its tag is the button's sibling, after it. Only a row that carries
+  a tag takes `.has-src`, so a row without one keeps its markup. An ingredient's
+  tag sits between its value and its name.
+- **One open disclosure at a time.** `sourceToggle` closes every other reveal in
+  the breakdown and closes any open meal row except the one holding an
+  ingredient's tag. A meal-level tag on an open row closes that row, so the row
+  and the reveal are never both open. An ingredient's reveal stays inside its
+  open row, which is the only pair the rule allows to show together: the
+  reveal is part of the row's own list. `mealRowToggle` closes every reveal before it opens a row, and
+  `mealSet` closes the reveals inside a row when that row closes.
+- **Keyboard.** Both controls are native buttons, so Enter and Space arrive as
+  clicks and need no keydown branch. Each reveal's `id` is unique per breakdown
+  (`idPrefix`, then `-src-<metric>-<row>`, then `-<item>` for an ingredient).
+
 ### Wording rules (unchanged, and pinned by tests)
 
 - `direction: "ceiling"` (sugar, alcohol, caffeine) mirrors `GoalDirection` in

@@ -6,6 +6,7 @@ import {
     basisFactor,
     buildNutrientSourcesMeta,
     deriveMealProvenance,
+    formatItemSourcesBlock,
     formatSourcesLine,
     META_NAME_CHARS,
     MAX_SOURCE_NAME_CHARS,
@@ -863,12 +864,12 @@ describe("widget _meta and the model line", () => {
         fiber_g: { s: "estimate" },
     };
 
-    test("names are cut to 60 characters and amounts are dropped", () => {
+    test("names are cut to 60 characters with an ellipsis and amounts are dropped", () => {
         const meta = metaFor(sources, detail, true)!;
         expect(meta.calories).toEqual({
             s: "usda",
             ref: FDC,
-            name: "x".repeat(META_NAME_CHARS),
+            name: `${"x".repeat(META_NAME_CHARS - 1)}…`,
             data_type: "SR Legacy",
         });
     });
@@ -1131,5 +1132,94 @@ describe("record amounts stay with their uses", () => {
         );
         expect(wrongBasis.message).toContain(BARCODE);
         expect(wrongBasis.logText).not.toContain(BARCODE);
+    });
+});
+
+describe("formatItemSourcesBlock (per-ingredient model lines)", () => {
+    const USDA = { s: "usda", ref: "171477" } as const;
+    const detail = {
+        "usda:171477": { name: "Chicken", amount_g: 150 },
+    };
+
+    test("names the record, its grams, and the estimated nutrients in one line", () => {
+        const block = formatItemSourcesBlock([
+            {
+                name: "chicken breast",
+                nutrient_sources: {
+                    calories: USDA,
+                    protein_g: USDA,
+                    carbs_g: USDA,
+                    fat_g: USDA,
+                    fiber_g: { s: "estimate" },
+                    sugar_g: { s: "estimate" },
+                },
+                source_detail: detail,
+            },
+        ]);
+        expect(block).toBe(
+            "Ingredient sources:\n- chicken breast: USDA 171477 (150 g) for calories, protein, carbs, fat; fiber, sugar estimated",
+        );
+    });
+
+    test("an item with only estimates gets no line; a user-stated item does", () => {
+        const block = formatItemSourcesBlock([
+            {
+                name: "Sauce",
+                nutrient_sources: { calories: { s: "estimate" } },
+            },
+            {
+                name: "Honey",
+                nutrient_sources: { sugar_g: { s: "user" } },
+            },
+            { name: "Bare", nutrient_sources: null },
+        ]);
+        expect(block).toBe(
+            "Ingredient sources:\n- Honey: your figures for sugar",
+        );
+    });
+
+    test("returns null when no item carries a named label", () => {
+        expect(formatItemSourcesBlock([])).toBeNull();
+        expect(
+            formatItemSourcesBlock([
+                {
+                    name: "A",
+                    nutrient_sources: { calories: { s: "estimate" } },
+                },
+            ]),
+        ).toBeNull();
+    });
+
+    test("a barcode record and a servings amount read as the product, not a USDA id", () => {
+        const block = formatItemSourcesBlock([
+            {
+                name: "Crisps",
+                nutrient_sources: {
+                    calories: { s: "openfoodfacts", ref: "5000159484695" },
+                },
+                source_detail: {
+                    "openfoodfacts:5000159484695": {
+                        name: "Crisps",
+                        servings: 2,
+                    },
+                },
+            },
+        ]);
+        expect(block).toBe(
+            "Ingredient sources:\n- Crisps: Open Food Facts barcode 5000159484695 (2 servings) for calories",
+        );
+    });
+
+    test("names are flattened to one line and capped", () => {
+        const block = formatItemSourcesBlock([
+            {
+                name: "line one\nline two " + "x".repeat(200),
+                nutrient_sources: { protein_g: { s: "user" } },
+            },
+        ]);
+        const lines = block!.split("\n");
+        expect(lines).toHaveLength(2);
+        expect(lines[1]!.startsWith("- line one line two ")).toBe(true);
+        expect(lines[1]!.length).toBeLessThan(140);
     });
 });

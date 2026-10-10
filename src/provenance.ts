@@ -740,7 +740,8 @@ const isPositive = (v: unknown): v is number =>
     typeof v === "number" && Number.isFinite(v) && v > 0;
 
 /** The widget-facing form of one tag, as it appears in _meta. Names come from
- * the row's detail and are cut to META_NAME_CHARS; amounts are never sent. */
+ * the row's detail and are cut to META_NAME_CHARS (an ellipsis marks the cut);
+ * amounts are never sent. */
 export interface SourceMeta {
     s: NutrientSource | "mixed";
     ref?: string;
@@ -787,7 +788,10 @@ export function metaFor(
             meta.ref = tag.ref;
             const entry = detail?.[detailKey(tag.s as RecordSource, tag.ref)];
             if (entry) {
-                meta.name = entry.name.slice(0, META_NAME_CHARS);
+                meta.name =
+                    entry.name.length > META_NAME_CHARS
+                        ? `${entry.name.slice(0, META_NAME_CHARS - 1)}…`
+                        : entry.name;
                 if (entry.data_type !== undefined)
                     meta.data_type = entry.data_type;
             }
@@ -944,6 +948,142 @@ function pushGroup(
     const group = groups.get(id) ?? { label, keys: [] };
     group.keys.push(word);
     groups.set(id, group);
+}
+
+/** One ingredient as the item block names it: the user's own text for the name,
+ * and the labels the item was written with. */
+export interface ItemSourcesInput {
+    name: string;
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
+}
+
+/** Longest ingredient name echoed in the model text. */
+const ITEM_NAME_TEXT_CHARS = 80;
+
+/** Whether a row carries a record-backed or user-stated label, the only kinds
+ * an ingredient line names. Estimates alone do not earn a line. */
+function namesALabel(sources: NutrientSources): boolean {
+    return Object.values(sources).some(
+        (tag) =>
+            tag !== undefined &&
+            (tag.s === "usda" ||
+                tag.s === "openfoodfacts" ||
+                tag.s === "user" ||
+                (tag.s === "mixed" &&
+                    tag.parts.some(
+                        (p) =>
+                            p.s === "usda" ||
+                            p.s === "openfoodfacts" ||
+                            p.s === "user",
+                    ))),
+    );
+}
+
+/** The compact clauses of one row's labels, grouped by label, for an ingredient
+ * line: "USDA 171477 (150 g) for calories, protein; fiber estimated". Null when
+ * the row has no label to name. */
+function compactLabelClauses(
+    sources: NutrientSources,
+    detail: SourceDetail | null,
+): string | null {
+    const groups = new Map<
+        string,
+        { render: (keys: string) => string; keys: string[] }
+    >();
+    const add = (
+        id: string,
+        render: (keys: string) => string,
+        word: string,
+    ) => {
+        const group = groups.get(id) ?? { render, keys: [] };
+        group.keys.push(word);
+        groups.set(id, group);
+    };
+    for (const key of PROVENANCE_NUTRIENT_KEYS) {
+        const tag = sources[key];
+        if (!tag) continue;
+        const word = NUTRIENT_WORDS[key];
+        if (tag.s === "mixed") {
+            const shares = tag.parts
+                .map((p) => `${COMPACT_SOURCE[p.s]} ${p.share}%`)
+                .join(", ");
+            add(
+                `mixed:${tag.parts.map((p) => p.s + p.share).join("")}`,
+                (keys) => `${keys} mixed: ${shares}`,
+                word,
+            );
+            continue;
+        }
+        if (tag.s === "estimate") {
+            add("estimate", (keys) => `${keys} estimated`, word);
+            continue;
+        }
+        if (tag.s === "user") {
+            add("user", (keys) => `your figures for ${keys}`, word);
+            continue;
+        }
+        const entry = tag.ref ? detail?.[detailKey(tag.s, tag.ref)] : undefined;
+        const amount =
+            entry?.amount_g !== undefined
+                ? ` (${entry.amount_g} g)`
+                : entry?.servings !== undefined
+                  ? ` (${entry.servings} ${entry.servings === 1 ? "serving" : "servings"})`
+                  : "";
+        const id = tag.ref
+            ? ` ${tag.s === "usda" ? "" : "barcode "}${tag.ref}`
+            : "";
+        add(
+            `${tag.s}:${tag.ref ?? ""}`,
+            (keys) => `${COMPACT_SOURCE[tag.s]}${id}${amount} for ${keys}`,
+            word,
+        );
+    }
+    if (groups.size === 0) return null;
+    return [...groups.values()]
+        .map((g) => g.render(g.keys.join(", ")))
+        .join("; ");
+}
+
+const COMPACT_SOURCE: Record<NutrientSource, string> = {
+    usda: "USDA",
+    openfoodfacts: "Open Food Facts",
+    user: "your figures",
+    estimate: "estimated",
+};
+
+/**
+ * The model-facing ingredient lines for an itemized write (`content` only): one
+ * line per item that carries a record-backed or user-stated label, under an
+ * "Ingredient sources:" heading. Null when no item qualifies, so the caller adds
+ * nothing. The item name is the caller's own text, so it is only echoed here and
+ * never logged (the runtime log carries the analytics line alone).
+ *
+ * Example: "- chicken breast: USDA 171477 (150 g) for calories, protein, carbs,
+ * fat; fiber, sugar estimated"
+ */
+export function formatItemSourcesBlock(
+    items: readonly ItemSourcesInput[],
+): string | null {
+    const lines: string[] = [];
+    for (const item of items) {
+        const sources = item.nutrient_sources ?? null;
+        if (!sources || !namesALabel(sources)) continue;
+        const clauses = compactLabelClauses(
+            sources,
+            item.source_detail ?? null,
+        );
+        if (!clauses) continue;
+        const name = item.name.replace(/\s+/g, " ").trim();
+        const shown =
+            name.length > ITEM_NAME_TEXT_CHARS
+                ? `${name.slice(0, ITEM_NAME_TEXT_CHARS - 1)}…`
+                : name;
+        lines.push(`- ${shown}: ${clauses}`);
+    }
+    return lines.length > 0
+        ? ["Ingredient sources:", ...lines].join("\n")
+        : null;
 }
 
 // ---------- Export and import ----------

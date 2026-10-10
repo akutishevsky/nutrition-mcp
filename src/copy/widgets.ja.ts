@@ -56,6 +56,16 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             one: "材料{n}点",
             other: "材料{n}点",
         },
+        sourceUsda: "USDA",
+        sourceOff: "OFF",
+        sourceUser: "自分",
+        sourceEst: "推定",
+        sourceMixed: "混合",
+        sourceRecordUsda: "FoodData Central",
+        sourceRecordOff: "バーコード",
+        sourceDataType: "データ種別",
+        sourceAria: "出典: {source}",
+        sourceDetailsAria: "出典の詳細を表示",
     },
     bridge: {
         settingsFooter:

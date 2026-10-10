@@ -213,6 +213,12 @@
             // position), for the breakdown's expandable rows. Must equal
             // MEAL_ITEMS_META_KEY in src/widgets.ts.
             const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
+            // Where the same result carries each value's source (a USDA or OFF
+            // record, the user's own figure, or an estimate), position-aligned
+            // with the meals and their items. Must equal NUTRIENT_SOURCES_META_KEY
+            // in src/widgets.ts.
+            const NUTRIENT_SOURCES_META_KEY =
+                "nutrition-mcp.com/nutrient-sources";
 
             // `meta` is the tool result's `_meta` (or null — see bridge.js).
             function render(data, meta) {
@@ -262,9 +268,15 @@
                 );
                 // Ingredients join the rows the same way, last;
                 // without `_meta` this is merged.meals itself.
-                const rows = withMealItems(
-                    mealItemsPayload(meta && meta[MEAL_ITEMS_META_KEY]),
-                    merged.meals,
+                const itemsMeta = mealItemsPayload(
+                    meta && meta[MEAL_ITEMS_META_KEY],
+                );
+                const rows = withNutrientSources(
+                    nutrientSourcesPayload(
+                        meta && meta[NUTRIENT_SOURCES_META_KEY],
+                    ),
+                    withMealItems(itemsMeta, merged.meals),
+                    itemsMeta,
                 );
                 const panel = macroPanel(
                     merged.vals,

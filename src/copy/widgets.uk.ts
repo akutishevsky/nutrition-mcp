@@ -62,6 +62,16 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
             many: "{n} інгредієнтів",
             other: "{n} інгредієнтів",
         },
+        sourceUsda: "USDA",
+        sourceOff: "OFF",
+        sourceUser: "власне",
+        sourceEst: "оцін.",
+        sourceMixed: "змішане",
+        sourceRecordUsda: "FoodData Central",
+        sourceRecordOff: "штрихкод",
+        sourceDataType: "тип даних",
+        sourceAria: "Джерело: {source}",
+        sourceDetailsAria: "Показати деталі джерела",
     },
     bridge: {
         settingsFooter:

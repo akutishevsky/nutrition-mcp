@@ -208,7 +208,9 @@ import {
     assertFoodRefPlacement,
     buildNutrientSourcesMeta,
     deriveMealProvenance,
+    formatItemSourcesBlock,
     formatSourcesLine,
+    type ItemSourcesInput,
     mergeProvenance,
     parseFoodRef,
     parseNutrientSources,
@@ -2101,6 +2103,15 @@ function sourcesNoteFor(
     return line ? `\n${line}` : "";
 }
 
+/** The ingredient lines of an itemized write, with their leading newline, or "".
+ *  Model text only: the item names are the caller's own, so nothing here is logged. */
+function itemSourcesNoteFor(
+    items: readonly ItemSourcesInput[] | undefined,
+): string {
+    const block = formatItemSourcesBlock(items ?? []);
+    return block ? `\n${block}` : "";
+}
+
 /** The labels a plain-meal update gives the row: the nutrients whose value
  *  changed take the fresh labels, the rest keep the stored ones (mergeProvenance).
  *  Null when no nutrient is sent (nothing changes) or the meal is missing (the
@@ -2921,7 +2932,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz, deduplicated ? undefined : items)}${progressSection}${satFatNote}${sourcesNote}${alcoholHiddenNote(
+                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz, deduplicated ? undefined : items)}${progressSection}${satFatNote}${sourcesNote}${deduplicated ? "" : itemSourcesNoteFor(items)}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
@@ -5005,7 +5016,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz, itemsChecked?.items)}${progressSection}${saturatedAboveFatNote(meal) ?? ""}${sourcesNote}${alcoholHiddenNote(
+                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz, itemsChecked?.items)}${progressSection}${saturatedAboveFatNote(meal) ?? ""}${sourcesNote}${itemSourcesNoteFor(itemsChecked?.items)}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
@@ -5306,7 +5317,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `Saved meal "${saved.name}" [saved meal id: ${saved.id}]\n${savedMealBody(saved, alcohol)}${sourcesNoteFor(saved, args.food_ref !== undefined || (args.items ?? []).some((i) => i.food_ref !== undefined))}${alcoholNote}`,
+                                text: `Saved meal "${saved.name}" [saved meal id: ${saved.id}]\n${savedMealBody(saved, alcohol)}${sourcesNoteFor(saved, args.food_ref !== undefined || (args.items ?? []).some((i) => i.food_ref !== undefined))}${itemSourcesNoteFor(saved.items)}${alcoholNote}`,
                             },
                         ],
                     };
@@ -5585,7 +5596,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz)}\n\nFrom saved meal "${saved.name}".${block}${progressSection}${sourcesNoteFor(meal, false)}${alcoholHiddenNote(
+                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz)}\n\nFrom saved meal "${saved.name}".${block}${progressSection}${sourcesNoteFor(meal, false)}${deduplicated ? "" : itemSourcesNoteFor(items)}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",

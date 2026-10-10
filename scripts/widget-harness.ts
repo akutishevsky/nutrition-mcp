@@ -49,6 +49,13 @@
 //                       20 g saturated-fat ceiling reaches the summary and the
 //                       day widgets through the saturated-fat `_meta`
 //   ?theme=dark         hostContext.theme on ui/initialize (default light)
+//   ?sources=1          the nutrient-sources `_meta` (built by the server's own
+//                       buildNutrientSourcesMeta) on nutrition-summary,
+//                       goal-progress and meal-logged: USDA, OFF, yours, est.
+//                       and a mixed tag, a meal and an ingredient with tags, a
+//                       null value that gets no tag, and an alcohol tag that
+//                       meal-logged (tracking off) drops. Ignored with
+//                       ?addedSugar= edge rows, which have no ingredients.
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
 
@@ -65,11 +72,17 @@ import {
     MEAL_BREAKDOWN_TOP_N,
     MEAL_CONTRIBUTORS_META_KEY,
     MEAL_ITEMS_META_KEY,
+    NUTRIENT_SOURCES_META_KEY,
     PERIOD_AVERAGES_META_KEY,
     SATURATED_FAT_META_KEY,
     WEIGHT_SERIES_META_KEY,
     WIDGET_TEMPLATES,
 } from "../src/widgets.js";
+import {
+    buildNutrientSourcesMeta,
+    type NutrientSources,
+    type SourceDetail,
+} from "../src/provenance.js";
 import { runImport } from "../src/import.js";
 import { buildDailyBuckets } from "../src/insights.js";
 import {
@@ -1216,6 +1229,141 @@ function hostPage(widget: string, params: URLSearchParams): string {
             meals: staticGoalProgress ? [] : edgeRows,
         };
     }
+    // ?sources=1: where each value came from. The fixture is keyed by the
+    // fixture meal's description; the detail covers every record the tags name.
+    // The record names are long enough to show the 60-character cap.
+    if (params.get("sources") === "1" && !asEdge) {
+        const SOURCE_DETAIL: SourceDetail = {
+            "usda:171477": {
+                name: "Chicken, broilers or fryers, breast, meat only, cooked, fried",
+                data_type: "Survey (FNDDS)",
+            },
+            "usda:169704": {
+                name: "Rice, white, long-grain, cooked",
+                data_type: "SR Legacy",
+            },
+            "usda:171077": { name: "Chicken, broiler, breast, roasted" },
+            "usda:174848": {
+                name: "Beer, regular, all",
+                data_type: "SR Legacy",
+            },
+            "openfoodfacts:4901777123456": { name: "Teriyaki sauce" },
+        };
+        const SOURCE_FIXTURE: Record<
+            string,
+            { meal: NutrientSources; items: (NutrientSources | null)[] }
+        > = {
+            "Grilled chicken & rice bowl": {
+                meal: {
+                    calories: { s: "usda", ref: "171477" },
+                    protein_g: { s: "estimate" },
+                    fat_g: {
+                        s: "mixed",
+                        parts: [
+                            { s: "usda", share: 67 },
+                            { s: "estimate", share: 33 },
+                        ],
+                    },
+                    carbs_g: { s: "user" },
+                    fiber_g: { s: "openfoodfacts", ref: "4901777123456" },
+                    added_sugar_g: { s: "user" },
+                },
+                // Рис басмати, Куряче філе, Соус теріякі, Едамаме. The sauce's
+                // fibre is null, so its estimate tag is never shown.
+                items: [
+                    {
+                        calories: { s: "usda", ref: "169704" },
+                        carbs_g: { s: "usda", ref: "169704" },
+                    },
+                    {
+                        calories: { s: "usda", ref: "171077" },
+                        protein_g: { s: "usda", ref: "171077" },
+                    },
+                    {
+                        added_sugar_g: {
+                            s: "openfoodfacts",
+                            ref: "4901777123456",
+                        },
+                        fiber_g: { s: "estimate" },
+                    },
+                    null,
+                ],
+            },
+            "Salmon with quinoa & veg": {
+                meal: {
+                    calories: { s: "estimate" },
+                    protein_g: { s: "usda", ref: "171077" },
+                    alcohol_g: { s: "usda", ref: "174848" },
+                },
+                // The red wine's alcohol is the item tag a user with tracking
+                // off never sees, because the server drops alcohol then.
+                items: [
+                    null,
+                    null,
+                    { fiber_g: { s: "estimate" } },
+                    {
+                        alcohol_g: { s: "usda", ref: "174848" },
+                        calories: { s: "usda", ref: "174848" },
+                    },
+                ],
+            },
+            "Double espresso": {
+                meal: { caffeine_mg: { s: "user" } },
+                items: [],
+            },
+        };
+        const sourcesOf = (rows: Meal[], alcoholOn: boolean) => {
+            const mealSources = new Map<
+                string,
+                { sources: NutrientSources | null; detail: SourceDetail | null }
+            >();
+            const items = new Map<
+                string,
+                {
+                    nutrient_sources: NutrientSources | null;
+                    source_detail: SourceDetail | null;
+                }[]
+            >();
+            for (const m of rows) {
+                const fx = SOURCE_FIXTURE[m.description];
+                if (!fx) continue;
+                mealSources.set(m.id, {
+                    sources: fx.meal,
+                    detail: SOURCE_DETAIL,
+                });
+                if (fx.items.length && ITEMS[m.description]) {
+                    items.set(
+                        m.id,
+                        fx.items.map((sources) => ({
+                            nutrient_sources: sources,
+                            source_detail: SOURCE_DETAIL,
+                        })),
+                    );
+                }
+            }
+            return buildNutrientSourcesMeta(
+                rows,
+                mealSources,
+                items,
+                alcoholOn,
+            );
+        };
+        const withSources = (widget: string, payload: unknown) => {
+            if (!payload) return;
+            METAS[widget] = {
+                ...(METAS[widget] as Record<string, unknown>),
+                [NUTRIENT_SOURCES_META_KEY]: payload,
+            };
+        };
+        // The summary tracks alcohol; meal-logged does not (its tracking is
+        // off, so the alcohol tag is dropped, as the server drops it).
+        withSources("nutrition-summary", sourcesOf(summaryMealRows, true));
+        if (!staticGoalProgress) {
+            withSources("goal-progress", sourcesOf(dayMeals, true));
+        }
+        withSources("meal-logged", sourcesOf(dayMeals, false));
+    }
+
     // Probe and gallery paint their own UI; anything non-null will do.
     const baseResult = RESULTS[widget] ?? { probe: true };
     // ?locale= reaches every widget through the field they all read first.
