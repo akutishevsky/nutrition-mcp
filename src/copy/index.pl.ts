@@ -176,7 +176,7 @@ export const INDEX_PL: IndexDoc = {
         note: "Wszystko tu jest opcjonalne. Możesz to zrobić teraz, później albo wcale: po prostu zacznij zapisywać, a ustawienia zmień, kiedy zechcesz.",
         toolsCta: {
             heading: "Ciekawi Cię, co naprawdę potrafi?",
-            body: "Przejrzyj wszystkie 46 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
+            body: "Przejrzyj wszystkie 48 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
             arrow: "Zobacz narzędzia",
         },
     },

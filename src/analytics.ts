@@ -1,6 +1,11 @@
 import { getSupabase } from "./supabase.js";
 import { formatClientId } from "./client-id.js";
-import { errorLogText, newErrorRef, ToolError } from "./errors.js";
+import {
+    errorLogText,
+    newErrorRef,
+    ToolError,
+    UpstreamError,
+} from "./errors.js";
 
 export interface AnalyticsRecord {
     user_id: string;
@@ -68,6 +73,9 @@ export function categorizeError(error: unknown): string {
     // its text can carry words ("required", "date") the tiers below would
     // misfile.
     if (error instanceof ToolError && error.category) return error.category;
+    // An upstream failure names its own category (src/errors.ts), so it is
+    // never bucketed by the wording tiers below.
+    if (error instanceof UpstreamError) return error.category;
 
     const msg =
         error instanceof Error ? error.message.toLowerCase() : String(error);
@@ -242,6 +250,7 @@ const TEMPORARY_CATEGORIES = new Set([
     "read_truncated",
     "unknown",
     "network_error",
+    "usda_unavailable",
 ]);
 // auth_expired belongs here, not with a "reconnect" message: the caller's
 // bearer is verified before any tool runs, so auth/JWT text inside a handler
@@ -266,6 +275,8 @@ export function userFacingError(
     ref: string,
 ): string {
     if (error instanceof ToolError) return error.message;
+    if (category === "usda_unavailable")
+        return `${toolName} could not finish: the USDA FoodData Central service did not answer (ref ${ref}). Nothing about the request needs to change, and the user's own data is unaffected. USDA values are unavailable for now.`;
     if (TEMPORARY_CATEGORIES.has(category))
         return `${toolName} could not finish: the Nutrition server had a temporary problem reading or saving the user's data (ref ${ref}). Nothing about the request needs to change. Retry once; if this was a change (log, update or delete), first check with the matching read tool whether it already went through, so it is not recorded twice. If it fails again, tell the user the service is having trouble and to try again later.`;
     if (category === "export_error")

@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_TR: ToolsDoc = {
     meta: {
-        title: "Kalori, makro, su ve kilo için 46 araç",
+        title: "Kalori, makro, su ve kilo için 48 araç",
         description:
-            "Claude, ChatGPT ve diğerleri için 46 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
+            "Claude, ChatGPT ve diğerleri için 48 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
         ogDescription:
-            "Nutrition MCP sunucusunun yapay zekâna sunduğu 46 aracın tamamı — kayıtlı yemeklerden geçmişin için bir CSV içe aktarıcıya kadar — açıklamaları ve örnek cümleleriyle.",
+            "Nutrition MCP sunucusunun yapay zekâna sunduğu 48 aracın tamamı — kayıtlı yemeklerden geçmişin için bir CSV içe aktarıcıya kadar — açıklamaları ve örnek cümleleriyle.",
     },
     hero: {
         eyebrow: "Başvuru",
@@ -20,7 +20,7 @@ export const TOOLS_TR: ToolsDoc = {
         titleEm: "her şey",
         titleAfterEm: "",
         lead: "Bu araçları hiçbir zaman kendin çağırmazsın: sadece Claude, ChatGPT ya da başka bir MCP istemcisiyle konuşursun, o da doğru aracı seçer. Aşağıda Nutrition MCP sunucusunun yemekler ve kayıtlı yemekler, kalori ve makrolar, su ve kilo için sunduğu her araç var; her birinin ne yaptığı ve onu çalıştıran bir cümleyle birlikte.",
-        countBold: "46 araç",
+        countBold: "48 araç",
         countTail: "7 alana yayılmış",
     },
     categories: {
@@ -121,6 +121,24 @@ export const TOOLS_TR: ToolsDoc = {
             example: "Şu barkodu tara: 3017620422003",
             photoHint:
                 "…ya da paketin fotoğrafını gönder: yapay zekâ barkod hanelerini fotoğraftan okur.",
+        },
+        search_foods: {
+            description:
+                "USDA FoodData Central genel gıdalarını (Foundation, SR Legacy ve Survey/FNDDS kayıtları) İngilizce gıda adına göre arar; her biri FoodData Central kimliği, USDA açıklaması, veri türü ile 100 g başına enerji ve makroları içeren en fazla 10 aday döndürür. Eşleşmeler USDA'nın İngilizce ifadelerini kullanır (ör. 'cooked, boiled').",
+            params: {
+                query: "İngilizce gıda adı, en fazla 200 karakter; ör. banana veya lentils, cooked",
+            },
+            example: "USDA çiğ muz için ne listeliyor?",
+        },
+        get_food_macros: {
+            description:
+                "Genel bir gıdanın USDA FoodData Central değerlerini FoodData Central kimliğiyle döndürür: 100 g başına ve amount_g verildiğinde o miktara ölçeklenmiş olarak, USDA'nın listelediği porsiyon boyutlarıyla birlikte. USDA'nın gıda için kaydetmediği bir besin öğesi, asla sıfır değil, kaydedilmemiş olarak bildirilir. Öğün araçlarının bu değerler için kabul ettiği food_ref'i de içerir.",
+            params: {
+                fdc_id: "Gıdanın FoodData Central kimliği; search_foods'un listelediği gibi",
+                amount_g:
+                    "İsteğe bağlı gram cinsinden miktar; 0'dan büyük ve 5.000'e kadar, değerlerin ölçekleneceği",
+            },
+            example: "Şu muzun 150 g'ı için USDA makroları nedir?",
         },
         start_meal_import: {
             description:

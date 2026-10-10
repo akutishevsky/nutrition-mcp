@@ -145,6 +145,18 @@ import {
     type BulkImportArgs,
 } from "./import.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
+import {
+    getFoodRecord,
+    searchUsda,
+    sanitizeQuery,
+    usdaUnavailableText,
+    USDA_AUTH_FAILED_TEXT,
+    USDA_BAD_QUERY_TEXT,
+    USDA_NO_MATCH_TEXT,
+    USDA_NO_RECORD_TEXT,
+    type UsdaDeps,
+} from "./usda.js";
+import { formatUsdaRecord, formatUsdaSearch } from "./usda-text.js";
 import { formatMealSearchResults, formatSavedMealMatches } from "./search.js";
 import {
     MAX_ITEMS_PER_MEAL,
@@ -294,6 +306,8 @@ Current time — some hosts put the current date and time in context and some do
 
 Recording a complete meal — this applies to every write path (log_meal, update_meal, save_meal, log_saved_meal, a barcode lookup that is then logged, a meal copied from search_meals), not just to photos.
 ${NUTRIENT_COVERAGE}
+USDA FoodData Central (search_foods, get_food_macros) holds generic, unbranded foods with values per 100 g from USDA's own records. A nutrient its record does not carry is reported as not recorded, never as zero.
+
 A meal logged without its fiber, sugar or added sugar can be completed later: update_meal writes only the fields passed, so it fills in the missing figure once the user wants it filled in. For a meal logged with items the figure goes on the items: update_meal's full items list, with the value on each item.
 
 Ingredients and saved meals:
@@ -2621,8 +2635,14 @@ export function registerTools(
     // exercise tool behaviour, not analytics attribution, and a row with no era
     // is exactly what a non-HTTP embedding should record.
     protocolEra?: "legacy" | "modern",
+    // The USDA client's seams (fetch, clock, env, cache, quota state, log).
+    // Production passes nothing; the default cache store reads and writes
+    // through the live supabase functions at call time. Tests inject a fetch
+    // and a fresh quota state per case.
+    usda: Partial<UsdaDeps> = {},
 ) {
-    // One context for all 46 tools. clientInfo is a getter, not a value: at
+    const usdaOverrides: Partial<UsdaDeps> = usda;
+    // One context for all 48 tools. clientInfo is a getter, not a value: at
     // registration time the SDK has not yet resolved who is calling, and on the
     // modern leg it backfills the identity per request before dispatch.
     const analytics = {
@@ -3285,6 +3305,174 @@ export function registerTools(
                     outcome: () =>
                         offFailure
                             ? { success: false, errorCategory: offFailure }
+                            : { success: true },
+                },
+            );
+        },
+    );
+
+    // The USDA tools' shared pieces. A pause, reserve or per-user cap is a
+    // normal result that names when USDA opens again (in the user's timezone
+    // when it is cheap to read, UTC otherwise); only an upstream failure is an
+    // error, and it carries the usda_unavailable category.
+    const usdaText = (text: string) => ({
+        content: [{ type: "text" as const, text }],
+    });
+    const usdaUnavailable = async (until: number | null): Promise<string> => {
+        if (until === null) return usdaUnavailableText(null);
+        const tz = await getUserTimezone(userId).catch(() => null);
+        return usdaUnavailableText(until, tz);
+    };
+
+    server.registerTool(
+        "search_foods",
+        {
+            title: "Search Generic Foods",
+            description:
+                "Searches USDA FoodData Central generic foods (Foundation, SR Legacy and Survey/FNDDS records) by English food name and returns up to 10 candidates, each with its FoodData Central id, USDA description, data type and energy and macros per 100 g. Matches use USDA's English wording (e.g. 'cooked, boiled'). Search results are not stored; get_food_macros returns the full record for one id.",
+            annotations: {
+                title: "Search Generic Foods",
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: true,
+            },
+            inputSchema: z.object({
+                query: z
+                    .string()
+                    .describe(
+                        "A food name in English, for example 'banana' or 'cooked oats'. 1 to 200 characters.",
+                    ),
+            }),
+        },
+        async ({ query }) => {
+            // An upstream failure (a thrown UpstreamError) reaches withAnalytics
+            // as an error; a pause or a refused key is a normal result, so it
+            // is flagged here for the analytics row.
+            let usdaFailure: string | null = null;
+            return withAnalytics(
+                "search_foods",
+                async () => {
+                    const q = query.trim();
+                    if (q.length < 1 || q.length > 200) {
+                        throw new ToolError(
+                            "The food name must be 1 to 200 characters.",
+                        );
+                    }
+                    if (sanitizeQuery(q) === "") {
+                        throw new ToolError(
+                            "The food name needs letters or digits, for example 'banana'.",
+                        );
+                    }
+                    const outcome = await searchUsda(q, userId, usdaOverrides);
+                    switch (outcome.status) {
+                        case "ok":
+                            return usdaText(
+                                outcome.candidates.length > 0
+                                    ? formatUsdaSearch(outcome.candidates)
+                                    : USDA_NO_MATCH_TEXT,
+                            );
+                        case "no_match":
+                            return usdaText(USDA_NO_MATCH_TEXT);
+                        case "bad_query":
+                            return usdaText(USDA_BAD_QUERY_TEXT);
+                        case "auth_failed":
+                            usdaFailure = "usda_unavailable";
+                            return usdaText(USDA_AUTH_FAILED_TEXT);
+                        case "unavailable":
+                            return usdaText(
+                                await usdaUnavailable(outcome.until),
+                            );
+                    }
+                },
+                analytics,
+                undefined,
+                {
+                    outcome: () =>
+                        usdaFailure
+                            ? { success: false, errorCategory: usdaFailure }
+                            : { success: true },
+                },
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_food_macros",
+        {
+            title: "Get Food Macros",
+            description:
+                "Returns USDA FoodData Central values for one generic food by its FoodData Central id: per 100 g, and scaled to amount_g when given, with the portion sizes USDA lists. A nutrient USDA does not record for the food is reported as not recorded, never as zero. Includes the food_ref the meal tools accept for these values.",
+            annotations: {
+                title: "Get Food Macros",
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: true,
+            },
+            inputSchema: z.object({
+                fdc_id: z.coerce
+                    .number()
+                    .describe(
+                        "The FoodData Central id (fdcId) of the food, as search_foods returned it.",
+                    ),
+                amount_g: z.coerce
+                    .number()
+                    .optional()
+                    .describe(
+                        "Grams to scale the values to, above 0 and at most 5000. Omit for the values per 100 g only.",
+                    ),
+            }),
+        },
+        async ({ fdc_id, amount_g }) => {
+            let usdaFailure: string | null = null;
+            return withAnalytics(
+                "get_food_macros",
+                async () => {
+                    if (!Number.isSafeInteger(fdc_id) || fdc_id <= 0) {
+                        throw new ToolError(
+                            "fdc_id must be a positive whole number: the FoodData Central id that search_foods returns.",
+                        );
+                    }
+                    if (
+                        amount_g !== undefined &&
+                        !(amount_g > 0 && amount_g <= 5000)
+                    ) {
+                        throw new ToolError(
+                            "amount_g must be more than 0 and at most 5000 grams.",
+                        );
+                    }
+                    const outcome = await getFoodRecord(
+                        fdc_id,
+                        userId,
+                        usdaOverrides,
+                    );
+                    switch (outcome.status) {
+                        case "ok":
+                        case "cache":
+                            return usdaText(
+                                formatUsdaRecord(
+                                    outcome.record,
+                                    amount_g ?? null,
+                                ),
+                            );
+                        case "no_match":
+                            return usdaText(USDA_NO_RECORD_TEXT);
+                        case "auth_failed":
+                            usdaFailure = "usda_unavailable";
+                            return usdaText(USDA_AUTH_FAILED_TEXT);
+                        case "unavailable":
+                            return usdaText(
+                                await usdaUnavailable(outcome.until),
+                            );
+                    }
+                },
+                analytics,
+                undefined,
+                {
+                    outcome: () =>
+                        usdaFailure
+                            ? { success: false, errorCategory: usdaFailure }
                             : { success: true },
                 },
             );

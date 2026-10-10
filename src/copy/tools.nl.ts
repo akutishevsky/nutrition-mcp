@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_NL: ToolsDoc = {
     meta: {
-        title: "46 tools voor calorieën, macro's, water & gewicht",
+        title: "48 tools voor calorieën, macro's, water & gewicht",
         description:
-            "Alle 46 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
+            "Alle 48 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
         ogDescription:
-            "Alle 46 tools die de Nutrition MCP-server aan je AI geeft, van opgeslagen maaltijden tot een CSV-importer voor je geschiedenis uit een andere app. Met beschrijvingen en voorbeeldzinnen.",
+            "Alle 48 tools die de Nutrition MCP-server aan je AI geeft, van opgeslagen maaltijden tot een CSV-importer voor je geschiedenis uit een andere app. Met beschrijvingen en voorbeeldzinnen.",
     },
     hero: {
         eyebrow: "Naslag",
@@ -20,7 +20,7 @@ export const TOOLS_NL: ToolsDoc = {
         titleEm: "doen",
         titleAfterEm: "",
         lead: "Je roept deze tools nooit zelf aan: je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hieronder staat elke tool die de Nutrition MCP-server biedt voor maaltijden en opgeslagen maaltijden, calorieën en macro's, water en gewicht, met wat hij doet en een zin waarmee je hem aan het werk zet.",
-        countBold: "46 tools",
+        countBold: "48 tools",
         countTail: "verdeeld over 7 categorieën",
     },
     categories: {
@@ -120,6 +120,24 @@ export const TOOLS_NL: ToolsDoc = {
             example: "Scan deze barcode: 3017620422003",
             photoHint:
                 "…of stuur een foto van de verpakking; de AI leest de cijfers van de barcode af.",
+        },
+        search_foods: {
+            description:
+                "Zoekt generieke voedingsmiddelen van USDA FoodData Central (Foundation-, SR Legacy- en Survey/FNDDS-records) op Engelse naam en geeft tot 10 kandidaten terug, elk met het FoodData Central-id, de USDA-omschrijving, het gegevenstype en energie en macro's per 100 g. Zoekresultaten gebruiken de Engelse formulering van de USDA (bijv. 'cooked, boiled').",
+            params: {
+                query: "De naam van het voedingsmiddel in het Engels, tot 200 tekens, bijv. banana of lentils, cooked",
+            },
+            example: "Wat vermeldt de USDA voor een rauwe banaan?",
+        },
+        get_food_macros: {
+            description:
+                "Geeft de USDA FoodData Central-waarden van één generiek voedingsmiddel op basis van het FoodData Central-id: per 100 g en, als amount_g is opgegeven, omgerekend naar die hoeveelheid, met de porties die de USDA vermeldt. Een nutriënt die de USDA voor het voedingsmiddel niet registreert, wordt als niet geregistreerd gemeld, nooit als nul. Bevat de food_ref die de maaltijdtools voor deze waarden accepteren.",
+            params: {
+                fdc_id: "Het FoodData Central-id van het voedingsmiddel, zoals vermeld door search_foods",
+                amount_g:
+                    "Optionele hoeveelheid in gram, groter dan 0 en tot 5.000, waarnaar de waarden worden omgerekend",
+            },
+            example: "Wat zijn de USDA-macro's voor 150 g van die banaan?",
         },
         start_meal_import: {
             description:

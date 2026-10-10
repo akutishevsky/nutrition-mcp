@@ -70,3 +70,20 @@ export type ToolErrorCategory =
 export function newErrorRef(): string {
     return crypto.randomUUID().slice(0, 8);
 }
+
+/** The upstream services whose failures are not the caller's fault. */
+export type UpstreamErrorCategory = "usda_unavailable";
+
+/** A failure of an upstream service (src/usda.ts), not of the request. Its
+ * message is fixed text for the runtime log only: withAnalytics replaces it
+ * for the model with the category's temporary message and a ref
+ * (userFacingError), so no upstream text or URL can reach the caller. */
+export class UpstreamError extends Error {
+    override name = "UpstreamError";
+    readonly category: UpstreamErrorCategory;
+
+    constructor(category: UpstreamErrorCategory, message: string) {
+        super(message);
+        this.category = category;
+    }
+}

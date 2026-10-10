@@ -148,3 +148,57 @@ test("a meal-items refusal thrown through withAnalytics keeps item names off the
     }
     expect(persisted).toHaveLength(1);
 });
+
+// The USDA client logs one [usda] line per call, with the tool, the result and
+// the quota left: never the query text, the FoodData Central id, the API key or
+// the user id. Driven through the real client with an injected fetch and cache
+// and console.log captured; no network and no Supabase.
+test("the [usda] log lines carry no query, id, key or user id", async () => {
+    const { searchUsda, getFoodRecord, createUsdaState } =
+        await import("./usda.js");
+    const search = (await import("./__fixtures__/usda/search-banana.json"))
+        .default;
+    const detail = (
+        await import("./__fixtures__/usda/detail-SR_Legacy-173944-full.json")
+    ).default;
+    const KEY = "usda-key-must-not-log-7731";
+    const USER = "user-id-must-not-log-4417";
+    const QUERY = "banana split marker-9913";
+    const reply = (body: unknown) =>
+        new Response(JSON.stringify(body), {
+            status: 200,
+            headers: {
+                "content-type": "application/json",
+                "x-ratelimit-limit": "3600",
+                "x-ratelimit-remaining": "2998",
+            },
+        });
+    const deps = {
+        env: { USDA_API_KEY: KEY },
+        now: () => Date.parse("2026-10-10T12:00:00Z"),
+        state: createUsdaState(),
+        cache: { get: async () => null, put: async () => {} },
+        fetch: async (url: string) =>
+            url.includes("/foods/search") ? reply(search) : reply(detail),
+    };
+
+    const lines: string[] = [];
+    const saved = console.log;
+    console.log = (...args: unknown[]) => {
+        lines.push(args.map(String).join(" "));
+    };
+    try {
+        await searchUsda(QUERY, USER, deps);
+        await getFoodRecord(173944, USER, deps);
+    } finally {
+        console.log = saved;
+    }
+
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+        expect(line).toMatch(/^\[usda\] tool=(search|detail) result=ok /);
+        for (const secret of [QUERY, "9913", "173944", KEY, USER]) {
+            expect(line).not.toContain(secret);
+        }
+    }
+});

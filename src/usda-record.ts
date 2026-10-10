@@ -2,10 +2,12 @@
 // Supabase, no HTTP, no mcp.ts import, so src/provenance.ts can verify a logged
 // value against it and the USDA client (a later part) can fill it.
 //
-// Nothing writes a row of this shape yet. Until the USDA client does, a usda
-// reference finds no cache row and every value it names is an estimate
-// (src/provenance.ts). The shape here is the contract that client builds
-// against: one payload per FoodData Central id, nutrients per 100 g.
+// src/usda.ts writes a row of this shape (normalizeDetail, then the cache
+// store) and reads it back through usdaRecordFromPayload. A usda reference with
+// no cache row, or a row that fails the shape check, finds nothing and every
+// value it names is an estimate (src/provenance.ts). One payload per FoodData
+// Central id, nutrients per 100 g; a nutrient the record does not carry is
+// absent from per100g, which means "not recorded", never 0.
 
 import type { MealNutrientKey } from "./meal-items.js";
 
@@ -86,8 +88,7 @@ export function usdaRecordFromPayload(payload: unknown): UsdaRecord | null {
     };
 }
 
-/** The signature the USDA client's normalizer (a later part) implements: a raw
+/** The signature of the USDA normalizer (normalizeDetail in src/usda.ts): a raw
  * FoodData Central detail response in, the cache payload out, null when the
- * record is unusable. Declared here so the cache contract and the client agree
- * on one type before the client exists. */
+ * record is unusable. */
 export type UsdaNormalizer = (raw: unknown) => UsdaRecord | null;

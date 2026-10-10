@@ -181,7 +181,7 @@ export const INDEX_IT: IndexDoc = {
         note: "È tutto facoltativo. Puoi farlo ora, più tardi o mai: inizia pure a registrare e imposta queste opzioni quando vuoi.",
         toolsCta: {
             heading: "Vuoi sapere cosa sa fare davvero?",
-            body: "Sfoglia tutti i 46 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
+            body: "Sfoglia tutti i 48 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
             arrow: "Esplora gli strumenti",
         },
     },

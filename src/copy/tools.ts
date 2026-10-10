@@ -1,4 +1,4 @@
-// Typed content for /tools (the "all 46 tools" reference page), rendered
+// Typed content for /tools (the "all 48 tools" reference page), rendered
 // by scripts/gen-tools.ts. Extracted verbatim from the previously
 // hand-authored public/tools.html — see CLAUDE.md's "Public site" section
 // for the generator family this belongs to, and gen-tools.ts's own header
@@ -129,9 +129,9 @@ export interface ToolIdentity {
 }
 
 /**
- * All 46 tools, in the exact document order of public/tools.html (grouped
+ * All 48 tools, in the exact document order of public/tools.html (grouped
  * by category — see CategoryId — for the reader). The *set* of names must
- * equal the 46 `server.registerTool()` calls in src/mcp.ts; the two orders
+ * equal the 48 `server.registerTool()` calls in src/mcp.ts; the two orders
  * differ (mcp.ts registers in its own order, unrelated to this page's
  * reader-facing grouping). "the registered tool set and every hand-typed
  * tool count agree" in src/site-copy.test.ts enforces the set and the
@@ -166,6 +166,23 @@ export const TOOLS: ToolIdentity[] = [
         badges: ["lookup"],
         params: [],
         hasPhotoHint: true,
+    },
+    {
+        name: "search_foods",
+        category: "logging-food-meals",
+        badges: ["lookup"],
+        params: [{ name: "query", required: true }],
+        hasPhotoHint: false,
+    },
+    {
+        name: "get_food_macros",
+        category: "logging-food-meals",
+        badges: ["lookup"],
+        params: [
+            { name: "fdc_id", required: true },
+            { name: "amount_g", required: false },
+        ],
+        hasPhotoHint: false,
     },
     {
         name: "start_meal_import",
@@ -736,11 +753,11 @@ export interface ToolsDoc {
 
 const TOOLS_EN: ToolsDoc = {
     meta: {
-        title: "46 Calorie, Macro, Water & Weight Tools",
+        title: "48 Calorie, Macro, Water & Weight Tools",
         description:
-            "All 46 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
+            "All 48 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
         ogDescription:
-            "All 46 tools the Nutrition MCP server gives your AI, from saved meals to a CSV importer for your history — with descriptions and example prompts.",
+            "All 48 tools the Nutrition MCP server gives your AI, from saved meals to a CSV importer for your history — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
@@ -748,7 +765,7 @@ const TOOLS_EN: ToolsDoc = {
         titleEm: "do",
         titleAfterEm: "",
         lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals and saved meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
-        countBold: "46 tools",
+        countBold: "48 tools",
         countTail: "across 7 areas",
     },
     categories: {
@@ -848,6 +865,24 @@ const TOOLS_EN: ToolsDoc = {
             example: "Scan this barcode: 3017620422003",
             photoHint:
                 "…or send a photo of the package — the AI reads the barcode digits off it.",
+        },
+        search_foods: {
+            description:
+                "Searches USDA FoodData Central generic foods (Foundation, SR Legacy and Survey/FNDDS records) by English food name and returns up to 10 candidates, each with its FoodData Central id, USDA description, data type and energy and macros per 100 g. Matches use USDA's English wording (e.g. 'cooked, boiled').",
+            params: {
+                query: "The food name in English, up to 200 characters, e.g. banana or lentils, cooked",
+            },
+            example: "What does USDA list for a raw banana?",
+        },
+        get_food_macros: {
+            description:
+                "Returns USDA FoodData Central values for one generic food by its FoodData Central id: per 100 g, and scaled to amount_g when given, with the portion sizes USDA lists. A nutrient USDA does not record for the food is reported as not recorded, never as zero. Includes the food_ref the meal tools accept for these values.",
+            params: {
+                fdc_id: "The FoodData Central id of the food, as listed by search_foods",
+                amount_g:
+                    "Optional amount in grams, above 0 and up to 5,000, to scale the values to",
+            },
+            example: "What are the USDA macros for 150 g of that banana?",
         },
         start_meal_import: {
             description:

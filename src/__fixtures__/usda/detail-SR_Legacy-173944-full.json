@@ -1,0 +1,196 @@
+{
+    "fdcId": 173944,
+    "description": "Bananas, raw",
+    "dataType": "SR Legacy",
+    "foodNutrients": [
+        {
+            "nutrient": {
+                "id": 1008,
+                "number": "208",
+                "name": "Energy",
+                "unitName": "kcal"
+            },
+            "amount": 89
+        },
+        {
+            "nutrient": {
+                "id": 1062,
+                "number": "268",
+                "name": "Energy",
+                "unitName": "kJ"
+            },
+            "amount": 371
+        },
+        {
+            "nutrient": {
+                "id": 1003,
+                "number": "203",
+                "name": "Protein",
+                "unitName": "g"
+            },
+            "amount": 1.09
+        },
+        {
+            "nutrient": {
+                "id": 1004,
+                "number": "204",
+                "name": "Total lipid (fat)",
+                "unitName": "g"
+            },
+            "amount": 0.33
+        },
+        {
+            "nutrient": {
+                "id": 1005,
+                "number": "205",
+                "name": "Carbohydrate, by difference",
+                "unitName": "g"
+            },
+            "amount": 22.84
+        },
+        {
+            "nutrient": {
+                "id": 1079,
+                "number": "291",
+                "name": "Fiber, total dietary",
+                "unitName": "g"
+            },
+            "amount": 2.6
+        },
+        {
+            "nutrient": {
+                "id": 2000,
+                "number": "269",
+                "name": "Total Sugars",
+                "unitName": "g"
+            },
+            "amount": 12.23
+        },
+        {
+            "nutrient": {
+                "id": 1258,
+                "number": "606",
+                "name": "Fatty acids, total saturated",
+                "unitName": "g"
+            },
+            "amount": 0.112
+        },
+        {
+            "nutrient": {
+                "id": 1257,
+                "number": "605",
+                "name": "Fatty acids, total trans",
+                "unitName": "g"
+            },
+            "amount": 0
+        },
+        {
+            "nutrient": {
+                "id": 1018,
+                "number": "221",
+                "name": "Alcohol, ethyl",
+                "unitName": "g"
+            },
+            "amount": 0
+        },
+        {
+            "nutrient": {
+                "id": 1057,
+                "number": "262",
+                "name": "Caffeine",
+                "unitName": "mg"
+            },
+            "amount": 0
+        }
+    ],
+    "foodPortions": [
+        {
+            "gramWeight": 126,
+            "sequenceNumber": 8,
+            "amount": 1,
+            "modifier": "NLEA serving",
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            }
+        },
+        {
+            "gramWeight": 152,
+            "sequenceNumber": 7,
+            "amount": 1,
+            "modifier": "extra large (9\" or longer)",
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            }
+        },
+        {
+            "gramWeight": 136,
+            "sequenceNumber": 6,
+            "amount": 1,
+            "modifier": "large (8\" to 8-7/8\" long)",
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            }
+        },
+        {
+            "gramWeight": 150,
+            "sequenceNumber": 2,
+            "amount": 1,
+            "modifier": "cup, sliced",
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            }
+        },
+        {
+            "gramWeight": 101,
+            "sequenceNumber": 4,
+            "amount": 1,
+            "modifier": "small (6\" to 6-7/8\" long)",
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            }
+        },
+        {
+            "gramWeight": 81,
+            "sequenceNumber": 3,
+            "amount": 1,
+            "modifier": "extra small (less than 6\" long)",
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            }
+        },
+        {
+            "gramWeight": 118,
+            "sequenceNumber": 5,
+            "amount": 1,
+            "modifier": "medium (7\" to 7-7/8\" long)",
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            }
+        },
+        {
+            "gramWeight": 225,
+            "sequenceNumber": 1,
+            "amount": 1,
+            "modifier": "cup, mashed",
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            }
+        }
+    ]
+}

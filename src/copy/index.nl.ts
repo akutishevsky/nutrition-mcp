@@ -175,7 +175,7 @@ export const INDEX_NL: IndexDoc = {
         note: "Dit is allemaal optioneel. Doe het nu, later of nooit: begin met loggen en stel het in wanneer het jou uitkomt.",
         toolsCta: {
             heading: "Benieuwd wat het écht allemaal kan?",
-            body: "Bekijk alle 46 tools (loggen, barcodes, water, gewicht en lichaamsmaten, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
+            body: "Bekijk alle 48 tools (loggen, barcodes, water, gewicht en lichaamsmaten, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
             arrow: "Bekijk de tools",
         },
     },

@@ -2,11 +2,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_PL: ToolsDoc = {
     meta: {
-        title: "46 narzędzi: kalorie, makroskładniki, woda i waga",
+        title: "48 narzędzi: kalorie, makroskładniki, woda i waga",
         description:
-            "Wszystkie 46 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, zapisane posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
+            "Wszystkie 48 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, zapisane posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
         ogDescription:
-            "Wszystkie 46 narzędzi, które serwer Nutrition MCP daje Twojemu AI, od zapisanych posiłków po importer CSV historii — z opisami i przykładowymi poleceniami.",
+            "Wszystkie 48 narzędzi, które serwer Nutrition MCP daje Twojemu AI, od zapisanych posiłków po importer CSV historii — z opisami i przykładowymi poleceniami.",
     },
     hero: {
         eyebrow: "Dokumentacja",
@@ -14,7 +14,7 @@ export const TOOLS_PL: ToolsDoc = {
         titleEm: "potrafi",
         titleAfterEm: " Twoje AI",
         lead: "Nie wywołujesz tych narzędzi samodzielnie — po prostu rozmawiasz z Claude, ChatGPT albo innym klientem MCP, a on sam dobiera właściwe narzędzie. Oto wszystkie narzędzia, które serwer Nutrition MCP udostępnia do śledzenia posiłków i zapisanych posiłków, kalorii i makroskładników, wody i wagi — z opisem działania i przykładowym poleceniem, które je uruchamia.",
-        countBold: "46 narzędzi",
+        countBold: "48 narzędzi",
         countTail: "w 7 obszarach",
     },
     categories: {
@@ -116,6 +116,24 @@ export const TOOLS_PL: ToolsDoc = {
             example: "Zeskanuj ten kod kreskowy: 3017620422003",
             photoHint:
                 "…albo wyślij zdjęcie opakowania — AI odczyta z niego cyfry kodu kreskowego.",
+        },
+        search_foods: {
+            description:
+                "Wyszukuje ogólne produkty USDA FoodData Central (rekordy Foundation, SR Legacy oraz Survey/FNDDS) po angielskiej nazwie i zwraca do 10 kandydatów, każdy z identyfikatorem FoodData Central, opisem USDA, typem danych oraz energią i makroskładnikami na 100 g. Dopasowania używają angielskiego słownictwa USDA (np. „cooked, boiled”).",
+            params: {
+                query: "Nazwa produktu po angielsku, do 200 znaków, np. banana lub lentils, cooked",
+            },
+            example: "Co USDA podaje dla surowego banana?",
+        },
+        get_food_macros: {
+            description:
+                "Zwraca wartości USDA FoodData Central dla jednego ogólnego produktu na podstawie jego identyfikatora FoodData Central: na 100 g oraz, gdy podano amount_g, przeliczone na tę ilość, wraz z wielkościami porcji podanymi przez USDA. Składnik, którego USDA nie rejestruje dla produktu, jest podawany jako nie zarejestrowany, nigdy jako zero. Zawiera food_ref, który narzędzia posiłków przyjmują dla tych wartości.",
+            params: {
+                fdc_id: "Identyfikator FoodData Central produktu, tak jak podaje go search_foods",
+                amount_g:
+                    "Opcjonalna ilość w gramach, większa od 0 i do 5000, do której przeliczyć wartości",
+            },
+            example: "Jakie makroskładniki USDA ma 150 g tego banana?",
         },
         start_meal_import: {
             description:

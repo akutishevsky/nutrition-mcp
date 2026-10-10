@@ -25,11 +25,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_JA: ToolsDoc = {
     meta: {
-        title: "カロリー計算・PFC・水分・体重・体の計測値の全46ツール",
+        title: "カロリー計算・PFC・水分・体重・体の計測値の全48ツール",
         description:
-            "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全46ツール。食事記録、食べることの多い食事の保存、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重・体の計測値の記録に対応。",
+            "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全48ツール。食事記録、食べることの多い食事の保存、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重・体の計測値の記録に対応。",
         ogDescription:
-            "Nutrition MCPサーバーがお使いのAIに追加する全46ツールを、説明と例文つきで紹介。保存した食事から、他のアプリの履歴を取り込めるCSVインポーターまでそろっています。",
+            "Nutrition MCPサーバーがお使いのAIに追加する全48ツールを、説明と例文つきで紹介。保存した食事から、他のアプリの履歴を取り込めるCSVインポーターまでそろっています。",
     },
     hero: {
         eyebrow: "リファレンス",
@@ -37,7 +37,7 @@ export const TOOLS_JA: ToolsDoc = {
         titleEm: "できる",
         titleAfterEm: "こと、すべて",
         lead: "ツールを直接呼び出す必要はありません。Claude、ChatGPTなどのMCPクライアントに話しかけるだけで、AIが適切なツールを選びます。ここでは、Nutrition MCPサーバーが提供する食事と保存した食事・カロリーとPFC・水分・体重のツールをすべて取り上げ、それぞれの機能と、そのツールが使われるきっかけになるフレーズを紹介します。",
-        countBold: "全46ツール",
+        countBold: "全48ツール",
         countTail: "· 7分野",
     },
     categories: {
@@ -137,6 +137,24 @@ export const TOOLS_JA: ToolsDoc = {
             example: "このバーコードをスキャンして：3017620422003",
             photoHint:
                 "…または、パッケージの写真を送るだけでもOK。AIが写真からバーコードの数字を読み取ります。",
+        },
+        search_foods: {
+            description:
+                "英語の食品名で USDA FoodData Central の一般食品（Foundation、SR Legacy、Survey/FNDDS のデータ）を検索し、最大10件の候補を返します。各候補には FoodData Central の ID、USDA の説明、データの種類、100 g あたりのエネルギーと栄養素が含まれます。一致は USDA の英語表記に基づきます（例：「cooked, boiled」）。",
+            params: {
+                query: "英語の食品名（200文字まで）。例：banana、lentils, cooked",
+            },
+            example: "USDA では生のバナナはどう記録されている？",
+        },
+        get_food_macros: {
+            description:
+                "一般食品1点について、FoodData Central の ID で USDA の値を返します。100 g あたりの値と、amount_g を指定した場合はその量に換算した値、さらに USDA が記載している一人前の量を含みます。その食品について USDA が記録していない栄養素は「記録なし」と表示され、0 として扱われることはありません。食事ツールがこれらの値に対して受け付ける food_ref も含まれます。",
+            params: {
+                fdc_id: "食品の FoodData Central ID（search_foods の結果に表示されるもの）",
+                amount_g:
+                    "任意。値を換算する量（グラム）。0 より大きく 5,000 まで",
+            },
+            example: "このバナナ150 g の USDA 値は？",
         },
         start_meal_import: {
             description:

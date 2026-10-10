@@ -15,11 +15,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_IT: ToolsDoc = {
     meta: {
-        title: "46 strumenti per calorie, macro, acqua e peso",
+        title: "48 strumenti per calorie, macro, acqua e peso",
         description:
-            "I 46 strumenti per Claude, ChatGPT e altre IA: registra pasti, salva i pasti che mangi spesso, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
+            "I 48 strumenti per Claude, ChatGPT e altre IA: registra pasti, salva i pasti che mangi spesso, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
         ogDescription:
-            "Tutti i 46 strumenti che il server Nutrition MCP mette a disposizione della tua IA, dai pasti salvati a un importatore CSV per il tuo storico, con descrizioni ed esempi di richieste.",
+            "Tutti i 48 strumenti che il server Nutrition MCP mette a disposizione della tua IA, dai pasti salvati a un importatore CSV per il tuo storico, con descrizioni ed esempi di richieste.",
     },
     hero: {
         eyebrow: "Guida di riferimento",
@@ -27,7 +27,7 @@ export const TOOLS_IT: ToolsDoc = {
         titleEm: "fare",
         titleAfterEm: "",
         lead: "Non devi mai usarli direttamente: parli con Claude, ChatGPT o un altro client MCP e l'assistente sceglie lo strumento giusto. Ecco tutti gli strumenti che il server Nutrition MCP offre per pasti e pasti salvati, calorie e macro, acqua e peso, con cosa fa ciascuno e una frase che lo attiva.",
-        countBold: "46 strumenti",
+        countBold: "48 strumenti",
         countTail: "in 7 aree",
     },
     categories: {
@@ -130,6 +130,24 @@ export const TOOLS_IT: ToolsDoc = {
             example: "Scansiona questo codice a barre: 3017620422003",
             photoHint:
                 "…oppure invia una foto della confezione: l'IA ci legge le cifre del codice a barre.",
+        },
+        search_foods: {
+            description:
+                "Cerca alimenti generici di USDA FoodData Central (record Foundation, SR Legacy e Survey/FNDDS) per nome inglese e restituisce fino a 10 candidati, ciascuno con il suo id FoodData Central, la descrizione USDA, il tipo di dato, l'energia e i macronutrienti per 100 g. Le corrispondenze usano la formulazione inglese dell'USDA (ad es. «cooked, boiled»).",
+            params: {
+                query: "Il nome dell'alimento in inglese, fino a 200 caratteri, ad es. banana o lentils, cooked",
+            },
+            example: "Cosa riporta l'USDA per una banana cruda?",
+        },
+        get_food_macros: {
+            description:
+                "Restituisce i valori USDA FoodData Central di un alimento generico tramite il suo id FoodData Central: per 100 g e, quando è indicato amount_g, riportati a quella quantità, con le porzioni elencate dall'USDA. Un nutriente che l'USDA non registra per l'alimento viene indicato come non registrato, mai come zero. Include il food_ref che gli strumenti dei pasti accettano per questi valori.",
+            params: {
+                fdc_id: "L'id FoodData Central dell'alimento, come elencato da search_foods",
+                amount_g:
+                    "Quantità facoltativa in grammi, maggiore di 0 e fino a 5.000, a cui riportare i valori",
+            },
+            example: "Quali sono i macro USDA per 150 g di quella banana?",
         },
         start_meal_import: {
             description:

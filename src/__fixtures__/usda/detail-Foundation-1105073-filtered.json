@@ -1,0 +1,75 @@
+{
+    "fdcId": 1105073,
+    "description": "Bananas, overripe, raw",
+    "dataType": "Foundation",
+    "foodNutrients": [
+        {
+            "nutrient": {
+                "id": 1008,
+                "number": "208",
+                "name": "Energy",
+                "unitName": "kcal"
+            },
+            "amount": 85
+        },
+        {
+            "nutrient": {
+                "id": 1003,
+                "number": "203",
+                "name": "Protein",
+                "unitName": "g"
+            },
+            "amount": 0.73
+        },
+        {
+            "nutrient": {
+                "id": 1004,
+                "number": "204",
+                "name": "Total lipid (fat)",
+                "unitName": "g"
+            },
+            "amount": 0.22
+        },
+        {
+            "nutrient": {
+                "id": 1005,
+                "number": "205",
+                "name": "Carbohydrate, by difference",
+                "unitName": "g"
+            },
+            "amount": 20.1
+        },
+        {
+            "nutrient": {
+                "id": 1079,
+                "number": "291",
+                "name": "Fiber, total dietary",
+                "unitName": "g"
+            },
+            "amount": 1.7
+        }
+    ],
+    "foodPortions": [
+        {
+            "gramWeight": 110,
+            "sequenceNumber": 1,
+            "amount": 1,
+            "modifier": "Peeled",
+            "measureUnit": {
+                "id": 1119,
+                "name": "Banana",
+                "abbreviation": "Banana"
+            }
+        },
+        {
+            "gramWeight": 140,
+            "sequenceNumber": 1,
+            "amount": 1,
+            "measureUnit": {
+                "id": 1121,
+                "name": "RACC",
+                "abbreviation": "RACC"
+            }
+        }
+    ]
+}

@@ -6,11 +6,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_DE: ToolsDoc = {
     meta: {
-        title: "46 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
+        title: "48 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
         description:
-            "Alle 46 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, häufige Mahlzeiten speichern, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
+            "Alle 48 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, häufige Mahlzeiten speichern, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
         ogDescription:
-            "Alle 46 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – von gespeicherten Mahlzeiten bis zum CSV-Importer für deinen Verlauf, mit Beschreibungen und Beispielsätzen.",
+            "Alle 48 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – von gespeicherten Mahlzeiten bis zum CSV-Importer für deinen Verlauf, mit Beschreibungen und Beispielsätzen.",
     },
     hero: {
         eyebrow: "Referenz",
@@ -18,7 +18,7 @@ export const TOOLS_DE: ToolsDoc = {
         titleEm: "kann",
         titleAfterEm: "",
         lead: "Du rufst diese Werkzeuge nie selbst auf – du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und der wählt das passende Werkzeug. Hier findest du jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten und gespeicherte Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt – jeweils mit Beschreibung und einem Beispielsatz, der es auslöst.",
-        countBold: "46 Werkzeuge",
+        countBold: "48 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
     categories: {
@@ -121,6 +121,24 @@ export const TOOLS_DE: ToolsDoc = {
             example: "Scann diesen Barcode: 3017620422003",
             photoHint:
                 "…oder schick ein Foto der Verpackung – die KI liest die Barcode-Ziffern davon ab.",
+        },
+        search_foods: {
+            description:
+                "Durchsucht die generischen Lebensmittel von USDA FoodData Central (Foundation-, SR-Legacy- und Survey/FNDDS-Einträge) nach englischem Lebensmittelnamen und liefert bis zu 10 Treffer, jeweils mit FoodData-Central-ID, USDA-Beschreibung, Datentyp sowie Energie und Makros pro 100 g. Die Treffer verwenden die englische Formulierung der USDA (z. B. „cooked, boiled“).",
+            params: {
+                query: "Der Lebensmittelname auf Englisch, bis zu 200 Zeichen, z. B. banana oder lentils, cooked",
+            },
+            example: "Was listet die USDA für eine rohe Banane auf?",
+        },
+        get_food_macros: {
+            description:
+                "Liefert die USDA-Werte von FoodData Central für ein generisches Lebensmittel anhand seiner FoodData-Central-ID: pro 100 g und, wenn amount_g angegeben ist, umgerechnet auf diese Menge, dazu die Portionsgrößen, die die USDA auflistet. Ein Nährstoff, den die USDA für das Lebensmittel nicht erfasst, wird als nicht erfasst angegeben, nie als 0. Enthalten ist die food_ref, die die Mahlzeiten-Werkzeuge für diese Werte annehmen.",
+            params: {
+                fdc_id: "Die FoodData-Central-ID des Lebensmittels, wie von search_foods aufgelistet",
+                amount_g:
+                    "Optionale Menge in Gramm, mehr als 0 und bis zu 5.000, auf die die Werte umgerechnet werden",
+            },
+            example: "Welche USDA-Makros hat die Banane bei 150 g?",
         },
         start_meal_import: {
             description:

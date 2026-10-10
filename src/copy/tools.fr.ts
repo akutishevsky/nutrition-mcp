@@ -18,11 +18,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_FR: ToolsDoc = {
     meta: {
-        title: "46 outils pour suivre calories, macros, eau et poids",
+        title: "48 outils pour suivre calories, macros, eau et poids",
         description:
-            "Les 46 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
+            "Les 48 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
         ogDescription:
-            "Les 46 outils que le serveur Nutrition MCP donne à ton IA, des repas sauvegardés à l'import CSV de ton historique d'une autre app, avec descriptions et exemples de demandes.",
+            "Les 48 outils que le serveur Nutrition MCP donne à ton IA, des repas sauvegardés à l'import CSV de ton historique d'une autre app, avec descriptions et exemples de demandes.",
     },
     hero: {
         eyebrow: "Référence",
@@ -30,7 +30,7 @@ export const TOOLS_FR: ToolsDoc = {
         titleEm: "faire",
         titleAfterEm: "",
         lead: "Tu n'appelles jamais ces outils toi-même : tu parles simplement à Claude, à ChatGPT ou à un autre client MCP, et il choisit le bon outil. Voici tous les outils que le serveur Nutrition MCP met à disposition pour les repas et les repas sauvegardés, les calories et les macros, l'eau et le poids, avec ce que fait chacun et une phrase qui le déclenche.",
-        countBold: "46 outils",
+        countBold: "48 outils",
         countTail: "répartis en 7 catégories",
     },
     categories: {
@@ -131,6 +131,25 @@ export const TOOLS_FR: ToolsDoc = {
             example: "Scanne ce code-barres : 3017620422003",
             photoHint:
                 "…ou envoie une photo de l'emballage : l'IA y lit les chiffres du code-barres.",
+        },
+        search_foods: {
+            description:
+                "Recherche les aliments génériques de USDA FoodData Central (fiches Foundation, SR Legacy et Survey/FNDDS) par nom anglais et renvoie jusqu'à 10 résultats, chacun avec son identifiant FoodData Central, la description USDA, le type de données, ainsi que l'énergie et les macros pour 100 g. Les correspondances utilisent la formulation anglaise de l'USDA (par ex. « cooked, boiled »).",
+            params: {
+                query: "Le nom de l'aliment en anglais, jusqu'à 200 caractères, par ex. banana ou lentils, cooked",
+            },
+            example: "Que donne l'USDA pour une banane crue ?",
+        },
+        get_food_macros: {
+            description:
+                "Renvoie les valeurs USDA FoodData Central d'un aliment générique à partir de son identifiant FoodData Central : pour 100 g et, si amount_g est fourni, ramenées à cette quantité, avec les portions indiquées par l'USDA. Un nutriment que l'USDA n'enregistre pas pour cet aliment est signalé comme non enregistré, jamais comme zéro. Inclut le food_ref que les outils de repas acceptent pour ces valeurs.",
+            params: {
+                fdc_id: "L'identifiant FoodData Central de l'aliment, tel que listé par search_foods",
+                amount_g:
+                    "Quantité facultative en grammes, supérieure à 0 et jusqu'à 5 000, à laquelle ramener les valeurs",
+            },
+            example:
+                "Quelles sont les macros USDA pour 150 g de cette banane ?",
         },
         start_meal_import: {
             description:

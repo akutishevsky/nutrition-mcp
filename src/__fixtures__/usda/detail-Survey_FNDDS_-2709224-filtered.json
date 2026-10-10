@@ -1,0 +1,156 @@
+{
+    "fdcId": 2709224,
+    "description": "Banana, raw",
+    "dataType": "Survey (FNDDS)",
+    "foodNutrients": [
+        {
+            "nutrient": {
+                "id": 1003,
+                "number": "203",
+                "name": "Protein",
+                "unitName": "g"
+            },
+            "amount": 0.74
+        },
+        {
+            "nutrient": {
+                "id": 1004,
+                "number": "204",
+                "name": "Total lipid (fat)",
+                "unitName": "g"
+            },
+            "amount": 0.28
+        },
+        {
+            "nutrient": {
+                "id": 1005,
+                "number": "205",
+                "name": "Carbohydrate, by difference",
+                "unitName": "g"
+            },
+            "amount": 22.7
+        },
+        {
+            "nutrient": {
+                "id": 1008,
+                "number": "208",
+                "name": "Energy",
+                "unitName": "kcal"
+            },
+            "amount": 97
+        },
+        {
+            "nutrient": {
+                "id": 1018,
+                "number": "221",
+                "name": "Alcohol, ethyl",
+                "unitName": "g"
+            },
+            "amount": 0
+        },
+        {
+            "nutrient": {
+                "id": 1057,
+                "number": "262",
+                "name": "Caffeine",
+                "unitName": "mg"
+            },
+            "amount": 0
+        },
+        {
+            "nutrient": {
+                "id": 2000,
+                "number": "269",
+                "name": "Total Sugars",
+                "unitName": "g"
+            },
+            "amount": 15.8
+        },
+        {
+            "nutrient": {
+                "id": 1079,
+                "number": "291",
+                "name": "Fiber, total dietary",
+                "unitName": "g"
+            },
+            "amount": 1.7
+        },
+        {
+            "nutrient": {
+                "id": 1258,
+                "number": "606",
+                "name": "Fatty acids, total saturated",
+                "unitName": "g"
+            },
+            "amount": 0.112
+        }
+    ],
+    "foodPortions": [
+        {
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            },
+            "modifier": "10118",
+            "gramWeight": 225,
+            "portionDescription": "1 cup, mashed",
+            "sequenceNumber": 4
+        },
+        {
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            },
+            "modifier": "60343",
+            "gramWeight": 126,
+            "portionDescription": "1 banana",
+            "sequenceNumber": 1
+        },
+        {
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            },
+            "modifier": "10205",
+            "gramWeight": 150,
+            "portionDescription": "1 cup",
+            "sequenceNumber": 3
+        },
+        {
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            },
+            "modifier": "61935",
+            "gramWeight": 6,
+            "portionDescription": "1 slice",
+            "sequenceNumber": 2
+        },
+        {
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            },
+            "modifier": "90000",
+            "gramWeight": 126,
+            "portionDescription": "Quantity not specified",
+            "sequenceNumber": 6
+        },
+        {
+            "measureUnit": {
+                "id": 9999,
+                "name": "undetermined",
+                "abbreviation": "undetermined"
+            },
+            "modifier": "63525",
+            "gramWeight": 15,
+            "portionDescription": "1 linear inch",
+            "sequenceNumber": 5
+        }
+    ]
+}

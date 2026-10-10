@@ -8,7 +8,7 @@
 // Locale notes: numbers follow Spanish conventions as CLDR has them — no
 // separator in a four-digit figure ("2000", "1830"), a decimal comma
 // ("78,4 kg") — the same formatting the cards on the page get from
-// toLocaleString("es"). The tool count ("46") is hand-typed here exactly as
+// toLocaleString("es"). The tool count ("48") is hand-typed here exactly as
 // in index.ts — see CLAUDE.md's "Registered tool set".
 
 import type { IndexDoc } from "./index.js";
@@ -172,7 +172,7 @@ export const INDEX_ES: IndexDoc = {
         note: "Todo esto es opcional. Puedes hacerlo ahora, más tarde o nunca: empieza a registrar y ajústalo cuando quieras.",
         toolsCta: {
             heading: "¿Te preguntas qué puede hacer de verdad?",
-            body: "Explora las 46 herramientas (registro, códigos de barras, agua, peso y medidas corporales, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
+            body: "Explora las 48 herramientas (registro, códigos de barras, agua, peso y medidas corporales, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
             arrow: "Ver las herramientas",
         },
     },
