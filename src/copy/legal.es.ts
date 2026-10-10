@@ -23,7 +23,7 @@ export const PRIVACY_ES: LegalDoc = {
         "Cómo trata Nutrition MCP tus datos: qué guardamos, para qué los usamos, dónde se almacenan y cómo eliminar tu cuenta y todo su contenido cuando quieras.",
     ogDescription:
         "Cómo trata Nutrition MCP tus datos: qué guardamos, para qué los usamos, dónde se almacenan y cómo eliminar tu cuenta y todo su contenido cuando quieras.",
-    lastUpdated: "3 de octubre de 2026",
+    lastUpdated: "10 de octubre de 2026",
     backToHome: "Volver al inicio",
     lead: "Cómo trata Nutrition MCP tus datos: qué guardamos, para qué los usamos, dónde se almacenan y cómo eliminar tu cuenta y todo su contenido cuando quieras.",
     documentsLabel: "Documentos legales",
@@ -166,7 +166,7 @@ export const TERMS_ES: LegalDoc = {
         "Términos claros de Nutrition MCP, app de nutrición y servidor MCP gratuito y de código abierto para Claude y ChatGPT: cuentas, uso aceptable, datos y responsabilidad.",
     ogDescription:
         "Los términos que rigen el uso de Nutrition MCP, la app de seguimiento nutricional gratuita y de código abierto que funciona como servidor MCP remoto para Claude y ChatGPT.",
-    lastUpdated: "3 de octubre de 2026",
+    lastUpdated: "10 de octubre de 2026",
     backToHome: "Volver al inicio",
     lead: "Los términos que rigen el uso de Nutrition MCP, la app de seguimiento nutricional gratuita y de código abierto que funciona como servidor MCP remoto para Claude y ChatGPT.",
     documentsLabel: "Documentos legales",

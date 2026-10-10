@@ -30,7 +30,7 @@ export const ALT_UI_ES: AltUiCopy = {
         features: [
             {
                 title: "Comidas con tus propias palabras",
-                body: "Di «avena con plátano y mantequilla de maní» y tu IA estima las calorías y los macros (fibra, azúcares totales y cafeína incluidos) y lo registra. Sin buscar en ninguna base de datos.",
+                body: "Di «avena con plátano y mantequilla de maní» y tu IA estima las calorías y los macros (fibra, azúcares totales y cafeína incluidos) y lo registra. Sin buscar en ninguna base de datos. Registra una comida ingrediente por ingrediente, o guarda las comidas que comes a menudo y vuelve a registrarlas por su nombre.",
             },
             {
                 title: "Escaneo de códigos de barras, gratis",
@@ -59,7 +59,7 @@ export const ALT_UI_ES: AltUiCopy = {
         compareTitle: "Cara a cara",
         pros: [
             "Creado como servidor MCP: funciona dentro de Claude y ChatGPT",
-            "Describe tus comidas con tus palabras y obtén una estimación de calorías, macros, fibra, azúcar y cafeína",
+            "Describe tus comidas con tus palabras y obtén una estimación de calorías, macros, fibra, azúcar y cafeína; guarda tus comidas habituales para registrarlas en una línea",
             "Escaneo de códigos de barras, tendencias, importación y exportación CSV: todo gratis",
             "Sin app aparte, sin anuncios, de código abierto",
         ],

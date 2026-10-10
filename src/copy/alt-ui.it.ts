@@ -42,7 +42,7 @@ export const ALT_UI_IT: AltUiCopy = {
         features: [
             {
                 title: "Pasti descritti a parole",
-                body: "Di' &ldquo;porridge con banana e burro d'arachidi&rdquo;: la tua IA stima calorie e macro, comprese fibre, zuccheri totali e caffeina, e registra il pasto. Nessuna ricerca nel database.",
+                body: "Di' &ldquo;porridge con banana e burro d'arachidi&rdquo;: la tua IA stima calorie e macro, comprese fibre, zuccheri totali e caffeina, e registra il pasto. Nessuna ricerca nel database. Registra un pasto ingrediente per ingrediente, oppure salva i pasti che mangi spesso e registrali di nuovo chiamandoli per nome.",
             },
             {
                 title: "Scansione dei codici a barre, gratis",
@@ -71,7 +71,7 @@ export const ALT_UI_IT: AltUiCopy = {
         compareTitle: "Messi a confronto",
         pros: [
             "Nato come server MCP: funziona dentro Claude e ChatGPT",
-            "Descrivi i pasti a parole e ottieni la stima di calorie, macro, fibre, zuccheri e caffeina",
+            "Descrivi i pasti a parole e ottieni la stima di calorie, macro, fibre, zuccheri e caffeina; salva i tuoi pasti abituali per registrarli in una riga",
             "Scansione dei codici a barre, andamenti, importazione ed esportazione CSV: tutto gratis",
             "Nessuna app a parte, niente pubblicità, open source",
         ],

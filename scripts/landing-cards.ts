@@ -124,6 +124,7 @@ export type DemoCardId =
     | "log-meal"
     | "photo-meal"
     | "scan-barcode"
+    | "saved-meal"
     | "goals-progress"
     | "review-week"
     | "weight-trend"
@@ -207,6 +208,27 @@ const MEAL_CARDS: Partial<
             fib: 0,
             // Plain yogurt: all of its sugar is the milk's own.
             sug: 5,
+            add: 0,
+            caf: null,
+            water: 0,
+        },
+    },
+    "saved-meal": {
+        date: "2026-03-18",
+        type: "lunch",
+        totals: {
+            // The saved burrito bowl (one serving: 725 kcal, 59 g protein,
+            // 22 g fat) logged without its 30 g of sour cream (60 kcal,
+            // P1 C1 F6, 1 g sugar) and with the chicken doubled to 240 g
+            // (+200 kcal, +37 g protein, +5 g fat). Protein: chicken 74,
+            // black beans 9, cheese 7, rice 4, salsa 1.
+            kcal: 865,
+            pro: 95,
+            car: 70,
+            fat: 21,
+            fib: 10,
+            // The salsa's tomatoes: nothing added.
+            sug: 3,
             add: 0,
             caf: null,
             water: 0,

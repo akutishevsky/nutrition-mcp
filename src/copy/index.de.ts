@@ -14,11 +14,11 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_DE: IndexDoc = {
     title: "Nutrition MCP – Kalorien- & Makro-Tracker für Claude & ChatGPT",
     metaDescription:
-        "Mahlzeiten, Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. Kostenloser Open-Source-MCP-Server mit Barcode-Suche, Gewichtsverlauf und vollem Export.",
+        "Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. Kostenloser Open-Source-MCP-Server mit gespeicherten Mahlzeiten, Barcode-Suche, Gewicht und Export.",
     ogDescription:
-        "Mahlzeiten, Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. Kostenloser Open-Source-MCP-Server mit Barcode-Suche, Gewichtsverlauf und vollem Export.",
+        "Kalorien und Makros im Chat mit Claude oder ChatGPT erfassen. Kostenloser Open-Source-MCP-Server mit gespeicherten Mahlzeiten, Barcode-Suche, Gewicht und Export.",
     keywords:
-        "Ernährungs-Tracker, Mahlzeiten-Tracker, MCP-Server, Claude AI, ChatGPT, Kalorienzähler, Kalorienzähler kostenlos, Makro-Tracker, Barcode-Scanner, Ernährungstagebuch, Essensprotokoll, Diät-Tracker, Gewichts-Tracker, Gewichtsprotokoll, Yazio Alternative, KI-Ernährung, Model Context Protocol",
+        "Ernährungs-Tracker, Mahlzeiten-Tracker, MCP-Server, Claude AI, ChatGPT, Kalorienzähler, Kalorienzähler kostenlos, Makro-Tracker, Barcode-Scanner, Ernährungstagebuch, Essensprotokoll, Diät-Tracker, Gewichts-Tracker, Gewichtsprotokoll, gespeicherte Mahlzeiten, Zutaten, Rezept-Tracker, Yazio Alternative, KI-Ernährung, Model Context Protocol",
 
     hero: {
         titleBeforeEm: "Erfasse deine Ernährung – einfach im ",
@@ -335,6 +335,51 @@ export const INDEX_DE: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Naturjoghurt griechischer Art 0 % (150-g-Becher)"],
+            },
+            {
+                id: "saved-meal",
+                title: "Stammgerichte speichern",
+                description:
+                    "Speichere eine Mahlzeit, die du oft isst, mit ihren Zutaten und erfasse sie später einfach über ihren Namen. Lass für dieses eine Mal eine Zutat weg, ändere ihre Menge oder erfasse mehr als eine Portion – die gespeicherte Mahlzeit bleibt, wie sie war.",
+                toolNotes: {
+                    log_saved_meal:
+                        "Erfasst die Bowl ohne Sour Cream und mit doppelt so viel Hähnchen, also 240 g",
+                    save_meal:
+                        "Speichert die sechs Zutaten der Bowl und ihre Werte für eine Portion, ohne sie für heute einzutragen",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "speicher mal meine Burrito-Bowl, damit ich sie schnell eintragen kann: 150 g Reis, 120 g Hähnchen, 100 g schwarze Bohnen, 60 g Salsa, 30 g Käse, 30 g Sour Cream",
+                    },
+                    {
+                        from: "ai",
+                        text: "„Burrito-Bowl“ mit ihren 6 Zutaten gespeichert, eine Portion: 725 kcal, 59 g Protein, 22 g Fett. Für heute ist sie damit noch nicht eingetragen – nenn einfach den Namen, wenn du sie gegessen hast.",
+                    },
+                    {
+                        from: "user",
+                        text: "hatte die Burrito-Bowl zum Mittag. heute ohne Sour Cream und doppelt Hähnchen",
+                    },
+                    {
+                        from: "ai",
+                        text: "Mittagessen aus deiner Burrito-Bowl erfasst, ohne Sour Cream und mit 240 g Hähnchen: 865 kcal und 95 g Protein. Die gespeicherte Bowl bleibt fürs nächste Mal, wie sie war.",
+                    },
+                    {
+                        from: "user",
+                        text: "wo kommt das meiste Protein her?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Vom Hähnchen: 74 der 95 g. Schwarze Bohnen bringen 9 g, Käse 7 g, Reis 4 g und Salsa 1 g.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: ["Burrito-Bowl (ohne Sour Cream, doppelt Hähnchen)"],
             },
             {
                 id: "goals-progress",
@@ -666,7 +711,7 @@ export const INDEX_DE: IndexDoc = {
         cards: [
             {
                 title: "Mahlzeiten in eigenen Worten",
-                body: "Beschreib, was du gegessen hast – deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker, zugesetzten Zucker und Koffein in Milligramm und erfasst alles.",
+                body: "Beschreib, was du gegessen hast – deine KI schätzt Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker, zugesetzten Zucker und Koffein in Milligramm und erfasst alles. Speichere Mahlzeiten, die du oft isst, samt Zutaten und erfasse sie später einfach über ihren Namen.",
             },
             {
                 title: "Barcode scannen",
@@ -823,7 +868,13 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was kann ich erfassen?",
             visibleHtml:
-                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker, zugesetzter Zucker und Wasser für jeden Eintrag – in eigenen Worten beschrieben oder per Produkt-Barcode aus Open Food Facts abgerufen. Auch Koffein wird erfasst, in Milligramm, der Einheit auf jedem Etikett; es liefert keine Kalorien. Alkohol lässt sich ebenfalls erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Außerdem kannst du dein Körpergewicht in kg oder lb erfassen und deinen Trend Richtung Zielgewicht verfolgen. Auch Körpermaße (Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel und Wade) lassen sich in cm oder Zoll erfassen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Zeitraum ab, ändere oder lösche frühere Einträge, leg Ziele fest und verfolg Trends über die Zeit.",
+                "Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe, Gesamtzucker, zugesetzter Zucker und Wasser für jeden Eintrag – in eigenen Worten beschrieben oder per Produkt-Barcode aus Open Food Facts abgerufen. Eine Mahlzeit lässt sich Zutat für Zutat erfassen, jede mit eigener Menge und eigenen Nährwerten, und eine Mahlzeit, die du oft isst, kannst du als gespeicherte Mahlzeit ablegen und später über ihren Namen erneut erfassen. Auch Koffein wird erfasst, in Milligramm, der Einheit auf jedem Etikett; es liefert keine Kalorien. Alkohol lässt sich ebenfalls erfassen, in Gramm reinen Alkohols; er wird angezeigt, sobald du die Alkohol-Erfassung einschaltest. Außerdem kannst du dein Körpergewicht in kg oder lb erfassen und deinen Trend Richtung Zielgewicht verfolgen. Auch Körpermaße (Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel und Wade) lassen sich in cm oder Zoll erfassen. Sieh dir Tagesübersichten an, frag Mahlzeiten nach Zeitraum ab, ändere oder lösche frühere Einträge, leg Ziele fest und verfolg Trends über die Zeit.",
+        },
+        {
+            question:
+                "Kann ich Mahlzeiten speichern, die ich oft esse, oder meine eigenen Rezepte?",
+            visibleHtml:
+                "Ja. Sag deiner KI, sie soll eine Mahlzeit unter einem Namen speichern – nur mit ihren Gesamtwerten oder als Rezept mit Zutaten –, dann werden ihre Werte für eine Portion gespeichert. Beim nächsten Mal nennst du den Namen, und sie wird in einem Schritt erfasst: nach Portionen skaliert, mit einer einzelnen Zutat in der Menge, die du tatsächlich hattest, oder ganz ohne sie. Der erfasste Eintrag ist eine Kopie: Änderst oder löschst du die gespeicherte Mahlzeit später, bleiben daraus bereits erfasste Mahlzeiten unverändert. Gespeicherte Mahlzeiten sind Teil deines Datenexports.",
         },
         {
             question: "Wie genau sind die Kalorienangaben?",

@@ -44,7 +44,7 @@ export const PRIVACY_FR: LegalDoc = {
     lead: "Comment Nutrition MCP traite tes données : ce que nous stockons, à quoi ça sert, où c'est hébergé et comment supprimer ton compte et tout son contenu à tout moment.",
     documentsLabel: "Documents juridiques",
     tocLabel: "Sur cette page",
-    lastUpdated: "3 octobre 2026",
+    lastUpdated: "10 octobre 2026",
     backToHome: "Retour à l'accueil",
     sections: [
         {
@@ -189,7 +189,7 @@ export const TERMS_FR: LegalDoc = {
     lead: "Les conditions qui régissent l'utilisation de Nutrition MCP : outil de suivi nutritionnel gratuit et open source, et serveur MCP distant pour Claude et ChatGPT.",
     documentsLabel: "Documents juridiques",
     tocLabel: "Sur cette page",
-    lastUpdated: "3 octobre 2026",
+    lastUpdated: "10 octobre 2026",
     backToHome: "Retour à l'accueil",
     sections: [
         {

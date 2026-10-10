@@ -10,7 +10,7 @@
 // visitor input, so the generator inserts them unescaped. Every other field is
 // run through esc() on the way out.
 //
-// The demo conversations (the hero's replaying chat and the ten example
+// The demo conversations (the hero's replaying chat and the eleven example
 // slides) are STRUCTURED: one field per message, so a translation edits words
 // and never markup. Their shape — which turn is a photo, where a widget card
 // sits, which tools a slide lists — is structure, copied verbatim by every
@@ -104,6 +104,7 @@ export type ExampleSlideId =
     | "log-meal"
     | "photo-meal"
     | "scan-barcode"
+    | "saved-meal"
     | "goals-progress"
     | "review-week"
     | "weight-trend"
@@ -285,7 +286,7 @@ export interface IndexDoc {
         /** Accessible names of the two photo-turn pictures. */
         photoMealAlt: string;
         photoPackageAlt: string;
-        /** 10 slides, in English's order (see ExampleSlide.id). */
+        /** 11 slides, in English's order (see ExampleSlide.id). */
         slides: ExampleSlide[];
     };
 
@@ -409,11 +410,11 @@ export interface IndexDoc {
 const INDEX_EN: IndexDoc = {
     title: "Nutrition MCP — Calorie & Macro Tracker for Claude & ChatGPT",
     metaDescription:
-        "Log meals, calories and macros by talking to Claude or ChatGPT. A free, open-source MCP server with barcode lookup, weight tracking and full data export.",
+        "Log meals, calories and macros by talking to Claude or ChatGPT. A free, open-source MCP server with saved meals, barcode lookup, weight tracking and export.",
     ogDescription:
-        "Log meals, calories and macros by talking to Claude or ChatGPT. A free, open-source MCP server with barcode lookup, weight tracking and full data export.",
+        "Log meals, calories and macros by talking to Claude or ChatGPT. A free, open-source MCP server with saved meals, barcode lookup, weight tracking and export.",
     keywords:
-        "nutrition tracker, meal tracker, MCP server, Claude AI, ChatGPT, calorie counter, macro tracker, barcode scanner, food logging, diet tracker, weight tracker, weight log, AI nutrition, Model Context Protocol",
+        "nutrition tracker, meal tracker, MCP server, Claude AI, ChatGPT, calorie counter, macro tracker, barcode scanner, food logging, diet tracker, weight tracker, weight log, saved meals, meal ingredients, recipe tracker, AI nutrition, Model Context Protocol",
 
     hero: {
         titleBeforeEm: "Track your nutrition by ",
@@ -727,6 +728,51 @@ const INDEX_EN: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Plain Greek yogurt 0% (150 g pot)"],
+            },
+            {
+                id: "saved-meal",
+                title: "Save your usuals",
+                description:
+                    "Save a meal you eat often, with its ingredients, and log it again by its name. Leave an ingredient out or change its amount just for that time, or log more than one serving; the saved meal stays as it was.",
+                toolNotes: {
+                    log_saved_meal:
+                        "Logs the bowl without the sour cream and with the chicken doubled to 240 g",
+                    save_meal:
+                        "Keeps the bowl's six ingredients and values for one serving, without adding it to today",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "save my burrito bowl so i can log it fast: 150 g rice, 120 g chicken, 100 g black beans, 60 g salsa, 30 g cheese, 30 g sour cream",
+                    },
+                    {
+                        from: "ai",
+                        text: "Saved “Burrito bowl” with its 6 ingredients, one serving: 725 kcal, 59 g protein, 22 g fat. Saving doesn't add it to today — just name it when you've had it.",
+                    },
+                    {
+                        from: "user",
+                        text: "had the burrito bowl for lunch. no sour cream today and double chicken",
+                    },
+                    {
+                        from: "ai",
+                        text: "Logged lunch from your Burrito bowl, without the sour cream and with 240 g of chicken: 865 kcal and 95 g protein. The saved bowl stays as it was for next time.",
+                    },
+                    {
+                        from: "user",
+                        text: "where's most of that protein from?",
+                    },
+                    {
+                        from: "ai",
+                        text: "The chicken: 74 of the 95 g. Black beans add 9 g, cheese 7 g, rice 4 g and salsa 1 g.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: ["Burrito bowl (no sour cream, double chicken)"],
             },
             {
                 id: "goals-progress",
@@ -1056,7 +1102,7 @@ const INDEX_EN: IndexDoc = {
         cards: [
             {
                 title: "Meals in plain language",
-                body: "Describe what you ate — your AI estimates calories, protein, carbs, fat, fiber, total sugar, added sugar, and caffeine in milligrams and logs it.",
+                body: "Describe what you ate — your AI estimates calories, protein, carbs, fat, fiber, total sugar, added sugar, and caffeine in milligrams and logs it. Save the meals you eat often, ingredients and all, and log them again by name.",
             },
             {
                 title: "Scan a barcode",
@@ -1213,7 +1259,12 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What can I track?",
             visibleHtml:
-                "Calories, protein, carbohydrates, fat, fiber, total sugar, added sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+                "Calories, protein, carbohydrates, fat, fiber, total sugar, added sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. A meal can be logged ingredient by ingredient, each with its own amount and nutrients, and a meal you eat often can be kept as a saved meal and logged again by its name. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+        },
+        {
+            question: "Can I save meals I eat often, or my own recipes?",
+            visibleHtml:
+                "Yes. Ask to save a meal under a name — just its totals, or a recipe with its ingredients — and its values for one serving are kept. Next time, name it and it is logged in one step: scaled by servings, with a single ingredient set to the amount you actually had or left out. The logged entry is a copy, so editing or deleting the saved meal later never changes meals already logged from it. Saved meals are part of your data export.",
         },
         {
             question: "How accurate are the calorie counts?",

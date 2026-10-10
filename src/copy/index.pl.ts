@@ -20,11 +20,11 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_PL: IndexDoc = {
     title: "Nutrition MCP — Licznik kalorii i makro dla Claude i ChatGPT",
     metaDescription:
-        "Zapisuj posiłki, kalorie i makroskładniki, rozmawiając z Claude lub ChatGPT. Darmowy serwer MCP open source z kodami kreskowymi, wagą i pełnym eksportem.",
+        "Zapisuj posiłki, kalorie i makroskładniki, rozmawiając z Claude lub ChatGPT. Darmowy serwer MCP open source: zapisane posiłki, kody kreskowe, waga i eksport.",
     ogDescription:
-        "Zapisuj posiłki, kalorie i makroskładniki, rozmawiając z Claude lub ChatGPT. Darmowy serwer MCP open source z kodami kreskowymi, wagą i pełnym eksportem.",
+        "Zapisuj posiłki, kalorie i makroskładniki, rozmawiając z Claude lub ChatGPT. Darmowy serwer MCP open source: zapisane posiłki, kody kreskowe, waga i eksport.",
     keywords:
-        "licznik kalorii, liczenie kalorii, aplikacja do liczenia kalorii, liczenie makro, makroskładniki, dzienniczek żywieniowy, serwer MCP, Claude AI, ChatGPT, skaner kodów kreskowych, śledzenie wagi, dziennik wagi, dieta z AI, Model Context Protocol",
+        "licznik kalorii, liczenie kalorii, aplikacja do liczenia kalorii, liczenie makro, makroskładniki, dzienniczek żywieniowy, serwer MCP, Claude AI, ChatGPT, skaner kodów kreskowych, śledzenie wagi, dziennik wagi, zapisane posiłki, składniki posiłków, przepisy, dieta z AI, Model Context Protocol",
 
     hero: {
         titleBeforeEm: "Śledź, co jesz, po prostu ",
@@ -340,6 +340,53 @@ export const INDEX_PL: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Naturalny jogurt grecki 0% (kubeczek 150 g)"],
+            },
+            {
+                id: "saved-meal",
+                title: "Zapisz swoje stałe posiłki",
+                description:
+                    "Zapisz posiłek, który jadasz często, razem ze składnikami, a potem dodawaj go do dziennika po samej nazwie. Pomiń składnik albo zmień jego ilość tylko na ten jeden raz, albo dodaj więcej niż jedną porcję — zapisany posiłek zostaje taki, jaki był.",
+                toolNotes: {
+                    log_saved_meal:
+                        "Dodaje miskę do dziennika bez kwaśnej śmietany i z podwójną porcją kurczaka, czyli 240 g",
+                    save_meal:
+                        "Zachowuje sześć składników miski i wartości na jedną porcję, nie dodając jej do dzisiejszego dnia",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "zapisz moją miskę burrito, żeby szybko ją dodawać: 150 g ryżu, 120 g kurczaka, 100 g czarnej fasoli, 60 g salsy, 30 g sera, 30 g kwaśnej śmietany",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano „Miska burrito” z 6 składnikami, jedna porcja: 725 kcal, 59 g białka, 22 g tłuszczu. Samo zapisanie nie dodaje jej do dzisiejszego dnia — wystarczy podać nazwę, gdy ją zjesz.",
+                    },
+                    {
+                        from: "user",
+                        text: "na obiad była miska burrito. dziś bez śmietany i podwójny kurczak",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano obiad z Twojej Miski burrito, bez kwaśnej śmietany i z 240 g kurczaka: 865 kcal i 95 g białka. Zapisana miska zostaje bez zmian na następny raz.",
+                    },
+                    {
+                        from: "user",
+                        text: "skąd w tym najwięcej białka?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Z kurczaka: 74 z 95 g. Czarna fasola daje 9 g, ser 7 g, ryż 4 g, a salsa 1 g.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: [
+                    "Miska burrito (bez kwaśnej śmietany, podwójny kurczak)",
+                ],
             },
             {
                 id: "goals-progress",
@@ -675,7 +722,7 @@ export const INDEX_PL: IndexDoc = {
         cards: [
             {
                 title: "Posiłki opisane własnymi słowami",
-                body: "Opisz posiłek — Twoje AI oszacuje kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem, cukier dodany i kofeinę w miligramach, a potem wszystko zapisze.",
+                body: "Opisz posiłek — Twoje AI oszacuje kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem, cukier dodany i kofeinę w miligramach, a potem wszystko zapisze. Posiłki, które jadasz często, zapiszesz razem ze składnikami i potem dodasz po samej nazwie.",
             },
             {
                 title: "Zeskanuj kod kreskowy",
@@ -834,7 +881,13 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Co mogę śledzić?",
             visibleHtml:
-                "Kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem, cukier dodany i wodę w każdym wpisie — opisane własnymi słowami albo pobrane z kodu kreskowego produktu przez Open Food Facts. Śledzona jest też kofeina, w miligramach, czyli w jednostce używanej na każdej etykiecie; nie dodaje ona kalorii. Można też śledzić alkohol, w gramach czystego etanolu; pojawia się po włączeniu śledzenia alkoholu. Możesz również zapisywać masę ciała w kg albo lb i śledzić trendy w drodze do wagi docelowej. Wymiary ciała (talię, biodra, szyję, klatkę piersiową, barki, ramię, przedramię, udo i łydkę) też możesz zapisywać w cm albo calach. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, poprawiaj lub usuwaj wcześniejsze wpisy, ustawiaj cele i obserwuj trendy w czasie.",
+                "Kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem, cukier dodany i wodę w każdym wpisie — opisane własnymi słowami albo pobrane z kodu kreskowego produktu przez Open Food Facts. Posiłek można zapisać składnik po składniku, każdy z własną ilością i wartościami, a posiłek, który jadasz często, możesz zachować jako zapisany posiłek i potem dodawać do dziennika po samej nazwie. Śledzona jest też kofeina, w miligramach, czyli w jednostce używanej na każdej etykiecie; nie dodaje ona kalorii. Można też śledzić alkohol, w gramach czystego etanolu; pojawia się po włączeniu śledzenia alkoholu. Możesz również zapisywać masę ciała w kg albo lb i śledzić trendy w drodze do wagi docelowej. Wymiary ciała (talię, biodra, szyję, klatkę piersiową, barki, ramię, przedramię, udo i łydkę) też możesz zapisywać w cm albo calach. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, poprawiaj lub usuwaj wcześniejsze wpisy, ustawiaj cele i obserwuj trendy w czasie.",
+        },
+        {
+            question:
+                "Czy mogę zapisać posiłki, które często jadam, albo własne przepisy?",
+            visibleHtml:
+                "Tak. Poproś o zapisanie posiłku pod nazwą — z samymi wartościami albo jako przepis ze składnikami — a zostaną zachowane jego wartości na jedną porcję. Następnym razem wystarczy podać nazwę, a posiłek trafi do dziennika w jednym kroku: przeliczony przez liczbę porcji, z pojedynczym składnikiem ustawionym na faktycznie zjedzoną ilość albo pominiętym. Wpis w dzienniku jest kopią, więc późniejsza zmiana lub usunięcie zapisanego posiłku nigdy nie zmienia posiłków już z niego dodanych. Zapisane posiłki są częścią eksportu Twoich danych.",
         },
         {
             question: "Jak dokładne jest liczenie kalorii?",

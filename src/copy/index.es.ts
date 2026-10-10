@@ -16,11 +16,11 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_ES: IndexDoc = {
     title: "Nutrition MCP — Contador de calorías para Claude y ChatGPT",
     metaDescription:
-        "Registra comidas, calorías y macros hablando con Claude o ChatGPT. Servidor MCP gratuito y de código abierto con códigos de barras, peso y exportación de datos.",
+        "Registra comidas, calorías y macros hablando con Claude o ChatGPT. MCP gratis y de código abierto con comidas guardadas, códigos de barras, peso y exportación.",
     ogDescription:
-        "Registra comidas, calorías y macros hablando con Claude o ChatGPT. Servidor MCP gratuito y de código abierto con códigos de barras, peso y exportación de datos.",
+        "Registra comidas, calorías y macros hablando con Claude o ChatGPT. MCP gratis y de código abierto con comidas guardadas, códigos de barras, peso y exportación.",
     keywords:
-        "app de nutrición, registro de comidas, servidor MCP, Claude AI, ChatGPT, contador de calorías, contador de macros, escáner de código de barras, diario de comidas, app de dieta, control de peso, registro de peso, nutrición con IA, Model Context Protocol",
+        "app de nutrición, registro de comidas, servidor MCP, Claude AI, ChatGPT, contador de calorías, contador de macros, escáner de código de barras, diario de comidas, app de dieta, control de peso, registro de peso, comidas guardadas, ingredientes de comidas, registro de recetas, nutrición con IA, Model Context Protocol",
 
     hero: {
         titleBeforeEm: "Controla tu nutrición ",
@@ -336,6 +336,51 @@ export const INDEX_ES: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Yogur griego natural 0 % (envase de 150 g)"],
+            },
+            {
+                id: "saved-meal",
+                title: "Guarda tus comidas de siempre",
+                description:
+                    "Guarda una comida que comes a menudo, con sus ingredientes, y vuelve a registrarla con solo decir su nombre. Quita un ingrediente o cambia su cantidad solo por esa vez, o registra más de una ración; la comida guardada no cambia.",
+                toolNotes: {
+                    log_saved_meal:
+                        "Registra el bowl sin la crema agria y con el pollo duplicado a 240 g",
+                    save_meal:
+                        "Guarda los seis ingredientes del bowl y sus valores para una ración, sin añadirlo a hoy",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "guárdame mi burrito bowl para registrarlo rápido: 150 g de arroz, 120 g de pollo, 100 g de frijoles negros, 60 g de salsa, 30 g de queso, 30 g de crema agria",
+                    },
+                    {
+                        from: "ai",
+                        text: "Guardado «Burrito bowl» con sus 6 ingredientes, para una ración: 725 kcal, 59 g de proteína y 22 g de grasa. Guardarlo no lo añade a hoy: solo dime su nombre cuando te lo comas.",
+                    },
+                    {
+                        from: "user",
+                        text: "almorcé el burrito bowl. hoy sin crema agria y con doble de pollo",
+                    },
+                    {
+                        from: "ai",
+                        text: "Registrado como almuerzo a partir de tu Burrito bowl, sin la crema agria y con 240 g de pollo: 865 kcal y 95 g de proteína. El bowl guardado se queda como estaba para la próxima vez.",
+                    },
+                    {
+                        from: "user",
+                        text: "¿de dónde sale casi toda esa proteína?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Del pollo: 74 de los 95 g. Los frijoles negros aportan 9 g, el queso 7 g, el arroz 4 g y la salsa 1 g.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: ["Burrito bowl (sin crema agria, doble de pollo)"],
             },
             {
                 id: "goals-progress",
@@ -663,7 +708,7 @@ export const INDEX_ES: IndexDoc = {
         cards: [
             {
                 title: "Comidas en lenguaje natural",
-                body: "Di qué comiste: tu IA estima calorías, proteína, carbohidratos, grasa, fibra, azúcares totales, azúcar añadido y cafeína en miligramos, y lo registra.",
+                body: "Di qué comiste: tu IA estima calorías, proteína, carbohidratos, grasa, fibra, azúcares totales, azúcar añadido y cafeína en miligramos, y lo registra. Guarda las comidas que comes a menudo, con todos sus ingredientes, y vuelve a registrarlas por su nombre.",
             },
             {
                 title: "Escanea un código de barras",
@@ -827,7 +872,13 @@ export const INDEX_ES: IndexDoc = {
         {
             question: "¿Qué puedo registrar?",
             visibleHtml:
-                "Calorías, proteína, carbohidratos, grasa, fibra, azúcares totales, azúcar añadido y agua en cada entrada, descritos en lenguaje natural o obtenidos del código de barras de un producto a través de Open Food Facts. La cafeína también se registra, en miligramos, la unidad que usan todas las etiquetas, y no aporta calorías. El alcohol también puede controlarse, en gramos de etanol puro; se muestra en cuanto activas su seguimiento. También puedes registrar tu peso corporal en kg o lb y seguir tendencias hacia un peso objetivo. Las medidas corporales (cintura, cadera, cuello, pecho, hombros, brazo, antebrazo, muslo y pantorrilla) también se pueden registrar en cm o pulgadas. Consulta resúmenes diarios, busca comidas por rango de fechas, actualiza o elimina entradas pasadas, define objetivos y sigue tu evolución con el tiempo.",
+                "Calorías, proteína, carbohidratos, grasa, fibra, azúcares totales, azúcar añadido y agua en cada entrada, descritos en lenguaje natural o obtenidos del código de barras de un producto a través de Open Food Facts. Una comida se puede registrar ingrediente por ingrediente, cada uno con su cantidad y sus nutrientes, y una comida que comes a menudo se puede conservar como comida guardada y volver a registrar por su nombre. La cafeína también se registra, en miligramos, la unidad que usan todas las etiquetas, y no aporta calorías. El alcohol también puede controlarse, en gramos de etanol puro; se muestra en cuanto activas su seguimiento. También puedes registrar tu peso corporal en kg o lb y seguir tendencias hacia un peso objetivo. Las medidas corporales (cintura, cadera, cuello, pecho, hombros, brazo, antebrazo, muslo y pantorrilla) también se pueden registrar en cm o pulgadas. Consulta resúmenes diarios, busca comidas por rango de fechas, actualiza o elimina entradas pasadas, define objetivos y sigue tu evolución con el tiempo.",
+        },
+        {
+            question:
+                "¿Puedo guardar las comidas que como a menudo o mis propias recetas?",
+            visibleHtml:
+                "Sí. Pide que guarde una comida con un nombre, solo con sus totales o como receta con sus ingredientes, y se conservan sus valores para una ración. La próxima vez, di su nombre y se registra en un solo paso: escalada según las raciones, con un ingrediente ajustado a la cantidad que realmente comiste o quitado. La entrada registrada es una copia, así que editar o eliminar después la comida guardada nunca cambia las comidas ya registradas a partir de ella. Las comidas guardadas forman parte de tu exportación de datos.",
         },
         {
             question: "¿Qué precisión tiene el conteo de calorías?",

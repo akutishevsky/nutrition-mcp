@@ -19,14 +19,14 @@ export const TOOLS_IT: ToolsDoc = {
         description:
             "I 46 strumenti per Claude, ChatGPT e altre IA: registra pasti, salva i pasti che mangi spesso, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
         ogDescription:
-            "Tutti i 46 strumenti che il server Nutrition MCP mette a disposizione della tua IA, compreso un importatore CSV per portare lo storico da un'altra app, con descrizioni ed esempi di richieste.",
+            "Tutti i 46 strumenti che il server Nutrition MCP mette a disposizione della tua IA, dai pasti salvati a un importatore CSV per il tuo storico, con descrizioni ed esempi di richieste.",
     },
     hero: {
         eyebrow: "Guida di riferimento",
         titleBeforeEm: "Tutto quello che la tua IA può ",
         titleEm: "fare",
         titleAfterEm: "",
-        lead: "Non devi mai usarli direttamente: parli con Claude, ChatGPT o un altro client MCP e l'assistente sceglie lo strumento giusto. Ecco tutti gli strumenti che il server Nutrition MCP offre per pasti, calorie e macro, acqua e peso, con cosa fa ciascuno e una frase che lo attiva.",
+        lead: "Non devi mai usarli direttamente: parli con Claude, ChatGPT o un altro client MCP e l'assistente sceglie lo strumento giusto. Ecco tutti gli strumenti che il server Nutrition MCP offre per pasti e pasti salvati, calorie e macro, acqua e peso, con cosa fa ciascuno e una frase che lo attiva.",
         countBold: "46 strumenti",
         countTail: "in 7 aree",
     },
@@ -35,7 +35,7 @@ export const TOOLS_IT: ToolsDoc = {
             pillLabel: "Registrazione",
             title: "Registrare cibo e pasti",
             description:
-                "La funzione principale: registra ciò che hai mangiato, comunque tu lo descriva.",
+                "La funzione principale: registra ciò che hai mangiato, comunque tu lo descriva, e salva i pasti che mangi spesso per registrarli di nuovo in una riga.",
         },
         "reviewing-your-meals": {
             pillLabel: "Storico",

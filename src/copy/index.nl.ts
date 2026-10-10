@@ -18,11 +18,11 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_NL: IndexDoc = {
     title: "Nutrition MCP — Calorieteller voor Claude & ChatGPT",
     metaDescription:
-        "Calorieteller in Claude of ChatGPT: log maaltijden, calorieën en macro's door te praten. Gratis, open source MCP-server met barcodes, gewicht en volledige export.",
+        "Calorieteller in Claude of ChatGPT: log maaltijden en macro's door te praten. Gratis, open source MCP-server met opgeslagen maaltijden, barcodes, gewicht en export.",
     ogDescription:
-        "Calorieteller in Claude of ChatGPT: log maaltijden, calorieën en macro's door te praten. Gratis, open source MCP-server met barcodes, gewicht en volledige export.",
+        "Calorieteller in Claude of ChatGPT: log maaltijden en macro's door te praten. Gratis, open source MCP-server met opgeslagen maaltijden, barcodes, gewicht en export.",
     keywords:
-        "calorieteller, calorieën tellen, calorieën bijhouden, macro's bijhouden, eetdagboek, voedingsdagboek, MCP-server, Claude AI, ChatGPT, macrotracker, barcodescanner, eten loggen, gewicht bijhouden, MyFitnessPal alternatief, AI-voeding, Model Context Protocol",
+        "calorieteller, calorieën tellen, calorieën bijhouden, macro's bijhouden, eetdagboek, voedingsdagboek, MCP-server, Claude AI, ChatGPT, macrotracker, barcodescanner, eten loggen, gewicht bijhouden, MyFitnessPal alternatief, opgeslagen maaltijden, ingrediënten, recepten bijhouden, AI-voeding, Model Context Protocol",
 
     hero: {
         titleBeforeEm: "Houd je voeding bij door te ",
@@ -338,6 +338,51 @@ export const INDEX_NL: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Griekse yoghurt naturel 0% (bakje van 150 g)"],
+            },
+            {
+                id: "saved-meal",
+                title: "Bewaar je vaste maaltijden",
+                description:
+                    "Bewaar een maaltijd die je vaak eet, met de ingrediënten, en log hem daarna gewoon op naam. Laat een ingrediënt weg of pas de hoeveelheid aan voor die ene keer, of log meer dan één portie; de opgeslagen maaltijd blijft zoals hij was.",
+                toolNotes: {
+                    log_saved_meal:
+                        "Logt de bowl zonder zure room en met de kip verdubbeld tot 240 g",
+                    save_meal:
+                        "Bewaart de zes ingrediënten van de bowl en de waarden voor één portie, zonder iets aan vandaag toe te voegen",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "bewaar mijn burrito bowl zodat ik hem snel kan loggen: 150 g rijst, 120 g kip, 100 g zwarte bonen, 60 g salsa, 30 g kaas, 30 g zure room",
+                    },
+                    {
+                        from: "ai",
+                        text: "“Burrito bowl” opgeslagen met 6 ingrediënten, voor één portie: 725 kcal, 59 g eiwit, 22 g vet. Opslaan zet hem nog niet bij vandaag; noem hem gewoon als je hem hebt gegeten.",
+                    },
+                    {
+                        from: "user",
+                        text: "burrito bowl gehad als lunch. vandaag geen zure room en dubbel kip",
+                    },
+                    {
+                        from: "ai",
+                        text: "Lunch gelogd uit je Burrito bowl, zonder zure room en met 240 g kip: 865 kcal en 95 g eiwit. De opgeslagen bowl blijft zoals hij was, voor de volgende keer.",
+                    },
+                    {
+                        from: "user",
+                        text: "waar komt het meeste eiwit vandaan?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Van de kip: 74 van de 95 g. Zwarte bonen leveren 9 g, kaas 7 g, rijst 4 g en salsa 1 g.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: ["Burrito bowl (zonder zure room, dubbel kip)"],
             },
             {
                 id: "goals-progress",
@@ -668,7 +713,7 @@ export const INDEX_NL: IndexDoc = {
         cards: [
             {
                 title: "Maaltijden in gewone taal",
-                body: "Omschrijf wat je hebt gegeten: je AI schat calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, toegevoegde suiker en cafeïne (in milligram) en logt het.",
+                body: "Omschrijf wat je hebt gegeten: je AI schat calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, toegevoegde suiker en cafeïne (in milligram) en logt het. Bewaar maaltijden die je vaak eet, met ingrediënten en al, en log ze daarna op naam.",
             },
             {
                 title: "Scan een barcode",
@@ -828,7 +873,13 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat kan ik bijhouden?",
             visibleHtml:
-                "Calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, toegevoegde suiker en water voor elke registratie, omschreven in gewone taal of via een productbarcode opgehaald uit Open Food Facts. Cafeïne wordt ook bijgehouden, in milligram (de eenheid die op elk etiket staat), en levert geen calorieën op. Alcohol kan ook worden bijgehouden, in gram zuivere ethanol; het wordt getoond zodra je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht loggen in kg of lb en trends volgen richting een streefgewicht. Ook lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, dij en kuit) kun je in cm of inch loggen. Bekijk dagoverzichten, vraag maaltijden op over een periode, pas eerdere registraties aan of verwijder ze, stel doelen in en volg trends door de tijd.",
+                "Calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, toegevoegde suiker en water voor elke registratie, omschreven in gewone taal of via een productbarcode opgehaald uit Open Food Facts. Een maaltijd kun je per ingrediënt loggen, elk met een eigen hoeveelheid en voedingswaarden, en een maaltijd die je vaak eet kun je bewaren als opgeslagen maaltijd en daarna op naam opnieuw loggen. Cafeïne wordt ook bijgehouden, in milligram (de eenheid die op elk etiket staat), en levert geen calorieën op. Alcohol kan ook worden bijgehouden, in gram zuivere ethanol; het wordt getoond zodra je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht loggen in kg of lb en trends volgen richting een streefgewicht. Ook lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, dij en kuit) kun je in cm of inch loggen. Bekijk dagoverzichten, vraag maaltijden op over een periode, pas eerdere registraties aan of verwijder ze, stel doelen in en volg trends door de tijd.",
+        },
+        {
+            question:
+                "Kan ik maaltijden die ik vaak eet, of mijn eigen recepten, bewaren?",
+            visibleHtml:
+                "Ja. Vraag om een maaltijd onder een naam te bewaren, alleen met de totalen of als recept met de ingrediënten, en de waarden voor één portie worden opgeslagen. De volgende keer noem je de naam en wordt hij in één stap gelogd: geschaald naar het aantal porties, met een enkel ingrediënt op de hoeveelheid die je echt had of helemaal weggelaten. De registratie is een kopie, dus als je de opgeslagen maaltijd later wijzigt of verwijdert, blijven maaltijden die er al uit zijn gelogd zoals ze waren. Opgeslagen maaltijden zitten ook in je gegevensexport.",
         },
         {
             question: "Hoe nauwkeurig zijn de calorieën?",

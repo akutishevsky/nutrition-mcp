@@ -177,6 +177,11 @@ const EX_META: Record<
         color: "car",
         tools: ["lookup_barcode", "log_meal"],
     },
+    "saved-meal": {
+        icon: "fa-solid fa-bookmark",
+        color: "pro",
+        tools: ["log_saved_meal", "save_meal"],
+    },
     "goals-progress": {
         icon: "fa-solid fa-bullseye",
         color: "acc",
@@ -231,6 +236,7 @@ const EX_CARD: Partial<Record<ExampleSlideId, DemoCardId>> = {
     "log-meal": "log-meal",
     "photo-meal": "photo-meal",
     "scan-barcode": "scan-barcode",
+    "saved-meal": "saved-meal",
     "goals-progress": "goals-progress",
     "review-week": "review-week",
     "weight-trend": "weight-trend",
@@ -297,7 +303,7 @@ const STAT_TILES: {
     },
 ];
 
-/** Every locale has to tell the same ten stories in the same shape — the
+/** Every locale has to tell the same eleven stories in the same shape — the
  * icons, tools and cards above are keyed by id and drawn by index. */
 function assertExamples(doc: IndexDoc, locale: SiteLocale): void {
     const ids = doc.examples.slides.map((s) => s.id);
