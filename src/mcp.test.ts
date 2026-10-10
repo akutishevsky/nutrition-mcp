@@ -94,10 +94,12 @@ import type {
     Meal,
     MealInput,
     NutritionGoals,
+    SavedMealWithItems,
     WaterEntry,
     WeightEntry,
     BodyMeasurementEntry,
 } from "./supabase.js";
+import { MEAL_NUTRIENT_KEYS, type MealItemValues } from "./meal-items.js";
 import {
     dateInTz,
     formatLocalDateTime,
@@ -144,6 +146,7 @@ function meal(over: Partial<Meal> = {}): Meal {
         caffeine_mg: null,
         notes: null,
         idempotency_key: null,
+        saved_meal_id: null,
         ...over,
     };
 }
@@ -1648,6 +1651,28 @@ const db = {
         Partial<Pick<Meal, "sugar_g" | "added_sugar_g">> | undefined
     )[],
     concurrentMealEdit: null as Partial<Meal> | null,
+    // Ingredients by meal id, as the store's meal_items rows read back.
+    mealItems: new Map<string, MealItemValues[]>(),
+    // replaceMealItems' witnesses: the fields and the full new list.
+    itemReplacements: [] as {
+        id: string;
+        fields: Record<string, unknown>;
+        items: MealItemValues[];
+    }[],
+    // Saved meals as the store holds them, one serving each with its items.
+    savedMeals: [] as SavedMealWithItems[],
+    // createSavedMeal's and updateSavedMeal's witnesses.
+    savedMealWrites: [] as {
+        input: Record<string, unknown>;
+        items: MealItemValues[];
+    }[],
+    savedMealUpdates: [] as {
+        id: string;
+        fields: Record<string, unknown>;
+        items: MealItemValues[] | null;
+    }[],
+    // searchMeals' rows, staged by the test.
+    searchResults: [] as Meal[],
 };
 
 /** The two PostgREST reads behind HealthSyncStore.getLinkStatus, plus
@@ -1745,7 +1770,10 @@ mock.module("./supabase.js", () => ({
     getLatestWeight: async () => db.weights.at(-1) ?? null,
     insertMeal: async (_userId: string, input: Record<string, unknown>) => {
         db.inserted.push(input);
-        const saved = storedMeal(input);
+        const { items, ...row } = input;
+        const saved = storedMeal(row);
+        if (Array.isArray(items))
+            db.mealItems.set(saved.id, items as MealItemValues[]);
         db.meals = [saved];
         return { meal: saved, deduplicated: db.dedupe };
     },
@@ -1916,6 +1944,150 @@ mock.module("./supabase.js", () => ({
         } as actualSupabase.Profile;
         return db.profile;
     },
+    // Ingredients and saved meals (the store functions behind the saved-meal
+    // tools). Each mirrors the real contract: the name is unique per user,
+    // deleting a saved meal unlinks the meals logged from it, and a missing
+    // row is null or a ToolError the way the real functions report it.
+    searchMeals: async () => db.searchResults,
+    getMealItems: async (_userId: string, ids: string[]) =>
+        new Map(
+            ids
+                .filter((id) => db.mealItems.has(id))
+                .map((id) => [id, db.mealItems.get(id)!]),
+        ),
+    countMealItems: async (_userId: string, id: string) =>
+        db.mealItems.get(id)?.length ?? 0,
+    getMealById: async (_userId: string, id: string) =>
+        db.meals.find((m) => m.id === id) ?? null,
+    replaceMealItems: async (
+        _userId: string,
+        id: string,
+        fields: Record<string, unknown>,
+        items: MealItemValues[],
+    ) => {
+        const current = db.meals.find((m) => m.id === id);
+        if (!current) throw new ToolError(`No meal found with id ${id}.`);
+        db.itemReplacements.push({ id, fields, items });
+        db.mealItems.set(id, items);
+        const saved = storedMeal({ ...current, ...fields, id });
+        db.meals = db.meals.map((m) => (m.id === id ? saved : m));
+        return saved;
+    },
+    createSavedMeal: async (
+        userId: string,
+        input: Record<string, unknown>,
+        items: MealItemValues[],
+    ) => {
+        const name = input.name as string;
+        const taken = db.savedMeals.find(
+            (s) => s.name.toLowerCase() === name.toLowerCase(),
+        );
+        if (taken) throw new realSupabase.SavedMealNameTaken(taken.id);
+        db.savedMealWrites.push({ input, items });
+        const row = savedMealRow({
+            id: savedMealId(db.savedMeals.length + 1),
+            user_id: userId,
+            name,
+            description: input.description as string,
+            meal_type: (input.meal_type as string | null) ?? null,
+            // Every nutrient, as insert_saved_meal stores it, so a handler
+            // that dropped one on the way would show in the reply.
+            ...Object.fromEntries(
+                MEAL_NUTRIENT_KEYS.map((k) => [
+                    k,
+                    (input[k] as number | null | undefined) ?? null,
+                ]),
+            ),
+            items,
+        });
+        db.savedMeals.push(row);
+        return row;
+    },
+    getSavedMeals: async (
+        _userId: string,
+        opts: { nameContains?: string } = {},
+    ) =>
+        db.savedMeals
+            .filter(
+                (s) =>
+                    !opts.nameContains ||
+                    s.name
+                        .toLowerCase()
+                        .includes(opts.nameContains.trim().toLowerCase()),
+            )
+            .sort((a, b) =>
+                a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+            ),
+    getSavedMeal: async (_userId: string, id: string) =>
+        db.savedMeals.find((s) => s.id === id) ?? null,
+    findSavedMealsByName: async (_userId: string, name: string) =>
+        db.savedMeals.filter(
+            (s) => s.name.toLowerCase() === name.trim().toLowerCase(),
+        ),
+    countSavedMeals: async () => db.savedMeals.length,
+    searchSavedMeals: async (_userId: string, queries: string[]) => {
+        const saved = db.savedMeals
+            .filter((s) =>
+                queries.some((q) =>
+                    [s.name, s.description, ...s.items.map((i) => i.name)].some(
+                        (text) => text.toLowerCase().includes(q.toLowerCase()),
+                    ),
+                ),
+            )
+            .map((s) => ({
+                id: s.id,
+                name: s.name,
+                description: s.description,
+                meal_type: s.meal_type,
+                calories: s.calories,
+                protein_g: s.protein_g,
+                carbs_g: s.carbs_g,
+                fat_g: s.fat_g,
+                item_count: s.items.length,
+            }));
+        return { saved, total: saved.length };
+    },
+    updateSavedMeal: async (
+        _userId: string,
+        id: string,
+        fields: Record<string, unknown>,
+        items: MealItemValues[] | null,
+    ) => {
+        const current = db.savedMeals.find((s) => s.id === id);
+        if (!current) return null;
+        const name = fields.name as string | undefined;
+        const clash =
+            name !== undefined
+                ? db.savedMeals.find(
+                      (s) =>
+                          s.id !== id &&
+                          s.name.toLowerCase() === name.toLowerCase(),
+                  )
+                : undefined;
+        if (clash) throw new realSupabase.SavedMealNameTaken(clash.id);
+        db.savedMealUpdates.push({ id, fields, items });
+        const defined = Object.fromEntries(
+            Object.entries(fields).filter(([, v]) => v !== undefined),
+        );
+        const next = {
+            ...current,
+            ...defined,
+            items: items ?? current.items,
+        } as SavedMealWithItems;
+        db.savedMeals = db.savedMeals.map((s) => (s.id === id ? next : s));
+        return next;
+    },
+    deleteSavedMeal: async (_userId: string, id: string) => {
+        const current = db.savedMeals.find((s) => s.id === id);
+        if (!current) return null;
+        db.savedMeals = db.savedMeals.filter((s) => s.id !== id);
+        // Logged meals keep their values; only the link goes (the foreign key
+        // is on delete set null).
+        db.meals = db.meals.map((m) =>
+            m.saved_meal_id === id ? { ...m, saved_meal_id: null } : m,
+        );
+        return current;
+    },
 }));
 
 afterAll(() => {
@@ -1930,6 +2102,12 @@ beforeEach(() => {
     db.storedMealReads = 0;
     db.mealUpdateGuards = [];
     db.concurrentMealEdit = null;
+    db.mealItems = new Map();
+    db.itemReplacements = [];
+    db.savedMeals = [];
+    db.savedMealWrites = [];
+    db.savedMealUpdates = [];
+    db.searchResults = [];
     db.meals = [];
     db.mealRangeArgs = [];
     db.goalsHistory = [];
@@ -2348,6 +2526,7 @@ describe("missingNutrientNote", () => {
         caffeine_mg: null,
         notes: null,
         idempotency_key: null,
+        saved_meal_id: null,
     } satisfies Meal;
 
     test("names every missing field and the meal id to repair", () => {
@@ -6415,9 +6594,11 @@ describe("every tool carries directory-ready annotations", () => {
             "update_weight",
             "update_body_measurement",
             "set_nutrition_goals",
+            "update_saved_meal",
+            "delete_saved_meal",
         ]);
         const OPEN_WORLD = new Set(["lookup_barcode"]);
-        expect(tools.length).toBe(41);
+        expect(tools.length).toBe(46);
         for (const t of tools) {
             const a = t.annotations;
             expect(a?.title, t.name).toBeTruthy();
@@ -8896,4 +9077,807 @@ describe("added sugar rides in _meta on every widget tool", () => {
             expect(await getWidgetHtml(key)).toContain(ADDED_SUGAR_META_KEY);
         },
     );
+});
+
+// ---------- ingredients and saved meals ----------
+
+function savedMealId(n: number): string {
+    return `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+}
+
+const SAVED_ID = savedMealId(0xa1);
+const OTHER_SAVED_ID = savedMealId(0xa2);
+
+/** One validated ingredient: the four required nutrients, the rest unset. */
+function ingredient(
+    position: number,
+    name: string,
+    over: Partial<MealItemValues> = {},
+): MealItemValues {
+    return {
+        position,
+        name,
+        amount: null,
+        unit: null,
+        calories: 100,
+        protein_g: 5,
+        carbs_g: 10,
+        fat_g: 3,
+        fiber_g: null,
+        sugar_g: null,
+        added_sugar_g: null,
+        alcohol_g: null,
+        caffeine_mg: null,
+        ...over,
+    };
+}
+
+/** A saved meal as the store returns it: one serving, with its ingredients. */
+function savedMealRow(
+    over: Partial<SavedMealWithItems> = {},
+): SavedMealWithItems {
+    return {
+        id: SAVED_ID,
+        user_id: "u1",
+        name: "Oatmeal bowl",
+        description: "Oatmeal with banana",
+        meal_type: "breakfast",
+        calories: 300,
+        protein_g: 12,
+        carbs_g: 60,
+        fat_g: 6,
+        fiber_g: null,
+        sugar_g: null,
+        added_sugar_g: null,
+        alcohol_g: null,
+        caffeine_mg: null,
+        created_at: "2026-10-01T00:00:00.000Z",
+        updated_at: "2026-10-01T00:00:00.000Z",
+        items: [],
+        ...over,
+    };
+}
+
+/** Runs `run` with the added-sugar requirement on or off, restoring the env. */
+async function withAddedSugarGate(on: boolean, run: () => Promise<void>) {
+    const previous = process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+    if (on) process.env[ADDED_SUGAR_REQUIRED_FROM_ENV] = "2000-01-01T00:00:00Z";
+    else delete process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+    try {
+        await run();
+    } finally {
+        if (previous === undefined)
+            delete process.env[ADDED_SUGAR_REQUIRED_FROM_ENV];
+        else process.env[ADDED_SUGAR_REQUIRED_FROM_ENV] = previous;
+    }
+}
+
+const BURGER_ITEMS = [
+    {
+        name: "Булка",
+        amount: 1,
+        unit: "pcs",
+        calories: 150,
+        protein_g: 5,
+        carbs_g: 28,
+        fat_g: 2,
+        fiber_g: 1,
+        sugar_g: 4,
+        added_sugar_g: 1,
+    },
+    {
+        name: "Котлета",
+        amount: 120,
+        unit: "g",
+        calories: 300.5,
+        protein_g: 25,
+        carbs_g: 0,
+        fat_g: 22,
+        fiber_g: 0,
+        sugar_g: 0,
+        added_sugar_g: 0,
+    },
+];
+
+describe("log_meal with items", () => {
+    test("sums the items into the meal totals and stores the items", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Burger",
+                meal_type: "lunch",
+                items: BURGER_ITEMS,
+            });
+            expect(r.isError).toBeFalsy();
+            const row = db.inserted[0]!;
+            expect(row.calories).toBeCloseTo(450.5);
+            expect(row.protein_g).toBe(30);
+            expect(row.fiber_g).toBe(1);
+            const stored = row.items as MealItemValues[];
+            expect(stored.map((i) => i.position)).toEqual([1, 2]);
+            expect(stored[1]!.amount).toBe(120);
+            expect(textOf(r)).toContain("Items:");
+            expect(textOf(r)).toContain("2. Котлета — 120 g");
+        });
+    });
+
+    test("refuses totals sent beside items", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Burger",
+                meal_type: "lunch",
+                calories: 500,
+                items: BURGER_ITEMS,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("not both");
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    test("names the item that lacks a required nutrient", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Burger",
+                meal_type: "lunch",
+                items: [
+                    BURGER_ITEMS[0],
+                    { name: "Соус", calories: 40, protein_g: 0, fat_g: 4 },
+                ],
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain('item 2 ("Соус")');
+            expect(textOf(r)).toContain("carbs_g");
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    test("the added-sugar gate applies to each item", async () => {
+        await withAddedSugarGate(true, async () => {
+            await withTools(null, async (call) => {
+                const r = await call("log_meal", {
+                    description: "Burger",
+                    meal_type: "lunch",
+                    items: [{ ...BURGER_ITEMS[0], added_sugar_g: undefined }],
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(addedSugarMissingText());
+                expect(db.inserted).toHaveLength(0);
+            });
+        });
+    });
+});
+
+describe("update_meal on a meal with items", () => {
+    test("refuses a direct total change, and replaces the items when given", async () => {
+        db.meals = [storedMeal({ id: MEAL_ID, calories: 100 })];
+        db.mealItems.set(MEAL_ID, [ingredient(1, "Булка")]);
+        await withTools(null, async (call) => {
+            const refused = await call("update_meal", {
+                id: MEAL_ID,
+                calories: 500,
+            });
+            expect(refused.isError).toBe(true);
+            expect(textOf(refused)).toContain("sum of its 1 item");
+            expect(db.mealUpdates).toHaveLength(0);
+
+            const described = await call("update_meal", {
+                id: MEAL_ID,
+                notes: "Burger, eaten at home",
+            });
+            expect(described.isError).toBeFalsy();
+
+            const replaced = await call("update_meal", {
+                id: MEAL_ID,
+                items: BURGER_ITEMS,
+            });
+            expect(replaced.isError).toBeFalsy();
+            const write = db.itemReplacements[0]!;
+            expect(write.items).toHaveLength(2);
+            expect(write.fields.calories).toBeCloseTo(450.5);
+        });
+    });
+});
+
+describe("save_meal", () => {
+    test("saves a named meal from items and writes no meal entry", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("save_meal", {
+                name: "Burger",
+                meal_type: "lunch",
+                items: BURGER_ITEMS,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(db.savedMealWrites).toHaveLength(1);
+            expect(db.savedMealWrites[0]!.input.calories).toBeCloseTo(450.5);
+            expect(db.inserted).toHaveLength(0);
+            expect(textOf(r)).toContain(`Saved meal "Burger" [saved meal id:`);
+        });
+    });
+
+    test("refuses a name already in use and names the saved meal holding it", async () => {
+        db.savedMeals = [savedMealRow()];
+        await withTools(null, async (call) => {
+            const r = await call("save_meal", {
+                name: "oatmeal BOWL",
+                calories: 400,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain(
+                `already have a saved meal named "oatmeal BOWL" [saved meal id: ${SAVED_ID}]`,
+            );
+        });
+    });
+
+    test("copies a logged meal, its ingredients included", async () => {
+        db.meals = [
+            storedMeal({ id: MEAL_ID, calories: 300, description: "Pasta" }),
+        ];
+        db.mealItems.set(MEAL_ID, [
+            ingredient(1, "Паста", { amount: 100, unit: "g" }),
+        ]);
+        await withTools(null, async (call) => {
+            const r = await call("save_meal", {
+                name: "Pasta",
+                from_meal_id: MEAL_ID,
+            });
+            expect(r.isError).toBeFalsy();
+            const write = db.savedMealWrites[0]!;
+            expect(write.input.calories).toBe(300);
+            expect(write.items).toHaveLength(1);
+            expect(write.input.description).toBe("Pasta");
+        });
+    });
+
+    test("refuses items or totals sent with from_meal_id", async () => {
+        db.meals = [storedMeal({ id: MEAL_ID })];
+        await withTools(null, async (call) => {
+            const r = await call("save_meal", {
+                name: "Pasta",
+                from_meal_id: MEAL_ID,
+                calories: 5,
+            });
+            expect(r.isError).toBe(true);
+            expect(db.savedMealWrites).toHaveLength(0);
+        });
+    });
+
+    test("refuses a saved meal with neither items nor calories", async () => {
+        await withTools(null, async (call) => {
+            const none = await call("save_meal", { name: "Tea" });
+            expect(none.isError).toBe(true);
+            expect(textOf(none)).toContain("either items or its totals");
+            const noCalories = await call("save_meal", {
+                name: "Tea",
+                protein_g: 1,
+            });
+            expect(noCalories.isError).toBe(true);
+            expect(db.savedMealWrites).toHaveLength(0);
+        });
+    });
+});
+
+describe("get_saved_meals", () => {
+    test("lists each saved meal with its items, and says when there are none", async () => {
+        await withTools(null, async (call) => {
+            const empty = await call("get_saved_meals");
+            expect(textOf(empty)).toBe("No saved meals yet.");
+        });
+        db.savedMeals = [
+            savedMealRow({
+                items: [ingredient(1, "Вівсянка", { amount: 60, unit: "g" })],
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const all = await call("get_saved_meals");
+            expect(textOf(all)).toContain(
+                `"Oatmeal bowl" [saved meal id: ${SAVED_ID}]`,
+            );
+            expect(textOf(all)).toContain("1. Вівсянка — 60 g");
+            const none = await call("get_saved_meals", {
+                name_contains: "pancake",
+            });
+            expect(textOf(none)).toBe('No saved meals matching "pancake".');
+        });
+    });
+});
+
+describe("log_saved_meal", () => {
+    test("scales by servings, then applies item amounts and leave_out", async () => {
+        db.savedMeals = [
+            savedMealRow({
+                calories: 300,
+                items: [
+                    ingredient(1, "Вівсянка", {
+                        amount: 100,
+                        unit: "g",
+                        calories: 200,
+                        protein_g: 10,
+                        carbs_g: 30,
+                        fat_g: 4,
+                    }),
+                    ingredient(2, "Банан", {
+                        amount: 1,
+                        unit: "pcs",
+                        calories: 100,
+                        protein_g: 2,
+                        carbs_g: 30,
+                        fat_g: 2,
+                    }),
+                ],
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", {
+                saved_meal: "oatmeal bowl",
+                servings: 2,
+                item_amounts: [{ item: "Вівсянка", amount: 50 }],
+                leave_out: ["2"],
+            });
+            expect(r.isError).toBeFalsy();
+            const row = db.inserted[0]!;
+            // Two servings make 200 g at 400 kcal; item_amounts then sets the
+            // oats to the 50 g actually eaten in this entry: 100 kcal, not
+            // multiplied by servings again.
+            expect(row.calories).toBe(100);
+            expect(row.saved_meal_id).toBe(SAVED_ID);
+            expect(row.description).toBe("Oatmeal with banana (2 servings)");
+            expect(row.meal_type).toBe("breakfast");
+            const stored = row.items as MealItemValues[];
+            expect(stored).toHaveLength(1);
+            expect(stored[0]!.amount).toBe(50);
+            expect(textOf(r)).toContain(`From saved meal "Oatmeal bowl".`);
+        });
+    });
+
+    test("names the saved meals when the name matches none", async () => {
+        db.savedMeals = [savedMealRow()];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", { saved_meal: "Pancakes" });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain(
+                'No saved meal found named "Pancakes".',
+            );
+            expect(textOf(r)).toContain('"Oatmeal bowl"');
+        });
+    });
+
+    test("needs a meal type when the saved meal has no default", async () => {
+        db.savedMeals = [savedMealRow({ meal_type: null })];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", {
+                saved_meal: "Oatmeal bowl",
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("no default meal type");
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    test("refuses item changes on a saved meal without items", async () => {
+        db.savedMeals = [savedMealRow()];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", {
+                saved_meal: SAVED_ID,
+                leave_out: ["1"],
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("has no items");
+        });
+    });
+});
+
+describe("update_saved_meal and delete_saved_meal", () => {
+    test("refuses an empty change, a direct total on an itemized meal, a taken name and an unknown id", async () => {
+        db.savedMeals = [
+            savedMealRow({ items: [ingredient(1, "Вівсянка")] }),
+            savedMealRow({ id: OTHER_SAVED_ID, name: "Pancakes" }),
+        ];
+        await withTools(null, async (call) => {
+            const empty = await call("update_saved_meal", { id: SAVED_ID });
+            expect(empty.isError).toBe(true);
+            expect(textOf(empty)).toContain("Nothing to change");
+
+            const totals = await call("update_saved_meal", {
+                id: SAVED_ID,
+                calories: 5,
+            });
+            expect(totals.isError).toBe(true);
+            expect(textOf(totals)).toContain("sum of its 1 item");
+
+            const taken = await call("update_saved_meal", {
+                id: OTHER_SAVED_ID,
+                name: "oatmeal bowl",
+            });
+            expect(taken.isError).toBe(true);
+            expect(textOf(taken)).toContain(`[saved meal id: ${SAVED_ID}]`);
+
+            const unknown = await call("update_saved_meal", {
+                id: savedMealId(0xff),
+                description: "x",
+            });
+            expect(unknown.isError).toBe(true);
+            expect(textOf(unknown)).toContain("No saved meal found with id");
+        });
+    });
+
+    test("deleting a saved meal leaves the meals logged from it as they were", async () => {
+        db.savedMeals = [savedMealRow()];
+        db.meals = [
+            storedMeal({
+                id: MEAL_ID,
+                description: "Oatmeal with banana",
+                saved_meal_id: SAVED_ID,
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("delete_saved_meal", { id: SAVED_ID });
+            expect(textOf(r)).toBe(
+                'Saved meal "Oatmeal bowl" deleted. Meals already logged from it keep their values.',
+            );
+            expect(db.savedMeals).toHaveLength(0);
+            expect(db.meals[0]!.description).toBe("Oatmeal with banana");
+            expect(db.meals[0]!.saved_meal_id).toBeNull();
+        });
+    });
+});
+
+describe("saved meals and ingredients in reads", () => {
+    test("search_meals lists the saved meals that match", async () => {
+        db.savedMeals = [savedMealRow({ items: [ingredient(1, "Вівсянка")] })];
+        await withTools(null, async (call) => {
+            const r = await call("search_meals", { queries: ["oatmeal"] });
+            expect(textOf(r)).toContain("No past meals matching");
+            expect(textOf(r)).toContain("Saved meals matching: 1 found.");
+            expect(textOf(r)).toContain(`[saved meal id: ${SAVED_ID}]`);
+        });
+    });
+
+    test("get_meals_today shows an ingredient count, and the list in full detail", async () => {
+        db.meals = [storedMeal({ id: MEAL_ID, description: "Burger" })];
+        db.mealItems.set(MEAL_ID, [
+            ingredient(1, "Булка"),
+            ingredient(2, "Котлета"),
+        ]);
+        await withTools(null, async (call) => {
+            const compact = await call("get_meals_today");
+            expect(textOf(compact)).toContain("2 items");
+            const full = await call("get_meals_today", { detail: "full" });
+            expect(textOf(full)).toContain("Items:");
+            expect(textOf(full)).toContain("2. Котлета");
+        });
+    });
+});
+
+describe("saved meals: review fixes", () => {
+    test("the name-taken refusal describes update_saved_meal and keeps the name out of the log", async () => {
+        db.savedMeals = [savedMealRow({ name: "Grated carrot salad" })];
+        const warn = spyOn(console, "warn").mockImplementation(() => {});
+        const log = spyOn(console, "log").mockImplementation(() => {});
+        try {
+            await withTools(null, async (call) => {
+                const r = await call("save_meal", {
+                    name: "grated carrot SALAD",
+                    calories: 120,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toBe(
+                    `You already have a saved meal named "grated carrot SALAD" [saved meal id: ${SAVED_ID}]. update_saved_meal changes it; a different name saves another one.`,
+                );
+            });
+            const logged = [...warn.mock.calls, ...log.mock.calls]
+                .flat()
+                .map(String)
+                .join("\n");
+            expect(logged).toContain("save_meal");
+            // Filed under its own category, not rate_limited by "Grated".
+            expect(logged).toContain("meal_items_invalid");
+            expect(logged.toLowerCase()).not.toContain("carrot");
+        } finally {
+            warn.mockRestore();
+            log.mockRestore();
+        }
+    });
+
+    test("a saved-meal name that matches none never reaches the runtime log", async () => {
+        db.savedMeals = [
+            savedMealRow({ name: "Insulin-day oats" }),
+            savedMealRow({ id: OTHER_SAVED_ID, name: "Mom's borscht" }),
+        ];
+        const warn = spyOn(console, "warn").mockImplementation(() => {});
+        const log = spyOn(console, "log").mockImplementation(() => {});
+        try {
+            await withTools(null, async (call) => {
+                const r = await call("log_saved_meal", {
+                    saved_meal: "borsch",
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain('"Mom\'s borscht"');
+            });
+            const logged = [...warn.mock.calls, ...log.mock.calls]
+                .flat()
+                .map(String)
+                .join("\n");
+            expect(logged).toContain("record_not_found");
+            expect(logged).not.toContain("borsch");
+            expect(logged).not.toContain("Insulin");
+        } finally {
+            warn.mockRestore();
+            log.mockRestore();
+        }
+    });
+
+    test("an escaped saved-meal name resolves to the stored one", async () => {
+        db.savedMeals = [savedMealRow({ name: "Сніданок" })];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", {
+                saved_meal:
+                    "\\u0421\\u043d\\u0456\\u0434\\u0430\\u043d\\u043e\\u043a",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(db.inserted[0]!.saved_meal_id).toBe(SAVED_ID);
+        });
+    });
+
+    test("log_saved_meal refuses totals past what a single meal holds, before writing", async () => {
+        db.savedMeals = [
+            savedMealRow({ calories: 15_000 }),
+            savedMealRow({
+                id: OTHER_SAVED_ID,
+                name: "Feast",
+                items: [ingredient(1, "Торт", { calories: 12_000 })],
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const totalsOnly = await call("log_saved_meal", {
+                saved_meal: SAVED_ID,
+                servings: 2,
+            });
+            expect(totalsOnly.isError).toBe(true);
+            expect(textOf(totalsOnly)).toContain("calories 30000");
+            const itemized = await call("log_saved_meal", {
+                saved_meal: "Feast",
+                servings: 2,
+            });
+            expect(itemized.isError).toBe(true);
+            expect(textOf(itemized)).toContain("calories 24000");
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    test("a saved meal without items scales its totals by servings", async () => {
+        db.savedMeals = [savedMealRow({ calories: 301, protein_g: 12.5 })];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", {
+                saved_meal: SAVED_ID,
+                servings: 0.5,
+            });
+            expect(r.isError).toBeFalsy();
+            const row = db.inserted[0]!;
+            expect(row.calories).toBeCloseTo(150.5);
+            expect(row.protein_g).toBeCloseTo(6.25);
+            expect(row.description).toBe("Oatmeal with banana (0.5 servings)");
+            expect(row.items).toBeUndefined();
+        });
+    });
+
+    test("save_meal bounds the description, and from_meal_id refuses an over-long copied one", async () => {
+        db.meals = [
+            storedMeal({
+                id: MEAL_ID,
+                calories: 300,
+                description: "x".repeat(2500),
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const empty = await call("save_meal", {
+                name: "Tea",
+                calories: 2,
+                description: "   ",
+            });
+            expect(empty.isError).toBe(true);
+            expect(textOf(empty)).toContain("1 to 2000 characters");
+
+            const long = await call("save_meal", {
+                name: "Tea",
+                calories: 2,
+                description: "y".repeat(2001),
+            });
+            expect(long.isError).toBe(true);
+            expect(textOf(long)).toContain("has 2001");
+
+            const copied = await call("save_meal", {
+                name: "Big dinner",
+                from_meal_id: MEAL_ID,
+            });
+            expect(copied.isError).toBe(true);
+            expect(textOf(copied)).toContain("2500 characters");
+            expect(db.savedMealWrites).toHaveLength(0);
+
+            const replaced = await call("save_meal", {
+                name: "Big dinner",
+                from_meal_id: MEAL_ID,
+                description: "  Big dinner, short  ",
+            });
+            expect(replaced.isError).toBeFalsy();
+            expect(db.savedMealWrites[0]!.input.description).toBe(
+                "Big dinner, short",
+            );
+        });
+    });
+
+    test("save_meal refuses past the saved-meal cap and an unknown from_meal_id", async () => {
+        await withTools(null, async (call) => {
+            const unknown = await call("save_meal", {
+                name: "Pasta",
+                from_meal_id: savedMealId(0xfe),
+            });
+            expect(unknown.isError).toBe(true);
+            expect(textOf(unknown)).toContain("No meal found with id");
+        });
+        db.savedMeals = Array.from({ length: 200 }, (_, i) =>
+            savedMealRow({ id: savedMealId(0x1000 + i), name: `Meal ${i}` }),
+        );
+        await withTools(null, async (call) => {
+            const r = await call("save_meal", {
+                name: "One more",
+                calories: 5,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("already holds 200 saved meals");
+            expect(db.savedMealWrites).toHaveLength(0);
+        });
+    });
+
+    test("save_meal keeps every nutrient and shows added sugar on the sugar figure", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("save_meal", {
+                name: "Cola",
+                calories: 140,
+                protein_g: 0,
+                carbs_g: 35,
+                fat_g: 0,
+                sugar_g: 35,
+                added_sugar_g: 35,
+                caffeine_mg: 34,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(textOf(r)).toContain("sugar 35 g (35 added)");
+            expect(textOf(r)).not.toContain("added sugar 35 g");
+            expect(textOf(r)).toContain("caffeine");
+        });
+    });
+
+    test("update_saved_meal renames, replaces items with summed totals, and updates totals alone", async () => {
+        db.savedMeals = [
+            savedMealRow({
+                calories: 300,
+                fiber_g: 4,
+                alcohol_g: 10,
+                items: [ingredient(1, "Вівсянка", { alcohol_g: 10 })],
+            }),
+            savedMealRow({
+                id: OTHER_SAVED_ID,
+                name: "Tea",
+                calories: 2,
+                fiber_g: 0,
+                sugar_g: 10,
+                added_sugar_g: 5,
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const renamed = await call("update_saved_meal", {
+                id: SAVED_ID,
+                name: "Porridge",
+                description: "\\u041a\\u0430\\u0448\\u0430",
+            });
+            expect(renamed.isError).toBeFalsy();
+            expect(textOf(renamed)).toContain(
+                'Saved meal "Porridge" updated. Meals already logged from it keep their values.',
+            );
+            expect(db.savedMealUpdates[0]!.fields).toEqual({
+                name: "Porridge",
+                description: "Каша",
+            });
+            expect(db.savedMealUpdates[0]!.items).toBeNull();
+
+            const replaced = await call("update_saved_meal", {
+                id: SAVED_ID,
+                items: BURGER_ITEMS,
+            });
+            expect(replaced.isError).toBeFalsy();
+            const write = db.savedMealUpdates[1]!;
+            expect(write.items).toHaveLength(2);
+            expect(write.fields.calories).toBeCloseTo(450.5);
+            expect(write.fields.fiber_g).toBe(1);
+            // No item carries alcohol any more: the stale total is cleared.
+            expect(write.fields.alcohol_g).toBeNull();
+            expect(db.savedMeals[0]!.alcohol_g).toBeNull();
+
+            const totals = await call("update_saved_meal", {
+                id: OTHER_SAVED_ID,
+                calories: 4,
+            });
+            expect(totals.isError).toBeFalsy();
+            expect(db.savedMealUpdates[2]!.fields).toEqual({ calories: 4 });
+            const tea = db.savedMeals.find((s) => s.id === OTHER_SAVED_ID)!;
+            expect(tea.calories).toBe(4);
+            expect(tea.sugar_g).toBe(10);
+            expect(tea.added_sugar_g).toBe(5);
+            expect(tea.fiber_g).toBe(0);
+
+            const emptyDescription = await call("update_saved_meal", {
+                id: OTHER_SAVED_ID,
+                description: "",
+            });
+            expect(emptyDescription.isError).toBe(true);
+            expect(textOf(emptyDescription)).toContain("1 to 2000 characters");
+            expect(db.savedMealUpdates).toHaveLength(3);
+        });
+    });
+
+    test("update_saved_meal checks the sugar pair against the stored partner and names the saved meal under the gate", async () => {
+        db.savedMeals = [
+            savedMealRow({ sugar_g: 10, added_sugar_g: null }),
+            savedMealRow({ id: OTHER_SAVED_ID, name: "Tea", sugar_g: 10 }),
+        ];
+        await withTools(null, async (call) => {
+            const over = await call("update_saved_meal", {
+                id: SAVED_ID,
+                added_sugar_g: 30,
+            });
+            expect(over.isError).toBe(true);
+            expect(db.savedMealUpdates).toHaveLength(0);
+        });
+        await withAddedSugarGate(true, async () => {
+            await withTools(null, async (call) => {
+                const r = await call("update_saved_meal", {
+                    id: OTHER_SAVED_ID,
+                    sugar_g: 12,
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain(
+                    `Not saved, saved meal ${OTHER_SAVED_ID} is unchanged`,
+                );
+                expect(textOf(r)).toContain(
+                    "the saved meal has no added sugar recorded",
+                );
+                expect(textOf(r)).not.toMatch(/Not saved, meal /);
+                expect(db.savedMealUpdates).toHaveLength(0);
+            });
+        });
+    });
+
+    test("the missing-nutrient note on an itemized meal points at items, not a totals field", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Rice",
+                meal_type: "lunch",
+                items: [
+                    {
+                        name: "Rice",
+                        calories: 200,
+                        protein_g: 4,
+                        carbs_g: 44,
+                        fat_g: 0,
+                    },
+                ],
+            });
+            expect(r.isError).toBeFalsy();
+            const text = textOf(r);
+            expect(text).toContain("Not recorded on this meal: fiber_g");
+            expect(text).toContain("sum of its 1 item, so update_meal adds");
+            expect(text).toContain("with the value on each item");
+            expect(text).not.toContain("update_meal can add the value");
+        });
+    });
+
+    test("missingNutrientNote names the items path only for an itemized meal", () => {
+        const meal = storedMeal({ id: MEAL_ID, calories: 100 });
+        expect(missingNutrientNote(meal)).toContain(
+            `update_meal can add the value to id ${MEAL_ID}`,
+        );
+        const itemized = missingNutrientNote(meal, 3);
+        expect(itemized).toContain("sum of its 3 items");
+        expect(itemized).not.toContain("update_meal can add the value");
+    });
 });
