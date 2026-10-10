@@ -2330,7 +2330,7 @@ test("without saturated-fat `_meta` the strip is unchanged", () => {
     );
 });
 
-test("saturated fat opens the fats row with its ceiling beside it", () => {
+test("saturated fat alone opens the fats row at full width, with its ceiling", () => {
     const out = macrosApi.withSaturatedFat(
         SAT_DAY,
         ["2026-10-04"],
@@ -2343,7 +2343,7 @@ test("saturated fat opens the fats row with its ceiling beside it", () => {
     const html = macrosApi.macroPanel(out.vals, out.goal, undefined, null);
     expect(limitRows(html)[0]).toEqual({
         cls: "mgrid lim pair psec",
-        style: "--lc:2;--lcw:2",
+        style: "--lc:1;--lcw:1",
         keys: ["Saturated fat"],
     });
     expect(limitKeys(html)).toEqual([
@@ -2411,7 +2411,7 @@ test("trans fat shows its figure with no limit, beside saturated fat", () => {
     expect(html).toContain("no goal set");
 });
 
-test("a lone trans fat cell takes its own half-width row, leaving four limits", () => {
+test("a lone trans fat cell takes its own full-width row, leaving four limits", () => {
     const out = macrosApi.withSaturatedFat(
         { v: 1, goal: null, trans: { days: { "2026-10-04": 0.4 } } },
         ["2026-10-04"],
@@ -2423,7 +2423,7 @@ test("a lone trans fat cell takes its own half-width row, leaving four limits", 
     expect(limitRows(html)).toEqual([
         {
             cls: "mgrid lim pair psec",
-            style: "--lc:2;--lcw:2",
+            style: "--lc:1;--lcw:1",
             keys: ["Trans fat"],
         },
         {

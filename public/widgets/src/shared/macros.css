@@ -813,8 +813,11 @@ button.src-tag:hover {
         font-size: 12.5px;
     }
     /* An open row takes the whole width of the two-column list, so its
-       items are not squeezed into half the card beside an empty cell. */
-    .md-row.open {
+       items are not squeezed into half the card beside an empty cell. So does
+       a lone row: one meal in the list would otherwise leave the right half
+       empty. */
+    .md-row.open,
+    .md-row:only-child {
         grid-column: 1 / -1;
     }
     .md-items {

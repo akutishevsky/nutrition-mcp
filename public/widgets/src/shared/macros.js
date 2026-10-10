@@ -682,10 +682,17 @@ function gridCols(n) {
 // "ZUGESETZTER ZUCKER" sit beside its figure unabbreviated. A lone cell (added
 // sugar shown while total sugar is not — a 0 g day against an added-sugar
 // limit) keeps that half width rather than stretching across the strip, so it
-// reads as the same cell it is beside sugar, at the same size.
+// reads as the same cell it is beside sugar, at the same size. The fats row is
+// the exception: a lone fat cell (saturated fat with no trans fat recorded, the
+// common case) takes the whole row rather than leaving an empty half beside it.
 function limitRowMarkup(cells, ctx, tap, own) {
+    const lone = own && cells.length === 1 && cells[0].row === "fats";
     const cls = own ? "mgrid lim pair psec" : `mgrid lim n${cells.length} psec`;
-    const cols = own ? "--lc:2;--lcw:2" : gridCols(cells.length);
+    const cols = lone
+        ? "--lc:1;--lcw:1"
+        : own
+          ? "--lc:2;--lcw:2"
+          : gridCols(cells.length);
     return `<div class="${cls}" style="${cols}">${cells
         .map((m) => macroLimit(m, ctx, tap(m)))
         .join("")}
