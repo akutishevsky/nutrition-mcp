@@ -658,16 +658,16 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
         ]),
     );
     const expected: Record<SiteLocale, string> = {
-        en: "October 3, 2026",
-        de: "3. Oktober 2026",
-        es: "3 de octubre de 2026",
-        fr: "3 octobre 2026",
-        nl: "3 oktober 2026",
-        pl: "3 października 2026",
-        it: "3 ottobre 2026",
-        uk: "3 жовтня 2026 року",
-        ja: "2026年10月3日",
-        tr: "3 Ekim 2026",
+        en: "October 10, 2026",
+        de: "10. Oktober 2026",
+        es: "10 de octubre de 2026",
+        fr: "10 octobre 2026",
+        nl: "10 oktober 2026",
+        pl: "10 października 2026",
+        it: "10 ottobre 2026",
+        uk: "10 жовтня 2026 року",
+        ja: "2026年10月10日",
+        tr: "10 Ekim 2026",
     };
     expect(dates).toEqual(
         Object.fromEntries(
@@ -1514,4 +1514,98 @@ test("every page's footer links the Apple Health guide in its locale", async () 
         pages++;
     }
     expect(pages).toBeGreaterThan(SITE_LOCALES.length * 5);
+});
+
+// Saved meals and meal ingredients on the landing page: the meta description
+// (which also feeds og/twitter and the SoftwareApplication JSON-LD), the
+// "What can I track?" answer and a FAQ entry of their own, in every locale.
+// Matched case-insensitively on word stems so inflection and capitalisation
+// don't matter.
+// Stems for "saved meal" and "ingredient" as each index.<locale>.ts words them.
+const LANDING_SAVED_MEALS: Record<
+    SiteLocale,
+    { saved: string; ingredient: string }
+> = {
+    en: { saved: "saved meal", ingredient: "ingredient" },
+    de: { saved: "gespeichert", ingredient: "zutat" },
+    es: { saved: "guardad", ingredient: "ingrediente" },
+    fr: { saved: "sauvegard", ingredient: "ingrédient" },
+    nl: { saved: "opgeslagen", ingredient: "ingrediënt" },
+    pl: { saved: "zapisan", ingredient: "składnik" },
+    it: { saved: "salvat", ingredient: "ingredient" },
+    uk: { saved: "збережен", ingredient: "інгредієнт" },
+    ja: { saved: "保存", ingredient: "材料" },
+    tr: { saved: "kayıtlı", ingredient: "malzeme" },
+};
+
+test("every locale's landing meta and FAQ mention saved meals and ingredients", () => {
+    const en = INDEX.en!;
+    // Locale FAQs mirror English entry for entry, so the English position
+    // names the same question everywhere.
+    const trackAt = en.faq.findIndex((f) => f.question === "What can I track?");
+    const savedAt = en.faq.findIndex((f) =>
+        f.question.startsWith("Can I save meals I eat often"),
+    );
+    expect(trackAt).toBeGreaterThanOrEqual(0);
+    expect(savedAt).toBe(trackAt + 1);
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const doc = INDEX[locale]!;
+        const t = LANDING_SAVED_MEALS[locale];
+        const has = (s: string | undefined, token: string) =>
+            (s ?? "").toLocaleLowerCase(locale).includes(token);
+        if (!has(doc.metaDescription, t.saved))
+            problems.push(`${locale}: metaDescription`);
+        if (!has(doc.ogDescription, t.saved))
+            problems.push(`${locale}: ogDescription`);
+        if (doc.faq.length !== en.faq.length)
+            problems.push(`${locale}: faq has ${doc.faq.length} entries`);
+        const track = doc.faq[trackAt]?.visibleHtml;
+        if (!has(track, t.saved) || !has(track, t.ingredient))
+            problems.push(`${locale}: "What can I track?" answer`);
+        const saved = doc.faq[savedAt];
+        if (!has(saved?.visibleHtml, t.saved))
+            problems.push(`${locale}: saved-meals FAQ answer`);
+    }
+    expect(problems).toEqual([]);
+});
+
+// The saved-meal example slide: same position as English in every locale,
+// quoting the demo card's figures (MEAL_CARDS["saved-meal"] in
+// scripts/landing-cards.ts: 865 kcal, 95 g protein). A translation that drops
+// the slide is otherwise only a "skipped" warning from gen-index.ts.
+test("every locale has the saved-meal example slide with its figures", () => {
+    const at = INDEX.en!.examples.slides.findIndex(
+        (s) => s.id === "saved-meal",
+    );
+    expect(at).toBe(3);
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const slides = INDEX[locale]!.examples.slides;
+        const enIds = INDEX.en!.examples.slides.map((s) => s.id).join();
+        if (slides.map((s) => s.id).join() !== enIds)
+            problems.push(`${locale}: slide ids differ from English`);
+        const slide = slides[at];
+        if (slide?.id !== "saved-meal") {
+            problems.push(`${locale}: no saved-meal slide at ${at}`);
+            continue;
+        }
+        const reply = slide.messages[3];
+        if (
+            reply?.from !== "ai" ||
+            !/(^|\D)865(\D|$)/.test(reply.text) ||
+            !/(^|\D)95(\D|$)/.test(reply.text)
+        )
+            problems.push(`${locale}: reply must quote 865 kcal and 95 g`);
+        if (Object.keys(slide.toolNotes).join() !== "log_saved_meal,save_meal")
+            problems.push(`${locale}: toolNotes keys`);
+        if (
+            slide.cards?.length !== 1 ||
+            slide.cards[0]!.kind !== "meal-logged" ||
+            slide.cards[0]!.after !== 2 ||
+            slide.cardMeals?.length !== 1
+        )
+            problems.push(`${locale}: card structure`);
+    }
+    expect(problems).toEqual([]);
 });
