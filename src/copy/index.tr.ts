@@ -181,7 +181,7 @@ export const INDEX_TR: IndexDoc = {
         note: "Buradaki her şey isteğe bağlı. Şimdi, sonra ya da hiç yapmayabilirsin — sadece kaydetmeye başla, bunları canın ne zaman isterse ayarla.",
         toolsCta: {
             heading: "Gerçekte neler yapabildiğini merak ettin mi?",
-            body: "41 aracın tamamına göz at — kaydetme, barkodlar, su, kilo ve vücut ölçüleri, hedefler ve eğilimler — her biri için bir açıklama ve örnek bir cümleyle.",
+            body: "46 aracın tamamına göz at — kaydetme, barkodlar, su, kilo ve vücut ölçüleri, hedefler ve eğilimler — her biri için bir açıklama ve örnek bir cümleyle.",
             arrow: "Araçları keşfet",
         },
     },
@@ -619,10 +619,10 @@ export const INDEX_TR: IndexDoc = {
                 id: "export-data",
                 title: "Verilerini al",
                 description:
-                    "Tek bir istek, hakkında saklanan her şeyi — yemekler, su, tartı kayıtları, vücut ölçüleri, hedefler, profil ayarları, hesap kaydın, kullanım telemetrisi ve uygulama bağlantıları — bir README ile birlikte CSV dosyalarından oluşan bir ZIP içine koyar. Zaman damgaları senin saat dilimini kullanır ve meals.csv doğrudan geri içe aktarılabilir.",
+                    "Tek bir istek, hakkında saklanan her şeyi — yemekler, kayıtlı yemekler ve malzemeleri, su, tartı kayıtları, vücut ölçüleri, hedefler, profil ayarları, hesap kaydın, kullanım telemetrisi ve uygulama bağlantıları — bir README ile birlikte CSV dosyalarından oluşan bir ZIP içine koyar. Zaman damgaları senin saat dilimini kullanır ve meals.csv doğrudan geri içe aktarılabilir.",
                 toolNotes: {
                     export_all_data:
-                        "Dokuz CSV dosyasını ve bir README dosyasını 60 dakika geçerli bir bağlantının arkasında ZIP olarak paketler",
+                        "Her CSV dosyasını ve bir README dosyasını 60 dakika geçerli bir bağlantının arkasında ZIP olarak paketler",
                 },
                 messages: [
                     {
@@ -706,7 +706,7 @@ export const INDEX_TR: IndexDoc = {
             },
             {
                 title: "Dışa aktar, verine sahip ol",
-                body: "Hakkında sakladığımız her şeyi — yemekler, su, kilo, vücut ölçüleri, hedefler ve profil, ayrıca hesap kaydın, kullanım telemetrisi ve bağlı uygulamalar — CSV dosyalarından oluşan tek bir ZIP olarak al. Şimdilik geri içe aktarılabilen tek bölüm yemekler. Hesabını ve verilerini istediğin zaman sil.",
+                body: "Hakkında sakladığımız her şeyi — yemekler, kayıtlı yemekler ve malzemeleri, su, kilo, vücut ölçüleri, hedefler ve profil, ayrıca hesap kaydın, kullanım telemetrisi ve bağlı uygulamalar — CSV dosyalarından oluşan tek bir ZIP olarak al. Şimdilik geri içe aktarılabilen tek bölüm yemekler. Hesabını ve verilerini istediğin zaman sil.",
             },
         ],
     },

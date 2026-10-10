@@ -50,6 +50,10 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
             other: "+ {n} veya daha fazla küçük yemek",
         },
         moreMealsMaybe: "+ muhtemelen daha fazla küçük yemek",
+        ingredientCount: {
+            one: "{n} malzeme",
+            other: "{n} malzeme",
+        },
     },
     bridge: {
         settingsFooter:

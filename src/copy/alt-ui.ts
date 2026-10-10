@@ -194,7 +194,7 @@ export const ALT_UI_EN: AltUiCopy = {
             },
             {
                 title: "Import &amp; own your data",
-                body: "Import your meal history from another app's CSV export — parsed in your browser, not by the AI. Take everything back out whenever you want: one ZIP with your meals, water, weight, body measurements, goals and profile, plus your account record, usage telemetry and connected apps, as CSV files. Meals are the only part that can be imported back in for now. Or delete your account, just as easily.",
+                body: "Import your meal history from another app's CSV export — parsed in your browser, not by the AI. Take everything back out whenever you want: one ZIP with your meals, saved meals, water, weight, body measurements, goals and profile, plus your account record, usage telemetry and connected apps, as CSV files. Meals are the only part that can be imported back in for now. Or delete your account, just as easily.",
             },
             {
                 title: "Open source &amp; free",

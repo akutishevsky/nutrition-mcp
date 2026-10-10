@@ -56,7 +56,23 @@ import {
     existingIdempotencyKeys,
     existingMealIds,
     isUuid,
+    getMealItems,
+    countMealItems,
+    replaceMealItems,
+    getMealById,
+    createSavedMeal,
+    getSavedMeals,
+    getSavedMeal,
+    findSavedMealsByName,
+    countSavedMeals,
+    updateSavedMeal,
+    deleteSavedMeal,
+    searchSavedMeals,
+    SavedMealNameTaken,
+    type SavedMealInput,
+    type SavedMealWithItems,
     type Meal,
+    type MealInput,
     type NutritionGoals,
     type WaterEntry,
     type WeightEntry,
@@ -67,7 +83,7 @@ import {
     withAnalytics,
     categorizeError,
 } from "./analytics.js";
-import { ToolError, newErrorRef } from "./errors.js";
+import { ToolError, newErrorRef, toolErrorWithUserText } from "./errors.js";
 import {
     todayInTz,
     validateTz,
@@ -128,13 +144,38 @@ import {
     type BulkImportArgs,
 } from "./import.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
-import { formatMealSearchResults } from "./search.js";
+import { formatMealSearchResults, formatSavedMealMatches } from "./search.js";
+import {
+    MAX_ITEMS_PER_MEAL,
+    MAX_ITEM_AMOUNT,
+    MAX_SAVED_MEALS_PER_USER,
+    MAX_SERVINGS,
+    MEAL_NUTRIENT_KEYS,
+    applyItemChanges,
+    assertMealTotals,
+    buildMealItemsMeta,
+    compactSugarFigure,
+    formatItemsBlock,
+    normalizeNameRef,
+    scaleItems,
+    scaleTotals,
+    sumItems,
+    totalsSentWithItems,
+    totalsWithItemsError,
+    validateItems,
+    validateSavedMealName,
+    type MealItemValues,
+    type MealItemsMeta,
+    type MealNutrientKey,
+    type NutrientValues,
+} from "./meal-items.js";
 import {
     ADDED_SUGAR_REQUIRED_FROM_ENV,
     addedSugarError,
     addedSugarExtra,
     addedSugarMissing,
     addedSugarMissingError,
+    addedSugarMissingText,
     addedSugarRequiredAt,
     buildAddedSugarMeta,
     parseAddedSugarRequiredFrom,
@@ -146,6 +187,7 @@ import {
     PERIOD_AVERAGES_META_KEY,
     ADDED_SUGAR_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
+    MEAL_ITEMS_META_KEY,
 } from "./widgets.js";
 import {
     GRANULARITIES,
@@ -213,7 +255,7 @@ const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar and caffeine are tracked al
 // conversation: the directory policy asks tool text to describe what the tool
 // does, not how Claude should behave, and to name no external tool (so no "search
 // the web") the user did not ask for.
-const SERVER_INSTRUCTIONS = `Nutrition tracking: meals, water, weight, body measurements, goals, and trends, per-user with timezone support.
+const SERVER_INSTRUCTIONS = `Nutrition tracking: meals (with their ingredients and saved meals), water, weight, body measurements, goals, and trends, per-user with timezone support.
 
 All nutrition figures are estimates and this server does not provide medical or dietary advice.
 
@@ -224,9 +266,15 @@ Current time — some hosts put the current date and time in context and some do
 - A relative time ("this morning", "an hour ago", "last Monday") or "today" resolves via get_current_time, passed on as the local time in logged_at.
 - A time from the user is needed only for an entry at some other moment they have not mentioned.
 
-Recording a complete meal — this applies to every write path (log_meal, update_meal, a barcode lookup that is then logged, a meal copied from search_meals), not just to photos.
+Recording a complete meal — this applies to every write path (log_meal, update_meal, save_meal, log_saved_meal, a barcode lookup that is then logged, a meal copied from search_meals), not just to photos.
 ${NUTRIENT_COVERAGE}
-A meal saved without its fiber, sugar or added sugar can be completed later: update_meal writes only the fields passed, so it fills in the missing figure once the user wants it filled in.
+A meal logged without its fiber, sugar or added sugar can be completed later: update_meal writes only the fields passed, so it fills in the missing figure once the user wants it filled in. For a meal logged with items the figure goes on the items: update_meal's full items list, with the value on each item.
+
+Ingredients and saved meals:
+- A meal can be logged with items: a list of its ingredients, each with its amount and nutrients. Its totals are then the sum of the items, so the totals are not sent alongside the items. update_meal changes such a meal's totals through items (the full new list), not through the totals.
+- A saved meal is a named meal kept with its values per serving and, optionally, its ingredients. save_meal creates one, from a meal already logged (from_meal_id), from items, or from totals. get_saved_meals lists them, and search_meals also finds them by name or ingredient.
+- log_saved_meal writes a saved meal as an ordinary meal entry carrying a copy of its values, optionally scaled by servings, or with single items' amounts changed or left out. The entry is then a meal like any other.
+- Editing or deleting a saved meal (update_saved_meal, delete_saved_meal) leaves meals already logged from it unchanged.
 
 Meals from photos:
 - A packaged product with a visible barcode: the digits printed under the barcode go to lookup_barcode.
@@ -236,7 +284,7 @@ Meals from photos:
 - A photo alone leaves open questions — which variation or menu item each dish is, how much was eaten, and ingredients it cannot show (oil, butter, sugar, dressing, sauce, what a drink was made with). log_meal is for a meal whose summary the user has confirmed, or one they asked to log as is. A single obvious item may leave one question open; a full plate usually leaves several.
 - A description that carries the confirmed portions (e.g. "Oatmeal (1 glass raw oats, 2 glasses milk) with banana and honey (1 tbsp)") and, for a restaurant meal the user named, the restaurant name as they gave it (e.g. "Pad thai with chicken (1 plate, finished) at Thai Basil") keeps future search_meals results self-describing. A neighbourhood or city belongs there only if the user stated it; do not infer a location the user did not state. notes is where the source of a figure goes, including whether it is an estimate rather than published nutrition.
 
-"Log my usual X" works the same way: search_meals finds the past entries, and the variation and the amount are what remain to confirm.
+"Log my usual X" works the same way: search_meals finds the past entries and any matching saved meal. For a past entry, the variation and the amount are what remain to confirm before log_meal; a saved meal is logged with log_saved_meal.
 
 Importing history from another app (MyFitnessPal, Cronometer, Lose It!, MacroFactor or a similar export):
 1. start_meal_import is for a user who has a file. It opens an importer the user drives: it reads and maps the file in the browser, so the rows never pass through the conversation and cannot be mistranscribed, and it handles column mapping, batching and retries.
@@ -590,6 +638,9 @@ export { PERIOD_AVERAGES_META_KEY };
 // And for the added-sugar figures (AddedSugarMeta) that five tools carry
 // beside their frozen structuredContent.
 export { ADDED_SUGAR_META_KEY };
+// And for the ingredients behind the breakdown rows (MealItemsMeta, built in
+// src/meal-items.ts), present only when some row has items.
+export { MEAL_ITEMS_META_KEY };
 
 /** Zero contributors, for a window with no meals at all. `.nullable()` is not
  *  optional: the alcohol key is always present, null when tracking is off. */
@@ -1000,6 +1051,36 @@ export function startImportPayload(opts: {
     };
 }
 
+// The `_meta` entry carrying the ingredients behind a tool's breakdown rows,
+// for the widgets' expandable rows: `rowMeals` must be exactly the meals behind
+// structuredContent.meals, in row order (the widget joins by position). `{}`
+// when no row has items, so the key is absent and the result unchanged. A
+// failed read never fails the tool — the rows are the product, the items only
+// their detail — so it logs one ref line (no user id, no user text) and the
+// widget simply shows no expanders.
+async function mealItemsMetaEntry(
+    userId: string,
+    rowMeals: readonly Meal[],
+    alcohol: AlcoholDisplay,
+): Promise<{ [MEAL_ITEMS_META_KEY]?: MealItemsMeta }> {
+    if (rowMeals.length === 0) return {};
+    let items: Map<string, MealItemValues[]>;
+    try {
+        items = await getMealItems(
+            userId,
+            rowMeals.map((m) => m.id),
+        );
+    } catch (err) {
+        const ref = newErrorRef();
+        console.warn(
+            `[widget] meal-items read error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+        );
+        return {};
+    }
+    const payload = buildMealItemsMeta(rowMeals, items, alcohol != null);
+    return payload ? { [MEAL_ITEMS_META_KEY]: payload } : {};
+}
+
 // Compute the day's running totals vs goals for a meal that was just logged or
 // updated, packaging both the model-facing progress text and the meal-logged
 // widget's structuredContent. Shared by log_meal and update_meal so the two
@@ -1057,12 +1138,14 @@ async function buildMealProgress(
     // is frozen, so it rides in the result's _meta (ADDED_SUGAR_META_KEY).
     // `meals` is the same list, in the same order, as the rows above — the
     // widget joins the two by position.
+    // The ingredients ride beside it, aligned with the same rows.
     const meta = {
         [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
             goal: goals?.daily_added_sugar_g,
             days: { [mealDate]: meals },
             meals,
         }),
+        ...(await mealItemsMetaEntry(userId, meals, alcohol)),
     };
 
     // tz goes back to the caller so its confirmation prints the meal's time
@@ -1545,6 +1628,289 @@ function assertPlausibleWeight(grams: number, unit: WeightUnit): void {
 // the default because a listing is almost always read to find a meal or total
 // a day, and it keeps the id update_meal / delete_meal need. Not added to the
 // analytics args: it says nothing about how a tool is failing.
+// ---------- Ingredients and saved meals (src/meal-items.ts) ----------
+
+// The item-list shape every items field shares; each tool adds what leaving
+// items out means for it, since that differs (log_meal logs from the totals,
+// the update tools keep the current items, save_meal keeps the totals).
+const ITEM_LIST_SHAPE = `1 to ${MAX_ITEMS_PER_MEAL} items. Each item carries its own amount and nutrients, and the totals are the sum of the items, so the totals fields are not sent alongside.`;
+const LOG_MEAL_ITEMS_DESCRIPTION = `The ingredients of this meal, ${ITEM_LIST_SHAPE} Without items the meal is logged from its totals.`;
+const UPDATE_MEAL_ITEMS_DESCRIPTION = `The meal's full ingredient list, replacing any items it has: ${ITEM_LIST_SHAPE} Without items the meal's current items stay as they are, and a meal that has items keeps totals equal to their sum.`;
+const SAVE_MEAL_ITEMS_DESCRIPTION = `The ingredients of one serving: ${ITEM_LIST_SHAPE} Without items the saved meal is kept from its totals per serving.`;
+const UPDATE_SAVED_MEAL_ITEMS_DESCRIPTION = `The saved meal's full ingredient list for one serving, replacing its items: ${ITEM_LIST_SHAPE} Without items the saved meal's current items stay as they are.`;
+
+// One ingredient. Every nutrient is optional in the schema; the handler names
+// the item that lacks one (validateItems), so the caller sees which item to fix.
+const MEAL_ITEM_INPUT = z.object({
+    name: z
+        .string()
+        .describe(
+            "The ingredient or food as the user named it, in their language.",
+        ),
+    amount: z.coerce
+        .number()
+        .positive()
+        .max(MAX_ITEM_AMOUNT)
+        .optional()
+        .describe("How much of the item, in the unit below (e.g. 5, or 170)."),
+    unit: z
+        .string()
+        .optional()
+        .describe("The unit the amount is in (e.g. g, ml, pcs, tbsp)."),
+    calories: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_CALORIES)
+        .optional()
+        .describe(
+            "Calories of this item, with the same meaning as log_meal's calories.",
+        ),
+    protein_g: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_MACRO_G)
+        .optional()
+        .describe("Protein of this item in grams, as log_meal's protein_g."),
+    carbs_g: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_MACRO_G)
+        .optional()
+        .describe(
+            "Carbohydrates of this item in grams, as log_meal's carbs_g.",
+        ),
+    fat_g: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_MACRO_G)
+        .optional()
+        .describe("Fat of this item in grams, as log_meal's fat_g."),
+    fiber_g: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_MACRO_G)
+        .optional()
+        .describe(
+            "Fiber of this item in grams, as log_meal's fiber_g. Give it on every item or on none.",
+        ),
+    sugar_g: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_MACRO_G)
+        .optional()
+        .describe(
+            "Total sugars of this item in grams, as log_meal's sugar_g. Give it on every item or on none.",
+        ),
+    added_sugar_g: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_MACRO_G)
+        .optional()
+        .describe(
+            "Added sugars of this item in grams, as log_meal's added_sugar_g. Give it on every item or on none.",
+        ),
+    alcohol_g: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_ALCOHOL_G)
+        .optional()
+        .describe(
+            "Grams of pure ethanol in this item, as log_meal's alcohol_g.",
+        ),
+    caffeine_mg: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_CAFFEINE_MG)
+        .optional()
+        .describe(
+            "Caffeine of this item in milligrams, as log_meal's caffeine_mg.",
+        ),
+});
+
+const SAVED_MEAL_ID_SOURCES = "get_saved_meals or search_meals";
+
+/** Totals as MealInput nutrient fields: a null total (no item carries that
+ *  nutrient) is left unset rather than sent as a value. */
+function totalsAsInput(
+    t: NutrientValues,
+): Partial<Record<MealNutrientKey, number>> {
+    const out: Partial<Record<MealNutrientKey, number>> = {};
+    for (const key of MEAL_NUTRIENT_KEYS) {
+        const v = t[key];
+        if (v !== null) out[key] = v;
+    }
+    return out;
+}
+
+/** One saved meal's per-serving figures on a line. The alcohol figure follows
+ *  the opt-in, like every other listing. */
+function perServingLine(t: NutrientValues, alcohol: AlcoholDisplay): string {
+    const parts = [
+        t.calories !== null ? `${t.calories} kcal` : null,
+        t.protein_g !== null ? `P ${t.protein_g} g` : null,
+        t.carbs_g !== null ? `C ${t.carbs_g} g` : null,
+        t.fat_g !== null ? `F ${t.fat_g} g` : null,
+        t.fiber_g !== null ? `fiber ${t.fiber_g} g` : null,
+        // Added sugar rides on the sugar figure, as in every listing, so the
+        // two never read as separate amounts.
+        compactSugarFigure(t.sugar_g, t.added_sugar_g),
+        alcohol !== null && t.alcohol_g !== null
+            ? `alcohol ${formatAlcohol(t.alcohol_g, alcohol)}`
+            : null,
+        t.caffeine_mg !== null ? `caffeine ${formatMg(t.caffeine_mg)}` : null,
+    ].filter((x): x is string => x !== null);
+    return parts.length > 0
+        ? `Per serving: ${parts.join(" · ")}`
+        : "Per serving: no figures recorded";
+}
+
+/** The refusal for a name already in use, naming the saved meal that holds it.
+ *  The name is the user's own text, so the runtime log gets the refusal
+ *  without it (logText). */
+function savedMealNameTakenError(
+    name: string,
+    existingId: string | null,
+): ToolError {
+    const holder = existingId ? ` [saved meal id: ${existingId}]` : "";
+    return toolErrorWithUserText(
+        `You already have a saved meal named "${name}"${holder}. update_saved_meal changes it; a different name saves another one.`,
+        `The saved meal name given is already in use${holder}.`,
+        "meal_items_invalid",
+    );
+}
+
+/** What saved_meals.description holds: 1 to 2000 characters, the database's
+ *  own check, counted in code points as char_length counts them. */
+export const MAX_SAVED_MEAL_DESCRIPTION_CHARS = 2000;
+
+/** A saved meal's description as it is stored: escape sequences decoded and
+ *  trimmed. Refuses an empty one or one past
+ *  MAX_SAVED_MEAL_DESCRIPTION_CHARS before the write, so the database check
+ *  never turns it into an internal error. */
+export function validateSavedMealDescription(raw: string): string {
+    const text = normalizeNameRef(raw);
+    const length = [...text].length;
+    if (length === 0)
+        throw new ToolError(
+            "A saved meal's description holds 1 to 2000 characters; the one sent is empty. Without a description the saved meal takes its name as the description.",
+            { category: "meal_items_invalid" },
+        );
+    if (length > MAX_SAVED_MEAL_DESCRIPTION_CHARS)
+        throw new ToolError(
+            `A saved meal's description holds 1 to ${MAX_SAVED_MEAL_DESCRIPTION_CHARS} characters; the one sent has ${length}.`,
+            { category: "meal_items_invalid" },
+        );
+    return text;
+}
+
+/** The added-sugar refusal on update_saved_meal, naming the SAVED meal: the
+ *  shared wording says "meal <id>", and a saved-meal id read as a logged
+ *  meal's id leads to a not-found on update_meal. */
+function savedMealAddedSugarMissingError(id: string): ToolError {
+    const rule = addedSugarMissingText()
+        .replace(/^Not saved: /, "")
+        .replace(
+            "whenever sugar_g is given.",
+            "whenever sugar_g is given and the saved meal has no added sugar recorded.",
+        );
+    return new ToolError(`Not saved, saved meal ${id} is unchanged: ${rule}`, {
+        category: "added_sugar_missing",
+    });
+}
+
+/** The saved meal's own nutrient values as the NutrientValues shape: a value
+ *  the source does not carry is null. */
+function nutrientsFrom(
+    src: Partial<Record<MealNutrientKey, number | null | undefined>>,
+): NutrientValues {
+    const out = {} as NutrientValues;
+    for (const key of MEAL_NUTRIENT_KEYS) out[key] = src[key] ?? null;
+    return out;
+}
+
+/** A saved meal's body text: its description, default meal type, the figures
+ *  per serving and its ingredients. */
+function savedMealBody(s: SavedMealWithItems, alcohol: AlcoholDisplay): string {
+    const lines = [`Description: ${s.description}`];
+    if (s.meal_type) lines.push(`Default meal type: ${s.meal_type}`);
+    lines.push(perServingLine(s, alcohol));
+    const block = formatItemsBlock(s.items, alcohol !== null);
+    if (block) lines.push(block);
+    return lines.join("\n");
+}
+
+/** One saved meal in get_saved_meals: a header with its name and id, its body
+ *  indented beneath. */
+function savedMealListing(
+    s: SavedMealWithItems,
+    alcohol: AlcoholDisplay,
+): string {
+    const body = savedMealBody(s, alcohol)
+        .split("\n")
+        .map((line) => `  ${line}`)
+        .join("\n");
+    return `- "${s.name}" [saved meal id: ${s.id}]\n${body}`;
+}
+
+/** Writes a new saved meal. A name already in use is refused with its own
+ *  wording, naming the saved meal that holds it. */
+async function savedMealWrite(
+    userId: string,
+    name: string,
+    input: SavedMealInput,
+    items: MealItemValues[],
+): Promise<SavedMealWithItems> {
+    try {
+        return await createSavedMeal(userId, input, items);
+    } catch (err) {
+        if (err instanceof SavedMealNameTaken)
+            throw savedMealNameTakenError(name, err.existingId);
+        throw err;
+    }
+}
+
+/** The saved meal a log_saved_meal call names: its id, or its exact name
+ *  (case-insensitive). Throws a ToolError when none or several match. */
+async function resolveSavedMeal(
+    userId: string,
+    ref: string,
+): Promise<SavedMealWithItems> {
+    // Decoded like the stored names (validateSavedMealName), so a name a
+    // client escaped when saving it still matches when it is escaped again.
+    const q = normalizeNameRef(ref);
+    if (isUuid(q)) {
+        const byId = await getSavedMeal(userId, q);
+        if (byId) return byId;
+        throw new ToolError(
+            `No saved meal found with id ${JSON.stringify(q.slice(0, 64))}.`,
+        );
+    }
+    const matches = await findSavedMealsByName(userId, q);
+    if (matches.length === 1) return matches[0]!;
+    if (matches.length === 0) {
+        const names = (await getSavedMeals(userId))
+            .slice(0, 10)
+            .map((s) => `"${s.name}"`);
+        const known =
+            names.length > 0
+                ? ` Saved meals: ${names.join(", ")}.`
+                : " This account has no saved meals yet.";
+        // No category: "No saved meal found" is categorizeError's
+        // record_not_found wording. The names stay out of the runtime log.
+        throw toolErrorWithUserText(
+            `No saved meal found named ${JSON.stringify(q.slice(0, 100))}.${known}`,
+            `No saved meal found by the name given (${names.length} saved meal name${names.length === 1 ? "" : "s"} listed).`,
+        );
+    }
+    throw toolErrorWithUserText(
+        `More than one saved meal is named "${q}"; each id identifies one: ${matches
+            .map((m) => `${m.name} [saved meal id: ${m.id}]`)
+            .join(", ")}.`,
+        `More than one saved meal has the name given (${matches.length} matches).`,
+        "meal_items_invalid",
+    );
+}
+
 const MEAL_DETAIL_FIELD = z
     .enum(["compact", "full"])
     .optional()
@@ -1704,14 +2070,40 @@ export function alcoholHiddenNote(
 // display gate is `!= null` rather than `> 0` (limitShown, recordedGoalLine,
 // totalsPayloadOf), so nagging until every sandwich carries a figure produces
 // precisely the fabricated "0 mg / 400 mg limit" that null exists to prevent.
-export function missingNutrientNote(meal: Meal): string {
-    const missing = [
+//
+// A meal logged with items has totals that are the sum of its items, and
+// update_meal refuses a direct total on such a meal, so for one the note names
+// the path that works: the full items list with the value on each item.
+function missingNutrients(meal: Meal): string[] {
+    return [
         meal.fiber_g == null ? "fiber_g" : null,
         meal.sugar_g == null ? "sugar_g" : null,
         meal.added_sugar_g == null ? "added_sugar_g" : null,
     ].filter((f): f is string => f !== null);
+}
+
+export function missingNutrientNote(meal: Meal, itemCount = 0): string {
+    const missing = missingNutrients(meal);
     if (missing.length === 0) return "";
-    return `\n\n(Not recorded on this meal: ${missing.join(", ")}. A missing value is not a zero — it leaves the whole day out of that nutrient's totals, averages and goal line. update_meal can add the value to id ${meal.id}; 0 records a food that genuinely has none.)`;
+    const fill =
+        itemCount > 0
+            ? `This meal's totals are the sum of its ${itemCount} item${itemCount === 1 ? "" : "s"}, so update_meal adds the value to id ${meal.id} through items: the full list again, with the value on each item`
+            : `update_meal can add the value to id ${meal.id}`;
+    return `\n\n(Not recorded on this meal: ${missing.join(", ")}. A missing value is not a zero — it leaves the whole day out of that nutrient's totals, averages and goal line. ${fill}; 0 records a food that genuinely has none.)`;
+}
+
+/** missingNutrientNote for a meal just written. `itemCount` is the number of
+ *  items the call wrote when it knows it; otherwise (a deduplicated insert, an
+ *  update without items) the stored count is read, and only when the note has
+ *  something to say. */
+async function missingNutrientNoteFor(
+    userId: string,
+    meal: Meal,
+    itemCount?: number,
+): Promise<string> {
+    if (missingNutrients(meal).length === 0) return "";
+    const count = itemCount ?? (await countMealItems(userId, meal.id));
+    return missingNutrientNote(meal, count);
 }
 
 // Whether log_meal / update_meal refuse sugar_g without added_sugar_g right
@@ -1842,7 +2234,7 @@ export function registerTools(
     // is exactly what a non-HTTP embedding should record.
     protocolEra?: "legacy" | "modern",
 ) {
-    // One context for all 41 tools. clientInfo is a getter, not a value: at
+    // One context for all 46 tools. clientInfo is a getter, not a value: at
     // registration time the SDK has not yet resolved who is calling, and on the
     // modern leg it backfills the identity per request before dispatch.
     const analytics = {
@@ -1878,7 +2270,7 @@ export function registerTools(
                 // NUTRIENT_COVERAGE rather than restated, because
                 // SERVER_INSTRUCTIONS carries the same paragraph and many hosts
                 // surface only one of the two.
-                "Log a meal entry with nutritional information. It needs the quantity or portion eaten; if the user has not given it, ask before estimating calories and macros. For a barcode — typed, or the digits printed under it in a photo of the package — lookup_barcode returns the product's label data to scale to the amount eaten; if no product is found, estimate. For a branded product or chain item without a barcode, use the label or the published per-item nutrition where available; otherwise estimate from the ingredients and portion. For a photo of a plated or prepared meal, whether it is from a restaurant (and which one, if the user says) or homemade determines the evidence: a chain's published nutrition, a menu or ingredient list if the user shares it or it is available to you, and past logs via search_meals, which surface variations and ingredients the photo cannot show. For a meal logged from a photo, call this tool only after the meal is confirmed: which variation each dish is, how much was eaten (in household measures such as a glass, a handful or a tablespoon rather than grams), and hidden ingredients like oil, sugar or sauce are resolved and the user has agreed to the summary — or has asked to just log it. Write the confirmed portions into the description (e.g. 'Oatmeal (1 glass raw oats, 2 glasses milk) with banana') so future searches are self-describing, and for a restaurant meal the user named, include the restaurant name as they gave it (e.g. 'Pad thai with chicken (1 plate, finished) at Thai Basil'). Include a neighbourhood or city only if the user stated it — do not infer a location the user did not state.\n\n" +
+                "Log a meal entry with nutritional information. A meal can also be logged with an items list, each ingredient with its amount and nutrients; its totals are then the sum of the items, and the totals fields are not sent alongside. It needs the quantity or portion eaten; if the user has not given it, ask before estimating calories and macros. For a barcode — typed, or the digits printed under it in a photo of the package — lookup_barcode returns the product's label data to scale to the amount eaten; if no product is found, estimate. For a branded product or chain item without a barcode, use the label or the published per-item nutrition where available; otherwise estimate from the ingredients and portion. For a photo of a plated or prepared meal, whether it is from a restaurant (and which one, if the user says) or homemade determines the evidence: a chain's published nutrition, a menu or ingredient list if the user shares it or it is available to you, and past logs via search_meals, which surface variations and ingredients the photo cannot show. For a meal logged from a photo, call this tool only after the meal is confirmed: which variation each dish is, how much was eaten (in household measures such as a glass, a handful or a tablespoon rather than grams), and hidden ingredients like oil, sugar or sauce are resolved and the user has agreed to the summary — or has asked to just log it. Write the confirmed portions into the description (e.g. 'Oatmeal (1 glass raw oats, 2 glasses milk) with banana') so future searches are self-describing, and for a restaurant meal the user named, include the restaurant name as they gave it (e.g. 'Pad thai with chicken (1 plate, finished) at Thai Basil'). Include a neighbourhood or city only if the user stated it — do not infer a location the user did not state.\n\n" +
                 NUTRIENT_COVERAGE +
                 "\nPutting '180 mg caffeine' or '6 g fiber' in notes or in the description instead of in the field leaves it out of every total, goal and chart.",
             annotations: {
@@ -1986,6 +2378,10 @@ export function registerTools(
                             "give each its own time or its own key",
                         ),
                     ),
+                items: z
+                    .array(MEAL_ITEM_INPUT)
+                    .optional()
+                    .describe(LOG_MEAL_ITEMS_DESCRIPTION),
             }),
             outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
             // Link the tool to its progress UI (MCP Apps). update_meal reuses
@@ -1997,25 +2393,43 @@ export function registerTools(
             return withAnalytics(
                 "log_meal",
                 async () => {
-                    // Before anything is read or written. Sugar without added
-                    // sugar first: the pair check below cannot fire when
-                    // added_sugar_g is absent, so the two never compete.
-                    if (addedSugarRequiredNow() && addedSugarMissing(args))
-                        throw addedSugarMissingError();
-                    // A mismatch is the caller's to resolve, never clamped
-                    // (addedSugarError).
-                    const sugarError = addedSugarError(
-                        args.added_sugar_g,
-                        args.sugar_g,
-                    );
-                    if (sugarError) throw new ToolError(sugarError);
+                    // Items replace the totals: each item is checked on its
+                    // own (the added-sugar gate included), and the totals are
+                    // their sum. Without items, the meal-level checks below.
+                    const { items: rawItems, ...fields } = args;
+                    let input: typeof fields = fields;
+                    let items: MealItemValues[] | undefined;
+                    if (rawItems !== undefined) {
+                        const sent = totalsSentWithItems(fields);
+                        if (sent.length > 0) throw totalsWithItemsError(sent);
+                        const checked = validateItems(rawItems, {
+                            addedSugarRequired: addedSugarRequiredNow(),
+                        });
+                        items = checked.items;
+                        input = { ...fields, ...totalsAsInput(checked.totals) };
+                    } else {
+                        // Before anything is read or written. Sugar without
+                        // added sugar first: the pair check below cannot fire
+                        // when added_sugar_g is absent, so the two never
+                        // compete.
+                        if (addedSugarRequiredNow() && addedSugarMissing(args))
+                            throw addedSugarMissingError();
+                        // A mismatch is the caller's to resolve, never clamped
+                        // (addedSugarError).
+                        const sugarError = addedSugarError(
+                            args.added_sugar_g,
+                            args.sugar_g,
+                        );
+                        if (sugarError) throw new ToolError(sugarError);
+                    }
                     const { iso, note } = await resolveWriteTimestamp(
                         userId,
                         args.logged_at,
                     );
                     const { meal, deduplicated } = await insertMeal(userId, {
-                        ...args,
+                        ...input,
                         logged_at: iso,
+                        ...(items ? { items } : {}),
                     });
                     // No colon yet: the zone is appended once tz is known,
                     // because the Time line below is a local wall clock.
@@ -2030,16 +2444,23 @@ export function registerTools(
                             "logged",
                             alcohol,
                         );
+                    // A deduplicated insert returns the stored meal, whose
+                    // items this call did not write, so its count is read.
+                    const missingNote = await missingNutrientNoteFor(
+                        userId,
+                        meal,
+                        deduplicated ? undefined : (items?.length ?? 0),
+                    );
 
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz)}${progressSection}${alcoholHiddenNote(
+                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz, deduplicated ? undefined : items)}${progressSection}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
-                                )}${missingNutrientNote(meal)}${note}`,
+                                )}${missingNote}${note}`,
                             },
                         ],
                         structuredContent,
@@ -2459,12 +2880,19 @@ export function registerTools(
                             ],
                         };
                     }
+                    // The ingredients behind each meal: a count in compact
+                    // mode, the list in full mode.
+                    const items = await getMealItems(
+                        userId,
+                        meals.map((m) => m.id),
+                    );
                     const { text } = renderMealListing({
                         meals,
                         tz,
                         alcohol,
                         detail: detail ?? "compact",
                         grouped: false,
+                        items,
                     });
                     return { content: [{ type: "text", text }] };
                 },
@@ -2508,12 +2936,19 @@ export function registerTools(
                             ],
                         };
                     }
+                    // The ingredients behind each meal: a count in compact
+                    // mode, the list in full mode.
+                    const items = await getMealItems(
+                        userId,
+                        meals.map((m) => m.id),
+                    );
                     const { text } = renderMealListing({
                         meals,
                         tz,
                         alcohol,
                         detail: detail ?? "compact",
                         grouped: false,
+                        items,
                     });
                     return { content: [{ type: "text", text }] };
                 },
@@ -2575,12 +3010,19 @@ export function registerTools(
 
                     // Grouped by local day, and cut at a day boundary if
                     // the month would outgrow MEAL_LISTING_MAX_CHARS.
+                    // The ingredients behind each meal: a count in compact
+                    // mode, the list in full mode.
+                    const items = await getMealItems(
+                        userId,
+                        meals.map((m) => m.id),
+                    );
                     const { text } = renderMealListing({
                         meals,
                         tz,
                         alcohol,
                         detail: detail ?? "compact",
                         grouped: true,
+                        items,
                     });
                     return { content: [{ type: "text", text }] };
                 },
@@ -2595,7 +3037,7 @@ export function registerTools(
         {
             title: "Search Past Meals",
             description:
-                "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Useful before logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil), and each difference between variations is a question for the user rather than something to pick silently. Also serves requests like 'log my usual breakfast': search, confirm the variation and the amount with the user, then log_meal. When the user has named the restaurant, search its name as well as the dish — a past visit to the same venue is stronger evidence than a generic estimate. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
+                "Search the user's past logged meals by keyword (case-insensitive match on description, notes and the names of a meal's ingredients), and the user's saved meals by name, description or ingredient name, newest meals first. Meals are grouped into recurring variations with counts, last-logged date, and typical macros. Useful before logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil), and each difference between variations is a question for the user rather than something to pick silently. Also serves requests like 'log my usual breakfast': a matching past meal is logged again with log_meal once the variation and the amount are confirmed with the user, and a matching saved meal is logged with log_saved_meal. When the user has named the restaurant, search its name as well as the dish — a past visit to the same venue is stronger evidence than a generic estimate. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
             annotations: {
                 title: "Search Past Meals",
                 readOnlyHint: true,
@@ -2639,30 +3081,39 @@ export function registerTools(
                     const sinceIso = new Date(
                         Date.now() - windowDays * 24 * 60 * 60 * 1000,
                     ).toISOString();
-                    const meals = await searchMeals(userId, queries, {
-                        limit: limit ?? 50,
-                        sinceIso,
-                    });
+                    const [meals, savedMatches] = await Promise.all([
+                        searchMeals(userId, queries, {
+                            limit: limit ?? 50,
+                            sinceIso,
+                        }),
+                        searchSavedMeals(userId, queries),
+                    ]);
+                    const savedText = formatSavedMealMatches(
+                        savedMatches.saved,
+                        tz,
+                        savedMatches.total,
+                    );
                     if (meals.length === 0) {
                         const label = queries.map((q) => `"${q}"`).join(" / ");
-                        return {
-                            content: [
-                                {
-                                    type: "text",
-                                    text: `No past meals matching ${label} in the last ${windowDays} days. If logging from a photo, there are no past variations to draw on, so the amount eaten and ingredients the photo cannot show (oil, butter, sugar, sauce, what a drink was made with) are still open questions to confirm with the user before log_meal.`,
-                                },
-                            ],
-                        };
+                        // Saved meals found: they are the answer, so the
+                        // photo guidance for an empty history does not apply.
+                        const text = savedText
+                            ? `No past meals matching ${label} in the last ${windowDays} days.\n\n${savedText}`
+                            : `No past meals matching ${label} in the last ${windowDays} days. If logging from a photo, there are no past variations to draw on, so the amount eaten and ingredients the photo cannot show (oil, butter, sugar, sauce, what a drink was made with) are still open questions to confirm with the user before log_meal.`;
+                        return { content: [{ type: "text", text }] };
                     }
+                    const mealText = formatMealSearchResults(
+                        meals,
+                        queries,
+                        tz,
+                    );
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: formatMealSearchResults(
-                                    meals,
-                                    queries,
-                                    tz,
-                                ),
+                                text: savedText
+                                    ? `${mealText}\n\n${savedText}`
+                                    : mealText,
                             },
                         ],
                     };
@@ -2726,7 +3177,7 @@ export function registerTools(
         },
     );
 
-    // UI resource for the log_meal widget (day's running totals vs goals as
+    // UI resource for the log_meal / update_meal / log_saved_meal widget (day's running totals vs goals as
     // rings; renders nothing when no goals are set). Same contract as above.
     server.registerResource(
         "meal-logged-widget",
@@ -2734,7 +3185,7 @@ export function registerTools(
         {
             title: "Meal Logged",
             description:
-                "Interactive UI shown after log_meal: the day's running intake-vs-goal rings, with automatic light/dark theming. Shows nothing when no nutrition goals are set.",
+                "Interactive UI shown after log_meal, update_meal and log_saved_meal: the day's running intake-vs-goal rings, with automatic light/dark theming. Shows nothing when no nutrition goals are set.",
             mimeType: APP_UI_MIME_TYPE,
         },
         async (uri) => {
@@ -3061,6 +3512,14 @@ export function registerTools(
                     // "N more" comes from _meta's contributors.
                     const rows = mealBreakdown(meals, tz, alcohol);
                     const breakdown = topMealBreakdown(rows, alcohol);
+                    const keptMeals = breakdown.kept.map((i) => meals[i]!);
+                    // Items only for the kept rows (at most 64), never the
+                    // whole window; the added-sugar `extra` rows get none.
+                    const itemsEntry = await mealItemsMetaEntry(
+                        userId,
+                        keptMeals,
+                        alcohol,
+                    );
 
                     const footer =
                         addedSugarAverage +
@@ -3108,7 +3567,7 @@ export function registerTools(
                             [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
                                 goal: goals?.daily_added_sugar_g,
                                 days: Object.fromEntries(byDate),
-                                meals: breakdown.kept.map((i) => meals[i]!),
+                                meals: keptMeals,
                                 contributorsOf: meals,
                                 extra: addedSugarExtra(
                                     meals,
@@ -3117,6 +3576,7 @@ export function registerTools(
                                     MEAL_BREAKDOWN_TOP_N,
                                 ),
                             }),
+                            ...itemsEntry,
                         },
                     };
                 },
@@ -3521,6 +3981,11 @@ export function registerTools(
                                 days: { [targetDate]: meals },
                                 meals,
                             }),
+                            ...(await mealItemsMetaEntry(
+                                userId,
+                                meals,
+                                alcohol,
+                            )),
                         },
                     };
                 },
@@ -3598,7 +4063,7 @@ export function registerTools(
             // backfill runs only once the user asks or agrees: an unrequested
             // write is what directory policy 2.D forbids.
             description:
-                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to backfill nutrition a meal was logged without: when a past meal has no fiber_g, sugar_g, added_sugar_g or (where it applies) caffeine_mg and the user asks or agrees to fill it in, estimate the value and pass just that field. Meal ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.\n\n" +
+                "Update fields of an existing meal entry. Only the fields you pass are changed, which also makes this the way to backfill nutrition a meal was logged without: when a past meal has no fiber_g, sugar_g, added_sugar_g or (where it applies) caffeine_mg and the user asks or agrees to fill it in, estimate the value and pass just that field (for a meal logged with items, the full items list carrying the value on each item). A meal logged with items has totals equal to the sum of those items, so its totals change through a full new items list (which replaces its previous items) rather than through the totals fields. Meal ids come from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.\n\n" +
                 NUTRIENT_COVERAGE,
             annotations: {
                 title: "Update Meal",
@@ -3669,6 +4134,10 @@ export function registerTools(
                     .optional()
                     .describe("When the meal was eaten. " + LOGGED_AT_FORMS),
                 notes: z.string().optional(),
+                items: z
+                    .array(MEAL_ITEM_INPUT)
+                    .optional()
+                    .describe(UPDATE_MEAL_ITEMS_DESCRIPTION),
             }),
             outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
             // Reuses the SAME meal-logged widget as log_meal (see
@@ -3676,7 +4145,7 @@ export function registerTools(
             // changes its header. Renders nothing when no goals are set.
             ...uiMeta(MEAL_LOGGED_WIDGET_URI),
         },
-        async ({ id, ...fields }) => {
+        async ({ id, items: rawItems, ...fields }) => {
             return withAnalytics(
                 "update_meal",
                 async () => {
@@ -3685,6 +4154,28 @@ export function registerTools(
                         throw new ToolError(
                             notUuidText("meal", id, MEAL_ID_SOURCES),
                         );
+                    let itemsChecked: ReturnType<typeof validateItems> | null =
+                        null;
+                    let sugarGuard: MealSugarGuard | undefined;
+                    if (rawItems !== undefined) {
+                        // Items replace the totals: the totals fields may not
+                        // come alongside, and each item is checked on its own.
+                        const sent = totalsSentWithItems(fields);
+                        if (sent.length > 0) throw totalsWithItemsError(sent);
+                        itemsChecked = validateItems(rawItems, {
+                            addedSugarRequired: addedSugarRequiredNow(),
+                        });
+                    } else if (totalsSentWithItems(fields).length > 0) {
+                        // A meal logged with items has totals that are their
+                        // sum, so a direct edit of a total would contradict
+                        // its items.
+                        const count = await countMealItems(userId, id);
+                        if (count > 0)
+                            throw new ToolError(
+                                `This meal's totals are the sum of its ${count} item${count === 1 ? "" : "s"}, so they change through items (the full new list) rather than directly.`,
+                                { category: "meal_items_invalid" },
+                            );
+                    }
                     // The stored row is read only when exactly one of the
                     // two sugar fields is passed — the backfill case. The
                     // write is then conditional on the stored value the check
@@ -3693,8 +4184,7 @@ export function registerTools(
                     // sugar above total; never clamped.
                     const passedSugar = fields.sugar_g !== undefined;
                     const passedAdded = fields.added_sugar_g !== undefined;
-                    let sugarGuard: MealSugarGuard | undefined;
-                    if (passedSugar || passedAdded) {
+                    if (itemsChecked === null && (passedSugar || passedAdded)) {
                         const stored =
                             passedSugar && passedAdded
                                 ? null
@@ -3726,12 +4216,23 @@ export function registerTools(
                         userId,
                         fields.logged_at,
                     );
-                    const meal = await updateMeal(
-                        userId,
-                        id,
-                        { ...fields, logged_at: iso },
-                        sugarGuard,
-                    );
+                    const meal = itemsChecked
+                        ? await replaceMealItems(
+                              userId,
+                              id,
+                              {
+                                  ...fields,
+                                  ...itemsChecked.totals,
+                                  logged_at: iso,
+                              },
+                              itemsChecked.items,
+                          )
+                        : await updateMeal(
+                              userId,
+                              id,
+                              { ...fields, logged_at: iso },
+                              sugarGuard,
+                          );
                     const { progressSection, structuredContent, meta, tz } =
                         await buildMealProgress(
                             userId,
@@ -3739,15 +4240,20 @@ export function registerTools(
                             "updated",
                             alcohol,
                         );
+                    const missingNote = await missingNutrientNoteFor(
+                        userId,
+                        meal,
+                        itemsChecked?.items.length,
+                    );
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz)}${progressSection}${alcoholHiddenNote(
+                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz, itemsChecked?.items)}${progressSection}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
-                                )}${missingNutrientNote(meal)}${note}`,
+                                )}${missingNote}${note}`,
                             },
                         ],
                         structuredContent,
@@ -3758,6 +4264,792 @@ export function registerTools(
             );
         },
     );
+    server.registerTool(
+        "save_meal",
+        {
+            title: "Save Meal",
+            description:
+                "Save a named meal to log again later, kept per serving: its totals and, optionally, its ingredients. Give items, or the totals per serving (with calories), or from_meal_id to copy a meal already logged. Saving writes no meal entry; log_saved_meal logs a saved meal. A name already in use is refused, and update_saved_meal changes a saved meal.",
+            annotations: {
+                title: "Save Meal",
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                name: z
+                    .string()
+                    .describe(
+                        "The saved meal's name, 1 to 100 characters, unique among the user's saved meals (case-insensitive).",
+                    ),
+                from_meal_id: z
+                    .string()
+                    .optional()
+                    .describe(
+                        `UUID of a logged meal to copy, from ${MEAL_ID_SOURCES}. Its totals and ingredients are copied; description and meal_type may be sent to override them. Items and totals are not sent with it.`,
+                    ),
+                description: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "What the saved meal is, written as a meal description would be, 1 to 2000 characters. Defaults to the name, or to the copied meal's description.",
+                    ),
+                meal_type: z
+                    .enum(["breakfast", "lunch", "dinner", "snack"])
+                    .optional()
+                    .describe(
+                        "Default meal type, used by log_saved_meal when its meal_type is not given.",
+                    ),
+                items: z
+                    .array(MEAL_ITEM_INPUT)
+                    .optional()
+                    .describe(SAVE_MEAL_ITEMS_DESCRIPTION),
+                calories: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_CALORIES)
+                    .optional()
+                    .describe(
+                        "Calories per serving. Sent with the other totals when there are no items; calories is the one that must come with them.",
+                    ),
+                protein_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe("Protein per serving, in grams."),
+                carbs_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe("Carbohydrates per serving, in grams."),
+                fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe("Fat per serving, in grams."),
+                fiber_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Fiber per serving, in grams, as log_meal's fiber_g.",
+                    ),
+                sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Total sugars per serving, in grams, as log_meal's sugar_g.",
+                    ),
+                added_sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Added sugars per serving, in grams, as log_meal's added_sugar_g. Never more than sugar_g.",
+                    ),
+                alcohol_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_ALCOHOL_G)
+                    .optional()
+                    .describe(
+                        "Grams of pure ethanol per serving, as log_meal's alcohol_g.",
+                    ),
+                caffeine_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_CAFFEINE_MG)
+                    .optional()
+                    .describe(
+                        "Caffeine per serving, in milligrams, as log_meal's caffeine_mg.",
+                    ),
+            }),
+        },
+        async (args) => {
+            return withAnalytics(
+                "save_meal",
+                async () => {
+                    const name = validateSavedMealName(args.name);
+                    if (
+                        (await countSavedMeals(userId)) >=
+                        MAX_SAVED_MEALS_PER_USER
+                    )
+                        throw new ToolError(
+                            `This account already holds ${MAX_SAVED_MEALS_PER_USER} saved meals, the most it can keep. delete_saved_meal removes one.`,
+                            { category: "meal_items_invalid" },
+                        );
+                    const description =
+                        args.description !== undefined
+                            ? validateSavedMealDescription(args.description)
+                            : undefined;
+                    const sentTotals = totalsSentWithItems(args);
+
+                    let saved: SavedMealWithItems;
+                    if (args.from_meal_id !== undefined) {
+                        if (!isUuid(args.from_meal_id))
+                            throw new ToolError(
+                                notUuidText(
+                                    "meal",
+                                    args.from_meal_id,
+                                    MEAL_ID_SOURCES,
+                                ),
+                            );
+                        if (args.items !== undefined || sentTotals.length > 0)
+                            throw new ToolError(
+                                "from_meal_id copies a logged meal's totals and ingredients, so items and totals cannot be sent with it. description and meal_type can still be sent.",
+                                { category: "meal_items_invalid" },
+                            );
+                        const source = await getMealById(
+                            userId,
+                            args.from_meal_id,
+                        );
+                        if (!source)
+                            throw new ToolError(
+                                `No meal found with id ${args.from_meal_id}.`,
+                            );
+                        const sourceItems =
+                            (await getMealItems(userId, [source.id])).get(
+                                source.id,
+                            ) ?? [];
+                        // A logged meal's description has no length bound, so
+                        // a long one is refused here rather than by the
+                        // database; a description sent alongside replaces it.
+                        const copied = source.description.trim();
+                        const copiedLength = [...copied].length;
+                        if (
+                            description === undefined &&
+                            copiedLength > MAX_SAVED_MEAL_DESCRIPTION_CHARS
+                        )
+                            throw new ToolError(
+                                `The meal being copied has a description of ${copiedLength} characters, and a saved meal's description holds at most ${MAX_SAVED_MEAL_DESCRIPTION_CHARS}. A description sent with from_meal_id replaces the copied one.`,
+                                { category: "meal_items_invalid" },
+                            );
+                        saved = await savedMealWrite(
+                            userId,
+                            name,
+                            {
+                                ...nutrientsFrom(source),
+                                name,
+                                description:
+                                    description ??
+                                    (copiedLength > 0 ? copied : name),
+                                meal_type: args.meal_type ?? source.meal_type,
+                            },
+                            sourceItems,
+                        );
+                    } else {
+                        let values: NutrientValues;
+                        let items: MealItemValues[] = [];
+                        if (args.items !== undefined) {
+                            if (sentTotals.length > 0)
+                                throw totalsWithItemsError(sentTotals);
+                            const checked = validateItems(args.items, {
+                                addedSugarRequired: addedSugarRequiredNow(),
+                            });
+                            values = checked.totals;
+                            items = checked.items;
+                        } else {
+                            if (args.calories === undefined)
+                                throw new ToolError(
+                                    "A saved meal is kept from either items or its totals per serving, and the totals need calories at least.",
+                                    { category: "meal_items_invalid" },
+                                );
+                            // The same two meal-level checks log_meal runs.
+                            if (
+                                addedSugarRequiredNow() &&
+                                addedSugarMissing(args)
+                            )
+                                throw addedSugarMissingError();
+                            const sugarError = addedSugarError(
+                                args.added_sugar_g,
+                                args.sugar_g,
+                            );
+                            if (sugarError) throw new ToolError(sugarError);
+                            values = nutrientsFrom(args);
+                        }
+                        saved = await savedMealWrite(
+                            userId,
+                            name,
+                            {
+                                ...values,
+                                name,
+                                description: description ?? name,
+                                meal_type: args.meal_type ?? null,
+                            },
+                            items,
+                        );
+                    }
+                    const alcoholNote = alcoholHiddenNote(
+                        (saved.alcohol_g ?? 0) > 0,
+                        alcohol,
+                        "Alcohol saved with this saved meal",
+                    );
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Saved meal "${saved.name}" [saved meal id: ${saved.id}]\n${savedMealBody(saved, alcohol)}${alcoholNote}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_saved_meals",
+        {
+            title: "Get Saved Meals",
+            description:
+                "List the user's saved meals by name: each with its id, default meal type, figures per serving and ingredients. name_contains narrows the list to saved meals whose name contains the text, case-insensitively. The ids are what log_saved_meal, update_saved_meal and delete_saved_meal take.",
+            annotations: {
+                title: "Get Saved Meals",
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                name_contains: z
+                    .string()
+                    .min(1)
+                    .max(100)
+                    .optional()
+                    .describe(
+                        "Text the saved meal's name contains, case-insensitively.",
+                    ),
+            }),
+        },
+        async ({ name_contains }) => {
+            return withAnalytics(
+                "get_saved_meals",
+                async () => {
+                    const needle = name_contains?.trim() || undefined;
+                    const saved = await getSavedMeals(userId, {
+                        nameContains: needle,
+                    });
+                    if (saved.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: needle
+                                        ? `No saved meals matching "${needle}".`
+                                        : "No saved meals yet.",
+                                },
+                            ],
+                        };
+                    }
+                    const total = saved.length;
+                    const header = `${total} saved meal${total === 1 ? "" : "s"}${needle ? ` matching "${needle}"` : ""}.`;
+                    // Whole saved meals, while they fit the listing budget;
+                    // the first one always shows.
+                    const entries: string[] = [];
+                    let size = header.length;
+                    for (const s of saved) {
+                        const entry = savedMealListing(s, alcohol);
+                        if (
+                            entries.length > 0 &&
+                            size + entry.length > MEAL_LISTING_MAX_CHARS
+                        )
+                            break;
+                        entries.push(entry);
+                        size += entry.length + 2;
+                    }
+                    const notice =
+                        entries.length < total
+                            ? `\n\nThe list stops at ${entries.length} of ${total} saved meals. name_contains narrows it to the names it contains.`
+                            : "";
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${header}\n\n${entries.join("\n\n")}${notice}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+                { name_contains },
+            );
+        },
+    );
+
+    server.registerTool(
+        "log_saved_meal",
+        {
+            title: "Log Saved Meal",
+            description:
+                "Log a saved meal as a meal entry: a copy of its values and of its ingredients, scaled by servings, with single items' amounts changed or items left out. servings applies first, and item_amounts then sets an item to the amount actually eaten in this entry. saved_meal is the saved meal's name or id (ids come from get_saved_meals or search_meals). The entry is then an ordinary meal, and editing or deleting the saved meal later does not change it. meal_type defaults to the saved meal's default.",
+            outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
+            annotations: {
+                title: "Log Saved Meal",
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                saved_meal: z
+                    .string()
+                    .min(1)
+                    .max(200)
+                    .describe(
+                        "The saved meal's name, or its id from get_saved_meals or search_meals.",
+                    ),
+                servings: z.coerce
+                    .number()
+                    .positive()
+                    .max(MAX_SERVINGS)
+                    .optional()
+                    .describe(
+                        `How many servings this entry covers, 1 by default and at most ${MAX_SERVINGS}. Scales every total and every item's amount and nutrients; item_amounts is applied after it.`,
+                    ),
+                item_amounts: z
+                    .array(
+                        z.object({
+                            item: z
+                                .string()
+                                .min(1)
+                                .describe(
+                                    "The item's position number or its exact name.",
+                                ),
+                            amount: z.coerce
+                                .number()
+                                .positive()
+                                .max(MAX_ITEM_AMOUNT)
+                                .describe(
+                                    "The amount of the item eaten in this entry, in the item's own unit. servings does not scale it further.",
+                                ),
+                        }),
+                    )
+                    .optional()
+                    .describe(
+                        "Items whose amount in this entry differs from the saved amount times servings: each amount is what this entry holds of the item, and the item's nutrients scale to it. An item saved without an amount can only be left out, and a saved meal without items cannot take this.",
+                    ),
+                leave_out: z
+                    .array(z.string().min(1))
+                    .optional()
+                    .describe(
+                        "Items not eaten this time, by position number or exact name. At least one item stays in.",
+                    ),
+                meal_type: z
+                    .enum(["breakfast", "lunch", "dinner", "snack"])
+                    .optional()
+                    .describe(
+                        "Meal type of this entry. Defaults to the saved meal's default meal type.",
+                    ),
+                description: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Description of this entry. Defaults to the saved meal's description, with the servings noted when servings is not 1.",
+                    ),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "When this actually happened (defaults to now). " +
+                            LOGGED_AT_FORMS_PLAIN +
+                            LOGGED_AT_OMITTED_PLAIN,
+                    ),
+                notes: z.string().optional().describe("Additional notes"),
+                idempotency_key: z
+                    .string()
+                    .min(1)
+                    .max(255)
+                    .optional()
+                    .describe(idempotencyKeyDescriptionPlain("meal")),
+            }),
+            ...uiMeta(MEAL_LOGGED_WIDGET_URI),
+        },
+        async (args) => {
+            return withAnalytics(
+                "log_saved_meal",
+                async () => {
+                    const saved = await resolveSavedMeal(
+                        userId,
+                        args.saved_meal,
+                    );
+                    const servings = args.servings ?? 1;
+                    const mealType = args.meal_type ?? saved.meal_type;
+                    if (!mealType)
+                        throw new ToolError(
+                            "This saved meal has no default meal type; meal_type gives one.",
+                            { category: "meal_items_invalid" },
+                        );
+                    const changed =
+                        (args.item_amounts?.length ?? 0) > 0 ||
+                        (args.leave_out?.length ?? 0) > 0;
+                    let items: MealItemValues[] | undefined;
+                    let totals: NutrientValues;
+                    if (saved.items.length > 0) {
+                        // Servings first, then the item changes, so an
+                        // item_amounts value is the amount in this entry
+                        // rather than one servings multiplies again.
+                        items = applyItemChanges(
+                            scaleItems(saved.items, servings),
+                            {
+                                item_amounts: args.item_amounts,
+                                leave_out: args.leave_out,
+                            },
+                        );
+                        totals = sumItems(items);
+                    } else {
+                        if (changed)
+                            throw new ToolError(
+                                "This saved meal has no items, so item_amounts and leave_out do not apply; servings scales the whole meal.",
+                                { category: "meal_items_invalid" },
+                            );
+                        totals = scaleTotals(nutrientsFrom(saved), servings);
+                    }
+                    // A servings multiplier or a changed amount can take the
+                    // meal past what log_meal accepts (and calories past the
+                    // integer column); refused before anything is written.
+                    assertMealTotals(totals);
+                    const description =
+                        args.description ??
+                        saved.description +
+                            (servings !== 1 ? ` (${servings} servings)` : "");
+                    const { iso, note } = await resolveWriteTimestamp(
+                        userId,
+                        args.logged_at,
+                    );
+                    const { meal, deduplicated } = await insertMeal(userId, {
+                        description,
+                        meal_type: mealType as MealInput["meal_type"],
+                        ...totalsAsInput(totals),
+                        logged_at: iso,
+                        notes: args.notes,
+                        idempotency_key: args.idempotency_key,
+                        saved_meal_id: saved.id,
+                        ...(items ? { items } : {}),
+                    });
+                    const header = deduplicated
+                        ? "Meal already logged — this matched an existing meal, so nothing new was added"
+                        : "Meal logged";
+                    const { progressSection, structuredContent, meta, tz } =
+                        await buildMealProgress(
+                            userId,
+                            meal,
+                            "logged",
+                            alcohol,
+                        );
+                    const block =
+                        items && !deduplicated
+                            ? `\n${formatItemsBlock(items, alcohol !== null)}`
+                            : "";
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz)}\n\nFrom saved meal "${saved.name}".${block}${progressSection}${alcoholHiddenNote(
+                                    (meal.alcohol_g ?? 0) > 0,
+                                    alcohol,
+                                    "Alcohol saved with this meal",
+                                )}${await missingNutrientNoteFor(
+                                    userId,
+                                    meal,
+                                    deduplicated
+                                        ? undefined
+                                        : (items?.length ?? 0),
+                                )}${note}`,
+                            },
+                        ],
+                        structuredContent,
+                        _meta: meta,
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "update_saved_meal",
+        {
+            title: "Update Saved Meal",
+            description:
+                "Change a saved meal: its name, description, default meal type, its totals per serving or its ingredients (a full new list). Only the fields passed change. Meals already logged from it keep their values. A saved meal with items has totals equal to the sum of its items, so its totals change through items.",
+            annotations: {
+                title: "Update Saved Meal",
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the saved meal to change, from ${SAVED_MEAL_ID_SOURCES}.`,
+                    ),
+                name: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "A new name, unique among the user's saved meals.",
+                    ),
+                description: z
+                    .string()
+                    .optional()
+                    .describe("A new description, 1 to 2000 characters."),
+                meal_type: z
+                    .enum(["breakfast", "lunch", "dinner", "snack"])
+                    .optional()
+                    .describe("A new default meal type."),
+                items: z
+                    .array(MEAL_ITEM_INPUT)
+                    .optional()
+                    .describe(UPDATE_SAVED_MEAL_ITEMS_DESCRIPTION),
+                calories: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_CALORIES)
+                    .optional()
+                    .describe("Calories per serving."),
+                protein_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe("Protein per serving, in grams."),
+                carbs_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe("Carbohydrates per serving, in grams."),
+                fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe("Fat per serving, in grams."),
+                fiber_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe("Fiber per serving, in grams."),
+                sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe("Total sugars per serving, in grams."),
+                added_sugar_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Added sugars per serving, in grams. Never more than sugar_g.",
+                    ),
+                alcohol_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_ALCOHOL_G)
+                    .optional()
+                    .describe("Grams of pure ethanol per serving."),
+                caffeine_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_CAFFEINE_MG)
+                    .optional()
+                    .describe("Caffeine per serving, in milligrams."),
+            }),
+        },
+        async ({ id, items: rawItems, ...fields }) => {
+            return withAnalytics(
+                "update_saved_meal",
+                async () => {
+                    if (!isUuid(id))
+                        throw new ToolError(
+                            notUuidText(
+                                "saved meal",
+                                id,
+                                SAVED_MEAL_ID_SOURCES,
+                            ),
+                        );
+                    const name =
+                        fields.name !== undefined
+                            ? validateSavedMealName(fields.name)
+                            : undefined;
+                    const description =
+                        fields.description !== undefined
+                            ? validateSavedMealDescription(fields.description)
+                            : undefined;
+                    const sentTotals = totalsSentWithItems(fields);
+                    if (
+                        name === undefined &&
+                        fields.description === undefined &&
+                        fields.meal_type === undefined &&
+                        rawItems === undefined &&
+                        sentTotals.length === 0
+                    )
+                        throw new ToolError(
+                            "Nothing to change: pass a name, description, meal_type, items or totals.",
+                        );
+                    const notFound = () =>
+                        new ToolError(`No saved meal found with id ${id}.`);
+
+                    let items: MealItemValues[] | null = null;
+                    let totals: Partial<NutrientValues> = {};
+                    if (rawItems !== undefined) {
+                        if (sentTotals.length > 0)
+                            throw totalsWithItemsError(sentTotals);
+                        const checked = validateItems(rawItems, {
+                            addedSugarRequired: addedSugarRequiredNow(),
+                        });
+                        items = checked.items;
+                        totals = checked.totals;
+                    } else if (sentTotals.length > 0) {
+                        const current = await getSavedMeal(userId, id);
+                        if (!current) throw notFound();
+                        if (current.items.length > 0)
+                            throw new ToolError(
+                                `This saved meal's totals are the sum of its ${current.items.length} item${current.items.length === 1 ? "" : "s"}, so they change through items (the full new list) rather than directly.`,
+                                { category: "meal_items_invalid" },
+                            );
+                        // Checked against the stored partner of whichever
+                        // sugar field is not sent, as update_meal does.
+                        const addedNow =
+                            fields.added_sugar_g !== undefined
+                                ? fields.added_sugar_g
+                                : current.added_sugar_g;
+                        const sugarNow =
+                            fields.sugar_g !== undefined
+                                ? fields.sugar_g
+                                : current.sugar_g;
+                        const sugarError = addedSugarError(
+                            addedNow ?? undefined,
+                            sugarNow ?? undefined,
+                        );
+                        if (sugarError) throw new ToolError(sugarError);
+                        if (
+                            addedSugarRequiredNow() &&
+                            fields.sugar_g !== undefined &&
+                            fields.added_sugar_g === undefined &&
+                            current.added_sugar_g === null
+                        )
+                            throw savedMealAddedSugarMissingError(id);
+                        totals = Object.fromEntries(
+                            sentTotals.map((k) => [k, fields[k]]),
+                        ) as Partial<NutrientValues>;
+                    }
+
+                    let updated: SavedMealWithItems | null;
+                    try {
+                        updated = await updateSavedMeal(
+                            userId,
+                            id,
+                            {
+                                ...totals,
+                                ...(name !== undefined ? { name } : {}),
+                                ...(description !== undefined
+                                    ? { description }
+                                    : {}),
+                                ...(fields.meal_type !== undefined
+                                    ? { meal_type: fields.meal_type }
+                                    : {}),
+                            },
+                            items,
+                        );
+                    } catch (err) {
+                        if (err instanceof SavedMealNameTaken)
+                            throw savedMealNameTakenError(
+                                name ?? "",
+                                err.existingId,
+                            );
+                        throw err;
+                    }
+                    if (!updated) throw notFound();
+                    const alcoholNote = alcoholHiddenNote(
+                        (updated.alcohol_g ?? 0) > 0,
+                        alcohol,
+                        "Alcohol saved with this saved meal",
+                    );
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `Saved meal "${updated.name}" updated. Meals already logged from it keep their values.\n${savedMealBody(updated, alcohol)}${alcoholNote}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "delete_saved_meal",
+        {
+            title: "Delete Saved Meal",
+            description:
+                "Delete a saved meal and its ingredients. Meals already logged from it keep their values; they only lose the link to it.",
+            annotations: {
+                title: "Delete Saved Meal",
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the saved meal to delete, from ${SAVED_MEAL_ID_SOURCES}.`,
+                    ),
+            }),
+        },
+        async ({ id }) => {
+            return withAnalytics(
+                "delete_saved_meal",
+                async () => {
+                    if (!isUuid(id)) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: notUuidText(
+                                        "saved meal",
+                                        id,
+                                        SAVED_MEAL_ID_SOURCES,
+                                    ),
+                                },
+                            ],
+                        };
+                    }
+                    const deleted = await deleteSavedMeal(userId, id);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: deleted
+                                    ? `Saved meal "${deleted.name}" deleted. Meals already logged from it keep their values.`
+                                    : `No saved meal found with id ${id}.`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
     server.registerTool(
         "log_water",
         {
@@ -5434,7 +6726,7 @@ export function registerTools(
         {
             title: "Export All Data",
             description:
-                "Export EVERYTHING this server stores about the user — meals, water, weight, body measurements, nutrition goals and every dated change to them, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path: it covers a full backup, an account takeout, and a request for the meal history alone, which is meals.csv inside the archive. The link is for the user to download the archive.",
+                "Export EVERYTHING this server stores about the user — meals with their ingredients, saved meals with their ingredients, water, weight, body measurements, nutrition goals and every dated change to them, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, meal_items.csv, saved_meals.csv, saved_meal_items.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path: it covers a full backup, an account takeout, and a request for the meal history alone, which is meals.csv inside the archive. The link is for the user to download the archive.",
             annotations: {
                 title: "Export All Data",
                 readOnlyHint: false,
@@ -5763,7 +7055,7 @@ export function registerTools(
         {
             title: "Delete Nutrition Account",
             description:
-                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals, water, weight, body measurements, goals, settings, exports, usage records, sign-in tokens, and the Apple Health sync connection with its record of values sent). Totals already written to Apple Health stay on the user's iPhone. Irreversible. Always confirm with the user before calling this tool.",
+                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals and their ingredients, saved meals and their ingredients, water, weight, body measurements, goals, settings, exports, usage records, sign-in tokens, and the Apple Health sync connection with its record of values sent). Totals already written to Apple Health stay on the user's iPhone. Irreversible. Always confirm with the user before calling this tool.",
             annotations: {
                 title: "Delete Nutrition Account",
                 readOnlyHint: false,

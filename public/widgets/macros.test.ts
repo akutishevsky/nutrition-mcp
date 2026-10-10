@@ -31,6 +31,7 @@ type AddedSugar = {
     extra?: unknown;
 };
 type ExtraRows = Record<string, unknown[]> | null;
+type MealItemsPayload = { v: 1; meals: unknown[] };
 const macrosApi = await (async () => {
     // shared/i18n.js before shared/macros.js, exactly as every template
     // orders its includes — macros.js reads T/tpl/plural from it. Only the
@@ -45,7 +46,7 @@ const macrosApi = await (async () => {
         "fmt",
         "esc",
         "WIDGET_STRINGS",
-        `${i18nSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, addedSugarPayload, addedSugarFor, withAddedSugar, withAddedSugarContributors };`,
+        `${i18nSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, addedSugarPayload, addedSugarFor, withAddedSugar, withAddedSugarContributors, mealItemsPayload, withMealItems };`,
     );
     return factory(fmt, esc, { en: WIDGET_STRINGS_EN }) as {
         macroBits: (
@@ -105,6 +106,11 @@ const macrosApi = await (async () => {
             as: AddedSugar | null,
             contributors: Record<string, number | null> | null,
         ) => Record<string, number | null> | null;
+        mealItemsPayload: (raw: unknown) => MealItemsPayload | null;
+        withMealItems: (
+            payload: MealItemsPayload | null,
+            meals: unknown,
+        ) => unknown;
     };
 })();
 
@@ -1848,4 +1854,425 @@ test("mealList's CAP and the extra-row cap equal MEAL_BREAKDOWN_TOP_N", async ()
     expect(src.match(/if \(rows\.length >= (\d+)\) break;/)?.[1]).toBe(
         String(MEAL_BREAKDOWN_TOP_N),
     );
+});
+
+// ---- Meal items (the "nutrition-mcp.com/meal-items" `_meta`) ----------------
+
+type ItemRow = Record<string, unknown> & { items?: Record<string, unknown>[] };
+const NUTRIENTS = [
+    "calories",
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "fiber_g",
+    "sugar_g",
+    "added_sugar_g",
+    "alcohol_g",
+    "caffeine_mg",
+] as const;
+function itemOf(
+    name: string,
+    vals: Partial<Record<(typeof NUTRIENTS)[number], number | null>>,
+    amount: number | null = null,
+    unit: string | null = null,
+) {
+    const it: Record<string, unknown> = { name, amount, unit };
+    for (const k of NUTRIENTS) it[k] = vals[k] ?? null;
+    return it;
+}
+const ITEM_MEALS = [
+    {
+        description: "KFC bucket",
+        meal_type: "lunch",
+        date: null,
+        calories: 900,
+        protein_g: 60,
+        fat_g: 50,
+        carbs_g: 40,
+        fiber_g: 2.5,
+    },
+    {
+        description: "Banana",
+        meal_type: "snack",
+        date: null,
+        calories: 105,
+        protein_g: 1.3,
+        fat_g: 0.4,
+        carbs_g: 27,
+        fiber_g: 3.1,
+    },
+    {
+        description: "Fusilli",
+        meal_type: "dinner",
+        date: null,
+        calories: 500,
+        protein_g: 18,
+        fat_g: 12,
+        carbs_g: 80,
+        fiber_g: 4,
+    },
+];
+const KFC_ITEMS = [
+    itemOf(
+        "Coleslaw",
+        { calories: 150, protein_g: 1, fat_g: 10, carbs_g: 14, fiber_g: 2.5 },
+        1,
+        "cup",
+    ),
+    itemOf(
+        "Курячі стегна",
+        { calories: 600, protein_g: 55, fat_g: 38, carbs_g: 12, fiber_g: 0 },
+        300,
+        "g",
+    ),
+    itemOf(
+        "Fries",
+        { calories: 150, protein_g: 4, fat_g: 2, carbs_g: 14 },
+        100,
+        "g",
+    ),
+];
+const FUSILLI_ITEMS = [
+    itemOf(
+        "Fusilli",
+        { calories: 350, protein_g: 12, fat_g: 2, carbs_g: 70, fiber_g: 4 },
+        100,
+        "g",
+    ),
+    itemOf("Pesto", {
+        calories: 150,
+        protein_g: 6,
+        fat_g: 10,
+        carbs_g: 10,
+        fiber_g: null,
+    }),
+];
+const ITEMS_META = { v: 1, meals: [KFC_ITEMS, null, FUSILLI_ITEMS] };
+const withItems = (raw: unknown = ITEMS_META, meals: unknown = ITEM_MEALS) =>
+    macrosApi.withMealItems(
+        macrosApi.mealItemsPayload(raw),
+        meals,
+    ) as ItemRow[];
+const rowsOf = (html: string) => html.split(/<li class="md-row/).slice(1);
+
+test("meal items join by position; rows without items stay the same object", () => {
+    const rows = withItems();
+    expect(rows).not.toBe(ITEM_MEALS);
+    expect(rows[0]).not.toBe(ITEM_MEALS[0]);
+    expect(rows[0]!.items!.map((i) => i.name)).toEqual([
+        "Coleslaw",
+        "Курячі стегна",
+        "Fries",
+    ]);
+    expect(rows[1]).toBe(ITEM_MEALS[1]);
+    expect(rows[2]!.items).toHaveLength(2);
+    // the caller's rows are never mutated
+    expect((ITEM_MEALS[0] as ItemRow).items).toBeUndefined();
+});
+
+test("a missing, malformed, future or misaligned meal-items payload returns the rows themselves", () => {
+    for (const raw of [
+        undefined,
+        null,
+        "x",
+        {},
+        { v: 2, meals: [KFC_ITEMS, null, FUSILLI_ITEMS] },
+        { v: 1, meals: {} },
+        { v: 1, meals: "nope" },
+        { v: 1, meals: [KFC_ITEMS, null] }, // length mismatch
+        { v: 1, meals: [KFC_ITEMS, null, FUSILLI_ITEMS, null] },
+    ]) {
+        expect(
+            macrosApi.withMealItems(
+                macrosApi.mealItemsPayload(raw),
+                ITEM_MEALS,
+            ),
+        ).toBe(ITEM_MEALS);
+    }
+    expect(withItems(ITEMS_META, null)).toBeNull();
+    expect(
+        macrosApi.withMealItems(
+            macrosApi.mealItemsPayload(ITEMS_META),
+            undefined,
+        ),
+    ).toBeUndefined();
+    // Slots that validate to nothing leave every row as it was.
+    const nothing = withItems({ v: 1, meals: [[], "x", [{ name: "" }]] });
+    nothing.forEach((r, i) => expect(r).toBe(ITEM_MEALS[i]!));
+});
+
+test("meal items are rebuilt from whitelisted fields only, and capped at 30", () => {
+    const rows = withItems({
+        v: 1,
+        meals: [
+            [
+                null,
+                "Coleslaw",
+                { name: 42 },
+                { name: "" },
+                {
+                    name: "Fries",
+                    amount: "100",
+                    unit: 5,
+                    calories: "150",
+                    protein_g: NaN,
+                    fat_g: Infinity,
+                    carbs_g: 14,
+                    evil: "<script>",
+                    position: 3,
+                },
+            ],
+            null,
+            Array.from({ length: 40 }, (_, i) =>
+                itemOf(`item ${i}`, { calories: i }),
+            ),
+        ],
+    });
+    expect(rows[0]!.items).toEqual([
+        {
+            name: "Fries",
+            amount: null,
+            unit: null,
+            calories: null,
+            protein_g: null,
+            carbs_g: 14,
+            fat_g: null,
+            fiber_g: null,
+            sugar_g: null,
+            added_sugar_g: null,
+            alcohol_g: null,
+            caffeine_mg: null,
+        },
+    ]);
+    expect(rows[2]!.items).toHaveLength(30);
+    expect(rows[2]!.items![29]!.name).toBe("item 29");
+});
+
+test("only rows whose meal has items get an expander, and the plain rows keep today's markup", () => {
+    const fat = macroOf("fat_g");
+    const plain = macrosApi.mealList(fat, ITEM_MEALS);
+    const html = macrosApi.mealList(fat, withItems());
+    // Sorted by fat: KFC 50, Fusilli 12, Banana 0.4.
+    const rows = rowsOf(html);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toStartWith(' has-items">');
+    expect(rows[0]).toContain(
+        '<button type="button" class="md-open" data-meal-open aria-expanded="false" aria-controls="md-items-fat_g-0">',
+    );
+    expect(rows[0]).toContain(
+        '<ul class="md-items" id="md-items-fat_g-0" aria-live="off" hidden>',
+    );
+    expect(rows[0]).toContain(
+        '<span class="md-count" aria-hidden="true">3</span>',
+    );
+    expect(rows[0]).toContain('<span class="sr-only">3 ingredients</span>');
+    // the same value markup a plain row carries (fmt here drops a trailing .0)
+    expect(rows[0]).toContain('50<span class="md-unit">g</span></span>');
+    expect(rows[1]).toContain('aria-controls="md-items-fat_g-1"');
+    expect(rows[1]).toContain('<span class="sr-only">2 ingredients</span>');
+    // The banana has no items: byte for byte the row it was without the payload.
+    expect(rows[2]).toBe(rowsOf(plain)[2]!);
+    expect(rows[2]).not.toContain("data-meal-open");
+    // and without the payload no row has one
+    expect(plain).not.toContain("data-meal-open");
+    expect(plain).not.toContain("md-items");
+});
+
+test("one ingredient reads in the singular", () => {
+    const rows = withItems({
+        v: 1,
+        meals: [[KFC_ITEMS[0]], null, null],
+    });
+    const html = macrosApi.mealList(macroOf("calories"), rows);
+    expect(html).toContain('<span class="sr-only">1 ingredient</span>');
+});
+
+test("items sort by the selected metric, biggest first, ties in logged order, missing last", () => {
+    const names = (key: string) => {
+        const html = macrosApi.mealList(macroOf(key), withItems());
+        const kfc = rowsOf(html).find((r) => r.includes("KFC bucket"))!;
+        return [...kfc.matchAll(/<span class="md-iname">([^<]*)<\/span>/g)].map(
+            (m) => m[1],
+        );
+    };
+    // calories 150 / 600 / 150: the tie keeps Coleslaw ahead of Fries.
+    expect(names("calories")).toEqual(["Курячі стегна", "Coleslaw", "Fries"]);
+    // carbs 14 / 12 / 14
+    expect(names("carbs_g")).toEqual(["Coleslaw", "Fries", "Курячі стегна"]);
+    // fiber 2.5 / 0 / missing: the recorded 0 ranks above the missing one.
+    expect(names("fiber_g")).toEqual(["Coleslaw", "Курячі стегна", "Fries"]);
+});
+
+test("an item without the metric reads –; a recorded 0 reads 0; amounts show with their unit", () => {
+    const html = macrosApi.mealList(macroOf("fiber_g"), withItems());
+    const kfc = rowsOf(html).find((r) => r.includes("KFC bucket"))!;
+    const items = kfc.split('<li class="md-item">').slice(1);
+    expect(items[0]).toContain(
+        '<span class="md-ival">2.5<span class="md-unit">g</span></span><span class="md-iname">Coleslaw</span><span class="md-iamt">1 cup</span>',
+    );
+    expect(items[1]).toContain(
+        '<span class="md-ival">0<span class="md-unit">g</span></span><span class="md-iname">Курячі стегна</span><span class="md-iamt">300 g</span>',
+    );
+    expect(items[2]).toContain(
+        '<span class="md-ival"><span class="md-none" role="img" aria-label="not recorded">–</span></span><span class="md-iname">Fries</span>',
+    );
+    // Pesto has neither amount nor unit, so no amount span at all.
+    const fus = rowsOf(html).find((r) => r.includes("Fusilli"))!;
+    const pesto = fus
+        .split('<li class="md-item">')
+        .find((r) => r.includes("Pesto"))!;
+    expect(pesto).not.toContain("md-iamt");
+    expect(pesto).toContain('aria-label="not recorded">–');
+    // Item values share the meal row's precision: calories stay whole.
+    const cal = macrosApi.mealList(macroOf("calories"), withItems());
+    expect(cal).toContain(
+        '<span class="md-ival">600<span class="md-unit">kcal</span></span>',
+    );
+});
+
+test("added-sugar extra rows never get an expander", () => {
+    // The extras are rebuilt from four fields (addedSugarExtraRows), so an
+    // `items` sent on one is dropped, and the meal-items join is over the
+    // kept rows only.
+    const as = macrosApi.addedSugarPayload({
+        v: 1,
+        goal: 25,
+        meals: { a: 1, b: 2, c: 3 },
+        extra: [
+            {
+                description: "Sweet tea",
+                meal_type: "snack",
+                date: null,
+                added_sugar_g: 30,
+                items: [itemOf("Sugar", { added_sugar_g: 30 })],
+            },
+        ],
+    });
+    const merged = macrosApi.withAddedSugar(
+        as,
+        40,
+        { added_sugar_g: 40 },
+        null,
+        ITEM_MEALS,
+    );
+    const meals = withItems(ITEMS_META, merged.meals);
+    const ctx = macrosApi.macroCtxOf(
+        merged.vals,
+        merged.goal,
+        undefined,
+        meals,
+        { extraRows: merged.extraRows },
+    );
+    const html = macrosApi.mealList(macroOf("added_sugar_g"), meals, ctx);
+    const rows = rowsOf(html);
+    expect(rows[0]).toContain("Sweet tea");
+    expect(rows[0]).not.toContain("data-meal-open");
+    expect(html.match(/data-meal-open/g)).toHaveLength(2);
+});
+
+test("meal items never touch the strip itself", () => {
+    expect(
+        macrosApi.macroPanel(
+            VALS,
+            GOALS,
+            undefined,
+            withItems(ITEMS_META, MEALS) as unknown[],
+        ),
+    ).toBe(macrosApi.macroPanel(VALS, GOALS, undefined, MEALS));
+});
+
+test("every template with a breakdown reads the meal-items `_meta` key", async () => {
+    const { MEAL_ITEMS_META_KEY } = await import("../../src/widgets");
+    expect(MEAL_ITEMS_META_KEY).toBe("nutrition-mcp.com/meal-items");
+    for (const t of [
+        "nutrition-summary",
+        "goal-progress",
+        "meal-logged",
+        "component-gallery",
+    ]) {
+        const html = await Bun.file(`${SRC}/templates/${t}.html`).text();
+        expect(html, t).toContain(JSON.stringify(MEAL_ITEMS_META_KEY));
+        expect(html, t).toContain("withMealItems(");
+        // after added sugar, on its merged rows
+        expect(html.indexOf("withMealItems("), t).toBeGreaterThan(
+            html.indexOf("withAddedSugar("),
+        );
+    }
+});
+
+test("the widget's meal-items cap equals MAX_ITEMS_PER_MEAL", async () => {
+    const { MAX_ITEMS_PER_MEAL } = await import("../../src/meal-items");
+    const src = await Bun.file(`${SRC}/shared/macros.js`).text();
+    expect(src.match(/const MEAL_ITEMS_CAP = (\d+);/)?.[1]).toBe(
+        String(MAX_ITEMS_PER_MEAL),
+    );
+});
+
+test("the meal-items expander uses a visually-hidden utility that exists", async () => {
+    const css = await Bun.file(`${SRC}/shared/base.css`).text();
+    expect(css).toContain(".sr-only {");
+});
+
+// The breakdown region is aria-live, so a list made visible inside it would be
+// read out item by item; each item list opts out, and the region itself stays
+// live for the breakdown swap.
+test("an opened item list is not announced by the breakdown's live region", () => {
+    const html = macrosApi.mealList(macroOf("fat_g"), withItems());
+    const lists = html.match(/<ul class="md-items"[^>]*>/g) ?? [];
+    expect(lists.length).toBeGreaterThan(0);
+    for (const l of lists) expect(l).toContain('aria-live="off"');
+    expect(
+        macrosApi.macroPanel(VALS, GOALS, undefined, withItems() as unknown[]),
+    ).toContain('<div class="macro-detail psec" hidden aria-live="polite">');
+});
+
+test("a second breakdown on one page can take its own id namespace", () => {
+    const fat = macroOf("fat_g");
+    const meals = withItems() as unknown[];
+    const ctx = { ...macrosApi.macroCtxOf(VALS, GOALS, undefined, meals) };
+    const live = macrosApi.mealList(fat, meals, ctx);
+    const pinned = macrosApi.mealList(fat, meals, {
+        ...ctx,
+        idPrefix: "md-items-pinned",
+    });
+    const ids = (h: string) =>
+        [...h.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]!);
+    const controls = (h: string) =>
+        [...h.matchAll(/aria-controls="([^"]+)"/g)].map((m) => m[1]!);
+    expect(ids(live)).toEqual(["md-items-fat_g-0", "md-items-fat_g-1"]);
+    expect(ids(pinned)).toEqual([
+        "md-items-pinned-fat_g-0",
+        "md-items-pinned-fat_g-1",
+    ]);
+    expect(controls(pinned)).toEqual(ids(pinned));
+    expect(ids(live).filter((id) => ids(pinned).includes(id))).toEqual([]);
+});
+
+test("the component gallery's pinned breakdown does not reuse the live strip's ids", async () => {
+    const html = await Bun.file(
+        `${SRC}/templates/component-gallery.html`,
+    ).text();
+    expect(html).toMatch(
+        /macroDetailBody\(CARBS, \{\s*\.\.\.macroCtxOf\(TOTALS, GOALS, undefined, ITEM_MEALS\),[^}]*idPrefix: "md-items-pinned",/,
+    );
+});
+
+test("the meal-row expander's focus ring and item layout rules in macros.css", async () => {
+    const css = await Bun.file(`${SRC}/shared/macros.css`).text();
+    // The focus ring must outrank the open row's outline, after it in source
+    // order and at least as specific (0,3,1 vs 0,3,0).
+    const open = css.indexOf(".md-row.open .md-open {");
+    const focus = css.indexOf(".md-row.open .md-open:focus-visible {");
+    expect(open).toBeGreaterThan(-1);
+    expect(focus).toBeGreaterThan(open);
+    expect(css).toMatch(
+        /\.md-row\.open \.md-open:focus-visible \{\s*outline: 2px solid var\(--accent\);\s*outline-offset: -2px;/,
+    );
+    // A long amount/unit shrinks and wraps instead of squeezing the name.
+    const amt = css.match(/\.md-iamt \{([^}]*)\}/)?.[1] ?? "";
+    expect(amt).not.toMatch(/flex: none/);
+    expect(amt).toContain("flex: 0 1 auto;");
+    expect(amt).toContain("min-width: 0;");
+    expect(amt).toContain("max-width: 32%;");
+    expect(amt).toContain("overflow-wrap: anywhere;");
 });

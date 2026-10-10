@@ -47,7 +47,7 @@ export const ALT_UI_TR: AltUiCopy = {
             },
             {
                 title: "Verilerini içe aktar &amp; sahibi ol",
-                body: "Yemek geçmişini başka bir uygulamanın CSV dışa aktarımından içe aktar — dosya tarayıcında ayrıştırılır, yapay zekâ tarafından değil. İstediğin an her şeyi geri al: yemeklerin, suyun, kilon, vücut ölçülerin, hedeflerin ve profilin, ayrıca hesap kaydın, kullanım telemetrin ve bağlı uygulamalarının bulunduğu tek bir ZIP dosyası, CSV olarak. Şimdilik yalnızca yemekler geri içe aktarılabiliyor. Ya da hesabını sil, aynı kolaylıkla.",
+                body: "Yemek geçmişini başka bir uygulamanın CSV dışa aktarımından içe aktar — dosya tarayıcında ayrıştırılır, yapay zekâ tarafından değil. İstediğin an her şeyi geri al: yemeklerin, kayıtlı yemeklerin, suyun, kilon, vücut ölçülerin, hedeflerin ve profilin, ayrıca hesap kaydın, kullanım telemetrin ve bağlı uygulamalarının bulunduğu tek bir ZIP dosyası, CSV olarak. Şimdilik yalnızca yemekler geri içe aktarılabiliyor. Ya da hesabını sil, aynı kolaylıkla.",
             },
             {
                 title: "Açık kaynak &amp; ücretsiz",

@@ -286,7 +286,153 @@
             // their own two-column sugars row above alcohol, caffeine and
             // fiber — the layout worth checking.
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            // Ingredients ride in `_meta` too, as a plain array aligned with
+            // MEALS by position: the bowl and the salmon carry items, the
+            // oats and the espresso do not (null), so only those two rows get
+            // an expander. One item lacks fiber (reads "–"), another records
+            // 0 (reads "0"), and one Cyrillic name is long enough to wrap.
+            const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
             const GALLERY_META = {
+                [MEAL_ITEMS_META_KEY]: {
+                    v: 1,
+                    meals: [
+                        null,
+                        [
+                            {
+                                name: "Chicken breast, grilled",
+                                amount: 150,
+                                unit: "g",
+                                calories: 248,
+                                protein_g: 46.5,
+                                carbs_g: 0,
+                                fat_g: 5.4,
+                                fiber_g: 0,
+                                sugar_g: 0,
+                                added_sugar_g: null,
+                                alcohol_g: null,
+                                caffeine_mg: null,
+                            },
+                            {
+                                name: "Jasmine rice, cooked",
+                                amount: 200,
+                                unit: "g",
+                                calories: 260,
+                                protein_g: 5.4,
+                                carbs_g: 56,
+                                fat_g: 0.6,
+                                fiber_g: 1.2,
+                                sugar_g: 0.2,
+                                added_sugar_g: null,
+                                alcohol_g: null,
+                                caffeine_mg: null,
+                            },
+                            {
+                                name: "Teriyaki sauce",
+                                amount: 30,
+                                unit: "ml",
+                                calories: 60,
+                                protein_g: 1.5,
+                                carbs_g: 12,
+                                fat_g: 0,
+                                fiber_g: 0,
+                                sugar_g: 9.2,
+                                added_sugar_g: null,
+                                alcohol_g: null,
+                                caffeine_mg: null,
+                            },
+                            // Worst case for the item row's layout: a long
+                            // name beside the largest amount and a 20-char
+                            // unit (MAX_ITEM_UNIT_CHARS). Check at 320/360px.
+                            {
+                                name: "Печені овочі з оливковою олією, паприкою та часником",
+                                amount: 100000,
+                                unit: "tablespoons (heaped)",
+                                calories: 0,
+                                protein_g: null,
+                                carbs_g: 0.1,
+                                fat_g: null,
+                                fiber_g: null,
+                                sugar_g: null,
+                                added_sugar_g: null,
+                                alcohol_g: null,
+                                caffeine_mg: null,
+                            },
+                            {
+                                name: "Broccoli",
+                                amount: 80,
+                                unit: "g",
+                                calories: 28,
+                                protein_g: 2.3,
+                                carbs_g: 5.3,
+                                fat_g: 0.3,
+                                fiber_g: null,
+                                sugar_g: null,
+                                added_sugar_g: null,
+                                alcohol_g: null,
+                                caffeine_mg: null,
+                            },
+                            {
+                                name: "Sesame oil",
+                                amount: 10,
+                                unit: "ml",
+                                calories: 88,
+                                protein_g: 0,
+                                carbs_g: 0,
+                                fat_g: 10,
+                                fiber_g: null,
+                                sugar_g: 0,
+                                added_sugar_g: null,
+                                alcohol_g: null,
+                                caffeine_mg: null,
+                            },
+                        ],
+                        [
+                            {
+                                name: "Лосось, запечений",
+                                amount: 140,
+                                unit: "g",
+                                calories: 290,
+                                protein_g: 34,
+                                carbs_g: 0,
+                                fat_g: 17,
+                                fiber_g: 0,
+                                sugar_g: 0,
+                                added_sugar_g: null,
+                                alcohol_g: null,
+                                caffeine_mg: null,
+                            },
+                            {
+                                name: "Кіноа",
+                                amount: 185,
+                                unit: "g",
+                                calories: 222,
+                                protein_g: 8.1,
+                                carbs_g: 39,
+                                fat_g: 3.6,
+                                fiber_g: 5.2,
+                                sugar_g: 1.6,
+                                added_sugar_g: null,
+                                alcohol_g: null,
+                                caffeine_mg: null,
+                            },
+                            {
+                                name: "Печені овочі з оливковою олією, паприкою та часником — дуже довга назва",
+                                amount: 150,
+                                unit: "g",
+                                calories: 138,
+                                protein_g: 3.9,
+                                carbs_g: 38,
+                                fat_g: 11.4,
+                                fiber_g: null,
+                                sugar_g: 13.1,
+                                added_sugar_g: null,
+                                alcohol_g: null,
+                                caffeine_mg: null,
+                            },
+                        ],
+                        null,
+                    ],
+                },
                 [ADDED_SUGAR_META_KEY]: {
                     v: 1,
                     goal: 25,
@@ -302,6 +448,27 @@
                 GOALS,
                 MEALS,
             );
+            const ITEMS = mealItemsPayload(GALLERY_META[MEAL_ITEMS_META_KEY]);
+            const STRIP_MEALS = withMealItems(ITEMS, STRIP.meals);
+            const ITEM_MEALS = withMealItems(ITEMS, MEALS);
+            // The breakdown with its first expandable row pinned open, as a
+            // tap would leave it (mealRowToggle), so the open state is on
+            // screen without one.
+            function pinFirstMealRow(html) {
+                return html
+                    .replace(
+                        '<li class="md-row has-items">',
+                        '<li class="md-row has-items open">',
+                    )
+                    .replace(
+                        'aria-expanded="false" aria-controls="md-items-',
+                        'aria-expanded="true" aria-controls="md-items-',
+                    )
+                    .replace(
+                        /(<ul class="md-items" id="[^"]+"[^>]*?) hidden>/,
+                        "$1>",
+                    );
+            }
             const CARBS = MACROS.find((m) => m.key === "carbs_g");
             const ADDED_SUGAR = MACROS.find((m) => m.key === "added_sugar_g");
             const ALCOHOL = MACROS.find((m) => m.key === "alcohol_g");
@@ -491,7 +658,7 @@
 
             <section class="card">
               <h3>Macro strip — calorie ring, macro bars, limits row, water line</h3>
-              <div class="panel">${macroPanel(STRIP.vals, STRIP.goal, undefined, STRIP.meals)}</div>
+              <div class="panel">${macroPanel(STRIP.vals, STRIP.goal, undefined, STRIP_MEALS)}</div>
             </section>
 
             <section class="card">
@@ -504,6 +671,18 @@
               <div class="panel"><div class="macro-detail">${macroDetailBody(
                   CARBS,
                   macroCtxOf(TOTALS, GOALS, undefined, MEALS),
+              )}</div></div>
+            </section>
+
+            <section class="card">
+              <h3>Carbs breakdown with ingredients (first row pinned open — tap a row to switch)</h3>
+              <div class="panel"><div class="macro-detail">${pinFirstMealRow(
+                  macroDetailBody(CARBS, {
+                      ...macroCtxOf(TOTALS, GOALS, undefined, ITEM_MEALS),
+                      // Its own id namespace: the live strip above opens the
+                      // same carbs rows under the default "md-items-" ids.
+                      idPrefix: "md-items-pinned",
+                  }),
               )}</div></div>
             </section>
 

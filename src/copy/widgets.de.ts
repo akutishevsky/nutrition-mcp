@@ -54,6 +54,10 @@ export const WIDGET_STRINGS_DE: WidgetStrings = {
             other: "+ {n} oder mehr kleinere Mahlzeiten",
         },
         moreMealsMaybe: "+ evtl. weitere kleinere Mahlzeiten",
+        ingredientCount: {
+            one: "{n} Zutat",
+            other: "{n} Zutaten",
+        },
     },
     bridge: {
         settingsFooter:

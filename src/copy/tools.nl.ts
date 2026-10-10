@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_NL: ToolsDoc = {
     meta: {
-        title: "41 tools voor calorieën, macro's, water & gewicht",
+        title: "46 tools voor calorieën, macro's, water & gewicht",
         description:
-            "Alle 41 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
+            "Alle 46 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
         ogDescription:
-            "Alle 41 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer om je geschiedenis uit een andere app over te zetten. Met beschrijvingen en voorbeeldzinnen.",
+            "Alle 46 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer om je geschiedenis uit een andere app over te zetten. Met beschrijvingen en voorbeeldzinnen.",
     },
     hero: {
         eyebrow: "Naslag",
@@ -20,7 +20,7 @@ export const TOOLS_NL: ToolsDoc = {
         titleEm: "doen",
         titleAfterEm: "",
         lead: "Je roept deze tools nooit zelf aan: je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hieronder staat elke tool die de Nutrition MCP-server biedt voor maaltijden, calorieën en macro's, water en gewicht, met wat hij doet en een zin waarmee je hem aan het werk zet.",
-        countBold: "41 tools",
+        countBold: "46 tools",
         countTail: "verdeeld over 7 categorieën",
     },
     categories: {
@@ -86,7 +86,7 @@ export const TOOLS_NL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log wat je hebt gegeten, met calorieën en macro's, plus vezels, totale en toegevoegde suikers, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web.",
+                "Log wat je hebt gegeten, met calorieën en macro's, plus vezels, totale en toegevoegde suikers, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web. Je kunt ook de ingrediënten één voor één meegeven; de totalen zijn dan de som van die ingrediënten.",
             params: {
                 description: "Wat er is gegeten",
                 meal_type: "ontbijt, lunch, diner of snack",
@@ -107,6 +107,7 @@ export const TOOLS_NL: ToolsDoc = {
                 logged_at:
                     "Wanneer je het hebt gegeten, als dat niet nu was. Zo kun je iets achteraf loggen",
                 notes: "Extra notities",
+                items: "Ingrediënten, één rij per ingrediënt, met hun hoeveelheden en voedingswaarden: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code> en <code>fat_g</code> bij elk ingrediënt; <code>fiber_g</code>, <code>sugar_g</code> en <code>added_sugar_g</code> bij alle ingrediënten of bij geen enkel; <code>alcohol_g</code> en <code>caffeine_mg</code> alleen bij de ingrediënten die ze bevatten, opgeteld over die ingrediënten. De totalen van de maaltijd zijn dan de som van de ingrediënten, dus stuur ingrediënten of totalen, niet allebei",
             },
             example: "Log een burritobowl met kip en extra guacamole als lunch",
             photoHint:
@@ -145,7 +146,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Wijzig een maaltijd die je al hebt gelogd: de omschrijving, een macro, vezels, totale of toegevoegde suiker, alcohol of cafeïne, de tijd of de notities. Zo wordt ook een ontbrekende waarde achteraf aangevuld: is een maaltijd zonder vezels, suiker of toegevoegde suiker gelogd, dan meldt de server dat en vult de AI die waarde hier aan als je akkoord gaat.",
+                "Wijzig een maaltijd die je al hebt gelogd: de omschrijving, een macro, vezels, totale of toegevoegde suiker, alcohol of cafeïne, de tijd of de notities. Zo wordt ook een ontbrekende waarde achteraf aangevuld: is een maaltijd zonder vezels, suiker of toegevoegde suiker gelogd, dan meldt de server dat en vult de AI die waarde hier aan als je akkoord gaat. Bij een maaltijd die met ingrediënten is gelogd, wijzigen de totalen via de ingrediëntenlijst.",
             params: {
                 id: "UUID van de te wijzigen maaltijd",
                 description: "",
@@ -161,6 +162,7 @@ export const TOOLS_NL: ToolsDoc = {
                 caffeine_mg: "Milligram, niet gram",
                 logged_at: "",
                 notes: "",
+                items: "De volledige ingrediëntenlijst, die de bestaande vervangt. De totalen van de maaltijd worden de som van deze lijst, dus de totaalvelden kun je er niet naast sturen",
             },
             example:
                 "Die lunch was eigenlijk 600 calorieën, geen 500. Pas dat even aan.",
@@ -173,9 +175,90 @@ export const TOOLS_NL: ToolsDoc = {
             },
             example: "Verwijder de snack die ik vanmiddag heb gelogd",
         },
+        save_meal: {
+            description:
+                "Bewaar een maaltijd die je vaak eet onder een naam, zoals je vaste ontbijt, met de waarden voor één portie en, als je die hebt, de ingrediënten. Vul de waarden zelf in of kopieer ze van een maaltijd die je al hebt gelogd. Opslaan voegt niets toe aan je dagboek; log de opgeslagen maaltijd met log_saved_meal wanneer je hem eet.",
+            params: {
+                name: "De naam waaronder je hem bewaart, uniek onder je opgeslagen maaltijden (1–100 tekens)",
+                from_meal_id:
+                    "UUID van een gelogde maaltijd waarvan de waarden en ingrediënten worden gekopieerd",
+                description: "Wat de opgeslagen maaltijd is. Standaard de naam",
+                meal_type:
+                    "ontbijt, lunch, diner of snack: de standaard wanneer je hem logt",
+                items: "Ingrediënten, één rij per ingrediënt, met hun hoeveelheden en voedingswaarden. Hun som wordt de waarde van de opgeslagen maaltijd, dus stuur ingrediënten of waarden, niet allebei",
+                calories: "Totaal aantal calorieën voor één portie",
+                protein_g: "Eiwit in gram voor één portie",
+                carbs_g: "Koolhydraten in gram voor één portie",
+                fat_g: "Vet in gram voor één portie",
+                fiber_g: "Voedingsvezels in gram voor één portie",
+                sugar_g: "Totale suikers in gram voor één portie",
+                added_sugar_g:
+                    "Toegevoegde suikers in gram voor één portie, nooit meer dan de totale suikers. Hoort bij <code>sugar_g</code>",
+                alcohol_g:
+                    "Gram zuivere ethanol voor één portie, niet het volume van de drank",
+                caffeine_mg: "Milligram cafeïne voor één portie, niet gram",
+            },
+            example: "Bewaar dit als mijn vaste ontbijt",
+        },
+        log_saved_meal: {
+            description:
+                "Log een opgeslagen maaltijd als maaltijdregistratie vanaf nu of vanaf een tijdstip dat je opgeeft. De registratie krijgt een kopie van de opgeslagen waarden en ingrediënten, geschaald naar het aantal porties, met eventueel afzonderlijke ingrediënten op de echt gegeten hoeveelheid gezet of weggelaten, alleen voor deze keer. Latere wijzigingen aan de opgeslagen maaltijd laten maaltijden die er al uit zijn gelogd, zoals ze waren.",
+            params: {
+                saved_meal:
+                    "De naam van de opgeslagen maaltijd, of het id uit get_saved_meals of search_meals",
+                servings:
+                    "Hoeveel porties je logt: meer dan 0 en maximaal 20 (standaard 1)",
+                item_amounts:
+                    "De hoeveelheden van afzonderlijke ingrediënten die je in deze registratie echt hebt gegeten, op naam of positie. Het aantal porties schaalt eerst de opgeslagen maaltijd, daarna zetten deze waarden de hoeveelheid van de genoemde ingrediënten; hun voedingswaarden schalen mee",
+                leave_out:
+                    "Ingrediënten die je uit deze registratie laat, op naam of positie",
+                meal_type:
+                    "ontbijt, lunch, diner of snack: vervangt het standaardtype van de opgeslagen maaltijd",
+                description:
+                    "Omschrijving voor deze registratie. Standaard de omschrijving van de opgeslagen maaltijd",
+                logged_at: "Wanneer je het hebt gegeten, als dat niet nu was",
+                notes: "Extra notities",
+                idempotency_key:
+                    "Een sleutel die een herhaalde aanroep onschadelijk maakt, zodat dezelfde registratie niet twee keer wordt gelogd",
+            },
+            example: "Log mijn vaste ontbijt, een halve portie",
+        },
+        update_saved_meal: {
+            description:
+                "Wijzig de naam, omschrijving, het standaardmaaltijdtype, de ingrediënten of de waarden per portie van een opgeslagen maaltijd. Maaltijden die er al uit zijn gelogd, behouden hun waarden.",
+            params: {
+                id: "UUID van de opgeslagen maaltijd die je wijzigt",
+                name: "Nieuwe naam, uniek onder je opgeslagen maaltijden",
+                description: "Nieuwe omschrijving",
+                meal_type:
+                    "Nieuw standaardmaaltijdtype: ontbijt, lunch, diner of snack",
+                items: "De volledige ingrediëntenlijst, die de bestaande vervangt. De som wordt de waarde van de opgeslagen maaltijd, dus de waardevelden kun je er niet naast sturen",
+                calories: "Totaal aantal calorieën voor één portie",
+                protein_g: "Eiwit in gram voor één portie",
+                carbs_g: "Koolhydraten in gram voor één portie",
+                fat_g: "Vet in gram voor één portie",
+                fiber_g: "Voedingsvezels in gram voor één portie",
+                sugar_g: "Totale suikers in gram voor één portie",
+                added_sugar_g:
+                    "Toegevoegde suikers in gram voor één portie, nooit meer dan de totale suikers. Hoort bij <code>sugar_g</code>",
+                alcohol_g:
+                    "Gram zuivere ethanol voor één portie, niet het volume van de drank",
+                caffeine_mg: "Milligram cafeïne voor één portie, niet gram",
+            },
+            example:
+                "Mijn vaste ontbijt heeft nu 350 calorieën per portie. Pas het aan",
+        },
+        delete_saved_meal: {
+            description:
+                "Verwijder een opgeslagen maaltijd. Maaltijden die er al uit zijn gelogd, behouden hun waarden.",
+            params: {
+                id: "UUID van de te verwijderen opgeslagen maaltijd",
+            },
+            example: "Verwijder de opgeslagen maaltijd die oude lunch heet",
+        },
         search_meals: {
             description:
-                "Doorzoek je eerdere maaltijden op trefwoord en zie ze gegroepeerd in je terugkerende varianten: hoe vaak je elke variant hebt gelogd, wanneer voor het laatst en hoeveel calorieën die meestal heeft. Zo vergelijkt de AI een foto van je bord met hoe je die maaltijd eerder echt hebt gelogd, en zo werkt “log mijn vaste ontbijt”.",
+                "Doorzoek je eerdere maaltijden op trefwoord en zie ze gegroepeerd in je terugkerende varianten: hoe vaak je elke variant hebt gelogd, wanneer voor het laatst en hoeveel calorieën die meestal heeft. Zo vergelijkt de AI een foto van je bord met hoe je die maaltijd eerder echt hebt gelogd, en zo werkt “log mijn vaste ontbijt”. Ook de namen van de ingrediënten van een maaltijd worden doorzocht, en opgeslagen maaltijden waarvan de naam, beschrijving of ingrediënten overeenkomen, worden mee getoond.",
             params: {
                 queries:
                     "Varianten van de zoekterm voor het eten, in elke taal waarin je hebt gelogd",
@@ -211,9 +294,18 @@ export const TOOLS_NL: ToolsDoc = {
             },
             example: "Toon mijn maaltijden van maandag tot en met vrijdag",
         },
+        get_saved_meals: {
+            description:
+                "Bekijk je opgeslagen maaltijden met hun waarden per portie en hun ingrediënten, optioneel alleen die waarvan de naam een bepaalde tekst bevat.",
+            params: {
+                name_contains:
+                    "Alleen opgeslagen maaltijden waarvan de naam deze tekst bevat",
+            },
+            example: "Welke maaltijden heb ik opgeslagen?",
+        },
         export_all_data: {
             description:
-                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (elke wijziging van je doelen, met datum), profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps en Apple Health-synchronisatie, zonder tokens), health_sync.csv (wat Apple Health-synchronisatie de afgelopen 8 dagen heeft verstuurd) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
+                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, meal_items.csv (de ingrediënten van elke gelogde maaltijd), saved_meals.csv en saved_meal_items.csv (je opgeslagen maaltijden en hun ingrediënten), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (elke wijziging van je doelen, met datum), profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps en Apple Health-synchronisatie, zonder tokens), health_sync.csv (wat Apple Health-synchronisatie de afgelopen 8 dagen heeft verstuurd) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
             params: {},
             example:
                 "Exporteer al mijn gegevens: maaltijden, water, gewicht en doelen",
@@ -565,7 +657,7 @@ export const TOOLS_NL: ToolsDoc = {
             "delete-account": {
                 question: "Hoe verwijder ik mijn account?",
                 answerHtml:
-                    'Vraag de AI om je Nutrition MCP-account te verwijderen (<a href="#delete_account"><code>delete_account</code></a>). Die vraagt je om bevestiging en verwijdert daarna definitief je maaltijden, water, gewicht, lichaamsmaten, doelen, instellingen, het overzicht van welke tools je AI-app heeft gebruikt, een eventueel exportbestand, je inloggegevens en het account zelf. Dit kan niet ongedaan worden gemaakt, dus exporteer eerst je gegevens als je een kopie wilt. Verwijder daarna de connector uit je app. Log je later opnieuw in met hetzelfde e-mailadres, dan krijg je een nieuw, leeg account.',
+                    'Vraag de AI om je Nutrition MCP-account te verwijderen (<a href="#delete_account"><code>delete_account</code></a>). Die vraagt je om bevestiging en verwijdert daarna definitief je maaltijden, opgeslagen maaltijden, water, gewicht, lichaamsmaten, doelen, instellingen, het overzicht van welke tools je AI-app heeft gebruikt, een eventueel exportbestand, je inloggegevens en het account zelf. Dit kan niet ongedaan worden gemaakt, dus exporteer eerst je gegevens als je een kopie wilt. Verwijder daarna de connector uit je app. Log je later opnieuw in met hetzelfde e-mailadres, dan krijg je een nieuw, leeg account.',
             },
             "report-a-problem": {
                 question: "Hoe meld ik een bug of een beveiligingsprobleem?",

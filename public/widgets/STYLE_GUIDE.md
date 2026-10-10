@@ -496,7 +496,12 @@ one function:
 //          a ceiling always reads "under" / "over" / "at limit".
 // meals:   optional per-meal breakdown rows → every tile some meal actually
 //          contributed to becomes tappable, the limits row included. Omit them
-//          and the strip is fully static.
+//          and the strip is fully static. A row may carry `items` (an array of
+//          { name, amount, unit, calories, protein_g, carbs_g, fat_g, fiber_g,
+//          sugar_g, added_sugar_g, alcohol_g, caffeine_mg }, set only by
+//          withMealItems from the result's `_meta`): that row's line in a
+//          breakdown becomes a disclosure button over its ingredients. A row
+//          without it renders exactly as before.
 // opts:    optional {
 //            drinkUnit: "us" | "uk",     // alcohol's caption gloss; default "us"
 //            calLabel: string,           // label above the calorie figure;
@@ -671,6 +676,48 @@ its "not recorded" is a different word for a different state: unknown, not none.
 Water is the contrast: it has no opt-in, so a `0` cannot mean anything but
 "untracked" and the whole line is dropped (`role: "bar"` cells render only above
 zero).
+
+### Meal items come from `_meta`
+
+A meal logged with an ingredient list shows those ingredients under its row in a
+breakdown. They travel like added sugar, in the CallToolResult's `_meta`, under
+`"nutrition-mcp.com/meal-items"` (`MEAL_ITEMS_META_KEY` in `src/widgets.ts`), as
+`{ v: 1, meals: [ [item, …] | null, … ] }` — a **plain array aligned by position**
+with `structuredContent.meals` (no key-order assumption, unlike `as.meals`). The
+server omits the key when no listed meal has items. Each template spells the key
+and merges it **after** `withAddedSugar`, on its merged rows:
+
+```js
+const rows = withMealItems(
+    mealItemsPayload(resultMeta && resultMeta[MEAL_ITEMS_META_KEY]),
+    merged.meals,
+);
+macroPanel(merged.vals, merged.goal, wording, rows, opts);
+```
+
+- `mealItemsPayload` accepts only `v: 1` with an array `meals`; `withMealItems`
+  returns the caller's `meals` itself when there is no payload or the lengths
+  differ, so a stale payload never hangs one meal's ingredients under another.
+- The payload is untrusted: a slot must be an array, each item an object with a
+  non-empty string `name`, rebuilt from the whitelisted fields (`amount` and the
+  nine nutrients finite or null, `unit` a string or null), at most 30 per meal
+  (`MEAL_ITEMS_CAP`, pinned to `MAX_ITEMS_PER_MEAL` in `src/meal-items.ts`). A
+  row whose slot keeps nothing stays the same object.
+- Only `mealList` changes: a row with items wraps its value / name / sub line in
+  `<button class="md-open" data-meal-open aria-expanded aria-controls>` with a
+  count badge, a chevron and a `.sr-only` "N ingredients" (`T.macros.ingredientCount`),
+  over a hidden `<ul class="md-items">`. The button's contents are its name, so the
+  figure is read as before — no `aria-label` replaces it. The strip itself
+  (`macroPanel`) never changes, so the no-`_meta` golden holds.
+- Items sort by the metric on show, biggest first; ties keep the logged order. An
+  item with no value for it reads "–" (`.md-none`, `role="img"` labelled
+  `T.macros.notRecorded`) and sorts last; a recorded 0 reads "0". Values use the
+  row's own precision and unit; the amount is the plain number and unit as logged.
+- One row open at a time per breakdown (`mealRowToggle`): opening one closes the
+  other, tapping the open one closes it, and switching metric rebuilds the list.
+  It is a native `<button>`, so Enter and Space need no keydown branch. At ≥560px
+  the open row spans both columns. Added-sugar `extra` rows are rebuilt from four
+  fields, so they never carry items and never get an expander.
 
 ### Wording rules (unchanged, and pinned by tests)
 

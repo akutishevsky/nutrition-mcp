@@ -1,8 +1,8 @@
 import { getSupabase } from "./supabase.js";
 import { formatClientId } from "./client-id.js";
-import { newErrorRef, ToolError } from "./errors.js";
+import { errorLogText, newErrorRef, ToolError } from "./errors.js";
 
-interface AnalyticsRecord {
+export interface AnalyticsRecord {
     user_id: string;
     tool_name: string;
     success: boolean;
@@ -82,6 +82,7 @@ export function categorizeError(error: unknown): string {
     // ("not a real calendar date", "invalid timezone") and be misfiled.
     if (
         msg.startsWith("no meal found with id") ||
+        msg.startsWith("no saved meal found") ||
         msg.startsWith("no weight entry found with id") ||
         msg.startsWith("no water entry found with id") ||
         msg.startsWith("no body measurement found with id")
@@ -356,8 +357,12 @@ export async function withAnalytics<T>(
     args?: Record<string, unknown>,
     options?: {
         outcome?: (result: T) => { success: boolean; errorCategory?: string };
+        /** Where the analytics row goes; tool_analytics by default. A seam
+         * for tests (src/log-privacy.test.ts), which must not reach Supabase. */
+        persist?: (record: AnalyticsRecord) => void;
     },
 ): Promise<T> {
+    const persist = options?.persist ?? persistAnalytics;
     const start = performance.now();
     const invokedAt = new Date().toISOString();
     const dateRangeDays = calculateDateRangeDays(
@@ -383,7 +388,7 @@ export async function withAnalytics<T>(
             );
         }
 
-        persistAnalytics({
+        persist({
             user_id: context.userId,
             tool_name: toolName,
             success: outcome.success,
@@ -408,17 +413,19 @@ export async function withAnalytics<T>(
         // nor the model (userFacingError replaces it), so this line — joined
         // to the model's text by `ref` — is the only place it is diagnosable
         // from, for as long as the runtime log ring buffer retains it.
-        // analyticsLogLine JSON-escapes and caps it; see there.
+        // analyticsLogLine JSON-escapes and caps it; see there. A ToolError
+        // that quotes the user's own text (item or saved-meal names) logs its
+        // logText instead, which leaves the names out.
         console.warn(
             analyticsLogLine(toolName, durationMs, {
                 kind: "error",
                 category: errorCategory,
                 ref,
-                message: error instanceof Error ? error.message : String(error),
+                message: errorLogText(error),
             }),
         );
 
-        persistAnalytics({
+        persist({
             user_id: context.userId,
             tool_name: toolName,
             success: false,

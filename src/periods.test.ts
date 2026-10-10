@@ -60,6 +60,7 @@ function meal(logged_at: string, calories: number | null, p = 0): Meal {
     return {
         id: `m${++mealSeq}`,
         user_id: "u1",
+        saved_meal_id: null,
         logged_at,
         meal_type: "lunch",
         description: "x",

@@ -8,17 +8,17 @@
   requests — because the MCP Apps sandbox blocks external hosts. Styling follows
   public/widgets/STYLE_GUIDE.md so it matches the other widgets.
 
-  Shown after log_meal AND update_meal (both tools link this same widget and emit
-  the same structuredContent shape via buildMealProgress in src/mcp.ts): the day's
-  running totals vs the user's goals in one compact strip, with the meal just
-  logged naming itself on the header line. The `action` field ("logged"
+  Shown after log_meal, update_meal AND log_saved_meal (all three link this same
+  widget and emit the same structuredContent shape via buildMealProgress in
+  src/mcp.ts): the day's running totals vs the user's goals in one compact
+  strip, with the meal just logged naming itself on the header line. The `action` field ("logged"
   or "updated") only changes the header wording. Per product decision, it renders
   NOTHING when no nutrition goals are set (there is no target to show progress
   against).
 
-  Data arrives as the `structuredContent` of the log_meal / update_meal tool
-  result; the shared bridge (shared/bridge.js) reads it across host conventions
-  and calls render(). Standalone preview uses the SAMPLE below.
+  Data arrives as the `structuredContent` of the log_meal / update_meal /
+  log_saved_meal tool result; the shared bridge (shared/bridge.js) reads it
+  across host conventions and calls render(). Standalone preview uses the SAMPLE below.
 -->
 <html lang="en">
     <head>
@@ -203,6 +203,11 @@
             // because the frozen outputSchema can gain no field. Must equal
             // ADDED_SUGAR_META_KEY in src/widgets.ts.
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            // Where the same result carries each listed meal's ingredients
+            // ({ v: 1, meals: [items | null, …] }, aligned with data.meals by
+            // position), for the breakdown's expandable rows. Must equal
+            // MEAL_ITEMS_META_KEY in src/widgets.ts.
+            const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
 
             // `meta` is the tool result's `_meta` (or null — see bridge.js).
             function render(data, meta) {
@@ -237,11 +242,17 @@
                     data.goals,
                     data.meals,
                 );
+                // Ingredients join the rows the same way, after added sugar;
+                // without `_meta` this is merged.meals itself.
+                const rows = withMealItems(
+                    mealItemsPayload(meta && meta[MEAL_ITEMS_META_KEY]),
+                    merged.meals,
+                );
                 const panel = macroPanel(
                     merged.vals,
                     merged.goal,
                     undefined,
-                    merged.meals,
+                    rows,
                     // `drink_unit` is null for a user who does not track
                     // alcohol, which is also the case in which no alcohol
                     // figure reaches the strip; macroCtxOf falls back to the

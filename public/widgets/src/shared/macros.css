@@ -479,6 +479,164 @@
     padding: 6px 0 0;
 }
 
+/* A row whose meal has ingredients: the summary line becomes a disclosure
+   button and the items sit under it. The li stops being the flex line (the
+   button is), and the button keeps min-width: 0 so .md-name's ellipsis still
+   engages inside the minmax(0, …) track — without it a long name widens the
+   button past the card (see the .md-list note). */
+.md-row.has-items {
+    display: block;
+    padding: 0;
+}
+.md-open {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    /* The tint and outline need room around the text, but the text must stay
+       in the plain rows' columns: pad 8px and pull the button 8px out on both
+       sides (inside the list's 28px column gap and the panel's padding). With
+       no horizontal padding the open row's value touched its outline. */
+    width: calc(100% + 16px);
+    min-width: 0;
+    min-height: 44px;
+    margin: 0 -8px;
+    padding: 5px 8px;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+        background 0.15s ease,
+        outline-color 0.15s ease;
+}
+/* baseline alignment inside a 44px button would pin the text to the top;
+   centring the line box keeps it where an ordinary row's text sits. */
+.md-open > * {
+    align-self: center;
+}
+/* In a list that has expandable rows, the plain rows take the same height and
+   centring, so a two-column pair lines up instead of one row sitting 10px
+   higher than its neighbour. A list without any is untouched. */
+.md-list:has(.has-items) > .md-row:not(.has-items) {
+    min-height: 44px;
+    box-sizing: border-box;
+}
+.md-list:has(.has-items) > .md-row:not(.has-items) > * {
+    align-self: center;
+}
+.md-open:hover {
+    background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+.md-open:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+.md-row.open .md-open {
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    outline: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    outline-offset: -1px;
+}
+/* After, and as specific, as the open rule: an open row that has keyboard
+   focus still shows the full focus ring, as .mtile.interactive:focus-visible
+   beats .mtile.open. */
+.md-row.open .md-open:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}
+/* --text-dim over the accent tint is under 4.5:1 (see .mtile.open), so the
+   open row's dim captions go full-strength. */
+.md-row.open .md-sub,
+.md-row.open .md-count,
+.md-row.open .md-chev {
+    color: var(--text);
+}
+.md-count {
+    flex: none;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+.md-chev {
+    flex: none;
+    width: 10px;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1;
+    color: var(--text-dim);
+    transition: transform 0.15s ease;
+}
+.md-row.open .md-chev {
+    transform: rotate(90deg);
+}
+/* A short indent marks the items as the open meal's own; the right-aligned
+   value column below keeps their names on one line. A deeper indent (under
+   the meal's name) left a 360px phone too little room for the names. */
+.md-items {
+    list-style: none;
+    margin: 0;
+    padding: 2px 0 6px 20px;
+    min-width: 0;
+}
+.md-items[hidden] {
+    display: none;
+}
+.md-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    padding: 2px 0;
+    font-size: 11px;
+}
+/* Wide enough for "1,234 kcal" so every ingredient name starts on one line,
+   and right-aligned like .md-val so the figures line up by their last digit. */
+.md-ival {
+    flex: none;
+    min-width: 60px;
+    text-align: right;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.md-ival .md-unit {
+    font-size: 9px;
+    font-weight: 600;
+    margin-left: 2px;
+}
+.md-none {
+    color: var(--text-dim);
+    font-weight: 600;
+}
+.md-iname {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+/* The unit is user text (up to 20 characters) and the amount up to 100000,
+   so the amount may shrink and wrap rather than squeeze the name into a
+   column of letter fragments or push past the card edge. */
+.md-iamt {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 32%;
+    overflow-wrap: anywhere;
+    text-align: right;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+    .md-open,
+    .md-chev {
+        transition: none;
+    }
+}
+
 /* Narrower than a 360px phone, three limit columns leave ~80px each and the
    names start truncating. Two rows of readable cells beat three of "CAFFEI…".
    A plain declaration, so it wins over the --lc rule above it on source
@@ -564,6 +722,14 @@
     }
     .md-name {
         font-size: 12.5px;
+    }
+    /* An open row takes the whole width of the two-column list, so its
+       items are not squeezed into half the card beside an empty cell. */
+    .md-row.open {
+        grid-column: 1 / -1;
+    }
+    .md-items {
+        padding-left: 58px;
     }
 }
 

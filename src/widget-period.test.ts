@@ -217,6 +217,30 @@ describe("trends strings across locales", () => {
         }
     });
 
+    test("every locale's macros.ingredientCount keeps {n} in every form", () => {
+        for (const [locale, strings] of Object.entries(WIDGET_STRINGS)) {
+            const f = strings!.macros.ingredientCount;
+            expect(f.one).toBeDefined();
+            expect(f.other).toBeDefined();
+            for (const form of Object.values(f)) {
+                expect({ locale, got: placeholders(form!) }).toEqual({
+                    locale,
+                    got: ["n"],
+                });
+            }
+        }
+    });
+
+    test("Polish and Ukrainian macros.ingredientCount carry distinct few and many forms", () => {
+        for (const locale of ["pl", "uk"] as const) {
+            const f = WIDGET_STRINGS[locale]!.macros.ingredientCount;
+            expect(f.few).toBeDefined();
+            expect(f.many).toBeDefined();
+            expect(f.other).toBe(f.many!);
+            expect(new Set([f.one, f.few, f.many]).size).toBe(3);
+        }
+    });
+
     test("Polish and Ukrainian possiblyIncomplete carry distinct few and many forms", () => {
         for (const locale of ["pl", "uk"] as const) {
             const f = WIDGET_STRINGS[locale]!.trends.possiblyIncomplete;

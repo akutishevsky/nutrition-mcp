@@ -175,7 +175,7 @@ export const INDEX_NL: IndexDoc = {
         note: "Dit is allemaal optioneel. Doe het nu, later of nooit: begin met loggen en stel het in wanneer het jou uitkomt.",
         toolsCta: {
             heading: "Benieuwd wat het écht allemaal kan?",
-            body: "Bekijk alle 41 tools (loggen, barcodes, water, gewicht en lichaamsmaten, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
+            body: "Bekijk alle 46 tools (loggen, barcodes, water, gewicht en lichaamsmaten, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
             arrow: "Bekijk de tools",
         },
     },
@@ -613,10 +613,10 @@ export const INDEX_NL: IndexDoc = {
                 id: "export-data",
                 title: "Neem je gegevens mee",
                 description:
-                    "Met één verzoek krijg je alles wat over je is opgeslagen (maaltijden, water, weegmomenten, lichaamsmaten, doelen, profielinstellingen, je accountgegevens, gebruikstelemetrie en app-koppelingen) in een ZIP met CSV-bestanden en een README. Tijdstippen staan in jouw tijdzone, en meals.csv importeer je zo weer terug.",
+                    "Met één verzoek krijg je alles wat over je is opgeslagen (maaltijden, opgeslagen maaltijden en hun ingrediënten, water, weegmomenten, lichaamsmaten, doelen, profielinstellingen, je accountgegevens, gebruikstelemetrie en app-koppelingen) in een ZIP met CSV-bestanden en een README. Tijdstippen staan in jouw tijdzone, en meals.csv importeer je zo weer terug.",
                 toolNotes: {
                     export_all_data:
-                        "Zet negen CSV-bestanden en een README in een ZIP, achter een link die 60 minuten geldig is",
+                        "Zet alle CSV-bestanden en een README in een ZIP, achter een link die 60 minuten geldig is",
                 },
                 messages: [
                     {
@@ -700,7 +700,7 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 title: "Exporteer je gegevens: ze zijn van jou",
-                body: "Neem alles mee wat we over je bewaren (maaltijden, water, gewicht, lichaamsmaten, doelen en profiel, plus je accountgegevens, gebruikstelemetrie en gekoppelde apps) als één ZIP met CSV-bestanden. Voorlopig kun je alleen maaltijden weer importeren. Verwijder je account en gegevens wanneer je wilt.",
+                body: "Neem alles mee wat we over je bewaren (maaltijden, opgeslagen maaltijden en hun ingrediënten, water, gewicht, lichaamsmaten, doelen en profiel, plus je accountgegevens, gebruikstelemetrie en gekoppelde apps) als één ZIP met CSV-bestanden. Voorlopig kun je alleen maaltijden weer importeren. Verwijder je account en gegevens wanneer je wilt.",
             },
         ],
     },

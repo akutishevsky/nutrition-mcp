@@ -171,7 +171,7 @@ export const INDEX_DE: IndexDoc = {
         note: "Das alles ist optional. Ob jetzt, später oder nie – fang einfach an zu erfassen und stell das ein, wann immer du willst.",
         toolsCta: {
             heading: "Neugierig, was es alles kann?",
-            body: "Sieh dir alle 41 Werkzeuge an – Erfassen, Barcodes, Wasser, Gewicht und Körpermaße, Ziele und Trends –, jeweils mit Beschreibung und Beispielsatz.",
+            body: "Sieh dir alle 46 Werkzeuge an – Erfassen, Barcodes, Wasser, Gewicht und Körpermaße, Ziele und Trends –, jeweils mit Beschreibung und Beispielsatz.",
             arrow: "Werkzeuge entdecken",
         },
     },
@@ -611,10 +611,10 @@ export const INDEX_DE: IndexDoc = {
                 id: "export-data",
                 title: "Deine Daten mitnehmen",
                 description:
-                    "Eine Anfrage packt alles, was über dich gespeichert ist – Mahlzeiten, Wasser, Gewichtseinträge, Körpermaße, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungstelemetrie und App-Verbindungen –, in ein ZIP aus CSV-Dateien samt README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
+                    "Eine Anfrage packt alles, was über dich gespeichert ist – Mahlzeiten, gespeicherte Mahlzeiten samt ihren Zutaten, Wasser, Gewichtseinträge, Körpermaße, Ziele, Profileinstellungen, deinen Kontodatensatz, Nutzungstelemetrie und App-Verbindungen –, in ein ZIP aus CSV-Dateien samt README. Zeitstempel stehen in deiner Zeitzone, und meals.csv lässt sich direkt wieder importieren.",
                 toolNotes: {
                     export_all_data:
-                        "Packt neun CSV-Dateien und ein README in ein ZIP hinter einem 60-Minuten-Link",
+                        "Packt alle CSV-Dateien und ein README in ein ZIP hinter einem 60-Minuten-Link",
                 },
                 messages: [
                     {
@@ -698,7 +698,7 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 title: "Export & volle Kontrolle über deine Daten",
-                body: "Nimm alles mit, was wir über dich speichern – Mahlzeiten, Wasser, Gewicht, Körpermaße, Ziele und Profil, dazu deinen Kontodatensatz, die Nutzungstelemetrie und deine verbundenen Apps – als ein ZIP mit CSV-Dateien. Bisher lassen sich nur die Mahlzeiten wieder importieren. Lösch dein Konto und deine Daten, wann immer du willst.",
+                body: "Nimm alles mit, was wir über dich speichern – Mahlzeiten, gespeicherte Mahlzeiten samt Zutaten, Wasser, Gewicht, Körpermaße, Ziele und Profil, dazu deinen Kontodatensatz, die Nutzungstelemetrie und deine verbundenen Apps – als ein ZIP mit CSV-Dateien. Bisher lassen sich nur die Mahlzeiten wieder importieren. Lösch dein Konto und deine Daten, wann immer du willst.",
             },
         ],
     },

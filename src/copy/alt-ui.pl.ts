@@ -45,7 +45,7 @@ export const ALT_UI_PL: AltUiCopy = {
             },
             {
                 title: "Import i pełna kontrola nad danymi",
-                body: "Zaimportuj historię posiłków z eksportu CSV innej aplikacji — plik jest odczytywany w Twojej przeglądarce, a nie przez AI. Wszystkie dane pobierzesz, kiedy zechcesz: jeden ZIP z posiłkami, wodą, wagą, wymiarami ciała, celami i profilem, a do tego z danymi konta, telemetrią użycia i połączonymi aplikacjami — wszystko w plikach CSV. Na razie z powrotem da się zaimportować tylko posiłki. Konto możesz też równie łatwo usunąć.",
+                body: "Zaimportuj historię posiłków z eksportu CSV innej aplikacji — plik jest odczytywany w Twojej przeglądarce, a nie przez AI. Wszystkie dane pobierzesz, kiedy zechcesz: jeden ZIP z posiłkami, zapisanymi posiłkami, wodą, wagą, wymiarami ciała, celami i profilem, a do tego z danymi konta, telemetrią użycia i połączonymi aplikacjami — wszystko w plikach CSV. Na razie z powrotem da się zaimportować tylko posiłki. Konto możesz też równie łatwo usunąć.",
             },
             {
                 title: "Open source i za darmo",
