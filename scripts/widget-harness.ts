@@ -44,6 +44,7 @@
 //   ?addedSugar=zero    the same limit with a recorded 0 g (an apple and a
 //                       diet cola; 0 g on every summary/trends day): the cell
 //                       reads "0", never "none logged"
+//   ?saturatedFat=notrans  saturated fat only (the fats row holds one cell)
 //   ?saturatedFat=1    the fixture meals carry saturated and trans fat (a
 //                       mix of recorded, zero and not-recorded values) and a
 //                       20 g saturated-fat ceiling reaches the summary and the
@@ -695,7 +696,11 @@ function hostPage(widget: string, params: URLSearchParams): string {
     };
     // ?saturatedFat=1: a mix of recorded, zero and not-recorded fats by row
     // index, so the strip's fats cells show a list, a count and a gap.
-    const satMode = params.get("saturatedFat") === "1";
+    // ?saturatedFat=notrans: the same saturated fat with no trans fat at all,
+    // so the fats row holds one cell.
+    const satParam = params.get("saturatedFat");
+    const satMode = satParam === "1" || satParam === "notrans";
+    const transMode = satParam === "1";
     const asMeal = (
         row: { description: string; date: string | null } & Record<
             string,
@@ -726,7 +731,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
         saturated_fat_g: satMode
             ? ([4.2, 0, 11.5, null] as const)[i % 4]!
             : null,
-        trans_fat_g: satMode ? ([0.3, 0, null, 0.9] as const)[i % 4]! : null,
+        trans_fat_g: transMode ? ([0.3, 0, null, 0.9] as const)[i % 4]! : null,
         notes: null,
         idempotency_key: null,
     });
