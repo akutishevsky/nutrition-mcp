@@ -54,6 +54,12 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
             other: "+ ще щонайменше {n} менших страв",
         },
         moreMealsMaybe: "+ можливо, є ще менші страви",
+        ingredientCount: {
+            one: "{n} інгредієнт",
+            few: "{n} інгредієнти",
+            many: "{n} інгредієнтів",
+            other: "{n} інгредієнтів",
+        },
     },
     bridge: {
         settingsFooter:

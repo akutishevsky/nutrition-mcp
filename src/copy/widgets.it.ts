@@ -50,6 +50,10 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             other: "+ almeno {n} pasti più piccoli",
         },
         moreMealsMaybe: "+ forse altri pasti più piccoli",
+        ingredientCount: {
+            one: "{n} ingrediente",
+            other: "{n} ingredienti",
+        },
     },
     bridge: {
         settingsFooter:

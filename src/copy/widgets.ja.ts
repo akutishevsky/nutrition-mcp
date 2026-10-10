@@ -50,6 +50,10 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             other: "ほか少量の食事{n}件以上",
         },
         moreMealsMaybe: "ほかにも少量の食事があるかもしれません",
+        ingredientCount: {
+            one: "材料{n}点",
+            other: "材料{n}点",
+        },
     },
     bridge: {
         settingsFooter:
