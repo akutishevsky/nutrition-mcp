@@ -368,6 +368,13 @@ export const INDEX_DE: IndexDoc = {
                         text: "Mittagessen erfasst: 248 kcal, 46,5 g Protein und 5,4 g Fett. Protein und Fett stammen aus dem Eintrag in USDA FoodData Central für gegartes Hähnchenbrustfilet, umgerechnet auf 150 g. Zugesetzter Zucker steht nicht in diesem Eintrag, deshalb wird er geschätzt.",
                     },
                 ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Gegrilltes Hähnchenbrustfilet (150 g)"],
             },
             {
                 id: "saved-meal",
@@ -418,7 +425,7 @@ export const INDEX_DE: IndexDoc = {
                 id: "goals-progress",
                 title: "Ziele setzen, Stand checken",
                 description:
-                    "Leg Ziele fest, die du erreichen willst, etwa Kalorien und Protein, und Limits für zugesetzten Zucker, Gesamtzucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Dann frag nach einem beliebigen Tag und sieh, was dir bei jedem Ziel noch fehlt und wo du bei jedem Limit stehst.",
+                    "Leg Ziele fest, die du erreichen willst, etwa Kalorien und Protein, und Limits für zugesetzten Zucker, gesättigte Fettsäuren, Gesamtzucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Dann frag nach einem beliebigen Tag und sieh, was dir bei jedem Ziel noch fehlt und wo du bei jedem Limit stehst.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Speichert Kalorien- und Proteinziel sowie ein Koffeinlimit von 400 mg",
@@ -440,7 +447,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 30 g Ballaststoffe, 2,5 l Wasser, dein Limit von 25 g für zugesetzten Zucker und dein Zielgewicht von 75 kg.",
+                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 20 g gesättigte Fettsäuren, 30 g Ballaststoffe, 2,5 l Wasser, dein Limit von 25 g für zugesetzten Zucker und dein Zielgewicht von 75 kg.",
                     },
                     {
                         from: "user",
