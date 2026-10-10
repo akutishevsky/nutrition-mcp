@@ -29,7 +29,7 @@ export const ALT_UI_PL: AltUiCopy = {
         features: [
             {
                 title: "Posiłki opisane zwykłymi słowami",
-                body: "Powiedz &bdquo;owsianka z bananem i masłem orzechowym&rdquo;, a Twoje AI oszacuje kalorie i makroskładniki — łącznie z błonnikiem, cukrami ogółem i kofeiną — i zapisze posiłek. Bez przeszukiwania bazy produktów.",
+                body: "Powiedz &bdquo;owsianka z bananem i masłem orzechowym&rdquo;, a Twoje AI oszacuje kalorie i makroskładniki — łącznie z błonnikiem, cukrami ogółem i kofeiną — i zapisze posiłek. Bez przeszukiwania bazy produktów. Posiłek możesz zapisać składnik po składniku, a te, które jadasz często, zachować i potem dodawać po samej nazwie.",
             },
             {
                 title: "Skaner kodów kreskowych za darmo",
@@ -58,7 +58,7 @@ export const ALT_UI_PL: AltUiCopy = {
         compareTitle: "Jak wypadają w porównaniu",
         pros: [
             "Zbudowany jako serwer MCP — działa w Claude i ChatGPT",
-            "Opisujesz posiłki zwykłymi słowami, a kalorie, makroskładniki, błonnik, cukier i kofeina są szacowane za Ciebie",
+            "Opisujesz posiłki zwykłymi słowami, a kalorie, makroskładniki, błonnik, cukier i kofeina są szacowane za Ciebie; swoje stałe posiłki zapiszesz i dodasz jednym zdaniem",
             "Skaner kodów kreskowych, trendy, import i eksport CSV — wszystko za darmo",
             "Bez osobnej aplikacji, bez reklam, open source",
         ],

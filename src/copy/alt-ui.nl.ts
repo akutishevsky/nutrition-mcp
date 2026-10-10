@@ -29,7 +29,7 @@ export const ALT_UI_NL: AltUiCopy = {
         features: [
             {
                 title: "Maaltijden in gewone taal",
-                body: "Zeg &ldquo;havermout met banaan en pindakaas&rdquo; en je AI schat de calorieën en macro's, inclusief vezels, totale suikers en cafeïne, en logt het. Je hoeft niets op te zoeken in een database.",
+                body: "Zeg &ldquo;havermout met banaan en pindakaas&rdquo; en je AI schat de calorieën en macro's, inclusief vezels, totale suikers en cafeïne, en logt het. Je hoeft niets op te zoeken in een database. Log een maaltijd per ingrediënt, of bewaar maaltijden die je vaak eet en log ze daarna op naam.",
             },
             {
                 title: "Gratis barcodes scannen",
@@ -58,7 +58,7 @@ export const ALT_UI_NL: AltUiCopy = {
         compareTitle: "Zo verhouden ze zich",
         pros: [
             "Gebouwd als MCP-server, dus het zit direct in Claude &amp; ChatGPT",
-            "Je omschrijft maaltijden in gewone taal; calorieën, macro's, vezels, suiker &amp; cafeïne worden voor je geschat",
+            "Je omschrijft maaltijden in gewone taal; calorieën, macro's, vezels, suiker &amp; cafeïne worden voor je geschat; bewaar je vaste maaltijden en log ze in één zin",
             "Barcode scannen, trends, CSV-import &amp; -export: allemaal gratis",
             "Geen aparte app, geen advertenties, open source",
         ],

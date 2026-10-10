@@ -12,14 +12,14 @@ export const TOOLS_NL: ToolsDoc = {
         description:
             "Alle 46 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
         ogDescription:
-            "Alle 46 tools die de Nutrition MCP-server aan je AI geeft, inclusief een CSV-importer om je geschiedenis uit een andere app over te zetten. Met beschrijvingen en voorbeeldzinnen.",
+            "Alle 46 tools die de Nutrition MCP-server aan je AI geeft, van opgeslagen maaltijden tot een CSV-importer voor je geschiedenis uit een andere app. Met beschrijvingen en voorbeeldzinnen.",
     },
     hero: {
         eyebrow: "Naslag",
         titleBeforeEm: "Alles wat je AI kan ",
         titleEm: "doen",
         titleAfterEm: "",
-        lead: "Je roept deze tools nooit zelf aan: je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hieronder staat elke tool die de Nutrition MCP-server biedt voor maaltijden, calorieën en macro's, water en gewicht, met wat hij doet en een zin waarmee je hem aan het werk zet.",
+        lead: "Je roept deze tools nooit zelf aan: je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hieronder staat elke tool die de Nutrition MCP-server biedt voor maaltijden en opgeslagen maaltijden, calorieën en macro's, water en gewicht, met wat hij doet en een zin waarmee je hem aan het werk zet.",
         countBold: "46 tools",
         countTail: "verdeeld over 7 categorieën",
     },
@@ -28,7 +28,7 @@ export const TOOLS_NL: ToolsDoc = {
             pillLabel: "Loggen",
             title: "Eten & maaltijden loggen",
             description:
-                "De kern: leg vast wat je hebt gegeten, hoe je het ook omschrijft.",
+                "De kern: leg vast wat je hebt gegeten, hoe je het ook omschrijft, en bewaar maaltijden die je vaak eet om ze daarna in één zin te loggen.",
         },
         "reviewing-your-meals": {
             pillLabel: "Bekijken",

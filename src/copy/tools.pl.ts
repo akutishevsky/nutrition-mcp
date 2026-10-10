@@ -6,14 +6,14 @@ export const TOOLS_PL: ToolsDoc = {
         description:
             "Wszystkie 46 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, zapisane posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
         ogDescription:
-            "Wszystkie 46 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
+            "Wszystkie 46 narzędzi, które serwer Nutrition MCP daje Twojemu AI, od zapisanych posiłków po importer CSV historii — z opisami i przykładowymi poleceniami.",
     },
     hero: {
         eyebrow: "Dokumentacja",
         titleBeforeEm: "Wszystko, co ",
         titleEm: "potrafi",
         titleAfterEm: " Twoje AI",
-        lead: "Nie wywołujesz tych narzędzi samodzielnie — po prostu rozmawiasz z Claude, ChatGPT albo innym klientem MCP, a on sam dobiera właściwe narzędzie. Oto wszystkie narzędzia, które serwer Nutrition MCP udostępnia do śledzenia posiłków, kalorii i makroskładników, wody i wagi — z opisem działania i przykładowym poleceniem, które je uruchamia.",
+        lead: "Nie wywołujesz tych narzędzi samodzielnie — po prostu rozmawiasz z Claude, ChatGPT albo innym klientem MCP, a on sam dobiera właściwe narzędzie. Oto wszystkie narzędzia, które serwer Nutrition MCP udostępnia do śledzenia posiłków i zapisanych posiłków, kalorii i makroskładników, wody i wagi — z opisem działania i przykładowym poleceniem, które je uruchamia.",
         countBold: "46 narzędzi",
         countTail: "w 7 obszarach",
     },
@@ -22,7 +22,7 @@ export const TOOLS_PL: ToolsDoc = {
             pillLabel: "Zapisywanie",
             title: "Zapisywanie posiłków",
             description:
-                "Podstawa wszystkiego — zapisuj, co jesz, opisując to własnymi słowami.",
+                "Podstawa wszystkiego — zapisuj, co jesz, opisując to własnymi słowami, a posiłki jadane często zachowaj, by potem dodawać je jednym zdaniem.",
         },
         "reviewing-your-meals": {
             pillLabel: "Przegląd",

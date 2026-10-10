@@ -22,14 +22,14 @@ export const TOOLS_FR: ToolsDoc = {
         description:
             "Les 46 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
         ogDescription:
-            "Les 46 outils que le serveur Nutrition MCP donne à ton IA, dont un outil d'import CSV pour récupérer ton historique d'une autre app, avec descriptions et exemples de demandes.",
+            "Les 46 outils que le serveur Nutrition MCP donne à ton IA, des repas sauvegardés à l'import CSV de ton historique d'une autre app, avec descriptions et exemples de demandes.",
     },
     hero: {
         eyebrow: "Référence",
         titleBeforeEm: "Tout ce que ton IA peut ",
         titleEm: "faire",
         titleAfterEm: "",
-        lead: "Tu n'appelles jamais ces outils toi-même : tu parles simplement à Claude, à ChatGPT ou à un autre client MCP, et il choisit le bon outil. Voici tous les outils que le serveur Nutrition MCP met à disposition pour les repas, les calories et les macros, l'eau et le poids, avec ce que fait chacun et une phrase qui le déclenche.",
+        lead: "Tu n'appelles jamais ces outils toi-même : tu parles simplement à Claude, à ChatGPT ou à un autre client MCP, et il choisit le bon outil. Voici tous les outils que le serveur Nutrition MCP met à disposition pour les repas et les repas sauvegardés, les calories et les macros, l'eau et le poids, avec ce que fait chacun et une phrase qui le déclenche.",
         countBold: "46 outils",
         countTail: "répartis en 7 catégories",
     },
@@ -38,7 +38,7 @@ export const TOOLS_FR: ToolsDoc = {
             pillLabel: "Repas",
             title: "Enregistrer tes repas",
             description:
-                "Le cœur de l'app : note ce que tu as mangé, quelle que soit la façon dont tu le décris.",
+                "Le cœur de l'app : note ce que tu as mangé, quelle que soit la façon dont tu le décris, et sauvegarde les repas que tu manges souvent pour les enregistrer de nouveau en une ligne.",
         },
         "reviewing-your-meals": {
             pillLabel: "Historique",
