@@ -41,7 +41,7 @@ export const PRIVACY_JA: LegalDoc = {
         "Nutrition MCPでのデータの扱いについて説明します。保存する情報、その使い道と保存場所、そしてアカウントとすべてのデータをいつでも削除する方法。",
     ogDescription:
         "Nutrition MCPでのデータの扱いについて説明します。保存する情報、その使い道と保存場所、そしてアカウントとすべてのデータをいつでも削除する方法。",
-    lastUpdated: "2026年10月3日",
+    lastUpdated: "2026年10月10日",
     backToHome: "ホームに戻る",
     lead: "Nutrition MCPでのデータの扱いについて説明します。保存する情報、その使い道と保存場所、そしてアカウントとすべてのデータをいつでも削除する方法。",
     documentsLabel: "法的文書",
@@ -182,7 +182,7 @@ export const TERMS_JA: LegalDoc = {
         "Nutrition MCP（Claude・ChatGPT向けの無料・オープンソースの栄養管理ツール兼リモートMCPサーバー）の利用規約です。アカウント、許容される利用、データの扱い、責任について、わかりやすい言葉で定めています。",
     ogDescription:
         "Nutrition MCP（Claude・ChatGPT向けの無料・オープンソースの栄養管理ツール兼リモートMCPサーバー）の利用に適用される規約です。",
-    lastUpdated: "2026年10月3日",
+    lastUpdated: "2026年10月10日",
     backToHome: "ホームに戻る",
     lead: "Nutrition MCP（Claude・ChatGPT向けの無料・オープンソースの栄養管理ツール兼リモートMCPサーバー）の利用に適用される規約です。",
     documentsLabel: "法的文書",

@@ -20,7 +20,7 @@ export const PRIVACY_TR: LegalDoc = {
     lead: "Nutrition MCP verilerini nasıl işliyor: neleri saklıyoruz, nasıl kullanılıyor, nerede tutuluyor ve hesabını içindeki her şeyle birlikte dilediğin an nasıl silersin.",
     documentsLabel: "Hukuki belgeler",
     tocLabel: "Bu sayfada",
-    lastUpdated: "3 Ekim 2026",
+    lastUpdated: "10 Ekim 2026",
     backToHome: "Ana sayfaya dön",
     sections: [
         {
@@ -202,7 +202,7 @@ export const TERMS_TR: LegalDoc = {
     lead: "Nutrition MCP kullanımını düzenleyen koşullar — Claude ve ChatGPT için ücretsiz, açık kaynak beslenme takipçisi ve uzak MCP sunucusu.",
     documentsLabel: "Hukuki belgeler",
     tocLabel: "Bu sayfada",
-    lastUpdated: "3 Ekim 2026",
+    lastUpdated: "10 Ekim 2026",
     backToHome: "Ana sayfaya dön",
     sections: [
         {
