@@ -273,6 +273,11 @@
             // under ADDED_SUGAR_META_KEY in src/widgets.ts — the same `_meta`
             // object, for the same frozen-schema reason.
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            // Where the same result carries each listed meal's ingredients
+            // ({ v: 1, meals: [items | null, …] }, aligned with data.meals by
+            // position), for the breakdown's expandable rows. Must equal
+            // MEAL_ITEMS_META_KEY in src/widgets.ts.
+            const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
 
             // What the server sends in `_meta` beside a bounded `meals`: per
             // metric, how many meals had a positive value. The days add up to
@@ -531,11 +536,19 @@
                     data.goals,
                     data.meals,
                 );
+                // Ingredients join the rows the same way, after added sugar;
+                // without `_meta` this is merged.meals itself.
+                const rows = withMealItems(
+                    mealItemsPayload(
+                        resultMeta && resultMeta[MEAL_ITEMS_META_KEY],
+                    ),
+                    merged.meals,
+                );
                 const panel = macroPanel(
                     merged.vals,
                     merged.goal,
                     undefined,
-                    merged.meals,
+                    rows,
                     {
                         // "us" | "uk" for a user who tracks alcohol, null for
                         // one who does not — and null is also the case in which

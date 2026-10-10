@@ -853,6 +853,77 @@ function withAddedSugarContributors(as, contributors) {
     });
 }
 
+// ---- Meal items, from the result's `_meta` ----------------------------------
+// A meal logged with an ingredient list carries its items in the result's
+// `_meta` under "nutrition-mcp.com/meal-items" (no structuredContent object may
+// gain a field — see "Server wiring" in CLAUDE.md), as
+// `{ v: 1, meals: [ [item, …] | null, … ] }`: a plain array aligned BY
+// POSITION with the breakdown rows, which carry no id. Each template reads the
+// key itself and merges it here, after withAddedSugar. A missing, malformed or
+// future-versioned payload merges nothing, so the rows — and the strip — are
+// exactly what they were before the field existed.
+function mealItemsPayload(raw) {
+    return raw &&
+        typeof raw === "object" &&
+        raw.v === 1 &&
+        Array.isArray(raw.meals)
+        ? raw
+        : null;
+}
+
+// Must equal MAX_ITEMS_PER_MEAL in src/meal-items.ts (checked by
+// public/widgets/macros.test.ts): the server never stores more, so a longer
+// slot is not something it sent.
+const MEAL_ITEMS_CAP = 30;
+const MEAL_ITEM_NUTRIENTS = [
+    "calories",
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "fiber_g",
+    "sugar_g",
+    "added_sugar_g",
+    "alcohol_g",
+    "caffeine_mg",
+];
+
+// One slot's items, validated: it arrives from the host, so it is untrusted.
+// Keeps only objects with a non-empty string name and rebuilds each from the
+// whitelisted fields alone, every number finite or null. Anything else is [].
+function mealItemsOf(slot) {
+    if (!Array.isArray(slot)) return [];
+    const out = [];
+    for (const it of slot) {
+        if (out.length >= MEAL_ITEMS_CAP) break;
+        if (!it || typeof it !== "object") continue;
+        if (typeof it.name !== "string" || it.name === "") continue;
+        const item = {
+            name: it.name,
+            amount: Number.isFinite(it.amount) ? it.amount : null,
+            unit: typeof it.unit === "string" ? it.unit : null,
+        };
+        for (const k of MEAL_ITEM_NUTRIENTS) {
+            item[k] = Number.isFinite(it[k]) ? it[k] : null;
+        }
+        out.push(item);
+    }
+    return out;
+}
+
+// Join a meal-items payload onto the breakdown rows as `meal.items`, by
+// position and only when the counts agree; any mismatch returns `meals`
+// itself, so a stale or foreign payload can never hang one meal's ingredients
+// under another. Rows whose slot validates to no item stay the same object;
+// the rest are copies, never the caller's own rows mutated.
+function withMealItems(payload, meals) {
+    if (!payload || !Array.isArray(meals)) return meals;
+    if (payload.meals.length !== meals.length) return meals;
+    return meals.map((meal, i) => {
+        const items = mealItemsOf(payload.meals[i]);
+        return items.length ? Object.assign({}, meal, { items }) : meal;
+    });
+}
+
 // ---- Interactive breakdown ------------------------------------------------
 // Set by macroPanel() when the strip is interactive; read by the delegated
 // handlers below.
@@ -909,13 +980,16 @@ function mealList(m, meals, ctx) {
     const maybeMore = !exact && trimmed && rows.length === CAP;
     const extra = (exact ? count : rows.length) - shown.length;
     const items = shown
-        .map(({ meal, v }) => {
+        .map(({ meal, v }, i) => {
             // Prefer a date tag for multi-day ranges, otherwise the meal type.
             const sub = meal.date
                 ? esc(String(meal.date).slice(5))
                 : meal.meal_type
                   ? esc(meal.meal_type)
                   : "";
+            if (Array.isArray(meal.items) && meal.items.length) {
+                return mealRowWithItems(m, meal, v, sub, decimals, i, ctx);
+            }
             return `
         <li class="md-row">
           <span class="md-val" style="color:${m.color}">${fmt(v, decimals)}<span class="md-unit">${esc(unitLabel(m))}</span></span>
@@ -935,6 +1009,63 @@ function mealList(m, meals, ctx) {
             )}</li>`
           : "";
     return `<ul class="md-list">${items}${more}</ul>`;
+}
+
+// A breakdown row whose meal has ingredients: the same value / name / sub line,
+// wrapped in a disclosure button, over a hidden list of the items ranked by the
+// metric on show. Everything inside a <button> is its accessible name, so the
+// figure is read as before, followed by the item count; no aria-label replaces
+// it. The id only has to be unique within the document: a widget mounts one
+// breakdown, and a page that mounts a second (the dev gallery's pinned copy
+// beside its live strip) gives it its own `ctx.idPrefix`.
+//
+// The item list sits inside .macro-detail, which is aria-live so a swapped
+// breakdown is announced; content made visible inside a live region counts
+// as an addition, so without aria-live="off" opening a row would read every
+// item aloud after the button's own "expanded". aria-expanded is the feedback.
+function mealRowWithItems(m, meal, v, sub, decimals, i, ctx) {
+    const prefix = (ctx && ctx.idPrefix) || "md-items";
+    const id = `${prefix}-${m.key}-${i}`;
+    const n = meal.items.length;
+    return `
+        <li class="md-row has-items">
+          <button type="button" class="md-open" data-meal-open aria-expanded="false" aria-controls="${id}">
+            <span class="md-val" style="color:${m.color}">${fmt(v, decimals)}<span class="md-unit">${esc(unitLabel(m))}</span></span>
+            <span class="md-name">${esc(meal.description || T.macros.untitledMeal)}</span>
+            ${sub ? `<span class="md-sub">${sub}</span>` : ""}
+            <span class="md-count" aria-hidden="true">${n}</span><span class="md-chev" aria-hidden="true">›</span>
+            <span class="sr-only">${esc(plural(T.macros.ingredientCount, n))}</span>
+          </button>
+          <ul class="md-items" id="${id}" aria-live="off" hidden>${mealItemRows(m, meal.items, decimals)}</ul>
+        </li>`;
+}
+
+// One meal's items, biggest first by the metric on show. An item with no value
+// for it reads "–" and sorts last; a recorded 0 is a value and reads "0". The
+// sort is stable, so ties keep the order the items were logged in.
+function mealItemRows(m, items, decimals) {
+    return items
+        .map((it) => ({ it, v: Number.isFinite(it[m.key]) ? it[m.key] : null }))
+        .sort((a, b) =>
+            a.v === null
+                ? b.v === null
+                    ? 0
+                    : 1
+                : b.v === null
+                  ? -1
+                  : b.v - a.v,
+        )
+        .map(({ it, v }) => {
+            const val =
+                v === null
+                    ? `<span class="md-none" role="img" aria-label="${esc(T.macros.notRecorded)}">–</span>`
+                    : `${fmt(v, decimals)}<span class="md-unit">${esc(unitLabel(m))}</span>`;
+            const amt = Number.isFinite(it.amount)
+                ? `<span class="md-iamt">${esc(String(it.amount))}${it.unit ? ` ${esc(it.unit)}` : ""}</span>`
+                : "";
+            return `<li class="md-item"><span class="md-ival">${val}</span><span class="md-iname">${esc(it.name)}</span>${amt}</li>`;
+        })
+        .join("");
 }
 
 // Build the breakdown for one metric: the meals behind it, in the strip's own
@@ -983,6 +1114,25 @@ function macroToggle(cell) {
     if (hint) hint.hidden = true;
 }
 
+// Open or close one meal's item list. One open at a time per breakdown:
+// opening a row closes whichever was open, tapping the open row closes it, and
+// switching metric rebuilds the list, which resets it (the item order depends
+// on the metric). Height changes reach the host through the bridge's
+// ResizeObserver, as the breakdown's own do.
+function mealRowToggle(btn) {
+    const scope = btn.closest(".macro-detail") || btn.closest(".md-list");
+    if (!scope) return;
+    const opening = btn.getAttribute("aria-expanded") !== "true";
+    scope.querySelectorAll("[data-meal-open]").forEach((b) => {
+        const on = b === btn && opening;
+        b.setAttribute("aria-expanded", on ? "true" : "false");
+        const row = b.closest(".md-row");
+        if (row) row.classList.toggle("open", on);
+        const list = row && row.querySelector(".md-items");
+        if (list) list.hidden = !on;
+    });
+}
+
 // Delegated once per document. No-ops on non-interactive strips (no
 // [data-macro] tiles), so widgets that omit meals are unaffected.
 if (typeof document !== "undefined" && !window.__macroWired) {
@@ -997,6 +1147,13 @@ if (typeof document !== "undefined" && !window.__macroWired) {
                 );
                 if (cell) macroToggle(cell);
             }
+            return;
+        }
+        // Before the tile lookup: a row button is a native <button>, so Enter
+        // and Space arrive here as clicks and need no keydown branch.
+        const mealRow = e.target.closest("[data-meal-open]");
+        if (mealRow) {
+            mealRowToggle(mealRow);
             return;
         }
         const cell = e.target.closest("[data-macro]");

@@ -335,6 +335,11 @@
             // because the frozen outputSchema can gain no field. Must equal
             // ADDED_SUGAR_META_KEY in src/widgets.ts.
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            // Where the same result carries each listed meal's ingredients
+            // ({ v: 1, meals: [items | null, …] }, aligned with data.meals by
+            // position), for the breakdown's expandable rows. Must equal
+            // MEAL_ITEMS_META_KEY in src/widgets.ts.
+            const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
 
             // `resultMeta` is the tool result's `_meta` (or null — see
             // bridge.js).
@@ -391,11 +396,19 @@
                     data.goals,
                     data.meals,
                 );
+                // Ingredients join the rows the same way, after added sugar;
+                // without `_meta` this is merged.meals itself.
+                const rows = withMealItems(
+                    mealItemsPayload(
+                        resultMeta && resultMeta[MEAL_ITEMS_META_KEY],
+                    ),
+                    merged.meals,
+                );
                 const panel = macroPanel(
                     merged.vals,
                     merged.goal,
                     undefined,
-                    merged.meals,
+                    rows,
                     // Nothing sits between the header line and the strip, so no
                     // leading hairline.
                     { drinkUnit: data.drink_unit, calLabel },
