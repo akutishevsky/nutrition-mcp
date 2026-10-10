@@ -15,6 +15,11 @@
 
 import type { Meal } from "./supabase.js";
 import { formatAlcohol, type DrinkUnit } from "./alcohol.js";
+import {
+    compactSugarFigure,
+    formatItemsBlock,
+    type MealItemValues,
+} from "./meal-items.js";
 import { dateInTz, formatLocalDateTime } from "./tz.js";
 
 // How alcohol should be rendered for the current user: the drink unit to gloss
@@ -66,11 +71,10 @@ export function clipDescription(text: string): string {
 // filled only half of) still shows the figure it has. Null is "not recorded",
 // so nothing is printed; 0 is data and is.
 function compactAddedSugar(meal: Meal): string | null {
-    const added = meal.added_sugar_g;
-    if (added == null) return null;
-    return meal.sugar_g != null
-        ? `sugar ${meal.sugar_g} g (${added} added)`
-        : `added sugar ${added} g`;
+    // Without an added figure the sugar stays in the shared " g" run (see
+    // formatMealCompact), so only the bracketed or added-only forms come here.
+    if (meal.added_sugar_g == null) return null;
+    return compactSugarFigure(meal.sugar_g, meal.added_sugar_g);
 }
 
 function fullSugar(meal: Meal): string | null {
@@ -84,11 +88,13 @@ function fullSugar(meal: Meal): string | null {
 }
 
 /** Every field on its own line, notes included, time as local
- *  "YYYY-MM-DD HH:MM". Never clipped. */
+ *  "YYYY-MM-DD HH:MM". Never clipped. `items`, when the meal has any, follow
+ *  as an "Items:" block (see formatItemsBlock in meal-items.ts). */
 export function formatMealFull(
     meal: Meal,
     alcohol: AlcoholDisplay,
     tz: string,
+    items?: MealItemValues[],
 ): string {
     const parts = [
         `ID: ${meal.id}`,
@@ -115,16 +121,22 @@ export function formatMealFull(
             : null,
         meal.notes ? `Notes: ${meal.notes}` : null,
     ];
-    return parts.filter(Boolean).join("\n");
+    const block =
+        items && items.length > 0
+            ? formatItemsBlock(items, alcohol !== null)
+            : "";
+    return [parts.filter(Boolean).join("\n"), block].filter(Boolean).join("\n");
 }
 
 /** One line per meal: local HH:MM, type, description (clipped at 200), the
- *  non-null figures, a "notes" flag in place of the note text, and the id
- *  update_meal / delete_meal take. `!= null` throughout — 0 is data. */
+ *  non-null figures, a "notes" flag in place of the note text, an item count
+ *  when the meal was logged with ingredients, and the id update_meal /
+ *  delete_meal take. `!= null` throughout — 0 is data. */
 export function formatMealCompact(
     meal: Meal,
     alcohol: AlcoholDisplay,
     tz: string,
+    itemCount?: number,
 ): string {
     const time = formatLocalDateTime(meal.logged_at, tz).slice(11, 16);
     const grams = [
@@ -150,6 +162,9 @@ export function formatMealCompact(
             ? `caffeine ${formatMg(meal.caffeine_mg)}`
             : null,
         meal.notes ? "notes" : null,
+        itemCount && itemCount > 0
+            ? `${itemCount} item${itemCount === 1 ? "" : "s"}`
+            : null,
     ].filter(Boolean);
     const type = meal.meal_type ? ` ${meal.meal_type}` : "";
     const description = clipDescription(meal.description);
@@ -178,8 +193,11 @@ export function renderMealListing(opts: {
     detail: MealDetail;
     grouped: boolean;
     maxChars?: number;
+    /** Ingredients keyed by meal id. A meal with no entry is listed as before. */
+    items?: Map<string, MealItemValues[]>;
 }): { text: string; truncated: boolean; shownMeals: number } {
     const { tz, alcohol, detail, grouped } = opts;
+    const itemsOf = (m: Meal) => opts.items?.get(m.id);
     const maxChars = opts.maxChars ?? MEAL_LISTING_MAX_CHARS;
     const compact = detail === "compact";
 
@@ -189,7 +207,10 @@ export function renderMealListing(opts: {
         (a, b) => Date.parse(a.logged_at) - Date.parse(b.logged_at),
     );
 
-    const format = compact ? formatMealCompact : formatMealFull;
+    const format = (m: Meal, a: AlcoholDisplay, z: string): string =>
+        compact
+            ? formatMealCompact(m, a, z, itemsOf(m)?.length)
+            : formatMealFull(m, a, z, itemsOf(m));
     const mealSep = compact ? "\n" : "\n\n---\n\n";
     const daySep = compact ? "\n\n" : "\n\n===\n\n";
 

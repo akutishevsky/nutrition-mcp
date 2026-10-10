@@ -32,6 +32,7 @@ import { ALT_UI_PL } from "./alt-ui.pl.js";
 import { ALT_UI_IT } from "./alt-ui.it.js";
 import { ALT_UI_UK } from "./alt-ui.uk.js";
 import { ALT_UI_JA } from "./alt-ui.ja.js";
+import { ALT_UI_TR } from "./alt-ui.tr.js";
 
 export interface AltFeature {
     title: string;
@@ -193,7 +194,7 @@ export const ALT_UI_EN: AltUiCopy = {
             },
             {
                 title: "Import &amp; own your data",
-                body: "Import your meal history from another app's CSV export — parsed in your browser, not by the AI. Take everything back out whenever you want: one ZIP with your meals, water, weight, body measurements, goals and profile, plus your account record, usage telemetry and connected apps, as CSV files. Meals are the only part that can be imported back in for now. Or delete your account, just as easily.",
+                body: "Import your meal history from another app's CSV export — parsed in your browser, not by the AI. Take everything back out whenever you want: one ZIP with your meals, saved meals, water, weight, body measurements, goals and profile, plus your account record, usage telemetry and connected apps, as CSV files. Meals are the only part that can be imported back in for now. Or delete your account, just as easily.",
             },
             {
                 title: "Open source &amp; free",
@@ -296,6 +297,7 @@ export const ALT_UI_COPY: Partial<Record<SiteLocale, AltUiCopy>> = {
     it: ALT_UI_IT,
     uk: ALT_UI_UK,
     ja: ALT_UI_JA,
+    tr: ALT_UI_TR,
 };
 
 export function altUiFor(locale: SiteLocale): AltUiCopy {

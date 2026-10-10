@@ -36,6 +36,7 @@ import { HEALTH_SYNC_PL } from "./health-sync.pl.js";
 import { HEALTH_SYNC_IT } from "./health-sync.it.js";
 import { HEALTH_SYNC_UK } from "./health-sync.uk.js";
 import { HEALTH_SYNC_JA } from "./health-sync.ja.js";
+import { HEALTH_SYNC_TR } from "./health-sync.tr.js";
 
 /** Which error page to show. */
 export type HealthSyncErrorKind = "expired" | "signInFailed" | "generic";
@@ -97,6 +98,7 @@ export const HEALTH_SYNC_COPY: Record<SiteLocale, HealthSyncCopy> = {
     it: HEALTH_SYNC_IT,
     uk: HEALTH_SYNC_UK,
     ja: HEALTH_SYNC_JA,
+    tr: HEALTH_SYNC_TR,
 };
 
 /** The copy for `locale`, English for anything not in SITE_LOCALES. */

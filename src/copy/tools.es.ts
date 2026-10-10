@@ -11,11 +11,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_ES: ToolsDoc = {
     meta: {
-        title: "41 herramientas: calorías, macros, agua y peso",
+        title: "46 herramientas: calorías, macros, agua y peso",
         description:
-            "Las 41 herramientas de Nutrition MCP para Claude, ChatGPT y más: registra comidas, agua, peso y medidas corporales, escanea códigos e importa CSV de MyFitnessPal o Cronometer.",
+            "Las 46 herramientas de Nutrition MCP para Claude, ChatGPT y más: registra comidas, guarda las que comes a menudo, agua, peso y medidas corporales, escanea códigos e importa CSV de MyFitnessPal o Cronometer.",
         ogDescription:
-            "Las 41 herramientas que el servidor Nutrition MCP da a tu IA, incluido un importador CSV para traer tu historial de otra app, con descripciones y ejemplos.",
+            "Las 46 herramientas que el servidor Nutrition MCP da a tu IA, incluido un importador CSV para traer tu historial de otra app, con descripciones y ejemplos.",
     },
     hero: {
         eyebrow: "Referencia",
@@ -23,7 +23,7 @@ export const TOOLS_ES: ToolsDoc = {
         titleEm: "hacer",
         titleAfterEm: "",
         lead: "Nunca tienes que usar estas herramientas tú mismo: basta con hablar con Claude, ChatGPT u otro cliente MCP, y él elige la adecuada. Aquí tienes todas las herramientas que ofrece el servidor Nutrition MCP para comidas, calorías y macros, agua y peso, con lo que hace cada una y una frase que la activa.",
-        countBold: "41 herramientas",
+        countBold: "46 herramientas",
         countTail: "en 7 áreas",
     },
     categories: {
@@ -90,7 +90,7 @@ export const TOOLS_ES: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Registra lo que comiste con sus calorías y macros, además de fibra, azúcares totales y añadidos, alcohol y cafeína cuando haya datos. Descríbelo con tus propias palabras: la IA estima las cifras, te pregunta el tamaño de la porción si no está claro y puede consultar antes los datos de la etiqueta con el código de barras o en la web.",
+                "Registra lo que comiste con sus calorías y macros, además de fibra, azúcares totales y añadidos, alcohol y cafeína cuando haya datos. Descríbelo con tus propias palabras: la IA estima las cifras, te pregunta el tamaño de la porción si no está claro y puede consultar antes los datos de la etiqueta con el código de barras o en la web. También puede recibir los ingredientes uno a uno, y entonces los totales son la suma de esos ingredientes.",
             params: {
                 description: "Qué comiste",
                 meal_type: "desayuno, almuerzo, cena o snack",
@@ -111,6 +111,7 @@ export const TOOLS_ES: ToolsDoc = {
                 logged_at:
                     "Cuándo lo comiste, si no fue ahora: te permite registrarlo a posteriori",
                 notes: "Notas adicionales",
+                items: "Ingredientes, una fila por cada uno, con sus cantidades y nutrientes: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code> y <code>fat_g</code> en cada ingrediente; <code>fiber_g</code>, <code>sugar_g</code> y <code>added_sugar_g</code> en todos o en ninguno; <code>alcohol_g</code> y <code>caffeine_mg</code> solo en los ingredientes que los contienen, sumados sobre esos ingredientes. Los totales de la comida son entonces la suma de los ingredientes, así que envía ingredientes o totales, no ambos",
             },
             example:
                 "Registra un burrito bowl de pollo con guacamole extra como almuerzo",
@@ -150,7 +151,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Cambia los datos de una comida que ya registraste: su descripción, cualquier macro, la fibra, el azúcar total o añadido, el alcohol o la cafeína, la hora o las notas. También sirve para completar un dato que faltaba: si una comida se guardó sin fibra, sin azúcar o sin azúcar añadido, el servidor lo indica y la IA lo completa aquí si estás de acuerdo.",
+                "Cambia los datos de una comida que ya registraste: su descripción, cualquier macro, la fibra, el azúcar total o añadido, el alcohol o la cafeína, la hora o las notas. También sirve para completar un dato que faltaba: si una comida se guardó sin fibra, sin azúcar o sin azúcar añadido, el servidor lo indica y la IA lo completa aquí si estás de acuerdo. En una comida registrada con ingredientes, los totales cambian a través de su lista de ingredientes.",
             params: {
                 id: "UUID de la comida que quieres actualizar",
                 description: "",
@@ -166,6 +167,7 @@ export const TOOLS_ES: ToolsDoc = {
                 caffeine_mg: "Miligramos, no gramos",
                 logged_at: "",
                 notes: "",
+                items: "La lista completa de ingredientes, que sustituye a la existente. Los totales de la comida pasan a ser la suma de esta lista, así que no se pueden enviar junto a ella los campos de totales",
             },
             example:
                 "En realidad ese almuerzo tenía 600 calorías, no 500: corrígelo",
@@ -177,9 +179,91 @@ export const TOOLS_ES: ToolsDoc = {
             },
             example: "Borra el snack que registré esta tarde",
         },
+        save_meal: {
+            description:
+                "Guarda una comida que comes a menudo con un nombre, como tu desayuno habitual, con sus valores para una ración y, si los tienes, sus ingredientes. Introduce tú los valores o cópialos de una comida que ya registraste. Guardarla no añade nada a tu diario; registra la comida guardada con log_saved_meal cuando la comas.",
+            params: {
+                name: "El nombre con el que se guarda, único entre tus comidas guardadas (de 1 a 100 caracteres)",
+                from_meal_id:
+                    "UUID de una comida registrada de la que copiar sus valores y sus ingredientes",
+                description:
+                    "Qué es la comida guardada. Por defecto, su nombre",
+                meal_type:
+                    "desayuno, almuerzo, cena o snack: el valor por defecto al registrarla",
+                items: "Ingredientes, una fila por cada uno, con sus cantidades y nutrientes. Su suma pasa a ser los valores de la comida guardada, así que envía ingredientes o valores, no ambos",
+                calories: "Calorías totales para una ración",
+                protein_g: "Proteína en gramos para una ración",
+                carbs_g: "Carbohidratos en gramos para una ración",
+                fat_g: "Grasa en gramos para una ración",
+                fiber_g: "Fibra dietética en gramos para una ración",
+                sugar_g: "Azúcares totales en gramos para una ración",
+                added_sugar_g:
+                    "Azúcares añadidos en gramos para una ración, nunca más que los azúcares totales. Acompaña a <code>sugar_g</code>",
+                alcohol_g:
+                    "Gramos de etanol puro para una ración, no el volumen de la bebida",
+                caffeine_mg: "Miligramos de cafeína para una ración, no gramos",
+            },
+            example: "Guárdalo como mi desayuno habitual",
+        },
+        log_saved_meal: {
+            description:
+                "Registra una comida guardada como entrada de comida desde ahora o desde una hora que indiques. La entrada recibe una copia de los valores y los ingredientes guardados, escalados según las raciones, con ingredientes sueltos que opcionalmente se ajustan a la cantidad realmente comida o se quitan solo para esta vez. Los cambios posteriores en la comida guardada dejan como están las comidas ya registradas a partir de ella.",
+            params: {
+                saved_meal:
+                    "El nombre de la comida guardada, o su ID de get_saved_meals o search_meals",
+                servings:
+                    "Cuántas raciones registrar: más de 0 y hasta 20 (por defecto, 1)",
+                item_amounts:
+                    "Las cantidades de ingredientes sueltos que realmente comiste en esta entrada, por nombre o posición. Primero las raciones escalan la comida guardada y después estas cantidades fijan las de los ingredientes indicados; sus nutrientes se escalan en proporción",
+                leave_out:
+                    "Ingredientes que quitar de esta entrada, por nombre o posición",
+                meal_type:
+                    "desayuno, almuerzo, cena o snack: sustituye al valor por defecto de la comida guardada",
+                description:
+                    "Descripción de esta entrada. Por defecto, la descripción de la comida guardada",
+                logged_at: "Cuándo lo comiste, si no fue ahora",
+                notes: "Notas adicionales",
+                idempotency_key:
+                    "Una clave que hace que una llamada repetida no haga nada, para no registrar dos veces la misma entrada",
+            },
+            example: "Registra mi desayuno habitual, media ración",
+        },
+        update_saved_meal: {
+            description:
+                "Cambia el nombre, la descripción, el tipo de comida por defecto, los ingredientes o los valores por ración de una comida guardada. Las comidas ya registradas a partir de ella conservan sus valores.",
+            params: {
+                id: "UUID de la comida guardada que quieres actualizar",
+                name: "Nombre nuevo, único entre tus comidas guardadas",
+                description: "Nueva descripción",
+                meal_type:
+                    "Nuevo tipo de comida por defecto: desayuno, almuerzo, cena o snack",
+                items: "La lista completa de ingredientes, que sustituye a la existente. Su suma pasa a ser los valores de la comida guardada, así que no se pueden enviar junto a ella los campos de valores",
+                calories: "Calorías totales para una ración",
+                protein_g: "Proteína en gramos para una ración",
+                carbs_g: "Carbohidratos en gramos para una ración",
+                fat_g: "Grasa en gramos para una ración",
+                fiber_g: "Fibra dietética en gramos para una ración",
+                sugar_g: "Azúcares totales en gramos para una ración",
+                added_sugar_g:
+                    "Azúcares añadidos en gramos para una ración, nunca más que los azúcares totales. Acompaña a <code>sugar_g</code>",
+                alcohol_g:
+                    "Gramos de etanol puro para una ración, no el volumen de la bebida",
+                caffeine_mg: "Miligramos de cafeína para una ración, no gramos",
+            },
+            example:
+                "Mi desayuno habitual ahora tiene 350 calorías por ración: actualízalo",
+        },
+        delete_saved_meal: {
+            description:
+                "Elimina una comida guardada. Las comidas ya registradas a partir de ella conservan sus valores.",
+            params: {
+                id: "UUID de la comida guardada que quieres eliminar",
+            },
+            example: "Borra la comida guardada llamada almuerzo viejo",
+        },
         search_meals: {
             description:
-                "Busca tus comidas anteriores por palabra clave y míralas agrupadas en sus variantes habituales: cuántas veces registraste cada una, cuándo fue la última y sus calorías típicas. Así es como la IA compara una foto de tu plato con cómo has registrado esa comida antes, y así funciona «registra mi desayuno habitual».",
+                "Busca tus comidas anteriores por palabra clave y míralas agrupadas en sus variantes habituales: cuántas veces registraste cada una, cuándo fue la última y sus calorías típicas. Así es como la IA compara una foto de tu plato con cómo has registrado esa comida antes, y así funciona «registra mi desayuno habitual». También busca en los nombres de los ingredientes de cada comida y muestra tus comidas guardadas cuyo nombre, descripción o ingredientes coinciden.",
             params: {
                 queries:
                     "Palabras clave alternativas para el alimento, en cualquier idioma en el que hayas registrado comidas",
@@ -215,9 +299,18 @@ export const TOOLS_ES: ToolsDoc = {
             },
             example: "Muestra mis comidas de lunes a viernes",
         },
+        get_saved_meals: {
+            description:
+                "Consulta tus comidas guardadas con sus valores por ración y sus ingredientes, opcionalmente solo las que incluyen cierto texto en el nombre.",
+            params: {
+                name_contains:
+                    "Solo las comidas guardadas cuyo nombre incluye este texto",
+            },
+            example: "¿Qué comidas he guardado?",
+        },
         export_all_data: {
             description:
-                "Exporta en un único ZIP todo lo que el servicio guarda sobre ti: meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (cada cambio de tus objetivos, con fecha), profile.csv, account.csv (tu cuenta de inicio de sesión), telemetry.csv (registros de uso de herramientas), connections.csv (tus apps de IA conectadas y la sincronización con Apple Health, sin ningún token), health_sync.csv (lo que la sincronización con Apple Health envió en los últimos 8 días) y un README.txt que explica las columnas, las unidades y lo que no se incluye. Te devuelve un enlace de descarga privado, válido durante 60 minutos. Por ahora, las comidas son lo único que se puede volver a importar.",
+                "Exporta en un único ZIP todo lo que el servicio guarda sobre ti: meals.csv, meal_items.csv (los ingredientes de cada comida registrada), saved_meals.csv y saved_meal_items.csv (tus comidas guardadas y sus ingredientes), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (cada cambio de tus objetivos, con fecha), profile.csv, account.csv (tu cuenta de inicio de sesión), telemetry.csv (registros de uso de herramientas), connections.csv (tus apps de IA conectadas y la sincronización con Apple Health, sin ningún token), health_sync.csv (lo que la sincronización con Apple Health envió en los últimos 8 días) y un README.txt que explica las columnas, las unidades y lo que no se incluye. Te devuelve un enlace de descarga privado, válido durante 60 minutos. Por ahora, las comidas son lo único que se puede volver a importar.",
             params: {},
             example: "Exporta todos mis datos: comidas, agua, peso y objetivos",
         },
@@ -444,7 +537,7 @@ export const TOOLS_ES: ToolsDoc = {
             description:
                 "Define el idioma de la interfaz de los widgets del chat (los paneles y gráficos), no el de lo que la IA te escribe.",
             params: {
-                locale: "Código ISO 639-1, p. ej. <code>de</code>, <code>ja</code>. Idiomas disponibles: inglés, alemán, español, francés, neerlandés, polaco, italiano, ucraniano y japonés.",
+                locale: "Código ISO 639-1, p. ej. <code>de</code>, <code>ja</code>. Idiomas disponibles: inglés, alemán, español, francés, neerlandés, polaco, italiano, ucraniano, japonés y turco.",
             },
             example: "Muéstrame los widgets en alemán",
         },
@@ -567,7 +660,7 @@ export const TOOLS_ES: ToolsDoc = {
             "delete-account": {
                 question: "¿Cómo elimino mi cuenta?",
                 answerHtml:
-                    'Pídele a la IA que elimine tu cuenta de Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). Te pedirá que lo confirmes y después eliminará de forma permanente tus comidas, agua, peso, medidas corporales, objetivos, ajustes, el registro de qué herramientas usó tu app de IA, cualquier archivo de exportación, tus datos de acceso y la propia cuenta. Esto no se puede deshacer, así que exporta antes tus datos si quieres una copia. Después, elimina el conector de tu app. Si más adelante vuelves a iniciar sesión con el mismo correo, se creará una cuenta nueva y vacía.',
+                    'Pídele a la IA que elimine tu cuenta de Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). Te pedirá que lo confirmes y después eliminará de forma permanente tus comidas, comidas guardadas, agua, peso, medidas corporales, objetivos, ajustes, el registro de qué herramientas usó tu app de IA, cualquier archivo de exportación, tus datos de acceso y la propia cuenta. Esto no se puede deshacer, así que exporta antes tus datos si quieres una copia. Después, elimina el conector de tu app. Si más adelante vuelves a iniciar sesión con el mismo correo, se creará una cuenta nueva y vacía.',
             },
             "report-a-problem": {
                 question:

@@ -89,6 +89,7 @@ const QUOTES: Record<SiteLocale, [open: string, close: string]> = {
     it: ["«", "»"],
     uk: ["«", "»"],
     ja: ["「", "」"],
+    tr: ["“", "”"],
 };
 
 /** The support address the Troubleshooting intro links to. Same literal as

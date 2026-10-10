@@ -6,11 +6,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_DE: ToolsDoc = {
     meta: {
-        title: "41 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
+        title: "46 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
         description:
-            "Alle 41 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
+            "Alle 46 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, häufige Mahlzeiten speichern, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
         ogDescription:
-            "Alle 41 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – inklusive CSV-Importer für deinen Verlauf aus einer anderen App, mit Beschreibungen und Beispielsätzen.",
+            "Alle 46 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – inklusive CSV-Importer für deinen Verlauf aus einer anderen App, mit Beschreibungen und Beispielsätzen.",
     },
     hero: {
         eyebrow: "Referenz",
@@ -18,7 +18,7 @@ export const TOOLS_DE: ToolsDoc = {
         titleEm: "kann",
         titleAfterEm: "",
         lead: "Du rufst diese Werkzeuge nie selbst auf – du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und der wählt das passende Werkzeug. Hier findest du jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt – jeweils mit Beschreibung und einem Beispielsatz, der es auslöst.",
-        countBold: "41 Werkzeuge",
+        countBold: "46 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
     categories: {
@@ -86,7 +86,7 @@ export const TOOLS_DE: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus Ballaststoffen, Gesamt- und zugesetztem Zucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen.",
+                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus Ballaststoffen, Gesamt- und zugesetztem Zucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen. Du kannst auch die Zutaten einzeln angeben – dann ergibt die Summe der Zutaten die Gesamtwerte.",
             params: {
                 description: "Was gegessen wurde",
                 meal_type: "Frühstück, Mittagessen, Abendessen oder Snack",
@@ -107,6 +107,7 @@ export const TOOLS_DE: ToolsDoc = {
                 logged_at:
                     "Wann du es gegessen hast, falls nicht gerade eben – so lässt sich etwas nachträglich erfassen",
                 notes: "Zusätzliche Notizen",
+                items: "Zutaten, eine Zeile pro Zutat, mit Menge und Nährwerten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code> und <code>fat_g</code> bei jeder Zutat; <code>fiber_g</code>, <code>sugar_g</code> und <code>added_sugar_g</code> bei allen Zutaten oder bei keiner; <code>alcohol_g</code> und <code>caffeine_mg</code> nur bei den Zutaten, die sie enthalten, über diese Zutaten summiert. Die Gesamtwerte der Mahlzeit ergeben sich dann aus der Summe der Zutaten, also Zutaten oder Gesamtwerte senden, nicht beides",
             },
             example:
                 "Trag eine Chicken-Burrito-Bowl mit extra Guacamole als Mittagessen ein",
@@ -147,7 +148,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Ändere eine bereits erfasste Mahlzeit – Beschreibung, beliebige Makros, Ballaststoffe, Gesamt- oder zugesetzter Zucker, Alkohol oder Koffein, Uhrzeit oder Notizen. Darüber werden auch Lücken nachgetragen: Wurde eine Mahlzeit ohne Ballaststoffe, Zucker oder zugesetzten Zucker erfasst, weist der Server darauf hin, und die KI trägt die Werte hier nach, sobald du zustimmst.",
+                "Ändere eine bereits erfasste Mahlzeit – Beschreibung, beliebige Makros, Ballaststoffe, Gesamt- oder zugesetzter Zucker, Alkohol oder Koffein, Uhrzeit oder Notizen. Darüber werden auch Lücken nachgetragen: Wurde eine Mahlzeit ohne Ballaststoffe, Zucker oder zugesetzten Zucker erfasst, weist der Server darauf hin, und die KI trägt die Werte hier nach, sobald du zustimmst. Bei einer Mahlzeit, die mit Zutaten erfasst wurde, ändern sich die Gesamtwerte über ihre Zutatenliste.",
             params: {
                 id: "UUID der zu ändernden Mahlzeit",
                 description: "",
@@ -164,6 +165,7 @@ export const TOOLS_DE: ToolsDoc = {
                 caffeine_mg: "Milligramm, nicht Gramm",
                 logged_at: "",
                 notes: "",
+                items: "Die vollständige Zutatenliste, die die bisherige ersetzt. Die Gesamtwerte der Mahlzeit werden zur Summe dieser Liste, daher können die Gesamtwert-Felder nicht zusammen damit gesendet werden",
             },
             example:
                 "Das Mittagessen hatte eigentlich 600 Kalorien, nicht 500 – korrigier das",
@@ -177,9 +179,91 @@ export const TOOLS_DE: ToolsDoc = {
             example:
                 "Lösch den Snack, den ich heute Nachmittag eingetragen habe",
         },
+        save_meal: {
+            description:
+                "Speichere eine Mahlzeit, die du oft isst, unter einem Namen – etwa dein übliches Frühstück – mit ihren Werten für eine Portion und, falls du sie hast, ihren Zutaten. Gib die Werte selbst an oder übernimm sie aus einer bereits erfassten Mahlzeit. Das Speichern trägt nichts in dein Tagebuch ein; erfasst wird die gespeicherte Mahlzeit mit log_saved_meal, wenn du sie isst.",
+            params: {
+                name: "Der Name, unter dem sie gespeichert wird; er ist unter deinen gespeicherten Mahlzeiten eindeutig (1–100 Zeichen)",
+                from_meal_id:
+                    "UUID einer erfassten Mahlzeit, aus der Werte und Zutaten übernommen werden",
+                description:
+                    "Was die gespeicherte Mahlzeit ist. Standard ist ihr Name",
+                meal_type:
+                    "Frühstück, Mittagessen, Abendessen oder Snack – der Standard beim Erfassen",
+                items: "Zutaten, eine Zeile pro Zutat, mit Menge und Nährwerten. Ihre Summe wird zu den Werten der gespeicherten Mahlzeit, also Zutaten oder Werte senden, nicht beides",
+                calories: "Kalorien insgesamt für eine Portion",
+                protein_g: "Protein in Gramm für eine Portion",
+                carbs_g: "Kohlenhydrate in Gramm für eine Portion",
+                fat_g: "Fett in Gramm für eine Portion",
+                fiber_g: "Ballaststoffe in Gramm für eine Portion",
+                sugar_g: "Gesamtzucker in Gramm für eine Portion",
+                added_sugar_g:
+                    "Zugesetzter Zucker in Gramm für eine Portion, nie mehr als der Gesamtzucker. Gehört zu <code>sugar_g</code>",
+                alcohol_g:
+                    "Gramm reinen Alkohols für eine Portion, nicht die Menge des Getränks",
+                caffeine_mg: "Milligramm Koffein für eine Portion, nicht Gramm",
+            },
+            example: "Speicher das als mein übliches Frühstück",
+        },
+        log_saved_meal: {
+            description:
+                "Erfasse eine gespeicherte Mahlzeit als Mahlzeiten-Eintrag – ab jetzt oder zu einer Uhrzeit, die du angibst. Der Eintrag bekommt eine Kopie der gespeicherten Werte und Zutaten, nach Portionen skaliert; einzelne Zutaten können für dieses eine Mal optional auf die tatsächlich gegessene Menge gesetzt oder weggelassen werden. Spätere Änderungen an der gespeicherten Mahlzeit lassen bereits daraus erfasste Mahlzeiten unverändert.",
+            params: {
+                saved_meal:
+                    "Der Name der gespeicherten Mahlzeit oder ihre ID aus get_saved_meals oder search_meals",
+                servings:
+                    "Wie viele Portionen erfasst werden: mehr als 0 und bis zu 20 (Standard 1)",
+                item_amounts:
+                    "Die in diesem Eintrag tatsächlich gegessenen Mengen einzelner Zutaten, nach Name oder Position. Zuerst skaliert die Portionenzahl die gespeicherte Mahlzeit, dann legen diese Werte die Mengen der genannten Zutaten fest; ihre Nährwerte werden anteilig skaliert",
+                leave_out:
+                    "Zutaten, die aus diesem Eintrag herausgenommen werden, nach Name oder Position",
+                meal_type:
+                    "Frühstück, Mittagessen, Abendessen oder Snack – überschreibt den Standard der gespeicherten Mahlzeit",
+                description:
+                    "Beschreibung für diesen Eintrag. Standard ist die Beschreibung der gespeicherten Mahlzeit",
+                logged_at: "Wann du es gegessen hast, falls nicht gerade eben",
+                notes: "Zusätzliche Notizen",
+                idempotency_key:
+                    "Ein Schlüssel, der einen wiederholten Aufruf wirkungslos macht, damit derselbe Eintrag nicht doppelt erfasst wird",
+            },
+            example: "Erfass mein übliches Frühstück, eine halbe Portion",
+        },
+        update_saved_meal: {
+            description:
+                "Ändere den Namen, die Beschreibung, den Standard-Mahlzeitentyp, die Zutaten oder die Werte pro Portion einer gespeicherten Mahlzeit. Mahlzeiten, die bereits daraus erfasst wurden, behalten ihre Werte.",
+            params: {
+                id: "UUID der zu ändernden gespeicherten Mahlzeit",
+                name: "Neuer Name, unter deinen gespeicherten Mahlzeiten eindeutig",
+                description: "Neue Beschreibung",
+                meal_type:
+                    "Neuer Standard-Mahlzeitentyp: Frühstück, Mittagessen, Abendessen oder Snack",
+                items: "Die vollständige Zutatenliste, die die bisherige ersetzt. Ihre Summe wird zu den Werten der gespeicherten Mahlzeit, daher können die Werte-Felder nicht zusammen damit gesendet werden",
+                calories: "Kalorien insgesamt für eine Portion",
+                protein_g: "Protein in Gramm für eine Portion",
+                carbs_g: "Kohlenhydrate in Gramm für eine Portion",
+                fat_g: "Fett in Gramm für eine Portion",
+                fiber_g: "Ballaststoffe in Gramm für eine Portion",
+                sugar_g: "Gesamtzucker in Gramm für eine Portion",
+                added_sugar_g:
+                    "Zugesetzter Zucker in Gramm für eine Portion, nie mehr als der Gesamtzucker. Gehört zu <code>sugar_g</code>",
+                alcohol_g:
+                    "Gramm reinen Alkohols für eine Portion, nicht die Menge des Getränks",
+                caffeine_mg: "Milligramm Koffein für eine Portion, nicht Gramm",
+            },
+            example:
+                "Mein übliches Frühstück hat jetzt 350 Kalorien pro Portion – aktualisier es",
+        },
+        delete_saved_meal: {
+            description:
+                "Lösche eine gespeicherte Mahlzeit. Mahlzeiten, die bereits daraus erfasst wurden, behalten ihre Werte.",
+            params: {
+                id: "UUID der zu löschenden gespeicherten Mahlzeit",
+            },
+            example: "Lösch die gespeicherte Mahlzeit namens altes Mittagessen",
+        },
         search_meals: {
             description:
-                "Durchsuche deine bisherigen Mahlzeiten nach Stichwort, gruppiert nach den Varianten, die bei dir immer wiederkehren – wie oft jede erfasst wurde, wann zuletzt und mit wie vielen Kalorien typischerweise. So gleicht die KI ein Foto deines Tellers damit ab, wie du diese Mahlzeit bisher tatsächlich erfasst hast, und so funktioniert „trag mein übliches Frühstück ein“.",
+                "Durchsuche deine bisherigen Mahlzeiten nach Stichwort, gruppiert nach den Varianten, die bei dir immer wiederkehren – wie oft jede erfasst wurde, wann zuletzt und mit wie vielen Kalorien typischerweise. So gleicht die KI ein Foto deines Tellers damit ab, wie du diese Mahlzeit bisher tatsächlich erfasst hast, und so funktioniert „trag mein übliches Frühstück ein“. Gesucht wird auch in den Namen der Zutaten einer Mahlzeit, und gespeicherte Mahlzeiten, deren Name, Beschreibung oder Zutaten passen, werden mit aufgeführt.",
             params: {
                 queries:
                     "Alternative Suchbegriffe für das Lebensmittel, in jeder Sprache, in der du schon erfasst hast",
@@ -216,9 +300,18 @@ export const TOOLS_DE: ToolsDoc = {
             },
             example: "Liste meine Mahlzeiten von Montag bis Freitag auf",
         },
+        get_saved_meals: {
+            description:
+                "Sieh dir deine gespeicherten Mahlzeiten mit ihren Werten pro Portion und ihren Zutaten an, optional nur die, deren Name einen bestimmten Text enthält.",
+            params: {
+                name_contains:
+                    "Nur gespeicherte Mahlzeiten, deren Name diesen Text enthält",
+            },
+            example: "Welche Mahlzeiten habe ich gespeichert?",
+        },
         export_all_data: {
             description:
-                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (jede Änderung deiner Ziele, mit Datum), profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps und Apple Health Sync, ohne Tokens), health_sync.csv (was Apple Health Sync in den letzten 8 Tagen gesendet hat) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
+                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, meal_items.csv (die Zutaten jeder erfassten Mahlzeit), saved_meals.csv und saved_meal_items.csv (deine gespeicherten Mahlzeiten und ihre Zutaten), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (jede Änderung deiner Ziele, mit Datum), profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps und Apple Health Sync, ohne Tokens), health_sync.csv (was Apple Health Sync in den letzten 8 Tagen gesendet hat) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
             params: {},
             example:
                 "Exportier alle meine Daten – Mahlzeiten, Wasser, Gewicht und Ziele",
@@ -449,7 +542,7 @@ export const TOOLS_DE: ToolsDoc = {
             description:
                 "Leg die Sprache der In-Chat-Widgets fest – also der Dashboards und Diagramme, nicht der Antworten der KI.",
             params: {
-                locale: "ISO-639-1-Code, z. B. <code>de</code>, <code>ja</code>. Unterstützt: Englisch, Deutsch, Spanisch, Französisch, Niederländisch, Polnisch, Italienisch, Ukrainisch, Japanisch.",
+                locale: "ISO-639-1-Code, z. B. <code>de</code>, <code>ja</code>. Unterstützt: Englisch, Deutsch, Spanisch, Französisch, Niederländisch, Polnisch, Italienisch, Ukrainisch, Japanisch, Türkisch.",
             },
             example: "Zeig meine Widgets auf Deutsch an",
         },
@@ -572,7 +665,7 @@ export const TOOLS_DE: ToolsDoc = {
             "delete-account": {
                 question: "Wie lösche ich mein Konto?",
                 answerHtml:
-                    'Bitte die KI, dein Nutrition-MCP-Konto zu löschen (<a href="#delete_account"><code>delete_account</code></a>). Sie bittet dich um Bestätigung und löscht dann endgültig deine Mahlzeiten, Wasser-, Gewichts- und Körpermaß-Einträge, Ziele, Einstellungen, die Aufzeichnung darüber, welche Werkzeuge deine KI-App verwendet hat, eine eventuelle Exportdatei, deine Anmeldedaten und das Konto selbst. Das lässt sich nicht rückgängig machen – exportiere deine Daten also vorher, wenn du eine Kopie behalten willst. Entferne danach den Connector aus deiner App. Meldest du dich später mit derselben E-Mail-Adresse wieder an, wird ein neues, leeres Konto angelegt.',
+                    'Bitte die KI, dein Nutrition-MCP-Konto zu löschen (<a href="#delete_account"><code>delete_account</code></a>). Sie bittet dich um Bestätigung und löscht dann endgültig deine Mahlzeiten, deine gespeicherten Mahlzeiten, Wasser-, Gewichts- und Körpermaß-Einträge, Ziele, Einstellungen, die Aufzeichnung darüber, welche Werkzeuge deine KI-App verwendet hat, eine eventuelle Exportdatei, deine Anmeldedaten und das Konto selbst. Das lässt sich nicht rückgängig machen – exportiere deine Daten also vorher, wenn du eine Kopie behalten willst. Entferne danach den Connector aus deiner App. Meldest du dich später mit derselben E-Mail-Adresse wieder an, wird ein neues, leeres Konto angelegt.',
             },
             "report-a-problem": {
                 question:

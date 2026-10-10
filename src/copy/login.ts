@@ -62,6 +62,11 @@ import {
     LOGIN_CLIENT_NOTICE_JA,
     LOGIN_ERRORS_JA,
 } from "./login.ja.js";
+import {
+    LOGIN_TR,
+    LOGIN_CLIENT_NOTICE_TR,
+    LOGIN_ERRORS_TR,
+} from "./login.tr.js";
 
 export interface LoginDoc {
     title: string;
@@ -179,6 +184,7 @@ export const LOGIN: Record<SiteLocale, LoginDoc> = {
     it: LOGIN_IT,
     uk: LOGIN_UK,
     ja: LOGIN_JA,
+    tr: LOGIN_TR,
 };
 
 export const LOGIN_ERRORS: Record<SiteLocale, LoginErrors> = {
@@ -204,6 +210,7 @@ export const LOGIN_ERRORS: Record<SiteLocale, LoginErrors> = {
     it: LOGIN_ERRORS_IT,
     uk: LOGIN_ERRORS_UK,
     ja: LOGIN_ERRORS_JA,
+    tr: LOGIN_ERRORS_TR,
 };
 
 export const LOGIN_CLIENT_NOTICE: Record<SiteLocale, LoginClientNotice> = {
@@ -224,4 +231,5 @@ export const LOGIN_CLIENT_NOTICE: Record<SiteLocale, LoginClientNotice> = {
     it: LOGIN_CLIENT_NOTICE_IT,
     uk: LOGIN_CLIENT_NOTICE_UK,
     ja: LOGIN_CLIENT_NOTICE_JA,
+    tr: LOGIN_CLIENT_NOTICE_TR,
 };

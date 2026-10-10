@@ -9,6 +9,7 @@ import {
     type TroubleshootingId,
 } from "./copy/tools.js";
 import { chromeFor } from "./copy/chrome.js";
+import { altUiFor } from "./copy/alt-ui.js";
 import {
     PRIVACY,
     TERMS,
@@ -188,6 +189,9 @@ test("the Cronometer page says its caffeine column crosses over", async () => {
 // costume. So the copy is pinned to the file names, not to the adjectives.
 const ARCHIVE_FILES = [
     "meals.csv",
+    "meal_items.csv",
+    "saved_meals.csv",
+    "saved_meal_items.csv",
     "water.csv",
     "weight.csv",
     "body_measurements.csv",
@@ -203,6 +207,7 @@ const ARCHIVE_FILES = [
 // The tables behind those CSVs, as the prose names them.
 const ARCHIVE_TABLES = [
     "meals",
+    "saved meals",
     "water",
     "weight",
     "body measurements",
@@ -326,7 +331,7 @@ test("the comparison-page card names every table it promises back", async () => 
             html,
             `${slug}.html was not regenerated from alt-ui.ts`,
         ).toContain(
-            "one ZIP with your meals, water, weight, body measurements, goals and profile",
+            "one ZIP with your meals, saved meals, water, weight, body measurements, goals and profile",
         );
     }
 });
@@ -662,6 +667,7 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
         it: "3 ottobre 2026",
         uk: "3 жовтня 2026 року",
         ja: "2026年10月3日",
+        tr: "3 Ekim 2026",
     };
     expect(dates).toEqual(
         Object.fromEntries(
@@ -737,6 +743,12 @@ const BRIEF13: Record<
         regions: "制裁および輸出管理",
         aggregateStats: "少なくとも3つのプロフィール",
         oldCarveOut: "最長1年",
+    },
+    tr: {
+        healthConsent: "sağlık verisidir",
+        regions: "yaptırım ve ihracat kontrolü yasaları",
+        aggregateStats: "en az üç profil",
+        oldCarveOut: "bir yıla kadar",
     },
 };
 
@@ -825,6 +837,12 @@ const GOALS_HISTORY: Record<
         access: "目標とその変更履歴",
         terms: "目標の変更履歴",
     },
+    tr: {
+        dated: "Her değiştiklerinde ayrıca tarihli bir kopyasını saklıyoruz",
+        stored: "hedefler ve değişiklik geçmişleri, profil ayarların",
+        access: "hedeflerin ve hedef değişikliklerinin geçmişi",
+        terms: "hedef geçmişi",
+    },
 };
 
 test("every locale's privacy policy and terms name the goals history", () => {
@@ -843,6 +861,238 @@ test("every locale's privacy policy and terms name the goals history", () => {
             problems.push(`${locale}: terms export`);
     }
     expect(problems).toEqual([]);
+});
+
+// Saved meals (saved_meals, saved_meal_items, meal_items): a new per-user table
+// goes into the export, deleteAllUserData and the privacy policy together. Each
+// locale must name saved meals where stored data is listed, name them in the
+// Access and portability bullet, and the terms' export paragraph names them too.
+const SAVED_MEALS: Record<
+    SiteLocale,
+    {
+        stored: string;
+        access: string;
+        terms: string;
+        /** The Rectification bullet: saved meals can be corrected and deleted. */
+        rectification: string;
+        /** /tools#delete-account: what deleting the account removes. */
+        deleteAccount: string;
+        /** The comparison pages' "Import & own your data" card. */
+        altCard: string;
+    }
+> = {
+    en: {
+        stored: "saved meals",
+        access: "your saved meals (saved_meals.csv)",
+        terms: "saved meals and their ingredients",
+        rectification: "body measurement entry or any saved meal",
+        deleteAccount: "your meals, saved meals, water",
+        altCard: "one ZIP with your meals, saved meals, water",
+    },
+    de: {
+        stored: "Gespeicherte Mahlzeiten",
+        access: "deine gespeicherten Mahlzeiten (saved_meals.csv)",
+        terms: "gespeicherten Mahlzeiten und deren Zutaten",
+        rectification: "oder eine gespeicherte Mahlzeit zu korrigieren",
+        deleteAccount:
+            "deine Mahlzeiten, deine gespeicherten Mahlzeiten, Wasser-",
+        altCard:
+            "ein ZIP mit deinen Mahlzeiten, gespeicherten Mahlzeiten, Wasser",
+    },
+    es: {
+        stored: "una comida que guardas con un nombre",
+        access: "comidas guardadas (saved_meals.csv) y sus ingredientes (saved_meal_items.csv)",
+        terms: "tus comidas guardadas y sus ingredientes",
+        rectification: "y cualquier comida guardada",
+        deleteAccount: "tus comidas, comidas guardadas, agua",
+        altCard: "un ZIP con tus comidas, comidas guardadas, agua",
+    },
+    fr: {
+        stored: "Repas sauvegardés",
+        access: "saved_meals.csv",
+        terms: "repas sauvegardés",
+        rectification: "et n'importe quel repas sauvegardé",
+        deleteAccount: "tes repas, tes repas sauvegardés, tes entrées d'eau",
+        altCard:
+            "un ZIP avec tes repas, tes repas sauvegardés, ton hydratation",
+    },
+    it: {
+        stored: "Pasti salvati",
+        access: "i tuoi pasti salvati (saved_meals.csv)",
+        terms: "pasti salvati e i loro ingredienti",
+        rectification: "e qualsiasi pasto salvato",
+        deleteAccount: "pasti, pasti salvati, acqua",
+        altCard: "un unico ZIP con pasti, pasti salvati, acqua",
+    },
+    nl: {
+        stored: "Opgeslagen maaltijden",
+        access: "opgeslagen maaltijden (saved_meals.csv)",
+        terms: "opgeslagen maaltijden en hun ingrediënten",
+        rectification: "of een opgeslagen maaltijd te corrigeren",
+        deleteAccount: "je maaltijden, opgeslagen maaltijden, water",
+        altCard: "met je maaltijden, opgeslagen maaltijden, water",
+    },
+    pl: {
+        stored: "<strong>Zapisane posiłki</strong>",
+        access: "zapisane posiłki (saved_meals.csv)",
+        terms: "zapisane posiłki wraz ze składnikami",
+        rectification: "lub zapisanego posiłku",
+        deleteAccount: "Twoje posiłki, zapisane posiłki, wodę",
+        altCard: "jeden ZIP z posiłkami, zapisanymi posiłkami, wodą",
+    },
+    uk: {
+        stored: "Збережені страви",
+        access: "saved_meals.csv",
+        terms: "збережених страв та їхніх інгредієнтів",
+        rectification: "а також збережену страву",
+        deleteAccount: "твої прийоми їжі, збережені страви, воду",
+        altCard: "прийоми їжі, збережені страви, вода",
+    },
+    ja: {
+        stored: "名前を付けて保存した食事の、名前、説明、既定の食事の種類、1食分あたりの数値",
+        access: "保存した食事（saved_meals.csv）",
+        terms: "保存した食事とその材料",
+        rectification: "記録や保存した食事の修正や削除",
+        deleteAccount: "食事、保存した食事、水分",
+        altCard: "食事・保存した食事・水分",
+    },
+    tr: {
+        stored: "Kayıtlı yemekler",
+        access: "saved_meals.csv",
+        terms: "kayıtlı yemekler ve malzemeleri",
+        rectification: "ya da kayıtlı bir yemeği düzeltmesini",
+        deleteAccount: "yemeklerini, kayıtlı yemeklerini, suyunu",
+        altCard: "yemeklerin, kayıtlı yemeklerin, suyun",
+    },
+};
+
+test("every locale's privacy policy and terms name saved meals", () => {
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const t = SAVED_MEALS[locale];
+        const privacy = allText(PRIVACY[locale]!);
+        if (!privacy.includes(t.stored))
+            problems.push(`${locale}: stored data`);
+        if (!privacy.includes(t.access))
+            problems.push(`${locale}: access and portability`);
+        if (!allText(TERMS[locale]!).includes(t.terms))
+            problems.push(`${locale}: terms export`);
+    }
+    expect(problems).toEqual([]);
+});
+
+// Saved meals can be corrected and deleted (update_saved_meal,
+// delete_saved_meal) and are removed with the account and carried in the
+// export, so every place a locale enumerates the user's data names them: the
+// Rectification bullet, /tools#delete-account and the comparison pages'
+// export card. English-only pins let the other nine drift unnoticed.
+test("every locale names saved meals in rectification, account deletion and the export card", () => {
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const t = SAVED_MEALS[locale];
+        if (!allText(PRIVACY[locale]!).includes(t.rectification))
+            problems.push(`${locale}: rectification`);
+        const answer =
+            TOOLS_COPY[locale]!.troubleshooting.items["delete-account"]
+                .answerHtml;
+        if (!answer.includes(t.deleteAccount))
+            problems.push(`${locale}: /tools#delete-account`);
+        const card = altUiFor(locale).app.features.find((f) =>
+            f.body.includes("ZIP"),
+        );
+        if (!card?.body.includes(t.altCard))
+            problems.push(`${locale}: comparison-page export card`);
+    }
+    expect(problems).toEqual([]);
+});
+
+// search_meals now also matches ingredient names and lists saved meals; the
+// /tools entry says so in every locale, naming saved meals with the same word
+// the privacy policy uses.
+const SEARCH_MEALS_SAVED: Record<SiteLocale, string> = {
+    en: "lists your saved meals whose name, description or ingredients match",
+    de: "gespeicherte Mahlzeiten, deren Name, Beschreibung oder Zutaten passen",
+    es: "tus comidas guardadas cuyo nombre, descripción o ingredientes coinciden",
+    fr: "tes repas sauvegardés dont le nom, la description ou les ingrédients correspondent",
+    it: "i tuoi pasti salvati il cui nome, descrizione o ingredienti corrispondono",
+    nl: "opgeslagen maaltijden waarvan de naam, beschrijving of ingrediënten overeenkomen",
+    pl: "zapisane posiłki, których nazwa, opis lub składniki pasują",
+    uk: "збережені страви, чия назва, опис чи інгредієнти збігаються",
+    ja: "名前・説明・材料が一致する保存した食事",
+    tr: "adı, açıklaması ya da malzemeleri eşleşen kayıtlı yemeklerini",
+};
+
+test("every locale's search_meals entry names ingredient and saved-meal matches", () => {
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const text = TOOLS_COPY[locale]!.tools.search_meals!.description;
+        if (!text.includes(SEARCH_MEALS_SAVED[locale]))
+            problems.push(`${locale}: search_meals`);
+    }
+    expect(problems).toEqual([]);
+});
+
+// Inserting "saved meals" into the retention sentence once left the genitive
+// chain "d'hydratation, de poids" (fr) / "wody, wagi" (pl) hanging off it.
+test("the French and Polish retention sentences keep each category its own phrase", () => {
+    const fr = allText(PRIVACY.fr!);
+    expect(fr).toContain(
+        "Tes journaux de repas, d'hydratation, de poids et de mensurations, tes repas sauvegardés, tes objectifs",
+    );
+    expect(fr).not.toContain("tes repas sauvegardés, d'hydratation");
+    const pl = allText(PRIVACY.pl!);
+    expect(pl).toContain(
+        "Twoje wpisy posiłków, wody, wagi i wymiarów ciała, zapisane posiłki, cele",
+    );
+    expect(pl).not.toContain("zapisane posiłki, wody");
+});
+
+// validateItems makes only fiber, total sugar and added sugar all-or-none
+// across items; alcohol and caffeine are summed over the items that carry
+// them. A rule saying "every item or none" for all of them would push a
+// caffeine_mg 0 onto the toast beside a latte.
+test("every locale's log_meal items text names the all-or-none and per-item nutrients", () => {
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const items = TOOLS_COPY[locale]!.tools.log_meal!.params.items ?? "";
+        const pos = (key: string) => items.indexOf(`<code>${key}</code>`);
+        for (const key of [
+            "fiber_g",
+            "sugar_g",
+            "added_sugar_g",
+            "alcohol_g",
+            "caffeine_mg",
+        ])
+            if (pos(key) < 0) problems.push(`${locale}: no ${key}`);
+        // The three all-or-none keys come before the two per-item ones, so
+        // each group is stated as its own clause.
+        if (pos("added_sugar_g") > pos("alcohol_g"))
+            problems.push(`${locale}: groups out of order`);
+    }
+    expect(problems).toEqual([]);
+    expect(TOOLS_COPY.en!.tools.log_meal!.params.items).toContain(
+        "<code>alcohol_g</code> and <code>caffeine_mg</code> only on the items that contain them",
+    );
+});
+
+// log_saved_meal's item_amounts are what was actually eaten in this entry:
+// servings scales the saved meal first, then item_amounts set single items.
+// The public docs must not describe them as a bare "new amount".
+test("the /tools log_saved_meal text describes item_amounts as amounts actually eaten", () => {
+    const en = TOOLS_COPY.en!.tools.log_saved_meal!;
+    expect(en.params.item_amounts).toContain("actually eaten in this entry");
+    expect(en.params.item_amounts).toContain(
+        "Servings scales the saved meal first",
+    );
+    expect(en.description).toContain("set to the amount actually eaten");
+    for (const locale of SITE_LOCALES) {
+        expect(
+            TOOLS_COPY[locale]!.tools.log_saved_meal!.params.item_amounts,
+            `${locale}: item_amounts still reads as a bare "new amount"`,
+        ).not.toMatch(
+            /^(New amounts|Neue Mengen|Nuevas cantidades|Nouvelles quantités|Nuove quantità|個々の材料の新しい分量|Nieuwe hoeveelheden|Nowe ilości|Tek tek malzemeler için yeni|Нові кількості)/,
+        );
+    }
 });
 
 test("every locale's terms restrict use to supported regions and sanctions law", () => {
@@ -962,7 +1212,7 @@ test("troubleshooting #anchors resolve and ids collide with nothing", () => {
 });
 
 // The copy restates limits from the code. Each value is scraped from its
-// source, so changing a constant fails here until all 9 locale files say so.
+// source, so changing a constant fails here until all 10 locale files say so.
 const scrape = async (path: string, re: RegExp): Promise<string> => {
     const m = re.exec(await Bun.file(path).text());
     if (!m?.[1]) throw new Error(`${path}: ${re} matched nothing`);
@@ -1065,7 +1315,7 @@ test("the English troubleshooting copy states the limits in the code", () => {
 test("the ban cap is still the hour every locale's prose names", () => {
     // PINNED_DIGITS can't pin the cap: every locale writes it as "an hour" in
     // words. A different last BAN_DURATIONS_MS entry means rewriting that
-    // phrase in all 9 tools*.ts files (and README), not just English.
+    // phrase in all 10 tools*.ts files (and README), not just English.
     expect(LAST_BAN, "update 'at most an hour' in every locale").toBe("60");
 });
 

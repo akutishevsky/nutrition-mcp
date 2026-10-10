@@ -15,13 +15,19 @@ import {
     buildGoalsCsv,
     buildGoalsHistoryCsv,
     buildHealthSyncCsv,
+    buildMealItemsCsv,
     buildMealsCsv,
     buildProfileCsv,
+    buildSavedMealItemsCsv,
+    buildSavedMealsCsv,
     buildTelemetryCsv,
     buildWaterCsv,
     buildWeightCsv,
     EXPORT_ARCHIVE_FILES,
     exportAllData,
+    type MealItemExportRow,
+    type SavedMealExportRow,
+    type SavedMealItemExportRow,
 } from "./export.js";
 import type {
     HealthSyncDayRow,
@@ -67,12 +73,13 @@ function meal(overrides: Partial<Meal> = {}): Meal {
         caffeine_mg: 95,
         notes: null,
         idempotency_key: null,
+        saved_meal_id: null,
         ...overrides,
     };
 }
 
 const HEADER =
-    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,notes";
+    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,notes,saved_meal_id";
 
 /**
  * Minimal RFC-4180 reader: splits a CSV document into rows of fields, honouring
@@ -187,6 +194,7 @@ test("every value lands under its own header name", () => {
                     alcohol_g: 3,
                     caffeine_mg: 95,
                     notes: "post-run",
+                    saved_meal_id: "33333333-3333-4333-8333-333333333333",
                 }),
             ],
             "UTC",
@@ -208,6 +216,293 @@ test("every value lands under its own header name", () => {
         alcohol_g: "3",
         caffeine_mg: "95",
         notes: "post-run",
+        saved_meal_id: "33333333-3333-4333-8333-333333333333",
+    });
+});
+
+test("meals.csv keeps its byte-identical shape with a trailing empty saved_meal_id", () => {
+    // A meal not logged from a saved meal leaves the last cell empty, so the
+    // row still ends in a comma-free field and the earlier columns are untouched.
+    const csv = buildMealsCsv([meal({ notes: null })], "UTC");
+    const [header, row] = csv.split("\n");
+    expect(header!.endsWith(",notes,saved_meal_id")).toBe(true);
+    expect(row!.endsWith(",")).toBe(true);
+    expect(row!.split(",").length).toBe(HEADER.split(",").length);
+});
+
+test("meals.csv names the saved meal a meal was logged from", () => {
+    const f = fieldsByName(
+        buildMealsCsv(
+            [meal({ saved_meal_id: "44444444-4444-4444-8444-444444444444" })],
+            "UTC",
+        ),
+    );
+    expect(f.saved_meal_id).toBe("44444444-4444-4444-8444-444444444444");
+});
+
+const ITEM_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const SAVED_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+function mealItem(
+    overrides: Partial<MealItemExportRow> = {},
+): MealItemExportRow {
+    return {
+        id: ITEM_ID,
+        meal_id: "11111111-1111-1111-1111-111111111111",
+        user_id: "user-1",
+        position: 1,
+        name: "Стріпси оригінальні",
+        amount: 170,
+        unit: "g",
+        calories: 425,
+        protein_g: 34,
+        carbs_g: 22,
+        fat_g: 22,
+        fiber_g: 1.5,
+        sugar_g: 0.4,
+        added_sugar_g: 0.2,
+        alcohol_g: null,
+        caffeine_mg: null,
+        ...overrides,
+    };
+}
+
+function savedMeal(
+    overrides: Partial<SavedMealExportRow> = {},
+): SavedMealExportRow {
+    return {
+        id: SAVED_ID,
+        user_id: "user-1",
+        name: "Protein shake",
+        description: "Whey, oat milk, banana",
+        meal_type: "snack",
+        calories: 320,
+        protein_g: 30,
+        carbs_g: 35,
+        fat_g: 6,
+        fiber_g: 4,
+        sugar_g: 20,
+        added_sugar_g: 0,
+        alcohol_g: null,
+        caffeine_mg: null,
+        created_at: "2026-06-20T14:30:00.000Z",
+        updated_at: "2026-06-21T09:00:00.000Z",
+        ...overrides,
+    };
+}
+
+function savedMealItem(
+    overrides: Partial<SavedMealItemExportRow> = {},
+): SavedMealItemExportRow {
+    return {
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        saved_meal_id: SAVED_ID,
+        user_id: "user-1",
+        position: 2,
+        name: "Oat milk",
+        amount: 250,
+        unit: "ml",
+        calories: 120,
+        protein_g: 1,
+        carbs_g: 16,
+        fat_g: 5,
+        fiber_g: null,
+        sugar_g: null,
+        added_sugar_g: null,
+        alcohol_g: null,
+        caffeine_mg: null,
+        ...overrides,
+    };
+}
+
+const MEAL_ITEMS_HEADER =
+    "meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg";
+const SAVED_MEALS_HEADER =
+    "id,name,description,meal_type,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,created_at,updated_at,timezone";
+const SAVED_MEAL_ITEMS_HEADER =
+    "saved_meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg";
+
+test("meal_items.csv, saved_meals.csv and saved_meal_items.csv are header-only when empty", () => {
+    expect(buildMealItemsCsv([])).toBe(MEAL_ITEMS_HEADER);
+    expect(buildSavedMealsCsv([], "UTC")).toBe(SAVED_MEALS_HEADER);
+    expect(buildSavedMealItemsCsv([])).toBe(SAVED_MEAL_ITEMS_HEADER);
+});
+
+test("the ingredient and saved meal headers are pinned", () => {
+    // Renaming one of these breaks whatever joins the files; the names match
+    // meals.csv's nutrient columns and carry the caffeine unit, as it does there.
+    expect(parseCsv(buildMealItemsCsv([]))[0]).toEqual(
+        MEAL_ITEMS_HEADER.split(","),
+    );
+    expect(parseCsv(buildSavedMealsCsv([], "UTC"))[0]).toEqual(
+        SAVED_MEALS_HEADER.split(","),
+    );
+    expect(parseCsv(buildSavedMealItemsCsv([]))[0]).toEqual(
+        SAVED_MEAL_ITEMS_HEADER.split(","),
+    );
+});
+
+test("every meal item value lands under its own header name", () => {
+    const f = fieldsByName(buildMealItemsCsv([mealItem()]));
+    expect(f).toEqual({
+        meal_id: "11111111-1111-1111-1111-111111111111",
+        position: "1",
+        name: "Стріпси оригінальні",
+        amount: "170",
+        unit: "g",
+        calories: "425",
+        protein_g: "34",
+        carbs_g: "22",
+        fat_g: "22",
+        fiber_g: "1.5",
+        sugar_g: "0.4",
+        added_sugar_g: "0.2",
+        alcohol_g: "",
+        caffeine_mg: "",
+    });
+});
+
+test("meal_items.csv leaves an ingredient with no amount or unit empty and quotes commas", () => {
+    const csv = buildMealItemsCsv([
+        mealItem({ amount: null, unit: null, name: 'Sauce, "hot"' }),
+    ]);
+    const f = fieldsByName(csv);
+    expect(f.amount).toBe("");
+    expect(f.unit).toBe("");
+    expect(f.name).toBe('Sauce, "hot"');
+});
+
+test("meal_items.csv header and every data row have identical field counts", () => {
+    const rows = parseCsv(
+        buildMealItemsCsv([
+            mealItem(),
+            mealItem({
+                position: 2,
+                name: "Multi\nline, name",
+                amount: null,
+                unit: null,
+                fiber_g: null,
+                sugar_g: null,
+                added_sugar_g: null,
+                caffeine_mg: 80,
+            }),
+        ]),
+    );
+    expect(rows).toHaveLength(3);
+    for (const row of rows) {
+        expect(row.length).toBe(MEAL_ITEMS_HEADER.split(",").length);
+    }
+});
+
+test("every saved meal value lands under its own header name, timestamps in the account zone", () => {
+    const f = fieldsByName(buildSavedMealsCsv([savedMeal()], "Europe/Berlin"));
+    expect(f).toEqual({
+        id: SAVED_ID,
+        name: "Protein shake",
+        description: "Whey, oat milk, banana",
+        meal_type: "snack",
+        calories: "320",
+        protein_g: "30",
+        carbs_g: "35",
+        fat_g: "6",
+        fiber_g: "4",
+        sugar_g: "20",
+        added_sugar_g: "0",
+        alcohol_g: "",
+        caffeine_mg: "",
+        created_at: "2026-06-20 16:30:00",
+        updated_at: "2026-06-21 11:00:00",
+        timezone: "Europe/Berlin",
+    });
+});
+
+test("saved_meals.csv keeps a zero and leaves a never-set value empty", () => {
+    const f = fieldsByName(
+        buildSavedMealsCsv(
+            [
+                savedMeal({
+                    meal_type: null,
+                    added_sugar_g: 0,
+                    caffeine_mg: null,
+                }),
+            ],
+            "UTC",
+        ),
+    );
+    expect(f.added_sugar_g).toBe("0");
+    expect(f.meal_type).toBe("");
+    expect(f.caffeine_mg).toBe("");
+});
+
+test("saved_meals.csv quotes a description containing a comma, quote and newline", () => {
+    const csv = buildSavedMealsCsv(
+        [savedMeal({ description: 'Eggs, "poached"\nwith toast' })],
+        "UTC",
+    );
+    expect(fieldsByName(csv).description).toBe('Eggs, "poached"\nwith toast');
+});
+
+test("saved_meals.csv and saved_meal_items.csv align every row with their headers", () => {
+    const saved = parseCsv(
+        buildSavedMealsCsv(
+            [
+                savedMeal(),
+                savedMeal({
+                    id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+                    name: "Plain, bowl",
+                    meal_type: null,
+                    calories: null,
+                    protein_g: null,
+                    carbs_g: null,
+                    fat_g: null,
+                    fiber_g: null,
+                    sugar_g: null,
+                    added_sugar_g: null,
+                    alcohol_g: null,
+                    caffeine_mg: null,
+                }),
+            ],
+            "Europe/Berlin",
+        ),
+    );
+    expect(saved).toHaveLength(3);
+    for (const row of saved) {
+        expect(row.length).toBe(SAVED_MEALS_HEADER.split(",").length);
+    }
+    const items = parseCsv(
+        buildSavedMealItemsCsv([
+            savedMealItem(),
+            savedMealItem({
+                position: 1,
+                name: "Shaker; 500 ml",
+                amount: null,
+                unit: null,
+            }),
+        ]),
+    );
+    expect(items).toHaveLength(3);
+    for (const row of items) {
+        expect(row.length).toBe(SAVED_MEAL_ITEMS_HEADER.split(",").length);
+    }
+});
+
+test("every saved meal ingredient value lands under its own header name", () => {
+    const f = fieldsByName(buildSavedMealItemsCsv([savedMealItem()]));
+    expect(f).toEqual({
+        saved_meal_id: SAVED_ID,
+        position: "2",
+        name: "Oat milk",
+        amount: "250",
+        unit: "ml",
+        calories: "120",
+        protein_g: "1",
+        carbs_g: "16",
+        fat_g: "5",
+        fiber_g: "",
+        sugar_g: "",
+        added_sugar_g: "",
+        alcohol_g: "",
+        caffeine_mg: "",
     });
 });
 
@@ -235,6 +530,9 @@ test("header column order is stable and importer-compatible", () => {
         // column bind to a milligram field.
         "caffeine_mg",
         "notes",
+        // Appended last: the importer matches by name, and a reader that
+        // mapped the earlier columns by position is unaffected.
+        "saved_meal_id",
     ]);
 });
 
@@ -904,6 +1202,9 @@ const README_OPTS = {
     weightUnit: "kg" as const,
     counts: {
         meals: 120,
+        mealItems: 31,
+        savedMeals: 9,
+        savedMealItems: 14,
         water: 45,
         weight: 12,
         bodyMeasurements: 7,
@@ -968,6 +1269,37 @@ test("the README says only meals.csv can be re-imported", () => {
     expect(readme).toContain("start_meal_import");
     expect(readme).toContain("bulk_import_meals");
     expect(readme).toContain("export-only");
+});
+
+test("the README counts and joins the meal ingredient and saved meal files", () => {
+    const readme = buildExportReadme(README_OPTS);
+    expect(readme).toContain("meal_items.csv 31 rows");
+    expect(readme).toContain("saved_meals.csv 9 rows");
+    expect(readme).toContain("saved_meal_items.csv 14 rows");
+    // Each join key is named, so the files can be read together.
+    expect(readme).toContain("Joined to meals.csv by meal_id");
+    expect(readme).toContain("joined to saved_meals.csv by saved_meal_id");
+    expect(readme).toContain(
+        "saved_meal_id, the saved meal it was logged from",
+    );
+    // Stored calorie totals are whole numbers while ingredient calories keep
+    // their decimals, so the README never promises an exact sum (C19).
+    expect(readme).not.toContain(
+        "A meal's totals in meals.csv are the sum of its ingredients.",
+    );
+    expect(readme).toContain(
+        "with calories rounded to a whole number and the other values to two decimals",
+    );
+    expect(readme).toContain(
+        "its values in saved_meals.csv are their sum, rounded the same way",
+    );
+    // Editing or deleting a saved meal leaves logged meals alone, and the
+    // README says so next to the file it describes.
+    expect(readme).toContain("does not change meals you already logged");
+    // The ingredients have no import path, and the export-only sentence says so.
+    expect(readme).toMatch(
+        /export-only — there is no import path for meal ingredients, saved meals/,
+    );
 });
 
 // ---------- account.csv, telemetry.csv, connections.csv ----------
@@ -1593,6 +1925,9 @@ test("EXPORT_ARCHIVE_FILES is the archive's real, ordered file list", () => {
     // a file added on one side without the other is a compile error.
     expect([...EXPORT_ARCHIVE_FILES]).toEqual([
         "meals.csv",
+        "meal_items.csv",
+        "saved_meals.csv",
+        "saved_meal_items.csv",
         "water.csv",
         "weight.csv",
         "body_measurements.csv",
@@ -1614,6 +1949,9 @@ test("an archive assembled from the builders reads back file for file", () => {
     const tz = "Europe/Berlin";
     const contents: Record<string, string> = {
         "meals.csv": buildMealsCsv([meal()], tz),
+        "meal_items.csv": buildMealItemsCsv([mealItem()]),
+        "saved_meals.csv": buildSavedMealsCsv([savedMeal()], tz),
+        "saved_meal_items.csv": buildSavedMealItemsCsv([savedMealItem()]),
         "water.csv": buildWaterCsv([water()], tz),
         "weight.csv": buildWeightCsv([weight()], tz, "kg"),
         "body_measurements.csv": buildBodyMeasurementsCsv([measurement()], tz),
@@ -1646,6 +1984,9 @@ test("an archive assembled from the builders reads back file for file", () => {
     // Every CSV in the archive carries its header even when its table is empty.
     for (const csv of [
         "meals.csv",
+        "meal_items.csv",
+        "saved_meals.csv",
+        "saved_meal_items.csv",
         "water.csv",
         "weight.csv",
         "body_measurements.csv",

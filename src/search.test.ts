@@ -1,9 +1,11 @@
-import { test, expect } from "bun:test";
+import { test, expect, describe } from "bun:test";
 import {
     escapeLikePattern,
     tokenizeQuery,
     groupMealVariations,
     formatMealSearchResults,
+    formatSavedMealMatches,
+    type SavedMealSummary,
 } from "./search.js";
 import type { Meal } from "./supabase.js";
 
@@ -25,6 +27,7 @@ function meal(overrides: Partial<Meal> = {}): Meal {
         caffeine_mg: null,
         notes: null,
         idempotency_key: null,
+        saved_meal_id: null,
         ...overrides,
     };
 }
@@ -354,4 +357,78 @@ test("typical added sugar never exceeds typical sugar", () => {
     );
     expect(text).toContain("10g sugar (10g added)");
     expect(text).not.toContain("25g added");
+});
+
+describe("formatSavedMealMatches", () => {
+    function saved(over: Partial<SavedMealSummary> = {}): SavedMealSummary {
+        return {
+            id: "22222222-2222-4222-8222-222222222222",
+            name: "Сніданок стандарт",
+            description: "Вівсянка з бананом",
+            meal_type: "breakfast",
+            calories: 420,
+            protein_g: 14,
+            carbs_g: 62,
+            fat_g: 11,
+            item_count: 3,
+            ...over,
+        };
+    }
+
+    test("is empty when nothing matched, so it can be appended unconditionally", () => {
+        expect(formatSavedMealMatches([], "UTC")).toBe("");
+    });
+
+    test("one line per saved meal: name, type, figures, item count and id", () => {
+        const text = formatSavedMealMatches(
+            [
+                saved(),
+                saved({
+                    id: "x2",
+                    name: "Кава",
+                    meal_type: null,
+                    item_count: 0,
+                    calories: null,
+                    protein_g: null,
+                    carbs_g: null,
+                    fat_g: null,
+                }),
+            ],
+            "UTC",
+        );
+        const lines = text.split("\n");
+        expect(lines[0]).toBe("Saved meals matching: 2 found.");
+        expect(lines[1]).toBe(
+            '- "Сніданок стандарт" breakfast · 420 kcal · P 14 g · C 62 g · F 11 g · 3 items [saved meal id: 22222222-2222-4222-8222-222222222222]',
+        );
+        expect(lines[2]).toBe('- "Кава" [saved meal id: x2]');
+    });
+
+    test("a single item reads singular, and a partly known macro set shows what it has", () => {
+        const text = formatSavedMealMatches(
+            [saved({ item_count: 1, protein_g: null, fat_g: null })],
+            "UTC",
+        );
+        expect(text).toContain(" · 1 item [saved meal id: ");
+        expect(text).toContain("420 kcal · C 62 g · 1 item [");
+        expect(text).not.toContain("P 14");
+    });
+
+    test("says when the list holds only the first matches by name (C14)", () => {
+        const text = formatSavedMealMatches([saved()], "UTC", 26);
+        expect(text.split("\n")[0]).toBe(
+            "Saved meals matching: 26 found, the first 1 by name shown.",
+        );
+        expect(formatSavedMealMatches([saved()], "UTC", 1)).toStartWith(
+            "Saved meals matching: 1 found.",
+        );
+    });
+
+    test("a zero figure is data and is shown", () => {
+        const text = formatSavedMealMatches(
+            [saved({ calories: 0, carbs_g: 0 })],
+            "UTC",
+        );
+        expect(text).toContain("0 kcal · P 14 g · C 0 g");
+    });
 });

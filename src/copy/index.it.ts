@@ -181,7 +181,7 @@ export const INDEX_IT: IndexDoc = {
         note: "È tutto facoltativo. Puoi farlo ora, più tardi o mai: inizia pure a registrare e imposta queste opzioni quando vuoi.",
         toolsCta: {
             heading: "Vuoi sapere cosa sa fare davvero?",
-            body: "Sfoglia tutti i 41 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
+            body: "Sfoglia tutti i 46 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
             arrow: "Esplora gli strumenti",
         },
     },
@@ -621,10 +621,10 @@ export const INDEX_IT: IndexDoc = {
                 id: "export-data",
                 title: "Porta via i tuoi dati",
                 description:
-                    "Con una sola richiesta raccoglie tutto ciò che è conservato su di te (pasti, acqua, pesate, misure corporee, obiettivi, impostazioni del profilo, dati dell'account, telemetria di utilizzo e app collegate) in uno ZIP di file CSV con un README. Gli orari sono nel tuo fuso orario, e meals.csv si reimporta direttamente.",
+                    "Con una sola richiesta raccoglie tutto ciò che è conservato su di te (pasti, pasti salvati e i loro ingredienti, acqua, pesate, misure corporee, obiettivi, impostazioni del profilo, dati dell'account, telemetria di utilizzo e app collegate) in uno ZIP di file CSV con un README. Gli orari sono nel tuo fuso orario, e meals.csv si reimporta direttamente.",
                 toolNotes: {
                     export_all_data:
-                        "Crea uno ZIP con nove file CSV e un README, scaricabile da un link valido 60 minuti",
+                        "Crea uno ZIP con tutti i file CSV e un README, scaricabile da un link valido 60 minuti",
                 },
                 messages: [
                     {
@@ -708,7 +708,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Esporta i tuoi dati: restano tuoi",
-                body: "Porta via tutto ciò che conserviamo su di te (pasti, acqua, peso, misure corporee, obiettivi e profilo, oltre ai dati dell'account, alla telemetria di utilizzo e alle app collegate) in un unico ZIP di file CSV. Per ora i pasti sono l'unica parte che si può reimportare. Puoi eliminare account e dati quando vuoi.",
+                body: "Porta via tutto ciò che conserviamo su di te (pasti, pasti salvati con i loro ingredienti, acqua, peso, misure corporee, obiettivi e profilo, oltre ai dati dell'account, alla telemetria di utilizzo e alle app collegate) in un unico ZIP di file CSV. Per ora i pasti sono l'unica parte che si può reimportare. Puoi eliminare account e dati quando vuoi.",
             },
         ],
     },

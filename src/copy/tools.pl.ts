@@ -2,11 +2,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_PL: ToolsDoc = {
     meta: {
-        title: "41 narzędzi: kalorie, makroskładniki, woda i waga",
+        title: "46 narzędzi: kalorie, makroskładniki, woda i waga",
         description:
-            "Wszystkie 41 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
+            "Wszystkie 46 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, zapisane posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
         ogDescription:
-            "Wszystkie 41 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
+            "Wszystkie 46 narzędzi, które serwer Nutrition MCP daje Twojemu AI, w tym importer CSV historii z innej aplikacji — z opisami i przykładowymi poleceniami.",
     },
     hero: {
         eyebrow: "Dokumentacja",
@@ -14,7 +14,7 @@ export const TOOLS_PL: ToolsDoc = {
         titleEm: "potrafi",
         titleAfterEm: " Twoje AI",
         lead: "Nie wywołujesz tych narzędzi samodzielnie — po prostu rozmawiasz z Claude, ChatGPT albo innym klientem MCP, a on sam dobiera właściwe narzędzie. Oto wszystkie narzędzia, które serwer Nutrition MCP udostępnia do śledzenia posiłków, kalorii i makroskładników, wody i wagi — z opisem działania i przykładowym poleceniem, które je uruchamia.",
-        countBold: "41 narzędzi",
+        countBold: "46 narzędzi",
         countTail: "w 7 obszarach",
     },
     categories: {
@@ -81,7 +81,7 @@ export const TOOLS_PL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z błonnikiem, cukrami ogółem i dodanymi, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu.",
+                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z błonnikiem, cukrami ogółem i dodanymi, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu. Może też przyjąć składniki jeden po drugim — wtedy wartości posiłku są sumą tych składników.",
             params: {
                 description: "Co zostało zjedzone",
                 meal_type: "śniadanie, obiad, kolacja lub przekąska",
@@ -102,6 +102,7 @@ export const TOOLS_PL: ToolsDoc = {
                 logged_at:
                     "Kiedy posiłek został zjedzony, jeśli nie teraz — pozwala dopisać coś później",
                 notes: "Dodatkowe notatki",
+                items: "Składniki, jeden w wierszu, z ich ilościami i wartościami: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code> i <code>fat_g</code> przy każdym składniku; <code>fiber_g</code>, <code>sugar_g</code> i <code>added_sugar_g</code> przy każdym składniku albo przy żadnym; <code>alcohol_g</code> i <code>caffeine_mg</code> tylko przy składnikach, które je zawierają, sumowane po tych składnikach. Wartości posiłku są wtedy sumą składników, więc wyślij składniki albo wartości, nie oba naraz",
             },
             example:
                 "Zapisz na obiad burrito bowl z kurczakiem i dodatkowym guacamole",
@@ -141,7 +142,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Zmień szczegóły zapisanego już posiłku — opis, dowolny makroskładnik, błonnik, cukry ogółem lub dodane, alkohol lub kofeinę, godzinę albo notatki. W ten sposób uzupełnia się też luki: jeśli posiłek trafił do dziennika bez błonnika, cukru lub cukrów dodanych, serwer to zgłasza, a AI uzupełnia brakujące dane tutaj, gdy się zgodzisz.",
+                "Zmień szczegóły zapisanego już posiłku — opis, dowolny makroskładnik, błonnik, cukry ogółem lub dodane, alkohol lub kofeinę, godzinę albo notatki. W ten sposób uzupełnia się też luki: jeśli posiłek trafił do dziennika bez błonnika, cukru lub cukrów dodanych, serwer to zgłasza, a AI uzupełnia brakujące dane tutaj, gdy się zgodzisz. Przy posiłku zapisanym ze składnikami wartości zmieniają się przez jego listę składników.",
             params: {
                 id: "UUID posiłku do zaktualizowania",
                 description: "",
@@ -157,6 +158,7 @@ export const TOOLS_PL: ToolsDoc = {
                 caffeine_mg: "Miligramy, nie gramy",
                 logged_at: "",
                 notes: "",
+                items: "Pełna lista składników, zastępująca dotychczasową. Wartości posiłku stają się sumą tej listy, więc pól z wartościami nie można wysłać razem z nią",
             },
             example: "Ten obiad miał jednak 600 kalorii, a nie 500 — popraw to",
         },
@@ -167,9 +169,90 @@ export const TOOLS_PL: ToolsDoc = {
             },
             example: "Usuń przekąskę zapisaną dziś po południu",
         },
+        save_meal: {
+            description:
+                "Zapisz pod nazwą posiłek, który jadasz często, np. swoje zwykłe śniadanie, wraz z jego wartościami na jedną porcję i — jeśli je znasz — składnikami. Wartości podajesz sam albo kopiujesz z posiłku, który już zapisano. Zapisanie nie dodaje niczego do dziennika; zapisany posiłek zalogujesz narzędziem log_saved_meal, gdy go zjesz.",
+            params: {
+                name: "Nazwa, pod którą posiłek zostanie zapisany, unikalna wśród Twoich zapisanych posiłków (1–100 znaków)",
+                from_meal_id:
+                    "UUID zapisanego posiłku, z którego skopiować wartości i składniki",
+                description: "Czym jest zapisany posiłek. Domyślnie jego nazwa",
+                meal_type:
+                    "śniadanie, obiad, kolacja lub przekąska — wartość domyślna przy zapisie do dziennika",
+                items: "Składniki, jeden w wierszu, z ich ilościami i wartościami. Ich suma staje się wartościami zapisanego posiłku, więc wyślij składniki albo wartości, nie oba naraz",
+                calories: "Łączna liczba kalorii w jednej porcji",
+                protein_g: "Białko w gramach w jednej porcji",
+                carbs_g: "Węglowodany w gramach w jednej porcji",
+                fat_g: "Tłuszcz w gramach w jednej porcji",
+                fiber_g: "Błonnik pokarmowy w gramach w jednej porcji",
+                sugar_g: "Cukry ogółem w gramach w jednej porcji",
+                added_sugar_g:
+                    "Cukry dodane w gramach w jednej porcji, nigdy więcej niż cukry ogółem. Towarzyszy polu <code>sugar_g</code>",
+                alcohol_g:
+                    "Gramy czystego etanolu w jednej porcji, nie objętość napoju",
+                caffeine_mg: "Miligramy kofeiny w jednej porcji, nie gramy",
+            },
+            example: "Zapisz to jako moje zwykłe śniadanie",
+        },
+        log_saved_meal: {
+            description:
+                "Zapisz zapisany posiłek jako wpis w dzienniku od teraz albo od podanej godziny. Wpis dostaje kopię zapisanych wartości i składników, przeliczoną przez liczbę porcji, z możliwością jednorazowego ustawienia pojedynczych składników na faktycznie zjedzoną ilość lub ich pominięcia. Późniejsze zmiany zapisanego posiłku zostawiają posiłki już z niego zapisane bez zmian.",
+            params: {
+                saved_meal:
+                    "Nazwa zapisanego posiłku albo jego ID z get_saved_meals lub search_meals",
+                servings:
+                    "Ile porcji zapisać: więcej niż 0 i do 20 (domyślnie 1)",
+                item_amounts:
+                    "Faktycznie zjedzone w tym wpisie ilości pojedynczych składników, wskazane nazwą albo pozycją. Najpierw liczba porcji przelicza zapisany posiłek, potem te wartości ustalają ilości wskazanych składników; ich wartości skalują się proporcjonalnie",
+                leave_out:
+                    "Składniki do pominięcia w tym wpisie, wskazane nazwą albo pozycją",
+                meal_type:
+                    "śniadanie, obiad, kolacja lub przekąska — zastępuje domyślny typ zapisanego posiłku",
+                description:
+                    "Opis tego wpisu. Domyślnie opis zapisanego posiłku",
+                logged_at: "Kiedy go zjedzono, jeśli nie teraz",
+                notes: "Dodatkowe notatki",
+                idempotency_key:
+                    "Klucz, dzięki któremu ponowione wywołanie nic nie zmienia, więc ten sam wpis nie zostanie zapisany dwa razy",
+            },
+            example: "Zapisz moje zwykłe śniadanie, pół porcji",
+        },
+        update_saved_meal: {
+            description:
+                "Zmień nazwę zapisanego posiłku, opis, domyślny typ posiłku, składniki albo wartości na porcję. Posiłki już z niego zapisane zachowują swoje wartości.",
+            params: {
+                id: "UUID zapisanego posiłku do zaktualizowania",
+                name: "Nowa nazwa, unikalna wśród Twoich zapisanych posiłków",
+                description: "Nowy opis",
+                meal_type:
+                    "Nowy domyślny typ posiłku: śniadanie, obiad, kolacja lub przekąska",
+                items: "Pełna lista składników, zastępująca dotychczasową. Ich suma staje się wartościami zapisanego posiłku, więc pól z wartościami nie można wysłać razem z nią",
+                calories: "Łączna liczba kalorii w jednej porcji",
+                protein_g: "Białko w gramach w jednej porcji",
+                carbs_g: "Węglowodany w gramach w jednej porcji",
+                fat_g: "Tłuszcz w gramach w jednej porcji",
+                fiber_g: "Błonnik pokarmowy w gramach w jednej porcji",
+                sugar_g: "Cukry ogółem w gramach w jednej porcji",
+                added_sugar_g:
+                    "Cukry dodane w gramach w jednej porcji, nigdy więcej niż cukry ogółem. Towarzyszy polu <code>sugar_g</code>",
+                alcohol_g:
+                    "Gramy czystego etanolu w jednej porcji, nie objętość napoju",
+                caffeine_mg: "Miligramy kofeiny w jednej porcji, nie gramy",
+            },
+            example:
+                "Moje zwykłe śniadanie ma teraz 350 kalorii na porcję — zaktualizuj je",
+        },
+        delete_saved_meal: {
+            description:
+                "Usuń zapisany posiłek. Posiłki już z niego zapisane zachowują swoje wartości.",
+            params: {
+                id: "UUID zapisanego posiłku do usunięcia",
+            },
+            example: "Usuń zapisany posiłek o nazwie stary obiad",
+        },
         search_meals: {
             description:
-                "Wyszukaj wcześniejsze posiłki po słowie kluczowym i zobacz je pogrupowane według Twoich powtarzających się wariantów — jak często każdy był zapisywany, kiedy ostatnio i ile zwykle ma kalorii. To dzięki temu AI porównuje zdjęcie Twojego talerza z tym, jak naprawdę zapisywano ten posiłek wcześniej — i to również sprawia, że działa polecenie „zapisz moje zwykłe śniadanie”.",
+                "Wyszukaj wcześniejsze posiłki po słowie kluczowym i zobacz je pogrupowane według Twoich powtarzających się wariantów — jak często każdy był zapisywany, kiedy ostatnio i ile zwykle ma kalorii. To dzięki temu AI porównuje zdjęcie Twojego talerza z tym, jak naprawdę zapisywano ten posiłek wcześniej — i to również sprawia, że działa polecenie „zapisz moje zwykłe śniadanie”. Przeszukuje też nazwy składników posiłków i pokazuje zapisane posiłki, których nazwa, opis lub składniki pasują.",
             params: {
                 queries:
                     "Alternatywne nazwy jedzenia do wyszukania, w dowolnym języku, w którym zapisujesz posiłki",
@@ -204,9 +287,18 @@ export const TOOLS_PL: ToolsDoc = {
             },
             example: "Pokaż moje posiłki od poniedziałku do piątku",
         },
+        get_saved_meals: {
+            description:
+                "Zobacz swoje zapisane posiłki z ich wartościami na porcję i składnikami — opcjonalnie tylko te, których nazwa zawiera podany tekst.",
+            params: {
+                name_contains:
+                    "Tylko zapisane posiłki, których nazwa zawiera ten tekst",
+            },
+            example: "Jakie posiłki zapisałem/am?",
+        },
         export_all_data: {
             description:
-                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (każda zmiana Twoich celów z datą), profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI i synchronizacja z Apple Health, bez żadnych tokenów), health_sync.csv (to, co synchronizacja z Apple Health wysłała w ciągu ostatnich 8 dni) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
+                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, meal_items.csv (składniki każdego zapisanego posiłku), saved_meals.csv i saved_meal_items.csv (Twoje zapisane posiłki i ich składniki), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (każda zmiana Twoich celów z datą), profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI i synchronizacja z Apple Health, bez żadnych tokenów), health_sync.csv (to, co synchronizacja z Apple Health wysłała w ciągu ostatnich 8 dni) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
             params: {},
             example:
                 "Wyeksportuj wszystkie moje dane — posiłki, wodę, wagę i cele",
@@ -433,7 +525,7 @@ export const TOOLS_PL: ToolsDoc = {
             description:
                 "Ustaw język widżetów w czacie — paneli i wykresów, a nie odpowiedzi, które pisze do Ciebie AI.",
             params: {
-                locale: "Kod ISO 639-1, np. <code>de</code>, <code>ja</code>. Obsługiwane języki: angielski, niemiecki, hiszpański, francuski, niderlandzki, polski, włoski, ukraiński, japoński.",
+                locale: "Kod ISO 639-1, np. <code>de</code>, <code>ja</code>. Obsługiwane języki: angielski, niemiecki, hiszpański, francuski, niderlandzki, polski, włoski, ukraiński, japoński, turecki.",
             },
             example: "Pokazuj moje widżety po niemiecku",
         },
@@ -555,7 +647,7 @@ export const TOOLS_PL: ToolsDoc = {
             "delete-account": {
                 question: "Jak usunąć konto?",
                 answerHtml:
-                    'Poproś AI o usunięcie Twojego konta Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). AI poprosi o potwierdzenie, a następnie trwale usunie Twoje posiłki, wodę, wagę, wymiary ciała, cele, ustawienia, rejestr narzędzi, z których korzystała Twoja aplikacja AI, ewentualny plik eksportu, dane logowania i samo konto. Tego nie da się cofnąć, więc jeśli chcesz mieć kopię, najpierw wyeksportuj dane. Potem usuń konektor ze swojej aplikacji. Jeśli w przyszłości zalogujesz się ponownie tym samym adresem e-mail, powstanie nowe, puste konto.',
+                    'Poproś AI o usunięcie Twojego konta Nutrition MCP (<a href="#delete_account"><code>delete_account</code></a>). AI poprosi o potwierdzenie, a następnie trwale usunie Twoje posiłki, zapisane posiłki, wodę, wagę, wymiary ciała, cele, ustawienia, rejestr narzędzi, z których korzystała Twoja aplikacja AI, ewentualny plik eksportu, dane logowania i samo konto. Tego nie da się cofnąć, więc jeśli chcesz mieć kopię, najpierw wyeksportuj dane. Potem usuń konektor ze swojej aplikacji. Jeśli w przyszłości zalogujesz się ponownie tym samym adresem e-mail, powstanie nowe, puste konto.',
             },
             "report-a-problem": {
                 question: "Jak zgłosić błąd lub problem z bezpieczeństwem?",

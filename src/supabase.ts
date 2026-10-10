@@ -14,7 +14,17 @@ import {
     type BodyMeasurementKind,
 } from "./units.js";
 import { isDrinkUnit, type DrinkUnit } from "./alcohol.js";
-import { escapeLikePattern, tokenizeQuery } from "./search.js";
+import {
+    escapeLikePattern,
+    tokenizeQuery,
+    type SavedMealSummary,
+} from "./search.js";
+import {
+    MAX_SAVED_MEALS_PER_USER,
+    type MealItemValues,
+    type MealNutrientKey,
+    type NutrientValues,
+} from "./meal-items.js";
 import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
 import { hashSecret } from "./token-hash.js";
 import { ToolError, newErrorRef } from "./errors.js";
@@ -199,6 +209,10 @@ export interface Meal {
     caffeine_mg: number | null;
     notes: string | null;
     idempotency_key: string | null;
+    // The saved meal this row was logged from (log_saved_meal), or null. Set
+    // null again when that saved meal is deleted: the logged row keeps its
+    // values, only the link goes.
+    saved_meal_id: string | null;
 }
 
 export interface MealInput {
@@ -218,6 +232,12 @@ export interface MealInput {
     logged_at?: string;
     notes?: string;
     idempotency_key?: string;
+    // Ingredients (src/meal-items.ts), already validated and summed: when
+    // given, the nutrient fields above ARE their sum. Written as meal_items
+    // rows in the same transaction as the meal.
+    items?: MealItemValues[];
+    // The saved meal this entry is copied from (log_saved_meal).
+    saved_meal_id?: string;
 }
 
 export interface MealInsertResult {
@@ -338,6 +358,15 @@ export async function insertMeal(
     // stable one from the request content (see mealIdempotencyKey).
     const idempotencyKey =
         meal.idempotency_key ?? mealIdempotencyKey(userId, meal, loggedAt);
+
+    // A meal with ingredients, or one copied from a saved meal, goes through
+    // one transactional function that also writes its item rows. The
+    // idempotency lookup happens inside it, so this branch makes no select of
+    // its own. Items are not part of the digest above: a replay with the same
+    // meal fields dedupes whatever its items say.
+    if ((meal.items?.length ?? 0) > 0 || meal.saved_meal_id) {
+        return insertMealWithItems(userId, meal, loggedAt, idempotencyKey);
+    }
 
     const { data: existing, error: selErr } = await sb
         .from("meals")
@@ -673,10 +702,31 @@ export async function searchMeals(
         return q.order("logged_at", { ascending: false }).limit(limit);
     };
 
+    // Ingredient names: a meal logged with items matches when one of its
+    // items holds every token. The meals are read through an inner embed of
+    // their items, so the user scope, the window, the newest-first order and
+    // the limit apply to the meals themselves. Every name filter lands on the
+    // same embedded rows, so one item has to hold all the tokens, and a meal
+    // with no such item drops out (`!inner`). The items are user-scoped too,
+    // as every item read is.
+    const buildItemQuery = (tokens: string[]) => {
+        let q = getSupabase()
+            .from("meals")
+            .select("*, meal_items!inner(name)")
+            .eq("user_id", userId)
+            .eq("meal_items.user_id", userId);
+        if (opts.sinceIso) q = q.gte("logged_at", opts.sinceIso);
+        for (const token of tokens) {
+            q = q.ilike("meal_items.name", `%${escapeLikePattern(token)}%`);
+        }
+        return q.order("logged_at", { ascending: false }).limit(limit);
+    };
+
     const results = await Promise.all(
         tokenized.flatMap((tokens) => [
             buildQuery(tokens, "description"),
             buildQuery(tokens, "notes"),
+            buildItemQuery(tokens),
         ]),
     );
 
@@ -686,7 +736,9 @@ export async function searchMeals(
         if (error) {
             throw new Error(`Failed to search meals: ${error.message}`);
         }
-        for (const meal of (data as Meal[]) ?? []) {
+        for (const row of (data as (Meal & { meal_items?: unknown })[]) ?? []) {
+            // The ingredient query's embedded items are only a filter.
+            const { meal_items: _items, ...meal } = row;
             if (!seen.has(meal.id)) {
                 seen.add(meal.id);
                 merged.push(meal);
@@ -814,6 +866,663 @@ export async function updateMeal(
             id,
             now as Pick<Meal, "sugar_g" | "added_sugar_g">,
         ),
+    );
+}
+
+// ---------- Meal items and saved meals ----------
+
+/** Nutrient columns, in MEAL_NUTRIENT_KEYS order. Listed here (type-only
+ *  import from src/meal-items.ts) so this module keeps no runtime edge to the
+ *  pure module, which imports the import/added-sugar layers. */
+const NUTRIENT_KEYS: readonly MealNutrientKey[] = [
+    "calories",
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+    "fiber_g",
+    "sugar_g",
+    "added_sugar_g",
+    "alcohol_g",
+    "caffeine_mg",
+];
+
+/** PostgREST hands numeric columns back as numbers today; coerce anyway so a
+ *  string never reaches a total or a line of text. */
+function numOrNull(v: unknown): number | null {
+    return v == null ? null : Number(v);
+}
+
+function nutrientsFromRow(row: Record<string, unknown>): NutrientValues {
+    const out = {} as NutrientValues;
+    for (const key of NUTRIENT_KEYS) out[key] = numOrNull(row[key]);
+    return out;
+}
+
+/** One item row, as src/meal-items.ts values. */
+function itemFromRow(row: Record<string, unknown>): MealItemValues {
+    return {
+        ...nutrientsFromRow(row),
+        position: Number(row.position),
+        name: String(row.name),
+        amount: numOrNull(row.amount),
+        unit: row.unit == null ? null : String(row.unit),
+        calories: Number(row.calories),
+        protein_g: Number(row.protein_g),
+        carbs_g: Number(row.carbs_g),
+        fat_g: Number(row.fat_g),
+    };
+}
+
+/** The jsonb object jsonb_to_recordset reads for one item. Every key is sent,
+ *  null where absent, so the SQL side never sees a missing column. */
+function itemPayload(item: MealItemValues): Record<string, unknown> {
+    return {
+        position: item.position,
+        name: item.name,
+        amount: item.amount,
+        unit: item.unit,
+        calories: item.calories,
+        protein_g: item.protein_g,
+        carbs_g: item.carbs_g,
+        fat_g: item.fat_g,
+        fiber_g: item.fiber_g ?? null,
+        sugar_g: item.sugar_g ?? null,
+        added_sugar_g: item.added_sugar_g ?? null,
+        alcohol_g: item.alcohol_g ?? null,
+        caffeine_mg: item.caffeine_mg ?? null,
+    };
+}
+
+/** Items per `in (...)` request. Each request also pages (fetchAllPages), since
+ *  100 parents with 30 items each is well past PostgREST's 1000-row cap. */
+const ITEM_PARENT_CHUNK = 100;
+
+/** Item rows of many parents, grouped by parent id and ordered by position.
+ *  Scoped to the user; non-uuid parent ids are dropped before any query (a
+ *  cast error would fail the whole lookup, see isUuid). */
+async function selectItemsByParent(
+    table: "meal_items" | "saved_meal_items",
+    parentColumn: "meal_id" | "saved_meal_id",
+    userId: string,
+    parentIds: string[],
+): Promise<Map<string, MealItemValues[]>> {
+    const byParent = new Map<string, MealItemValues[]>();
+    const ids = [...new Set(parentIds)].filter(isUuid);
+    for (let i = 0; i < ids.length; i += ITEM_PARENT_CHUNK) {
+        const chunk = ids.slice(i, i + ITEM_PARENT_CHUNK);
+        const rows = await fetchAllPages<Record<string, unknown>>(
+            async (from, to) => {
+                const { data, error } = await getSupabase()
+                    .from(table)
+                    .select("*")
+                    .eq("user_id", userId)
+                    .in(parentColumn, chunk)
+                    .order(parentColumn, { ascending: true })
+                    .order("position", { ascending: true })
+                    .order("id", { ascending: true })
+                    .range(from, to);
+                if (error)
+                    throw new Error(`Failed to get ${table}: ${error.message}`);
+                return (data as Record<string, unknown>[]) ?? [];
+            },
+        );
+        for (const row of rows) {
+            const parent = String(row[parentColumn]);
+            const list = byParent.get(parent) ?? [];
+            list.push(itemFromRow(row));
+            byParent.set(parent, list);
+        }
+    }
+    return byParent;
+}
+
+/** Ingredients of logged meals, grouped by meal id, in position order. Meals
+ *  with no items have no entry. */
+export function getMealItems(
+    userId: string,
+    mealIds: string[],
+): Promise<Map<string, MealItemValues[]>> {
+    return selectItemsByParent("meal_items", "meal_id", userId, mealIds);
+}
+
+/** How many ingredients one logged meal has. Used before an update: a meal
+ *  whose totals are the sum of its items can only change through its items. */
+export async function countMealItems(
+    userId: string,
+    mealId: string,
+): Promise<number> {
+    const { count, error } = await getSupabase()
+        .from("meal_items")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("meal_id", mealId);
+    if (error) throw new Error(`Failed to count meal items: ${error.message}`);
+    return count ?? 0;
+}
+
+/** The fields update_meal may change. Totals may be null: a summed total is
+ *  null when no item carries that nutrient. */
+export type MealFieldUpdate = Partial<Omit<MealInput, MealNutrientKey>> &
+    Partial<Record<MealNutrientKey, number | null>>;
+
+/** Replaces a logged meal's ingredients and the meal fields in one write.
+ *  `fields` holds the summed totals when the meal has items, plus any other
+ *  field the caller changed; `items` is the full new list. The meal's
+ *  idempotency key is recomputed exactly as updateMeal does. */
+export async function replaceMealItems(
+    userId: string,
+    id: string,
+    fields: MealFieldUpdate,
+    items: MealItemValues[],
+): Promise<Meal> {
+    const sb = getSupabase();
+
+    const { data: existing, error: selErr } = await sb
+        .from("meals")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (selErr) throw new Error(`Failed to update meal: ${selErr.message}`);
+    if (!existing) throw new ToolError(`No meal found with id ${id}.`);
+
+    const update: Record<string, unknown> = {};
+    if (fields.description !== undefined)
+        update.description = decodeEscapeSequences(fields.description);
+    if (fields.meal_type !== undefined) update.meal_type = fields.meal_type;
+    if (fields.calories !== undefined)
+        update.calories =
+            fields.calories == null ? null : toStoredInteger(fields.calories);
+    for (const key of NUTRIENT_KEYS) {
+        if (key === "calories" || fields[key] === undefined) continue;
+        update[key] = fields[key];
+    }
+    if (fields.logged_at !== undefined) update.logged_at = fields.logged_at;
+    if (fields.notes !== undefined)
+        update.notes =
+            fields.notes != null ? decodeEscapeSequences(fields.notes) : null;
+
+    const newKey = updatedMealIdempotencyKey(
+        userId,
+        existing as Meal,
+        fields as Partial<MealInput>,
+    );
+    if (newKey !== null) update.idempotency_key = newKey;
+
+    const { data, error } = await sb.rpc("update_meal_with_items", {
+        p_user_id: userId,
+        p_meal_id: id,
+        p_fields: update,
+        p_items: items.map(itemPayload),
+    });
+    if (error) throw new Error(`Failed to update meal: ${error.message}`);
+    // jsonb null: the meal vanished between the read above and this write.
+    if (data == null) throw new ToolError(`No meal found with id ${id}.`);
+    return data as Meal;
+}
+
+/** Logs a meal with ingredients and/or from a saved meal: one rpc writes the
+ *  meal and its item rows, and does the idempotency lookup itself. */
+async function insertMealWithItems(
+    userId: string,
+    meal: MealInput,
+    loggedAt: string,
+    idempotencyKey: string,
+): Promise<MealInsertResult> {
+    const { data, error } = await getSupabase().rpc("insert_meal_with_items", {
+        p_user_id: userId,
+        p_meal: {
+            description: decodeEscapeSequences(meal.description),
+            meal_type: meal.meal_type,
+            calories: meal.calories ?? null,
+            protein_g: meal.protein_g ?? null,
+            carbs_g: meal.carbs_g ?? null,
+            fat_g: meal.fat_g ?? null,
+            fiber_g: meal.fiber_g ?? null,
+            sugar_g: meal.sugar_g ?? null,
+            added_sugar_g: meal.added_sugar_g ?? null,
+            alcohol_g: meal.alcohol_g ?? null,
+            caffeine_mg: meal.caffeine_mg ?? null,
+            logged_at: loggedAt,
+            notes:
+                meal.notes != null ? decodeEscapeSequences(meal.notes) : null,
+            idempotency_key: idempotencyKey,
+            saved_meal_id: meal.saved_meal_id ?? null,
+        },
+        p_items: (meal.items ?? []).map(itemPayload),
+    });
+    if (error) {
+        // meals.saved_meal_id references saved_meals: a 23503 here means the
+        // saved meal was deleted after the caller read it (a parallel
+        // delete_saved_meal), which the caller can act on.
+        if (error.code === "23503" && meal.saved_meal_id) {
+            throw new ToolError(
+                `No saved meal found with id ${meal.saved_meal_id}; it may have just been deleted.`,
+            );
+        }
+        throw new Error(`Failed to insert meal: ${error.message}`);
+    }
+    return data as MealInsertResult;
+}
+
+export interface SavedMeal extends NutrientValues {
+    id: string;
+    user_id: string;
+    name: string;
+    description: string;
+    meal_type: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SavedMealWithItems extends SavedMeal {
+    items: MealItemValues[];
+}
+
+export interface SavedMealInput extends Partial<NutrientValues> {
+    name: string;
+    description: string;
+    meal_type: string | null;
+}
+
+/** A saved meal with this name already exists for the user (case-insensitive).
+ *  `existingId` names it so the caller can point at it. */
+export class SavedMealNameTaken extends Error {
+    readonly existingId: string | null;
+
+    constructor(existingId: string | null) {
+        super("A saved meal with this name already exists.");
+        this.name = "SavedMealNameTaken";
+        this.existingId = existingId;
+    }
+}
+
+function savedMealFromRow(row: Record<string, unknown>): SavedMeal {
+    return {
+        id: String(row.id),
+        user_id: String(row.user_id),
+        name: String(row.name),
+        description: String(row.description),
+        meal_type: row.meal_type == null ? null : String(row.meal_type),
+        created_at: String(row.created_at),
+        updated_at: String(row.updated_at),
+        ...nutrientsFromRow(row),
+    };
+}
+
+/** The jsonb object the saved-meal functions read. Only keys present in the
+ *  input appear (so an update leaves the others alone); a present key with a
+ *  null value clears its column. calories is an integer column. */
+function savedMealFields(
+    input: Partial<SavedMealInput>,
+): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    if (input.name !== undefined) out.name = input.name;
+    if (input.description !== undefined)
+        out.description = decodeEscapeSequences(input.description);
+    if (input.meal_type !== undefined) out.meal_type = input.meal_type;
+    for (const key of NUTRIENT_KEYS) {
+        const value = input[key];
+        if (value === undefined) continue;
+        out[key] =
+            value === null
+                ? null
+                : key === "calories"
+                  ? toStoredInteger(value)
+                  : value;
+    }
+    return out;
+}
+
+/** The saved meal named `name` (case-insensitive), by id, or null. */
+async function savedMealIdByName(
+    userId: string,
+    name: string | undefined,
+): Promise<string | null> {
+    if (!name) return null;
+    const [match] = await findSavedMealsByName(userId, name);
+    return match?.id ?? null;
+}
+
+/** Creates a saved meal and its ingredients in one write. A taken name throws
+ *  SavedMealNameTaken; nothing is written then. */
+export async function createSavedMeal(
+    userId: string,
+    input: SavedMealInput,
+    items: MealItemValues[],
+): Promise<SavedMealWithItems> {
+    const { data, error } = await getSupabase().rpc("insert_saved_meal", {
+        p_user_id: userId,
+        p_saved: savedMealFields(input),
+        p_items: items.map(itemPayload),
+    });
+    if (error) {
+        if (error.code === "23505")
+            throw new SavedMealNameTaken(
+                await savedMealIdByName(userId, input.name),
+            );
+        throw new Error(`Failed to save meal: ${error.message}`);
+    }
+    return {
+        ...savedMealFromRow(data as Record<string, unknown>),
+        items,
+    };
+}
+
+/** Every saved meal of the user, by name, each with its ingredients. */
+export async function getSavedMeals(
+    userId: string,
+    opts: { nameContains?: string } = {},
+): Promise<SavedMealWithItems[]> {
+    const needle = opts.nameContains?.trim();
+    const rows = await fetchAllPages<Record<string, unknown>>(
+        async (from, to) => {
+            let q = getSupabase()
+                .from("saved_meals")
+                .select("*")
+                .eq("user_id", userId);
+            if (needle) q = q.ilike("name", `%${escapeLikePattern(needle)}%`);
+            const { data, error } = await q
+                .order("created_at", { ascending: true })
+                .order("id", { ascending: true })
+                .range(from, to);
+            if (error)
+                throw new Error(`Failed to get saved meals: ${error.message}`);
+            return (data as Record<string, unknown>[]) ?? [];
+        },
+    );
+    return withItems(userId, rows.map(savedMealFromRow));
+}
+
+/** Attaches each saved meal's items, then orders by name. */
+async function withItems(
+    userId: string,
+    saved: SavedMeal[],
+): Promise<SavedMealWithItems[]> {
+    const items = await selectItemsByParent(
+        "saved_meal_items",
+        "saved_meal_id",
+        userId,
+        saved.map((s) => s.id),
+    );
+    return saved
+        .map((s) => ({ ...s, items: items.get(s.id) ?? [] }))
+        .sort((a, b) =>
+            a.name.toLowerCase() < b.name.toLowerCase()
+                ? -1
+                : a.name.toLowerCase() > b.name.toLowerCase()
+                  ? 1
+                  : 0,
+        );
+}
+
+/** One saved meal by id, or null (also for a non-uuid or another user's id). */
+export async function getSavedMeal(
+    userId: string,
+    id: string,
+): Promise<SavedMealWithItems | null> {
+    if (!isUuid(id)) return null;
+    const { data, error } = await getSupabase()
+        .from("saved_meals")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (error) throw new Error(`Failed to get saved meal: ${error.message}`);
+    if (!data) return null;
+    const [withItem] = await withItems(userId, [
+        savedMealFromRow(data as Record<string, unknown>),
+    ]);
+    return withItem ?? null;
+}
+
+/** Saved meals whose name is `name`, ignoring case. The database pattern is
+ *  the escaped name with no wildcards, so the exact comparison happens here. */
+export async function findSavedMealsByName(
+    userId: string,
+    name: string,
+): Promise<SavedMealWithItems[]> {
+    const wanted = name.trim();
+    if (!wanted) return [];
+    const { data, error } = await getSupabase()
+        .from("saved_meals")
+        .select("*")
+        .eq("user_id", userId)
+        .ilike("name", escapeLikePattern(wanted));
+    if (error) throw new Error(`Failed to find saved meals: ${error.message}`);
+    const lower = wanted.toLowerCase();
+    const matches = ((data as Record<string, unknown>[]) ?? [])
+        .map(savedMealFromRow)
+        .filter((s) => s.name.toLowerCase() === lower);
+    return withItems(userId, matches);
+}
+
+/** How many saved meals the user has, for the per-user cap. */
+export async function countSavedMeals(userId: string): Promise<number> {
+    const { count, error } = await getSupabase()
+        .from("saved_meals")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+    if (error) throw new Error(`Failed to count saved meals: ${error.message}`);
+    return count ?? 0;
+}
+
+/** Updates a saved meal. `items` replaces its ingredients when given, and
+ *  keeps them when null. A name taken by another saved meal throws
+ *  SavedMealNameTaken. Null when this user has no saved meal with `id`. */
+export async function updateSavedMeal(
+    userId: string,
+    id: string,
+    fields: Partial<SavedMealInput>,
+    items: MealItemValues[] | null,
+): Promise<SavedMealWithItems | null> {
+    if (!isUuid(id)) return null;
+    const { data, error } = await getSupabase().rpc("update_saved_meal", {
+        p_user_id: userId,
+        p_id: id,
+        p_fields: savedMealFields(fields),
+        p_items: items === null ? null : items.map(itemPayload),
+    });
+    if (error) {
+        if (error.code === "23505")
+            throw new SavedMealNameTaken(
+                await savedMealIdByName(userId, fields.name),
+            );
+        throw new Error(`Failed to update saved meal: ${error.message}`);
+    }
+    if (data == null) return null;
+    const saved = savedMealFromRow(data as Record<string, unknown>);
+    if (items !== null) return { ...saved, items };
+    const [withItem] = await withItems(userId, [saved]);
+    return withItem ?? null;
+}
+
+/** Deletes a saved meal and its ingredients. Logged meals copied from it keep
+ *  their values (their saved_meal_id goes null). Returns the deleted row, or
+ *  null when there was none. */
+export async function deleteSavedMeal(
+    userId: string,
+    id: string,
+): Promise<SavedMeal | null> {
+    if (!isUuid(id)) return null;
+    const { data, error } = await getSupabase()
+        .from("saved_meals")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select();
+    if (error) throw new Error(`Failed to delete saved meal: ${error.message}`);
+    const row = (data as Record<string, unknown>[] | null)?.[0];
+    return row ? savedMealFromRow(row) : null;
+}
+
+/** Saved meals matching any of `queries`: a name or a description that holds
+ *  every token of a query, or an ingredient name that does. Summaries only,
+ *  the first SAVED_MEAL_SEARCH_LIMIT by name, with `total` counting every
+ *  match so the listing can say when it was cut. */
+export const SAVED_MEAL_SEARCH_LIMIT = 20;
+
+/** Orders saved meals by name ignoring case, then by id, so the cut to
+ *  SAVED_MEAL_SEARCH_LIMIT never depends on the order rows arrived in. */
+function bySavedMealName(a: SavedMeal, b: SavedMeal): number {
+    const x = a.name.toLowerCase();
+    const y = b.name.toLowerCase();
+    if (x !== y) return x < y ? -1 : 1;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+}
+
+export async function searchSavedMeals(
+    userId: string,
+    queries: string[],
+): Promise<{ saved: SavedMealSummary[]; total: number }> {
+    const tokenized = queries
+        .map(tokenizeQuery)
+        .filter((tokens) => tokens.length > 0);
+    if (tokenized.length === 0) return { saved: [], total: 0 };
+
+    // Each query reads every match (a user holds at most
+    // MAX_SAVED_MEALS_PER_USER saved meals), ordered by name and id, so the
+    // first SAVED_MEAL_SEARCH_LIMIT by name are always among them, whatever
+    // the database collation makes of letter case.
+    const cap = MAX_SAVED_MEALS_PER_USER;
+    const savedBy = (column: "name" | "description", tokens: string[]) => {
+        let q = getSupabase()
+            .from("saved_meals")
+            .select("*")
+            .eq("user_id", userId);
+        for (const token of tokens) {
+            q = q.ilike(column, `%${escapeLikePattern(token)}%`);
+        }
+        return q.order("name").order("id").limit(cap);
+    };
+    // Ingredient names, through an inner embed of the items as in searchMeals:
+    // one item has to hold every token.
+    const savedByItem = (tokens: string[]) => {
+        let q = getSupabase()
+            .from("saved_meals")
+            .select("*, saved_meal_items!inner(name)")
+            .eq("user_id", userId)
+            .eq("saved_meal_items.user_id", userId);
+        for (const token of tokens) {
+            q = q.ilike(
+                "saved_meal_items.name",
+                `%${escapeLikePattern(token)}%`,
+            );
+        }
+        return q.order("name").order("id").limit(cap);
+    };
+
+    const results = await Promise.all(
+        tokenized.flatMap((tokens) => [
+            savedBy("name", tokens),
+            savedBy("description", tokens),
+            savedByItem(tokens),
+        ]),
+    );
+
+    const found = new Map<string, SavedMeal>();
+    for (const { data, error } of results) {
+        if (error)
+            throw new Error(`Failed to search saved meals: ${error.message}`);
+        for (const row of (data as Record<string, unknown>[]) ?? []) {
+            // savedMealFromRow drops the ingredient query's embedded items.
+            const saved = savedMealFromRow(row);
+            found.set(saved.id, saved);
+        }
+    }
+
+    const saved = [...found.values()]
+        .sort(bySavedMealName)
+        .slice(0, SAVED_MEAL_SEARCH_LIMIT);
+    const items = await selectItemsByParent(
+        "saved_meal_items",
+        "saved_meal_id",
+        userId,
+        saved.map((s) => s.id),
+    );
+    return {
+        saved: saved.map((s) => ({
+            id: s.id,
+            name: s.name,
+            description: s.description,
+            meal_type: s.meal_type,
+            calories: s.calories,
+            protein_g: s.protein_g,
+            carbs_g: s.carbs_g,
+            fat_g: s.fat_g,
+            item_count: items.get(s.id)?.length ?? 0,
+        })),
+        total: found.size,
+    };
+}
+
+/** One logged meal by id, or null (also for a non-uuid or another user's id). */
+export async function getMealById(
+    userId: string,
+    id: string,
+): Promise<Meal | null> {
+    if (!isUuid(id)) return null;
+    const { data, error } = await getSupabase()
+        .from("meals")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (error) throw new Error(`Failed to get meal: ${error.message}`);
+    return (data as Meal | null) ?? null;
+}
+
+// ---------- Export readers (see src/export.ts) ----------
+
+/** One ingredient row as stored, ids included, for meal_items.csv. */
+export interface MealItemRow extends MealItemValues {
+    id: string;
+    meal_id: string;
+    user_id: string;
+}
+
+/** Every logged-meal ingredient of the user, in meal then position order. */
+export function getAllMealItems(userId: string): Promise<MealItemRow[]> {
+    return selectAllForUser<MealItemRow>(
+        "meal_items",
+        "*",
+        "meal items",
+        userId,
+        ["meal_id", "position", "id"],
+        "id",
+    );
+}
+
+/** Every saved meal of the user, oldest first, as stored. */
+export function getAllSavedMeals(userId: string): Promise<SavedMeal[]> {
+    return selectAllForUser<SavedMeal>(
+        "saved_meals",
+        "*",
+        "saved meals",
+        userId,
+        ["created_at", "id"],
+        "id",
+    );
+}
+
+/** One saved-meal ingredient row as stored, ids included. */
+export interface SavedMealItemRow extends MealItemValues {
+    id: string;
+    saved_meal_id: string;
+    user_id: string;
+}
+
+/** Every saved-meal ingredient of the user, as stored, for saved_meal_items.csv. */
+export function getAllSavedMealItems(
+    userId: string,
+): Promise<SavedMealItemRow[]> {
+    return selectAllForUser<SavedMealItemRow>(
+        "saved_meal_items",
+        "*",
+        "saved meal items",
+        userId,
+        ["saved_meal_id", "position", "id"],
+        "id",
     );
 }
 
@@ -2280,6 +2989,34 @@ export async function deleteAllUserData(userId: string): Promise<void> {
         .remove(exportStoragePaths(userId));
     if (exportErr)
         throw new Error(`Failed to delete exports: ${exportErr.message}`);
+
+    // Ingredients and saved meals go before the logged meals. A logged meal's
+    // saved_meal_id is set null by the database, so no other order is wrong,
+    // but naming each table keeps every table's rows in the deletion record.
+    const { error: mealItemsErr } = await sb
+        .from("meal_items")
+        .delete()
+        .eq("user_id", userId);
+    if (mealItemsErr)
+        throw new Error(`Failed to delete meal items: ${mealItemsErr.message}`);
+
+    const { error: savedItemsErr } = await sb
+        .from("saved_meal_items")
+        .delete()
+        .eq("user_id", userId);
+    if (savedItemsErr)
+        throw new Error(
+            `Failed to delete saved meal items: ${savedItemsErr.message}`,
+        );
+
+    const { error: savedMealsErr } = await sb
+        .from("saved_meals")
+        .delete()
+        .eq("user_id", userId);
+    if (savedMealsErr)
+        throw new Error(
+            `Failed to delete saved meals: ${savedMealsErr.message}`,
+        );
 
     const { error: mealsErr } = await sb
         .from("meals")

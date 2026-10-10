@@ -18,6 +18,7 @@ function meal(id: string, fields: Partial<Meal> = {}): Meal {
     return {
         id,
         user_id: "u1",
+        saved_meal_id: null,
         logged_at: "2026-06-01T12:00:00Z",
         meal_type: "lunch",
         description: "test meal",

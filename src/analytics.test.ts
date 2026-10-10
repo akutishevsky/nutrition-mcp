@@ -4,7 +4,7 @@ import {
     categorizeError,
     userFacingError,
 } from "./analytics.js";
-import { ToolError } from "./errors.js";
+import { errorLogText, ToolError, toolErrorWithUserText } from "./errors.js";
 import { LoggedAtError } from "./tz.js";
 import { assertPlausibleLength, pickLengthWriteUnit } from "./units.js";
 
@@ -75,7 +75,7 @@ describe("categorizeError", () => {
 
         // src/mcp.ts set_language
         [
-            "Unsupported language: xx. Use one of: en, de, es, fr, nl, pl, it, uk, ja.",
+            "Unsupported language: xx. Use one of: en, de, es, fr, nl, pl, it, uk, ja, tr.",
             "invalid_param_value",
         ],
         // src/mcp.ts set_weight_unit
@@ -106,6 +106,17 @@ describe("categorizeError", () => {
         // The echoed id must not steer it into an earlier tier-1 bucket
         [
             'No meal found with id "not a real calendar date": ids are UUIDs like "3f2b9c1e-…". Get one from get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals.',
+            "record_not_found",
+        ],
+
+        // Saved meals (src/supabase.ts getSavedMeal / delete and update by id,
+        // and log_saved_meal's name lookup in src/mcp.ts)
+        [
+            "No saved meal found with id 00000000-0000-4000-8000-000000000004.",
+            "record_not_found",
+        ],
+        [
+            'No saved meal found named "date night": get_saved_meals lists the names.',
             "record_not_found",
         ],
 
@@ -268,6 +279,14 @@ describe("a ToolError's own category", () => {
         expect(categorizeError(new ToolError("x is required"))).toBe(
             "missing_required_param",
         );
+    });
+
+    test("meal_items_invalid is bucketed by its category, not its wording", () => {
+        // "date" in the text would be invalid_date_format if wording decided.
+        const err = new ToolError('item 2 ("Соус") has no date field', {
+            category: "meal_items_invalid",
+        });
+        expect(categorizeError(err)).toBe("meal_items_invalid");
     });
 });
 
@@ -443,5 +462,35 @@ describe("analyticsLogLine", () => {
             message: "x".repeat(2000),
         });
         expect(line.length).toBeLessThan(600);
+    });
+});
+
+describe("ToolError logText (runtime log text without the user's own text)", () => {
+    test("errorLogText prefers a ToolError's logText", () => {
+        const err = toolErrorWithUserText(
+            'No item matches "Борщ".',
+            "No item matches the reference (2 items).",
+            "meal_items_invalid",
+        );
+        expect(err.message).toBe('No item matches "Борщ".');
+        expect(err.category).toBe("meal_items_invalid");
+        expect(errorLogText(err)).toBe(
+            "No item matches the reference (2 items).",
+        );
+    });
+
+    test("errorLogText falls back to the message, and to String() for non-errors", () => {
+        expect(errorLogText(new ToolError("plain"))).toBe("plain");
+        expect(errorLogText(new Error("boom"))).toBe("boom");
+        expect(errorLogText("raw")).toBe("raw");
+    });
+
+    test("an empty logText is still used rather than the message", () => {
+        expect(errorLogText(new ToolError("x", { logText: "" }))).toBe("");
+    });
+
+    test("the caller-facing text is still the message", () => {
+        const err = toolErrorWithUserText("named", "unnamed");
+        expect(userFacingError("t", err, "unknown", "abcd1234")).toBe("named");
     });
 });

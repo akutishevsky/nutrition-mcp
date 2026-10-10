@@ -11,7 +11,7 @@
  *
  * Every WORD on a card is the widget's own (WIDGET_STRINGS, picked by the
  * payload's `locale`), numbers format in the page's language, and every
- * NUMBER is defined here, once for all nine locales — the conversation copy
+ * NUMBER is defined here, once for all ten locales — the conversation copy
  * in src/copy/index.ts quotes them. The only text a card takes from the page
  * copy is the meal a meal-logged card names.
  *
@@ -410,6 +410,7 @@ function demoMeal(id: string, t: Totals): Meal {
     return {
         id,
         user_id: "demo",
+        saved_meal_id: null,
         logged_at: "",
         meal_type: null,
         description: "",

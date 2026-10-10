@@ -18,11 +18,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_FR: ToolsDoc = {
     meta: {
-        title: "41 outils pour suivre calories, macros, eau et poids",
+        title: "46 outils pour suivre calories, macros, eau et poids",
         description:
-            "Les 41 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
+            "Les 46 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
         ogDescription:
-            "Les 41 outils que le serveur Nutrition MCP donne à ton IA, dont un outil d'import CSV pour récupérer ton historique d'une autre app, avec descriptions et exemples de demandes.",
+            "Les 46 outils que le serveur Nutrition MCP donne à ton IA, dont un outil d'import CSV pour récupérer ton historique d'une autre app, avec descriptions et exemples de demandes.",
     },
     hero: {
         eyebrow: "Référence",
@@ -30,7 +30,7 @@ export const TOOLS_FR: ToolsDoc = {
         titleEm: "faire",
         titleAfterEm: "",
         lead: "Tu n'appelles jamais ces outils toi-même : tu parles simplement à Claude, à ChatGPT ou à un autre client MCP, et il choisit le bon outil. Voici tous les outils que le serveur Nutrition MCP met à disposition pour les repas, les calories et les macros, l'eau et le poids, avec ce que fait chacun et une phrase qui le déclenche.",
-        countBold: "41 outils",
+        countBold: "46 outils",
         countTail: "répartis en 7 catégories",
     },
     categories: {
@@ -96,7 +96,7 @@ export const TOOLS_FR: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Enregistre ce que tu as mangé avec les calories et les macros, plus les fibres, les sucres totaux et ajoutés, l'alcool et la caféine quand ces valeurs sont disponibles. Décris-le avec tes mots : l'IA estime les valeurs, te demande la taille de la portion si elle n'est pas claire, et peut d'abord récupérer les données de l'étiquette via un code-barres ou sur le web.",
+                "Enregistre ce que tu as mangé avec les calories et les macros, plus les fibres, les sucres totaux et ajoutés, l'alcool et la caféine quand ces valeurs sont disponibles. Décris-le avec tes mots : l'IA estime les valeurs, te demande la taille de la portion si elle n'est pas claire, et peut d'abord récupérer les données de l'étiquette via un code-barres ou sur le web. Il peut aussi prendre les ingrédients un à un : les totaux sont alors la somme de ces ingrédients.",
             params: {
                 description: "Ce qui a été mangé",
                 meal_type: "petit-déjeuner, déjeuner, dîner ou collation",
@@ -117,6 +117,7 @@ export const TOOLS_FR: ToolsDoc = {
                 logged_at:
                     "Quand tu l'as mangé, si ce n'est pas maintenant : permet d'enregistrer quelque chose après coup",
                 notes: "Notes supplémentaires",
+                items: "Ingrédients, une ligne chacun, avec leurs quantités et leurs valeurs : <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code> et <code>fat_g</code> sur chaque ingrédient ; <code>fiber_g</code>, <code>sugar_g</code> et <code>added_sugar_g</code> sur tous les ingrédients ou sur aucun ; <code>alcohol_g</code> et <code>caffeine_mg</code> seulement sur les ingrédients qui en contiennent, additionnés sur ces ingrédients. Les totaux du repas sont alors la somme des ingrédients, donc envoie les ingrédients ou les totaux, pas les deux",
             },
             example:
                 "Enregistre pour le déjeuner un burrito bowl au poulet avec supplément guacamole",
@@ -156,7 +157,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Modifie un repas déjà enregistré : sa description, une macro, les fibres, les sucres totaux ou ajoutés, l'alcool ou la caféine, l'heure ou les notes. C'est aussi comme ça qu'on complète une valeur manquante : si un repas a été enregistré sans ses fibres, ses sucres ou ses sucres ajoutés, le serveur le signale et l'IA les ajoute ici une fois que tu as donné ton accord.",
+                "Modifie un repas déjà enregistré : sa description, une macro, les fibres, les sucres totaux ou ajoutés, l'alcool ou la caféine, l'heure ou les notes. C'est aussi comme ça qu'on complète une valeur manquante : si un repas a été enregistré sans ses fibres, ses sucres ou ses sucres ajoutés, le serveur le signale et l'IA les ajoute ici une fois que tu as donné ton accord. Pour un repas enregistré avec ses ingrédients, les totaux se modifient par sa liste d'ingrédients.",
             params: {
                 id: "UUID du repas à modifier",
                 description: "",
@@ -172,6 +173,7 @@ export const TOOLS_FR: ToolsDoc = {
                 caffeine_mg: "Milligrammes, pas grammes",
                 logged_at: "",
                 notes: "",
+                items: "La liste complète des ingrédients, qui remplace l'existante. Les totaux du repas deviennent la somme de cette liste, donc les champs de totaux ne peuvent pas être envoyés avec elle",
             },
             example:
                 "En fait, ce déjeuner faisait 600 calories, pas 500 : corrige-le",
@@ -184,9 +186,93 @@ export const TOOLS_FR: ToolsDoc = {
             example:
                 "Supprime la collation que j'ai enregistrée cet après-midi",
         },
+        save_meal: {
+            description:
+                "Sauvegarde sous un nom un repas que tu manges souvent, comme ton petit-déjeuner habituel, avec ses valeurs pour une portion et, si tu les as, ses ingrédients. Donne les valeurs toi-même ou copie-les depuis un repas déjà enregistré. Sauvegarder n'ajoute rien à ton journal : enregistre le repas sauvegardé avec log_saved_meal quand tu le manges.",
+            params: {
+                name: "Le nom sous lequel le sauvegarder, unique parmi tes repas sauvegardés (1 à 100 caractères)",
+                from_meal_id:
+                    "UUID d'un repas enregistré dont copier les valeurs et les ingrédients",
+                description:
+                    "Ce qu'est le repas sauvegardé. Par défaut, son nom",
+                meal_type:
+                    "petit-déjeuner, déjeuner, dîner ou collation : le type proposé par défaut quand tu l'enregistres",
+                items: "Ingrédients, une ligne chacun, avec leur quantité et leurs valeurs nutritionnelles. Leur somme devient les valeurs du repas sauvegardé, donc envoie les ingrédients ou les valeurs, pas les deux",
+                calories: "Calories totales pour une portion",
+                protein_g: "Protéines en grammes pour une portion",
+                carbs_g: "Glucides en grammes pour une portion",
+                fat_g: "Lipides en grammes pour une portion",
+                fiber_g: "Fibres alimentaires en grammes pour une portion",
+                sugar_g: "Sucres totaux en grammes pour une portion",
+                added_sugar_g:
+                    "Sucres ajoutés en grammes pour une portion, jamais plus que les sucres totaux. Accompagne <code>sugar_g</code>",
+                alcohol_g:
+                    "Grammes d'éthanol pur pour une portion, pas le volume de la boisson",
+                caffeine_mg:
+                    "Milligrammes de caféine pour une portion, pas grammes",
+            },
+            example: "Sauvegarde ça comme mon petit-déjeuner habituel",
+        },
+        log_saved_meal: {
+            description:
+                "Enregistre un repas sauvegardé comme entrée de repas, à partir de maintenant ou d'une heure que tu indiques. L'entrée reçoit une copie des valeurs et des ingrédients sauvegardés, ajustée au nombre de portions, avec la possibilité de fixer certains ingrédients à la quantité réellement mangée ou de les retirer, pour cette fois seulement. Les modifications ultérieures du repas sauvegardé laissent telles quelles les entrées déjà enregistrées à partir de lui.",
+            params: {
+                saved_meal:
+                    "Le nom du repas sauvegardé, ou son ID donné par get_saved_meals ou search_meals",
+                servings:
+                    "Nombre de portions à enregistrer : plus de 0 et jusqu'à 20 (1 par défaut)",
+                item_amounts:
+                    "Les quantités de certains ingrédients réellement mangées dans cette entrée, par nom ou position. Le nombre de portions ajuste d'abord le repas sauvegardé, puis ces valeurs fixent la quantité des ingrédients indiqués ; leurs valeurs sont ajustées dans la même proportion",
+                leave_out:
+                    "Ingrédients à retirer de cette entrée, par nom ou position",
+                meal_type:
+                    "petit-déjeuner, déjeuner, dîner ou collation : remplace le type par défaut du repas sauvegardé",
+                description:
+                    "Description de cette entrée. Par défaut, celle du repas sauvegardé",
+                logged_at: "Quand tu l'as mangé, si ce n'est pas maintenant",
+                notes: "Notes supplémentaires",
+                idempotency_key:
+                    "Une clé qui rend un appel relancé sans effet, pour que la même entrée ne soit pas enregistrée deux fois",
+            },
+            example: "Enregistre mon petit-déjeuner habituel, une demi-portion",
+        },
+        update_saved_meal: {
+            description:
+                "Modifie le nom, la description, le type de repas par défaut, les ingrédients ou les valeurs par portion d'un repas sauvegardé. Les repas déjà enregistrés à partir de lui gardent leurs valeurs.",
+            params: {
+                id: "UUID du repas sauvegardé à modifier",
+                name: "Nouveau nom, unique parmi tes repas sauvegardés",
+                description: "Nouvelle description",
+                meal_type:
+                    "Nouveau type de repas par défaut : petit-déjeuner, déjeuner, dîner ou collation",
+                items: "La liste complète des ingrédients, qui remplace l'existante. Leur somme devient les valeurs du repas sauvegardé, donc les champs de valeurs ne peuvent pas être envoyés avec elle",
+                calories: "Calories totales pour une portion",
+                protein_g: "Protéines en grammes pour une portion",
+                carbs_g: "Glucides en grammes pour une portion",
+                fat_g: "Lipides en grammes pour une portion",
+                fiber_g: "Fibres alimentaires en grammes pour une portion",
+                sugar_g: "Sucres totaux en grammes pour une portion",
+                added_sugar_g:
+                    "Sucres ajoutés en grammes pour une portion, jamais plus que les sucres totaux. Accompagne <code>sugar_g</code>",
+                alcohol_g:
+                    "Grammes d'éthanol pur pour une portion, pas le volume de la boisson",
+                caffeine_mg:
+                    "Milligrammes de caféine pour une portion, pas grammes",
+            },
+            example:
+                "Mon petit-déjeuner habituel fait maintenant 350 calories par portion : mets-le à jour",
+        },
+        delete_saved_meal: {
+            description:
+                "Supprime un repas sauvegardé. Les repas déjà enregistrés à partir de lui gardent leurs valeurs.",
+            params: {
+                id: "UUID du repas sauvegardé à supprimer",
+            },
+            example: "Supprime le repas sauvegardé appelé ancien déjeuner",
+        },
         search_meals: {
             description:
-                "Recherche tes anciens repas par mot-clé et vois-les regroupés selon tes variantes récurrentes : combien de fois chacune a été enregistrée, la dernière fois, et ses calories typiques. C'est ainsi que l'IA compare une photo de ton assiette à la façon dont tu as réellement enregistré ce repas auparavant, et c'est ce qui fait fonctionner « enregistre mon petit-déjeuner habituel ».",
+                "Recherche tes anciens repas par mot-clé et vois-les regroupés selon tes variantes récurrentes : combien de fois chacune a été enregistrée, la dernière fois, et ses calories typiques. C'est ainsi que l'IA compare une photo de ton assiette à la façon dont tu as réellement enregistré ce repas auparavant, et c'est ce qui fait fonctionner « enregistre mon petit-déjeuner habituel ». La recherche porte aussi sur les noms des ingrédients d'un repas, et elle liste tes repas sauvegardés dont le nom, la description ou les ingrédients correspondent.",
             params: {
                 queries:
                     "Différentes façons de nommer l'aliment, dans n'importe quelle langue utilisée dans ton journal",
@@ -221,9 +307,18 @@ export const TOOLS_FR: ToolsDoc = {
             },
             example: "Liste mes repas du lundi au vendredi",
         },
+        get_saved_meals: {
+            description:
+                "Affiche tes repas sauvegardés avec leurs valeurs par portion et leurs ingrédients, éventuellement seulement ceux dont le nom contient un texte donné.",
+            params: {
+                name_contains:
+                    "Seulement les repas sauvegardés dont le nom contient ce texte",
+            },
+            example: "Quels repas ai-je sauvegardés ?",
+        },
         export_all_data: {
             description:
-                "Exporte tout ce que le service conserve à ton sujet dans un seul fichier ZIP : meals.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (chaque modification de tes objectifs, datée), profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes apps d'IA connectées et la synchronisation Apple Health, sans aucun jeton), health_sync.csv (ce que la synchronisation Apple Health a envoyé ces 8 derniers jours) et un README.txt qui explique les colonnes, les unités et ce qui n'est pas inclus. Tu reçois en retour un lien de téléchargement privé, valable 60 minutes. Pour l'instant, seuls les repas peuvent être réimportés.",
+                "Exporte tout ce que le service conserve à ton sujet dans un seul fichier ZIP : meals.csv, meal_items.csv (les ingrédients de chaque repas enregistré), saved_meals.csv et saved_meal_items.csv (tes repas sauvegardés et leurs ingrédients), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (chaque modification de tes objectifs, datée), profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes apps d'IA connectées et la synchronisation Apple Health, sans aucun jeton), health_sync.csv (ce que la synchronisation Apple Health a envoyé ces 8 derniers jours) et un README.txt qui explique les colonnes, les unités et ce qui n'est pas inclus. Tu reçois en retour un lien de téléchargement privé, valable 60 minutes. Pour l'instant, seuls les repas peuvent être réimportés.",
             params: {},
             example:
                 "Exporte toutes mes données : repas, eau, poids et objectifs",
@@ -451,7 +546,7 @@ export const TOOLS_FR: ToolsDoc = {
             description:
                 "Choisis la langue de l'interface des widgets interactifs dans le chat (tableaux de bord et graphiques), pas celle dans laquelle l'IA te répond.",
             params: {
-                locale: "Code ISO 639-1, par exemple <code>de</code>, <code>ja</code>. Langues prises en charge : anglais, allemand, espagnol, français, néerlandais, polonais, italien, ukrainien, japonais.",
+                locale: "Code ISO 639-1, par exemple <code>de</code>, <code>ja</code>. Langues prises en charge : anglais, allemand, espagnol, français, néerlandais, polonais, italien, ukrainien, japonais, turc.",
             },
             example: "Affiche mes widgets en allemand",
         },
@@ -576,7 +671,7 @@ export const TOOLS_FR: ToolsDoc = {
             "delete-account": {
                 question: "Comment supprimer mon compte ?",
                 answerHtml:
-                    "Demande à l'IA de supprimer ton compte Nutrition MCP (<a href=\"#delete_account\"><code>delete_account</code></a>). Elle te demandera confirmation, puis supprimera définitivement tes repas, tes entrées d'eau, de poids et de mensurations, tes objectifs, tes réglages, l'historique des outils utilisés par ton app d'IA, tout fichier d'export, tes identifiants de connexion et le compte lui-même. C'est irréversible : exporte d'abord tes données si tu veux en garder une copie. Retire ensuite le connecteur de ton app. Si tu te reconnectes plus tard avec la même adresse e-mail, un nouveau compte vide sera créé.",
+                    "Demande à l'IA de supprimer ton compte Nutrition MCP (<a href=\"#delete_account\"><code>delete_account</code></a>). Elle te demandera confirmation, puis supprimera définitivement tes repas, tes repas sauvegardés, tes entrées d'eau, de poids et de mensurations, tes objectifs, tes réglages, l'historique des outils utilisés par ton app d'IA, tout fichier d'export, tes identifiants de connexion et le compte lui-même. C'est irréversible : exporte d'abord tes données si tu veux en garder une copie. Retire ensuite le connecteur de ton app. Si tu te reconnectes plus tard avec la même adresse e-mail, un nouveau compte vide sera créé.",
             },
             "report-a-problem": {
                 question:

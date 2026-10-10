@@ -234,3 +234,51 @@ export function formatMealSearchResults(
     ];
     return sections.join("\n\n");
 }
+
+/** A saved meal as search and listings need it: enough to recognise it and
+ * pass its id on to log_saved_meal, without its items or full history. */
+export interface SavedMealSummary {
+    id: string;
+    name: string;
+    description: string;
+    meal_type: string | null;
+    calories: number | null;
+    protein_g: number | null;
+    carbs_g: number | null;
+    fat_g: number | null;
+    item_count: number;
+}
+
+/**
+ * Render the saved meals a search matched, one line each. "" when none, so a
+ * caller can append it unconditionally.
+ */
+export function formatSavedMealMatches(
+    saved: SavedMealSummary[],
+    _tz: string,
+    total: number = saved.length,
+): string {
+    if (saved.length === 0) return "";
+    const lines = saved.map((s) => {
+        const type = s.meal_type ? ` ${s.meal_type}` : "";
+        const macros = [
+            s.calories !== null ? `${s.calories} kcal` : null,
+            s.protein_g !== null ? `P ${s.protein_g} g` : null,
+            s.carbs_g !== null ? `C ${s.carbs_g} g` : null,
+            s.fat_g !== null ? `F ${s.fat_g} g` : null,
+        ].filter(Boolean);
+        const items =
+            s.item_count > 0
+                ? ` · ${s.item_count} item${s.item_count === 1 ? "" : "s"}`
+                : "";
+        const figures = macros.length ? ` · ${macros.join(" · ")}` : "";
+        return `- "${s.name}"${type}${figures}${items} [saved meal id: ${s.id}]`;
+    });
+    // More matches than shown: the header says the list is the first ones by
+    // name, so a missing saved meal reads as cut rather than absent.
+    const header =
+        total > saved.length
+            ? `Saved meals matching: ${total} found, the first ${saved.length} by name shown.`
+            : `Saved meals matching: ${saved.length} found.`;
+    return [header, ...lines].join("\n");
+}

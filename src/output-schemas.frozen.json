@@ -166,6 +166,7 @@
     "delete_account": null,
     "delete_body_measurement": null,
     "delete_meal": null,
+    "delete_saved_meal": null,
     "delete_water": null,
     "delete_weight": null,
     "export_all_data": null,
@@ -664,6 +665,7 @@
         "additionalProperties": false
     },
     "get_profile": null,
+    "get_saved_meals": null,
     "get_trends": {
         "type": "object",
         "properties": {
@@ -1093,9 +1095,250 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false
     },
+    "log_saved_meal": {
+        "type": "object",
+        "properties": {
+            "action": {
+                "type": "string",
+                "enum": ["logged", "updated"]
+            },
+            "date": {
+                "type": "string"
+            },
+            "drink_unit": {
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "enum": ["us", "uk"]
+                    },
+                    {
+                        "type": "null"
+                    }
+                ]
+            },
+            "locale": {
+                "type": "string"
+            },
+            "logged_meal": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "meal_type": {
+                        "type": ["string", "null"]
+                    },
+                    "calories": {
+                        "type": ["number", "null"]
+                    },
+                    "protein_g": {
+                        "type": ["number", "null"]
+                    },
+                    "carbs_g": {
+                        "type": ["number", "null"]
+                    },
+                    "fat_g": {
+                        "type": ["number", "null"]
+                    },
+                    "fiber_g": {
+                        "type": ["number", "null"]
+                    },
+                    "sugar_g": {
+                        "type": ["number", "null"]
+                    },
+                    "alcohol_g": {
+                        "type": ["number", "null"]
+                    },
+                    "caffeine_mg": {
+                        "type": ["number", "null"]
+                    }
+                },
+                "required": [
+                    "description",
+                    "meal_type",
+                    "calories",
+                    "protein_g",
+                    "carbs_g",
+                    "fat_g",
+                    "fiber_g",
+                    "sugar_g",
+                    "alcohol_g",
+                    "caffeine_mg"
+                ],
+                "additionalProperties": false
+            },
+            "has_goals": {
+                "type": "boolean"
+            },
+            "goals": {
+                "anyOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "calories": {
+                                "type": ["number", "null"]
+                            },
+                            "protein_g": {
+                                "type": ["number", "null"]
+                            },
+                            "carbs_g": {
+                                "type": ["number", "null"]
+                            },
+                            "fat_g": {
+                                "type": ["number", "null"]
+                            },
+                            "fiber_g": {
+                                "type": ["number", "null"]
+                            },
+                            "sugar_g": {
+                                "type": ["number", "null"]
+                            },
+                            "alcohol_g": {
+                                "type": ["number", "null"]
+                            },
+                            "caffeine_mg": {
+                                "type": ["number", "null"]
+                            },
+                            "water_ml": {
+                                "type": ["number", "null"]
+                            }
+                        },
+                        "required": [
+                            "calories",
+                            "protein_g",
+                            "carbs_g",
+                            "fat_g",
+                            "fiber_g",
+                            "sugar_g",
+                            "alcohol_g",
+                            "caffeine_mg",
+                            "water_ml"
+                        ],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "null"
+                    }
+                ]
+            },
+            "totals": {
+                "type": "object",
+                "properties": {
+                    "calories": {
+                        "type": "number"
+                    },
+                    "protein_g": {
+                        "type": "number"
+                    },
+                    "carbs_g": {
+                        "type": "number"
+                    },
+                    "fat_g": {
+                        "type": "number"
+                    },
+                    "fiber_g": {
+                        "type": "number"
+                    },
+                    "sugar_g": {
+                        "type": "number"
+                    },
+                    "alcohol_g": {
+                        "type": ["number", "null"]
+                    },
+                    "caffeine_mg": {
+                        "type": ["number", "null"]
+                    },
+                    "water_ml": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "calories",
+                    "protein_g",
+                    "carbs_g",
+                    "fat_g",
+                    "fiber_g",
+                    "sugar_g",
+                    "alcohol_g",
+                    "caffeine_mg",
+                    "water_ml"
+                ],
+                "additionalProperties": false
+            },
+            "meals": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "description": {
+                            "type": "string"
+                        },
+                        "meal_type": {
+                            "type": ["string", "null"]
+                        },
+                        "date": {
+                            "type": ["string", "null"]
+                        },
+                        "calories": {
+                            "type": "number"
+                        },
+                        "protein_g": {
+                            "type": "number"
+                        },
+                        "carbs_g": {
+                            "type": "number"
+                        },
+                        "fat_g": {
+                            "type": "number"
+                        },
+                        "fiber_g": {
+                            "type": "number"
+                        },
+                        "sugar_g": {
+                            "type": "number"
+                        },
+                        "alcohol_g": {
+                            "type": ["number", "null"]
+                        },
+                        "caffeine_mg": {
+                            "type": ["number", "null"]
+                        }
+                    },
+                    "required": [
+                        "description",
+                        "meal_type",
+                        "date",
+                        "calories",
+                        "protein_g",
+                        "carbs_g",
+                        "fat_g",
+                        "fiber_g",
+                        "sugar_g",
+                        "alcohol_g",
+                        "caffeine_mg"
+                    ],
+                    "additionalProperties": false
+                }
+            }
+        },
+        "required": [
+            "action",
+            "date",
+            "drink_unit",
+            "locale",
+            "logged_meal",
+            "has_goals",
+            "goals",
+            "totals",
+            "meals"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false
+    },
     "log_water": null,
     "log_weight": null,
     "lookup_barcode": null,
+    "save_meal": null,
     "search_meals": null,
     "set_alcohol_tracking": null,
     "set_language": null,
@@ -1401,5 +1644,6 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false
     },
+    "update_saved_meal": null,
     "update_weight": null
 }

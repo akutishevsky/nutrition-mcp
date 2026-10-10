@@ -208,6 +208,7 @@ function existingMeal(overrides: Partial<Meal> = {}): Meal {
         caffeine_mg: null,
         notes: "made with milk",
         idempotency_key: key(meal()),
+        saved_meal_id: null,
         ...overrides,
     };
 }
@@ -648,6 +649,37 @@ describe("exportStoragePaths", () => {
         const at = fromCalls.indexOf("nutrition_goals_history");
         expect(at).toBeGreaterThan(-1);
         expect(fromCalls[at + 1]).toBe("nutrition_goals");
+    });
+});
+
+describe("deleteAllUserData saved meals", () => {
+    // Ingredients and saved meals go before the logged meals, and the saved
+    // meals before the meals that may point at them.
+    test("deletes meal items, saved meal items and saved meals before meals", async () => {
+        const src = await Bun.file("./src/supabase.ts").text();
+        const body = src.slice(
+            src.indexOf("export async function deleteAllUserData"),
+        );
+        const fromCalls = [...body.matchAll(/\.from\("([a-z_]+)"\)/g)].map(
+            (m) => m[1],
+        );
+        const at = (table: string) => fromCalls.indexOf(table);
+        for (const table of ["meal_items", "saved_meal_items", "saved_meals"]) {
+            expect(at(table), `${table} not deleted`).toBeGreaterThan(-1);
+            expect(at(table)).toBeLessThan(at("meals"));
+        }
+        expect(at("meal_items")).toBeLessThan(at("saved_meal_items"));
+        expect(at("saved_meal_items")).toBeLessThan(at("saved_meals"));
+    });
+
+    test("each new delete reports its own failure", async () => {
+        const src = await Bun.file("./src/supabase.ts").text();
+        const body = src.slice(
+            src.indexOf("export async function deleteAllUserData"),
+        );
+        expect(body).toContain("Failed to delete meal items");
+        expect(body).toContain("Failed to delete saved meal items");
+        expect(body).toContain("Failed to delete saved meals");
     });
 });
 

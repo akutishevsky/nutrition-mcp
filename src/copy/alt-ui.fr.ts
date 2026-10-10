@@ -45,7 +45,7 @@ export const ALT_UI_FR: AltUiCopy = {
             },
             {
                 title: "Importe tes données, elles restent à toi",
-                body: "Importe ton historique de repas depuis l'export CSV d'une autre app : il est analysé dans ton navigateur, pas par l'IA. Récupère tout quand tu veux : un ZIP avec tes repas, ton hydratation, ton poids, tes mensurations, tes objectifs et ton profil, plus les données de ton compte, ta télémétrie d'utilisation et tes applications connectées, en fichiers CSV. Pour l'instant, seuls les repas peuvent être réimportés. Et tu peux supprimer ton compte tout aussi facilement.",
+                body: "Importe ton historique de repas depuis l'export CSV d'une autre app : il est analysé dans ton navigateur, pas par l'IA. Récupère tout quand tu veux : un ZIP avec tes repas, tes repas sauvegardés, ton hydratation, ton poids, tes mensurations, tes objectifs et ton profil, plus les données de ton compte, ta télémétrie d'utilisation et tes applications connectées, en fichiers CSV. Pour l'instant, seuls les repas peuvent être réimportés. Et tu peux supprimer ton compte tout aussi facilement.",
             },
             {
                 title: "Open source et gratuit",

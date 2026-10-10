@@ -81,3 +81,70 @@ test("the access log line hides a connect link's id", async () => {
     expect(req).toHaveLength(1);
     expect(req[0]!.args).toContain("accessLogPath(path)");
 });
+
+// Item and saved-meal names are the user's own food text, and the runtime log
+// never carries it. A ToolError that quotes them carries a logText without
+// them, and withAnalytics logs that instead of the message. Driven through the
+// real withAnalytics with console captured; `persist` keeps the analytics row
+// away from Supabase.
+test("a meal-items refusal thrown through withAnalytics keeps item names off the console", async () => {
+    const { withAnalytics } = await import("./analytics.js");
+    const { findItem, validateItems } = await import("./meal-items.js");
+    const { items } = validateItems(
+        [
+            {
+                name: "Соус гірчичний",
+                calories: 80,
+                protein_g: 0,
+                carbs_g: 20,
+                fat_g: 0,
+            },
+            {
+                name: "Insulin-day oats",
+                calories: 300,
+                protein_g: 10,
+                carbs_g: 50,
+                fat_g: 5,
+            },
+        ],
+        { addedSugarRequired: false },
+    );
+
+    const lines: string[] = [];
+    const methods = ["log", "warn", "error", "info"] as const;
+    const saved = methods.map((m) => console[m]);
+    for (const m of methods) {
+        console[m] = (...args: unknown[]) => {
+            lines.push(args.map(String).join(" "));
+        };
+    }
+    const persisted: unknown[] = [];
+    let result: { content: { text: string }[]; isError?: boolean };
+    try {
+        result = await withAnalytics(
+            "log_saved_meal",
+            async () => {
+                findItem(items, "tomato soup");
+                return { content: [{ text: "unreachable" }] };
+            },
+            { userId: "u-1" },
+            {},
+            { persist: (r) => persisted.push(r) },
+        );
+    } finally {
+        methods.forEach((m, i) => (console[m] = saved[i]!));
+    }
+
+    // The caller still gets the names, to pick an item by.
+    expect(result.isError).toBe(true);
+    expect(result.content[0]!.text).toContain("Соус гірчичний");
+    // The log line is there, with the category, and without any food text.
+    const log = lines.join("\n");
+    expect(log).toContain(
+        "[analytics] log_saved_meal error=meal_items_invalid",
+    );
+    for (const text of ["Соус", "Insulin-day oats", "tomato soup", "u-1"]) {
+        expect(log).not.toContain(text);
+    }
+    expect(persisted).toHaveLength(1);
+});

@@ -176,7 +176,7 @@ export const INDEX_PL: IndexDoc = {
         note: "Wszystko tu jest opcjonalne. Możesz to zrobić teraz, później albo wcale: po prostu zacznij zapisywać, a ustawienia zmień, kiedy zechcesz.",
         toolsCta: {
             heading: "Ciekawi Cię, co naprawdę potrafi?",
-            body: "Przejrzyj wszystkie 41 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
+            body: "Przejrzyj wszystkie 46 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
             arrow: "Zobacz narzędzia",
         },
     },
@@ -615,10 +615,10 @@ export const INDEX_PL: IndexDoc = {
                 id: "export-data",
                 title: "Zabierz swoje dane",
                 description:
-                    "Jedna prośba wystarczy, żeby spakować wszystko, co o Tobie przechowujemy — posiłki, wodę, pomiary wagi, wymiary ciała, cele, ustawienia profilu, dane konta, telemetrię użycia i połączone aplikacje — do ZIP-a z plikami CSV i plikiem README. Znaczniki czasu są w Twojej strefie czasowej, a meals.csv można od razu zaimportować z powrotem.",
+                    "Jedna prośba wystarczy, żeby spakować wszystko, co o Tobie przechowujemy — posiłki i ich składniki, zapisane posiłki, wodę, pomiary wagi, wymiary ciała, cele, ustawienia profilu, dane konta, telemetrię użycia i połączone aplikacje — do ZIP-a z plikami CSV i plikiem README. Znaczniki czasu są w Twojej strefie czasowej, a meals.csv można od razu zaimportować z powrotem.",
                 toolNotes: {
                     export_all_data:
-                        "Pakuje dziewięć plików CSV i README do ZIP-a z linkiem ważnym 60 minut",
+                        "Pakuje wszystkie pliki CSV i README do ZIP-a z linkiem ważnym 60 minut",
                 },
                 messages: [
                     {
@@ -707,7 +707,7 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 title: "Eksport — dane należą do Ciebie",
-                body: "Pobierz wszystko, co o Tobie przechowujemy — posiłki, wodę, wagę, wymiary ciała, cele i profil, a do tego dane konta, telemetrię użycia i połączone aplikacje — w jednym ZIP-ie z plikami CSV. Na razie z powrotem można zaimportować tylko posiłki. Konto i dane usuniesz, kiedy tylko zechcesz.",
+                body: "Pobierz wszystko, co o Tobie przechowujemy — posiłki i ich składniki, zapisane posiłki, wodę, wagę, wymiary ciała, cele i profil, a do tego dane konta, telemetrię użycia i połączone aplikacje — w jednym ZIP-ie z plikami CSV. Na razie z powrotem można zaimportować tylko posiłki. Konto i dane usuniesz, kiedy tylko zechcesz.",
             },
         ],
     },

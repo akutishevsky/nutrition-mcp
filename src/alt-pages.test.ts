@@ -227,7 +227,7 @@ test("the badge has a driver on every page, not just the landing page", async ()
     expect(siteJs).toContain("[data-live-badge]");
     expect(siteJs).toContain("/api/stats");
     // The count-sensitive label is read off the markup, not held in the file
-    // (one file, nine locales) — same contract as before the move.
+    // (one file, ten locales) — same contract as before the move.
     expect(siteJs).toContain("data-plural-");
     for (const { path } of await existingPages()) {
         if (!(await isGenerated(path))) continue;
@@ -258,7 +258,7 @@ test("every generated page ships the live-stats badge, hidden", async () => {
 
 // The label is count-sensitive, so what ships is every grammatical form the
 // locale has, as data-plural-* attributes setNavBadge picks from at runtime
-// (one script, nine locales — it cannot hold a translation of its own). Both
+// (one script, ten locales — it cannot hold a translation of its own). Both
 // halves are pinned: the forms must all reach the markup, and the .vh text
 // the page renders before any script runs must be the "other" form, which is
 // what a count of 0 selects. Asserting only the rendered text would let a
@@ -384,7 +384,7 @@ test("the theme switcher is labelled in every locale's own words", async () => {
 
 // The hamburger's two accessible names. It is one control that toggles, so
 // its label has to change with its state — and public/site.js is a single
-// static file served to all nine locales, which means it cannot own either
+// static file served to all ten locales, which means it cannot own either
 // string. It used to: openMenu()/closeMenu() wrote hardcoded English, so a
 // German visitor got "Menü öffnen" until the first tap and "Open menu" for
 // the rest of the visit. Both strings live in the markup now — the open one
@@ -410,7 +410,7 @@ test("the menu button carries both of its labels, translated", async () => {
 
 // The three <nav> landmark names, plus the language menu's own. These are
 // the region names a screen reader announces when moving between
-// landmarks, and they were hardcoded English on all nine locales —
+// landmarks, and they were hardcoded English on all ten locales —
 // "Primary", "Menu", "Footer" — which nothing in a visual review can
 // catch, because they never paint. The language menu was worse than
 // untranslated: its aria-label sat on a bare <div>, which exposes nothing

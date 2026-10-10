@@ -5,12 +5,12 @@ import { LANDING_SCRIPT } from "../scripts/gen-index.js";
 
 // The landing page's inline JS lives as one hand-escaped string constant
 // (LANDING_SCRIPT in scripts/gen-index.ts) that is embedded verbatim into all
-// nine locales' index.html. Nothing else in the suite looks inside it, so
+// ten locales' index.html. Nothing else in the suite looks inside it, so
 // every i18n fix in it was revertible without a red test.
 //
 // Two halves here, and the DOM-contract half is the load-bearing one. The
-// script deliberately holds no copy of its own — one script serves nine
-// pages, so any language it named in its own source would be wrong on eight
+// script deliberately holds no copy of its own — one script serves ten
+// pages, so any language it named in its own source would be wrong on nine
 // of them. Instead it READS three things out of the markup the generator
 // produced: <html lang> (drives every number and the clock), the translated
 // word already sitting in #facts-live, and the translated caption in the
@@ -95,7 +95,7 @@ test("there is a landing page and a landing script on every locale", async () =>
 
 // NUM_LOCALE is `document.documentElement.lang || "en"`. Without the
 // attribute every figure in the live stats panel and the clock beside
-// it silently fall back to English grouping on all eight translated pages.
+// it silently fall back to English grouping on all nine translated pages.
 test("every landing page stamps its own <html lang>", async () => {
     for (const { locale, path, html } of await landingPages()) {
         const m = html.match(/<html[^>]*\slang="([^"]+)"/);
@@ -153,7 +153,7 @@ async function theScript(): Promise<string> {
     return script!;
 }
 
-// One shared constant embedded nine times. Any divergence means a page was
+// One shared constant embedded ten times. Any divergence means a page was
 // hand-edited or a generator run went half-finished.
 test("the landing script is byte-identical on every locale", async () => {
     const pages = await landingPages();
@@ -251,7 +251,7 @@ test("the landing script parses", async () => {
 // Everything above reads the script back out of the generated HTML, so the
 // suite catches a script that was REVERTED and one that diverged across
 // locales — but not the opposite and likelier mistake: an edit to
-// LANDING_SCRIPT in scripts/gen-index.ts that was never regenerated. All nine
+// LANDING_SCRIPT in scripts/gen-index.ts that was never regenerated. All ten
 // files agree with each other and with every contract, and every assertion
 // stays green while the shipped script is the old one. That is the
 // generator-drift failure CLAUDE.md warns about on every generated page.
