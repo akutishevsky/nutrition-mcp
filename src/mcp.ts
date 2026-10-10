@@ -153,6 +153,7 @@ import {
     MEAL_NUTRIENT_KEYS,
     applyItemChanges,
     assertMealTotals,
+    buildMealItemsMeta,
     compactSugarFigure,
     formatItemsBlock,
     normalizeNameRef,
@@ -164,6 +165,7 @@ import {
     validateItems,
     validateSavedMealName,
     type MealItemValues,
+    type MealItemsMeta,
     type MealNutrientKey,
     type NutrientValues,
 } from "./meal-items.js";
@@ -185,6 +187,7 @@ import {
     PERIOD_AVERAGES_META_KEY,
     ADDED_SUGAR_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
+    MEAL_ITEMS_META_KEY,
 } from "./widgets.js";
 import {
     GRANULARITIES,
@@ -635,6 +638,9 @@ export { PERIOD_AVERAGES_META_KEY };
 // And for the added-sugar figures (AddedSugarMeta) that five tools carry
 // beside their frozen structuredContent.
 export { ADDED_SUGAR_META_KEY };
+// And for the ingredients behind the breakdown rows (MealItemsMeta, built in
+// src/meal-items.ts), present only when some row has items.
+export { MEAL_ITEMS_META_KEY };
 
 /** Zero contributors, for a window with no meals at all. `.nullable()` is not
  *  optional: the alcohol key is always present, null when tracking is off. */
@@ -1045,6 +1051,36 @@ export function startImportPayload(opts: {
     };
 }
 
+// The `_meta` entry carrying the ingredients behind a tool's breakdown rows,
+// for the widgets' expandable rows: `rowMeals` must be exactly the meals behind
+// structuredContent.meals, in row order (the widget joins by position). `{}`
+// when no row has items, so the key is absent and the result unchanged. A
+// failed read never fails the tool — the rows are the product, the items only
+// their detail — so it logs one ref line (no user id, no user text) and the
+// widget simply shows no expanders.
+async function mealItemsMetaEntry(
+    userId: string,
+    rowMeals: readonly Meal[],
+    alcohol: AlcoholDisplay,
+): Promise<{ [MEAL_ITEMS_META_KEY]?: MealItemsMeta }> {
+    if (rowMeals.length === 0) return {};
+    let items: Map<string, MealItemValues[]>;
+    try {
+        items = await getMealItems(
+            userId,
+            rowMeals.map((m) => m.id),
+        );
+    } catch (err) {
+        const ref = newErrorRef();
+        console.warn(
+            `[widget] meal-items read error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+        );
+        return {};
+    }
+    const payload = buildMealItemsMeta(rowMeals, items, alcohol != null);
+    return payload ? { [MEAL_ITEMS_META_KEY]: payload } : {};
+}
+
 // Compute the day's running totals vs goals for a meal that was just logged or
 // updated, packaging both the model-facing progress text and the meal-logged
 // widget's structuredContent. Shared by log_meal and update_meal so the two
@@ -1102,12 +1138,14 @@ async function buildMealProgress(
     // is frozen, so it rides in the result's _meta (ADDED_SUGAR_META_KEY).
     // `meals` is the same list, in the same order, as the rows above — the
     // widget joins the two by position.
+    // The ingredients ride beside it, aligned with the same rows.
     const meta = {
         [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
             goal: goals?.daily_added_sugar_g,
             days: { [mealDate]: meals },
             meals,
         }),
+        ...(await mealItemsMetaEntry(userId, meals, alcohol)),
     };
 
     // tz goes back to the caller so its confirmation prints the meal's time
@@ -3474,6 +3512,14 @@ export function registerTools(
                     // "N more" comes from _meta's contributors.
                     const rows = mealBreakdown(meals, tz, alcohol);
                     const breakdown = topMealBreakdown(rows, alcohol);
+                    const keptMeals = breakdown.kept.map((i) => meals[i]!);
+                    // Items only for the kept rows (at most 64), never the
+                    // whole window; the added-sugar `extra` rows get none.
+                    const itemsEntry = await mealItemsMetaEntry(
+                        userId,
+                        keptMeals,
+                        alcohol,
+                    );
 
                     const footer =
                         addedSugarAverage +
@@ -3521,7 +3567,7 @@ export function registerTools(
                             [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
                                 goal: goals?.daily_added_sugar_g,
                                 days: Object.fromEntries(byDate),
-                                meals: breakdown.kept.map((i) => meals[i]!),
+                                meals: keptMeals,
                                 contributorsOf: meals,
                                 extra: addedSugarExtra(
                                     meals,
@@ -3530,6 +3576,7 @@ export function registerTools(
                                     MEAL_BREAKDOWN_TOP_N,
                                 ),
                             }),
+                            ...itemsEntry,
                         },
                     };
                 },
@@ -3934,6 +3981,11 @@ export function registerTools(
                                 days: { [targetDate]: meals },
                                 meals,
                             }),
+                            ...(await mealItemsMetaEntry(
+                                userId,
+                                meals,
+                                alcohol,
+                            )),
                         },
                     };
                 },

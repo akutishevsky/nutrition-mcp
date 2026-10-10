@@ -39,6 +39,7 @@ import {
     WEIGHT_SERIES_META_KEY,
     PERIOD_AVERAGES_META_KEY,
     ADDED_SUGAR_META_KEY,
+    MEAL_ITEMS_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
     MAX_CALORIES,
@@ -1653,6 +1654,8 @@ const db = {
     concurrentMealEdit: null as Partial<Meal> | null,
     // Ingredients by meal id, as the store's meal_items rows read back.
     mealItems: new Map<string, MealItemValues[]>(),
+    // When set, getMealItems throws it (the widget payload's read failing).
+    mealItemsFailure: null as Error | null,
     // replaceMealItems' witnesses: the fields and the full new list.
     itemReplacements: [] as {
         id: string;
@@ -1949,12 +1952,14 @@ mock.module("./supabase.js", () => ({
     // deleting a saved meal unlinks the meals logged from it, and a missing
     // row is null or a ToolError the way the real functions report it.
     searchMeals: async () => db.searchResults,
-    getMealItems: async (_userId: string, ids: string[]) =>
-        new Map(
+    getMealItems: async (_userId: string, ids: string[]) => {
+        if (db.mealItemsFailure) throw db.mealItemsFailure;
+        return new Map(
             ids
                 .filter((id) => db.mealItems.has(id))
                 .map((id) => [id, db.mealItems.get(id)!]),
-        ),
+        );
+    },
     countMealItems: async (_userId: string, id: string) =>
         db.mealItems.get(id)?.length ?? 0,
     getMealById: async (_userId: string, id: string) =>
@@ -2103,6 +2108,7 @@ beforeEach(() => {
     db.mealUpdateGuards = [];
     db.concurrentMealEdit = null;
     db.mealItems = new Map();
+    db.mealItemsFailure = null;
     db.itemReplacements = [];
     db.savedMeals = [];
     db.savedMealWrites = [];
@@ -9880,4 +9886,257 @@ describe("saved meals: review fixes", () => {
         expect(itemized).toContain("sum of its 3 items");
         expect(itemized).not.toContain("update_meal can add the value");
     });
+});
+
+// ---------- ingredients ride in _meta for the widgets' expandable rows ----------
+
+describe("meal items ride in _meta on every breakdown widget tool", () => {
+    // The payload's whole v1 contract, strictly: a stray key would mean the
+    // widget is reading something the server never promised.
+    const NUTRIENT = z.number().nullable();
+    const ITEM = z.strictObject({
+        name: z.string(),
+        amount: z.number().nullable(),
+        unit: z.string().nullable(),
+        calories: NUTRIENT,
+        protein_g: NUTRIENT,
+        carbs_g: NUTRIENT,
+        fat_g: NUTRIENT,
+        fiber_g: NUTRIENT,
+        sugar_g: NUTRIENT,
+        added_sugar_g: NUTRIENT,
+        alcohol_g: NUTRIENT,
+        caffeine_mg: NUTRIENT,
+    });
+    const MEAL_ITEMS_META = z.strictObject({
+        v: z.literal(1),
+        meals: z.array(z.array(ITEM).min(1).nullable()),
+    });
+    type Payload = z.infer<typeof MEAL_ITEMS_META>;
+    type Item = z.infer<typeof ITEM>;
+
+    const OTHER_ID = "00000000-0000-4000-8000-0000000000e1";
+
+    /** The key's payload, parsed, after checking the rows it aligns with and
+     *  that nothing leaked into structuredContent. */
+    function itemsOf(r: ToolResult): Payload {
+        expect(r.isError).toBeFalsy();
+        const rows = (r.structuredContent as { meals: unknown[] }).meals;
+        const meta = MEAL_ITEMS_META.parse(r._meta?.[MEAL_ITEMS_META_KEY]);
+        expect(meta.meals).toHaveLength(rows.length);
+        expect(JSON.stringify(r.structuredContent)).not.toContain('"items"');
+        return meta;
+    }
+
+    function expectNoKey(r: ToolResult) {
+        expect(r.isError).toBeFalsy();
+        expect(r.structuredContent).toBeDefined();
+        expect(r._meta ?? {}).not.toHaveProperty(MEAL_ITEMS_META_KEY);
+    }
+
+    test("log_meal: the logged meal's items, in position order, rounded like the rows", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Burger",
+                meal_type: "lunch",
+                items: BURGER_ITEMS,
+            });
+            const meta = itemsOf(r);
+            const items = meta.meals[0]! as Item[];
+            expect(items.map((i) => i.name)).toEqual(["Булка", "Котлета"]);
+            expect(items[1]).toMatchObject({
+                amount: 120,
+                unit: "g",
+                calories: 301,
+                protein_g: 25,
+                fiber_g: 0,
+                added_sugar_g: 0,
+                caffeine_mg: null,
+            });
+            // Never the stored position: the array order is the order.
+            expect(items[0]).not.toHaveProperty("position");
+        });
+    });
+
+    test("log_meal: no key at all when no meal of the day has items", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Apple",
+                meal_type: "snack",
+                calories: 95,
+                protein_g: 0,
+                carbs_g: 25,
+                fat_g: 0,
+            });
+            expectNoKey(r);
+        });
+    });
+
+    test("update_meal: the day's rows, re-read after the item replacement", async () => {
+        db.meals = [storedMeal({ id: MEAL_ID, calories: 100 })];
+        db.mealItems.set(MEAL_ID, [ingredient(1, "Булка")]);
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", {
+                id: MEAL_ID,
+                items: BURGER_ITEMS,
+            });
+            const meta = itemsOf(r);
+            expect((meta.meals[0] as Item[]).map((i) => i.name)).toEqual([
+                "Булка",
+                "Котлета",
+            ]);
+        });
+    });
+
+    test("log_saved_meal: the logged copy's items", async () => {
+        db.savedMeals = [
+            savedMealRow({
+                items: [
+                    ingredient(1, "Вівсянка", { amount: 100, unit: "g" }),
+                    ingredient(2, "Банан", { amount: 1, unit: "pcs" }),
+                ],
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", {
+                saved_meal: "Oatmeal bowl",
+            });
+            const meta = itemsOf(r);
+            expect((meta.meals[0] as Item[]).map((i) => i.name)).toEqual([
+                "Вівсянка",
+                "Банан",
+            ]);
+        });
+    });
+
+    test("get_goal_progress: one slot per row, null for a meal without items", async () => {
+        db.meals = [
+            meal({ id: OTHER_ID, description: "Coffee" }),
+            meal({ id: MEAL_ID, description: "Pasta" }),
+        ];
+        db.mealItems.set(MEAL_ID, [
+            ingredient(1, "Fusilli", { fiber_g: 3.04 }),
+            ingredient(2, "Sauce"),
+        ]);
+        await withTools("us", async (call) => {
+            const r = await call("get_goal_progress", { date: "2026-07-26" });
+            const meta = itemsOf(r);
+            expect(meta.meals[0]).toBeNull();
+            const items = meta.meals[1] as Item[];
+            expect(items.map((i) => [i.name, i.fiber_g])).toEqual([
+                ["Fusilli", 3],
+                ["Sauce", null],
+            ]);
+        });
+    });
+
+    test("item alcohol is null with tracking off, the stored value with it on", async () => {
+        db.meals = [meal({ id: MEAL_ID, description: "Pasta and a beer" })];
+        db.mealItems.set(MEAL_ID, [ingredient(1, "Beer", { alcohol_g: 14 })]);
+        await withTools(null, async (call) => {
+            const r = await call("get_goal_progress", { date: "2026-07-26" });
+            expect((itemsOf(r).meals[0] as Item[])[0]!.alcohol_g).toBeNull();
+        });
+        await withTools("us", async (call) => {
+            const r = await call("get_goal_progress", { date: "2026-07-26" });
+            expect((itemsOf(r).meals[0] as Item[])[0]!.alcohol_g).toBe(14);
+        });
+    });
+
+    describe("get_nutrition_summary", () => {
+        // Ten meals carrying only calories, so the summary keeps the top 8 by
+        // calories: indices 0 and 1 (the smallest) are dropped.
+        function tenMeals(): Meal[] {
+            return Array.from({ length: 10 }, (_, i) =>
+                meal({
+                    id: savedMealId(0xe00 + i),
+                    logged_at: `2026-07-${String(10 + i).padStart(2, "0")}T12:00:00.000Z`,
+                    description: `Meal ${i}`,
+                    calories: 100 + i * 10,
+                    protein_g: 0,
+                    carbs_g: 0,
+                    fat_g: 0,
+                    fiber_g: 0,
+                    sugar_g: 0,
+                    alcohol_g: 0,
+                }),
+            );
+        }
+        const ARGS = { start_date: "2026-07-01", end_date: "2026-07-31" };
+
+        test("aligned with the kept rows, never the whole window", async () => {
+            db.meals = tenMeals();
+            db.mealItems.set(savedMealId(0xe00), [ingredient(1, "Dropped")]);
+            db.mealItems.set(savedMealId(0xe05), [ingredient(1, "Kept")]);
+            await withTools(null, async (call) => {
+                const r = await call("get_nutrition_summary", ARGS);
+                const rows = (
+                    r.structuredContent as { meals: { description: string }[] }
+                ).meals;
+                expect(rows).toHaveLength(MEAL_BREAKDOWN_TOP_N);
+                const meta = itemsOf(r);
+                const at = rows.findIndex(
+                    (row) => row.description === "Meal 5",
+                );
+                meta.meals.forEach((slot, i) => {
+                    if (i === at)
+                        expect((slot as Item[])[0]!.name).toBe("Kept");
+                    else expect(slot).toBeNull();
+                });
+            });
+        });
+
+        test("no key when only a dropped meal has items, nor on the empty path", async () => {
+            db.meals = tenMeals();
+            db.mealItems.set(savedMealId(0xe00), [ingredient(1, "Dropped")]);
+            await withTools(null, async (call) => {
+                expectNoKey(await call("get_nutrition_summary", ARGS));
+                db.meals = [];
+                expectNoKey(await call("get_nutrition_summary", ARGS));
+            });
+        });
+    });
+
+    test("a failed items read never fails the tool: the key is just absent", async () => {
+        db.meals = [meal({ id: MEAL_ID })];
+        db.mealItems.set(MEAL_ID, [ingredient(1, "Fusilli")]);
+        db.mealItemsFailure = new Error("connection reset");
+        const warn = spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            await withTools(null, async (call) => {
+                expectNoKey(
+                    await call("get_goal_progress", { date: "2026-07-26" }),
+                );
+                expectNoKey(
+                    await call("get_nutrition_summary", {
+                        start_date: "2026-07-01",
+                        end_date: "2026-07-31",
+                    }),
+                );
+                const logged = await call("log_meal", {
+                    description: "Burger",
+                    meal_type: "lunch",
+                    items: BURGER_ITEMS,
+                });
+                expectNoKey(logged);
+                expect(textOf(logged)).toContain("Items:");
+            });
+            const lines = warn.mock.calls.map((c) => String(c[0]));
+            expect(
+                lines.filter((l) => l.startsWith("[widget] meal-items")),
+            ).toHaveLength(3);
+            for (const l of lines) expect(l).not.toContain("u1");
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
+    test.each(["meal-logged", "goal-progress", "nutrition-summary"])(
+        "the %s widget reads _meta under MEAL_ITEMS_META_KEY",
+        async (key) => {
+            expect(await getWidgetHtml(key)).toContain(
+                JSON.stringify(MEAL_ITEMS_META_KEY),
+            );
+        },
+    );
 });

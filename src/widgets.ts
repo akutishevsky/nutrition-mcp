@@ -127,6 +127,20 @@ export const PERIOD_AVERAGES_META_KEY = "nutrition-mcp.com/period-averages";
  */
 export const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
 
+/**
+ * Where log_meal, update_meal, log_saved_meal, get_goal_progress and
+ * get_nutrition_summary put the ingredients behind their breakdown rows (the
+ * MealItemsMeta built by buildMealItemsMeta in src/meal-items.ts): the
+ * CallToolResult's `_meta`, for the same frozen-outputSchema reason as the keys
+ * above. `meals` is aligned by position with structuredContent.meals, since
+ * the rows carry no id. Omitted when no row has items, so a result without
+ * ingredients is unchanged, and also when reading the items failed (the tool
+ * still succeeds). The templates that read it repeat this literal, and
+ * src/mcp.test.ts checks the assembled widgets contain it. A host that drops
+ * `_meta` leaves every row without an expander, exactly as before.
+ */
+export const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
+
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
     "nutrition-summary": "nutrition-summary.html",

@@ -5,6 +5,7 @@ import {
     MAX_SAVED_MEAL_NAME_CHARS,
     applyItemChanges,
     assertMealTotals,
+    buildMealItemsMeta,
     compactSugarFigure,
     findItem,
     formatItemLine,
@@ -966,5 +967,100 @@ describe("compactSugarFigure (C6)", () => {
         const line = formatItemLine(cola!, false);
         expect(line).toContain("sugar 35 g (35 added)");
         expect(line).not.toContain("added sugar");
+    });
+});
+
+describe("buildMealItemsMeta", () => {
+    function values(
+        position: number,
+        name: string,
+        over: Partial<MealItemValues> = {},
+    ): MealItemValues {
+        return {
+            position,
+            name,
+            amount: null,
+            unit: null,
+            calories: 100,
+            protein_g: 5,
+            carbs_g: 10,
+            fat_g: 3,
+            fiber_g: null,
+            sugar_g: null,
+            added_sugar_g: null,
+            alcohol_g: null,
+            caffeine_mg: null,
+            ...over,
+        };
+    }
+    const rows = [{ id: "a" }, { id: "b" }, { id: "c" }];
+
+    test("one slot per row, in row order, null where a meal has no items", () => {
+        const items = new Map([
+            ["c", [values(1, "Fusilli"), values(2, "Pesto")]],
+            ["a", []],
+        ]);
+        const meta = buildMealItemsMeta(rows, items, true)!;
+        expect(meta.v).toBe(1);
+        expect(meta.meals).toHaveLength(3);
+        expect(meta.meals[0]).toBeNull();
+        expect(meta.meals[1]).toBeNull();
+        expect(meta.meals[2]!.map((i) => i.name)).toEqual(["Fusilli", "Pesto"]);
+    });
+
+    test("null when no row has items, so the caller omits the key", () => {
+        expect(buildMealItemsMeta(rows, new Map(), true)).toBeNull();
+        expect(
+            buildMealItemsMeta(rows, new Map([["z", [values(1, "x")]]]), true),
+        ).toBeNull();
+        expect(buildMealItemsMeta([], new Map(), true)).toBeNull();
+    });
+
+    test("whitelisted fields only, rounded like the breakdown rows", () => {
+        const meta = buildMealItemsMeta(
+            [{ id: "a" }],
+            new Map([
+                [
+                    "a",
+                    [
+                        values(1, "Крило", {
+                            amount: 120,
+                            unit: "g",
+                            calories: 300.5,
+                            protein_g: 25.04,
+                            fiber_g: 0,
+                            caffeine_mg: 80.26,
+                        }),
+                    ],
+                ],
+            ]),
+            true,
+        )!;
+        expect(meta.meals[0]![0]).toEqual({
+            name: "Крило",
+            amount: 120,
+            unit: "g",
+            calories: 301,
+            protein_g: 25,
+            carbs_g: 10,
+            fat_g: 3,
+            fiber_g: 0,
+            sugar_g: null,
+            added_sugar_g: null,
+            alcohol_g: null,
+            caffeine_mg: 80.3,
+        });
+    });
+
+    test("alcohol is null on every item when tracking is off", () => {
+        const items = new Map([["a", [values(1, "Beer", { alcohol_g: 14 })]]]);
+        expect(
+            buildMealItemsMeta([{ id: "a" }], items, false)!.meals[0]![0]!
+                .alcohol_g,
+        ).toBeNull();
+        expect(
+            buildMealItemsMeta([{ id: "a" }], items, true)!.meals[0]![0]!
+                .alcohol_g,
+        ).toBe(14);
     });
 });

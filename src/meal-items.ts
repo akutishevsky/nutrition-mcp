@@ -628,3 +628,66 @@ export function validateSavedMealName(raw: string): string {
     }
     return name;
 }
+
+/**
+ * One ingredient as the widgets receive it, in the result's `_meta` under
+ * MEAL_ITEMS_META_KEY (src/widgets.ts). Rounded like the breakdown row it sits
+ * under (mealBreakdown in src/mcp.ts): kcal whole, grams and mg to a tenth.
+ * `null` is a value the item does not carry, never a 0.
+ */
+export interface MealItemMeta extends NutrientValues {
+    name: string;
+    amount: number | null;
+    unit: string | null;
+}
+
+/**
+ * The widgets' ingredient payload: `meals` is a plain array aligned by position
+ * with the tool's structuredContent.meals (same order, same length), each slot
+ * that meal's items in stored position order, or null when it has none. An
+ * array rather than an id-keyed object because the rows carry no id and the
+ * widget joins by position.
+ */
+export interface MealItemsMeta {
+    v: 1;
+    meals: (MealItemMeta[] | null)[];
+}
+
+const tenth = (n: number | null): number | null =>
+    n == null ? null : Math.round(n * 10) / 10;
+
+/**
+ * Build MealItemsMeta for `rowMeals` — exactly the meals behind the tool's
+ * breakdown rows, in row order — from getMealItems' map. Returns null when no
+ * row has items, so the caller omits the key and a result for a user without
+ * ingredients is byte-identical to one from before items existed. Alcohol is
+ * gated like the rows: with tracking off every item's `alcohol_g` is null,
+ * whatever was stored (the opt-in exists for users in recovery).
+ */
+export function buildMealItemsMeta(
+    rowMeals: readonly { id: string }[],
+    items: ReadonlyMap<string, readonly MealItemValues[]>,
+    alcoholOn: boolean,
+): MealItemsMeta | null {
+    let any = false;
+    const meals = rowMeals.map((m) => {
+        const list = items.get(m.id);
+        if (!list || list.length === 0) return null;
+        any = true;
+        return list.map((i): MealItemMeta => ({
+            name: i.name,
+            amount: i.amount,
+            unit: i.unit,
+            calories: i.calories == null ? null : Math.round(i.calories),
+            protein_g: tenth(i.protein_g),
+            carbs_g: tenth(i.carbs_g),
+            fat_g: tenth(i.fat_g),
+            fiber_g: tenth(i.fiber_g),
+            sugar_g: tenth(i.sugar_g),
+            added_sugar_g: tenth(i.added_sugar_g),
+            alcohol_g: alcoholOn ? tenth(i.alcohol_g) : null,
+            caffeine_mg: tenth(i.caffeine_mg),
+        }));
+    });
+    return any ? { v: 1, meals } : null;
+}
