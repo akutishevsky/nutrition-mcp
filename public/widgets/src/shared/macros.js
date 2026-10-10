@@ -35,10 +35,12 @@
 //   bar    the full-width water line
 //
 // `row` (limits only) names a row of their own that some limit cells move
-// into, and `opensRow` marks the cell whose presence opens it. Today that is
-// one pair: sugar and added sugar share the "sugars" row, which exists only
-// while the added-sugar cell is shown (see macroPanel). Without it, sugar
-// stays in the limits row exactly where it always was.
+// into, and `opensRow` marks the cell whose presence opens it. Today there
+// are two rows: sugar and added sugar share the "sugars" row, which exists
+// only while the added-sugar cell is shown, and saturated and trans fat share
+// the "fats" row, which exists while either fat cell is shown (see
+// macroPanel). Without them, those cells stay in the limits row exactly where
+// they always were.
 //
 // `direction` marks a target you stay UNDER rather than reach (mirrors
 // GoalDirection in src/mcp.ts): exceeding a ceiling is flagged with --over,
@@ -115,6 +117,43 @@ const MACROS = [
         color: "var(--fat)",
         decimals: 0,
         role: "macro",
+    },
+    // Saturated fat has a daily ceiling (set_nutrition_goals) and trans fat
+    // has none. Neither is in a structuredContent payload (those schemas are
+    // frozen): a template merges both from the result's `_meta` with
+    // withSaturatedFat, so without it neither reaches the strip and both
+    // cells stay hidden. "data", as added sugar: null is "not recorded", never
+    // 0, and a recorded 0 prints as 0 (zeroIsValue). Either fat cell opens a
+    // row of its own, "fats", so the two share it, and a lone trans fat cell
+    // takes the same half width a lone sugar cell does. That keeps the limits
+    // row at four cells at most: sugar, alcohol, caffeine, fiber. Trans fat has
+    // no goal: its cell reads "no goal set" over its figure and is never a
+    // limit.
+    {
+        key: "saturated_fat_g",
+        label: "Saturated fat",
+        unit: "g",
+        color: "var(--saturated)",
+        decimals: 1,
+        role: "limit",
+        direction: "ceiling",
+        signal: "data",
+        row: "fats",
+        opensRow: true,
+        unrecordedWithGoal: true,
+        zeroIsValue: true,
+    },
+    {
+        key: "trans_fat_g",
+        label: "Trans fat",
+        unit: "g",
+        color: "var(--trans)",
+        decimals: 1,
+        role: "limit",
+        signal: "data",
+        row: "fats",
+        opensRow: true,
+        zeroIsValue: true,
     },
     // Order within the row is the order they are read: the two breaches people
     // act on first, then caffeine, then the one floor.
@@ -704,7 +743,8 @@ function macroPanel(vals, goal, wording, meals, opts) {
     // move together into the sugars row once added sugar is on screen. With
     // no such cell nothing moves, and the markup is exactly what it was before
     // the sugars row existed. Own rows come first: the visual order stays the
-    // MACROS order (sugar, added sugar, alcohol, caffeine, fiber).
+    // MACROS order (saturated fat, trans fat, sugar, added sugar, alcohol,
+    // caffeine, fiber).
     const opened = new Set(limits.filter((m) => m.opensRow).map((m) => m.row));
     const ownRows = [...opened].map((r) => limits.filter((m) => m.row === r));
     const rest = limits.filter((m) => !opened.has(m.row));
@@ -761,6 +801,13 @@ function addedSugarPayload(raw) {
 // the server's text applies — rather than counting as 0. One date gives that
 // day's total; trends passes its 7/14/30-day slice, the summary its days.
 function addedSugarFor(as, dates) {
+    return recordedMeanFor(as, dates);
+}
+
+// The same rule for any per-day payload part with a `days` map: saturated fat
+// and trans fat (withSaturatedFat) and added sugar all average over the days
+// that recorded them. addedSugarFor is this with its own name.
+function recordedMeanFor(as, dates) {
     if (!as || !as.days || typeof as.days !== "object") return undefined;
     let sum = 0;
     let seen = 0;
@@ -853,6 +900,115 @@ function withAddedSugarContributors(as, contributors) {
     });
 }
 
+// ---- Saturated and trans fat, from the result's `_meta` ---------------------
+// The same arrangement as added sugar: the tools carry a SaturatedFatMeta
+// under the "nutrition-mcp.com/saturated-fat" `_meta` key (src/saturated-fat.ts),
+// and each template that shows the strip reads that key and merges it here,
+// after withAddedSugar. Shape: `{ v: 1, goal, days, meals, trans? }`, where
+// `goal` is the saturated-fat ceiling or null, `days` maps a local date to the
+// day's saturated fat (null = not recorded), `meals` is keyed by meal id and
+// joined BY POSITION with the breakdown rows (as added sugar's is), and
+// `trans` is `{ days, meals }` for trans fat in the same shape, with no goal.
+// A missing, malformed or future-versioned payload merges nothing, so the
+// strip is byte for byte what it was before the fields existed.
+function saturatedFatPayload(raw) {
+    return raw && typeof raw === "object" && raw.v === 1 ? raw : null;
+}
+
+// `part.extra`, validated for one nutrient: the meals among the window's top
+// CAP that the kept rows miss (get_nutrition_summary only). Untrusted, like
+// addedSugarExtraRows: each entry is rebuilt from its four fields, kept only
+// with a string description and a finite positive value, at most 8.
+function nutrientExtraRows(part, key) {
+    if (!part || !Array.isArray(part.extra)) return [];
+    const rows = [];
+    for (const e of part.extra) {
+        if (rows.length >= 8) break;
+        if (!e || typeof e !== "object") continue;
+        if (typeof e.description !== "string") continue;
+        const v = e[key];
+        if (typeof v !== "number" || !Number.isFinite(v) || v <= 0) continue;
+        rows.push({
+            description: e.description,
+            meal_type: typeof e.meal_type === "string" ? e.meal_type : null,
+            date: typeof e.date === "string" ? e.date : null,
+            [key]: v,
+        });
+    }
+    return rows;
+}
+
+// Merge one nutrient's per-day value and per-meal values into the strip's
+// inputs, the way withAddedSugar does for added sugar. `limit` says whether the
+// part may set a goal: trans fat never does, whatever its payload carries.
+// Returns new objects and never mutates the payload's own. `extraRows` and
+// `contributors` are keyed by the nutrient, for macroPanel's opts, and are
+// null when the part sent neither.
+function withNutrient(part, key, value, vals, goal, meals, limit) {
+    const out = { vals, goal, meals, extraRows: null, contributors: null };
+    if (!part || typeof part !== "object") return out;
+    if (Number.isFinite(value)) {
+        out.vals = Object.assign({}, vals, { [key]: value });
+    }
+    if (limit && Number.isFinite(part.goal)) {
+        out.goal = Object.assign({}, goal, { [key]: part.goal });
+    }
+    if (Number.isFinite(part.contributors)) {
+        out.contributors = { [key]: part.contributors };
+    }
+    if (Array.isArray(meals) && part.meals && typeof part.meals === "object") {
+        const per = Object.values(part.meals);
+        if (per.length === meals.length) {
+            out.meals = meals.map((meal, i) =>
+                Object.assign({}, meal, {
+                    [key]: Number.isFinite(per[i]) ? per[i] : null,
+                }),
+            );
+            const extra = nutrientExtraRows(part, key);
+            if (extra.length) out.extraRows = { [key]: extra };
+        }
+    }
+    return out;
+}
+
+// The strip's saturated and trans fat for a set of local dates. `dates` is the
+// same list the template gives addedSugarFor, so the three figures always
+// cover the same days. A missing payload returns the inputs untouched. The
+// result also carries `extraRows` and `contributors` for the nutrients the
+// payload sent them for (see withNutrient); the summary merges them in.
+function withSaturatedFat(raw, dates, vals, goal, meals) {
+    const sf = saturatedFatPayload(raw);
+    if (!sf) return { vals, goal, meals, extraRows: null, contributors: null };
+    let out = withNutrient(
+        sf,
+        "saturated_fat_g",
+        recordedMeanFor(sf, dates),
+        vals,
+        goal,
+        meals,
+        true,
+    );
+    if (sf.trans && typeof sf.trans === "object") {
+        const tr = withNutrient(
+            sf.trans,
+            "trans_fat_g",
+            recordedMeanFor(sf.trans, dates),
+            out.vals,
+            out.goal,
+            out.meals,
+            false,
+        );
+        out = {
+            vals: tr.vals,
+            goal: tr.goal,
+            meals: tr.meals,
+            extraRows: Object.assign({}, out.extraRows, tr.extraRows),
+            contributors: Object.assign({}, out.contributors, tr.contributors),
+        };
+    }
+    return out;
+}
+
 // ---- Meal items, from the result's `_meta` ----------------------------------
 // A meal logged with an ingredient list carries its items in the result's
 // `_meta` under "nutrition-mcp.com/meal-items" (no structuredContent object may
@@ -880,6 +1036,8 @@ const MEAL_ITEM_NUTRIENTS = [
     "protein_g",
     "carbs_g",
     "fat_g",
+    "saturated_fat_g",
+    "trans_fat_g",
     "fiber_g",
     "sugar_g",
     "added_sugar_g",

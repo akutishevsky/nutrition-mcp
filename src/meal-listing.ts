@@ -105,6 +105,10 @@ export function formatMealFull(
         meal.protein_g != null ? `Protein: ${meal.protein_g}g` : null,
         meal.carbs_g != null ? `Carbs: ${meal.carbs_g}g` : null,
         meal.fat_g != null ? `Fat: ${meal.fat_g}g` : null,
+        meal.saturated_fat_g != null
+            ? `Saturated fat: ${meal.saturated_fat_g}g`
+            : null,
+        meal.trans_fat_g != null ? `Trans fat: ${meal.trans_fat_g}g` : null,
         meal.fiber_g != null ? `Fiber: ${meal.fiber_g}g` : null,
         fullSugar(meal),
         // Opt-in (see formatProgress in mcp.ts): a stored value stays hidden
@@ -143,6 +147,8 @@ export function formatMealCompact(
         meal.protein_g != null ? `P ${meal.protein_g}` : null,
         meal.carbs_g != null ? `C ${meal.carbs_g}` : null,
         meal.fat_g != null ? `F ${meal.fat_g}` : null,
+        meal.saturated_fat_g != null ? `sat ${meal.saturated_fat_g}` : null,
+        meal.trans_fat_g != null ? `trans ${meal.trans_fat_g}` : null,
         meal.fiber_g != null ? `fiber ${meal.fiber_g}` : null,
         // Without an added figure, sugar stays inside the shared " g" run as
         // it always has; with one it needs its own unit before the bracket.

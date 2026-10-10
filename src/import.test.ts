@@ -1695,3 +1695,90 @@ test("another user's meal id is not treated as already-present", async () => {
     expect(result.summary.created).toBe(1);
     expect(inserted).toHaveLength(1);
 });
+
+test("saturated and trans fat import as values, and stay unrecorded when the file lacks them", async () => {
+    const { deps, inserted } = makeStore();
+    const result = await runImport(
+        args([
+            row({
+                source_line: 2,
+                description: "Croissant",
+                fat_g: 14,
+                saturated_fat_g: 8.5,
+                trans_fat_g: 0.3,
+            }),
+            row({ source_line: 3, description: "Oatmeal", fat_g: 3 }),
+        ]),
+        deps,
+    );
+    expect(result.summary.created).toBe(2);
+    const [withBoth, withNeither] = inserted;
+    expect(withBoth!.saturated_fat_g).toBe(8.5);
+    expect(withBoth!.trans_fat_g).toBe(0.3);
+    // Absent, not 0: a row that never named the column records no value.
+    expect("saturated_fat_g" in withNeither!).toBe(false);
+    expect("trans_fat_g" in withNeither!).toBe(false);
+});
+
+test("saturated and trans fat are bounded in the handler like every macro", () => {
+    const check = (over: Partial<ImportRow>) =>
+        validateRow(
+            row({ source_line: 2, ...over }),
+            0,
+            { tz: TZ, nowMs: NOW },
+            undefined,
+        );
+    for (const field of ["saturated_fat_g", "trans_fat_g"] as const) {
+        const negative = check({ [field]: -1 });
+        expect(negative.ok).toBe(false);
+        if (!negative.ok) expect(negative.error.field).toBe(field);
+        const huge = check({ [field]: 5001 });
+        expect(huge.ok).toBe(false);
+        if (!huge.ok) expect(huge.error.field).toBe(field);
+        expect(check({ [field]: 0 }).ok).toBe(true);
+    }
+});
+
+test("saturated and trans fat are EXCLUDED from the content digest, so a replay still dedupes", async () => {
+    // rowContentDigest is frozen: a file imported before these columns existed
+    // and the same file re-exported with them must key identically.
+    const keyFor = (over: Partial<ImportRow>) => {
+        const v = validateRow(
+            row({ source_line: 2, description: "Croissant", ...over }),
+            0,
+            { tz: TZ, nowMs: NOW },
+            undefined,
+        );
+        if (!v.ok) throw new Error("fixture should validate");
+        const resolved = [v.resolved];
+        assignIdempotencyKeys("user-1", resolved);
+        return resolved[0]!.input.idempotency_key!;
+    };
+    const plain = keyFor({});
+    expect(keyFor({ saturated_fat_g: 8.5 })).toBe(plain);
+    expect(keyFor({ trans_fat_g: 0.3 })).toBe(plain);
+    expect(keyFor({ saturated_fat_g: 8.5, trans_fat_g: 0.3 })).toBe(plain);
+
+    // The first import wrote no saturated fat; the re-export carries it and
+    // is a no-op. The first value is kept, as with fiber.
+    const { deps, inserted } = makeStore();
+    const first = await runImport(
+        args([row({ source_line: 2, description: "Croissant" })]),
+        deps,
+    );
+    expect(first.summary.created).toBe(1);
+    const second = await runImport(
+        args([
+            row({
+                source_line: 2,
+                description: "Croissant",
+                saturated_fat_g: 8.5,
+                trans_fat_g: 0.3,
+            }),
+        ]),
+        deps,
+    );
+    expect(second.summary.created).toBe(0);
+    expect(second.summary.deduplicated).toBe(1);
+    expect(inserted).toHaveLength(1);
+});

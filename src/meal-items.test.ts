@@ -3,6 +3,7 @@ import {
     MAX_ITEMS_PER_MEAL,
     MAX_ITEM_AMOUNT,
     MAX_SAVED_MEAL_NAME_CHARS,
+    MEAL_NUTRIENT_KEYS,
     applyItemChanges,
     assertMealTotals,
     buildMealItemsMeta,
@@ -315,6 +316,92 @@ describe("validateItems: fiber, sugar and added sugar", () => {
 
     test("the gate on: an item with no sugar at all does not need added sugar", () => {
         expect(() => validateItems([item()], GATE_ON)).not.toThrow();
+    });
+});
+
+describe("validateItems: saturated and trans fat", () => {
+    test("saturated_fat_g must be on every item or none", () => {
+        refuses(
+            () =>
+                validateItems([item({ saturated_fat_g: 4 }), item()], GATE_OFF),
+            /saturated_fat_g is given for some items but not for item 2/,
+        );
+    });
+
+    test("saturated fat on every item is accepted and summed to two decimals", () => {
+        const { items, totals } = validateItems(
+            [item({ saturated_fat_g: 1.11 }), item({ saturated_fat_g: 2.22 })],
+            GATE_OFF,
+        );
+        expect(items[0]!.saturated_fat_g).toBe(1.11);
+        expect(totals.saturated_fat_g).toBe(3.33);
+    });
+
+    test("saturated fat on no item is null in the items and the totals", () => {
+        const { items, totals } = validateItems([item(), item()], GATE_OFF);
+        expect(items[0]!.saturated_fat_g).toBeNull();
+        expect(totals.saturated_fat_g).toBeNull();
+    });
+
+    test("trans fat is optional per item and summed over the items that carry it", () => {
+        const { items, totals } = validateItems(
+            [item({ trans_fat_g: 0.2 }), item(), item({ trans_fat_g: 0.3 })],
+            GATE_OFF,
+        );
+        expect(items[1]!.trans_fat_g).toBeNull();
+        expect(totals.trans_fat_g).toBe(0.5);
+    });
+
+    test("trans fat on no item sums to null, never 0", () => {
+        const { totals } = validateItems([item(), item()], GATE_OFF);
+        expect(totals.trans_fat_g).toBeNull();
+    });
+
+    test("saturated and trans fat outside their range are refused by name", () => {
+        refuses(
+            () => validateItems([item({ saturated_fat_g: -1 })], GATE_OFF),
+            /item 1 \("Chicken"\) has saturated_fat_g -1/,
+        );
+        refuses(
+            () => validateItems([item({ trans_fat_g: 6000 })], GATE_OFF),
+            /has trans_fat_g 6000; it must be between 0 and/,
+        );
+    });
+
+    test("MEAL_NUTRIENT_KEYS carries both fats", () => {
+        expect(MEAL_NUTRIENT_KEYS).toContain("saturated_fat_g");
+        expect(MEAL_NUTRIENT_KEYS).toContain("trans_fat_g");
+    });
+
+    test("scaling scales both fats; a null trans fat stays null", () => {
+        const { items } = validateItems(
+            [
+                item({ amount: 100, saturated_fat_g: 2, trans_fat_g: 0.1 }),
+                item({ amount: 50, saturated_fat_g: 1 }),
+            ],
+            GATE_OFF,
+        );
+        const [first, second] = scaleItems(items, 2);
+        expect(first!.saturated_fat_g).toBe(4);
+        expect(first!.trans_fat_g).toBe(0.2);
+        expect(second!.trans_fat_g).toBeNull();
+        expect(scaleTotals(sumItems(items), 0.5).saturated_fat_g).toBe(1.5);
+    });
+
+    test("the item summary line names a fat only when it is recorded", () => {
+        const { items } = validateItems(
+            [
+                item({ saturated_fat_g: 4.2, trans_fat_g: 0.1 }),
+                item({ saturated_fat_g: 0 }),
+            ],
+            GATE_OFF,
+        );
+        const withFat = formatItemLine(items[0]!, false);
+        expect(withFat).toContain("saturated fat 4.2 g");
+        expect(withFat).toContain("trans fat 0.1 g");
+        const without = formatItemLine(items[1]!, false);
+        expect(without).toContain("saturated fat 0 g");
+        expect(without).not.toContain("trans fat");
     });
 });
 
@@ -717,6 +804,8 @@ describe("meal totals bounds (C5, C8)", () => {
         protein_g: 0,
         carbs_g: 0,
         fat_g: 0,
+        saturated_fat_g: null,
+        trans_fat_g: null,
         fiber_g: null,
         sugar_g: null,
         added_sugar_g: null,
@@ -985,6 +1074,8 @@ describe("buildMealItemsMeta", () => {
             protein_g: 5,
             carbs_g: 10,
             fat_g: 3,
+            saturated_fat_g: null,
+            trans_fat_g: null,
             fiber_g: null,
             sugar_g: null,
             added_sugar_g: null,
@@ -1044,6 +1135,8 @@ describe("buildMealItemsMeta", () => {
             protein_g: 25,
             carbs_g: 10,
             fat_g: 3,
+            saturated_fat_g: null,
+            trans_fat_g: null,
             fiber_g: 0,
             sugar_g: null,
             added_sugar_g: null,
@@ -1062,5 +1155,43 @@ describe("buildMealItemsMeta", () => {
             buildMealItemsMeta([{ id: "a" }], items, true)!.meals[0]![0]!
                 .alcohol_g,
         ).toBe(14);
+    });
+});
+
+describe("buildMealItemsMeta: saturated and trans fat", () => {
+    test("each ingredient carries both fats, rounded to a tenth, null when absent", () => {
+        const item: MealItemValues = {
+            position: 1,
+            name: "Butter",
+            amount: 10,
+            unit: "g",
+            calories: 72,
+            protein_g: 0.1,
+            carbs_g: 0,
+            fat_g: 8,
+            saturated_fat_g: 5.06,
+            trans_fat_g: 0.34,
+            fiber_g: null,
+            sugar_g: null,
+            added_sugar_g: null,
+            alcohol_g: null,
+            caffeine_mg: null,
+        };
+        const bare = {
+            ...item,
+            position: 2,
+            name: "Oil",
+            saturated_fat_g: null,
+            trans_fat_g: null,
+        };
+        const meta = buildMealItemsMeta(
+            [{ id: "m" }],
+            new Map([["m", [item, bare]]]),
+            false,
+        );
+        expect(meta?.meals[0]?.[0]?.saturated_fat_g).toBe(5.1);
+        expect(meta?.meals[0]?.[0]?.trans_fat_g).toBe(0.3);
+        expect(meta?.meals[0]?.[1]?.saturated_fat_g).toBeNull();
+        expect(meta?.meals[0]?.[1]?.trans_fat_g).toBeNull();
     });
 });

@@ -66,6 +66,8 @@ function meal(overrides: Partial<Meal> = {}): Meal {
         protein_g: 40,
         carbs_g: 10,
         fat_g: 20,
+        saturated_fat_g: 8,
+        trans_fat_g: 0.5,
         fiber_g: 7,
         sugar_g: 12,
         added_sugar_g: 9,
@@ -79,7 +81,7 @@ function meal(overrides: Partial<Meal> = {}): Meal {
 }
 
 const HEADER =
-    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,notes,saved_meal_id";
+    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,notes,saved_meal_id";
 
 /**
  * Minimal RFC-4180 reader: splits a CSV document into rows of fields, honouring
@@ -154,6 +156,8 @@ test("header and data rows have identical field counts", () => {
                 protein_g: null,
                 carbs_g: null,
                 fat_g: null,
+                saturated_fat_g: null,
+                trans_fat_g: null,
                 fiber_g: null,
                 sugar_g: null,
                 added_sugar_g: null,
@@ -188,6 +192,8 @@ test("every value lands under its own header name", () => {
                     protein_g: 40,
                     carbs_g: 10,
                     fat_g: 20,
+                    saturated_fat_g: 8,
+                    trans_fat_g: 0.5,
                     fiber_g: 7,
                     sugar_g: 12,
                     added_sugar_g: 9,
@@ -210,6 +216,8 @@ test("every value lands under its own header name", () => {
         protein_g: "40",
         carbs_g: "10",
         fat_g: "20",
+        saturated_fat_g: "8",
+        trans_fat_g: "0.5",
         fiber_g: "7",
         sugar_g: "12",
         added_sugar_g: "9",
@@ -258,6 +266,8 @@ function mealItem(
         protein_g: 34,
         carbs_g: 22,
         fat_g: 22,
+        saturated_fat_g: 9,
+        trans_fat_g: 0.1,
         fiber_g: 1.5,
         sugar_g: 0.4,
         added_sugar_g: 0.2,
@@ -280,6 +290,8 @@ function savedMeal(
         protein_g: 30,
         carbs_g: 35,
         fat_g: 6,
+        saturated_fat_g: 2,
+        trans_fat_g: 0,
         fiber_g: 4,
         sugar_g: 20,
         added_sugar_g: 0,
@@ -306,6 +318,8 @@ function savedMealItem(
         protein_g: 1,
         carbs_g: 16,
         fat_g: 5,
+        saturated_fat_g: 3,
+        trans_fat_g: null,
         fiber_g: null,
         sugar_g: null,
         added_sugar_g: null,
@@ -316,11 +330,11 @@ function savedMealItem(
 }
 
 const MEAL_ITEMS_HEADER =
-    "meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg";
+    "meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg";
 const SAVED_MEALS_HEADER =
-    "id,name,description,meal_type,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,created_at,updated_at,timezone";
+    "id,name,description,meal_type,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,created_at,updated_at,timezone";
 const SAVED_MEAL_ITEMS_HEADER =
-    "saved_meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg";
+    "saved_meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg";
 
 test("meal_items.csv, saved_meals.csv and saved_meal_items.csv are header-only when empty", () => {
     expect(buildMealItemsCsv([])).toBe(MEAL_ITEMS_HEADER);
@@ -354,6 +368,8 @@ test("every meal item value lands under its own header name", () => {
         protein_g: "34",
         carbs_g: "22",
         fat_g: "22",
+        saturated_fat_g: "9",
+        trans_fat_g: "0.1",
         fiber_g: "1.5",
         sugar_g: "0.4",
         added_sugar_g: "0.2",
@@ -405,6 +421,8 @@ test("every saved meal value lands under its own header name, timestamps in the 
         protein_g: "30",
         carbs_g: "35",
         fat_g: "6",
+        saturated_fat_g: "2",
+        trans_fat_g: "0",
         fiber_g: "4",
         sugar_g: "20",
         added_sugar_g: "0",
@@ -455,6 +473,8 @@ test("saved_meals.csv and saved_meal_items.csv align every row with their header
                     protein_g: null,
                     carbs_g: null,
                     fat_g: null,
+                    saturated_fat_g: null,
+                    trans_fat_g: null,
                     fiber_g: null,
                     sugar_g: null,
                     added_sugar_g: null,
@@ -498,6 +518,8 @@ test("every saved meal ingredient value lands under its own header name", () => 
         protein_g: "1",
         carbs_g: "16",
         fat_g: "5",
+        saturated_fat_g: "3",
+        trans_fat_g: "",
         fiber_g: "",
         sugar_g: "",
         added_sugar_g: "",
@@ -519,6 +541,8 @@ test("header column order is stable and importer-compatible", () => {
         "protein_g",
         "carbs_g",
         "fat_g",
+        "saturated_fat_g",
+        "trans_fat_g",
         "fiber_g",
         "sugar_g",
         // Right after sugar_g: the part of it that was added. The importer
@@ -576,6 +600,8 @@ test("leaves null macros and notes as empty fields", () => {
                     protein_g: null,
                     carbs_g: null,
                     fat_g: null,
+                    saturated_fat_g: null,
+                    trans_fat_g: null,
                     fiber_g: null,
                     sugar_g: null,
                     added_sugar_g: null,
@@ -592,6 +618,8 @@ test("leaves null macros and notes as empty fields", () => {
         "protein_g",
         "carbs_g",
         "fat_g",
+        "saturated_fat_g",
+        "trans_fat_g",
         "fiber_g",
         "sugar_g",
         // NULL on every meal logged before added sugar was tracked: "not
@@ -689,6 +717,7 @@ function goals(overrides: Partial<NutritionGoals> = {}): NutritionGoals {
         daily_protein_g: 150,
         daily_carbs_g: 220,
         daily_fat_g: 70,
+        daily_saturated_fat_g: 20,
         daily_fiber_g: 30,
         daily_sugar_g: 40,
         daily_added_sugar_g: 25,
@@ -710,6 +739,7 @@ function goalsHistoryRow(
         daily_protein_g: 150,
         daily_carbs_g: 220,
         daily_fat_g: 70,
+        daily_saturated_fat_g: 20,
         daily_fiber_g: 30,
         daily_sugar_g: 40,
         daily_added_sugar_g: 25,
@@ -741,9 +771,9 @@ const WATER_HEADER = "id,logged_at,timezone,amount_ml,notes,created_at";
 const WEIGHT_HEADER =
     "id,logged_at,timezone,weight_g,weight_display,weight_unit,notes,created_at";
 const GOALS_HEADER =
-    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
+    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
 const GOALS_HISTORY_HEADER =
-    "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g";
+    "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g";
 const PROFILE_HEADER =
     "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit";
 const BODY_MEASUREMENT_HEADER =
@@ -978,6 +1008,7 @@ test("every goal value lands under its own header name", () => {
         daily_protein_g: "150",
         daily_carbs_g: "220",
         daily_fat_g: "70",
+        daily_saturated_fat_g: "20",
         daily_fiber_g: "30",
         daily_sugar_g: "40",
         daily_added_sugar_g: "25",
@@ -1009,6 +1040,7 @@ test("goals.csv leaves unset targets as empty fields", () => {
             daily_protein_g: null,
             daily_carbs_g: null,
             daily_fat_g: null,
+            daily_saturated_fat_g: null,
             daily_fiber_g: null,
             daily_sugar_g: null,
             daily_added_sugar_g: null,
@@ -1060,8 +1092,8 @@ test("goals_history.csv is byte-for-byte what its rows and zone determine", () =
     expect(csv).toBe(
         [
             GOALS_HISTORY_HEADER,
-            "2026-01-05 09:00:00,Europe/Berlin,2200,150,220,70,30,40,25,14,400,2500,72000",
-            "2026-06-20 16:30:00,Europe/Berlin,2000,150,220,70,30,,,,400,2500,",
+            "2026-01-05 09:00:00,Europe/Berlin,2200,150,220,70,20,30,40,25,14,400,2500,72000",
+            "2026-06-20 16:30:00,Europe/Berlin,2000,150,220,70,20,30,,,,400,2500,",
         ].join("\n"),
     );
     // Same inputs, same bytes: nothing in it depends on the clock or the host.
@@ -1099,6 +1131,7 @@ test("every goals history value lands under its own header name", () => {
         daily_protein_g: "150",
         daily_carbs_g: "220",
         daily_fat_g: "70",
+        daily_saturated_fat_g: "20",
         daily_fiber_g: "30",
         daily_sugar_g: "40",
         daily_added_sugar_g: "25",

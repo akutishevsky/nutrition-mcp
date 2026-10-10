@@ -31,11 +31,13 @@ import {
     getNutritionGoalsHistory,
     insertMeal,
     updateMeal,
+    replaceMealItems,
     type Meal,
     type MealInput,
     type Profile,
 } from "./supabase.js";
 import { rowContentDigest } from "./import.js";
+import { validateItems } from "./meal-items.js";
 import { ToolError } from "./errors.js";
 
 // Almost every export exercised here is pure. The one exception is the goals
@@ -1421,6 +1423,7 @@ describe("goals history", () => {
             daily_protein_g: null,
             daily_carbs_g: null,
             daily_fat_g: null,
+            daily_saturated_fat_g: null,
             daily_fiber_g: null,
             daily_sugar_g: null,
             daily_added_sugar_g: null,
@@ -1857,5 +1860,271 @@ describe("meal writes persist added_sugar_g", () => {
         } finally {
             fetchSpy.mockImplementation(before!);
         }
+    });
+});
+
+// ---------- saturated and trans fat (#201) ----------
+
+describe("mealIdempotencyKey: saturated and trans fat are excluded (#201)", () => {
+    test("the key for the fixture meal is pinned, with both fields absent", () => {
+        // The digest is frozen (see the comment on mealIdempotencyKey): this is
+        // the value every auto: key written before the columns existed.
+        expect(key(meal())).toBe(
+            "auto:2cb5c578de992b77444e0d0121854d3292e642215a15dfa2599dd6d9f432fac4",
+        );
+    });
+
+    test("saturated_fat_g and trans_fat_g never change the key", () => {
+        expect(key(meal({ saturated_fat_g: 5, trans_fat_g: 0.2 }))).toBe(
+            key(meal()),
+        );
+    });
+});
+
+describe("meal writes persist saturated and trans fat (#201)", () => {
+    const MEAL_ID = "44444444-4444-4444-8444-444444444444";
+    let mealRows: Record<string, unknown>[] = [];
+    const posts: { path: string; body: Record<string, unknown> }[] = [];
+    const patches: Record<string, unknown>[] = [];
+
+    function json(body: unknown, status = 200): Response {
+        return new Response(JSON.stringify(body), {
+            status,
+            headers: { "content-type": "application/json" },
+        });
+    }
+
+    function eqParam(q: URLSearchParams, col: string): string | undefined {
+        return q.get(col)?.replace(/^eq\./, "");
+    }
+
+    async function fakeWrites(
+        input: string | URL | Request,
+        init?: RequestInit,
+    ): Promise<Response> {
+        const req =
+            input instanceof Request
+                ? new Request(input, init)
+                : new Request(input.toString(), init);
+        const url = new URL(req.url);
+        const path = url.pathname.replace(/^\/rest\/v1\//, "");
+        const q = url.searchParams;
+        const single = (req.headers.get("accept") ?? "").includes(
+            "object+json",
+        );
+        const body = req.method === "GET" ? null : await req.json();
+
+        if (req.method === "GET" && path === "meals") {
+            const id = eqParam(q, "id");
+            const key = eqParam(q, "idempotency_key");
+            const found = mealRows.filter(
+                (r) =>
+                    (id === undefined || r.id === id) &&
+                    (key === undefined || r.idempotency_key === key),
+            );
+            if (single) {
+                return found.length === 1
+                    ? json(found[0])
+                    : json({ message: "no rows" }, 406);
+            }
+            return json(found);
+        }
+        if (req.method === "POST" && path === "meals") {
+            const row = { id: MEAL_ID, ...(body as object) };
+            posts.push({ path, body: body as Record<string, unknown> });
+            mealRows.push(row);
+            return json(single ? row : [row], 201);
+        }
+        if (req.method === "PATCH" && path === "meals") {
+            const id = eqParam(q, "id");
+            const row = mealRows.find((r) => r.id === id);
+            if (!row) return json([]);
+            patches.push(body as Record<string, unknown>);
+            Object.assign(row, body);
+            return json(single ? row : [row]);
+        }
+        if (req.method === "POST" && path === "rpc/insert_meal_with_items") {
+            const b = body as { p_meal: Record<string, unknown> };
+            posts.push({ path, body: body as Record<string, unknown> });
+            const row = { id: MEAL_ID, ...b.p_meal };
+            mealRows.push(row);
+            return json({ meal: row, deduplicated: false });
+        }
+        if (req.method === "POST" && path === "rpc/update_meal_with_items") {
+            posts.push({ path, body: body as Record<string, unknown> });
+            const b = body as { p_meal_id: string; p_fields: object };
+            return json({ id: b.p_meal_id, ...b.p_fields });
+        }
+        // maybeSingle reads the first element of an array: no rows is [].
+        if (req.method === "GET" && path === "nutrition_goals") {
+            return json([]);
+        }
+        if (req.method === "GET" && path === "nutrition_goals_history") {
+            return json([]);
+        }
+        if (req.method === "POST" && path === "nutrition_goals") {
+            const row = Array.isArray(body) ? body[0] : body;
+            posts.push({ path, body: row as Record<string, unknown> });
+            return json(single ? row : [row], 201);
+        }
+        if (req.method === "POST" && path === "nutrition_goals_history") {
+            return json([], 201);
+        }
+        throw new Error(`meal-writes stub refused ${req.method} ${req.url}`);
+    }
+
+    const envBefore = {
+        url: process.env.SUPABASE_URL,
+        key: process.env.SUPABASE_SECRET_KEY,
+    };
+    let fetchSpy: ReturnType<typeof spyOn>;
+
+    beforeAll(() => {
+        process.env.SUPABASE_URL ??= "http://supabase.test";
+        process.env.SUPABASE_SECRET_KEY ??= "test-key";
+        fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
+            fakeWrites as typeof fetch,
+        );
+    });
+
+    afterAll(() => {
+        fetchSpy.mockRestore();
+        if (envBefore.url === undefined) delete process.env.SUPABASE_URL;
+        if (envBefore.key === undefined) delete process.env.SUPABASE_SECRET_KEY;
+    });
+
+    beforeEach(() => {
+        mealRows = [
+            {
+                id: MEAL_ID,
+                user_id: USER,
+                logged_at: LOGGED_AT,
+                description: "toast",
+                meal_type: "breakfast",
+                idempotency_key: "import:stored:0",
+            },
+        ];
+        posts.length = 0;
+        patches.length = 0;
+    });
+
+    const cheese = {
+        name: "Cheese",
+        amount: 100,
+        unit: "g",
+        calories: 400,
+        protein_g: 25,
+        carbs_g: 1,
+        fat_g: 33,
+        saturated_fat_g: 21,
+    };
+    const bread = {
+        name: "Bread",
+        amount: 60,
+        unit: "g",
+        calories: 150,
+        protein_g: 5,
+        carbs_g: 29,
+        fat_g: 2,
+        saturated_fat_g: 0.5,
+        trans_fat_g: 0.1,
+    };
+
+    test("insertMeal writes both fats, and NULL when they are omitted", async () => {
+        const { meal: saved } = await insertMeal(USER, {
+            ...meal({ saturated_fat_g: 5.5, trans_fat_g: 0.2 }),
+            logged_at: LOGGED_AT,
+        });
+        expect(posts[0]!.body).toMatchObject({
+            saturated_fat_g: 5.5,
+            trans_fat_g: 0.2,
+        });
+        expect(saved.saturated_fat_g).toBe(5.5);
+
+        await insertMeal(USER, {
+            ...meal({ description: "banana" }),
+            logged_at: LOGGED_AT,
+        });
+        // Not recorded is NULL, never 0.
+        expect(posts[1]!.body).toHaveProperty("saturated_fat_g", null);
+        expect(posts[1]!.body).toHaveProperty("trans_fat_g", null);
+    });
+
+    test("insertMeal with items sends both fats on the meal and on each item", async () => {
+        const { items, totals } = validateItems([cheese, bread], {
+            addedSugarRequired: false,
+        });
+        await insertMeal(USER, {
+            ...meal({
+                description: "cheese on toast",
+                meal_type: "lunch",
+                calories: totals.calories ?? undefined,
+                protein_g: totals.protein_g ?? undefined,
+                carbs_g: totals.carbs_g ?? undefined,
+                fat_g: totals.fat_g ?? undefined,
+                saturated_fat_g: totals.saturated_fat_g ?? undefined,
+                trans_fat_g: totals.trans_fat_g ?? undefined,
+            }),
+            logged_at: LOGGED_AT,
+            items,
+        });
+        const call = posts.find(
+            (p) => p.path === "rpc/insert_meal_with_items",
+        )!;
+        const pMeal = call.body.p_meal as Record<string, unknown>;
+        const pItems = call.body.p_items as Record<string, unknown>[];
+        expect(pMeal.saturated_fat_g).toBe(21.5);
+        expect(pMeal.trans_fat_g).toBe(0.1);
+        expect(pItems[0]).toHaveProperty("saturated_fat_g", 21);
+        // Cheese carries no trans fat: null on the item, not 0.
+        expect(pItems[0]).toHaveProperty("trans_fat_g", null);
+        expect(pItems[1]).toHaveProperty("trans_fat_g", 0.1);
+    });
+
+    test("updateMeal writes a fat only when it is passed", async () => {
+        await updateMeal(USER, MEAL_ID, { trans_fat_g: 0.3 });
+        expect(patches[0]).toEqual({ trans_fat_g: 0.3 });
+
+        await updateMeal(USER, MEAL_ID, { saturated_fat_g: 0 });
+        // Zero is a real value and is written, not dropped.
+        expect(patches[1]).toEqual({ saturated_fat_g: 0 });
+    });
+
+    test("replaceMealItems sends the summed fats and each item's fats", async () => {
+        const { items, totals } = validateItems([cheese, bread], {
+            addedSugarRequired: false,
+        });
+        await replaceMealItems(
+            USER,
+            MEAL_ID,
+            {
+                saturated_fat_g: totals.saturated_fat_g,
+                trans_fat_g: totals.trans_fat_g,
+            },
+            items,
+        );
+        const call = posts.find(
+            (p) => p.path === "rpc/update_meal_with_items",
+        )!;
+        const pFields = call.body.p_fields as Record<string, unknown>;
+        const pItems = call.body.p_items as Record<string, unknown>[];
+        expect(pFields).toMatchObject({
+            saturated_fat_g: 21.5,
+            trans_fat_g: 0.1,
+        });
+        expect(pItems[1]).toHaveProperty("saturated_fat_g", 0.5);
+        expect(pItems[0]).toHaveProperty("trans_fat_g", null);
+    });
+
+    test("upsertNutritionGoals writes the saturated-fat ceiling, and null when it is not set", async () => {
+        await upsertNutritionGoals(USER, { daily_saturated_fat_g: 20 });
+        expect(
+            posts.find((p) => p.path === "nutrition_goals")!.body,
+        ).toMatchObject({ daily_saturated_fat_g: 20 });
+
+        await upsertNutritionGoals(USER, { daily_calories: 2000 });
+        const second = posts.filter((p) => p.path === "nutrition_goals")[1]!;
+        // Not set is null, and 0 would be a real limit.
+        expect(second.body).toHaveProperty("daily_saturated_fat_g", null);
     });
 });

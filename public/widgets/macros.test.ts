@@ -46,7 +46,7 @@ const macrosApi = await (async () => {
         "fmt",
         "esc",
         "WIDGET_STRINGS",
-        `${i18nSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, addedSugarPayload, addedSugarFor, withAddedSugar, withAddedSugarContributors, mealItemsPayload, withMealItems };`,
+        `${i18nSrc}\n${macrosSrc}\nreturn { macroBits, MACROS, macroPanel, macroLimit, macroCtxOf, dayHasData, mealList, addedSugarPayload, addedSugarFor, withAddedSugar, withAddedSugarContributors, mealItemsPayload, withMealItems, saturatedFatPayload, withSaturatedFat };`,
     );
     return factory(fmt, esc, { en: WIDGET_STRINGS_EN }) as {
         macroBits: (
@@ -111,6 +111,14 @@ const macrosApi = await (async () => {
             payload: MealItemsPayload | null,
             meals: unknown,
         ) => unknown;
+        saturatedFatPayload: (raw: unknown) => unknown;
+        withSaturatedFat: (
+            raw: unknown,
+            dates: string[],
+            vals: Vals,
+            goal: Vals | null,
+            meals: unknown[] | null,
+        ) => { vals: Vals; goal: Vals | null; meals: unknown[] | null };
     };
 })();
 
@@ -1201,7 +1209,8 @@ test("a recorded 0 g of added sugar reads as 0, every other limit as 'none logge
     );
     expect(others.match(/none logged/g)?.length).toBe(4);
     expect(others).not.toContain("not recorded");
-    // The property, not a key check: only added sugar declares either flag.
+    // The property, not a key check: the cells whose null means "not recorded"
+    // and whose recorded 0 is a figure (added sugar, and the two fats).
     const flagged = (
         macrosApi.MACROS as Array<
             Macro & { zeroIsValue?: boolean; unrecordedWithGoal?: boolean }
@@ -1209,7 +1218,11 @@ test("a recorded 0 g of added sugar reads as 0, every other limit as 'none logge
     )
         .filter((m) => m.zeroIsValue || m.unrecordedWithGoal)
         .map((m) => m.key);
-    expect(flagged).toEqual(["added_sugar_g"]);
+    expect(flagged).toEqual([
+        "saturated_fat_g",
+        "trans_fat_g",
+        "added_sugar_g",
+    ]);
 });
 
 test("a recorded 0 against a 0 limit reads as 0 at the limit", () => {
@@ -2037,6 +2050,8 @@ test("meal items are rebuilt from whitelisted fields only, and capped at 30", ()
             protein_g: null,
             carbs_g: 14,
             fat_g: null,
+            saturated_fat_g: null,
+            trans_fat_g: null,
             fiber_g: null,
             sugar_g: null,
             added_sugar_g: null,
@@ -2275,4 +2290,234 @@ test("the meal-row expander's focus ring and item layout rules in macros.css", a
     expect(amt).toContain("min-width: 0;");
     expect(amt).toContain("max-width: 32%;");
     expect(amt).toContain("overflow-wrap: anywhere;");
+});
+
+// ---- Saturated and trans fat, from the result's `_meta` --------------------
+// The payload is SaturatedFatMeta (src/saturated-fat.ts): saturated fat's
+// ceiling and per-day figures, with per-meal values joined by position. Trans
+// fat has no ceiling and no goal, whatever its payload says.
+const SAT_DAY = {
+    v: 1,
+    goal: 20,
+    days: { "2026-10-04": 24.5 },
+    meals: { "meal-a": 14.2, "meal-b": 10.3 },
+};
+const SAT_ROWS = [
+    { description: "Cheese toastie", calories: 480 },
+    { description: "Cola", calories: 140 },
+];
+
+test("without saturated-fat `_meta` the strip is unchanged", () => {
+    const out = macrosApi.withSaturatedFat(
+        undefined,
+        ["2026-10-04"],
+        VALS,
+        GOALS,
+        SAT_ROWS,
+    );
+    expect(out.vals).toBe(VALS);
+    expect(out.goal).toBe(GOALS);
+    expect(out.meals).toBe(SAT_ROWS);
+    expect(macrosApi.macroPanel(out.vals, out.goal, undefined, out.meals)).toBe(
+        macrosApi.macroPanel(VALS, GOALS, undefined, SAT_ROWS),
+    );
+});
+
+test("saturated fat opens the fats row with its ceiling beside it", () => {
+    const out = macrosApi.withSaturatedFat(
+        SAT_DAY,
+        ["2026-10-04"],
+        VALS,
+        GOALS,
+        null,
+    );
+    expect(out.vals.saturated_fat_g).toBe(24.5);
+    expect(out.goal!.saturated_fat_g).toBe(20);
+    const html = macrosApi.macroPanel(out.vals, out.goal, undefined, null);
+    expect(limitRows(html)[0]).toEqual({
+        cls: "mgrid lim pair psec",
+        style: "--lc:2;--lcw:2",
+        keys: ["Saturated fat"],
+    });
+    expect(limitKeys(html)).toEqual([
+        "Saturated fat",
+        "Sugar",
+        "Alcohol",
+        "Caffeine",
+        "Fiber",
+    ]);
+    expect(html).toContain("limit 20 g · 4.5 g over");
+});
+
+test("a limit with no recorded saturated fat that day says not recorded", () => {
+    const out = macrosApi.withSaturatedFat(
+        { v: 1, goal: 20, days: { "2026-10-04": null } },
+        ["2026-10-04"],
+        VALS,
+        GOALS,
+        null,
+    );
+    expect(out.vals.saturated_fat_g).toBeUndefined();
+    const html = macrosApi.macroPanel(out.vals, out.goal, undefined, null);
+    expect(html).toContain("not recorded");
+    expect(limitKeys(html)[0]).toBe("Saturated fat");
+});
+
+test("with no saturated-fat limit and no figure the cell stays hidden", () => {
+    const out = macrosApi.withSaturatedFat(
+        { v: 1, goal: null, days: { "2026-10-04": null } },
+        ["2026-10-04"],
+        VALS,
+        GOALS,
+        null,
+    );
+    const html = macrosApi.macroPanel(out.vals, out.goal, undefined, null);
+    expect(html).not.toContain("Saturated fat");
+    expect(html).not.toContain("lim pair");
+});
+
+test("trans fat shows its figure with no limit, beside saturated fat", () => {
+    const out = macrosApi.withSaturatedFat(
+        {
+            v: 1,
+            goal: 20,
+            days: { "2026-10-04": 24.5 },
+            trans: { days: { "2026-10-04": 0.4 }, goal: 2 },
+        },
+        ["2026-10-04"],
+        VALS,
+        GOALS,
+        null,
+    );
+    expect(out.vals.trans_fat_g).toBe(0.4);
+    // A trans goal in the payload is ignored: trans fat has no ceiling.
+    expect(out.goal!.trans_fat_g).toBeUndefined();
+    const html = macrosApi.macroPanel(out.vals, out.goal, undefined, null);
+    expect(limitRows(html)[0]).toEqual({
+        cls: "mgrid lim pair psec",
+        style: "--lc:2;--lcw:2",
+        keys: ["Saturated fat", "Trans fat"],
+    });
+    expect(html).toContain(
+        '<span class="mnum">0.4<span class="msub"> g</span></span>',
+    );
+    expect(html).toContain("no goal set");
+});
+
+test("a lone trans fat cell takes its own half-width row, leaving four limits", () => {
+    const out = macrosApi.withSaturatedFat(
+        { v: 1, goal: null, trans: { days: { "2026-10-04": 0.4 } } },
+        ["2026-10-04"],
+        VALS,
+        GOALS,
+        null,
+    );
+    const html = macrosApi.macroPanel(out.vals, out.goal, undefined, null);
+    expect(limitRows(html)).toEqual([
+        {
+            cls: "mgrid lim pair psec",
+            style: "--lc:2;--lcw:2",
+            keys: ["Trans fat"],
+        },
+        {
+            cls: "mgrid lim n4 psec",
+            style: "--lc:2;--lcw:4",
+            keys: ["Sugar", "Alcohol", "Caffeine", "Fiber"],
+        },
+    ]);
+});
+
+test("malformed or future saturated-fat `_meta` merges nothing", () => {
+    expect(macrosApi.saturatedFatPayload({ v: 2, goal: 20 })).toBeNull();
+    expect(macrosApi.saturatedFatPayload("nope")).toBeNull();
+    const out = macrosApi.withSaturatedFat(
+        { v: 2, goal: 20, days: { "2026-10-04": 24.5 } },
+        ["2026-10-04"],
+        VALS,
+        GOALS,
+        SAT_ROWS,
+    );
+    expect(out.vals).toBe(VALS);
+    expect(out.goal).toBe(GOALS);
+    expect(out.meals).toBe(SAT_ROWS);
+});
+
+test("non-finite day figures are not recorded, never zero", () => {
+    const out = macrosApi.withSaturatedFat(
+        {
+            v: 1,
+            goal: null,
+            days: {
+                "2026-10-04": "24" as unknown as number,
+                "2026-10-05": NaN,
+            },
+        },
+        ["2026-10-04", "2026-10-05"],
+        VALS,
+        GOALS,
+        null,
+    );
+    expect(out.vals.saturated_fat_g).toBeUndefined();
+});
+
+test("per-meal values join by position, and only when the counts agree", () => {
+    const joined = macrosApi.withSaturatedFat(
+        SAT_DAY,
+        ["2026-10-04"],
+        VALS,
+        GOALS,
+        SAT_ROWS,
+    ).meals as Array<Record<string, unknown>>;
+    expect(joined[0]!.saturated_fat_g).toBe(14.2);
+    expect(joined[1]!.saturated_fat_g).toBe(10.3);
+    // A row the payload does not have a figure for gets null, not 0.
+    const partial = macrosApi.withSaturatedFat(
+        { v: 1, goal: null, meals: { "meal-a": null, "meal-b": 3 } },
+        [],
+        VALS,
+        GOALS,
+        SAT_ROWS,
+    ).meals as Array<Record<string, unknown>>;
+    expect(partial[0]!.saturated_fat_g).toBeNull();
+    // A count mismatch leaves the rows as they were.
+    const mismatch = macrosApi.withSaturatedFat(SAT_DAY, [], VALS, GOALS, [
+        SAT_ROWS[0],
+    ]).meals as Array<Record<string, unknown>>;
+    expect(mismatch[0]).toBe(SAT_ROWS[0]);
+});
+
+test("ingredient rows show each item's saturated fat, biggest first", () => {
+    const meals = macrosApi.withMealItems(
+        macrosApi.mealItemsPayload({
+            v: 1,
+            meals: [
+                [
+                    {
+                        name: "Cheese",
+                        amount: 30,
+                        unit: "g",
+                        saturated_fat_g: 6.1,
+                    },
+                    {
+                        name: "Bread",
+                        amount: 60,
+                        unit: "g",
+                        saturated_fat_g: 0.2,
+                    },
+                ],
+                null,
+            ],
+        }),
+        [
+            { description: "Toastie", saturated_fat_g: 6.3 },
+            { description: "Cola", saturated_fat_g: 0 },
+        ],
+    );
+    const html = macrosApi.mealList(
+        macroOf("saturated_fat_g"),
+        meals as unknown[],
+    );
+    expect(html.indexOf("Cheese")).toBeLessThan(html.indexOf("Bread"));
+    expect(html).toContain("6.1");
+    expect(html).toContain("Toastie");
 });

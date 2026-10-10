@@ -868,3 +868,109 @@ describe("resolveCachedLookup", () => {
         );
     });
 });
+
+describe("fetchProductFromOFF saturated and trans fat", () => {
+    test("reads the per-serving saturated-fat and trans-fat keys beside fat", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Butter Croissant",
+                    serving_size: "60 g",
+                    nutriments: {
+                        "energy-kcal_serving": 250,
+                        fat_serving: 14,
+                        "saturated-fat_serving": 8.5,
+                        "trans-fat_serving": 0.3,
+                        "saturated-fat_100g": 14.2,
+                        "trans-fat_100g": 0.5,
+                    },
+                },
+            }),
+        );
+        const food = await fetchProductFromOFF("3017620422003");
+        expect(food!.saturated_fat_g).toBe(8.5);
+        expect(food!.trans_fat_g).toBe(0.3);
+    });
+
+    test("falls back to the per-100 g basis, like every other nutrient", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Hazelnut Spread",
+                    nutriments: {
+                        "energy-kcal_100g": 540,
+                        "saturated-fat_100g": 10.6,
+                        "trans-fat_100g": 0,
+                    },
+                },
+            }),
+        );
+        const food = await fetchProductFromOFF("3017620422003");
+        expect(food!.serving).toBe("100 g");
+        expect(food!.saturated_fat_g).toBe(10.6);
+        expect(food!.trans_fat_g).toBe(0);
+    });
+
+    test("a product that does not state them reads as not recorded, never 0", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Sparkling Water",
+                    nutriments: { "energy-kcal_100g": 0 },
+                },
+            }),
+        );
+        const food = await fetchProductFromOFF("3017620422003");
+        expect(food!.saturated_fat_g).toBeNull();
+        expect(food!.trans_fat_g).toBeNull();
+    });
+});
+
+describe("saturated and trans fat in cached rows and text", () => {
+    const cached: FoodResult = {
+        name: "Coconut Milk",
+        brand: null,
+        serving: "100 g",
+        calories: 230,
+        protein_g: 2,
+        carbs_g: 6,
+        fat_g: 24,
+        saturated_fat_g: 21,
+        trans_fat_g: 0,
+        fiber_g: 0,
+        sugar_g: 3,
+        added_sugar_g: null,
+        added_sugar_estimated: false,
+        alcohol_g: null,
+        nutriscore_grade: null,
+        nova_group: null,
+        source: "off:737628064502",
+        source_name: "openfoodfacts",
+        barcode: "737628064502",
+    };
+
+    test("a cached row from before the fields shipped is backfilled null, not refetched", () => {
+        const { saturated_fat_g: _s, trans_fat_g: _t, ...old } = cached;
+        const hit = fromCachedPayload(old as FoodResult);
+        // Still fresh: the saturated-fat keys do not make the row stale, so a
+        // cache hit never triggers an Open Food Facts refetch for them.
+        expect(hit!.stale).toBe(false);
+        expect(hit!.food.saturated_fat_g).toBeNull();
+        expect(hit!.food.trans_fat_g).toBeNull();
+    });
+
+    test("a cached row that carries them keeps them", () => {
+        const hit = fromCachedPayload(cached);
+        expect(hit!.food.saturated_fat_g).toBe(21);
+        expect(hit!.food.trans_fat_g).toBe(0);
+    });
+
+    test("the lookup text names both, and says n/a for a figure not recorded", () => {
+        const text = formatFoodResult({ ...cached, trans_fat_g: null });
+        expect(text).toContain("Saturated fat: 21 g");
+        expect(text).toContain("Trans fat: n/a");
+    });
+});

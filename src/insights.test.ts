@@ -1,9 +1,9 @@
-import { test, expect } from "bun:test";
+import { test, expect, describe } from "bun:test";
 import {
     buildDailyBuckets,
     computeTrends,
     computeWeeklyDigest,
-    addedSugarNotRecorded,
+    limitNotRecorded,
     computeWeightTrend,
     type DailyBucket,
 } from "./insights.js";
@@ -779,17 +779,17 @@ test("computeWeeklyDigest states an unrecorded week against the limit", () => {
     }
 });
 
-test("addedSugarNotRecorded: one wording, rounded like every gram figure", () => {
-    expect(addedSugarNotRecorded("day", 29)).toBe(
+test("limitNotRecorded: one wording, rounded like every gram figure", () => {
+    expect(limitNotRecorded("day", 29)).toBe(
         "not recorded on this day (limit 29g)",
     );
-    expect(addedSugarNotRecorded("period", 27.46)).toBe(
+    expect(limitNotRecorded("period", 27.46)).toBe(
         "not recorded in this period (limit 27.5g)",
     );
     // Describes the gap, never directs the reader.
     for (const t of [
-        addedSugarNotRecorded("day", 0),
-        addedSugarNotRecorded("period", 25),
+        limitNotRecorded("day", 0),
+        limitNotRecorded("period", 25),
     ])
         expect(t).not.toMatch(
             /\b(ask|offer|should|estimate|call|tell|suggest|please|must)\b/i,
@@ -1026,4 +1026,82 @@ test("computeWeeklyDigest keeps the plain header on a fully logged week", () => 
     const out = computeWeeklyDigest(buckets, goals());
     expect(out).toContain("Daily averages:");
     expect(out).not.toContain("per calendar day");
+});
+
+describe("saturated and trans fat", () => {
+    const water: never[] = [];
+    const sat = (date: string, saturated: number | null) => {
+        const meals: Meal[] = [
+            {
+                id: `m-${date}`,
+                user_id: "u1",
+                logged_at: `${date}T12:00:00.000Z`,
+                meal_type: "lunch",
+                description: "Lunch",
+                calories: 500,
+                fat_g: 20,
+                saturated_fat_g: saturated,
+                trans_fat_g: null,
+            } as unknown as Meal,
+        ];
+        return meals;
+    };
+
+    test("a set ceiling with nothing recorded says so in the trends window", () => {
+        const buckets = buildDailyBuckets(
+            sat("2026-07-26", null),
+            water,
+            "2026-07-25",
+            "2026-07-26",
+            "UTC",
+        );
+        const out = computeTrends(buckets, {
+            daily_saturated_fat_g: 20,
+        } as unknown as NutritionGoals);
+        expect(out).toContain(
+            `Saturated fat: ${limitNotRecorded("period", 20)}`,
+        );
+        expect(out).not.toContain("Trans fat:");
+    });
+
+    test("recorded saturated fat gets its limit line, and trans fat its value", () => {
+        const meals = [
+            ...sat("2026-07-26", 12),
+            {
+                ...sat("2026-07-26", null)[0]!,
+                id: "m-trans",
+                trans_fat_g: 0.4,
+            } as unknown as Meal,
+        ];
+        const buckets = buildDailyBuckets(
+            meals,
+            water,
+            "2026-07-26",
+            "2026-07-26",
+            "UTC",
+        );
+        const out = computeTrends(buckets, {
+            daily_saturated_fat_g: 20,
+        } as unknown as NutritionGoals);
+        expect(out).toContain("Saturated fat:");
+        expect(out).toContain("Limit: 20g");
+        expect(out).toContain("Trans fat:");
+        expect(out).not.toContain("Trans fat:\n  Limit");
+    });
+
+    test("the weekly digest names the saturated limit beside a not-recorded week", () => {
+        const buckets = buildDailyBuckets(
+            sat("2026-07-26", null),
+            water,
+            "2026-07-20",
+            "2026-07-26",
+            "UTC",
+        );
+        const out = computeWeeklyDigest(buckets, {
+            daily_saturated_fat_g: 20,
+        } as unknown as NutritionGoals);
+        expect(out).toContain(
+            `Saturated fat: ${limitNotRecorded("period", 20)}`,
+        );
+    });
 });

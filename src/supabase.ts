@@ -195,6 +195,12 @@ export interface Meal {
     protein_g: number | null;
     carbs_g: number | null;
     fat_g: number | null;
+    // Saturated and trans fat, grams, both inside fat_g. NULL means not
+    // recorded (rows logged before the columns existed, or a call that did not
+    // give the value), never 0. Trans fat has no goal; saturated fat has a
+    // daily ceiling (see NutritionGoals).
+    saturated_fat_g?: number | null;
+    trans_fat_g?: number | null;
     // Total sugars (not added sugar); alcohol is pure ethanol in grams.
     fiber_g: number | null;
     sugar_g: number | null;
@@ -222,6 +228,9 @@ export interface MealInput {
     protein_g?: number;
     carbs_g?: number;
     fat_g?: number;
+    // See Meal.saturated_fat_g.
+    saturated_fat_g?: number;
+    trans_fat_g?: number;
     fiber_g?: number;
     sugar_g?: number;
     // See Meal.added_sugar_g.
@@ -257,8 +266,8 @@ export function mealIdempotencyKey(
     loggedAt: string,
 ): string {
     // DO NOT ADD FIELDS TO THIS ARRAY. It is deliberately incomplete:
-    // fiber_g, sugar_g, alcohol_g and caffeine_mg are EXCLUDED on purpose, and
-    // any future meal column must be too. The digest is positional over exactly
+    // saturated_fat_g, trans_fat_g, fiber_g, sugar_g, alcohol_g and caffeine_mg
+    // are EXCLUDED on purpose, and any future meal column must be too. The digest is positional over exactly
     // these values, so appending one changes the derived key of every future
     // write — a user re-logging or re-importing something they already have
     // would get a duplicate row instead of a clean no-op, and every "auto:" key
@@ -266,8 +275,8 @@ export function mealIdempotencyKey(
     // already (see CLAUDE.md, "Bulk meal import"); the mirror of this array is
     // rowContentDigest in src/import.ts, which carries the same warning.
     //
-    // Accepted consequence: two meals identical except for their fiber (or
-    // sugar, or alcohol, or caffeine) dedupe to one. Dedup stability beats
+    // Accepted consequence: two meals identical except for their fat split (or
+    // fiber, sugar, alcohol, or caffeine) dedupe to one. Dedup stability beats
     // precision here, and a caller who needs distinct rows can pass an explicit
     // idempotency_key.
     return deriveIdempotencyKey([
@@ -387,6 +396,8 @@ export async function insertMeal(
             protein_g: meal.protein_g ?? null,
             carbs_g: meal.carbs_g ?? null,
             fat_g: meal.fat_g ?? null,
+            saturated_fat_g: meal.saturated_fat_g ?? null,
+            trans_fat_g: meal.trans_fat_g ?? null,
             fiber_g: meal.fiber_g ?? null,
             sugar_g: meal.sugar_g ?? null,
             added_sugar_g: meal.added_sugar_g ?? null,
@@ -811,6 +822,10 @@ export async function updateMeal(
     if (fields.protein_g !== undefined) update.protein_g = fields.protein_g;
     if (fields.carbs_g !== undefined) update.carbs_g = fields.carbs_g;
     if (fields.fat_g !== undefined) update.fat_g = fields.fat_g;
+    if (fields.saturated_fat_g !== undefined)
+        update.saturated_fat_g = fields.saturated_fat_g;
+    if (fields.trans_fat_g !== undefined)
+        update.trans_fat_g = fields.trans_fat_g;
     if (fields.fiber_g !== undefined) update.fiber_g = fields.fiber_g;
     if (fields.sugar_g !== undefined) update.sugar_g = fields.sugar_g;
     if (fields.added_sugar_g !== undefined)
@@ -879,6 +894,8 @@ const NUTRIENT_KEYS: readonly MealNutrientKey[] = [
     "protein_g",
     "carbs_g",
     "fat_g",
+    "saturated_fat_g",
+    "trans_fat_g",
     "fiber_g",
     "sugar_g",
     "added_sugar_g",
@@ -925,6 +942,8 @@ function itemPayload(item: MealItemValues): Record<string, unknown> {
         protein_g: item.protein_g,
         carbs_g: item.carbs_g,
         fat_g: item.fat_g,
+        saturated_fat_g: item.saturated_fat_g ?? null,
+        trans_fat_g: item.trans_fat_g ?? null,
         fiber_g: item.fiber_g ?? null,
         sugar_g: item.sugar_g ?? null,
         added_sugar_g: item.added_sugar_g ?? null,
@@ -1078,6 +1097,8 @@ async function insertMealWithItems(
             protein_g: meal.protein_g ?? null,
             carbs_g: meal.carbs_g ?? null,
             fat_g: meal.fat_g ?? null,
+            saturated_fat_g: meal.saturated_fat_g ?? null,
+            trans_fat_g: meal.trans_fat_g ?? null,
             fiber_g: meal.fiber_g ?? null,
             sugar_g: meal.sugar_g ?? null,
             added_sugar_g: meal.added_sugar_g ?? null,
@@ -1744,6 +1765,9 @@ export interface NutritionGoals {
     daily_protein_g: number | null;
     daily_carbs_g: number | null;
     daily_fat_g: number | null;
+    // Saturated fat is a ceiling like sugar (0 is a real limit, "none").
+    // Trans fat has no goal.
+    daily_saturated_fat_g?: number | null;
     daily_fiber_g: number | null;
     // Total sugars, and pure ethanol. Both are ceilings ("stay under"), unlike
     // every other goal here, which is a floor — see formatGoalLine in mcp.ts.
@@ -1765,6 +1789,7 @@ export interface NutritionGoalsInput {
     daily_protein_g?: number | null;
     daily_carbs_g?: number | null;
     daily_fat_g?: number | null;
+    daily_saturated_fat_g?: number | null;
     daily_fiber_g?: number | null;
     daily_sugar_g?: number | null;
     daily_added_sugar_g?: number | null;
@@ -1804,6 +1829,7 @@ export async function upsertNutritionGoals(
                 daily_protein_g: input.daily_protein_g ?? null,
                 daily_carbs_g: input.daily_carbs_g ?? null,
                 daily_fat_g: input.daily_fat_g ?? null,
+                daily_saturated_fat_g: input.daily_saturated_fat_g ?? null,
                 daily_fiber_g: input.daily_fiber_g ?? null,
                 daily_sugar_g: input.daily_sugar_g ?? null,
                 daily_added_sugar_g: input.daily_added_sugar_g ?? null,

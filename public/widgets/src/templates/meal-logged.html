@@ -203,6 +203,11 @@
             // because the frozen outputSchema can gain no field. Must equal
             // ADDED_SUGAR_META_KEY in src/widgets.ts.
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            // Where the same result carries the saturated- and trans-fat figures
+            // (SaturatedFatMeta, src/saturated-fat.ts), under the same frozen-schema
+            // reasoning as added sugar. Must equal SATURATED_FAT_META_KEY in
+            // src/widgets.ts.
+            const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
             // Where the same result carries each listed meal's ingredients
             // ({ v: 1, meals: [items | null, …] }, aligned with data.meals by
             // position), for the breakdown's expandable rows. Must equal
@@ -242,7 +247,20 @@
                     data.goals,
                     data.meals,
                 );
-                // Ingredients join the rows the same way, after added sugar;
+                // Saturated and trans fat join the strip the same way, after added
+                // sugar (withSaturatedFat): each figure is the mean over the days that
+                // recorded it, and without `_meta` the strip is unchanged.
+                Object.assign(
+                    merged,
+                    withSaturatedFat(
+                        meta && meta[SATURATED_FAT_META_KEY],
+                        [data.date],
+                        merged.vals,
+                        merged.goal,
+                        merged.meals,
+                    ),
+                );
+                // Ingredients join the rows the same way, last;
                 // without `_meta` this is merged.meals itself.
                 const rows = withMealItems(
                     mealItemsPayload(meta && meta[MEAL_ITEMS_META_KEY]),

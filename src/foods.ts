@@ -41,6 +41,11 @@ export interface FoodResult {
     protein_g: number | null;
     carbs_g: number | null;
     fat_g: number | null;
+    // SATURATED and TRANS fat, parts of fat_g. Optional only so FoodResult
+    // literals written before they shipped still type-check; every result this
+    // module builds, and every cache hit (see fromCachedPayload), carries both.
+    saturated_fat_g?: number | null;
+    trans_fat_g?: number | null;
     fiber_g: number | null;
     sugar_g: number | null; // TOTAL sugars, incl. naturally occurring
     // ADDED sugars (the US label definition), part of sugar_g and never above
@@ -239,6 +244,10 @@ function normalizeOFFProduct(product: OFFProduct, barcode: string): FoodResult {
         protein_g: pick("proteins_serving", "proteins_100g"),
         carbs_g: pick("carbohydrates_serving", "carbohydrates_100g"),
         fat_g: pick("fat_serving", "fat_100g"),
+        // OFF's saturated-fat_* and trans-fat_* sit beside fat_*. Trans fat is
+        // sparse outside the US label data, so null is the common case.
+        saturated_fat_g: pick("saturated-fat_serving", "saturated-fat_100g"),
+        trans_fat_g: pick("trans-fat_serving", "trans-fat_100g"),
         // OFF spells it "fiber" (American) — no "fibre_*" key exists; confirmed
         // across 100 products, where only fiber_100g / fiber_serving appear.
         fiber_g: pick("fiber_serving", "fiber_100g"),
@@ -319,9 +328,9 @@ export async function fetchProductFromOFF(
  * outage or a since-deleted product never turns yesterday's cache hit into an
  * error.
  *
- * Rows cached before fiber/sugar/alcohol/nutriscore/nova shipped have no
- * such keys either; those are backfilled rather than refetched (an accepted
- * gap). Deserialized they would be `undefined`, not `null` — and an undefined
+ * Rows cached before fiber/sugar/alcohol/nutriscore/nova — and before
+ * saturated and trans fat — have no such keys either; those are backfilled
+ * rather than refetched (an accepted gap). Deserialized they would be `undefined`, not `null` — and an undefined
  * field is an ABSENT one once it reaches a structuredContent literal, which
  * for a .nullable() (hence *required*) schema field is a validation failure
  * rather than a null. Backfill explicitly so a cache hit and a fresh fetch
@@ -334,6 +343,11 @@ export function fromCachedPayload(
     return {
         food: {
             ...payload,
+            // Backfilled, not refetched: a cached row from before these fields
+            // shipped reads as "not recorded" until its TTL lapses, the same
+            // accepted gap as fiber above.
+            saturated_fat_g: payload.saturated_fat_g ?? null,
+            trans_fat_g: payload.trans_fat_g ?? null,
             fiber_g: payload.fiber_g ?? null,
             sugar_g: payload.sugar_g ?? null,
             added_sugar_g: payload.added_sugar_g ?? null,
@@ -484,6 +498,10 @@ export function formatFoodResult(
             "g",
         )} · Carbs: ${macro(food.carbs_g, "g")} · Fat: ${macro(
             food.fat_g,
+            "g",
+        )}`,
+        `Saturated fat: ${macro(food.saturated_fat_g ?? null, "g")} · Trans fat: ${macro(
+            food.trans_fat_g ?? null,
             "g",
         )}`,
         `Fiber: ${macro(food.fiber_g, "g")} · Sugar (total): ${macro(

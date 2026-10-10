@@ -106,6 +106,11 @@ export interface ImportRow {
     protein_g?: number;
     carbs_g?: number;
     fat_g?: number;
+    /** Grams of saturated fat, a part of fat_g. Optional and never a gate: a
+     *  row without it imports with saturated fat not recorded. */
+    saturated_fat_g?: number;
+    /** Grams of trans fat. Optional; never part of a goal. */
+    trans_fat_g?: number;
     fiber_g?: number;
     /** TOTAL sugars, including sugar naturally present in fruit and milk —
      *  never "added sugar", which has its own field below. */
@@ -709,6 +714,8 @@ export function validateRow(
         ["protein_g", row.protein_g, MAX_MACRO_G, "g"],
         ["carbs_g", row.carbs_g, MAX_MACRO_G, "g"],
         ["fat_g", row.fat_g, MAX_MACRO_G, "g"],
+        ["saturated_fat_g", row.saturated_fat_g, MAX_MACRO_G, "g"],
+        ["trans_fat_g", row.trans_fat_g, MAX_MACRO_G, "g"],
         ["fiber_g", row.fiber_g, MAX_MACRO_G, "g"],
         ["sugar_g", row.sugar_g, MAX_MACRO_G, "g"],
         ["added_sugar_g", row.added_sugar_g, MAX_MACRO_G, "g"],
@@ -748,6 +755,9 @@ export function validateRow(
     if (row.protein_g !== undefined) input.protein_g = row.protein_g;
     if (row.carbs_g !== undefined) input.carbs_g = row.carbs_g;
     if (row.fat_g !== undefined) input.fat_g = row.fat_g;
+    if (row.saturated_fat_g !== undefined)
+        input.saturated_fat_g = row.saturated_fat_g;
+    if (row.trans_fat_g !== undefined) input.trans_fat_g = row.trans_fat_g;
     if (row.fiber_g !== undefined) input.fiber_g = row.fiber_g;
     if (row.sugar_g !== undefined) input.sugar_g = row.sugar_g;
     if (row.added_sugar_g !== undefined)
@@ -794,8 +804,8 @@ function sha256Hex(parts: (string | number | null | undefined)[]): string {
 /** Content digest of a resolved row. Excludes source_line so that re-exporting
  *  a file with lines added or removed still dedupes against a prior import. */
 export function rowContentDigest(userId: string, input: MealInput): string {
-    // DO NOT ADD fiber_g, sugar_g, added_sugar_g, alcohol_g OR caffeine_mg TO
-    // THIS ARRAY.
+    // DO NOT ADD saturated_fat_g, trans_fat_g, fiber_g, sugar_g, added_sugar_g,
+    // alcohol_g OR caffeine_mg TO THIS ARRAY.
     //
     // The list below is not "the fields of a meal" — it is a frozen positional
     // hash input. Appending to it changes the digest of every row hashed from
@@ -805,8 +815,8 @@ export function rowContentDigest(userId: string, input: MealInput): string {
     // deriveIdempotencyKey in src/supabase.ts is frozen for the same reason and
     // must stay in step with this one.
     //
-    // The accepted cost: two meals differing ONLY in fiber/sugar/alcohol/caffeine
-    // collapse to one. Dedup stability is worth more than that precision here,
+    // The accepted cost: two meals differing ONLY in saturated or trans fat,
+    // fiber, sugar, alcohol or caffeine collapse to one. Dedup stability is worth more than that precision here,
     // and a caller that needs the rows kept apart can pass an explicit
     // idempotency_key.
     return sha256Hex([

@@ -65,6 +65,12 @@ const CSV_COLUMNS = [
     "protein_g",
     "carbs_g",
     "fat_g",
+    // Parts of fat_g, placed right after it so the fat columns read together.
+    // Both are null where nothing was recorded, never 0. The importer matches
+    // by header name, so an export written before these columns existed still
+    // re-imports.
+    "saturated_fat_g",
+    "trans_fat_g",
     "fiber_g",
     "sugar_g",
     // Added sugars only (the US label definition) — a part of sugar_g, never
@@ -144,6 +150,8 @@ export function buildMealsCsv(meals: Meal[], tz: string): string {
                 csvEscape(m.protein_g),
                 csvEscape(m.carbs_g),
                 csvEscape(m.fat_g),
+                csvEscape(m.saturated_fat_g),
+                csvEscape(m.trans_fat_g),
                 csvEscape(m.fiber_g),
                 csvEscape(m.sugar_g),
                 csvEscape(m.added_sugar_g),
@@ -168,6 +176,8 @@ const NUTRIENT_CSV_COLUMNS = [
     "protein_g",
     "carbs_g",
     "fat_g",
+    "saturated_fat_g",
+    "trans_fat_g",
     "fiber_g",
     "sugar_g",
     "added_sugar_g",
@@ -175,9 +185,17 @@ const NUTRIENT_CSV_COLUMNS = [
     "caffeine_mg",
 ] as const;
 
+// The two optional-in-the-row columns are optional here too, because the rows
+// they type come from the same optional NutrientValues the write path uses, so
+// a row read from a database that predates them is still a valid input.
 type ExportNutrients = {
-    [K in (typeof NUTRIENT_CSV_COLUMNS)[number]]: number | null;
-};
+    [
+        K in Exclude<
+            (typeof NUTRIENT_CSV_COLUMNS)[number],
+            "saturated_fat_g" | "trans_fat_g"
+        >
+    ]: number | null;
+} & { saturated_fat_g?: number | null; trans_fat_g?: number | null };
 
 /** A logged meal's ingredient row, as getAllMealItems returns it. */
 export interface MealItemExportRow extends ExportNutrients {
@@ -481,6 +499,9 @@ const GOALS_CSV_COLUMNS = [
     "daily_protein_g",
     "daily_carbs_g",
     "daily_fat_g",
+    // The daily limit for saturated fat. There is no trans-fat goal, so no
+    // daily_trans_fat_g column.
+    "daily_saturated_fat_g",
     "daily_fiber_g",
     "daily_sugar_g",
     "daily_added_sugar_g",
@@ -529,6 +550,7 @@ export function buildGoalsHistoryCsv(
                 csvEscape(h.daily_protein_g),
                 csvEscape(h.daily_carbs_g),
                 csvEscape(h.daily_fat_g),
+                csvEscape(h.daily_saturated_fat_g),
                 csvEscape(h.daily_fiber_g),
                 csvEscape(h.daily_sugar_g),
                 csvEscape(h.daily_added_sugar_g),
@@ -559,6 +581,7 @@ export function buildGoalsCsv(
                 csvEscape(goals.daily_protein_g),
                 csvEscape(goals.daily_carbs_g),
                 csvEscape(goals.daily_fat_g),
+                csvEscape(goals.daily_saturated_fat_g),
                 csvEscape(goals.daily_fiber_g),
                 csvEscape(goals.daily_sugar_g),
                 csvEscape(goals.daily_added_sugar_g),
@@ -984,6 +1007,7 @@ export function buildExportReadme(opts: {
         "The unit is part of every column name, because these columns do not all agree:",
         "  * _g columns are grams; alcohol_g and daily_alcohol_g are grams of pure ethanol, not the volume of the drink.",
         "  * added_sugar_g counts only sugars added during processing or preparation; it is part of sugar_g (total sugars), never more than it. daily_added_sugar_g is the daily limit for added sugars, separate from daily_sugar_g (total sugars).",
+        "  * saturated_fat_g and trans_fat_g are parts of fat_g, in grams. daily_saturated_fat_g is the daily limit for saturated fat; trans fat has no daily limit.",
         "  * caffeine_mg and daily_caffeine_mg are MILLIGRAMS, unlike every gram column beside them. A cup of coffee is about 95 mg.",
         "  * amount_ml, daily_water_ml and water_ml are millilitres.",
         `  * weight_g and target_weight_g are grams — the canonical form the server stores. weight.csv also gives weight_display in ${weightUnit}, with weight_unit naming it, so you do not have to divide anything by hand.`,

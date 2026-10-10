@@ -51,6 +51,8 @@ function nutrients(overrides: Partial<NutrientValues> = {}): NutrientValues {
         protein_g: null,
         carbs_g: null,
         fat_g: null,
+        saturated_fat_g: null,
+        trans_fat_g: null,
         fiber_g: null,
         sugar_g: null,
         added_sugar_g: null,
@@ -547,6 +549,30 @@ describe("insertMeal with items or a saved meal", () => {
         expect(requests.filter((r) => r.table === "meals")).toHaveLength(0);
     });
 
+    test("saturated and trans fat reach the meal row and each item row through the rpc (#201)", async () => {
+        const items = [
+            item(1, { name: "cheese", saturated_fat_g: 21, trans_fat_g: null }),
+            item(2, { name: "bread", saturated_fat_g: 0.5, trans_fat_g: 0.1 }),
+        ];
+        await insertMeal(
+            USER,
+            mealInput({ items, saturated_fat_g: 21.5, trans_fat_g: 0.1 }),
+        );
+        const p_meal = rpcCalls[0]!.args.p_meal as Record<string, unknown>;
+        expect(p_meal).toMatchObject({
+            saturated_fat_g: 21.5,
+            trans_fat_g: 0.1,
+        });
+        expect(tables.meal_items).toEqual([
+            expect.objectContaining({ name: "cheese", trans_fat_g: null }),
+            expect.objectContaining({
+                name: "bread",
+                saturated_fat_g: 0.5,
+                trans_fat_g: 0.1,
+            }),
+        ]);
+    });
+
     test("items do not change the derived idempotency key", async () => {
         const withItems = await insertMeal(
             USER,
@@ -873,6 +899,24 @@ describe("saved meals", () => {
         await createSavedMeal(USER, porridge, []);
         const other = await createSavedMeal(OTHER, porridge, []);
         expect(other.user_id).toBe(OTHER);
+    });
+
+    test("create sends both fats on the saved meal and on each ingredient (#201)", async () => {
+        await createSavedMeal(
+            USER,
+            { ...porridge, saturated_fat_g: 2, trans_fat_g: null },
+            [item(1, { saturated_fat_g: 2, trans_fat_g: 0.05 })],
+        );
+        const p_saved = rpcCalls[0]!.args.p_saved as Record<string, unknown>;
+        expect(p_saved).toMatchObject({
+            saturated_fat_g: 2,
+            trans_fat_g: null,
+        });
+        const p_items = rpcCalls[0]!.args.p_items as Record<string, unknown>[];
+        expect(p_items[0]).toMatchObject({
+            saturated_fat_g: 2,
+            trans_fat_g: 0.05,
+        });
     });
 
     test("create rounds calories to an integer and returns the items it was given", async () => {

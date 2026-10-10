@@ -39,6 +39,7 @@ import {
     WEIGHT_SERIES_META_KEY,
     PERIOD_AVERAGES_META_KEY,
     ADDED_SUGAR_META_KEY,
+    SATURATED_FAT_META_KEY,
     MEAL_ITEMS_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
@@ -327,6 +328,8 @@ describe("nutrientPresence", () => {
         expect(
             nutrientPresence([meal(blank), meal({ ...blank, fiber_g: 3 })]),
         ).toEqual({
+            saturated_fat_g: false,
+            trans_fat_g: false,
             fiber_g: true,
             sugar_g: false,
             added_sugar_g: false,
@@ -337,6 +340,8 @@ describe("nutrientPresence", () => {
 
     test("an explicit zero is data — only null is absence", () => {
         expect(nutrientPresence([meal({ ...blank, fiber_g: 0 })])).toEqual({
+            saturated_fat_g: false,
+            trans_fat_g: false,
             fiber_g: true,
             sugar_g: false,
             added_sugar_g: false,
@@ -344,6 +349,8 @@ describe("nutrientPresence", () => {
             caffeine_mg: false,
         });
         expect(nutrientPresence([])).toEqual({
+            saturated_fat_g: false,
+            trans_fat_g: false,
             fiber_g: false,
             sugar_g: false,
             added_sugar_g: false,
@@ -364,6 +371,8 @@ describe("nutrientPresence", () => {
                 meal({ ...blank, caffeine_mg: 95 }),
             ]),
         ).toEqual({
+            saturated_fat_g: false,
+            trans_fat_g: false,
             fiber_g: false,
             sugar_g: false,
             added_sugar_g: false,
@@ -836,6 +845,8 @@ describe("gateAlcohol", () => {
         protein_g: 25,
         carbs_g: 90,
         fat_g: 20,
+        saturated_fat_g: 0,
+        trans_fat_g: 0,
         fiber_g: 6,
         sugar_g: 12,
         added_sugar_g: 0,
@@ -1423,6 +1434,8 @@ describe("trendsDayPayloadOf", () => {
         protein_g: 25,
         carbs_g: 90,
         fat_g: 20,
+        saturated_fat_g: 0,
+        trans_fat_g: 0,
         fiber_g: mealsForDay.reduce((s, m) => s + (m.fiber_g ?? 0), 0),
         sugar_g: mealsForDay.reduce((s, m) => s + (m.sugar_g ?? 0), 0),
         added_sugar_g: mealsForDay.reduce(
@@ -9902,6 +9915,8 @@ describe("meal items ride in _meta on every breakdown widget tool", () => {
         protein_g: NUTRIENT,
         carbs_g: NUTRIENT,
         fat_g: NUTRIENT,
+        saturated_fat_g: NUTRIENT,
+        trans_fat_g: NUTRIENT,
         fiber_g: NUTRIENT,
         sugar_g: NUTRIENT,
         added_sugar_g: NUTRIENT,
@@ -10139,4 +10154,155 @@ describe("meal items ride in _meta on every breakdown widget tool", () => {
             );
         },
     );
+});
+
+// Saturated fat rides in _meta beside added sugar (SATURATED_FAT_META_KEY,
+// built by buildSaturatedFatMeta in src/saturated-fat.ts), on every tool that
+// carries AddedSugarMeta. Its output schemas are frozen, so the figure is
+// asserted absent from structuredContent here and the frozen pin is checked
+// by the "output schemas" test above.
+describe("saturated fat rides in _meta on every widget tool", () => {
+    const SATURATED_META = z
+        .strictObject({
+            v: z.literal(1),
+            goal: z.number().nullable(),
+            days: z.record(z.string(), z.number().nullable()).optional(),
+            meals: z.record(z.string(), z.number().nullable()).optional(),
+            contributors: z.number().optional(),
+            extra: z
+                .array(
+                    z.strictObject({
+                        description: z.string(),
+                        meal_type: z.string().nullable(),
+                        date: z.string().nullable(),
+                        saturated_fat_g: z.number(),
+                    }),
+                )
+                .optional(),
+            trans: z
+                .strictObject({
+                    days: z
+                        .record(z.string(), z.number().nullable())
+                        .optional(),
+                    meals: z
+                        .record(z.string(), z.number().nullable())
+                        .optional(),
+                    contributors: z.number().optional(),
+                    extra: z
+                        .array(
+                            z.strictObject({
+                                description: z.string(),
+                                meal_type: z.string().nullable(),
+                                date: z.string().nullable(),
+                                trans_fat_g: z.number(),
+                            }),
+                        )
+                        .optional(),
+                })
+                .optional(),
+        })
+        .strict();
+    const DAY = "2026-07-26";
+
+    async function call(
+        client: Client,
+        name: string,
+        args: Record<string, unknown>,
+    ) {
+        const r = (await client.callTool({
+            name,
+            arguments: args,
+        })) as unknown as ToolResult;
+        expect(r.isError).toBeFalsy();
+        expect(r.structuredContent).toBeDefined();
+        // Nothing saturated fat touches may leak into structuredContent.
+        expect(JSON.stringify(r.structuredContent)).not.toContain("saturated");
+        const meta = SATURATED_META.parse(r._meta?.[SATURATED_FAT_META_KEY]);
+        return { r, meta };
+    }
+
+    describe.each(ERAS)("%p", (mode) => {
+        test("log_meal: the saturated goal, the day and the shown meal", async () => {
+            db.goals = goals({ daily_saturated_fat_g: 20 });
+            await withHttpClient("u1", mode, async (client) => {
+                const { meta } = await call(client, "log_meal", {
+                    description: "Cheese burger",
+                    meal_type: "dinner",
+                    calories: 600,
+                    fat_g: 30,
+                    saturated_fat_g: 12,
+                    logged_at: `${DAY}T18:00:00Z`,
+                });
+                expect(meta.goal).toBe(20);
+                expect(meta.days).toEqual({ [DAY]: 12 });
+                expect(meta.meals).toEqual({ [MEAL_ID]: 12 });
+            });
+        });
+
+        test("log_meal: no goal and no saturated fat is goal null, not a zero", async () => {
+            db.goals = goals({ daily_saturated_fat_g: null });
+            await withHttpClient("u1", mode, async (client) => {
+                const { meta } = await call(client, "log_meal", {
+                    description: "Rice",
+                    meal_type: "dinner",
+                    calories: 200,
+                    logged_at: `${DAY}T18:00:00Z`,
+                });
+                expect(meta.goal).toBeNull();
+                expect(meta.days).toEqual({ [DAY]: null });
+                expect(meta.meals).toEqual({ [MEAL_ID]: null });
+            });
+        });
+
+        test("update_meal: the same payload as log_meal", async () => {
+            db.goals = goals({ daily_saturated_fat_g: 20 });
+            db.meals = [
+                meal({
+                    logged_at: `${DAY}T18:00:00Z`,
+                    fat_g: 30,
+                    saturated_fat_g: null,
+                }),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const { meta } = await call(client, "update_meal", {
+                    id: MEAL_ID,
+                    saturated_fat_g: 9,
+                    logged_at: `${DAY}T18:00:00Z`,
+                });
+                expect(meta.goal).toBe(20);
+                expect(meta.days).toEqual({ [DAY]: 9 });
+            });
+        });
+
+        test("get_goal_progress, get_nutrition_summary and get_trends carry it", async () => {
+            db.goals = goals({ daily_saturated_fat_g: 20 });
+            db.meals = [
+                meal({
+                    logged_at: `${DAY}T12:00:00Z`,
+                    fat_g: 25,
+                    saturated_fat_g: 9,
+                }),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const progress = await call(client, "get_goal_progress", {
+                    date: DAY,
+                });
+                expect(progress.meta.goal).toBe(20);
+                expect(progress.meta.days).toEqual({ [DAY]: 9 });
+
+                const summary = await call(client, "get_nutrition_summary", {
+                    start_date: DAY,
+                    end_date: DAY,
+                });
+                expect(summary.meta.goal).toBe(20);
+                expect(summary.meta.days?.[DAY]).toBe(9);
+
+                const trends = await call(client, "get_trends", {
+                    end_date: DAY,
+                });
+                expect(trends.meta.goal).toBe(20);
+                expect(trends.meta.days?.[DAY]).toBe(9);
+            });
+        });
+    });
 });

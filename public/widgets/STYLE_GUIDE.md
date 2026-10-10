@@ -87,6 +87,8 @@ theme win in **both** directions (a light host inside a dark OS, and vice-versa)
     --fiber: #0d9488;
     --sugar: #65a30d;
     --added-sugar: #858a0b;
+    --saturated: #c2410c;
+    --trans: #475569;
     --fat: #f43f7e;
     --alcohol: #a21caf;
     --caffeine: #8b5e34;
@@ -118,6 +120,8 @@ theme win in **both** directions (a light host inside a dark OS, and vice-versa)
         --fiber: #14b8a6;
         --sugar: #a3e635;
         --added-sugar: #d4d03a;
+        --saturated: #fb923c;
+        --trans: #94a3b8;
         --fat: #fb7199;
         --alcohol: #e879f9;
         --caffeine: #c69a6d;
@@ -148,6 +152,8 @@ never repaint a whole series with one (see the over-goal convention in §4 and �
 | `--fiber`       | `#0d9488` | `#14b8a6` |
 | `--sugar`       | `#65a30d` | `#a3e635` |
 | `--added-sugar` | `#858a0b` | `#d4d03a` |
+| `--saturated`   | `#c2410c` | `#fb923c` |
+| `--trans`       | `#475569` | `#94a3b8` |
 | `--fat`         | `#f43f7e` | `#fb7199` |
 | `--alcohol`     | `#a21caf` | `#e879f9` |
 | `--caffeine`    | `#8b5e34` | `#c69a6d` |
@@ -818,6 +824,15 @@ the row existed. With added sugar shown and **sugar hidden** (a 0 g day with an
 added-sugar limit and no total limit), the sugars row holds added sugar alone at
 the **same half width** — it is the same cell it is beside sugar, at the same size,
 not a stretched one.
+
+**The fats row.** Saturated fat (a daily ceiling, so `signal: "data"`, `unrecordedWithGoal`,
+`zeroIsValue`) and trans fat (no goal, never a limit, `zeroIsValue`) both open a row of
+their own, `row: "fats"`, the way added sugar opens the sugars row. A lone trans fat
+cell keeps the same half width a lone sugar cell does, so the limits row never holds
+more than four cells: sugar, alcohol, caffeine, fiber. Both arrive only through
+`_meta` under `"nutrition-mcp.com/saturated-fat"` (`withSaturatedFat` in
+`shared/macros.js`), and without that `_meta` the strip is unchanged. Ingredient rows
+carry both values through `"nutrition-mcp.com/meal-items"` like every other nutrient.
 
 **Nothing in either grid may rely on `white-space: nowrap` to hold its shape.** A
 track is `minmax(0, 1fr)`, so two nowrap children in a ~84px column do not fit —

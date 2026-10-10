@@ -44,6 +44,10 @@
 //   ?addedSugar=zero    the same limit with a recorded 0 g (an apple and a
 //                       diet cola; 0 g on every summary/trends day): the cell
 //                       reads "0", never "none logged"
+//   ?saturatedFat=1    the fixture meals carry saturated and trans fat (a
+//                       mix of recorded, zero and not-recorded values) and a
+//                       20 g saturated-fat ceiling reaches the summary and the
+//                       day widgets through the saturated-fat `_meta`
 //   ?theme=dark         hostContext.theme on ui/initialize (default light)
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
@@ -51,12 +55,18 @@
 import { addedSugarExtra, buildAddedSugarMeta } from "../src/added-sugar.js";
 import { buildMealItemsMeta, type MealItemValues } from "../src/meal-items.js";
 import {
+    buildSaturatedFatMeta,
+    saturatedFatExtra,
+    transFatExtra,
+} from "../src/saturated-fat.js";
+import {
     ADDED_SUGAR_META_KEY,
     getWidgetHtml,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_CONTRIBUTORS_META_KEY,
     MEAL_ITEMS_META_KEY,
     PERIOD_AVERAGES_META_KEY,
+    SATURATED_FAT_META_KEY,
     WEIGHT_SERIES_META_KEY,
     WIDGET_TEMPLATES,
 } from "../src/widgets.js";
@@ -670,6 +680,9 @@ function hostPage(widget: string, params: URLSearchParams): string {
         "Beef stir-fry": 6,
         Lemonade: 6.6,
     };
+    // ?saturatedFat=1: a mix of recorded, zero and not-recorded fats by row
+    // index, so the strip's fats cells show a list, a count and a gap.
+    const satMode = params.get("saturatedFat") === "1";
     const asMeal = (
         row: { description: string; date: string | null } & Record<
             string,
@@ -697,6 +710,10 @@ function hostPage(widget: string, params: URLSearchParams): string {
                 : (ADDED[row.description] ?? 0),
         alcohol_g: (row.alcohol_g as number | null) ?? null,
         caffeine_mg: (row.caffeine_mg as number | null) ?? null,
+        saturated_fat_g: satMode
+            ? ([4.2, 0, 11.5, null] as const)[i % 4]!
+            : null,
+        trans_fat_g: satMode ? ([0.3, 0, null, 0.9] as const)[i % 4]! : null,
         notes: null,
         idempotency_key: null,
     });
@@ -726,6 +743,38 @@ function hostPage(widget: string, params: URLSearchParams): string {
         contributorsOf: windowMeals,
         // The server's own ranking (src/added-sugar.ts) and cap.
         extra: addedSugarExtra(
+            windowMeals,
+            windowRows,
+            summaryMeals.map((_, i) => i),
+            MEAL_BREAKDOWN_TOP_N,
+        ),
+    });
+
+    // The saturated-fat `_meta`, built with the server's own builders from the
+    // same rows as the added-sugar payloads. The summary's extra rows are the
+    // meals the kept rows miss, as on the server.
+    const dayFats = buildSaturatedFatMeta({
+        goal: 20,
+        days: { "2026-07-15": dayMeals },
+        meals: dayMeals,
+    });
+    const summaryFats = buildSaturatedFatMeta({
+        goal: 20,
+        days: Object.fromEntries(
+            days.map((d) => [
+                d.date,
+                windowMeals.filter((m) => m.logged_at.startsWith(d.date)),
+            ]),
+        ),
+        meals: summaryMealRows,
+        contributorsOf: windowMeals,
+        extra: saturatedFatExtra(
+            windowMeals,
+            windowRows,
+            summaryMeals.map((_, i) => i),
+            MEAL_BREAKDOWN_TOP_N,
+        ),
+        transExtra: transFatExtra(
             windowMeals,
             windowRows,
             summaryMeals.map((_, i) => i),
@@ -900,6 +949,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
         "nutrition-summary": {
             ...summaryMeta,
             [ADDED_SUGAR_META_KEY]: summaryAddedSugar,
+            ...(satMode ? { [SATURATED_FAT_META_KEY]: summaryFats } : {}),
             ...itemsEntry(summaryItems),
         },
         "weight-trends": weight.meta,
@@ -921,10 +971,12 @@ function hostPage(widget: string, params: URLSearchParams): string {
               }
             : {
                   [ADDED_SUGAR_META_KEY]: dayAddedSugar,
+                  ...(satMode ? { [SATURATED_FAT_META_KEY]: dayFats } : {}),
                   ...itemsEntry(dayItems(true)),
               },
         "meal-logged": {
             [ADDED_SUGAR_META_KEY]: dayAddedSugar,
+            ...(satMode ? { [SATURATED_FAT_META_KEY]: dayFats } : {}),
             ...itemsEntry(dayItems(false)),
         },
     };

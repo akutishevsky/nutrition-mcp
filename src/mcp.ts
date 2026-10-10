@@ -104,7 +104,7 @@ import {
     dayCarries,
     coveredDailyAverage,
     dateDiffDays,
-    addedSugarNotRecorded,
+    limitNotRecorded,
     type DailyBucket,
 } from "./insights.js";
 import { analyzeWeightHistory, defaultRangeFor } from "./weight-trend.js";
@@ -186,9 +186,16 @@ import {
     WEIGHT_SERIES_META_KEY,
     PERIOD_AVERAGES_META_KEY,
     ADDED_SUGAR_META_KEY,
+    SATURATED_FAT_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_ITEMS_META_KEY,
 } from "./widgets.js";
+import {
+    buildSaturatedFatMeta,
+    saturatedFatExtra,
+    transFatExtra,
+    saturatedAboveFatNote,
+} from "./saturated-fat.js";
 import {
     GRANULARITIES,
     buildPeriodAveragesMeta,
@@ -242,7 +249,8 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // zero, it excludes the entire DAY from that nutrient's averages and goal lines
 // (dayCarries in insights.ts), so one forgotten fiber figure silently deletes a
 // day from the user's fiber trend rather than making it slightly wrong.
-const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar and caffeine are tracked alongside the headline macros.
+const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar, saturated fat, trans fat and caffeine are tracked alongside the headline macros.
+- saturated_fat_g and trans_fat_g are optional on every meal. saturated_fat_g is part of fat_g, never more than it; trans_fat_g is a separate fat type, stored as given and not checked against fat_g. A missing value is stored as "not measured" and leaves that day out of the saturated-fat average and limit; trans fat has no limit and is shown only where it was recorded. A figure comes from a nutrition label, the product's published nutrition or an estimate; 0 is the correct value for a food with none. On an itemized meal saturated_fat_g is all-or-none across the items, like fiber_g's sugar pair: a list that gives it on some items and not others is refused with nothing saved. trans_fat_g may be given on some items and not others; the meal's trans fat is the sum of the items that carry it.
 - fiber_g and sugar_g are read on every meal, like protein, carbs and fat. A missing value is stored as "not measured", not as zero, and leaves that whole day out of the user's fiber and sugar averages, goal lines and charts; an estimate keeps the day in. In order of accuracy, a figure comes from a nutrition label, a barcode lookup, the chain's or product's published per-item nutrition, or an estimate from the ingredients and the portion — an exact figure is no more required here than it is for protein. 0 is the correct value for food that has none (a steak, eggs, oil, black coffee).
 - added_sugar_g is read on every meal too, like sugar_g: the part of sugar_g added during processing or preparation, never more than sugar_g. It accompanies sugar_g: a call that gives sugar_g without added_sugar_g may be refused, with nothing saved. It is a classification more than a measurement — whole fruit, vegetables, plain milk, meat and rice are 0, and a soft drink's sugar is all added. A missing value is stored as "not recorded" and leaves that day out of the added-sugar average and limit.
 - caffeine_mg applies only to caffeine sources: coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. A label or a chain's published nutrition gives the figure where available; the field description lists typical amounts otherwise. For anything that is not a caffeine source the field is left out: an explicit 0 means "measured, and it was none", and it shows a caffeine row to a user who never consumes any.`;
@@ -329,6 +337,9 @@ interface DailyTotals {
     protein_g: number;
     carbs_g: number;
     fat_g: number;
+    // Part of fat_g; text only, like added_sugar_g below.
+    saturated_fat_g: number;
+    trans_fat_g: number;
     fiber_g: number;
     sugar_g: number;
     // Text only: totalsPayloadOf picks its fields by name and never emits this
@@ -350,6 +361,8 @@ function emptyTotals(): DailyTotals {
         protein_g: 0,
         carbs_g: 0,
         fat_g: 0,
+        saturated_fat_g: 0,
+        trans_fat_g: 0,
         fiber_g: 0,
         sugar_g: 0,
         added_sugar_g: 0,
@@ -366,6 +379,8 @@ export function sumMeals(meals: Meal[]): DailyTotals {
         totals.protein_g += m.protein_g ?? 0;
         totals.carbs_g += m.carbs_g ?? 0;
         totals.fat_g += m.fat_g ?? 0;
+        totals.saturated_fat_g += m.saturated_fat_g ?? 0;
+        totals.trans_fat_g += m.trans_fat_g ?? 0;
         // Summed regardless of the alcohol opt-in: the flag gates display, and
         // gating here would make the total depend on when it was computed.
         // The `?? 0` here is a SUM, which is fine — a missing value adds
@@ -393,6 +408,8 @@ export function sumMeals(meals: Meal[]): DailyTotals {
 // pre-feature history, and it is this flag — not any profile setting — that
 // keeps a fabricated "0 mg" off the screen.
 export interface NutrientPresence {
+    saturated_fat_g: boolean;
+    trans_fat_g: boolean;
     fiber_g: boolean;
     sugar_g: boolean;
     added_sugar_g: boolean;
@@ -402,6 +419,8 @@ export interface NutrientPresence {
 
 export function nutrientPresence(meals: Meal[]): NutrientPresence {
     return {
+        saturated_fat_g: dayCarries(meals, "saturated_fat_g"),
+        trans_fat_g: dayCarries(meals, "trans_fat_g"),
         fiber_g: dayCarries(meals, "fiber_g"),
         sugar_g: dayCarries(meals, "sugar_g"),
         added_sugar_g: dayCarries(meals, "added_sugar_g"),
@@ -434,6 +453,7 @@ export function rangeAverages(
 ): {
     averages: DailyTotals;
     recordedDays: {
+        saturated_fat_g: number;
         fiber_g: number;
         sugar_g: number;
         added_sugar_g: number;
@@ -447,12 +467,15 @@ export function rangeAverages(
         sum.protein_g += totals.protein_g;
         sum.carbs_g += totals.carbs_g;
         sum.fat_g += totals.fat_g;
+        sum.saturated_fat_g += totals.saturated_fat_g;
+        sum.trans_fat_g += totals.trans_fat_g;
         sum.water_ml += totals.water_ml;
     }
     const mealsByDay = perDay.map((d) => d.meals);
     const fiber = coveredDailyAverage(mealsByDay, "fiber_g");
     const sugar = coveredDailyAverage(mealsByDay, "sugar_g");
     const addedSugar = coveredDailyAverage(mealsByDay, "added_sugar_g");
+    const saturated = coveredDailyAverage(mealsByDay, "saturated_fat_g");
     const alcohol = coveredDailyAverage(mealsByDay, "alcohol_g");
     const caffeine = coveredDailyAverage(mealsByDay, "caffeine_mg");
     const n = perDay.length || 1;
@@ -462,6 +485,8 @@ export function rangeAverages(
             protein_g: sum.protein_g / n,
             carbs_g: sum.carbs_g / n,
             fat_g: sum.fat_g / n,
+            saturated_fat_g: saturated.avg ?? 0,
+            trans_fat_g: sum.trans_fat_g / n,
             fiber_g: fiber.avg ?? 0,
             sugar_g: sugar.avg ?? 0,
             added_sugar_g: addedSugar.avg ?? 0,
@@ -473,6 +498,7 @@ export function rangeAverages(
             fiber_g: fiber.days,
             sugar_g: sugar.days,
             added_sugar_g: addedSugar.days,
+            saturated_fat_g: saturated.days,
             alcohol_g: alcohol.days,
             caffeine_mg: caffeine.days,
         },
@@ -485,7 +511,10 @@ export function rangeAverages(
  *  when one is set. Empty for a single day, whose section already prints the
  *  figure. When no logged day recorded added sugar it is empty without a
  *  limit, and "not recorded in this period" with one. */
-export function addedSugarAverageLine(
+// The summary's daily-average line for a limited partial nutrient (added sugar,
+// saturated fat): the same rule for both, so only the label differs.
+function ceilingAverageLine(
+    label: string,
     average: number,
     recordedDays: number,
     loggedDays: number,
@@ -494,18 +523,48 @@ export function addedSugarAverageLine(
     if (loggedDays < 2) return "";
     if (recordedDays === 0) {
         // With a limit set, the gap is stated rather than dropped (see
-        // addedSugarNotRecorded); without one there is nothing to report.
+        // limitNotRecorded); without one there is nothing to report.
         return hasActiveTarget(limit, "ceiling")
-            ? `\n\nAdded sugar, daily average: ${addedSugarNotRecorded("period", limit)}`
+            ? `\n\n${label}, daily average: ${limitNotRecorded("period", limit)}`
             : "";
     }
     return `\n\n${formatGoalLine(
-        "Added sugar, daily average",
+        `${label}, daily average`,
         "g",
         average,
         limit,
         "ceiling",
     )}`;
+}
+
+export function addedSugarAverageLine(
+    average: number,
+    recordedDays: number,
+    loggedDays: number,
+    limit: number | null,
+): string {
+    return ceilingAverageLine(
+        "Added sugar",
+        average,
+        recordedDays,
+        loggedDays,
+        limit,
+    );
+}
+
+export function saturatedFatAverageLine(
+    average: number,
+    recordedDays: number,
+    loggedDays: number,
+    limit: number | null,
+): string {
+    return ceilingAverageLine(
+        "Saturated fat",
+        average,
+        recordedDays,
+        loggedDays,
+        limit,
+    );
 }
 
 /** The model-facing half of the #70 fix: says out loud that these averages
@@ -637,7 +696,7 @@ export { WEIGHT_SERIES_META_KEY };
 export { PERIOD_AVERAGES_META_KEY };
 // And for the added-sugar figures (AddedSugarMeta) that five tools carry
 // beside their frozen structuredContent.
-export { ADDED_SUGAR_META_KEY };
+export { ADDED_SUGAR_META_KEY, SATURATED_FAT_META_KEY };
 // And for the ingredients behind the breakdown rows (MealItemsMeta, built in
 // src/meal-items.ts), present only when some row has items.
 export { MEAL_ITEMS_META_KEY };
@@ -857,6 +916,8 @@ export function trendsDayPayloadOf(
             protein_g: bucket.protein_g,
             carbs_g: bucket.carbs_g,
             fat_g: bucket.fat_g,
+            saturated_fat_g: bucket.saturated_fat_g,
+            trans_fat_g: bucket.trans_fat_g,
             fiber_g: bucket.fiber_g,
             sugar_g: bucket.sugar_g,
             // Never emitted by totalsPayloadOf (the days schema is frozen);
@@ -941,6 +1002,18 @@ const IMPORT_ROW_SCHEMA = z.object({
         .optional()
         .describe(
             "Added sugars in grams — the figure an export's 'Added sugars' column carries. Part of sugar_g and never more than it; a row where it is more is reported as a per-row error.",
+        ),
+    saturated_fat_g: z.coerce
+        .number()
+        .optional()
+        .describe(
+            "Saturated fat in grams, the part of fat_g that is saturated. Stored as given and not checked against fat_g: a row where it is more imports with both figures as sent. Omit when the source has no such column; a missing value is not measured, not zero.",
+        ),
+    trans_fat_g: z.coerce
+        .number()
+        .optional()
+        .describe(
+            "Trans fat in grams, a separate fat type, stored as given and not checked against fat_g. Omit when the source has no such column; a missing value is not measured, not zero.",
         ),
     alcohol_g: z.coerce
         .number()
@@ -1145,6 +1218,11 @@ async function buildMealProgress(
             days: { [mealDate]: meals },
             meals,
         }),
+        [SATURATED_FAT_META_KEY]: buildSaturatedFatMeta({
+            goal: goals?.daily_saturated_fat_g,
+            days: { [mealDate]: meals },
+            meals,
+        }),
         ...(await mealItemsMetaEntry(userId, meals, alcohol)),
     };
 
@@ -1243,6 +1321,8 @@ function recordedGoalLine(
 
 // Everything recorded, for the callers that have no per-meal list to inspect.
 const ALL_RECORDED: NutrientPresence = {
+    saturated_fat_g: true,
+    trans_fat_g: true,
     fiber_g: true,
     sugar_g: true,
     added_sugar_g: true,
@@ -1283,6 +1363,24 @@ export function formatProgress(
             goals?.daily_carbs_g ?? null,
         ),
         formatGoalLine("Fat", "g", totals.fat_g, goals?.daily_fat_g ?? null),
+        // Saturated fat is part of the fat above and carries a ceiling, gated on
+        // presence like sugar: a day that recorded none prints nothing unless a
+        // limit is set, which then gets the shared not-recorded wording. Trans
+        // fat has no goal, so it is a value only, shown when the day recorded it.
+        present.saturated_fat_g
+            ? formatGoalLine(
+                  "Saturated fat",
+                  "g",
+                  totals.saturated_fat_g,
+                  goals?.daily_saturated_fat_g ?? null,
+                  "ceiling",
+              )
+            : hasActiveTarget(goals?.daily_saturated_fat_g, "ceiling")
+              ? `Saturated fat: ${limitNotRecorded("day", goals.daily_saturated_fat_g)}`
+              : null,
+        present.trans_fat_g
+            ? `Trans fat: ${Math.round(totals.trans_fat_g * 10) / 10}g`
+            : null,
         recordedGoalLine(
             "Fiber",
             "g",
@@ -1304,7 +1402,7 @@ export function formatProgress(
         // and a 25 g total-sugar limit is spent by two bananas. Gated on
         // presence like sugar, so a pre-column day prints nothing without a
         // limit. With one, an unrecorded day gets the shared
-        // addedSugarNotRecorded wording rather than recordedGoalLine's terse
+        // limitNotRecorded wording rather than recordedGoalLine's terse
         // "not recorded / 29g limit", which a model read past to report total
         // sugar against the added-sugar limit.
         present.added_sugar_g
@@ -1316,7 +1414,7 @@ export function formatProgress(
                   "ceiling",
               )
             : hasActiveTarget(goals?.daily_added_sugar_g, "ceiling")
-              ? `Added sugar: ${addedSugarNotRecorded("day", goals.daily_added_sugar_g)}`
+              ? `Added sugar: ${limitNotRecorded("day", goals.daily_added_sugar_g)}`
               : null,
     ];
     // Alcohol is opt-in: stored either way, shown only when the user asked for
@@ -1381,6 +1479,9 @@ export function formatGoals(
     parts.push(`- Protein: ${floor(goals.daily_protein_g, (n) => `${n}g`)}`);
     parts.push(`- Carbs: ${floor(goals.daily_carbs_g, (n) => `${n}g`)}`);
     parts.push(`- Fat: ${floor(goals.daily_fat_g, (n) => `${n}g`)}`);
+    parts.push(
+        `- Saturated fat (max): ${ceiling(goals.daily_saturated_fat_g ?? null, (n) => `${n}g`)}`,
+    );
     parts.push(`- Fiber: ${floor(goals.daily_fiber_g, (n) => `${n}g`)}`);
     // "total" leads so the two sugar limits read apart at a glance.
     parts.push(
@@ -1685,6 +1786,22 @@ const MEAL_ITEM_INPUT = z.object({
         .max(MAX_MACRO_G)
         .optional()
         .describe("Fat of this item in grams, as log_meal's fat_g."),
+    saturated_fat_g: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_MACRO_G)
+        .optional()
+        .describe(
+            "Saturated fat of this item in grams, as log_meal's saturated_fat_g. Give it on every item or on none.",
+        ),
+    trans_fat_g: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_MACRO_G)
+        .optional()
+        .describe(
+            "Trans fat of this item in grams, as log_meal's trans_fat_g. Optional per item; the meal's trans fat is the sum of the items that carry it.",
+        ),
     fiber_g: z.coerce
         .number()
         .min(0)
@@ -2318,6 +2435,22 @@ export function registerTools(
                 // effectively mandatory in practice, so the model needs a last
                 // resort that is better than skipping the field. See
                 // NUTRIENT_COVERAGE for why an omission costs the whole day.
+                saturated_fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Saturated fat in grams: the part of fat_g that is saturated, never more than it. Optional. On an itemized meal it is all-or-none across the items: a list that gives it on some items and not others is refused. A missing value is stored as not measured and leaves that day out of the saturated-fat average and limit. 0 is the correct value for a food with none.",
+                    ),
+                trans_fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Trans fat in grams: a separate fat type, stored as given and not checked against fat_g. Optional, and it has no limit. On an itemized meal the meal's trans fat is the sum of the items that carry it, so it may be given on some items and not others. Not sent means not measured, not zero.",
+                    ),
                 fiber_g: z.coerce
                     .number()
                     .min(0)
@@ -2452,11 +2585,18 @@ export function registerTools(
                         deduplicated ? undefined : (items?.length ?? 0),
                     );
 
+                    // Content only: the values are stored as sent (see
+                    // saturatedAboveFatNote). A replay that matched an existing
+                    // meal reports that meal's own values, so it is not
+                    // re-checked here.
+                    const satFatNote = deduplicated
+                        ? ""
+                        : (saturatedAboveFatNote(meal) ?? "");
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz, deduplicated ? undefined : items)}${progressSection}${alcoholHiddenNote(
+                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz, deduplicated ? undefined : items)}${progressSection}${satFatNote}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
@@ -2739,7 +2879,7 @@ export function registerTools(
         {
             title: "Look Up Barcode",
             description:
-                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures come from the product's own label as transcribed by the Open Food Facts community, so they beat estimating — but they are not verified by this server and can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is) — pass these along if the user is asking about the product's quality, not just its macros; they're omitted, not \"n/a\", when OFF hasn't computed one for that product. If no product is found, estimate from the product description, or from the label if the user can share it. Two gaps to close yourself before logging: a fiber, sugar or added-sugar figure shown as n/a is missing data rather than a zero, so estimate it and pass it anyway; and Open Food Facts carries no caffeine at all, so for a coffee, tea, cola, energy drink or other caffeinated product take caffeine_mg from the label where available, otherwise from typical amounts.",
+                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures come from the product's own label as transcribed by the Open Food Facts community, so they beat estimating — but they are not verified by this server and can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or you can read them from a photo of the package — transcribe the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which you can then pass to log_meal scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is) — pass these along if the user is asking about the product's quality, not just its macros; they're omitted, not \"n/a\", when OFF hasn't computed one for that product. If no product is found, estimate from the product description, or from the label if the user can share it. Two gaps to close yourself before logging: a fiber, sugar, added-sugar or saturated-fat figure shown as n/a is missing data rather than a zero, so estimate it and pass it anyway (a saturated-fat or trans-fat figure shown as n/a is left out rather than sent as 0); and Open Food Facts carries no caffeine at all, so for a coffee, tea, cola, energy drink or other caffeinated product take caffeine_mg from the label where available, otherwise from typical amounts.",
             annotations: {
                 title: "Look Up Barcode",
                 readOnlyHint: true,
@@ -3394,6 +3534,13 @@ export function registerTools(
                                     meals: [],
                                     contributorsOf: [],
                                 }),
+                                [SATURATED_FAT_META_KEY]: buildSaturatedFatMeta(
+                                    {
+                                        goal: goals?.daily_saturated_fat_g,
+                                        days: {},
+                                        meals: [],
+                                    },
+                                ),
                             },
                         };
                     }
@@ -3483,6 +3630,10 @@ export function registerTools(
                         recordedDays.added_sugar_g < days.length
                             ? `added sugar ${recordedDays.added_sugar_g}`
                             : null,
+                        recordedDays.saturated_fat_g > 0 &&
+                        recordedDays.saturated_fat_g < days.length
+                            ? `saturated fat ${recordedDays.saturated_fat_g}`
+                            : null,
                         alcohol &&
                         recordedDays.alcohol_g > 0 &&
                         recordedDays.alcohol_g < days.length
@@ -3502,6 +3653,12 @@ export function registerTools(
                         recordedDays.added_sugar_g,
                         days.length,
                         goals?.daily_added_sugar_g ?? null,
+                    );
+                    const saturatedFatAverage = saturatedFatAverageLine(
+                        rawAverages.saturated_fat_g,
+                        recordedDays.saturated_fat_g,
+                        days.length,
+                        goals?.daily_saturated_fat_g ?? null,
                     );
 
                     // Added sugar does not rank rows of its own: that would
@@ -3523,6 +3680,7 @@ export function registerTools(
 
                     const footer =
                         addedSugarAverage +
+                        saturatedFatAverage +
                         coverageNote +
                         loggedDayAverageNote(days.length, daysInRange) +
                         (goals
@@ -3570,6 +3728,27 @@ export function registerTools(
                                 meals: keptMeals,
                                 contributorsOf: meals,
                                 extra: addedSugarExtra(
+                                    meals,
+                                    rows,
+                                    breakdown.kept,
+                                    MEAL_BREAKDOWN_TOP_N,
+                                ),
+                            }),
+                            // Same arrangement as added sugar: `extra` is
+                            // the top meals the kept rows miss, and the
+                            // contributors count over the whole window.
+                            [SATURATED_FAT_META_KEY]: buildSaturatedFatMeta({
+                                goal: goals?.daily_saturated_fat_g,
+                                days: Object.fromEntries(byDate),
+                                meals: keptMeals,
+                                contributorsOf: meals,
+                                extra: saturatedFatExtra(
+                                    meals,
+                                    rows,
+                                    breakdown.kept,
+                                    MEAL_BREAKDOWN_TOP_N,
+                                ),
+                                transExtra: transFatExtra(
                                     meals,
                                     rows,
                                     breakdown.kept,
@@ -3633,6 +3812,15 @@ export function registerTools(
                     .nullable()
                     .optional()
                     .describe("Daily fat target (grams). Null to clear."),
+                daily_saturated_fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_GOAL_G)
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Daily saturated fat limit (grams), a maximum to stay under. Saturated fat is part of total fat, so it is limited separately from it. Null to clear.",
+                    ),
                 daily_fiber_g: z.coerce
                     .number()
                     .min(0)
@@ -3744,6 +3932,10 @@ export function registerTools(
                             args.daily_fat_g === undefined
                                 ? (existing?.daily_fat_g ?? null)
                                 : args.daily_fat_g,
+                        daily_saturated_fat_g:
+                            args.daily_saturated_fat_g === undefined
+                                ? (existing?.daily_saturated_fat_g ?? null)
+                                : args.daily_saturated_fat_g,
                         daily_fiber_g:
                             args.daily_fiber_g === undefined
                                 ? (existing?.daily_fiber_g ?? null)
@@ -3981,6 +4173,11 @@ export function registerTools(
                                 days: { [targetDate]: meals },
                                 meals,
                             }),
+                            [SATURATED_FAT_META_KEY]: buildSaturatedFatMeta({
+                                goal: goals?.daily_saturated_fat_g,
+                                days: { [targetDate]: meals },
+                                meals,
+                            }),
                             ...(await mealItemsMetaEntry(
                                 userId,
                                 meals,
@@ -4089,6 +4286,22 @@ export function registerTools(
                 protein_g: z.coerce.number().min(0).max(MAX_MACRO_G).optional(),
                 carbs_g: z.coerce.number().min(0).max(MAX_MACRO_G).optional(),
                 fat_g: z.coerce.number().min(0).max(MAX_MACRO_G).optional(),
+                saturated_fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Saturated fat in grams: the part of fat_g that is saturated, never more than it. Optional. On an itemized meal it is all-or-none across the items: a list that gives it on some items and not others is refused. A missing value is stored as not measured and leaves that day out of the saturated-fat average and limit. 0 is the correct value for a food with none.",
+                    ),
+                trans_fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Trans fat in grams: a separate fat type, stored as given and not checked against fat_g. Optional, and it has no limit. On an itemized meal the meal's trans fat is the sum of the items that carry it, so it may be given on some items and not others. Not sent means not measured, not zero.",
+                    ),
                 fiber_g: z.coerce
                     .number()
                     .min(0)
@@ -4249,7 +4462,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz, itemsChecked?.items)}${progressSection}${alcoholHiddenNote(
+                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz, itemsChecked?.items)}${progressSection}${saturatedAboveFatNote(meal) ?? ""}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
@@ -4331,6 +4544,22 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe("Fat per serving, in grams."),
+                saturated_fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Saturated fat per serving, in grams: the part of fat_g that is saturated, never more than it. Optional; not measured when not sent.",
+                    ),
+                trans_fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Trans fat per serving, in grams, a separate fat type, stored as given and not checked against fat_g. Optional; not measured when not sent.",
+                    ),
                 fiber_g: z.coerce
                     .number()
                     .min(0)
@@ -4836,6 +5065,22 @@ export function registerTools(
                     .max(MAX_MACRO_G)
                     .optional()
                     .describe("Fat per serving, in grams."),
+                saturated_fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Saturated fat per serving, in grams: the part of fat_g that is saturated, never more than it. Optional; not measured when not sent.",
+                    ),
+                trans_fat_g: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_MACRO_G)
+                    .optional()
+                    .describe(
+                        "Trans fat per serving, in grams, a separate fat type, stored as given and not checked against fat_g. Optional; not measured when not sent.",
+                    ),
                 fiber_g: z.coerce
                     .number()
                     .min(0)
@@ -6625,6 +6870,10 @@ export function registerTools(
                             ...periodMeta,
                             [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
                                 goal: goals?.daily_added_sugar_g,
+                                days: seriesMeals,
+                            }),
+                            [SATURATED_FAT_META_KEY]: buildSaturatedFatMeta({
+                                goal: goals?.daily_saturated_fat_g,
                                 days: seriesMeals,
                             }),
                         },

@@ -128,6 +128,14 @@ export const PERIOD_AVERAGES_META_KEY = "nutrition-mcp.com/period-averages";
 export const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
 
 /**
+ * `_meta` key for saturated fat, on the same tools as ADDED_SUGAR_META_KEY:
+ * `{ v: 1, goal, days, meals }` built by buildSaturatedFatMeta
+ * (src/saturated-fat.ts). Same reason for `_meta`: output schemas are frozen.
+ * Widgets that draw the saturated-fat limit repeat this literal.
+ */
+export const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
+
+/**
  * Where log_meal, update_meal, log_saved_meal, get_goal_progress and
  * get_nutrition_summary put the ingredients behind their breakdown rows (the
  * MealItemsMeta built by buildMealItemsMeta in src/meal-items.ts): the
