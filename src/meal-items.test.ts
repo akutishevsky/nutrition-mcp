@@ -1195,3 +1195,76 @@ describe("buildMealItemsMeta: saturated and trans fat", () => {
         expect(meta?.meals[0]?.[1]?.trans_fat_g).toBeNull();
     });
 });
+
+describe("item provenance survives scaling and item changes", () => {
+    const labelled = (
+        validated: MealItemValues[],
+        sources: MealItemValues["nutrient_sources"],
+    ): MealItemValues[] =>
+        validated.map((i) => ({
+            ...i,
+            nutrient_sources: sources,
+            source_detail: {
+                "usda:171477": { name: "Chicken", amount_g: 100 },
+            },
+        }));
+
+    const base = () =>
+        labelled(
+            validateItems(
+                [
+                    item({ name: "Chicken", amount: 100, unit: "g" }),
+                    item({ name: "Rice", amount: 200, unit: "g" }),
+                ],
+                GATE_OFF,
+            ).items,
+            { calories: { s: "usda", ref: "171477" } },
+        );
+
+    test("scaleItems keeps each item's own sources and scales the record amount with the values", () => {
+        const scaled = scaleItems(base(), 2);
+        expect(scaled[0]!.nutrient_sources).toEqual({
+            calories: { s: "usda", ref: "171477" },
+        });
+        // The values doubled, so they now match the record for 200 g.
+        expect(scaled[1]!.source_detail).toEqual({
+            "usda:171477": { name: "Chicken", amount_g: 200 },
+        });
+    });
+
+    test("applyItemChanges keeps the sources of kept items, scaled or not", () => {
+        const kept = applyItemChanges(base(), {
+            item_amounts: [{ item: "Chicken", amount: 50 }],
+            leave_out: ["Rice"],
+        });
+        expect(kept).toHaveLength(1);
+        expect(kept[0]!.nutrient_sources).toEqual({
+            calories: { s: "usda", ref: "171477" },
+        });
+        // Calories halved, so the record amount halves with them: the label
+        // still describes the stored value.
+        expect(kept[0]!.source_detail).toEqual({
+            "usda:171477": { name: "Chicken", amount_g: 50 },
+        });
+        expect(kept[0]!.amount).toBe(50);
+    });
+
+    test("validateItems does not invent sources: they come from the caller's lookup", () => {
+        const validated = validateItems(
+            [
+                {
+                    ...item({ name: "Cola", amount: 330, unit: "ml" }),
+                    food_ref: {
+                        source: "openfoodfacts",
+                        id: "5449000000996",
+                        servings: 1,
+                    },
+                    user_stated: ["caffeine_mg"],
+                },
+            ],
+            GATE_OFF,
+        ).items;
+        expect(validated[0]!.nutrient_sources).toBeUndefined();
+        expect(validated[0]!.source_detail).toBeUndefined();
+    });
+});

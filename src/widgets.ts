@@ -149,6 +149,18 @@ export const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
  */
 export const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
 
+/**
+ * Where each nutrient value came from (src/provenance.ts), for the CallToolResult's
+ * `_meta`: the same frozen-outputSchema reason as the keys above. Shape
+ * `{ v: 1, meals }`, with `meals` aligned by position with
+ * structuredContent.meals, and each slot holding that meal's labels and its
+ * items' labels (built by buildNutrientSourcesMeta). Carries the alcohol gate
+ * of MEAL_ITEMS_META_KEY, and is omitted when nothing is labelled or the read
+ * failed, so a host that drops `_meta` sees the tool exactly as before. No
+ * widget reads it yet.
+ */
+export const NUTRIENT_SOURCES_META_KEY = "nutrition-mcp.com/nutrient-sources";
+
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
     "nutrition-summary": "nutrition-summary.html",

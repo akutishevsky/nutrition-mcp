@@ -787,6 +787,33 @@
                     const v = parseNumber(row[idx], dec);
                     return v === null ? undefined : v;
                 };
+                // Provenance columns, written only by this server's own export
+                // (src/export.ts). They are not mapped or previewed: the server
+                // reads them only when provenance_version says the file is ours,
+                // and re-checks every record-backed label itself. A file without
+                // the marker sends none of them.
+                const provHeader = {
+                    version: findColumn(t.headers, ["provenance_version"]),
+                    nutrient_sources: findColumn(t.headers, [
+                        "nutrient_sources",
+                    ]),
+                    source_detail: findColumn(t.headers, ["source_detail"]),
+                };
+                const provenance = (row) =>
+                    provHeader.version < 0 ||
+                    cell(row, provHeader.version) === undefined
+                        ? {}
+                        : {
+                              provenance_version: cell(row, provHeader.version),
+                              nutrient_sources: cell(
+                                  row,
+                                  provHeader.nutrient_sources,
+                              ),
+                              source_detail: cell(
+                                  row,
+                                  provHeader.source_detail,
+                              ),
+                          };
 
                 const rows = [];
                 let skipped = 0;
@@ -880,6 +907,9 @@
                         // timezone when it is absent or not a recognized
                         // IANA identifier.
                         timezone: cell(r, m.timezone),
+                        // Passed through untouched, like source_id: the server
+                        // decides whether the file is this app's own export.
+                        ...provenance(r),
                     });
                 }
                 S.rows = rows;

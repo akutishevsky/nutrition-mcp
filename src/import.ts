@@ -31,6 +31,13 @@ import {
 import { decodeEscapeSequences } from "./normalize.js";
 import { toStoredInteger } from "./units.js";
 import { addedSugarError } from "./added-sugar.js";
+import {
+    importedProvenance,
+    reverifyImported,
+    type NutrientSources,
+    type RecordLookup,
+    type SourceDetail,
+} from "./provenance.js";
 
 export type MealType = MealInput["meal_type"];
 
@@ -137,6 +144,15 @@ export interface ImportRow {
      *  that names an existing meal is that meal, not a copy of it, so it is
      *  reported as deduplicated instead of written again. */
     source_id?: string;
+    /** The provenance_version marker of this server's own export (src/export.ts).
+     *  Only a file that carries it has its nutrient_sources and source_detail
+     *  read; a file without it is third-party, and its provenance is ignored. */
+    provenance_version?: string | number | null;
+    /** The nutrient_sources and source_detail JSON cells of this server's own
+     *  export: JSON text from a file, or the parsed object. Shape-checked and
+     *  re-verified against the stored food records before they are written. */
+    nutrient_sources?: unknown;
+    source_detail?: unknown;
 }
 
 export interface RowError {
@@ -163,6 +179,12 @@ export interface ResolvedRow {
      *  unset-timezone warning to rows that actually depended on the account
      *  default, so a row carrying its own zone never triggers it. */
     logged_at_used_row_timezone: boolean;
+    /** The row's own export provenance, shape-checked but not yet verified
+     *  against the food records. Null for any row not from our own export. */
+    provenance?: {
+        sources: NutrientSources;
+        detail: SourceDetail | null;
+    } | null;
 }
 
 export type RowValidation =
@@ -354,6 +376,10 @@ export interface ImportDeps {
      *  different renderings of the same meal, so a content digest can never
      *  recognize an exported meal on the way back in — the id can. */
     existingMealIds(ids: string[]): Promise<Set<string>>;
+    /** The cached food record a usda or openfoodfacts provenance tag points at,
+     *  ignoring TTL, or null. Re-verifies imported tags: a null lookup (or no
+     *  lookup at all) keeps those values as estimate, and never fails the row. */
+    foodRecord?: RecordLookup;
 }
 
 /** Shape of a meal id in this server's own export: a Postgres uuid. Only a
@@ -789,8 +815,36 @@ export function validateRow(
             logged_at_used_profile_tz: ts.value.usedProfileTimezone,
             logged_at_used_row_timezone:
                 usedRowTimezone && ts.value.usedProfileTimezone,
+            provenance: importedProvenance(row),
         },
     };
+}
+
+/**
+ * Re-verifies the imported provenance of each row against the stored food
+ * records (src/provenance.ts reverifyImported) and writes the result onto the
+ * row's input. A row without provenance keeps nothing, so its write records
+ * none. Returns how many record-backed labels did not re-verify.
+ */
+async function reverifyRows(
+    rows: ResolvedRow[],
+    lookup: RecordLookup | undefined,
+): Promise<number> {
+    const lookupRecord: RecordLookup = lookup ?? (async () => null);
+    let downgraded = 0;
+    for (const row of rows) {
+        if (!row.provenance) continue;
+        const result = await reverifyImported({
+            sources: row.provenance.sources,
+            detail: row.provenance.detail,
+            values: row.input,
+            lookup: lookupRecord,
+        });
+        row.input.nutrient_sources = result.sources;
+        row.input.source_detail = result.detail;
+        downgraded += result.downgraded;
+    }
+    return downgraded;
 }
 
 // ---------- Idempotency keys ----------
@@ -1263,6 +1317,25 @@ export async function runImport(
             ? v.resolved.source_id
             : null;
     let matchedBySourceId = 0;
+
+    // Re-verify only the rows this run will write. A row that deduplicates is
+    // never inserted, so its record lookups are skipped and its labels are not
+    // counted. Provenance does not touch the idempotency keys, so the dedupe
+    // decisions above do not depend on it.
+    const toWrite = okRows.filter(
+        (v) =>
+            storedIdFor(v) === null &&
+            !existing.has(v.resolved.input.idempotency_key!),
+    );
+    const downgraded = await reverifyRows(
+        toWrite.map((v) => v.resolved),
+        deps.foodRecord,
+    );
+    if (downgraded > 0) {
+        warnings.push(
+            `${downgraded} nutrient value(s) could not be matched to their food record again and were written as estimates.`,
+        );
+    }
 
     const byIndex = new Map<number, ImportResultRow>();
     for (const v of validations) {

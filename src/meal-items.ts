@@ -17,6 +17,12 @@ import { ToolError, toolErrorWithUserText } from "./errors.js";
 import { addedSugarError, addedSugarMissingError } from "./added-sugar.js";
 import { decodeEscapeSequences } from "./normalize.js";
 import {
+    scaleSourceDetail,
+    type FoodRef,
+    type NutrientSources,
+    type SourceDetail,
+} from "./provenance.js";
+import {
     MAX_ALCOHOL_G,
     MAX_CAFFEINE_MG,
     MAX_CALORIES,
@@ -74,6 +80,13 @@ export interface MealItemInput {
     added_sugar_g?: number;
     alcohol_g?: number;
     caffeine_mg?: number;
+    /** The USDA or Open Food Facts record the item's values were read from,
+     * and the amount they are for. Verified against the stored record by
+     * src/provenance.ts, which labels each nutrient; never trusted as a label. */
+    food_ref?: FoodRef;
+    /** Nutrients whose values the user gave themselves (read off a label, or
+     * corrected). Labelled "user" unless a verified record matches them. */
+    user_stated?: MealNutrientKey[];
 }
 
 /** A validated item: position is 1-based, name decoded and trimmed, and the
@@ -87,6 +100,10 @@ export interface MealItemValues extends NutrientValues {
     protein_g: number;
     carbs_g: number;
     fat_g: number;
+    /** Per-nutrient labels (src/provenance.ts), set once the item's food_ref
+     * has been looked up. Absent on items from before provenance existed. */
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 const REQUIRED_ITEM_KEYS = [
@@ -406,7 +423,9 @@ function scaleNutrients<T extends NutrientValues>(t: T, factor: number): T {
 }
 
 /** One item with its nutrients scaled by `factor` and its amount set to
- * `amount`. */
+ * `amount`. Each nutrient's label stays (scaling keeps a value matched to its
+ * record), and the record's amount is scaled with the values
+ * (scaleSourceDetail), so the label still describes what the values are for. */
 function scaledItem(
     item: MealItemValues,
     factor: number,
@@ -423,6 +442,9 @@ function scaledItem(
         protein_g: n.protein_g,
         carbs_g: n.carbs_g,
         fat_g: n.fat_g,
+        ...(item.source_detail !== undefined
+            ? { source_detail: scaleSourceDetail(item.source_detail, factor) }
+            : {}),
     };
 }
 

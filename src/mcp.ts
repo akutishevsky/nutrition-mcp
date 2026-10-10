@@ -60,6 +60,7 @@ import {
     countMealItems,
     replaceMealItems,
     getMealById,
+    getCachedFoodRecord,
     createSavedMeal,
     getSavedMeals,
     getSavedMeal,
@@ -189,7 +190,24 @@ import {
     SATURATED_FAT_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_ITEMS_META_KEY,
+    NUTRIENT_SOURCES_META_KEY,
 } from "./widgets.js";
+import {
+    assertFoodRefPlacement,
+    buildNutrientSourcesMeta,
+    deriveMealProvenance,
+    formatSourcesLine,
+    mergeProvenance,
+    parseFoodRef,
+    parseNutrientSources,
+    parseSourceDetail,
+    resolveNutrientSources,
+    scaleSourceDetail,
+    type LoggedValues,
+    type NutrientSources,
+    type NutrientSourcesMeta,
+    type SourceDetail,
+} from "./provenance.js";
 import {
     buildSaturatedFatMeta,
     saturatedFatExtra,
@@ -1045,6 +1063,27 @@ const IMPORT_ROW_SCHEMA = z.object({
         .describe(
             "The value of the 'id' column when the file is an export from THIS server (the meals.csv in an export_all_data archive carries it). Always pass it through: it is how a re-imported backup is recognized as the user's existing meals instead of being duplicated. Ignored for files from other apps.",
         ),
+    provenance_version: z
+        .union([z.string(), z.number()])
+        .nullable()
+        .optional()
+        .describe(
+            "The provenance_version column of an export from THIS server. Pass it through with nutrient_sources and source_detail; a file from another app leaves all three out. Without it the nutrient sources are ignored.",
+        ),
+    nutrient_sources: z
+        .union([z.string(), z.record(z.string(), z.unknown())])
+        .nullable()
+        .optional()
+        .describe(
+            "The nutrient_sources column of an export from THIS server, as the JSON text it was written as (or the parsed object). Carries where each nutrient value came from; record-backed sources are re-checked against the stored food record and kept as estimate when they no longer match.",
+        ),
+    source_detail: z
+        .union([z.string(), z.record(z.string(), z.unknown())])
+        .nullable()
+        .optional()
+        .describe(
+            "The source_detail column of an export from THIS server, as JSON text (or the parsed object). Names the food record each record-backed source points at.",
+        ),
 });
 
 // ---------- start_meal_import ----------
@@ -1131,11 +1170,17 @@ export function startImportPayload(opts: {
 // failed read never fails the tool — the rows are the product, the items only
 // their detail — so it logs one ref line (no user id, no user text) and the
 // widget simply shows no expanders.
+//
+// The same read carries each row's nutrient labels (NUTRIENT_SOURCES_META_KEY),
+// with the same gate and the same drop-the-key behaviour.
 async function mealItemsMetaEntry(
     userId: string,
     rowMeals: readonly Meal[],
     alcohol: AlcoholDisplay,
-): Promise<{ [MEAL_ITEMS_META_KEY]?: MealItemsMeta }> {
+): Promise<{
+    [MEAL_ITEMS_META_KEY]?: MealItemsMeta;
+    [NUTRIENT_SOURCES_META_KEY]?: NutrientSourcesMeta;
+}> {
     if (rowMeals.length === 0) return {};
     let items: Map<string, MealItemValues[]>;
     try {
@@ -1151,7 +1196,25 @@ async function mealItemsMetaEntry(
         return {};
     }
     const payload = buildMealItemsMeta(rowMeals, items, alcohol != null);
-    return payload ? { [MEAL_ITEMS_META_KEY]: payload } : {};
+    const mealSources = new Map(
+        rowMeals.map((m) => [
+            m.id,
+            {
+                sources: parseNutrientSources(m.nutrient_sources ?? null),
+                detail: parseSourceDetail(m.source_detail ?? null),
+            },
+        ]),
+    );
+    const sources = buildNutrientSourcesMeta(
+        rowMeals,
+        mealSources,
+        items,
+        alcohol != null,
+    );
+    return {
+        ...(payload ? { [MEAL_ITEMS_META_KEY]: payload } : {}),
+        ...(sources ? { [NUTRIENT_SOURCES_META_KEY]: sources } : {}),
+    };
 }
 
 // Compute the day's running totals vs goals for a meal that was just logged or
@@ -1740,6 +1803,56 @@ const UPDATE_MEAL_ITEMS_DESCRIPTION = `The meal's full ingredient list, replacin
 const SAVE_MEAL_ITEMS_DESCRIPTION = `The ingredients of one serving: ${ITEM_LIST_SHAPE} Without items the saved meal is kept from its totals per serving.`;
 const UPDATE_SAVED_MEAL_ITEMS_DESCRIPTION = `The saved meal's full ingredient list for one serving, replacing its items: ${ITEM_LIST_SHAPE} Without items the saved meal's current items stay as they are.`;
 
+// Where the values came from (src/provenance.ts). A food_ref names the record a
+// value was read from and the amount it is for; the server checks the stored
+// record and labels each value itself. Only the shape is checked here: the
+// bounds and the basis are checked in the handler (parseFoodRef), so a bad ref
+// is a food_ref_invalid ToolError the caller can read, not a schema rejection.
+const FOOD_REF_INPUT = z.discriminatedUnion("source", [
+    z.object({
+        source: z.literal("usda"),
+        id: z
+            .union([z.string(), z.number()])
+            .describe("The FoodData Central fdcId of the food."),
+        amount_g: z.coerce
+            .number()
+            .optional()
+            .describe(
+                "Grams of the food the values are for. Required for usda.",
+            ),
+    }),
+    z.object({
+        source: z.literal("openfoodfacts"),
+        id: z
+            .union([z.string(), z.number()])
+            .describe("The product's barcode, as lookup_barcode returned it."),
+        amount_g: z.coerce
+            .number()
+            .optional()
+            .describe(
+                "Grams the values are for, when the product's record is per 100 g.",
+            ),
+        servings: z.coerce
+            .number()
+            .optional()
+            .describe(
+                "Servings the values are for, when the product's record is per serving. Give one of servings or amount_g, as the record needs.",
+            ),
+    }),
+]);
+
+const FOOD_REF_DESCRIPTION =
+    "The USDA or Open Food Facts record these values were read from, and the amount they are for. The server checks the values against the stored record: a value that matches it is labelled with that record, and any other value is labelled estimated.";
+
+const USER_STATED_DESCRIPTION =
+    "Nutrient keys whose values the user gave themselves, read off a label or corrected by them. They are labelled as the user's own figures unless a food_ref record matches them.";
+
+const USER_STATED_INPUT = z
+    .array(z.enum(MEAL_NUTRIENT_KEYS))
+    .max(MEAL_NUTRIENT_KEYS.length)
+    .optional()
+    .describe(USER_STATED_DESCRIPTION);
+
 // One ingredient. Every nutrient is optional in the schema; the handler names
 // the item that lacks one (validateItems), so the caller sees which item to fix.
 const MEAL_ITEM_INPUT = z.object({
@@ -1842,7 +1955,165 @@ const MEAL_ITEM_INPUT = z.object({
         .describe(
             "Caffeine of this item in milligrams, as log_meal's caffeine_mg.",
         ),
+    food_ref: FOOD_REF_INPUT.optional().describe(
+        `${FOOD_REF_DESCRIPTION} Give it on the item it describes.`,
+    ),
+    user_stated: USER_STATED_INPUT,
 });
+
+type MealItemArg = z.infer<typeof MEAL_ITEM_INPUT>;
+type FoodRefArg = z.infer<typeof FOOD_REF_INPUT>;
+
+/** A row's nutrient values as the provenance module reads them: a key with no
+ *  value is null, which labels nothing. */
+function loggedValuesOf(
+    values: Partial<Record<MealNutrientKey, number | null | undefined>>,
+): LoggedValues {
+    return Object.fromEntries(
+        MEAL_NUTRIENT_KEYS.map((key) => [key, values[key] ?? null]),
+    ) as LoggedValues;
+}
+
+/** The labels of one row: the food_ref checked against its stored record (a
+ *  cache miss verifies nothing, so the values stay estimates and the write
+ *  still succeeds), then user_stated, then estimate. */
+async function labelRow(
+    ref: FoodRefArg | undefined,
+    values: LoggedValues,
+    userStated: MealNutrientKey[] | undefined,
+): Promise<{ sources: NutrientSources; detail: SourceDetail | null }> {
+    if (ref === undefined)
+        return resolveNutrientSources({ values, userStated });
+    const parsed = parseFoodRef(ref);
+    const record = await getCachedFoodRecord(parsed.source, parsed.id);
+    return resolveNutrientSources({
+        values,
+        ref: { ref: parsed, record },
+        userStated,
+    });
+}
+
+/** The item-level labels, one per validated item, from its own food_ref and
+ *  user_stated (items keep their order and positions). */
+async function labelItems(
+    rawItems: readonly MealItemArg[],
+    items: MealItemValues[],
+): Promise<MealItemValues[]> {
+    return Promise.all(
+        items.map(async (item, i) => {
+            const labelled = await labelRow(
+                rawItems[i]?.food_ref,
+                loggedValuesOf(item),
+                rawItems[i]?.user_stated,
+            );
+            return {
+                ...item,
+                nutrient_sources: labelled.sources,
+                source_detail: labelled.detail,
+            };
+        }),
+    );
+}
+
+/** validateItems, then each item labelled, then the meal-level labels derived
+ *  from the items. The items are validated as they were before provenance. */
+async function checkedItemsWithSources(rawItems: readonly MealItemArg[]) {
+    const checked = validateItems(
+        rawItems.map(
+            ({ food_ref: _ref, user_stated: _stated, ...item }) => item,
+        ),
+        { addedSugarRequired: addedSugarRequiredNow() },
+    );
+    const items = await labelItems(rawItems, checked.items);
+    const derived = deriveFromItems(items);
+    return {
+        items,
+        totals: checked.totals,
+        sources: derived.sources,
+        detail: derived.detail,
+    };
+}
+
+/** The meal-level labels of a set of validated items (deriveMealProvenance). */
+function deriveFromItems(items: readonly MealItemValues[]) {
+    return deriveMealProvenance(
+        items.map((item) => ({
+            values: item,
+            sources: item.nutrient_sources ?? null,
+            detail: item.source_detail ?? null,
+        })),
+    );
+}
+
+/** food_ref and user_stated label the nutrient values sent with them. A call
+ *  that sends no values would drop them without a word, so it is refused. */
+function refuseLabelsWithoutValues(
+    foodRef: FoodRefArg | undefined,
+    userStated: MealNutrientKey[] | undefined,
+    hasValues: boolean,
+): void {
+    if (hasValues) return;
+    if (foodRef !== undefined || (userStated?.length ?? 0) > 0)
+        throw new ToolError(
+            "food_ref and user_stated label nutrient values, so send the values they describe (calories, protein_g and so on) with them.",
+            { category: "food_ref_invalid" },
+        );
+}
+
+/** A meal's own food_ref and user_stated are refused beside items: each item
+ *  carries its own, and the meal's labels come from them. */
+function refuseMealLevelRefsWithItems(
+    foodRef: FoodRefArg | undefined,
+    userStated: MealNutrientKey[] | undefined,
+): void {
+    assertFoodRefPlacement(true, foodRef !== undefined);
+    if (userStated && userStated.length > 0)
+        throw new ToolError(
+            "user_stated goes on each item when the meal has items, not on the meal.",
+            { category: "food_ref_invalid" },
+        );
+}
+
+/** The one model line for a row's sources, with its leading newline, or "". */
+function sourcesNoteFor(
+    row: { nutrient_sources?: unknown; source_detail?: unknown },
+    refSent: boolean,
+): string {
+    const line = formatSourcesLine(
+        parseNutrientSources(row.nutrient_sources ?? null),
+        parseSourceDetail(row.source_detail ?? null),
+        { refSent },
+    );
+    return line ? `\n${line}` : "";
+}
+
+/** The labels a plain-meal update gives the row: the nutrients whose value
+ *  changed take the fresh labels, the rest keep the stored ones (mergeProvenance).
+ *  Null when no nutrient is sent (nothing changes) or the meal is missing (the
+ *  update itself reports that). */
+async function mergedPlainLabels(
+    userId: string,
+    id: string,
+    fields: Partial<Record<MealNutrientKey, number | null | undefined>>,
+    foodRef: FoodRefArg | undefined,
+    userStated: MealNutrientKey[] | undefined,
+): Promise<{ sources: NutrientSources; detail: SourceDetail | null } | null> {
+    const sent = MEAL_NUTRIENT_KEYS.filter((k) => fields[k] !== undefined);
+    if (sent.length === 0) return null;
+    const old = await getMealById(userId, id);
+    if (!old) return null;
+    const oldValues = loggedValuesOf(old);
+    const newValues: LoggedValues = { ...oldValues };
+    for (const key of sent) newValues[key] = fields[key] ?? null;
+    const changed = await labelRow(foodRef, newValues, userStated);
+    return mergeProvenance({
+        oldValues,
+        newValues,
+        oldSources: parseNutrientSources(old.nutrient_sources ?? null),
+        oldDetail: parseSourceDetail(old.source_detail ?? null),
+        changed,
+    });
+}
 
 const SAVED_MEAL_ID_SOURCES = "get_saved_meals or search_meals";
 
@@ -2515,6 +2786,10 @@ export function registerTools(
                     .array(MEAL_ITEM_INPUT)
                     .optional()
                     .describe(LOG_MEAL_ITEMS_DESCRIPTION),
+                food_ref: FOOD_REF_INPUT.optional().describe(
+                    `${FOOD_REF_DESCRIPTION} For a meal without items; with items, give food_ref on each item.`,
+                ),
+                user_stated: USER_STATED_INPUT,
             }),
             outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
             // Link the tool to its progress UI (MCP Apps). update_meal reuses
@@ -2529,16 +2804,28 @@ export function registerTools(
                     // Items replace the totals: each item is checked on its
                     // own (the added-sugar gate included), and the totals are
                     // their sum. Without items, the meal-level checks below.
-                    const { items: rawItems, ...fields } = args;
+                    const {
+                        items: rawItems,
+                        food_ref: foodRef,
+                        user_stated: userStated,
+                        ...fields
+                    } = args;
                     let input: typeof fields = fields;
                     let items: MealItemValues[] | undefined;
+                    let labels: {
+                        sources: NutrientSources;
+                        detail: SourceDetail | null;
+                    };
                     if (rawItems !== undefined) {
                         const sent = totalsSentWithItems(fields);
                         if (sent.length > 0) throw totalsWithItemsError(sent);
-                        const checked = validateItems(rawItems, {
-                            addedSugarRequired: addedSugarRequiredNow(),
-                        });
+                        refuseMealLevelRefsWithItems(foodRef, userStated);
+                        const checked = await checkedItemsWithSources(rawItems);
                         items = checked.items;
+                        labels = {
+                            sources: checked.sources,
+                            detail: checked.detail,
+                        };
                         input = { ...fields, ...totalsAsInput(checked.totals) };
                     } else {
                         // Before anything is read or written. Sugar without
@@ -2554,6 +2841,11 @@ export function registerTools(
                             args.sugar_g,
                         );
                         if (sugarError) throw new ToolError(sugarError);
+                        labels = await labelRow(
+                            foodRef,
+                            loggedValuesOf(fields),
+                            userStated,
+                        );
                     }
                     const { iso, note } = await resolveWriteTimestamp(
                         userId,
@@ -2563,6 +2855,8 @@ export function registerTools(
                         ...input,
                         logged_at: iso,
                         ...(items ? { items } : {}),
+                        nutrient_sources: labels.sources,
+                        source_detail: labels.detail,
                     });
                     // No colon yet: the zone is appended once tz is known,
                     // because the Time line below is a local wall clock.
@@ -2592,11 +2886,22 @@ export function registerTools(
                     const satFatNote = deduplicated
                         ? ""
                         : (saturatedAboveFatNote(meal) ?? "");
+                    // Model text only: where the values came from. A replay
+                    // reports the stored meal's own labels, so it says nothing.
+                    const sourcesNote = deduplicated
+                        ? ""
+                        : sourcesNoteFor(
+                              meal,
+                              foodRef !== undefined ||
+                                  (rawItems ?? []).some(
+                                      (i) => i.food_ref !== undefined,
+                                  ),
+                          );
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz, deduplicated ? undefined : items)}${progressSection}${satFatNote}${alcoholHiddenNote(
+                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz, deduplicated ? undefined : items)}${progressSection}${satFatNote}${sourcesNote}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
@@ -2818,6 +3123,7 @@ export function registerTools(
                         existingKeys: (keys) =>
                             existingIdempotencyKeys(userId, keys),
                         existingMealIds: (ids) => existingMealIds(userId, ids),
+                        foodRecord: getCachedFoodRecord,
                     });
 
                     // Same discovery problem as log_meal, one rung louder: a
@@ -4351,6 +4657,10 @@ export function registerTools(
                     .array(MEAL_ITEM_INPUT)
                     .optional()
                     .describe(UPDATE_MEAL_ITEMS_DESCRIPTION),
+                food_ref: FOOD_REF_INPUT.optional().describe(
+                    `${FOOD_REF_DESCRIPTION} For a meal without items. Changed nutrients take this record's label; unchanged ones keep theirs.`,
+                ),
+                user_stated: USER_STATED_INPUT,
             }),
             outputSchema: MEAL_PROGRESS_OUTPUT_SCHEMA,
             // Reuses the SAME meal-logged widget as log_meal (see
@@ -4358,7 +4668,13 @@ export function registerTools(
             // changes its header. Renders nothing when no goals are set.
             ...uiMeta(MEAL_LOGGED_WIDGET_URI),
         },
-        async ({ id, items: rawItems, ...fields }) => {
+        async ({
+            id,
+            items: rawItems,
+            food_ref: foodRef,
+            user_stated: userStated,
+            ...fields
+        }) => {
             return withAnalytics(
                 "update_meal",
                 async () => {
@@ -4367,17 +4683,17 @@ export function registerTools(
                         throw new ToolError(
                             notUuidText("meal", id, MEAL_ID_SOURCES),
                         );
-                    let itemsChecked: ReturnType<typeof validateItems> | null =
-                        null;
+                    let itemsChecked: Awaited<
+                        ReturnType<typeof checkedItemsWithSources>
+                    > | null = null;
                     let sugarGuard: MealSugarGuard | undefined;
                     if (rawItems !== undefined) {
                         // Items replace the totals: the totals fields may not
                         // come alongside, and each item is checked on its own.
                         const sent = totalsSentWithItems(fields);
                         if (sent.length > 0) throw totalsWithItemsError(sent);
-                        itemsChecked = validateItems(rawItems, {
-                            addedSugarRequired: addedSugarRequiredNow(),
-                        });
+                        refuseMealLevelRefsWithItems(foodRef, userStated);
+                        itemsChecked = await checkedItemsWithSources(rawItems);
                     } else if (totalsSentWithItems(fields).length > 0) {
                         // A meal logged with items has totals that are their
                         // sum, so a direct edit of a total would contradict
@@ -4425,6 +4741,26 @@ export function registerTools(
                                 ? { added_sugar_g: stored.added_sugar_g }
                                 : { sugar_g: stored.sugar_g };
                     }
+                    // A plain meal's changed nutrients take fresh labels and the
+                    // rest keep theirs; an itemized meal's labels come from its
+                    // items (already in itemsChecked).
+                    if (!itemsChecked) {
+                        refuseLabelsWithoutValues(
+                            foodRef,
+                            userStated,
+                            totalsSentWithItems(fields).length > 0,
+                        );
+                        if (foodRef !== undefined) parseFoodRef(foodRef);
+                    }
+                    const plainLabels = itemsChecked
+                        ? null
+                        : await mergedPlainLabels(
+                              userId,
+                              id,
+                              fields,
+                              foodRef,
+                              userStated,
+                          );
                     const { iso, note } = await resolveWriteTimestamp(
                         userId,
                         fields.logged_at,
@@ -4437,13 +4773,25 @@ export function registerTools(
                                   ...fields,
                                   ...itemsChecked.totals,
                                   logged_at: iso,
+                                  nutrient_sources: itemsChecked.sources,
+                                  source_detail: itemsChecked.detail,
                               },
                               itemsChecked.items,
                           )
                         : await updateMeal(
                               userId,
                               id,
-                              { ...fields, logged_at: iso },
+                              {
+                                  ...fields,
+                                  logged_at: iso,
+                                  ...(plainLabels
+                                      ? {
+                                            nutrient_sources:
+                                                plainLabels.sources,
+                                            source_detail: plainLabels.detail,
+                                        }
+                                      : {}),
+                              },
                               sugarGuard,
                           );
                     const { progressSection, structuredContent, meta, tz } =
@@ -4458,11 +4806,18 @@ export function registerTools(
                         meal,
                         itemsChecked?.items.length,
                     );
+                    const sourcesNote = sourcesNoteFor(
+                        meal,
+                        foodRef !== undefined ||
+                            (rawItems ?? []).some(
+                                (i) => i.food_ref !== undefined,
+                            ),
+                    );
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz, itemsChecked?.items)}${progressSection}${saturatedAboveFatNote(meal) ?? ""}${alcoholHiddenNote(
+                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz, itemsChecked?.items)}${progressSection}${saturatedAboveFatNote(meal) ?? ""}${sourcesNote}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
@@ -4518,6 +4873,10 @@ export function registerTools(
                     .array(MEAL_ITEM_INPUT)
                     .optional()
                     .describe(SAVE_MEAL_ITEMS_DESCRIPTION),
+                food_ref: FOOD_REF_INPUT.optional().describe(
+                    `${FOOD_REF_DESCRIPTION} Without items; with items, give food_ref on each item.`,
+                ),
+                user_stated: USER_STATED_INPUT,
                 calories: z.coerce
                     .number()
                     .min(0)
@@ -4622,6 +4981,10 @@ export function registerTools(
                     const sentTotals = totalsSentWithItems(args);
 
                     let saved: SavedMealWithItems;
+                    let labels: {
+                        sources: NutrientSources;
+                        detail: SourceDetail | null;
+                    };
                     if (args.from_meal_id !== undefined) {
                         if (!isUuid(args.from_meal_id))
                             throw new ToolError(
@@ -4630,6 +4993,14 @@ export function registerTools(
                                     args.from_meal_id,
                                     MEAL_ID_SOURCES,
                                 ),
+                            );
+                        if (
+                            args.food_ref !== undefined ||
+                            (args.user_stated?.length ?? 0) > 0
+                        )
+                            throw new ToolError(
+                                "from_meal_id copies the logged meal's labels for its values, so food_ref and user_stated cannot be sent with it.",
+                                { category: "food_ref_invalid" },
                             );
                         if (args.items !== undefined || sentTotals.length > 0)
                             throw new ToolError(
@@ -4671,6 +5042,13 @@ export function registerTools(
                                     description ??
                                     (copiedLength > 0 ? copied : name),
                                 meal_type: args.meal_type ?? source.meal_type,
+                                // A copy keeps the labels the logged meal has.
+                                nutrient_sources: parseNutrientSources(
+                                    source.nutrient_sources ?? null,
+                                ),
+                                source_detail: parseSourceDetail(
+                                    source.source_detail ?? null,
+                                ),
                             },
                             sourceItems,
                         );
@@ -4680,11 +5058,19 @@ export function registerTools(
                         if (args.items !== undefined) {
                             if (sentTotals.length > 0)
                                 throw totalsWithItemsError(sentTotals);
-                            const checked = validateItems(args.items, {
-                                addedSugarRequired: addedSugarRequiredNow(),
-                            });
+                            refuseMealLevelRefsWithItems(
+                                args.food_ref,
+                                args.user_stated,
+                            );
+                            const checked = await checkedItemsWithSources(
+                                args.items,
+                            );
                             values = checked.totals;
                             items = checked.items;
+                            labels = {
+                                sources: checked.sources,
+                                detail: checked.detail,
+                            };
                         } else {
                             if (args.calories === undefined)
                                 throw new ToolError(
@@ -4703,6 +5089,11 @@ export function registerTools(
                             );
                             if (sugarError) throw new ToolError(sugarError);
                             values = nutrientsFrom(args);
+                            labels = await labelRow(
+                                args.food_ref,
+                                loggedValuesOf(values),
+                                args.user_stated,
+                            );
                         }
                         saved = await savedMealWrite(
                             userId,
@@ -4712,6 +5103,8 @@ export function registerTools(
                                 name,
                                 description: description ?? name,
                                 meal_type: args.meal_type ?? null,
+                                nutrient_sources: labels.sources,
+                                source_detail: labels.detail,
                             },
                             items,
                         );
@@ -4725,7 +5118,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `Saved meal "${saved.name}" [saved meal id: ${saved.id}]\n${savedMealBody(saved, alcohol)}${alcoholNote}`,
+                                text: `Saved meal "${saved.name}" [saved meal id: ${saved.id}]\n${savedMealBody(saved, alcohol)}${sourcesNoteFor(saved, args.food_ref !== undefined || (args.items ?? []).some((i) => i.food_ref !== undefined))}${alcoholNote}`,
                             },
                         ],
                     };
@@ -4922,6 +5315,10 @@ export function registerTools(
                         (args.leave_out?.length ?? 0) > 0;
                     let items: MealItemValues[] | undefined;
                     let totals: NutrientValues;
+                    let labels: {
+                        sources: NutrientSources | null;
+                        detail: SourceDetail | null;
+                    };
                     if (saved.items.length > 0) {
                         // Servings first, then the item changes, so an
                         // item_amounts value is the amount in this entry
@@ -4934,6 +5331,13 @@ export function registerTools(
                             },
                         );
                         totals = sumItems(items);
+                        // Item labels are kept per item; the meal's are
+                        // re-derived from the items actually eaten.
+                        const derived = deriveFromItems(items);
+                        labels = {
+                            sources: derived.sources,
+                            detail: derived.detail,
+                        };
                     } else {
                         if (changed)
                             throw new ToolError(
@@ -4941,6 +5345,15 @@ export function registerTools(
                                 { category: "meal_items_invalid" },
                             );
                         totals = scaleTotals(nutrientsFrom(saved), servings);
+                        // Servings scale the values, so a record-backed label
+                        // stays true with its amount scaled too (scaleSourceDetail).
+                        labels = {
+                            sources: saved.nutrient_sources ?? null,
+                            detail: scaleSourceDetail(
+                                saved.source_detail ?? null,
+                                servings,
+                            ),
+                        };
                     }
                     // A servings multiplier or a changed amount can take the
                     // meal past what log_meal accepts (and calories past the
@@ -4963,6 +5376,8 @@ export function registerTools(
                         idempotency_key: args.idempotency_key,
                         saved_meal_id: saved.id,
                         ...(items ? { items } : {}),
+                        nutrient_sources: labels.sources,
+                        source_detail: labels.detail,
                     });
                     const header = deduplicated
                         ? "Meal already logged — this matched an existing meal, so nothing new was added"
@@ -4982,7 +5397,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz)}\n\nFrom saved meal "${saved.name}".${block}${progressSection}${alcoholHiddenNote(
+                                text: `${header} (${tz} time):\n${formatMealFull(meal, alcohol, tz)}\n\nFrom saved meal "${saved.name}".${block}${progressSection}${sourcesNoteFor(meal, false)}${alcoholHiddenNote(
                                     (meal.alcohol_g ?? 0) > 0,
                                     alcohol,
                                     "Alcohol saved with this meal",
@@ -5041,6 +5456,10 @@ export function registerTools(
                     .array(MEAL_ITEM_INPUT)
                     .optional()
                     .describe(UPDATE_SAVED_MEAL_ITEMS_DESCRIPTION),
+                food_ref: FOOD_REF_INPUT.optional().describe(
+                    `${FOOD_REF_DESCRIPTION} Without items, it describes the totals sent with it; the changed totals take its label and the rest keep theirs.`,
+                ),
+                user_stated: USER_STATED_INPUT,
                 calories: z.coerce
                     .number()
                     .min(0)
@@ -5115,7 +5534,13 @@ export function registerTools(
                     .describe("Caffeine per serving, in milligrams."),
             }),
         },
-        async ({ id, items: rawItems, ...fields }) => {
+        async ({
+            id,
+            items: rawItems,
+            food_ref: foodRef,
+            user_stated: userStated,
+            ...fields
+        }) => {
             return withAnalytics(
                 "update_saved_meal",
                 async () => {
@@ -5151,14 +5576,28 @@ export function registerTools(
 
                     let items: MealItemValues[] | null = null;
                     let totals: Partial<NutrientValues> = {};
+                    let labels: {
+                        sources: NutrientSources;
+                        detail: SourceDetail | null;
+                    } | null = null;
+                    // Bounds before anything is read.
+                    refuseLabelsWithoutValues(
+                        foodRef,
+                        userStated,
+                        sentTotals.length > 0 || rawItems !== undefined,
+                    );
+                    if (foodRef !== undefined) parseFoodRef(foodRef);
                     if (rawItems !== undefined) {
                         if (sentTotals.length > 0)
                             throw totalsWithItemsError(sentTotals);
-                        const checked = validateItems(rawItems, {
-                            addedSugarRequired: addedSugarRequiredNow(),
-                        });
+                        refuseMealLevelRefsWithItems(foodRef, userStated);
+                        const checked = await checkedItemsWithSources(rawItems);
                         items = checked.items;
                         totals = checked.totals;
+                        labels = {
+                            sources: checked.sources,
+                            detail: checked.detail,
+                        };
                     } else if (sentTotals.length > 0) {
                         const current = await getSavedMeal(userId, id);
                         if (!current) throw notFound();
@@ -5192,6 +5631,28 @@ export function registerTools(
                         totals = Object.fromEntries(
                             sentTotals.map((k) => [k, fields[k]]),
                         ) as Partial<NutrientValues>;
+                        // The changed totals take the fresh labels; the rest
+                        // keep theirs (mergeProvenance, as update_meal does).
+                        const oldValues = loggedValuesOf(current);
+                        const newValues = loggedValuesOf({
+                            ...current,
+                            ...totals,
+                        });
+                        labels = mergeProvenance({
+                            oldValues,
+                            newValues,
+                            oldSources: parseNutrientSources(
+                                current.nutrient_sources ?? null,
+                            ),
+                            oldDetail: parseSourceDetail(
+                                current.source_detail ?? null,
+                            ),
+                            changed: await labelRow(
+                                foodRef,
+                                newValues,
+                                userStated,
+                            ),
+                        });
                     }
 
                     let updated: SavedMealWithItems | null;
@@ -5207,6 +5668,12 @@ export function registerTools(
                                     : {}),
                                 ...(fields.meal_type !== undefined
                                     ? { meal_type: fields.meal_type }
+                                    : {}),
+                                ...(labels
+                                    ? {
+                                          nutrient_sources: labels.sources,
+                                          source_detail: labels.detail,
+                                      }
                                     : {}),
                             },
                             items,
@@ -5229,7 +5696,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `Saved meal "${updated.name}" updated. Meals already logged from it keep their values.\n${savedMealBody(updated, alcohol)}${alcoholNote}`,
+                                text: `Saved meal "${updated.name}" updated. Meals already logged from it keep their values.\n${savedMealBody(updated, alcohol)}${sourcesNoteFor(updated, foodRef !== undefined || (rawItems ?? []).some((i) => i.food_ref !== undefined))}${alcoholNote}`,
                             },
                         ],
                     };
@@ -6975,7 +7442,7 @@ export function registerTools(
         {
             title: "Export All Data",
             description:
-                "Export EVERYTHING this server stores about the user — meals with their ingredients, saved meals with their ingredients, water, weight, body measurements, nutrition goals and every dated change to them, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, meal_items.csv, saved_meals.csv, saved_meal_items.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path: it covers a full backup, an account takeout, and a request for the meal history alone, which is meals.csv inside the archive. The link is for the user to download the archive.",
+                "Export EVERYTHING this server stores about the user — meals with their ingredients and the source of each nutrient value (a food record, a value the user gave, or an estimate), saved meals with their ingredients, water, weight, body measurements, nutrition goals and every dated change to them, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, meal_items.csv, saved_meals.csv, saved_meal_items.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path: it covers a full backup, an account takeout, and a request for the meal history alone, which is meals.csv inside the archive. The link is for the user to download the archive.",
             annotations: {
                 title: "Export All Data",
                 readOnlyHint: false,

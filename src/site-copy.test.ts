@@ -863,6 +863,31 @@ test("every locale's privacy policy and terms name the goals history", () => {
     expect(problems).toEqual([]);
 });
 
+// Nutrient sources (nutrient_sources, source_detail on meals, meal_items,
+// saved_meals and saved_meal_items): each nutrient value records where it came
+// from, and the export carries that, so the Access and portability bullet must
+// say so in every locale. Pinned on the bullet, not on the whole policy, so a
+// reworded meal-log sentence elsewhere does not trip it.
+const NUTRIENT_SOURCES_ACCESS: Record<SiteLocale, string> = {
+    en: "where each nutrient value came from",
+    de: "der Herkunft jedes Nährwerts",
+    es: "el origen de cada valor nutricional",
+    fr: "l'origine de chaque valeur nutritionnelle",
+    it: "l'origine di ogni valore nutrizionale",
+    nl: "de herkomst van elke voedingswaarde",
+    pl: "pochodzenie każdej wartości odżywczej",
+    uk: "походження кожного поживного значення",
+    ja: "各栄養値の出典",
+    tr: "her besin değerinin kaynağıyla",
+};
+
+test("every locale's privacy policy says the export carries nutrient sources", () => {
+    const missing = SITE_LOCALES.filter(
+        (l) => !allText(PRIVACY[l]!).includes(NUTRIENT_SOURCES_ACCESS[l]),
+    );
+    expect(missing).toEqual([]);
+});
+
 // Saved meals (saved_meals, saved_meal_items, meal_items): a new per-user table
 // goes into the export, deleteAllUserData and the privacy policy together. Each
 // locale must name saved meals where stored data is listed, name them in the

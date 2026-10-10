@@ -37,6 +37,11 @@ import {
     type HealthSyncLinkStatus,
     type HealthSyncStore,
 } from "./health-sync-store.js";
+import {
+    PROVENANCE_EXPORT_VERSION,
+    type NutrientSources,
+    type SourceDetail,
+} from "./provenance.js";
 import { formatLocalDateTime, validateTz } from "./tz.js";
 import { fromGrams, isWeightUnit, type WeightUnit } from "./units.js";
 import { buildZip, type ZipEntry } from "./zip.js";
@@ -45,6 +50,19 @@ const EXPORT_BUCKET = "exports";
 // Signed link lifetime. The cleanup sweep ages files out on the same horizon.
 const EXPORT_TTL_SECONDS = 60 * 60; // 60 minutes
 const SWEEP_INTERVAL_MS = 10 * 60 * 1000; // every 10 minutes
+
+/**
+ * The provenance columns every nutrient-bearing file ends with. Each row of this
+ * server's own export writes provenance_version "1" as the marker the importer
+ * looks for: a file without it is third-party, so its nutrient_sources cells are
+ * never read. nutrient_sources and source_detail are JSON text, empty where a row
+ * has no provenance (rows written before it existed, never back-labelled).
+ */
+const PROVENANCE_CSV_COLUMNS = [
+    "provenance_version",
+    "nutrient_sources",
+    "source_detail",
+] as const;
 
 /**
  * Column order for the export. This list and the positional row builder in
@@ -89,6 +107,9 @@ const CSV_COLUMNS = [
     // name) and any reader that mapped the earlier columns by position keep
     // working; the importer ignores a column it does not know.
     "saved_meal_id",
+    // Provenance (src/provenance.ts), appended for the same reason. The three
+    // columns are PROVENANCE_CSV_COLUMNS below, shared with the other files.
+    ...PROVENANCE_CSV_COLUMNS,
 ] as const;
 
 /**
@@ -119,16 +140,47 @@ function localOrNull(
 }
 
 /**
- * csvEscape for text a third party chose — an OAuth client's registered name
- * and redirect, the name and session id an MCP client reports. A spreadsheet
+ * The leading-apostrophe defence for text a third party chose: a spreadsheet
  * runs a cell starting with = + - @ as a formula, so a client the user once
- * authorized could plant one in their export; a leading apostrophe makes it
- * text. Not used for the user's own logs: meals.csv must stay importable and
- * byte-identical.
+ * authorized could plant one in their export. Not used for the user's own logs:
+ * meals.csv must stay importable and byte-identical.
+ */
+function defuseFormula(value: string): string {
+    return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
+/**
+ * csvEscape for text a third party chose — an OAuth client's registered name
+ * and redirect, the name and session id an MCP client reports — defused by
+ * defuseFormula.
  */
 function csvThirdParty(value: string | null | undefined): string {
-    if (value != null && /^[=+\-@\t\r]/.test(value)) value = `'${value}`;
-    return csvEscape(value);
+    return csvEscape(value == null ? value : defuseFormula(value));
+}
+
+/**
+ * The three provenance cells of a row, in PROVENANCE_CSV_COLUMNS order. The
+ * names inside source_detail are third-party text (a food database's product
+ * name), so each is defused before the JSON is written; a JSON cell never starts
+ * with a formula character, so the defusing has to reach inside it.
+ */
+function provenanceCells(
+    sources: NutrientSources | null | undefined,
+    detail: SourceDetail | null | undefined,
+): string[] {
+    const safeDetail = detail
+        ? Object.fromEntries(
+              Object.entries(detail).map(([key, entry]) => [
+                  key,
+                  { ...entry, name: defuseFormula(entry.name) },
+              ]),
+          )
+        : null;
+    return [
+        csvEscape(PROVENANCE_EXPORT_VERSION),
+        csvEscape(sources ? JSON.stringify(sources) : null),
+        csvEscape(safeDetail ? JSON.stringify(safeDetail) : null),
+    ];
 }
 
 /**
@@ -159,6 +211,7 @@ export function buildMealsCsv(meals: Meal[], tz: string): string {
                 csvEscape(m.caffeine_mg),
                 csvEscape(m.notes),
                 csvEscape(m.saved_meal_id),
+                ...provenanceCells(m.nutrient_sources, m.source_detail),
             ].join(","),
         );
     }
@@ -206,6 +259,8 @@ export interface MealItemExportRow extends ExportNutrients {
     name: string;
     amount: number | null;
     unit: string | null;
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 /** A saved meal, as getAllSavedMeals returns it: values per serving. */
@@ -217,6 +272,8 @@ export interface SavedMealExportRow extends ExportNutrients {
     meal_type: string | null;
     created_at: string;
     updated_at: string;
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 /** A saved meal's ingredient row, as getAllSavedMealItems returns it. */
@@ -228,6 +285,8 @@ export interface SavedMealItemExportRow extends ExportNutrients {
     name: string;
     amount: number | null;
     unit: string | null;
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 function nutrientCells(n: ExportNutrients): string[] {
@@ -246,6 +305,7 @@ const MEAL_ITEMS_CSV_COLUMNS = [
     "amount",
     "unit",
     ...NUTRIENT_CSV_COLUMNS,
+    ...PROVENANCE_CSV_COLUMNS,
 ] as const;
 
 /**
@@ -263,6 +323,7 @@ export function buildMealItemsCsv(items: MealItemExportRow[]): string {
                 csvEscape(i.amount),
                 csvEscape(i.unit),
                 ...nutrientCells(i),
+                ...provenanceCells(i.nutrient_sources, i.source_detail),
             ].join(","),
         );
     }
@@ -283,6 +344,7 @@ const SAVED_MEALS_CSV_COLUMNS = [
     "created_at",
     "updated_at",
     "timezone",
+    ...PROVENANCE_CSV_COLUMNS,
 ] as const;
 
 /** Build saved_meals.csv, timestamps in `tz`. Header-only when there are none. */
@@ -302,6 +364,7 @@ export function buildSavedMealsCsv(
                 csvEscape(formatLocalDateTime(s.created_at, tz)),
                 csvEscape(formatLocalDateTime(s.updated_at, tz)),
                 csvEscape(tz),
+                ...provenanceCells(s.nutrient_sources, s.source_detail),
             ].join(","),
         );
     }
@@ -319,6 +382,7 @@ const SAVED_MEAL_ITEMS_CSV_COLUMNS = [
     "amount",
     "unit",
     ...NUTRIENT_CSV_COLUMNS,
+    ...PROVENANCE_CSV_COLUMNS,
 ] as const;
 
 /**
@@ -338,6 +402,7 @@ export function buildSavedMealItemsCsv(
                 csvEscape(i.amount),
                 csvEscape(i.unit),
                 ...nutrientCells(i),
+                ...provenanceCells(i.nutrient_sources, i.source_detail),
             ].join(","),
         );
     }
@@ -986,10 +1051,10 @@ export function buildExportReadme(opts: {
         "",
         "Files",
         "-----",
-        `meals.csv    ${rows(counts.meals)} — every meal you have logged: time, description, calories and macros, and saved_meal_id, the saved meal it was logged from (empty when it was not logged from one).`,
+        `meals.csv    ${rows(counts.meals)} — every meal you have logged: time, description, calories and macros, saved_meal_id, the saved meal it was logged from (empty when it was not logged from one), and the nutrient_sources and source_detail columns described under "Where the values came from".`,
         `meal_items.csv ${rows(counts.mealItems)} — the ingredients of meals you logged with an itemised list: one row per ingredient with its amount, unit and nutrients. Joined to meals.csv by meal_id; position orders the ingredients within a meal. A meal's totals in meals.csv are the sum of its ingredients, with calories rounded to a whole number and the other values to two decimals, so a calorie total can differ from the sum of the ingredients' calories by up to half a calorie.`,
         `saved_meals.csv ${rows(counts.savedMeals)} — your saved meals: name, description, default meal type and the values for one serving, when each was created and last changed (in its "timezone" column's zone). Editing or deleting a saved meal does not change meals you already logged from it.`,
-        `saved_meal_items.csv ${rows(counts.savedMealItems)} — the ingredients of saved meals, one row per ingredient, joined to saved_meals.csv by saved_meal_id. When a saved meal has ingredients, its values in saved_meals.csv are their sum, rounded the same way: calories to a whole number, the other values to two decimals.`,
+        `saved_meal_items.csv ${rows(counts.savedMealItems)} — the ingredients of saved meals, one row per ingredient, joined to saved_meals.csv by saved_meal_id. When a saved meal has ingredients, its values in saved_meals.csv are their sum, rounded the same way: calories to a whole number, the other values to two decimals. Each ingredient carries its own nutrient_sources and source_detail, as described under "Where the values came from".`,
         `water.csv    ${rows(counts.water)} — every water entry, in millilitres.`,
         `weight.csv   ${rows(counts.weight)} — every weigh-in, as stored grams and as ${weightUnit}.`,
         `body_measurements.csv ${rows(counts.bodyMeasurements)} — every body measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf): the stored millimetres, and the value exactly as entered with its unit (cm or in).`,
@@ -1001,6 +1066,12 @@ export function buildExportReadme(opts: {
         `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty. If Apple Health sync is connected, its link is one more row of kind "health_sync": when it was created, last used and last synced, when it expires, which totals it sends (synced_fields), the first day it may send (sync_start_date) and the iPhone's own timezone (device_timezone, a saved setting — the timestamps are still in the "timezone" column's zone). Its token is not included either.`,
         `health_sync.csv ${rows(counts.healthSync)} — what Apple Health sync sent to your iPhone, one row per day, kept for ${HEALTH_SYNC_RETENTION_DAYS} days: the daily totals sent (${HEALTH_SYNC_FIELDS.join(", ")}), how many later top-ups were sent for the day (topup_seq) and when the first and last were sent. Each row is in its own "timezone" — the zone the day was counted in, which can differ from your account's if your phone was elsewhere — and its date and times are wall clocks there. An empty value was not sent; a row with no values was offered but not yet confirmed by the phone. Alcohol is never sent.`,
         "README.txt   this file.",
+        "",
+        "Where the values came from",
+        "--------------------------",
+        "nutrient_sources (in meals.csv, meal_items.csv, saved_meals.csv and saved_meal_items.csv) is JSON that labels each nutrient value with its source: usda or openfoodfacts when the value matches that food record for the amount given (ref is the record's FoodData Central id or barcode); user when you gave the value yourself; estimate when nothing matched, which is also what a value logged by name or by hand gets. A meal-level value built from several items can read mixed, with each source's share in whole percent. A match means the number agrees with the food record for the amount given; it does not check that the amount itself was right.",
+        "source_detail is JSON keyed usda:<id> or openfoodfacts:<barcode>, one entry per record the labels point at: the food's name, its data type when the record has one, the grams or servings the values were scaled to, and when the record was fetched. Names come from the food database, and a leading apostrophe is added where a spreadsheet would otherwise read the name as a formula.",
+        "A cell is empty where the value was recorded before these labels were kept; an empty cell is never a source. provenance_version is 1 on every row of this export and marks the file as one that carries these columns.",
         "",
         "Units",
         "-----",

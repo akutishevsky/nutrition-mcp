@@ -77,6 +77,8 @@ import {
 } from "@modelcontextprotocol/server";
 import { AjvJsonSchemaValidator } from "@modelcontextprotocol/server/validators/ajv";
 import * as actualSupabase from "./supabase.js";
+import type { ReferenceRecord } from "./provenance.js";
+import { NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
 
 // Snapshot BEFORE mock.module runs: Bun patches a mocked module's namespace
 // in place, so restoring from the live `actualSupabase` afterwards would hand
@@ -1689,6 +1691,10 @@ const db = {
     }[],
     // searchMeals' rows, staged by the test.
     searchResults: [] as Meal[],
+    // food_cache rows the provenance reader finds, keyed "source:id", and the
+    // lookups made (the verification tests read both).
+    foodRecords: new Map<string, ReferenceRecord>(),
+    foodCacheReads: [] as string[],
 };
 
 /** The two PostgREST reads behind HealthSyncStore.getLinkStatus, plus
@@ -1975,6 +1981,12 @@ mock.module("./supabase.js", () => ({
     },
     countMealItems: async (_userId: string, id: string) =>
         db.mealItems.get(id)?.length ?? 0,
+    // The provenance reader, served from the staged food_cache rows: a miss is
+    // null, as the real reader reports it.
+    getCachedFoodRecord: async (source: string, id: string) => {
+        db.foodCacheReads.push(`${source}:${id}`);
+        return db.foodRecords.get(`${source}:${id}`) ?? null;
+    },
     getMealById: async (_userId: string, id: string) =>
         db.meals.find((m) => m.id === id) ?? null,
     replaceMealItems: async (
@@ -2016,6 +2028,12 @@ mock.module("./supabase.js", () => ({
                     (input[k] as number | null | undefined) ?? null,
                 ]),
             ),
+            nutrient_sources:
+                (input.nutrient_sources as SavedMealWithItems["nutrient_sources"]) ??
+                null,
+            source_detail:
+                (input.source_detail as SavedMealWithItems["source_detail"]) ??
+                null,
             items,
         });
         db.savedMeals.push(row);
@@ -2127,6 +2145,8 @@ beforeEach(() => {
     db.savedMealWrites = [];
     db.savedMealUpdates = [];
     db.searchResults = [];
+    db.foodRecords = new Map();
+    db.foodCacheReads = [];
     db.meals = [];
     db.mealRangeArgs = [];
     db.goalsHistory = [];
@@ -9817,7 +9837,12 @@ describe("saved meals: review fixes", () => {
                 calories: 4,
             });
             expect(totals.isError).toBeFalsy();
-            expect(db.savedMealUpdates[2]!.fields).toEqual({ calories: 4 });
+            // The changed total takes an estimate label; nothing else is sent.
+            expect(db.savedMealUpdates[2]!.fields).toEqual({
+                calories: 4,
+                nutrient_sources: { calories: { s: "estimate" } },
+                source_detail: null,
+            });
             const tea = db.savedMeals.find((s) => s.id === OTHER_SAVED_ID)!;
             expect(tea.calories).toBe(4);
             expect(tea.sugar_g).toBe(10);
@@ -10302,6 +10327,670 @@ describe("saturated fat rides in _meta on every widget tool", () => {
                 });
                 expect(trends.meta.goal).toBe(20);
                 expect(trends.meta.days?.[DAY]).toBe(9);
+            });
+        });
+    });
+});
+
+// ---------- per-nutrient provenance on the write paths ----------
+
+describe("nutrient provenance on the write paths", () => {
+    const USDA_CHICKEN: ReferenceRecord = {
+        source: "usda",
+        id: "171477",
+        name: "Chicken, broilers or fryers, breast, roasted",
+        data_type: "Foundation",
+        basis: "per_100g",
+        values: {
+            calories: 165,
+            protein_g: 31,
+            carbs_g: 0,
+            fat_g: 3.6,
+            fiber_g: 0,
+            sugar_g: 0,
+            added_sugar_g: 0,
+        },
+        added_sugar_estimated: false,
+        fetched_at: "2026-10-01T00:00:00.000Z",
+    };
+    const OFF_CRISPS: ReferenceRecord = {
+        source: "openfoodfacts",
+        id: "5000159484695",
+        name: "Crisps",
+        data_type: null,
+        basis: "per_serving",
+        values: { calories: 150, protein_g: 2, carbs_g: 15, fat_g: 10 },
+        added_sugar_estimated: false,
+        fetched_at: null,
+    };
+    // Calories 247.5 for 150 g of the usda record above, so 248 verifies.
+    const CHICKEN_150G = {
+        calories: 248,
+        protein_g: 46.5,
+        carbs_g: 0,
+        fat_g: 5.4,
+        fiber_g: 0,
+        sugar_g: 0,
+        added_sugar_g: 0,
+    };
+    const CHICKEN_REF = { source: "usda", id: "171477", amount_g: 150 };
+    const TAG = { s: "usda", ref: "171477" } as const;
+
+    // The sources line only, from a result's model text.
+    const sourcesLineOf = (r: ToolResult) =>
+        textOf(r)
+            .split("\n")
+            .find((l) => l.startsWith("Sources:"));
+
+    test("log_meal: values a usda record matches are labelled with it, with the record's detail", async () => {
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Chicken breast",
+                meal_type: "lunch",
+                ...CHICKEN_150G,
+                food_ref: CHICKEN_REF,
+            });
+            expect(r.isError).toBeFalsy();
+            const row = db.inserted.at(-1)!;
+            expect(row.nutrient_sources).toEqual({
+                calories: TAG,
+                protein_g: TAG,
+                carbs_g: TAG,
+                fat_g: TAG,
+                fiber_g: TAG,
+                sugar_g: TAG,
+                added_sugar_g: TAG,
+            });
+            expect(row.source_detail).toEqual({
+                "usda:171477": {
+                    name: USDA_CHICKEN.name,
+                    data_type: "Foundation",
+                    amount_g: 150,
+                    fetched_at: "2026-10-01T00:00:00.000Z",
+                },
+            });
+            expect(db.foodCacheReads).toEqual(["usda:171477"]);
+            expect(sourcesLineOf(r)).toBe(
+                "Sources: calories, protein, carbs, fat, fiber, sugar, added sugar match USDA FoodData Central 171477 for 150 g.",
+            );
+        });
+    });
+
+    test("log_meal: a value that misses the record is estimated, and a user_stated one is the user's", async () => {
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Chicken breast",
+                meal_type: "lunch",
+                ...CHICKEN_150G,
+                calories: 400,
+                fiber_g: 4,
+                food_ref: CHICKEN_REF,
+                user_stated: ["fiber_g"],
+            });
+            expect(r.isError).toBeFalsy();
+            const sources = db.inserted.at(-1)!.nutrient_sources as Record<
+                string,
+                unknown
+            >;
+            expect(sources.calories).toEqual({ s: "estimate" });
+            expect(sources.protein_g).toEqual(TAG);
+            expect(sources.fiber_g).toEqual({ s: "user" });
+            expect(sourcesLineOf(r)).toContain("calories");
+            expect(sourcesLineOf(r)).toContain("estimated");
+        });
+    });
+
+    test("log_meal: a cache miss labels every value estimated and still writes", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Chicken breast",
+                meal_type: "lunch",
+                ...CHICKEN_150G,
+                food_ref: CHICKEN_REF,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(db.inserted.at(-1)!.nutrient_sources).toEqual(
+                Object.fromEntries(
+                    Object.keys(CHICKEN_150G).map((k) => [
+                        k,
+                        { s: "estimate" },
+                    ]),
+                ),
+            );
+            expect(sourcesLineOf(r)).toBe("Sources: all values estimated.");
+        });
+    });
+
+    test("log_meal: with no food_ref and nothing stated, no sources line is written", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Apple",
+                meal_type: "snack",
+                calories: 95,
+                protein_g: 0,
+                carbs_g: 25,
+                fat_g: 0,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(sourcesLineOf(r)).toBeUndefined();
+            expect(db.foodCacheReads).toEqual([]);
+        });
+    });
+
+    test("food_ref: a per-serving record refuses amount_g, and a per-100 g one refuses servings", async () => {
+        db.foodRecords.set("openfoodfacts:5000159484695", OFF_CRISPS);
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        await withTools(null, async (call) => {
+            const perServing = await call("log_meal", {
+                description: "Crisps",
+                meal_type: "snack",
+                calories: 150,
+                protein_g: 2,
+                carbs_g: 15,
+                fat_g: 10,
+                food_ref: {
+                    source: "openfoodfacts",
+                    id: "5000159484695",
+                    amount_g: 30,
+                },
+            });
+            expect(perServing.isError).toBe(true);
+            expect(textOf(perServing)).toContain("stored per serving");
+            const per100 = await call("log_meal", {
+                description: "Chicken",
+                meal_type: "lunch",
+                calories: 248,
+                protein_g: 46.5,
+                carbs_g: 0,
+                fat_g: 5.4,
+                food_ref: {
+                    source: "openfoodfacts",
+                    id: "171477",
+                    servings: 1,
+                },
+            });
+            expect(per100.isError).toBe(true);
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    test("food_ref: a malformed id is refused as food_ref_invalid before anything is written", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Chicken",
+                meal_type: "lunch",
+                calories: 248,
+                protein_g: 46.5,
+                carbs_g: 0,
+                fat_g: 5.4,
+                food_ref: { source: "usda", id: "12ab", amount_g: 150 },
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("not a FoodData Central id");
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    test("food_ref: a refused id reaches the caller but not the runtime log", async () => {
+        const logged: string[] = [];
+        const spies = [
+            spyOn(console, "log"),
+            spyOn(console, "warn"),
+            spyOn(console, "error"),
+        ].map((spy) =>
+            spy.mockImplementation((...args: unknown[]) => {
+                logged.push(args.map(String).join(" "));
+            }),
+        );
+        try {
+            await withTools(null, async (call) => {
+                const r = await call("log_meal", {
+                    description: "Chicken",
+                    meal_type: "lunch",
+                    calories: 248,
+                    protein_g: 46.5,
+                    carbs_g: 0,
+                    fat_g: 5.4,
+                    food_ref: { source: "usda", id: "12ab", amount_g: 150 },
+                });
+                expect(r.isError).toBe(true);
+                expect(textOf(r)).toContain("12ab");
+            });
+        } finally {
+            for (const spy of spies) spy.mockRestore();
+        }
+        expect(logged.join("\n")).toContain("food_ref_invalid");
+        expect(logged.join("\n")).not.toContain("12ab");
+    });
+
+    test("food_ref: a label sent with no nutrient values is refused, not dropped", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", {
+                id: "11111111-1111-4111-8111-111111111111",
+                description: "Chicken",
+                food_ref: CHICKEN_REF,
+            });
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("send the values they describe");
+            const saved = await call("update_saved_meal", {
+                id: "22222222-2222-4222-8222-222222222222",
+                name: "Chicken",
+                user_stated: ["protein_g"],
+            });
+            expect(saved.isError).toBe(true);
+            expect(textOf(saved)).toContain("send the values they describe");
+        });
+    });
+
+    test("food_ref: a meal-level ref beside items is refused, and so is user_stated on the meal", async () => {
+        await withTools(null, async (call) => {
+            const beside = await call("log_meal", {
+                description: "Lunch",
+                meal_type: "lunch",
+                items: [
+                    {
+                        name: "Chicken",
+                        calories: 165,
+                        protein_g: 31,
+                        carbs_g: 0,
+                        fat_g: 3.6,
+                    },
+                ],
+                food_ref: CHICKEN_REF,
+            });
+            expect(beside.isError).toBe(true);
+            expect(textOf(beside)).toContain("goes on each item");
+            const stated = await call("log_meal", {
+                description: "Lunch",
+                meal_type: "lunch",
+                items: [
+                    {
+                        name: "Chicken",
+                        calories: 165,
+                        protein_g: 31,
+                        carbs_g: 0,
+                        fat_g: 3.6,
+                    },
+                ],
+                user_stated: ["calories"],
+            });
+            expect(stated.isError).toBe(true);
+            expect(textOf(stated)).toContain("user_stated goes on each item");
+            expect(db.inserted).toHaveLength(0);
+        });
+    });
+
+    test("log_meal items: each item is labelled, and the meal's label is derived from them", async () => {
+        db.foodRecords.set("usda:171477", {
+            ...USDA_CHICKEN,
+            values: { calories: 200, protein_g: 0, carbs_g: 0, fat_g: 0 },
+        });
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Plate",
+                meal_type: "dinner",
+                items: [
+                    {
+                        name: "Chicken",
+                        amount: 100,
+                        unit: "g",
+                        calories: 200,
+                        protein_g: 0,
+                        carbs_g: 0,
+                        fat_g: 0,
+                        food_ref: {
+                            source: "usda",
+                            id: "171477",
+                            amount_g: 100,
+                        },
+                    },
+                    {
+                        name: "Sauce",
+                        calories: 100,
+                        protein_g: 0,
+                        carbs_g: 0,
+                        fat_g: 0,
+                        user_stated: ["calories"],
+                    },
+                ],
+            });
+            expect(r.isError).toBeFalsy();
+            const row = db.inserted.at(-1)!;
+            expect(row.nutrient_sources).toMatchObject({
+                calories: {
+                    s: "mixed",
+                    parts: [
+                        { s: "usda", share: 67 },
+                        { s: "user", share: 33 },
+                    ],
+                },
+            });
+            const items = db.mealItems.get(db.meals[0]!.id)!;
+            expect(items[0]!.nutrient_sources).toMatchObject({
+                calories: TAG,
+            });
+            expect(items[1]!.nutrient_sources).toMatchObject({
+                calories: { s: "user" },
+            });
+        });
+    });
+
+    test("update_meal: a plain meal re-labels only the nutrients whose value changed", async () => {
+        db.meals = [
+            storedMeal({
+                id: MEAL_ID,
+                description: "Chicken breast",
+                calories: 165,
+                protein_g: 31,
+                carbs_g: 0,
+                fat_g: 3.6,
+                nutrient_sources: {
+                    calories: TAG,
+                    protein_g: TAG,
+                    carbs_g: TAG,
+                    fat_g: TAG,
+                },
+                source_detail: {
+                    "usda:171477": { name: USDA_CHICKEN.name },
+                },
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", { id: MEAL_ID, calories: 200 });
+            expect(r.isError).toBeFalsy();
+            expect(db.mealUpdates.at(-1)!.nutrient_sources).toEqual({
+                calories: { s: "estimate" },
+                protein_g: TAG,
+                carbs_g: TAG,
+                fat_g: TAG,
+            });
+        });
+    });
+
+    test("update_meal: a changed nutrient takes the label of the ref that matches it", async () => {
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        db.meals = [
+            storedMeal({
+                id: MEAL_ID,
+                description: "Chicken breast",
+                calories: 165,
+                nutrient_sources: { calories: { s: "estimate" } },
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", {
+                id: MEAL_ID,
+                calories: 247,
+                food_ref: CHICKEN_REF,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(db.mealUpdates.at(-1)!.nutrient_sources).toEqual({
+                calories: TAG,
+            });
+        });
+    });
+
+    test("update_meal: an itemized meal's labels are re-derived from its new items", async () => {
+        db.foodRecords.set("usda:171477", {
+            ...USDA_CHICKEN,
+            values: { calories: 200, protein_g: 0, carbs_g: 0, fat_g: 0 },
+        });
+        db.meals = [storedMeal({ id: MEAL_ID, description: "Plate" })];
+        await withTools(null, async (call) => {
+            const r = await call("update_meal", {
+                id: MEAL_ID,
+                items: [
+                    {
+                        name: "Chicken",
+                        amount: 100,
+                        calories: 200,
+                        protein_g: 0,
+                        carbs_g: 0,
+                        fat_g: 0,
+                        food_ref: {
+                            source: "usda",
+                            id: "171477",
+                            amount_g: 100,
+                        },
+                    },
+                ],
+            });
+            expect(r.isError).toBeFalsy();
+            const write = db.itemReplacements.at(-1)!;
+            expect(write.fields.nutrient_sources).toMatchObject({
+                calories: TAG,
+            });
+        });
+    });
+
+    test("save_meal: a plain saved meal is labelled from its food_ref", async () => {
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        await withTools(null, async (call) => {
+            const r = await call("save_meal", {
+                name: "Plain chicken",
+                meal_type: "lunch",
+                calories: 165,
+                protein_g: 31,
+                carbs_g: 0,
+                fat_g: 3.6,
+                food_ref: { source: "usda", id: "171477", amount_g: 100 },
+            });
+            expect(r.isError).toBeFalsy();
+            const write = db.savedMealWrites.at(-1)!;
+            expect(write.input.nutrient_sources).toMatchObject({
+                calories: TAG,
+                protein_g: TAG,
+            });
+            expect(textOf(r)).toContain("Sources: ");
+        });
+    });
+
+    test("log_saved_meal: servings keep the tag and scale the record amount with the values", async () => {
+        db.savedMeals = [
+            savedMealRow({
+                nutrient_sources: { calories: TAG, protein_g: TAG },
+                source_detail: {
+                    "usda:171477": { name: USDA_CHICKEN.name, amount_g: 150 },
+                },
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", {
+                saved_meal: SAVED_ID,
+                meal_type: "lunch",
+                servings: 2,
+            });
+            expect(r.isError).toBeFalsy();
+            const row = db.inserted.at(-1)!;
+            expect(row.nutrient_sources).toEqual({
+                calories: TAG,
+                protein_g: TAG,
+            });
+            // The values doubled, so they match the record for 300 g.
+            expect(row.source_detail).toEqual({
+                "usda:171477": { name: USDA_CHICKEN.name, amount_g: 300 },
+            });
+        });
+    });
+
+    test("log_saved_meal: a totals-only saved meal copies its labels, and servings keep the tags", async () => {
+        db.savedMeals = [
+            savedMealRow({
+                nutrient_sources: { calories: TAG, protein_g: TAG },
+                source_detail: { "usda:171477": { name: USDA_CHICKEN.name } },
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", {
+                saved_meal: SAVED_ID,
+                meal_type: "lunch",
+                servings: 2,
+            });
+            expect(r.isError).toBeFalsy();
+            const row = db.inserted.at(-1)!;
+            expect(row.nutrient_sources).toEqual({
+                calories: TAG,
+                protein_g: TAG,
+            });
+            expect(row.source_detail).toEqual({
+                "usda:171477": { name: USDA_CHICKEN.name },
+            });
+        });
+    });
+
+    test("_meta: the sources payload matches the strict schema and names are cut to 60 characters", async () => {
+        const long = { ...USDA_CHICKEN, name: "x".repeat(90) };
+        db.foodRecords.set("usda:171477", long);
+        const NUTRIENT_SOURCE = z.strictObject({
+            s: z.enum(["usda", "openfoodfacts", "user", "estimate", "mixed"]),
+            ref: z.string().optional(),
+            name: z.string().optional(),
+            data_type: z.string().optional(),
+            parts: z
+                .array(
+                    z.strictObject({
+                        s: z.enum([
+                            "usda",
+                            "openfoodfacts",
+                            "user",
+                            "estimate",
+                        ]),
+                        share: z.number(),
+                    }),
+                )
+                .optional(),
+        });
+        const SOURCES_META = z.strictObject({
+            v: z.literal(1),
+            meals: z.array(
+                z
+                    .strictObject({
+                        meal: z.record(z.string(), NUTRIENT_SOURCE).nullable(),
+                        items: z
+                            .array(
+                                z
+                                    .record(z.string(), NUTRIENT_SOURCE)
+                                    .nullable(),
+                            )
+                            .nullable(),
+                    })
+                    .nullable(),
+            ),
+        });
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Chicken breast",
+                meal_type: "lunch",
+                ...CHICKEN_150G,
+                food_ref: CHICKEN_REF,
+            });
+            expect(r.isError).toBeFalsy();
+            const meta = SOURCES_META.parse(
+                r._meta?.[NUTRIENT_SOURCES_META_KEY],
+            );
+            expect(meta.meals).toHaveLength(
+                (r.structuredContent as { meals: unknown[] }).meals.length,
+            );
+            const labels = meta.meals[0]!.meal!;
+            expect(labels.calories).toEqual({
+                s: "usda",
+                ref: "171477",
+                name: "x".repeat(60),
+                data_type: "Foundation",
+            });
+            expect(JSON.stringify(r.structuredContent)).not.toContain(
+                "nutrient_sources",
+            );
+        });
+    });
+
+    test("_meta: alcohol carries no label while tracking is off, and is labelled when on", async () => {
+        const ALCOHOL = {
+            description: "Beer",
+            meal_type: "dinner",
+            calories: 180,
+            protein_g: 1,
+            carbs_g: 13,
+            fat_g: 0,
+            alcohol_g: 13,
+        };
+        await withTools(null, async (call) => {
+            const off = await call("log_meal", ALCOHOL);
+            const meta = off._meta?.[NUTRIENT_SOURCES_META_KEY] as {
+                meals: { meal: Record<string, unknown> }[];
+            };
+            expect(meta.meals[0]!.meal).not.toHaveProperty("alcohol_g");
+            expect(meta.meals[0]!.meal).toHaveProperty("calories");
+        });
+        await withTools("us", async (call) => {
+            const on = await call("log_meal", ALCOHOL);
+            const meta = on._meta?.[NUTRIENT_SOURCES_META_KEY] as {
+                meals: { meal: Record<string, unknown> }[];
+            };
+            expect(meta.meals[0]!.meal).toHaveProperty("alcohol_g");
+        });
+    });
+
+    test("_meta: a failed items read drops the sources key and the tool still succeeds", async () => {
+        db.foodRecords.set("usda:171477", USDA_CHICKEN);
+        db.mealItemsFailure = new Error("items unavailable");
+        await withTools(null, async (call) => {
+            const r = await call("log_meal", {
+                description: "Chicken breast",
+                meal_type: "lunch",
+                ...CHICKEN_150G,
+                food_ref: CHICKEN_REF,
+            });
+            expect(r.isError).toBeFalsy();
+            expect(r.structuredContent).toBeDefined();
+            expect(r._meta ?? {}).not.toHaveProperty(NUTRIENT_SOURCES_META_KEY);
+        });
+    });
+});
+
+describe("log_saved_meal re-derives the meal's labels from the items it keeps", () => {
+    const TAG = { s: "usda", ref: "171477" } as const;
+
+    test("leave_out drops an item, so the meal's calories are labelled from the one kept", async () => {
+        db.savedMeals = [
+            savedMealRow({
+                items: [
+                    ingredient(1, "Chicken", {
+                        calories: 200,
+                        nutrient_sources: { calories: TAG },
+                    }),
+                    ingredient(2, "Sauce", {
+                        calories: 100,
+                        nutrient_sources: { calories: { s: "estimate" } },
+                    }),
+                ],
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const kept = await call("log_saved_meal", {
+                saved_meal: SAVED_ID,
+                meal_type: "dinner",
+            });
+            expect(kept.isError).toBeFalsy();
+            expect(db.inserted.at(-1)!.nutrient_sources).toMatchObject({
+                calories: {
+                    s: "mixed",
+                    parts: [
+                        { s: "usda", share: 67 },
+                        { s: "estimate", share: 33 },
+                    ],
+                },
+            });
+            const r = await call("log_saved_meal", {
+                saved_meal: SAVED_ID,
+                meal_type: "dinner",
+                leave_out: ["2"],
+            });
+            expect(r.isError).toBeFalsy();
+            expect(db.inserted.at(-1)!.nutrient_sources).toMatchObject({
+                calories: TAG,
             });
         });
     });

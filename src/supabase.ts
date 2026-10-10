@@ -25,6 +25,18 @@ import {
     type MealNutrientKey,
     type NutrientValues,
 } from "./meal-items.js";
+import {
+    parseNutrientSources,
+    parseSourceDetail,
+    referenceFromFood,
+    referenceFromUsda,
+    type NutrientSources,
+    type RecordSource,
+    type ReferenceRecord,
+    type SourceDetail,
+} from "./provenance.js";
+import { usdaRecordFromPayload } from "./usda-record.js";
+import { fromCachedPayload, type FoodResult } from "./foods.js";
 import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
 import { hashSecret } from "./token-hash.js";
 import { ToolError, newErrorRef } from "./errors.js";
@@ -219,6 +231,11 @@ export interface Meal {
     // null again when that saved meal is deleted: the logged row keeps its
     // values, only the link goes.
     saved_meal_id: string | null;
+    // Where each nutrient came from (src/provenance.ts) and the records those
+    // labels point at. NULL on rows written before provenance existed; never
+    // back-labelled.
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 export interface MealInput {
@@ -247,6 +264,11 @@ export interface MealInput {
     items?: MealItemValues[];
     // The saved meal this entry is copied from (log_saved_meal).
     saved_meal_id?: string;
+    // Provenance of the nutrient fields above (see Meal.nutrient_sources).
+    // Already verified and labelled by the caller; written as given. Not part
+    // of the idempotency digest.
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 export interface MealInsertResult {
@@ -403,6 +425,8 @@ export async function insertMeal(
             added_sugar_g: meal.added_sugar_g ?? null,
             alcohol_g: meal.alcohol_g ?? null,
             caffeine_mg: meal.caffeine_mg ?? null,
+            nutrient_sources: meal.nutrient_sources ?? null,
+            source_detail: meal.source_detail ?? null,
             logged_at: loggedAt,
             notes:
                 meal.notes != null ? decodeEscapeSequences(meal.notes) : null,
@@ -684,7 +708,7 @@ export async function getAllMeals(userId: string): Promise<Meal[]> {
             `getAllMeals: fetched ${meals.length} meals but countMeals reported ${expected} — export would be truncated`,
         );
     }
-    return meals;
+    return meals.map(withProvenance);
 }
 
 // Keyword search over past meals. Each query string is an alternative (OR'd
@@ -833,6 +857,10 @@ export async function updateMeal(
     if (fields.alcohol_g !== undefined) update.alcohol_g = fields.alcohol_g;
     if (fields.caffeine_mg !== undefined)
         update.caffeine_mg = fields.caffeine_mg;
+    if (fields.nutrient_sources !== undefined)
+        update.nutrient_sources = fields.nutrient_sources;
+    if (fields.source_detail !== undefined)
+        update.source_detail = fields.source_detail;
     if (fields.logged_at !== undefined) update.logged_at = fields.logged_at;
     if (fields.notes !== undefined)
         update.notes =
@@ -884,6 +912,48 @@ export async function updateMeal(
     );
 }
 
+// ---------- Food records (provenance) ----------
+
+/**
+ * A cached food record for provenance (src/provenance.ts), with no TTL. The
+ * lookup cache (src/foods.ts) refetches a stale row; a provenance check never
+ * fetches upstream, and a record past its TTL still verifies a logged value,
+ * because the facts it holds do not expire with the cache. The row is
+ * normalized the way the lookup normalizes it (fromCachedPayload for Open Food
+ * Facts, usdaRecordFromPayload for USDA), so both read the same figures.
+ *
+ * Best-effort, like the lookup cache: any failure, or a row that does not
+ * normalize or belongs to another id, is a miss. A miss labels the value
+ * "estimate" and never fails the write.
+ */
+export async function getCachedFoodRecord(
+    source: RecordSource,
+    id: string,
+): Promise<ReferenceRecord | null> {
+    try {
+        const { data, error } = await getSupabase()
+            .from("food_cache")
+            .select("payload, fetched_at")
+            .eq("source", source)
+            .eq("source_id", id)
+            .maybeSingle();
+        if (error || !data) return null;
+        const fetchedAt =
+            typeof data.fetched_at === "string" ? data.fetched_at : null;
+        if (source === "openfoodfacts") {
+            const cached = fromCachedPayload(data.payload as FoodResult);
+            return cached
+                ? referenceFromFood(cached.food, id, fetchedAt)
+                : null;
+        }
+        const record = usdaRecordFromPayload(data.payload);
+        if (!record || String(record.fdc_id) !== id) return null;
+        return referenceFromUsda(record, fetchedAt);
+    } catch {
+        return null;
+    }
+}
+
 // ---------- Meal items and saved meals ----------
 
 /** Nutrient columns, in MEAL_NUTRIENT_KEYS order. Listed here (type-only
@@ -915,6 +985,30 @@ function nutrientsFromRow(row: Record<string, unknown>): NutrientValues {
     return out;
 }
 
+/** The provenance columns of a row, shape-checked (src/provenance.ts). A column
+ *  that is null, or a value that does not parse, reads as null: never a label.
+ *  A key is only present when the row carries its column, so a row selected
+ *  without them keeps its old shape. */
+function provenanceFromRow(row: Record<string, unknown>): {
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
+} {
+    const out: {
+        nutrient_sources?: NutrientSources | null;
+        source_detail?: SourceDetail | null;
+    } = {};
+    if ("nutrient_sources" in row)
+        out.nutrient_sources = parseNutrientSources(row.nutrient_sources);
+    if ("source_detail" in row)
+        out.source_detail = parseSourceDetail(row.source_detail);
+    return out;
+}
+
+/** A row read by a whole-table export reader, with its provenance parsed. */
+function withProvenance<T extends object>(row: T): T {
+    return { ...row, ...provenanceFromRow(row as Record<string, unknown>) };
+}
+
 /** One item row, as src/meal-items.ts values. */
 function itemFromRow(row: Record<string, unknown>): MealItemValues {
     return {
@@ -927,6 +1021,7 @@ function itemFromRow(row: Record<string, unknown>): MealItemValues {
         protein_g: Number(row.protein_g),
         carbs_g: Number(row.carbs_g),
         fat_g: Number(row.fat_g),
+        ...provenanceFromRow(row),
     };
 }
 
@@ -949,6 +1044,8 @@ function itemPayload(item: MealItemValues): Record<string, unknown> {
         added_sugar_g: item.added_sugar_g ?? null,
         alcohol_g: item.alcohol_g ?? null,
         caffeine_mg: item.caffeine_mg ?? null,
+        nutrient_sources: item.nutrient_sources ?? null,
+        source_detail: item.source_detail ?? null,
     };
 }
 
@@ -1056,6 +1153,10 @@ export async function replaceMealItems(
         if (key === "calories" || fields[key] === undefined) continue;
         update[key] = fields[key];
     }
+    if (fields.nutrient_sources !== undefined)
+        update.nutrient_sources = fields.nutrient_sources;
+    if (fields.source_detail !== undefined)
+        update.source_detail = fields.source_detail;
     if (fields.logged_at !== undefined) update.logged_at = fields.logged_at;
     if (fields.notes !== undefined)
         update.notes =
@@ -1104,6 +1205,8 @@ async function insertMealWithItems(
             added_sugar_g: meal.added_sugar_g ?? null,
             alcohol_g: meal.alcohol_g ?? null,
             caffeine_mg: meal.caffeine_mg ?? null,
+            nutrient_sources: meal.nutrient_sources ?? null,
+            source_detail: meal.source_detail ?? null,
             logged_at: loggedAt,
             notes:
                 meal.notes != null ? decodeEscapeSequences(meal.notes) : null,
@@ -1134,6 +1237,9 @@ export interface SavedMeal extends NutrientValues {
     meal_type: string | null;
     created_at: string;
     updated_at: string;
+    // Provenance of the nutrient values (see Meal.nutrient_sources).
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 export interface SavedMealWithItems extends SavedMeal {
@@ -1144,6 +1250,8 @@ export interface SavedMealInput extends Partial<NutrientValues> {
     name: string;
     description: string;
     meal_type: string | null;
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 /** A saved meal with this name already exists for the user (case-insensitive).
@@ -1168,6 +1276,7 @@ function savedMealFromRow(row: Record<string, unknown>): SavedMeal {
         created_at: String(row.created_at),
         updated_at: String(row.updated_at),
         ...nutrientsFromRow(row),
+        ...provenanceFromRow(row),
     };
 }
 
@@ -1192,6 +1301,10 @@ function savedMealFields(
                   ? toStoredInteger(value)
                   : value;
     }
+    if (input.nutrient_sources !== undefined)
+        out.nutrient_sources = input.nutrient_sources;
+    if (input.source_detail !== undefined)
+        out.source_detail = input.source_detail;
     return out;
 }
 
@@ -1511,7 +1624,7 @@ export function getAllMealItems(userId: string): Promise<MealItemRow[]> {
         userId,
         ["meal_id", "position", "id"],
         "id",
-    );
+    ).then((rows) => rows.map(withProvenance));
 }
 
 /** Every saved meal of the user, oldest first, as stored. */
@@ -1523,7 +1636,7 @@ export function getAllSavedMeals(userId: string): Promise<SavedMeal[]> {
         userId,
         ["created_at", "id"],
         "id",
-    );
+    ).then((rows) => rows.map(withProvenance));
 }
 
 /** One saved-meal ingredient row as stored, ids included. */
@@ -1544,7 +1657,7 @@ export function getAllSavedMealItems(
         userId,
         ["saved_meal_id", "position", "id"],
         "id",
-    );
+    ).then((rows) => rows.map(withProvenance));
 }
 
 // ---------- Profiles ----------

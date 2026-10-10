@@ -18,6 +18,7 @@ import {
     type ImportDeps,
 } from "./import.js";
 import { dateInTz } from "./tz.js";
+import type { ReferenceRecord } from "./provenance.js";
 
 const NOW = Date.parse("2026-07-25T12:00:00Z");
 const TZ = "Europe/Kyiv";
@@ -1781,4 +1782,330 @@ test("saturated and trans fat are EXCLUDED from the content digest, so a replay 
     expect(second.summary.created).toBe(0);
     expect(second.summary.deduplicated).toBe(1);
     expect(inserted).toHaveLength(1);
+});
+
+// ---------- provenance from our own export ----------
+
+const CROISSANT_DETAIL = {
+    "usda:171477": {
+        name: "Croissant, plain",
+        data_type: "SR Legacy",
+        amount_g: 150,
+        fetched_at: "2026-09-01T00:00:00.000Z",
+    },
+};
+
+/** The stored USDA record for 171477, per 100 g: 150 g is 600 kcal, 12 g
+ *  protein and 30 g fat. */
+const CROISSANT_RECORD: ReferenceRecord = {
+    source: "usda",
+    id: "171477",
+    name: "Croissant, plain",
+    data_type: "SR Legacy",
+    basis: "per_100g",
+    values: { calories: 400, protein_g: 8, carbs_g: 50, fat_g: 20 },
+    added_sugar_estimated: false,
+    fetched_at: "2026-09-01T00:00:00.000Z",
+};
+
+function lookupCroissant(): ImportDeps["foodRecord"] {
+    return async (source, id) =>
+        source === "usda" && id === "171477" ? CROISSANT_RECORD : null;
+}
+
+/** A row as this server's own export writes it: the marker, and the two JSON
+ *  cells as text. */
+function ownExportRow(
+    over: Partial<ImportRow> & { source_line: number },
+): ImportRow {
+    return row({
+        calories: 600,
+        protein_g: 12,
+        fat_g: 30,
+        provenance_version: "1",
+        nutrient_sources: JSON.stringify({
+            calories: { s: "usda", ref: "171477" },
+            protein_g: { s: "usda", ref: "171477" },
+            fat_g: { s: "estimate" },
+        }),
+        source_detail: JSON.stringify(CROISSANT_DETAIL),
+        ...over,
+    });
+}
+
+test("our own export keeps a usda tag whose record still matches the imported value", async () => {
+    const { deps, inserted } = makeStore();
+    deps.foodRecord = lookupCroissant();
+    const result = await runImport(
+        args([ownExportRow({ source_line: 2 })]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(inserted[0]!.nutrient_sources).toEqual({
+        calories: { s: "usda", ref: "171477" },
+        protein_g: { s: "usda", ref: "171477" },
+        fat_g: { s: "estimate" },
+    });
+    expect(Object.keys(inserted[0]!.source_detail!)).toEqual(["usda:171477"]);
+    expect(result.warnings.join(" ")).not.toContain("estimates");
+});
+
+test("an imported usda tag whose value no longer matches its record becomes estimate", async () => {
+    const { deps, inserted } = makeStore();
+    deps.foodRecord = lookupCroissant();
+    // 700 kcal is not 600 kcal for 150 g of the stored croissant.
+    const result = await runImport(
+        args([ownExportRow({ source_line: 2, calories: 700 })]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(inserted[0]!.nutrient_sources!.calories).toEqual({ s: "estimate" });
+    expect(inserted[0]!.nutrient_sources!.protein_g).toEqual({
+        s: "usda",
+        ref: "171477",
+    });
+    expect(result.warnings.join(" ")).toContain("written as estimates");
+});
+
+test("an imported usda tag with no record in the cache becomes estimate, and the row still writes", async () => {
+    const { deps, inserted } = makeStore();
+    deps.foodRecord = async () => null;
+    const result = await runImport(
+        args([ownExportRow({ source_line: 2 })]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(inserted[0]!.nutrient_sources).toEqual({
+        calories: { s: "estimate" },
+        protein_g: { s: "estimate" },
+        fat_g: { s: "estimate" },
+    });
+    expect(inserted[0]!.source_detail).toBeNull();
+});
+
+test("a lookup that throws counts as a cache miss, never a failed row", async () => {
+    const { deps, inserted } = makeStore();
+    deps.foodRecord = async () => {
+        throw new Error("database unavailable");
+    };
+    const result = await runImport(
+        args([ownExportRow({ source_line: 2 })]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(result.summary.failed).toBe(0);
+    expect(inserted[0]!.nutrient_sources!.calories).toEqual({ s: "estimate" });
+});
+
+test("with no lookup configured every record-backed label falls back to estimate", async () => {
+    const { deps, inserted } = makeStore();
+    const result = await runImport(
+        args([ownExportRow({ source_line: 2 })]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(inserted[0]!.nutrient_sources!.calories).toEqual({ s: "estimate" });
+    expect(inserted[0]!.nutrient_sources!.fat_g).toEqual({ s: "estimate" });
+});
+
+test("user and estimate labels are kept as they are, with no lookup", async () => {
+    const { deps, inserted } = makeStore();
+    const result = await runImport(
+        args([
+            ownExportRow({
+                source_line: 2,
+                nutrient_sources: JSON.stringify({
+                    calories: { s: "user" },
+                    fat_g: { s: "estimate" },
+                }),
+                source_detail: null,
+            }),
+        ]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(inserted[0]!.nutrient_sources).toEqual({
+        calories: { s: "user" },
+        fat_g: { s: "estimate" },
+    });
+    expect(inserted[0]!.source_detail).toBeNull();
+});
+
+test("a usda tag without a stored amount in source_detail cannot re-verify", async () => {
+    const { deps, inserted } = makeStore();
+    deps.foodRecord = lookupCroissant();
+    await runImport(
+        args([
+            ownExportRow({
+                source_line: 2,
+                source_detail: JSON.stringify({
+                    "usda:171477": { name: "Croissant, plain" },
+                }),
+            }),
+        ]),
+        deps,
+    );
+    expect(inserted[0]!.nutrient_sources!.calories).toEqual({ s: "estimate" });
+});
+
+test("a file without the provenance marker is third-party: its label columns are ignored", async () => {
+    const { deps, inserted } = makeStore();
+    deps.foodRecord = lookupCroissant();
+    const { provenance_version: _v, ...withoutMarker } = ownExportRow({
+        source_line: 2,
+    });
+    await runImport(args([withoutMarker as ImportRow]), deps);
+    expect(inserted[0]!.nutrient_sources).toBeUndefined();
+    expect(inserted[0]!.source_detail).toBeUndefined();
+});
+
+test("a row marked as ours but with unreadable JSON is written without labels", async () => {
+    const { deps, inserted } = makeStore();
+    const result = await runImport(
+        args([
+            ownExportRow({
+                source_line: 2,
+                nutrient_sources: "{not json",
+                source_detail: "[1, 2",
+            }),
+        ]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(result.summary.failed).toBe(0);
+    expect(inserted[0]!.nutrient_sources).toBeUndefined();
+    expect(inserted[0]!.source_detail).toBeUndefined();
+});
+
+test("a malformed label entry is dropped while the valid ones survive", async () => {
+    const { deps, inserted } = makeStore();
+    deps.foodRecord = lookupCroissant();
+    await runImport(
+        args([
+            ownExportRow({
+                source_line: 2,
+                nutrient_sources: JSON.stringify({
+                    calories: { s: "usda", ref: "171477" },
+                    protein_g: { s: "barcode-ish" },
+                    not_a_nutrient: { s: "user" },
+                    fat_g: { s: "estimate" },
+                }),
+            }),
+        ]),
+        deps,
+    );
+    expect(inserted[0]!.nutrient_sources).toEqual({
+        calories: { s: "usda", ref: "171477" },
+        fat_g: { s: "estimate" },
+    });
+});
+
+test("a mixed meal-level label is refused as estimate when it names a record-backed part", async () => {
+    const { deps, inserted } = makeStore();
+    deps.foodRecord = lookupCroissant();
+    await runImport(
+        args([
+            ownExportRow({
+                source_line: 2,
+                nutrient_sources: JSON.stringify({
+                    calories: {
+                        s: "mixed",
+                        parts: [
+                            { s: "usda", share: 60 },
+                            { s: "estimate", share: 40 },
+                        ],
+                    },
+                }),
+            }),
+        ]),
+        deps,
+    );
+    expect(inserted[0]!.nutrient_sources!.calories).toEqual({ s: "estimate" });
+});
+
+test("provenance never changes the idempotency key of a row", () => {
+    const plain = validateRow(
+        row({ source_line: 2 }),
+        0,
+        { tz: TZ, nowMs: NOW },
+        undefined,
+    );
+    const labelled = validateRow(
+        ownExportRow({
+            source_line: 2,
+            calories: 300,
+            protein_g: undefined,
+            fat_g: undefined,
+        }),
+        0,
+        { tz: TZ, nowMs: NOW },
+        undefined,
+    );
+    if (!plain.ok || !labelled.ok) throw new Error("rows should validate");
+    const a = [plain.resolved];
+    const b = [labelled.resolved];
+    assignIdempotencyKeys("user-1", a);
+    assignIdempotencyKeys("user-1", b);
+    expect(b[0]!.input.idempotency_key).toBe(a[0]!.input.idempotency_key);
+});
+
+test("a re-imported own export matched by id is deduplicated, not rewritten", async () => {
+    const { deps, inserted, byId, byKey } = makeStore();
+    deps.foodRecord = lookupCroissant();
+    const meal = loggedMeal(EXPORTED_ID);
+    byId.set(meal.id, meal);
+    byKey.set(meal.idempotency_key!, meal);
+    const result = await runImport(
+        args([ownExportRow({ source_line: 2, source_id: EXPORTED_ID })]),
+        deps,
+    );
+    expect(result.summary.deduplicated).toBe(1);
+    expect(inserted).toHaveLength(0);
+});
+
+test("a re-verified usda tag takes its name from the cached record, not the file", async () => {
+    const { deps, inserted } = makeStore();
+    deps.foodRecord = lookupCroissant();
+    // The export defuses a leading formula character with an apostrophe.
+    const defused = {
+        "usda:171477": {
+            ...CROISSANT_DETAIL["usda:171477"],
+            name: "'Croissant, plain",
+        },
+    };
+    const result = await runImport(
+        args([
+            ownExportRow({
+                source_line: 2,
+                source_detail: JSON.stringify(defused),
+            }),
+        ]),
+        deps,
+    );
+    expect(result.summary.created).toBe(1);
+    expect(inserted[0]!.source_detail).toEqual({
+        "usda:171477": {
+            name: "Croissant, plain",
+            data_type: "SR Legacy",
+            amount_g: 150,
+            fetched_at: "2026-09-01T00:00:00.000Z",
+        },
+    });
+});
+
+test("a row that deduplicates is not re-verified, so its downgrade is not reported", async () => {
+    const { deps } = makeStore();
+    deps.foodRecord = lookupCroissant();
+    // 700 kcal does not match the record: the first run writes it as estimate.
+    const first = await runImport(
+        args([ownExportRow({ source_line: 2, calories: 700 })]),
+        deps,
+    );
+    expect(first.warnings.join(" ")).toContain("written as estimates");
+    const second = await runImport(
+        args([ownExportRow({ source_line: 2, calories: 700 })]),
+        deps,
+    );
+    expect(second.summary.deduplicated).toBe(1);
+    expect(second.warnings.join(" ")).not.toContain("estimates");
 });

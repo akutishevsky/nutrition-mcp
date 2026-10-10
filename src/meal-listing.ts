@@ -21,6 +21,11 @@ import {
     type MealItemValues,
 } from "./meal-items.js";
 import { dateInTz, formatLocalDateTime } from "./tz.js";
+import {
+    formatSourcesLine,
+    parseNutrientSources,
+    parseSourceDetail,
+} from "./provenance.js";
 
 // How alcohol should be rendered for the current user: the drink unit to gloss
 // grams with, or null when alcohol tracking is OFF. Null is the gate, not a
@@ -132,6 +137,17 @@ export function formatMealFull(
     return [parts.filter(Boolean).join("\n"), block].filter(Boolean).join("\n");
 }
 
+/** The full listing's sources line for a meal, or "" when it says nothing (an
+ *  all-estimate or unlabelled meal). Compact listings never carry it. */
+function sourcesListingLine(m: Meal): string {
+    const line = formatSourcesLine(
+        parseNutrientSources(m.nutrient_sources ?? null),
+        parseSourceDetail(m.source_detail ?? null),
+        { refSent: false },
+    );
+    return line ? `\n${line}` : "";
+}
+
 /** One line per meal: local HH:MM, type, description (clipped at 200), the
  *  non-null figures, a "notes" flag in place of the note text, an item count
  *  when the meal was logged with ingredients, and the id update_meal /
@@ -216,7 +232,7 @@ export function renderMealListing(opts: {
     const format = (m: Meal, a: AlcoholDisplay, z: string): string =>
         compact
             ? formatMealCompact(m, a, z, itemsOf(m)?.length)
-            : formatMealFull(m, a, z, itemsOf(m));
+            : formatMealFull(m, a, z, itemsOf(m)) + sourcesListingLine(m);
     const mealSep = compact ? "\n" : "\n\n---\n\n";
     const daySep = compact ? "\n\n" : "\n\n===\n\n";
 

@@ -13,3 +13,11 @@ test("newErrorRef is eight lowercase hex characters", () => {
     expect(a).toMatch(/^[0-9a-f]{8}$/);
     expect(newErrorRef()).not.toBe(a);
 });
+
+test("food_ref_invalid is a category a ToolError can carry", () => {
+    const err = new ToolError("food_ref needs amount_g.", {
+        category: "food_ref_invalid",
+    });
+    expect(err.category).toBe("food_ref_invalid");
+    expect(err.message).toBe("food_ref needs amount_g.");
+});
