@@ -6,6 +6,7 @@ import {
     MEAL_LISTING_MAX_CHARS,
 } from "./meal-listing.js";
 import type { Meal } from "./supabase.js";
+import { validateItems } from "./meal-items.js";
 
 const ID = "00000000-0000-4000-8000-0000000000aa";
 
@@ -27,6 +28,7 @@ function meal(over: Partial<Meal> = {}): Meal {
         caffeine_mg: null,
         notes: null,
         idempotency_key: null,
+        saved_meal_id: null,
         ...over,
     };
 }
@@ -467,5 +469,119 @@ describe("budget", () => {
         });
         expect(r.truncated).toBe(false);
         expect(r.shownMeals).toBe(0);
+    });
+});
+
+describe("ingredients in listings", () => {
+    const { items } = validateItems(
+        [
+            {
+                name: "Стріпси",
+                amount: 170,
+                unit: "g",
+                calories: 425,
+                protein_g: 34,
+                carbs_g: 22,
+                fat_g: 22,
+            },
+            {
+                name: "Соус",
+                amount: 40,
+                unit: "g",
+                calories: 80,
+                protein_g: 0,
+                carbs_g: 20,
+                fat_g: 0,
+            },
+        ],
+        { addedSugarRequired: false },
+    );
+
+    test("full mode appends the items block after the field lines", () => {
+        const text = formatMealFull(meal(), null, KYIV, items);
+        const lines = text.split("\n");
+        const at = lines.indexOf("Items:");
+        expect(at).toBeGreaterThan(0);
+        // The block follows the field lines directly, with no blank line between.
+        expect(lines[at - 1]).not.toBe("");
+        expect(lines[at + 1]!.startsWith("  1. Стріпси")).toBe(true);
+        expect(lines[at + 2]!.startsWith("  2. Соус")).toBe(true);
+    });
+
+    test("full mode with no items is unchanged", () => {
+        expect(formatMealFull(meal(), null, KYIV, [])).toBe(
+            formatMealFull(meal(), null, KYIV),
+        );
+        expect(formatMealFull(meal(), null, KYIV)).not.toContain("Items:");
+    });
+
+    test("full mode shows items on the alcohol-hidden path without alcohol figures", () => {
+        const withAlcohol = validateItems(
+            [
+                {
+                    name: "Пиво",
+                    calories: 150,
+                    protein_g: 1,
+                    carbs_g: 12,
+                    fat_g: 0,
+                    alcohol_g: 14,
+                },
+            ],
+            { addedSugarRequired: false },
+        ).items;
+        expect(formatMealFull(meal(), null, KYIV, withAlcohol)).not.toContain(
+            "alcohol",
+        );
+        expect(formatMealFull(meal(), "us", KYIV, withAlcohol)).toContain(
+            "alcohol 14 g",
+        );
+    });
+
+    test("compact line carries the item count before the id", () => {
+        const line = formatMealCompact(meal(), null, KYIV, 2);
+        expect(line).toContain(" · 2 items [id: ");
+        expect(line.indexOf("2 items")).toBeLessThan(line.indexOf("[id:"));
+        expect(formatMealCompact(meal(), null, KYIV, 1)).toContain(
+            " · 1 item [id: ",
+        );
+    });
+
+    test("compact line without items is unchanged", () => {
+        expect(formatMealCompact(meal(), null, KYIV, 0)).toBe(
+            formatMealCompact(meal(), null, KYIV),
+        );
+        expect(formatMealCompact(meal(), null, KYIV)).not.toContain("item");
+    });
+
+    test("renderMealListing passes items through by meal id, in both modes", () => {
+        const a = meal({ id: "00000000-0000-4000-8000-0000000000a1" });
+        const b = meal({
+            id: "00000000-0000-4000-8000-0000000000b2",
+            logged_at: "2026-01-15T12:00:00.000Z",
+        });
+        const map = new Map([[a.id, items]]);
+        const compact = renderMealListing({
+            meals: [a, b],
+            tz: KYIV,
+            alcohol: null,
+            detail: "compact",
+            grouped: false,
+            items: map,
+        });
+        const cLines = compact.text
+            .split("\n")
+            .filter((l) => l.startsWith("- "));
+        expect(cLines[1]).toContain("2 items");
+        expect(cLines[0]).not.toContain("items");
+        const full = renderMealListing({
+            meals: [a, b],
+            tz: KYIV,
+            alcohol: null,
+            detail: "full",
+            grouped: false,
+            items: map,
+        });
+        expect(full.text.match(/Items:/g)).toHaveLength(1);
+        expect(full.text).toContain("  1. Стріпси");
     });
 });
