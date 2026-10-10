@@ -785,6 +785,7 @@ test("an export with and without the added_sugar_g column both re-import", async
     const exported: Meal = {
         id: EXPORTED_ID,
         user_id: "user-1",
+        saved_meal_id: null,
         logged_at: "2026-01-15T10:00:00.000Z",
         meal_type: "snack",
         description: "Cola",

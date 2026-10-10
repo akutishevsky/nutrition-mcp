@@ -240,6 +240,7 @@ function meal(logged_at: string, fields: Partial<Meal> = {}): Meal {
     return {
         id: `m-${logged_at}-${Math.random()}`,
         user_id: "u1",
+        saved_meal_id: null,
         logged_at,
         meal_type: "lunch",
         description: "test meal",

@@ -410,6 +410,7 @@ function demoMeal(id: string, t: Totals): Meal {
     return {
         id,
         user_id: "demo",
+        saved_meal_id: null,
         logged_at: "",
         meal_type: null,
         description: "",

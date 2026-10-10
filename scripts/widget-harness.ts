@@ -241,6 +241,7 @@ function trendsSample(): { meals: Meal[]; water: WaterEntry[] } {
     ): Meal => ({
         id: `m${++n}`,
         user_id: "harness",
+        saved_meal_id: null,
         logged_at: `${date}T${hh}:00+03:00`,
         meal_type: type,
         description: type,
@@ -670,6 +671,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
     ): Meal => ({
         id: `harness-meal-${i}`,
         user_id: "harness",
+        saved_meal_id: null,
         logged_at: `${row.date ?? "2026-07-15"}T12:00:00+03:00`,
         meal_type: (row.meal_type as string | null) ?? null,
         description: row.description,
