@@ -10,14 +10,14 @@ export const TOOLS_DE: ToolsDoc = {
         description:
             "Alle 46 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, häufige Mahlzeiten speichern, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
         ogDescription:
-            "Alle 46 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – inklusive CSV-Importer für deinen Verlauf aus einer anderen App, mit Beschreibungen und Beispielsätzen.",
+            "Alle 46 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – von gespeicherten Mahlzeiten bis zum CSV-Importer für deinen Verlauf, mit Beschreibungen und Beispielsätzen.",
     },
     hero: {
         eyebrow: "Referenz",
         titleBeforeEm: "Alles, was deine KI ",
         titleEm: "kann",
         titleAfterEm: "",
-        lead: "Du rufst diese Werkzeuge nie selbst auf – du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und der wählt das passende Werkzeug. Hier findest du jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt – jeweils mit Beschreibung und einem Beispielsatz, der es auslöst.",
+        lead: "Du rufst diese Werkzeuge nie selbst auf – du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und der wählt das passende Werkzeug. Hier findest du jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten und gespeicherte Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt – jeweils mit Beschreibung und einem Beispielsatz, der es auslöst.",
         countBold: "46 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
@@ -26,7 +26,7 @@ export const TOOLS_DE: ToolsDoc = {
             pillLabel: "Erfassen",
             title: "Essen & Mahlzeiten erfassen",
             description:
-                "Das Herzstück – halte fest, was du gegessen hast, egal wie du es beschreibst.",
+                "Das Herzstück – halte fest, was du gegessen hast, egal wie du es beschreibst, und speichere Mahlzeiten, die du oft isst, um sie mit einer Zeile erneut zu erfassen.",
         },
         "reviewing-your-meals": {
             pillLabel: "Rückblick",

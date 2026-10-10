@@ -12,14 +12,14 @@ export const TOOLS_TR: ToolsDoc = {
         description:
             "Claude, ChatGPT ve diğerleri için 46 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
         ogDescription:
-            "Nutrition MCP sunucusunun yapay zekâna sunduğu 46 aracın tamamı — başka bir uygulamadaki geçmişini taşımak için CSV içe aktarıcı dahil — açıklamaları ve örnek cümleleriyle.",
+            "Nutrition MCP sunucusunun yapay zekâna sunduğu 46 aracın tamamı — kayıtlı yemeklerden geçmişin için bir CSV içe aktarıcıya kadar — açıklamaları ve örnek cümleleriyle.",
     },
     hero: {
         eyebrow: "Başvuru",
         titleBeforeEm: "Yapay zekânın yapabildiği ",
         titleEm: "her şey",
         titleAfterEm: "",
-        lead: "Bu araçları hiçbir zaman kendin çağırmazsın: sadece Claude, ChatGPT ya da başka bir MCP istemcisiyle konuşursun, o da doğru aracı seçer. Aşağıda Nutrition MCP sunucusunun yemekler, kalori ve makrolar, su ve kilo için sunduğu her araç var; her birinin ne yaptığı ve onu çalıştıran bir cümleyle birlikte.",
+        lead: "Bu araçları hiçbir zaman kendin çağırmazsın: sadece Claude, ChatGPT ya da başka bir MCP istemcisiyle konuşursun, o da doğru aracı seçer. Aşağıda Nutrition MCP sunucusunun yemekler ve kayıtlı yemekler, kalori ve makrolar, su ve kilo için sunduğu her araç var; her birinin ne yaptığı ve onu çalıştıran bir cümleyle birlikte.",
         countBold: "46 araç",
         countTail: "7 alana yayılmış",
     },
@@ -28,7 +28,7 @@ export const TOOLS_TR: ToolsDoc = {
             pillLabel: "Kayıt",
             title: "Yemek kaydı",
             description:
-                "Temel döngü: ne yediğini, nasıl anlatırsan anlat, kayda geçir.",
+                "Temel döngü: ne yediğini, nasıl anlatırsan anlat, kayda geçir; sık yediğin yemekleri de kaydet, sonra tek satırla yeniden gir.",
         },
         "reviewing-your-meals": {
             pillLabel: "İnceleme",

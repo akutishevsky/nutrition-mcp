@@ -29,14 +29,14 @@ export const TOOLS_JA: ToolsDoc = {
         description:
             "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全46ツール。食事記録、食べることの多い食事の保存、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重・体の計測値の記録に対応。",
         ogDescription:
-            "Nutrition MCPサーバーがお使いのAIに追加する全46ツールを、説明と例文つきで紹介。他のアプリの履歴を取り込めるCSVインポーターも含みます。",
+            "Nutrition MCPサーバーがお使いのAIに追加する全46ツールを、説明と例文つきで紹介。保存した食事から、他のアプリの履歴を取り込めるCSVインポーターまでそろっています。",
     },
     hero: {
         eyebrow: "リファレンス",
         titleBeforeEm: "お使いのAIに",
         titleEm: "できる",
         titleAfterEm: "こと、すべて",
-        lead: "ツールを直接呼び出す必要はありません。Claude、ChatGPTなどのMCPクライアントに話しかけるだけで、AIが適切なツールを選びます。ここでは、Nutrition MCPサーバーが提供する食事・カロリーとPFC・水分・体重のツールをすべて取り上げ、それぞれの機能と、そのツールが使われるきっかけになるフレーズを紹介します。",
+        lead: "ツールを直接呼び出す必要はありません。Claude、ChatGPTなどのMCPクライアントに話しかけるだけで、AIが適切なツールを選びます。ここでは、Nutrition MCPサーバーが提供する食事と保存した食事・カロリーとPFC・水分・体重のツールをすべて取り上げ、それぞれの機能と、そのツールが使われるきっかけになるフレーズを紹介します。",
         countBold: "全46ツール",
         countTail: "· 7分野",
     },
@@ -45,7 +45,7 @@ export const TOOLS_JA: ToolsDoc = {
             pillLabel: "記録",
             title: "食事の記録",
             description:
-                "基本となる機能。食べたものを、どんな言い方で伝えても記録できます。",
+                "基本となる機能。食べたものを、どんな言い方で伝えても記録できます。よく食べる食事は保存しておけば、次から一言で記録できます。",
         },
         "reviewing-your-meals": {
             pillLabel: "振り返り",

@@ -15,14 +15,14 @@ export const TOOLS_ES: ToolsDoc = {
         description:
             "Las 46 herramientas de Nutrition MCP para Claude, ChatGPT y más: registra comidas, guarda las que comes a menudo, agua, peso y medidas corporales, escanea códigos e importa CSV de MyFitnessPal o Cronometer.",
         ogDescription:
-            "Las 46 herramientas que el servidor Nutrition MCP da a tu IA, incluido un importador CSV para traer tu historial de otra app, con descripciones y ejemplos.",
+            "Las 46 herramientas que el servidor Nutrition MCP da a tu IA, de las comidas guardadas a un importador CSV para tu historial, con descripciones y ejemplos.",
     },
     hero: {
         eyebrow: "Referencia",
         titleBeforeEm: "Todo lo que tu IA puede ",
         titleEm: "hacer",
         titleAfterEm: "",
-        lead: "Nunca tienes que usar estas herramientas tú mismo: basta con hablar con Claude, ChatGPT u otro cliente MCP, y él elige la adecuada. Aquí tienes todas las herramientas que ofrece el servidor Nutrition MCP para comidas, calorías y macros, agua y peso, con lo que hace cada una y una frase que la activa.",
+        lead: "Nunca tienes que usar estas herramientas tú mismo: basta con hablar con Claude, ChatGPT u otro cliente MCP, y él elige la adecuada. Aquí tienes todas las herramientas que ofrece el servidor Nutrition MCP para comidas y comidas guardadas, calorías y macros, agua y peso, con lo que hace cada una y una frase que la activa.",
         countBold: "46 herramientas",
         countTail: "en 7 áreas",
     },
@@ -31,7 +31,7 @@ export const TOOLS_ES: ToolsDoc = {
             pillLabel: "Registro",
             title: "Registrar comidas",
             description:
-                "Lo esencial: registra lo que comiste, lo describas como lo describas.",
+                "Lo esencial: registra lo que comiste, lo describas como lo describas, y guarda las comidas que comes a menudo para volver a registrarlas en una línea.",
         },
         "reviewing-your-meals": {
             pillLabel: "Revisión",

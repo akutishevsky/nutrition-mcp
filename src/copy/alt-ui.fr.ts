@@ -29,7 +29,7 @@ export const ALT_UI_FR: AltUiCopy = {
         features: [
             {
                 title: "Tes repas en langage courant",
-                body: "Dis &laquo;&nbsp;porridge avec banane et beurre de cacahuète&nbsp;&raquo; : ton IA estime les calories et les macros, fibres, sucres totaux et caféine compris, puis enregistre le tout. Aucune recherche dans une base de données.",
+                body: "Dis &laquo;&nbsp;porridge avec banane et beurre de cacahuète&nbsp;&raquo; : ton IA estime les calories et les macros, fibres, sucres totaux et caféine compris, puis enregistre le tout. Aucune recherche dans une base de données. Enregistre un repas ingrédient par ingrédient, ou sauvegarde les repas que tu manges souvent pour les enregistrer de nouveau par leur nom.",
             },
             {
                 title: "Scanner de codes-barres gratuit",
@@ -58,7 +58,7 @@ export const ALT_UI_FR: AltUiCopy = {
         compareTitle: "Le comparatif",
         pros: [
             "Conçu comme un serveur MCP : fonctionne dans Claude et ChatGPT",
-            "Décris tes repas en langage courant : calories, macros, fibres, sucres et caféine sont estimés pour toi",
+            "Décris tes repas en langage courant : calories, macros, fibres, sucres et caféine sont estimés pour toi ; sauvegarde tes repas habituels pour les enregistrer en une ligne",
             "Scanner de codes-barres, tendances, import et export CSV : tout est gratuit",
             "Pas d'app à part, pas de publicité, open source",
         ],

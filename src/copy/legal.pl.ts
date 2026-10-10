@@ -26,7 +26,7 @@ export const PRIVACY_PL: LegalDoc = {
         "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, do czego ich używamy, gdzie się znajdują i jak w każdej chwili usunąć konto ze wszystkimi danymi.",
     ogDescription:
         "Jak Nutrition MCP przetwarza Twoje dane: co przechowujemy, do czego ich używamy, gdzie się znajdują i jak w każdej chwili usunąć konto ze wszystkimi danymi.",
-    lastUpdated: "3 października 2026",
+    lastUpdated: "10 października 2026",
     backToHome: "Wróć na stronę główną",
     sections: [
         {
@@ -169,7 +169,7 @@ export const TERMS_PL: LegalDoc = {
         "Zasady korzystania z Nutrition MCP — darmowej aplikacji open source do śledzenia odżywiania i zdalnego serwera MCP dla Claude i ChatGPT. Regulamin prostym językiem: konto, dopuszczalne korzystanie, Twoje dane i odpowiedzialność.",
     ogDescription:
         "Zasady korzystania z Nutrition MCP — darmowej aplikacji open source do śledzenia odżywiania i zdalnego serwera MCP dla Claude i ChatGPT.",
-    lastUpdated: "3 października 2026",
+    lastUpdated: "10 października 2026",
     backToHome: "Wróć na stronę główną",
     sections: [
         {

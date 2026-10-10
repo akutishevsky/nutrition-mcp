@@ -24,11 +24,11 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_TR: IndexDoc = {
     title: "Nutrition MCP — Claude ve ChatGPT için Kalori ve Makro Takibi",
     metaDescription:
-        "Claude veya ChatGPT ile konuşarak yemek, kalori ve makro kaydet. Barkod arama, kilo takibi ve eksiksiz veri dışa aktarma sunan ücretsiz, açık kaynak bir MCP sunucusu.",
+        "Claude veya ChatGPT ile konuşarak yemek, kalori ve makro kaydet. Kayıtlı yemekler, barkod, kilo takibi ve dışa aktarma sunan ücretsiz, açık kaynak MCP sunucusu.",
     ogDescription:
-        "Claude veya ChatGPT ile konuşarak yemek, kalori ve makro kaydet. Barkod arama, kilo takibi ve eksiksiz veri dışa aktarma sunan ücretsiz, açık kaynak bir MCP sunucusu.",
+        "Claude veya ChatGPT ile konuşarak yemek, kalori ve makro kaydet. Kayıtlı yemekler, barkod, kilo takibi ve dışa aktarma sunan ücretsiz, açık kaynak MCP sunucusu.",
     keywords:
-        "beslenme takibi, yemek takibi, MCP sunucusu, Claude AI, ChatGPT, kalori sayacı, makro takibi, barkod okuyucu, yemek kaydı, diyet takibi, kilo takibi, kilo kaydı, yapay zekâ beslenme, Model Context Protocol",
+        "beslenme takibi, yemek takibi, MCP sunucusu, Claude AI, ChatGPT, kalori sayacı, makro takibi, barkod okuyucu, yemek kaydı, diyet takibi, kilo takibi, kilo kaydı, kayıtlı yemekler, yemek malzemeleri, tarif takibi, yapay zekâ beslenme, Model Context Protocol",
 
     hero: {
         titleBeforeEm: "Beslenmeni yapay zekânla ",
@@ -344,6 +344,51 @@ export const INDEX_TR: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Sade Yunan yoğurdu %0 (150 g kap)"],
+            },
+            {
+                id: "saved-meal",
+                title: "Her zamankileri kaydet",
+                description:
+                    "Sık yediğin bir yemeği malzemeleriyle birlikte kaydet ve sonra adını söyleyerek yeniden kaydet. Bir malzemeyi yalnızca o seferlik çıkar ya da miktarını değiştir, istersen birden fazla porsiyon kaydet; kayıtlı yemek olduğu gibi kalır.",
+                toolNotes: {
+                    log_saved_meal:
+                        "Kâseyi ekşi krema olmadan ve tavuğu iki katına, 240 g'a çıkararak kaydeder",
+                    save_meal:
+                        "Kâsenin altı malzemesini ve bir porsiyonluk değerlerini saklar; bugüne bir şey eklemez",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "burrito kâsemi kaydet de hızlıca girebileyim: 150 g pirinç, 120 g tavuk, 100 g siyah fasulye, 60 g salsa, 30 g peynir, 30 g ekşi krema",
+                    },
+                    {
+                        from: "ai",
+                        text: "“Burrito kâsesi” 6 malzemesiyle kaydedildi, bir porsiyon: 725 kcal, 59 g protein, 22 g yağ. Kaydetmek bugüne eklemez — yediğinde adını söylemen yeter.",
+                    },
+                    {
+                        from: "user",
+                        text: "öğlen burrito kâsesini yedim. bugün ekşi krema yok, tavuk da iki kat",
+                    },
+                    {
+                        from: "ai",
+                        text: "Burrito kâsenden öğle yemeği kaydedildi, ekşi krema olmadan ve 240 g tavukla: 865 kcal ve 95 g protein. Kayıtlı kâse bir dahaki sefer için olduğu gibi duruyor.",
+                    },
+                    {
+                        from: "user",
+                        text: "proteinin çoğu nereden geliyor?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Tavuktan: 95 g'ın 74 g'ı. Siyah fasulye 9 g, peynir 7 g, pirinç 4 g ve salsa 1 g ekliyor.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: ["Burrito kâsesi (ekşi krema yok, çift tavuk)"],
             },
             {
                 id: "goals-progress",
@@ -674,7 +719,7 @@ export const INDEX_TR: IndexDoc = {
         cards: [
             {
                 title: "Gündelik dille yemekler",
-                body: "Ne yediğini anlat — yapay zekân kaloriyi, proteini, karbonhidratı, yağı, lifi, toplam şekeri, ilave şekeri ve miligram cinsinden kafeini tahmin edip kaydeder.",
+                body: "Ne yediğini anlat — yapay zekân kaloriyi, proteini, karbonhidratı, yağı, lifi, toplam şekeri, ilave şekeri ve miligram cinsinden kafeini tahmin edip kaydeder. Sık yediğin yemekleri malzemeleriyle birlikte kaydet, sonra adını söyleyerek yeniden gir.",
             },
             {
                 title: "Barkod okut",
@@ -834,7 +879,13 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Neleri takip edebilirim?",
             visibleHtml:
-                "Her kayıt için kalori, protein, karbonhidrat, yağ, lif, toplam şeker, ilave şeker ve su — gündelik dille anlatılmış ya da Open Food Facts üzerinden bir ürün barkoduyla getirilmiş. Kafein de takip edilir; her etiketin kullandığı birim olan miligram cinsinden ve hiç kalori eklemeden. Alkol da takip edilebilir, saf etanol gramı olarak; alkol takibini açtığında görünür hâle gelir. Vücut kilonu kg veya lb cinsinden kaydedip bir hedef kiloya doğru eğilimleri izleyebilirsin. Vücut ölçüleri (bel, kalça, boyun, göğüs, omuz, üst kol, ön kol, uyluk ve baldır) de cm veya inç cinsinden kaydedilebilir. Günlük özetleri görüntüle, yemekleri tarih aralığına göre sorgula, eski kayıtları güncelle ya da sil, hedefler belirle ve zaman içindeki eğilimleri izle.",
+                "Her kayıt için kalori, protein, karbonhidrat, yağ, lif, toplam şeker, ilave şeker ve su — gündelik dille anlatılmış ya da Open Food Facts üzerinden bir ürün barkoduyla getirilmiş. Bir yemek malzeme malzeme, her biri kendi miktarı ve besin değerleriyle kaydedilebilir; sık yediğin bir yemek de kayıtlı yemek olarak saklanıp adıyla yeniden kaydedilebilir. Kafein de takip edilir; her etiketin kullandığı birim olan miligram cinsinden ve hiç kalori eklemeden. Alkol da takip edilebilir, saf etanol gramı olarak; alkol takibini açtığında görünür hâle gelir. Vücut kilonu kg veya lb cinsinden kaydedip bir hedef kiloya doğru eğilimleri izleyebilirsin. Vücut ölçüleri (bel, kalça, boyun, göğüs, omuz, üst kol, ön kol, uyluk ve baldır) de cm veya inç cinsinden kaydedilebilir. Günlük özetleri görüntüle, yemekleri tarih aralığına göre sorgula, eski kayıtları güncelle ya da sil, hedefler belirle ve zaman içindeki eğilimleri izle.",
+        },
+        {
+            question:
+                "Sık yediğim yemekleri ya da kendi tariflerimi kaydedebilir miyim?",
+            visibleHtml:
+                "Evet. Bir yemeği bir adla kaydetmesini iste — yalnızca toplamlarıyla ya da malzemeleriyle birlikte bir tarif olarak — ve bir porsiyonluk değerleri saklanır. Bir dahaki sefere adını söylemen yeter, tek adımda kaydedilir: porsiyon sayısına göre ölçeklenir, tek bir malzeme gerçekten yediğin miktara ayarlanabilir ya da çıkarılabilir. Kaydedilen yemek bir kopyadır, bu yüzden kayıtlı yemeği sonradan düzenlemek ya da silmek ondan kaydedilmiş yemekleri hiç değiştirmez. Kayıtlı yemekler veri dışa aktarımına dahildir.",
         },
         {
             question: "Kalori sayıları ne kadar isabetli?",

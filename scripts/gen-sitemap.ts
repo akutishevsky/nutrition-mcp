@@ -61,14 +61,17 @@ function priorityFor(suffix: string): string {
 // shared-partial edits) and turn <lastmod> into noise instead of a signal.
 // Bump an entry here by hand when that page's real content changes.
 const LASTMOD: Record<string, string> = {
-    "": "2026-10-02",
-    "/tools": "2026-10-02",
-    "/privacy": "2026-10-02",
-    "/terms": "2026-10-02",
+    "": "2026-10-10",
+    "/tools": "2026-10-10",
+    "/privacy": "2026-10-10",
+    "/terms": "2026-10-10",
+    // The hub renders none of the saved-meal copy that re-dated the
+    // comparison pages (they take the fallback below).
+    "/alternatives": "2026-10-02",
     "/apple-health": "2026-10-03",
 };
 function lastmodFor(suffix: string): string {
-    return LASTMOD[suffix] ?? "2026-10-02";
+    return LASTMOD[suffix] ?? "2026-10-10";
 }
 
 async function fileFor(locale: SiteLocale, file: string): Promise<string> {

@@ -31,7 +31,7 @@ export const ALT_UI_TR: AltUiCopy = {
         features: [
             {
                 title: "Yemekleri gündelik dille anlat",
-                body: "&ldquo;Muzlu ve fıstık ezmeli yulaf lapası&rdquo; demen yeter: yapay zekân kaloriyi ve makroları, lif, toplam şeker ve kafein dahil, tahmin eder ve kaydeder. Veritabanında arama yapmana gerek yok.",
+                body: "&ldquo;Muzlu ve fıstık ezmeli yulaf lapası&rdquo; demen yeter: yapay zekân kaloriyi ve makroları, lif, toplam şeker ve kafein dahil, tahmin eder ve kaydeder. Veritabanında arama yapmana gerek yok. Bir yemeği malzeme malzeme kaydet ya da sık yediğin yemekleri saklayıp adlarıyla yeniden kaydet.",
             },
             {
                 title: "Barkod okutma — ücretsiz",
@@ -60,7 +60,7 @@ export const ALT_UI_TR: AltUiCopy = {
         compareTitle: "Nasıl kıyaslanıyorlar",
         pros: [
             "Bir MCP sunucusu olarak yazıldı — Claude &amp; ChatGPT içinde yaşar",
-            "Yemekleri gündelik dille anlat; kalori, makrolar, lif, şeker &amp; kafein senin için tahmin edilir",
+            "Yemekleri gündelik dille anlat; kalori, makrolar, lif, şeker &amp; kafein senin için tahmin edilir; her zamanki yemeklerini kaydet, tek satırla yeniden gir",
             "Barkod okutma, eğilimler, CSV içe &amp; dışa aktarma — hepsi ücretsiz",
             "Ayrı bir uygulama yok, reklam yok, açık kaynak",
         ],

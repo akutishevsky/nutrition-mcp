@@ -740,14 +740,14 @@ const TOOLS_EN: ToolsDoc = {
         description:
             "All 46 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
         ogDescription:
-            "All 46 tools the Nutrition MCP server gives your AI, including a CSV importer for your history from another app — with descriptions and example prompts.",
+            "All 46 tools the Nutrition MCP server gives your AI, from saved meals to a CSV importer for your history — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
         titleBeforeEm: "Everything your AI can ",
         titleEm: "do",
         titleAfterEm: "",
-        lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
+        lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals and saved meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
         countBold: "46 tools",
         countTail: "across 7 areas",
     },
@@ -756,7 +756,7 @@ const TOOLS_EN: ToolsDoc = {
             pillLabel: "Logging",
             title: "Logging food & meals",
             description:
-                "The core loop — capture what you ate, however you describe it.",
+                "The core loop — capture what you ate, however you describe it, and save the meals you eat often to log again in one line.",
         },
         "reviewing-your-meals": {
             pillLabel: "Reviewing",

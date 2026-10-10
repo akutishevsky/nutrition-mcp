@@ -178,7 +178,7 @@ export const ALT_UI_EN: AltUiCopy = {
         features: [
             {
                 title: "Meals in plain language",
-                body: "Say &ldquo;oatmeal with banana and peanut butter&rdquo; — your AI estimates calories and macros, fiber, total sugar and caffeine included, and logs it. No database search.",
+                body: "Say &ldquo;oatmeal with banana and peanut butter&rdquo; — your AI estimates calories and macros, fiber, total sugar and caffeine included, and logs it. No database search. Log a meal ingredient by ingredient, or save the meals you eat often and log them again by name.",
             },
             {
                 title: "Barcode scanning — free",
@@ -207,7 +207,7 @@ export const ALT_UI_EN: AltUiCopy = {
         compareTitle: "How they stack up",
         pros: [
             "Built as an MCP server — lives inside Claude &amp; ChatGPT",
-            "Describe meals in plain language; calories, macros, fiber, sugar &amp; caffeine estimated for you",
+            "Describe meals in plain language; calories, macros, fiber, sugar &amp; caffeine estimated for you; save your usual meals to log in one line",
             "Barcode scanning, trends, CSV import &amp; export — all free",
             "No separate app, no ads, open source",
         ],

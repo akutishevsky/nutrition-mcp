@@ -36,7 +36,7 @@ export const ALT_UI_DE: AltUiCopy = {
         features: [
             {
                 title: "Mahlzeiten in eigenen Worten",
-                body: "Sag „Haferflocken mit Banane und Erdnussbutter“ – deine KI schätzt Kalorien und Makros samt Ballaststoffen, Gesamtzucker und Koffein und erfasst die Mahlzeit. Keine Datenbanksuche.",
+                body: "Sag „Haferflocken mit Banane und Erdnussbutter“ – deine KI schätzt Kalorien und Makros samt Ballaststoffen, Gesamtzucker und Koffein und erfasst die Mahlzeit. Keine Datenbanksuche. Erfasse eine Mahlzeit Zutat für Zutat oder speichere Mahlzeiten, die du oft isst, und erfasse sie später einfach über ihren Namen.",
             },
             {
                 title: "Barcode-Scan – kostenlos",
@@ -65,7 +65,7 @@ export const ALT_UI_DE: AltUiCopy = {
         compareTitle: "Der direkte Vergleich",
         pros: [
             "Als MCP-Server gebaut – läuft direkt in Claude &amp; ChatGPT",
-            "Mahlzeiten in eigenen Worten beschreiben – Kalorien, Makros, Ballaststoffe, Zucker &amp; Koffein werden für dich geschätzt",
+            "Mahlzeiten in eigenen Worten beschreiben – Kalorien, Makros, Ballaststoffe, Zucker &amp; Koffein werden für dich geschätzt; Stammgerichte speichern und mit einer Zeile erfassen",
             "Barcode-Scan, Trends, CSV-Import &amp; -Export – alles kostenlos",
             "Keine separate App, keine Werbung, Open Source",
         ],

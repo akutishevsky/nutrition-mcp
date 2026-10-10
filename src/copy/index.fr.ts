@@ -26,11 +26,11 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_FR: IndexDoc = {
     title: "Nutrition MCP — Compteur de calories pour Claude et ChatGPT",
     metaDescription:
-        "Enregistre tes repas, calories et macros en parlant à Claude ou ChatGPT. Serveur MCP gratuit et open source : codes-barres, suivi du poids, export complet.",
+        "Enregistre tes repas, calories et macros en parlant à Claude ou ChatGPT. Serveur MCP gratuit et open source : repas sauvegardés, codes-barres, poids, export.",
     ogDescription:
-        "Enregistre tes repas, calories et macros en parlant à Claude ou ChatGPT. Serveur MCP gratuit et open source : codes-barres, suivi du poids, export complet.",
+        "Enregistre tes repas, calories et macros en parlant à Claude ou ChatGPT. Serveur MCP gratuit et open source : repas sauvegardés, codes-barres, poids, export.",
     keywords:
-        "suivi nutritionnel, suivi des repas, serveur MCP, Claude AI, ChatGPT, compteur de calories, suivi des macros, scanner de codes-barres, journal alimentaire, suivi de régime, suivi du poids, carnet de poids, nutrition IA, Model Context Protocol",
+        "suivi nutritionnel, suivi des repas, serveur MCP, Claude AI, ChatGPT, compteur de calories, suivi des macros, scanner de codes-barres, journal alimentaire, suivi de régime, suivi du poids, carnet de poids, repas sauvegardés, ingrédients des repas, suivi de recettes, nutrition IA, Model Context Protocol",
 
     hero: {
         titleBeforeEm: "Suis ta nutrition en ",
@@ -347,6 +347,51 @@ export const INDEX_FR: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Yaourt à la grecque nature 0 % (pot de 150 g)"],
+            },
+            {
+                id: "saved-meal",
+                title: "Sauvegarde tes classiques",
+                description:
+                    "Sauvegarde un repas que tu manges souvent, avec ses ingrédients, et enregistre-le de nouveau par son nom. Retire un ingrédient ou change sa quantité juste pour cette fois, ou enregistre plusieurs portions ; le repas sauvegardé reste tel quel.",
+                toolNotes: {
+                    log_saved_meal:
+                        "Enregistre le bowl sans la crème fraîche et avec le poulet doublé à 240 g",
+                    save_meal:
+                        "Garde les six ingrédients du bowl et ses valeurs pour une portion, sans l'ajouter à ta journée",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "sauvegarde mon burrito bowl pour que je puisse l'enregistrer vite : 150 g de riz, 120 g de poulet, 100 g de haricots noirs, 60 g de salsa, 30 g de fromage, 30 g de crème fraîche",
+                    },
+                    {
+                        from: "ai",
+                        text: "J'ai sauvegardé « Burrito bowl » avec ses 6 ingrédients, pour une portion : 725 kcal, 59 g de protéines, 22 g de lipides. Le sauvegarder ne l'ajoute pas à ta journée : dis simplement son nom quand tu l'as mangé.",
+                    },
+                    {
+                        from: "user",
+                        text: "burrito bowl ce midi. pas de crème fraîche aujourd'hui et double poulet",
+                    },
+                    {
+                        from: "ai",
+                        text: "Déjeuner enregistré à partir de ton Burrito bowl, sans la crème fraîche et avec 240 g de poulet : 865 kcal et 95 g de protéines. Le bowl sauvegardé reste tel quel pour la prochaine fois.",
+                    },
+                    {
+                        from: "user",
+                        text: "la plupart de ces protéines, elles viennent d'où ?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Du poulet : 74 g sur les 95. Les haricots noirs en apportent 9 g, le fromage 7 g, le riz 4 g et la salsa 1 g.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 2,
+                    },
+                ],
+                cardMeals: ["Burrito bowl (sans crème fraîche, double poulet)"],
             },
             {
                 id: "goals-progress",
@@ -679,7 +724,7 @@ export const INDEX_FR: IndexDoc = {
         cards: [
             {
                 title: "Repas en langage courant",
-                body: "Décris ce que tu as mangé : ton IA estime les calories, protéines, glucides, lipides, fibres, sucres totaux, sucres ajoutés et la caféine en milligrammes, puis enregistre le tout.",
+                body: "Décris ce que tu as mangé : ton IA estime les calories, protéines, glucides, lipides, fibres, sucres totaux, sucres ajoutés et la caféine en milligrammes, puis enregistre le tout. Sauvegarde les repas que tu manges souvent, ingrédients compris, et enregistre-les de nouveau par leur nom.",
             },
             {
                 title: "Scanne un code-barres",
@@ -842,7 +887,13 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Que puis-je suivre ?",
             visibleHtml:
-                "Calories, protéines, glucides, lipides, fibres, sucres totaux, sucres ajoutés et eau pour chaque entrée, décrits en langage courant ou récupérés depuis le code-barres d'un produit via Open Food Facts. La caféine est suivie aussi, en milligrammes, l'unité utilisée par toutes les étiquettes, et elle n'ajoute aucune calorie. L'alcool peut aussi être suivi, en grammes d'éthanol pur ; il s'affiche une fois que tu actives le suivi de l'alcool. Tu peux aussi enregistrer ton poids en kg ou en lb et suivre les tendances vers un poids cible. Les mensurations (taille, hanches, cou, poitrine, épaules, haut du bras, avant-bras, cuisse et mollet) peuvent elles aussi être enregistrées en cm ou en pouces. Consulte des résumés quotidiens, retrouve tes repas sur une période donnée, modifie ou supprime des entrées passées, définis des objectifs et suis tes tendances dans la durée.",
+                "Calories, protéines, glucides, lipides, fibres, sucres totaux, sucres ajoutés et eau pour chaque entrée, décrits en langage courant ou récupérés depuis le code-barres d'un produit via Open Food Facts. Un repas peut être enregistré ingrédient par ingrédient, chacun avec sa quantité et ses valeurs nutritionnelles, et un repas que tu manges souvent peut être gardé comme repas sauvegardé et enregistré de nouveau par son nom. La caféine est suivie aussi, en milligrammes, l'unité utilisée par toutes les étiquettes, et elle n'ajoute aucune calorie. L'alcool peut aussi être suivi, en grammes d'éthanol pur ; il s'affiche une fois que tu actives le suivi de l'alcool. Tu peux aussi enregistrer ton poids en kg ou en lb et suivre les tendances vers un poids cible. Les mensurations (taille, hanches, cou, poitrine, épaules, haut du bras, avant-bras, cuisse et mollet) peuvent elles aussi être enregistrées en cm ou en pouces. Consulte des résumés quotidiens, retrouve tes repas sur une période donnée, modifie ou supprime des entrées passées, définis des objectifs et suis tes tendances dans la durée.",
+        },
+        {
+            question:
+                "Puis-je sauvegarder les repas que je mange souvent, ou mes propres recettes ?",
+            visibleHtml:
+                "Oui. Demande à sauvegarder un repas sous un nom, avec seulement ses totaux ou comme une recette avec ses ingrédients, et ses valeurs pour une portion sont conservées. La fois suivante, il suffit de le nommer pour l'enregistrer en une seule étape : ajusté au nombre de portions, avec un ingrédient ramené à la quantité que tu as vraiment prise, ou retiré. L'entrée enregistrée est une copie : modifier ou supprimer le repas sauvegardé plus tard ne change jamais les repas déjà enregistrés à partir de lui. Les repas sauvegardés font partie de ton export de données.",
         },
         {
             question: "Le comptage des calories est-il précis ?",
