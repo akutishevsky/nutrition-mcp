@@ -241,6 +241,7 @@ const EX_CARD: Partial<Record<ExampleSlideId, DemoCardId>> = {
     "log-meal": "log-meal",
     "photo-meal": "photo-meal",
     "scan-barcode": "scan-barcode",
+    "usda-food": "usda-food",
     "saved-meal": "saved-meal",
     "goals-progress": "goals-progress",
     "review-week": "review-week",

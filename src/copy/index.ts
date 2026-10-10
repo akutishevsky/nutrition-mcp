@@ -764,6 +764,13 @@ const INDEX_EN: IndexDoc = {
                         text: "Logged lunch: 248 kcal, 46.5 g protein and 5.4 g fat. The protein and fat come from the USDA FoodData Central record for cooked chicken breast, scaled to 150 g. Added sugar isn’t in that record, so it is estimated.",
                     },
                 ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Grilled chicken breast (150 g)"],
             },
             {
                 id: "saved-meal",
@@ -814,7 +821,7 @@ const INDEX_EN: IndexDoc = {
                 id: "goals-progress",
                 title: "Set goals, check in",
                 description:
-                    "Set targets to reach, like calories and protein, and limits to stay under for added sugar, total sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see what's left to reach each target and where you stand against each limit.",
+                    "Set targets to reach, like calories and protein, and limits to stay under for added sugar, saturated fat, total sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see what's left to reach each target and where you stand against each limit.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Saves calorie and protein targets and a 400 mg caffeine limit",
@@ -836,7 +843,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 30 g fiber, 2.5 L water, your 25 g added-sugar limit and your 75 kg target weight.",
+                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, your 25 g added-sugar limit and your 75 kg target weight.",
                     },
                     {
                         from: "user",
