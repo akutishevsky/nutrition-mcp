@@ -25,6 +25,23 @@ import {
     type MealNutrientKey,
     type NutrientValues,
 } from "./meal-items.js";
+import {
+    parseNutrientSources,
+    parseSourceDetail,
+    referenceFromFood,
+    referenceFromUsda,
+    type NutrientSources,
+    type RecordSource,
+    type ReferenceRecord,
+    type SourceDetail,
+} from "./provenance.js";
+import {
+    USDA_CACHE_SOURCE,
+    usdaRecordFromPayload,
+    usdaSourceId,
+    type UsdaRecord,
+} from "./usda-record.js";
+import { fromCachedPayload, type FoodResult } from "./foods.js";
 import type { PatreonTokens, PatreonTokenStore } from "./patreon.js";
 import { hashSecret } from "./token-hash.js";
 import { ToolError, newErrorRef } from "./errors.js";
@@ -195,6 +212,12 @@ export interface Meal {
     protein_g: number | null;
     carbs_g: number | null;
     fat_g: number | null;
+    // Saturated and trans fat, grams, both inside fat_g. NULL means not
+    // recorded (rows logged before the columns existed, or a call that did not
+    // give the value), never 0. Trans fat has no goal; saturated fat has a
+    // daily ceiling (see NutritionGoals).
+    saturated_fat_g?: number | null;
+    trans_fat_g?: number | null;
     // Total sugars (not added sugar); alcohol is pure ethanol in grams.
     fiber_g: number | null;
     sugar_g: number | null;
@@ -213,6 +236,11 @@ export interface Meal {
     // null again when that saved meal is deleted: the logged row keeps its
     // values, only the link goes.
     saved_meal_id: string | null;
+    // Where each nutrient came from (src/provenance.ts) and the records those
+    // labels point at. NULL on rows written before provenance existed; never
+    // back-labelled.
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 export interface MealInput {
@@ -222,6 +250,9 @@ export interface MealInput {
     protein_g?: number;
     carbs_g?: number;
     fat_g?: number;
+    // See Meal.saturated_fat_g.
+    saturated_fat_g?: number;
+    trans_fat_g?: number;
     fiber_g?: number;
     sugar_g?: number;
     // See Meal.added_sugar_g.
@@ -238,6 +269,11 @@ export interface MealInput {
     items?: MealItemValues[];
     // The saved meal this entry is copied from (log_saved_meal).
     saved_meal_id?: string;
+    // Provenance of the nutrient fields above (see Meal.nutrient_sources).
+    // Already verified and labelled by the caller; written as given. Not part
+    // of the idempotency digest.
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 export interface MealInsertResult {
@@ -257,8 +293,8 @@ export function mealIdempotencyKey(
     loggedAt: string,
 ): string {
     // DO NOT ADD FIELDS TO THIS ARRAY. It is deliberately incomplete:
-    // fiber_g, sugar_g, alcohol_g and caffeine_mg are EXCLUDED on purpose, and
-    // any future meal column must be too. The digest is positional over exactly
+    // saturated_fat_g, trans_fat_g, fiber_g, sugar_g, alcohol_g and caffeine_mg
+    // are EXCLUDED on purpose, and any future meal column must be too. The digest is positional over exactly
     // these values, so appending one changes the derived key of every future
     // write — a user re-logging or re-importing something they already have
     // would get a duplicate row instead of a clean no-op, and every "auto:" key
@@ -266,8 +302,8 @@ export function mealIdempotencyKey(
     // already (see CLAUDE.md, "Bulk meal import"); the mirror of this array is
     // rowContentDigest in src/import.ts, which carries the same warning.
     //
-    // Accepted consequence: two meals identical except for their fiber (or
-    // sugar, or alcohol, or caffeine) dedupe to one. Dedup stability beats
+    // Accepted consequence: two meals identical except for their fat split (or
+    // fiber, sugar, alcohol, or caffeine) dedupe to one. Dedup stability beats
     // precision here, and a caller who needs distinct rows can pass an explicit
     // idempotency_key.
     return deriveIdempotencyKey([
@@ -387,11 +423,15 @@ export async function insertMeal(
             protein_g: meal.protein_g ?? null,
             carbs_g: meal.carbs_g ?? null,
             fat_g: meal.fat_g ?? null,
+            saturated_fat_g: meal.saturated_fat_g ?? null,
+            trans_fat_g: meal.trans_fat_g ?? null,
             fiber_g: meal.fiber_g ?? null,
             sugar_g: meal.sugar_g ?? null,
             added_sugar_g: meal.added_sugar_g ?? null,
             alcohol_g: meal.alcohol_g ?? null,
             caffeine_mg: meal.caffeine_mg ?? null,
+            nutrient_sources: meal.nutrient_sources ?? null,
+            source_detail: meal.source_detail ?? null,
             logged_at: loggedAt,
             notes:
                 meal.notes != null ? decodeEscapeSequences(meal.notes) : null,
@@ -673,7 +713,7 @@ export async function getAllMeals(userId: string): Promise<Meal[]> {
             `getAllMeals: fetched ${meals.length} meals but countMeals reported ${expected} — export would be truncated`,
         );
     }
-    return meals;
+    return meals.map(withProvenance);
 }
 
 // Keyword search over past meals. Each query string is an alternative (OR'd
@@ -763,32 +803,73 @@ export async function deleteMeal(userId: string, id: string): Promise<boolean> {
     return (data?.length ?? 0) > 0;
 }
 
-/** The stored sugar values a caller's added ≤ total check relied on (see
- *  update_meal in src/mcp.ts). Each key present makes updateMeal's write
- *  conditional on that column still holding exactly that value — `null` means
- *  IS NULL — so a concurrent edit between the check's read and this write
- *  cannot leave added_sugar_g above sugar_g; the migration has no DB check. */
-export type MealSugarGuard = Partial<Pick<Meal, "sugar_g" | "added_sugar_g">>;
+/** The stored values a write was computed from: every nutrient column of a
+ *  meal or saved meal, and its two label columns. A write conditional on this
+ *  snapshot (guardedBy) only lands while the row still holds exactly what its
+ *  checks and label merge read, so a concurrent edit makes the caller re-read
+ *  and redo them instead of overwriting the other edit's labels or sugar.
+ *  `null` means IS NULL; an object label compares as jsonb. */
+export type MealSnapshotGuard = Partial<
+    Record<(typeof NUTRIENT_KEYS)[number], number | null>
+> & {
+    nutrient_sources?: unknown;
+    source_detail?: unknown;
+};
 
-function sugarText(value: number | null | undefined): string {
-    return value == null ? "not recorded" : `${value} g`;
+/** A guarded write found its row, but the row no longer holds the snapshot. */
+export class SnapshotConflictError extends Error {
+    override name = "SnapshotConflictError";
+    constructor(readonly rowId: string) {
+        super(`row ${rowId} changed since it was read`);
+    }
 }
 
-/** The ToolError a guarded updateMeal throws when the guarded value moved.
- *  Its wording avoids the words categorizeError's keyword tier keys on
- *  ("update" holds "date", "separate" holds "rate"), so it is not misfiled. */
-export function mealSugarConflictText(
-    id: string,
-    current: Pick<Meal, "sugar_g" | "added_sugar_g">,
-): string {
-    return `The sugar values stored on meal ${id} changed while this edit was being applied, so nothing was written. Stored now: sugar_g ${sugarText(current.sugar_g)}, added_sugar_g ${sugarText(current.added_sugar_g)}.`;
+/** The one filter shape guardedBy needs, so it works on any PostgREST builder
+ *  of a table without the table's column typing getting in the way. */
+interface GuardFilter {
+    is(column: string, value: null): GuardFilter;
+    eq(column: string, value: unknown): GuardFilter;
 }
 
+/** Adds one equality filter per guard entry to a PostgREST update. */
+function guardedBy<Q>(query: Q, guard: MealSnapshotGuard): Q {
+    let filter = query as unknown as GuardFilter;
+    for (const [column, value] of Object.entries(guard)) {
+        if (value === undefined) continue;
+        if (value === null) filter = filter.is(column, null);
+        // A label is compared by its jsonb value, which PostgREST casts from
+        // the text; a number compares by its numeric value.
+        else if (typeof value === "object")
+            filter = filter.eq(column, JSON.stringify(value));
+        else filter = filter.eq(column, value);
+    }
+    return filter as unknown as Q;
+}
+
+/** The snapshot of one row as a guard: all eleven nutrient columns and both
+ *  label columns, with a missing column read as null. */
+export function snapshotGuardOf(
+    row: {
+        nutrient_sources?: unknown;
+        source_detail?: unknown;
+    } & Partial<Record<(typeof NUTRIENT_KEYS)[number], number | null>>,
+): MealSnapshotGuard {
+    const guard: MealSnapshotGuard = {
+        nutrient_sources: row.nutrient_sources ?? null,
+        source_detail: row.source_detail ?? null,
+    };
+    for (const key of NUTRIENT_KEYS) guard[key] = row[key] ?? null;
+    return guard;
+}
+
+/** Updates a logged meal. With `guard`, the write lands only while the row
+ *  still holds that snapshot (see MealSnapshotGuard); otherwise it throws
+ *  SnapshotConflictError and writes nothing. */
 export async function updateMeal(
     userId: string,
     id: string,
     fields: Partial<MealInput>,
-    guard?: MealSugarGuard,
+    guard?: MealSnapshotGuard,
 ): Promise<Meal> {
     const sb = getSupabase();
 
@@ -811,6 +892,10 @@ export async function updateMeal(
     if (fields.protein_g !== undefined) update.protein_g = fields.protein_g;
     if (fields.carbs_g !== undefined) update.carbs_g = fields.carbs_g;
     if (fields.fat_g !== undefined) update.fat_g = fields.fat_g;
+    if (fields.saturated_fat_g !== undefined)
+        update.saturated_fat_g = fields.saturated_fat_g;
+    if (fields.trans_fat_g !== undefined)
+        update.trans_fat_g = fields.trans_fat_g;
     if (fields.fiber_g !== undefined) update.fiber_g = fields.fiber_g;
     if (fields.sugar_g !== undefined) update.sugar_g = fields.sugar_g;
     if (fields.added_sugar_g !== undefined)
@@ -818,6 +903,10 @@ export async function updateMeal(
     if (fields.alcohol_g !== undefined) update.alcohol_g = fields.alcohol_g;
     if (fields.caffeine_mg !== undefined)
         update.caffeine_mg = fields.caffeine_mg;
+    if (fields.nutrient_sources !== undefined)
+        update.nutrient_sources = fields.nutrient_sources;
+    if (fields.source_detail !== undefined)
+        update.source_detail = fields.source_detail;
     if (fields.logged_at !== undefined) update.logged_at = fields.logged_at;
     if (fields.notes !== undefined)
         update.notes =
@@ -833,14 +922,7 @@ export async function updateMeal(
         .update(update)
         .eq("id", id)
         .eq("user_id", userId);
-    // Compared against exactly the value PostgREST returned on the guard's
-    // read: JSON numbers from a bare numeric column round-trip through eq.
-    for (const column of ["sugar_g", "added_sugar_g"] as const) {
-        if (!guard || !(column in guard)) continue;
-        const value = guard[column];
-        query =
-            value == null ? query.is(column, null) : query.eq(column, value);
-    }
+    if (guard) query = guardedBy(query, guard);
     // No `.single()`: a guard that no longer matches leaves zero rows, which
     // must read as a conflict rather than a PostgREST coercion error.
     const { data, error } = await query.select();
@@ -850,10 +932,10 @@ export async function updateMeal(
     if (row) return row;
 
     // Nothing written. The row existed at the pre-check above, so either it
-    // was deleted since or a guarded value moved; tell them apart.
+    // was deleted since or the guarded snapshot moved; tell them apart.
     const { data: now, error: nowErr } = await sb
         .from("meals")
-        .select("sugar_g, added_sugar_g")
+        .select("id")
         .eq("id", id)
         .eq("user_id", userId)
         .maybeSingle();
@@ -861,12 +943,102 @@ export async function updateMeal(
     if (!now) throw new ToolError(`No meal found with id ${id}.`);
     if (!guard)
         throw new Error("Failed to update meal: no row matched the write");
-    throw new ToolError(
-        mealSugarConflictText(
-            id,
-            now as Pick<Meal, "sugar_g" | "added_sugar_g">,
-        ),
-    );
+    throw new SnapshotConflictError(id);
+}
+
+// ---------- Food records (provenance) ----------
+
+/**
+ * A cached food record for provenance (src/provenance.ts), with no TTL. The
+ * lookup cache (src/foods.ts) refetches a stale row; a provenance check never
+ * fetches upstream, and a record past its TTL still verifies a logged value,
+ * because the facts it holds do not expire with the cache. The row is
+ * normalized the way the lookup normalizes it (fromCachedPayload for Open Food
+ * Facts, usdaRecordFromPayload for USDA), so both read the same figures.
+ *
+ * Best-effort, like the lookup cache: any failure, or a row that does not
+ * normalize or belongs to another id, is a miss. A miss labels the value
+ * "estimate" and never fails the write.
+ */
+export async function getCachedFoodRecord(
+    source: RecordSource,
+    id: string,
+): Promise<ReferenceRecord | null> {
+    try {
+        const { data, error } = await getSupabase()
+            .from("food_cache")
+            .select("payload, fetched_at")
+            .eq("source", source)
+            .eq("source_id", id)
+            .maybeSingle();
+        if (error || !data) return null;
+        const fetchedAt =
+            typeof data.fetched_at === "string" ? data.fetched_at : null;
+        if (source === "openfoodfacts") {
+            const cached = fromCachedPayload(data.payload as FoodResult);
+            return cached
+                ? referenceFromFood(cached.food, id, fetchedAt)
+                : null;
+        }
+        const record = usdaRecordFromPayload(data.payload);
+        if (!record || String(record.fdc_id) !== id) return null;
+        return referenceFromUsda(record, fetchedAt);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * The USDA cache row for one FoodData Central id, with its fetch time in epoch
+ * ms, for the lookup in src/usda.ts (which applies the 30-day TTL itself). Best
+ * effort: any failure, or a row that is not a valid record for this id, is a
+ * miss, so the caller fetches upstream or reports the record unavailable.
+ */
+export async function readUsdaFoodCache(
+    fdcId: number,
+): Promise<{ record: UsdaRecord; fetchedAt: number } | null> {
+    try {
+        const { data, error } = await getSupabase()
+            .from("food_cache")
+            .select("payload, fetched_at")
+            .eq("source", USDA_CACHE_SOURCE)
+            .eq("source_id", usdaSourceId(fdcId))
+            .maybeSingle();
+        if (error || !data) return null;
+        const record = usdaRecordFromPayload(data.payload);
+        if (!record || record.fdc_id !== fdcId) return null;
+        const fetchedAt = Date.parse(String(data.fetched_at));
+        if (!Number.isFinite(fetchedAt)) return null;
+        return { record, fetchedAt };
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Writes one normalized USDA record to food_cache (src/usda-record.ts), keyed
+ * by its FoodData Central id. Best effort, like putCachedFood: a failed write
+ * only means the next call fetches again, so it never fails the tool.
+ */
+export async function writeUsdaFoodCache(
+    record: UsdaRecord,
+    fetchedAt: number,
+): Promise<void> {
+    try {
+        await getSupabase()
+            .from("food_cache")
+            .upsert(
+                {
+                    source: USDA_CACHE_SOURCE,
+                    source_id: usdaSourceId(record.fdc_id),
+                    payload: record,
+                    fetched_at: new Date(fetchedAt).toISOString(),
+                },
+                { onConflict: "source,source_id" },
+            );
+    } catch {
+        // best-effort; ignore
+    }
 }
 
 // ---------- Meal items and saved meals ----------
@@ -879,6 +1051,8 @@ const NUTRIENT_KEYS: readonly MealNutrientKey[] = [
     "protein_g",
     "carbs_g",
     "fat_g",
+    "saturated_fat_g",
+    "trans_fat_g",
     "fiber_g",
     "sugar_g",
     "added_sugar_g",
@@ -898,6 +1072,30 @@ function nutrientsFromRow(row: Record<string, unknown>): NutrientValues {
     return out;
 }
 
+/** The provenance columns of a row, shape-checked (src/provenance.ts). A column
+ *  that is null, or a value that does not parse, reads as null: never a label.
+ *  A key is only present when the row carries its column, so a row selected
+ *  without them keeps its old shape. */
+function provenanceFromRow(row: Record<string, unknown>): {
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
+} {
+    const out: {
+        nutrient_sources?: NutrientSources | null;
+        source_detail?: SourceDetail | null;
+    } = {};
+    if ("nutrient_sources" in row)
+        out.nutrient_sources = parseNutrientSources(row.nutrient_sources);
+    if ("source_detail" in row)
+        out.source_detail = parseSourceDetail(row.source_detail);
+    return out;
+}
+
+/** A row read by a whole-table export reader, with its provenance parsed. */
+function withProvenance<T extends object>(row: T): T {
+    return { ...row, ...provenanceFromRow(row as Record<string, unknown>) };
+}
+
 /** One item row, as src/meal-items.ts values. */
 function itemFromRow(row: Record<string, unknown>): MealItemValues {
     return {
@@ -910,6 +1108,7 @@ function itemFromRow(row: Record<string, unknown>): MealItemValues {
         protein_g: Number(row.protein_g),
         carbs_g: Number(row.carbs_g),
         fat_g: Number(row.fat_g),
+        ...provenanceFromRow(row),
     };
 }
 
@@ -925,11 +1124,15 @@ function itemPayload(item: MealItemValues): Record<string, unknown> {
         protein_g: item.protein_g,
         carbs_g: item.carbs_g,
         fat_g: item.fat_g,
+        saturated_fat_g: item.saturated_fat_g ?? null,
+        trans_fat_g: item.trans_fat_g ?? null,
         fiber_g: item.fiber_g ?? null,
         sugar_g: item.sugar_g ?? null,
         added_sugar_g: item.added_sugar_g ?? null,
         alcohol_g: item.alcohol_g ?? null,
         caffeine_mg: item.caffeine_mg ?? null,
+        nutrient_sources: item.nutrient_sources ?? null,
+        source_detail: item.source_detail ?? null,
     };
 }
 
@@ -1037,6 +1240,10 @@ export async function replaceMealItems(
         if (key === "calories" || fields[key] === undefined) continue;
         update[key] = fields[key];
     }
+    if (fields.nutrient_sources !== undefined)
+        update.nutrient_sources = fields.nutrient_sources;
+    if (fields.source_detail !== undefined)
+        update.source_detail = fields.source_detail;
     if (fields.logged_at !== undefined) update.logged_at = fields.logged_at;
     if (fields.notes !== undefined)
         update.notes =
@@ -1078,11 +1285,15 @@ async function insertMealWithItems(
             protein_g: meal.protein_g ?? null,
             carbs_g: meal.carbs_g ?? null,
             fat_g: meal.fat_g ?? null,
+            saturated_fat_g: meal.saturated_fat_g ?? null,
+            trans_fat_g: meal.trans_fat_g ?? null,
             fiber_g: meal.fiber_g ?? null,
             sugar_g: meal.sugar_g ?? null,
             added_sugar_g: meal.added_sugar_g ?? null,
             alcohol_g: meal.alcohol_g ?? null,
             caffeine_mg: meal.caffeine_mg ?? null,
+            nutrient_sources: meal.nutrient_sources ?? null,
+            source_detail: meal.source_detail ?? null,
             logged_at: loggedAt,
             notes:
                 meal.notes != null ? decodeEscapeSequences(meal.notes) : null,
@@ -1113,6 +1324,9 @@ export interface SavedMeal extends NutrientValues {
     meal_type: string | null;
     created_at: string;
     updated_at: string;
+    // Provenance of the nutrient values (see Meal.nutrient_sources).
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 export interface SavedMealWithItems extends SavedMeal {
@@ -1123,6 +1337,8 @@ export interface SavedMealInput extends Partial<NutrientValues> {
     name: string;
     description: string;
     meal_type: string | null;
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 /** A saved meal with this name already exists for the user (case-insensitive).
@@ -1147,6 +1363,7 @@ function savedMealFromRow(row: Record<string, unknown>): SavedMeal {
         created_at: String(row.created_at),
         updated_at: String(row.updated_at),
         ...nutrientsFromRow(row),
+        ...provenanceFromRow(row),
     };
 }
 
@@ -1171,6 +1388,10 @@ function savedMealFields(
                   ? toStoredInteger(value)
                   : value;
     }
+    if (input.nutrient_sources !== undefined)
+        out.nutrient_sources = input.nutrient_sources;
+    if (input.source_detail !== undefined)
+        out.source_detail = input.source_detail;
     return out;
 }
 
@@ -1305,6 +1526,52 @@ export async function countSavedMeals(userId: string): Promise<number> {
         .eq("user_id", userId);
     if (error) throw new Error(`Failed to count saved meals: ${error.message}`);
     return count ?? 0;
+}
+
+/** Updates a saved meal's own figures and labels (no items) as one guarded
+ *  row write: it lands only while the row still holds `guard`, else it throws
+ *  SnapshotConflictError. A name taken by another saved meal throws
+ *  SavedMealNameTaken. Null when this user has no saved meal with `id`. */
+export async function updateSavedMealIfUnchanged(
+    userId: string,
+    id: string,
+    fields: Partial<SavedMealInput>,
+    guard: MealSnapshotGuard,
+): Promise<SavedMealWithItems | null> {
+    if (!isUuid(id)) return null;
+    const sb = getSupabase();
+    const query = sb
+        .from("saved_meals")
+        .update({
+            ...savedMealFields(fields),
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", id)
+        .eq("user_id", userId);
+    const { data, error } = await guardedBy(query, guard).select("*");
+    if (error) {
+        if (error.code === "23505")
+            throw new SavedMealNameTaken(
+                await savedMealIdByName(userId, fields.name),
+            );
+        throw new Error(`Failed to update saved meal: ${error.message}`);
+    }
+    const row = (data as Record<string, unknown>[] | null)?.[0];
+    if (row) {
+        const [withItem] = await withItems(userId, [savedMealFromRow(row)]);
+        return withItem ?? null;
+    }
+    // Nothing written: gone, or the guarded snapshot moved.
+    const { data: still, error: stillErr } = await sb
+        .from("saved_meals")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", userId)
+        .maybeSingle();
+    if (stillErr)
+        throw new Error(`Failed to update saved meal: ${stillErr.message}`);
+    if (!still) return null;
+    throw new SnapshotConflictError(id);
 }
 
 /** Updates a saved meal. `items` replaces its ingredients when given, and
@@ -1490,7 +1757,7 @@ export function getAllMealItems(userId: string): Promise<MealItemRow[]> {
         userId,
         ["meal_id", "position", "id"],
         "id",
-    );
+    ).then((rows) => rows.map(withProvenance));
 }
 
 /** Every saved meal of the user, oldest first, as stored. */
@@ -1502,7 +1769,7 @@ export function getAllSavedMeals(userId: string): Promise<SavedMeal[]> {
         userId,
         ["created_at", "id"],
         "id",
-    );
+    ).then((rows) => rows.map(withProvenance));
 }
 
 /** One saved-meal ingredient row as stored, ids included. */
@@ -1523,7 +1790,7 @@ export function getAllSavedMealItems(
         userId,
         ["saved_meal_id", "position", "id"],
         "id",
-    );
+    ).then((rows) => rows.map(withProvenance));
 }
 
 // ---------- Profiles ----------
@@ -1744,6 +2011,9 @@ export interface NutritionGoals {
     daily_protein_g: number | null;
     daily_carbs_g: number | null;
     daily_fat_g: number | null;
+    // Saturated fat is a ceiling like sugar (0 is a real limit, "none").
+    // Trans fat has no goal.
+    daily_saturated_fat_g?: number | null;
     daily_fiber_g: number | null;
     // Total sugars, and pure ethanol. Both are ceilings ("stay under"), unlike
     // every other goal here, which is a floor — see formatGoalLine in mcp.ts.
@@ -1765,6 +2035,7 @@ export interface NutritionGoalsInput {
     daily_protein_g?: number | null;
     daily_carbs_g?: number | null;
     daily_fat_g?: number | null;
+    daily_saturated_fat_g?: number | null;
     daily_fiber_g?: number | null;
     daily_sugar_g?: number | null;
     daily_added_sugar_g?: number | null;
@@ -1804,6 +2075,7 @@ export async function upsertNutritionGoals(
                 daily_protein_g: input.daily_protein_g ?? null,
                 daily_carbs_g: input.daily_carbs_g ?? null,
                 daily_fat_g: input.daily_fat_g ?? null,
+                daily_saturated_fat_g: input.daily_saturated_fat_g ?? null,
                 daily_fiber_g: input.daily_fiber_g ?? null,
                 daily_sugar_g: input.daily_sugar_g ?? null,
                 daily_added_sugar_g: input.daily_added_sugar_g ?? null,

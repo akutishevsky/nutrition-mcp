@@ -17,6 +17,12 @@ import { ToolError, toolErrorWithUserText } from "./errors.js";
 import { addedSugarError, addedSugarMissingError } from "./added-sugar.js";
 import { decodeEscapeSequences } from "./normalize.js";
 import {
+    scaleSourceDetail,
+    type FoodRef,
+    type NutrientSources,
+    type SourceDetail,
+} from "./provenance.js";
+import {
     MAX_ALCOHOL_G,
     MAX_CAFFEINE_MG,
     MAX_CALORIES,
@@ -31,13 +37,15 @@ export const MAX_SAVED_MEALS_PER_USER = 200;
 export const MAX_SAVED_MEAL_NAME_CHARS = 100;
 export const MAX_SERVINGS = 20;
 
-/** The nine nutrient columns a meal row carries, in the order every CSV and
+/** The eleven nutrient columns a meal row carries, in the order every CSV and
  * payload uses. */
 export const MEAL_NUTRIENT_KEYS = [
     "calories",
     "protein_g",
     "carbs_g",
     "fat_g",
+    "saturated_fat_g",
+    "trans_fat_g",
     "fiber_g",
     "sugar_g",
     "added_sugar_g",
@@ -46,7 +54,14 @@ export const MEAL_NUTRIENT_KEYS = [
 ] as const;
 
 export type MealNutrientKey = (typeof MEAL_NUTRIENT_KEYS)[number];
-export type NutrientValues = Record<MealNutrientKey, number | null>;
+/** The nutrient values of a meal, an item or a total. The two fat keys are
+ * optional in the type so that a row or literal written before they existed
+ * still type-checks; every value this module builds sets them. */
+export type NutrientValues = Record<
+    Exclude<MealNutrientKey, "saturated_fat_g" | "trans_fat_g">,
+    number | null
+> &
+    Partial<Record<"saturated_fat_g" | "trans_fat_g", number | null>>;
 
 /** One ingredient as the caller sends it. Nutrient fields are optional here so
  * the handler, not the schema, names the item that lacks one. */
@@ -58,11 +73,20 @@ export interface MealItemInput {
     protein_g?: number;
     carbs_g?: number;
     fat_g?: number;
+    saturated_fat_g?: number;
+    trans_fat_g?: number;
     fiber_g?: number;
     sugar_g?: number;
     added_sugar_g?: number;
     alcohol_g?: number;
     caffeine_mg?: number;
+    /** The USDA or Open Food Facts record the item's values were read from,
+     * and the amount they are for. Verified against the stored record by
+     * src/provenance.ts, which labels each nutrient; never trusted as a label. */
+    food_ref?: FoodRef;
+    /** Nutrients whose values the user gave themselves (read off a label, or
+     * corrected). Labelled "user" unless a verified record matches them. */
+    user_stated?: MealNutrientKey[];
 }
 
 /** A validated item: position is 1-based, name decoded and trimmed, and the
@@ -76,6 +100,10 @@ export interface MealItemValues extends NutrientValues {
     protein_g: number;
     carbs_g: number;
     fat_g: number;
+    /** Per-nutrient labels (src/provenance.ts), set once the item's food_ref
+     * has been looked up. Absent on items from before provenance existed. */
+    nutrient_sources?: NutrientSources | null;
+    source_detail?: SourceDetail | null;
 }
 
 const REQUIRED_ITEM_KEYS = [
@@ -85,15 +113,21 @@ const REQUIRED_ITEM_KEYS = [
     "fat_g",
 ] as const satisfies readonly MealNutrientKey[];
 
-/** Keys every item carries or none does (all-or-none). */
+/** Keys every item carries or none does (all-or-none). Saturated fat is here,
+ * not optional: a total that counted only some items would read as a real,
+ * too-low figure. */
 const ALL_OR_NONE_ITEM_KEYS = [
+    "saturated_fat_g",
     "fiber_g",
     "sugar_g",
     "added_sugar_g",
 ] as const satisfies readonly MealNutrientKey[];
 
-/** Optional keys summed over the items that carry them. */
+/** Optional keys summed over the items that carry them. Trans fat is here: it
+ * is sparse in the sources (mostly absent from fresh foods), and a missing
+ * value is not a zero. */
 const OPTIONAL_ITEM_KEYS = [
+    "trans_fat_g",
     "alcohol_g",
     "caffeine_mg",
 ] as const satisfies readonly MealNutrientKey[];
@@ -105,6 +139,8 @@ const ITEM_NUTRIENT_MAX: Record<MealNutrientKey, number> = {
     protein_g: MAX_MACRO_G,
     carbs_g: MAX_MACRO_G,
     fat_g: MAX_MACRO_G,
+    saturated_fat_g: MAX_MACRO_G,
+    trans_fat_g: MAX_MACRO_G,
     fiber_g: MAX_MACRO_G,
     sugar_g: MAX_MACRO_G,
     added_sugar_g: MAX_MACRO_G,
@@ -215,8 +251,8 @@ export function assertMealTotals(totals: NutrientValues): void {
  *
  * Refuses (ToolError, meal_items_invalid): a count outside 1..MAX_ITEMS_PER_MEAL,
  * a missing required nutrient, a value outside its range, an amount that is not
- * positive, a partially given fiber/sugar/added-sugar key, an item whose added
- * sugar exceeds its sugar, and, with the added-sugar gate on, an item with
+ * positive, a partially given saturated-fat/fiber/sugar/added-sugar key, an item
+ * whose added sugar exceeds its sugar, and, with the added-sugar gate on, an item with
  * sugar_g but no added_sugar_g (addedSugarMissingError, its own category).
  *
  * `opts.addedSugarRequired` is the gate state at the call (addedSugarRequiredNow
@@ -294,7 +330,7 @@ export function validateItems(
         }
     });
 
-    // Fiber, sugar and added sugar: all items or none.
+    // Saturated fat, fiber, sugar and added sugar: all items or none.
     for (const key of ALL_OR_NONE_ITEM_KEYS) {
         const withKey = items.flatMap((item, i) =>
             item[key] === undefined ? [] : [i],
@@ -339,6 +375,8 @@ export function validateItems(
             protein_g: item.protein_g!,
             carbs_g: item.carbs_g!,
             fat_g: item.fat_g!,
+            saturated_fat_g: item.saturated_fat_g ?? null,
+            trans_fat_g: item.trans_fat_g ?? null,
             fiber_g: item.fiber_g ?? null,
             sugar_g: item.sugar_g ?? null,
             added_sugar_g: item.added_sugar_g ?? null,
@@ -379,13 +417,15 @@ function scaleNutrients<T extends NutrientValues>(t: T, factor: number): T {
     if (factor === 1) return out;
     for (const key of MEAL_NUTRIENT_KEYS) {
         const v = t[key];
-        out[key] = v === null ? null : round2(v * factor);
+        out[key] = v == null ? null : round2(v * factor);
     }
     return out;
 }
 
 /** One item with its nutrients scaled by `factor` and its amount set to
- * `amount`. */
+ * `amount`. Each nutrient's label stays (scaling keeps a value matched to its
+ * record), and the record's amount is scaled with the values
+ * (scaleSourceDetail), so the label still describes what the values are for. */
 function scaledItem(
     item: MealItemValues,
     factor: number,
@@ -402,6 +442,9 @@ function scaledItem(
         protein_g: n.protein_g,
         carbs_g: n.carbs_g,
         fat_g: n.fat_g,
+        ...(item.source_detail !== undefined
+            ? { source_detail: scaleSourceDetail(item.source_detail, factor) }
+            : {}),
     };
 }
 
@@ -537,7 +580,7 @@ export function applyItemChanges(
 function assertScaledItem(scaled: MealItemValues, saved: MealItemValues): void {
     for (const key of MEAL_NUTRIENT_KEYS) {
         const v = scaled[key];
-        if (v === null) continue;
+        if (v == null) continue;
         const max = ITEM_NUTRIENT_MAX[key];
         if (Number.isFinite(v) && v <= max) continue;
         // The unit is user text too, so the log line leaves it out with the
@@ -591,6 +634,10 @@ export function formatItemLine(item: MealItemValues, alcohol: boolean): string {
         `F ${item.fat_g} g`,
     ];
     const extras = [
+        item.saturated_fat_g !== null
+            ? `saturated fat ${item.saturated_fat_g} g`
+            : null,
+        item.trans_fat_g !== null ? `trans fat ${item.trans_fat_g} g` : null,
         item.fiber_g !== null ? `fiber ${item.fiber_g} g` : null,
         compactSugarFigure(item.sugar_g, item.added_sugar_g),
         alcohol && item.alcohol_g !== null
@@ -682,6 +729,8 @@ export function buildMealItemsMeta(
             protein_g: tenth(i.protein_g),
             carbs_g: tenth(i.carbs_g),
             fat_g: tenth(i.fat_g),
+            saturated_fat_g: tenth(i.saturated_fat_g ?? null),
+            trans_fat_g: tenth(i.trans_fat_g ?? null),
             fiber_g: tenth(i.fiber_g),
             sugar_g: tenth(i.sugar_g),
             added_sugar_g: tenth(i.added_sugar_g),

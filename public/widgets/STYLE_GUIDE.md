@@ -87,6 +87,8 @@ theme win in **both** directions (a light host inside a dark OS, and vice-versa)
     --fiber: #0d9488;
     --sugar: #65a30d;
     --added-sugar: #858a0b;
+    --saturated: #c2410c;
+    --trans: #475569;
     --fat: #f43f7e;
     --alcohol: #a21caf;
     --caffeine: #8b5e34;
@@ -118,6 +120,8 @@ theme win in **both** directions (a light host inside a dark OS, and vice-versa)
         --fiber: #14b8a6;
         --sugar: #a3e635;
         --added-sugar: #d4d03a;
+        --saturated: #fb923c;
+        --trans: #94a3b8;
         --fat: #fb7199;
         --alcohol: #e879f9;
         --caffeine: #c69a6d;
@@ -148,6 +152,8 @@ never repaint a whole series with one (see the over-goal convention in §4 and �
 | `--fiber`       | `#0d9488` | `#14b8a6` |
 | `--sugar`       | `#65a30d` | `#a3e635` |
 | `--added-sugar` | `#858a0b` | `#d4d03a` |
+| `--saturated`   | `#c2410c` | `#fb923c` |
+| `--trans`       | `#475569` | `#94a3b8` |
 | `--fat`         | `#f43f7e` | `#fb7199` |
 | `--alcohol`     | `#a21caf` | `#e879f9` |
 | `--caffeine`    | `#8b5e34` | `#c69a6d` |
@@ -719,6 +725,68 @@ macroPanel(merged.vals, merged.goal, wording, rows, opts);
   the open row spans both columns. Added-sugar `extra` rows are rebuilt from four
   fields, so they never carry items and never get an expander.
 
+### Nutrient sources come from `_meta`: source tags in the breakdown
+
+Each value in a breakdown row can say where it came from: a USDA or Open Food
+Facts record, the user's own figure, an estimate, or a mix. The server sends this
+under `"nutrition-mcp.com/nutrient-sources"` (`NUTRIENT_SOURCES_META_KEY` in
+`src/widgets.ts`), as `{ v: 1, meals: [{ meal, items } | null, …] }`, aligned by
+position with `structuredContent.meals`, and `items` aligned with the meal-items
+payload's item order. Each template spells the key and merges it **last**:
+
+```js
+const rows = withNutrientSources(
+    nutrientSourcesPayload(resultMeta && resultMeta[NUTRIENT_SOURCES_META_KEY]),
+    withMealItems(itemsMeta, merged.meals),
+    itemsMeta,
+);
+```
+
+- The payload is untrusted. `sourceTagOf` rebuilds each tag from whitelisted
+  fields: `s` in the four kinds (or `mixed` with 1–4 parts, each a kind and a
+  finite share 0–100), `ref` digits only and only on a record-backed kind,
+  `name` cut to 60 characters, `data_type` to 40. A tag that fails is dropped;
+  that value gets no tag. A payload that is not `v: 1`, has no `meals` array, or
+  whose length differs from the rows joins nothing.
+- A slot's item tags are dropped (the meal's own are kept) when the slot's item
+  count differs from the raw meal-items list. Items join by their raw position,
+  because `mealItemEntries` skips invalid items.
+- **Only a value that shows gets a tag.** A row is listed only with a positive
+  value, and an ingredient with a null figure reads "–" and gets no tag, even if
+  the payload names one.
+- Tags are labels, never HTML. Every interpolated string (name, ref, data type,
+  the translated word) goes through `esc`.
+
+**Tag text and kinds.** `USDA` and `OFF` are the brand words, never translated or
+inflected; `yours`, `est.` and `mixed` are `T.macros` strings. The styles are
+`.src-usda` / `.src-openfoodfacts` (accent), `.src-user` and `.src-mixed` (plain,
+outlined), `.src-estimate` (quietest, dashed). All are small mono labels from
+`shared/macros.css`, and they read in both themes.
+
+**Reveal.** A USDA, OFF or mixed tag with something to show is a native
+`<button data-src-open>` with `aria-expanded` and `aria-controls`, over a
+`<div class="src-detail" hidden>` holding one line: the record or product name,
+its id (`FoodData Central 171477`, `barcode 5449000000996`), its data type, or for
+a mixed tag the parts with whole-percent shares (`USDA 67% · est. 33%`). The
+user and estimate tags, and a record tag with nothing to name, are plain spans
+with `role="img"` and an `aria-label`.
+
+- **Placement.** On a plain row the tag sits right after the value. A meal row
+  with ingredients keeps its disclosure button, which must not contain another
+  button, so its tag is the button's sibling, after it. Only a row that carries
+  a tag takes `.has-src`, so a row without one keeps its markup. An ingredient's
+  tag sits between its value and its name.
+- **One open disclosure at a time.** `sourceToggle` closes every other reveal in
+  the breakdown and closes any open meal row except the one holding an
+  ingredient's tag. A meal-level tag on an open row closes that row, so the row
+  and the reveal are never both open. An ingredient's reveal stays inside its
+  open row, which is the only pair the rule allows to show together: the
+  reveal is part of the row's own list. `mealRowToggle` closes every reveal before it opens a row, and
+  `mealSet` closes the reveals inside a row when that row closes.
+- **Keyboard.** Both controls are native buttons, so Enter and Space arrive as
+  clicks and need no keydown branch. Each reveal's `id` is unique per breakdown
+  (`idPrefix`, then `-src-<metric>-<row>`, then `-<item>` for an ingredient).
+
 ### Wording rules (unchanged, and pinned by tests)
 
 - `direction: "ceiling"` (sugar, alcohol, caffeine) mirrors `GoalDirection` in
@@ -818,6 +886,15 @@ the row existed. With added sugar shown and **sugar hidden** (a 0 g day with an
 added-sugar limit and no total limit), the sugars row holds added sugar alone at
 the **same half width** — it is the same cell it is beside sugar, at the same size,
 not a stretched one.
+
+**The fats row.** Saturated fat (a daily ceiling, so `signal: "data"`, `unrecordedWithGoal`,
+`zeroIsValue`) and trans fat (no goal, never a limit, `zeroIsValue`) both open a row of
+their own, `row: "fats"`, the way added sugar opens the sugars row. A lone trans fat
+cell keeps the same half width a lone sugar cell does, so the limits row never holds
+more than four cells: sugar, alcohol, caffeine, fiber. Both arrive only through
+`_meta` under `"nutrition-mcp.com/saturated-fat"` (`withSaturatedFat` in
+`shared/macros.js`), and without that `_meta` the strip is unchanged. Ingredient rows
+carry both values through `"nutrition-mcp.com/meal-items"` like every other nutrient.
 
 **Nothing in either grid may rely on `white-space: nowrap` to hold its shape.** A
 track is `minmax(0, 1fr)`, so two nowrap children in a ~84px column do not fit —

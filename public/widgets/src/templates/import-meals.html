@@ -248,6 +248,10 @@
                 { key: "protein_g" },
                 { key: "carbs_g" },
                 { key: "fat_g" },
+                // Parts of fat_g. Optional, never a gate: a file without them
+                // imports with the value not recorded.
+                { key: "saturated_fat_g" },
+                { key: "trans_fat_g" },
                 { key: "fiber_g" },
                 { key: "sugar_g" },
                 // The part of sugar_g that was added; the server refuses a
@@ -307,6 +311,44 @@
                     "kohlenhydrate",
                 ],
                 fat_g: ["fat_g", "fat", "total_fat", "fett"],
+                // SATURATED and TRANS fat are parts of fat_g. Cronometer writes
+                // "Saturated (g)" and "Trans-Fats (g)"; MyFitnessPal writes
+                // "Saturated Fat" and "Trans Fat". Matched exactly per
+                // normalized header, so "Saturated Fat" never reaches fat_g.
+                saturated_fat_g: [
+                    "saturated_fat_g",
+                    "saturated_fat",
+                    "saturated_g",
+                    "saturated_fats_g",
+                    "saturated_fats",
+                    "saturates_g",
+                    "saturates",
+                    "gesattigte_fettsauren",
+                    "gesattigte_fettsauren_g",
+                    "grasas_saturadas",
+                    "grasas_saturadas_g",
+                    "acides_gras_satures",
+                    "acides_gras_satures_g",
+                    "grassi_saturi",
+                    "grassi_saturi_g",
+                ],
+                trans_fat_g: [
+                    "trans_fat_g",
+                    "trans_fat",
+                    "trans_fats_g",
+                    "trans_fats",
+                    "trans_g",
+                    "trans_fatty_acids_g",
+                    "trans_fatty_acids",
+                    "transfettes",
+                    "transfettes_g",
+                    "grasas_trans",
+                    "grasas_trans_g",
+                    "acides_gras_trans",
+                    "acides_gras_trans_g",
+                    "grassi_trans",
+                    "grassi_trans_g",
+                ],
                 // normalizeHeader turns "Fiber (g)" into "fiber_g" but leaves
                 // "Fiber" as "fiber", so both spellings are listed. Localised
                 // headers usually ship the unit too ("Ballaststoffe (g)"), so
@@ -745,6 +787,33 @@
                     const v = parseNumber(row[idx], dec);
                     return v === null ? undefined : v;
                 };
+                // Provenance columns, written only by this server's own export
+                // (src/export.ts). They are not mapped or previewed: the server
+                // reads them only when provenance_version says the file is ours,
+                // and re-checks every record-backed label itself. A file without
+                // the marker sends none of them.
+                const provHeader = {
+                    version: findColumn(t.headers, ["provenance_version"]),
+                    nutrient_sources: findColumn(t.headers, [
+                        "nutrient_sources",
+                    ]),
+                    source_detail: findColumn(t.headers, ["source_detail"]),
+                };
+                const provenance = (row) =>
+                    provHeader.version < 0 ||
+                    cell(row, provHeader.version) === undefined
+                        ? {}
+                        : {
+                              provenance_version: cell(row, provHeader.version),
+                              nutrient_sources: cell(
+                                  row,
+                                  provHeader.nutrient_sources,
+                              ),
+                              source_detail: cell(
+                                  row,
+                                  provHeader.source_detail,
+                              ),
+                          };
 
                 const rows = [];
                 let skipped = 0;
@@ -791,9 +860,9 @@
                     const time = rawTime ? normalizeTime(rawTime) : null;
                     if (time) when = when + " " + time;
 
-                    // Calories only: protein/carbs/fat/fiber/sugar/added
-                    // sugar/alcohol are all grams in every export and caffeine is milligrams in
-                    // every export that carries it — each already the unit the
+                    // Calories only: protein/carbs/fat/saturated/trans/fiber/
+                    // sugar/added sugar/alcohol are all grams in every export and
+                    // caffeine is milligrams in every export that carries it — each already the unit the
                     // server stores, so none of them convert. A caffeine column
                     // headed in grams is the one shape that would need
                     // converting, and it is refused rather than scaled (see
@@ -813,6 +882,8 @@
                         protein_g: num(r, m.protein_g),
                         carbs_g: num(r, m.carbs_g),
                         fat_g: num(r, m.fat_g),
+                        saturated_fat_g: num(r, m.saturated_fat_g),
+                        trans_fat_g: num(r, m.trans_fat_g),
                         fiber_g: num(r, m.fiber_g),
                         sugar_g: num(r, m.sugar_g),
                         added_sugar_g: num(r, m.added_sugar_g),
@@ -836,6 +907,9 @@
                         // timezone when it is absent or not a recognized
                         // IANA identifier.
                         timezone: cell(r, m.timezone),
+                        // Passed through untouched, like source_id: the server
+                        // decides whether the file is this app's own export.
+                        ...provenance(r),
                     });
                 }
                 S.rows = rows;
@@ -1317,8 +1391,8 @@
                     CFG.max_rows_per_call,
                 );
                 const chunks = previewChunks.length;
-                // Fiber, sugar, added sugar, alcohol and caffeine are missing
-                // from most exports, so their columns appear only when this
+                // Saturated and trans fat, fiber, sugar, added sugar, alcohol and
+                // caffeine are missing from most exports, so their columns appear only when this
                 // file actually carries them — five columns of "—" would push the macros that
                 // do have values off the visible width for no information.
                 // Alcohol additionally never appears with tracking off: the
@@ -1327,6 +1401,8 @@
                 // put ethanol on screen. Caffeine has no such gate; it is
                 // filtered by the data alone.
                 const extra = [
+                    ["saturated_fat_g"],
+                    ["trans_fat_g"],
                     ["fiber_g"],
                     ["sugar_g"],
                     ["added_sugar_g"],

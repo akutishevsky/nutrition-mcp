@@ -68,6 +68,8 @@ export interface WidgetStrings {
             fat_g: string;
             sugar_g: string;
             added_sugar_g: string;
+            saturated_fat_g: string;
+            trans_fat_g: string;
             alcohol_g: string;
             caffeine_mg: string;
             fiber_g: string;
@@ -152,6 +154,19 @@ export interface WidgetStrings {
          * itself shows only the number). Placeholder: {n}.
          */
         ingredientCount: PluralForms;
+        /** Source tag on a nutrient value (USDA / OFF / yours / est. / mixed) — shared/macros.js. */
+        sourceUsda: string;
+        sourceOff: string;
+        sourceUser: string;
+        sourceEst: string;
+        sourceMixed: string;
+        sourceRecordUsda: string;
+        sourceRecordOff: string;
+        sourceDataType: string;
+        /** aria-label on a source tag; placeholder {source}, the tag's visible text. */
+        sourceAria: string;
+        /** aria-label on the source tag's reveal button. */
+        sourceDetailsAria: string;
     };
 
     /** shared/bridge.js — text the host bridge itself paints, around
@@ -418,6 +433,8 @@ export interface WidgetStrings {
             fiber_g: string;
             sugar_g: string;
             added_sugar_g: string;
+            saturated_fat_g: string;
+            trans_fat_g: string;
             alcohol_g: string;
             caffeine_mg: string;
             notes: string;
@@ -504,6 +521,8 @@ export interface WidgetStrings {
             fiber_g: string;
             sugar_g: string;
             added_sugar_g: string;
+            saturated_fat_g: string;
+            trans_fat_g: string;
             alcohol_g: string;
             caffeine_mg: string;
         };
@@ -553,6 +572,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         labels: {
             calories: "Calories",
             protein_g: "Protein",
+            saturated_fat_g: "Saturated fat",
+            trans_fat_g: "Trans fat",
             carbs_g: "Carbs",
             fat_g: "Fat",
             sugar_g: "Sugar",
@@ -602,6 +623,16 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             one: "{n} ingredient",
             other: "{n} ingredients",
         },
+        sourceUsda: "USDA",
+        sourceOff: "OFF",
+        sourceUser: "yours",
+        sourceEst: "est.",
+        sourceMixed: "mixed",
+        sourceRecordUsda: "FoodData Central",
+        sourceRecordOff: "barcode",
+        sourceDataType: "data type",
+        sourceAria: "Source: {source}",
+        sourceDetailsAria: "Show source details",
     },
     bridge: {
         settingsFooter:
@@ -747,6 +778,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             carbs_g: "Carbs (g)",
             fat_g: "Fat (g)",
             fiber_g: "Fiber (g)",
+            saturated_fat_g: "Saturated fat (g)",
+            trans_fat_g: "Trans fat (g)",
             sugar_g: "Sugar, total (g)",
             added_sugar_g: "Added sugar (g)",
             alcohol_g: "Alcohol (g)",
@@ -840,6 +873,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             fiber_g: "Fib",
             sugar_g: "Sug",
             added_sugar_g: "Add",
+            saturated_fat_g: "Sat",
+            trans_fat_g: "Trans",
             alcohol_g: "Alc",
             caffeine_mg: "Caf",
         },

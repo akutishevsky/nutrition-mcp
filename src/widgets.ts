@@ -128,6 +128,14 @@ export const PERIOD_AVERAGES_META_KEY = "nutrition-mcp.com/period-averages";
 export const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
 
 /**
+ * `_meta` key for saturated fat, on the same tools as ADDED_SUGAR_META_KEY:
+ * `{ v: 1, goal, days, meals }` built by buildSaturatedFatMeta
+ * (src/saturated-fat.ts). Same reason for `_meta`: output schemas are frozen.
+ * Widgets that draw the saturated-fat limit repeat this literal.
+ */
+export const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
+
+/**
  * Where log_meal, update_meal, log_saved_meal, get_goal_progress and
  * get_nutrition_summary put the ingredients behind their breakdown rows (the
  * MealItemsMeta built by buildMealItemsMeta in src/meal-items.ts): the
@@ -140,6 +148,18 @@ export const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
  * `_meta` leaves every row without an expander, exactly as before.
  */
 export const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
+
+/**
+ * Where each nutrient value came from (src/provenance.ts), for the CallToolResult's
+ * `_meta`: the same frozen-outputSchema reason as the keys above. Shape
+ * `{ v: 1, meals }`, with `meals` aligned by position with
+ * structuredContent.meals, and each slot holding that meal's labels and its
+ * items' labels (built by buildNutrientSourcesMeta). Carries the alcohol gate
+ * of MEAL_ITEMS_META_KEY, and is omitted when nothing is labelled or the read
+ * failed, so a host that drops `_meta` sees the tool exactly as before. No
+ * widget reads it yet.
+ */
+export const NUTRIENT_SOURCES_META_KEY = "nutrition-mcp.com/nutrient-sources";
 
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {

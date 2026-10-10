@@ -630,6 +630,95 @@
     color: var(--text-dim);
     font-variant-numeric: tabular-nums;
 }
+/* Source tags (shared/macros.js, sourceTagHtml). A small mono label after a
+   value: USDA and OFF are the accent, yours is plain, mixed is outlined and
+   est. is the quietest (no fill, dashed outline). A tag with something to show
+   is a button and reveals one line under its row; it is always a sibling of
+   the row's own button, never inside it. */
+.src-tag {
+    flex: none;
+    align-self: center;
+    display: inline-block;
+    margin: 0;
+    padding: 2px 5px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: var(--track);
+    /* Tiny text on the track: a shade toward --text keeps it above 4.5:1 in
+       light mode (plain --text-dim is about 4.1:1 there). */
+    color: color-mix(in srgb, var(--text-dim) 80%, var(--text));
+    font:
+        600 9px/1.2 ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        monospace;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+button.src-tag:hover {
+    color: var(--text);
+}
+.src-tag:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+/* The accent is shaded toward --text for the same reason: plain --accent on its
+   14% tint is about 4.1:1 in light mode. */
+.src-usda,
+.src-openfoodfacts {
+    color: color-mix(in srgb, var(--accent) 80%, var(--text));
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.src-mixed {
+    background: transparent;
+    border-color: var(--panel-border);
+}
+.src-estimate {
+    background: transparent;
+    border: 1px dashed var(--panel-border);
+    color: var(--text-dim);
+}
+.src-detail {
+    display: block;
+    font-size: 10.5px;
+    line-height: 1.4;
+    color: var(--text-dim);
+    padding: 2px 0 4px;
+    overflow-wrap: anywhere;
+}
+.src-detail[hidden] {
+    display: none;
+}
+/* A row or ingredient that carries a tag wraps: the reveal takes its own full
+   line under the figure. Rows without a tag keep their flex line untouched. */
+.md-row.has-src,
+.md-item.has-src {
+    flex-wrap: wrap;
+}
+.md-row > .src-detail,
+.md-item > .src-detail {
+    flex: 0 0 100%;
+}
+/* A meal row with ingredients is a block; once it carries a tag the button
+   and the tag share one line, and the item list drops under both. */
+.md-row.has-items.has-src {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 8px;
+}
+.md-row.has-items.has-src > .md-open {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    margin: 0 0 0 -8px;
+}
+.md-row.has-items.has-src > .md-items {
+    flex: 0 0 100%;
+}
 @media (prefers-reduced-motion: reduce) {
     .md-open,
     .md-chev {

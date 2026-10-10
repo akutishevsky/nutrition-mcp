@@ -20,7 +20,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
         migrate: {
             title: "De database achter je laten",
             body: [
-                "MyFitnessPal dankt zijn populariteit aan een van de grootste voedingsdatabases die er bestaan, met tientallen miljoenen door gebruikers aangeleverde vermeldingen. Juist die omvang maakt het omslachtig: bij elk voedingsmiddel scrol je langs bijna-identieke vermeldingen en moet je raden welke klopt. Loggen via een gesprek slaat het zoeken helemaal over. Je omschrijft wat je eet en je AI schat de macro's.",
+                "MyFitnessPal dankt zijn populariteit aan een van de grootste voedingsdatabases die er bestaan, met tientallen miljoenen door gebruikers aangeleverde vermeldingen. Juist die omvang maakt het omslachtig: bij elk voedingsmiddel scrol je langs bijna-identieke vermeldingen en moet je raden welke klopt. Loggen via een gesprek slaat het zoeken helemaal over. Je omschrijft wat je eet, generieke voedingsmiddelen krijgen hun waarden uit USDA FoodData Central als die er is, en schattingen dekken de rest.",
                 "Je dagboek hoef je daarvoor niet achter te laten: een CSV-export van MyFitnessPal wordt rechtstreeks geïmporteerd, inclusief alle eigenaardigheden, dus de jaren die je al hebt gelogd gaan mee. Alles wat je daarna vastlegt, kun je zelf op elk moment als CSV exporteren.",
                 "De functies die MyFitnessPal geleidelijk achter Premium heeft gezet (barcode scannen, macro's per gram, geen advertenties) zitten hier gewoon bij. Je hoeft geen gratis versie af te wegen tegen een upgrade van $20 per maand: er is één gratis, open source versie, en het enige wat je nieuw aanmaakt, is een gratis account bij je eerste verbinding.",
             ],
@@ -34,7 +34,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             ],
         },
         importFaq:
-            "Ja. Vraag om je geschiedenis te importeren en er opent een importvenster in de chat: je kiest de CSV die MyFitnessPal exporteert, je browser verwerkt die (de AI leest hem niet), je koppelt de kolommen of controleert de koppeling, bekijkt wat er wordt toegevoegd en bevestigt. Calorieën, eiwit, koolhydraten en vet gaan mee, en ook vezels, totale suikers en cafeïne als je export die bevat. De export van MyFitnessPal wordt aan de naam herkend, inclusief de byte-order mark, de totaalrijen aan het eind en het feit dat er per dag één samengevoegde rij per maaltijd staat zonder naam van het eten; die rijen krijgen hun maaltijdtype als label. Hetzelfde bestand opnieuw importeren levert geen dubbele registraties op, zolang je tijdzone intussen niet is veranderd.",
+            "Ja. Vraag om je geschiedenis te importeren en er opent een importvenster in de chat: je kiest de CSV die MyFitnessPal exporteert, je browser verwerkt die (de AI leest hem niet), je koppelt de kolommen of controleert de koppeling, bekijkt wat er wordt toegevoegd en bevestigt. Calorieën, eiwit, koolhydraten en vet gaan mee, en ook vezels, totale suikers, cafeïne, verzadigd vet en transvet als je export die bevat. De export van MyFitnessPal wordt aan de naam herkend, inclusief de byte-order mark, de totaalrijen aan het eind en het feit dat er per dag één samengevoegde rij per maaltijd staat zonder naam van het eten; die rijen krijgen hun maaltijdtype als label. Hetzelfde bestand opnieuw importeren levert geen dubbele registraties op, zolang je tijdzone intussen niet is veranderd.",
         extraFaqs: [
             {
                 q: "Kan Nutrition MCP barcodes scannen zoals MyFitnessPal Premium?",
@@ -42,7 +42,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "Hoe werkt loggen zonder de voedingsdatabase van MyFitnessPal?",
-                a: "Je omschrijft in gewone taal wat je hebt gegeten, bijvoorbeeld “een burritobowl met kip en extra rijst”, en je AI schat de calorieën en macro's. Je hoeft geen database met miljoenen door gebruikers aangeleverde vermeldingen te doorzoeken en niet te raden welke klopt.",
+                a: "Je omschrijft in gewone taal wat je hebt gegeten, bijvoorbeeld “een burritobowl met kip en extra rijst”, en je AI logt het. Generieke voedingsmiddelen krijgen hun waarden uit USDA FoodData Central als er een match is, verpakte producten komen via de barcode uit Open Food Facts, en schattingen dekken de rest. Je hoeft geen database met miljoenen door gebruikers aangeleverde vermeldingen te doorzoeken en niet te raden welke klopt; elk getal toont waar het vandaan komt.",
             },
         ],
     },
@@ -73,15 +73,15 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             ],
         },
         importFaq:
-            "Ja. Vraag om te importeren en er opent een importvenster in de chat: je kiest je Cronometer-CSV, je browser verwerkt die (de AI leest hem niet) en je bekijkt wat er wordt toegevoegd voordat je bevestigt. De export van Cronometer wordt aan de naam herkend: de aparte datum- en tijdkolom worden allebei gelezen, en de herhaalde kop “Amount” kan niet botsen omdat kolommen op positie worden gekoppeld. Datum en tijd, naam van het voedingsmiddel, maaltijd, calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, cafeïne in milligram en notities gaan mee; alcohol ook, maar alleen als je eerst alcoholregistratie hebt aangezet. Vitamines, mineralen en portiehoeveelheden niet. Hetzelfde bestand opnieuw importeren levert geen dubbele registraties op, zolang je tijdzone intussen niet is veranderd.",
+            "Ja. Vraag om te importeren en er opent een importvenster in de chat: je kiest je Cronometer-CSV, je browser verwerkt die (de AI leest hem niet) en je bekijkt wat er wordt toegevoegd voordat je bevestigt. De export van Cronometer wordt aan de naam herkend: de aparte datum- en tijdkolom worden allebei gelezen, en de herhaalde kop “Amount” kan niet botsen omdat kolommen op positie worden gekoppeld. Datum en tijd, naam van het voedingsmiddel, maaltijd, calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, cafeïne in milligram, verzadigd vet en transvet en notities gaan mee; alcohol ook, maar alleen als je eerst alcoholregistratie hebt aangezet. Vitamines, mineralen en portiehoeveelheden niet. Hetzelfde bestand opnieuw importeren levert geen dubbele registraties op, zolang je tijdzone intussen niet is veranderd.",
         extraFaqs: [
             {
                 q: "Houdt Nutrition MCP micronutriënten bij zoals Cronometer?",
-                a: "Nee. Het bijhouden van 80+ vitamines en mineralen is de specialiteit van Cronometer, en Nutrition MCP heeft helemaal geen gegevens over micronutriënten: geen natrium, geen vitamines. Wat het wel bijhoudt: calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, cafeïne in milligram, optioneel alcohol, water en gewicht. Je kunt je AI nog steeds om een ruwe inschatting van de micronutriënten in een maaltijd vragen, maar als je micronutriënten op labniveau echt nodig hebt, past Cronometer beter.",
+                a: "Nee. Het bijhouden van 80+ vitamines en mineralen is de specialiteit van Cronometer, en Nutrition MCP heeft helemaal geen gegevens over micronutriënten: geen natrium, geen vitamines. Wat het wel bijhoudt: calorieën, eiwit, koolhydraten, vet, vezels, totale suikers, cafeïne in milligram, verzadigd vet en transvet, optioneel alcohol, water en gewicht. Je kunt je AI nog steeds om een ruwe inschatting van de micronutriënten in een maaltijd vragen, maar als je micronutriënten op labniveau echt nodig hebt, past Cronometer beter.",
             },
             {
                 q: "Is Nutrition MCP net zo nauwkeurig als Cronometer?",
-                a: "Nee. Cijfers uit een gesprek zijn schattingen van je AI en kunnen niet tippen aan de samengestelde database van Cronometer, die tot op de gram klopt. Ze kunnen ernaast zitten, dus controleer alles wat ertoe doet. Voor verpakte producten gebruikt een barcode-opzoeking in plaats daarvan de etiketgegevens van Open Food Facts, al zijn die ook niet geverifieerd. Je levert wat precisie in voor veel minder logwerk.",
+                a: "Nee. Cijfers uit een gesprek kunnen niet tippen aan de samengestelde database van Cronometer, die tot op de gram klopt. Voor generieke voedingsmiddelen gebruikt Nutrition MCP waarden uit USDA FoodData Central als er een match is, en schattingen als dat niet zo is; voor verpakte producten gebruikt een barcode-opzoeking de etiketgegevens van Open Food Facts. Ook die bronnen kunnen ernaast zitten, en elk getal toont waar het vandaan komt, dus controleer alles wat ertoe doet. Je levert wat precisie in voor veel minder logwerk.",
             },
         ],
     },
@@ -200,7 +200,7 @@ export const ALTERNATIVES_NL: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "Kan ik sneller loggen dan door de database van Yazio te doorzoeken?",
-                a: "Meestal wel. In plaats van voor elk ingrediënt de database van Yazio te doorzoeken en porties in te stellen, omschrijf je het hele gerecht in één keer (“een kom muesli met yoghurt en bessen”) en je AI schat en logt de macro's in één stap.",
+                a: "Meestal wel. In plaats van voor elk ingrediënt de database van Yazio te doorzoeken en porties in te stellen, omschrijf je het hele gerecht in één keer (“een kom muesli met yoghurt en bessen”) en je AI logt de macro's in één stap, met USDA-waarden voor generieke voedingsmiddelen waar die bestaan en schattingen voor de rest.",
             },
         ],
     },

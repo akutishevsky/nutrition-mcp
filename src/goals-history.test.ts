@@ -270,10 +270,56 @@ test("the added-sugar migration adds the columns the code writes", async () => {
             `alter table public.${table} add column if not exists daily_added_sugar_g numeric(6, 2) check (daily_added_sugar_g >= 0);`,
         );
     }
-    // Every goal column the history table did not start with comes from here.
+    // Every goal column the history table did not start with comes from one of
+    // the migrations that followed it (added sugar, saturated fat).
+    const later = sql + (await read("20261010150000_saturated_trans_fat.sql"));
     const added = GOAL_COLUMNS.filter(
         (c) => !new RegExp(`\\b${c}\\b`).test(history),
     );
     expect(added.length).toBeGreaterThan(0);
-    for (const c of added) expect(sql).toMatch(new RegExp(`\\b${c}\\b`));
+    for (const c of added) expect(later).toMatch(new RegExp(`\\b${c}\\b`));
+});
+
+describe("saturated-fat goal column", () => {
+    test("sits right after daily_fat_g in GOAL_COLUMNS", () => {
+        const cols: readonly string[] = GOAL_COLUMNS;
+        const fat = cols.indexOf("daily_fat_g");
+        expect(fat).toBeGreaterThanOrEqual(0);
+        expect(cols[fat + 1]).toBe("daily_saturated_fat_g");
+    });
+
+    test("pickGoals keeps 0 (a real limit) and reads a missing value as null", () => {
+        expect(
+            pickGoals({ daily_saturated_fat_g: "20.00" }).daily_saturated_fat_g,
+        ).toBe(20);
+        expect(
+            pickGoals({ daily_saturated_fat_g: 0 }).daily_saturated_fat_g,
+        ).toBe(0);
+        expect(pickGoals({ daily_fat_g: 70 }).daily_saturated_fat_g).toBeNull();
+    });
+
+    test("a change to it alone makes two goal sets differ", () => {
+        expect(
+            sameGoals(
+                goals({ daily_saturated_fat_g: 20 }),
+                goals({ daily_saturated_fat_g: 0 }),
+            ),
+        ).toBe(false);
+    });
+});
+
+test("the saturated-fat migration adds the goal column to both goal tables", async () => {
+    const sql = (
+        await Bun.file(
+            new URL(
+                "../supabase/migrations/20261010150000_saturated_trans_fat.sql",
+                import.meta.url,
+            ),
+        ).text()
+    ).replace(/\s+/g, " ");
+    for (const table of ["nutrition_goals", "nutrition_goals_history"]) {
+        expect(sql).toContain(
+            `alter table public.${table} add column if not exists daily_saturated_fat_g numeric(6, 2) check (daily_saturated_fat_g >= 0);`,
+        );
+    }
 });

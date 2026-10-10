@@ -66,6 +66,8 @@ function meal(overrides: Partial<Meal> = {}): Meal {
         protein_g: 40,
         carbs_g: 10,
         fat_g: 20,
+        saturated_fat_g: 8,
+        trans_fat_g: 0.5,
         fiber_g: 7,
         sugar_g: 12,
         added_sugar_g: 9,
@@ -79,7 +81,7 @@ function meal(overrides: Partial<Meal> = {}): Meal {
 }
 
 const HEADER =
-    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,notes,saved_meal_id";
+    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,notes,saved_meal_id,provenance_version,nutrient_sources,source_detail";
 
 /**
  * Minimal RFC-4180 reader: splits a CSV document into rows of fields, honouring
@@ -154,6 +156,8 @@ test("header and data rows have identical field counts", () => {
                 protein_g: null,
                 carbs_g: null,
                 fat_g: null,
+                saturated_fat_g: null,
+                trans_fat_g: null,
                 fiber_g: null,
                 sugar_g: null,
                 added_sugar_g: null,
@@ -188,6 +192,8 @@ test("every value lands under its own header name", () => {
                     protein_g: 40,
                     carbs_g: 10,
                     fat_g: 20,
+                    saturated_fat_g: 8,
+                    trans_fat_g: 0.5,
                     fiber_g: 7,
                     sugar_g: 12,
                     added_sugar_g: 9,
@@ -210,6 +216,8 @@ test("every value lands under its own header name", () => {
         protein_g: "40",
         carbs_g: "10",
         fat_g: "20",
+        saturated_fat_g: "8",
+        trans_fat_g: "0.5",
         fiber_g: "7",
         sugar_g: "12",
         added_sugar_g: "9",
@@ -217,6 +225,9 @@ test("every value lands under its own header name", () => {
         caffeine_mg: "95",
         notes: "post-run",
         saved_meal_id: "33333333-3333-4333-8333-333333333333",
+        provenance_version: "1",
+        nutrient_sources: "",
+        source_detail: "",
     });
 });
 
@@ -225,8 +236,13 @@ test("meals.csv keeps its byte-identical shape with a trailing empty saved_meal_
     // row still ends in a comma-free field and the earlier columns are untouched.
     const csv = buildMealsCsv([meal({ notes: null })], "UTC");
     const [header, row] = csv.split("\n");
-    expect(header!.endsWith(",notes,saved_meal_id")).toBe(true);
-    expect(row!.endsWith(",")).toBe(true);
+    expect(
+        header!.endsWith(
+            ",notes,saved_meal_id,provenance_version,nutrient_sources,source_detail",
+        ),
+    ).toBe(true);
+    // Provenance written as "1", no sources recorded: the two JSON cells are empty.
+    expect(row!.endsWith(",,1,,")).toBe(true);
     expect(row!.split(",").length).toBe(HEADER.split(",").length);
 });
 
@@ -258,6 +274,8 @@ function mealItem(
         protein_g: 34,
         carbs_g: 22,
         fat_g: 22,
+        saturated_fat_g: 9,
+        trans_fat_g: 0.1,
         fiber_g: 1.5,
         sugar_g: 0.4,
         added_sugar_g: 0.2,
@@ -280,6 +298,8 @@ function savedMeal(
         protein_g: 30,
         carbs_g: 35,
         fat_g: 6,
+        saturated_fat_g: 2,
+        trans_fat_g: 0,
         fiber_g: 4,
         sugar_g: 20,
         added_sugar_g: 0,
@@ -306,6 +326,8 @@ function savedMealItem(
         protein_g: 1,
         carbs_g: 16,
         fat_g: 5,
+        saturated_fat_g: 3,
+        trans_fat_g: null,
         fiber_g: null,
         sugar_g: null,
         added_sugar_g: null,
@@ -316,11 +338,11 @@ function savedMealItem(
 }
 
 const MEAL_ITEMS_HEADER =
-    "meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg";
+    "meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,provenance_version,nutrient_sources,source_detail";
 const SAVED_MEALS_HEADER =
-    "id,name,description,meal_type,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,created_at,updated_at,timezone";
+    "id,name,description,meal_type,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,created_at,updated_at,timezone,provenance_version,nutrient_sources,source_detail";
 const SAVED_MEAL_ITEMS_HEADER =
-    "saved_meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg";
+    "saved_meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,provenance_version,nutrient_sources,source_detail";
 
 test("meal_items.csv, saved_meals.csv and saved_meal_items.csv are header-only when empty", () => {
     expect(buildMealItemsCsv([])).toBe(MEAL_ITEMS_HEADER);
@@ -354,11 +376,16 @@ test("every meal item value lands under its own header name", () => {
         protein_g: "34",
         carbs_g: "22",
         fat_g: "22",
+        saturated_fat_g: "9",
+        trans_fat_g: "0.1",
         fiber_g: "1.5",
         sugar_g: "0.4",
         added_sugar_g: "0.2",
         alcohol_g: "",
         caffeine_mg: "",
+        provenance_version: "1",
+        nutrient_sources: "",
+        source_detail: "",
     });
 });
 
@@ -405,6 +432,8 @@ test("every saved meal value lands under its own header name, timestamps in the 
         protein_g: "30",
         carbs_g: "35",
         fat_g: "6",
+        saturated_fat_g: "2",
+        trans_fat_g: "0",
         fiber_g: "4",
         sugar_g: "20",
         added_sugar_g: "0",
@@ -413,6 +442,9 @@ test("every saved meal value lands under its own header name, timestamps in the 
         created_at: "2026-06-20 16:30:00",
         updated_at: "2026-06-21 11:00:00",
         timezone: "Europe/Berlin",
+        provenance_version: "1",
+        nutrient_sources: "",
+        source_detail: "",
     });
 });
 
@@ -455,6 +487,8 @@ test("saved_meals.csv and saved_meal_items.csv align every row with their header
                     protein_g: null,
                     carbs_g: null,
                     fat_g: null,
+                    saturated_fat_g: null,
+                    trans_fat_g: null,
                     fiber_g: null,
                     sugar_g: null,
                     added_sugar_g: null,
@@ -498,11 +532,16 @@ test("every saved meal ingredient value lands under its own header name", () => 
         protein_g: "1",
         carbs_g: "16",
         fat_g: "5",
+        saturated_fat_g: "3",
+        trans_fat_g: "",
         fiber_g: "",
         sugar_g: "",
         added_sugar_g: "",
         alcohol_g: "",
         caffeine_mg: "",
+        provenance_version: "1",
+        nutrient_sources: "",
+        source_detail: "",
     });
 });
 
@@ -519,6 +558,8 @@ test("header column order is stable and importer-compatible", () => {
         "protein_g",
         "carbs_g",
         "fat_g",
+        "saturated_fat_g",
+        "trans_fat_g",
         "fiber_g",
         "sugar_g",
         // Right after sugar_g: the part of it that was added. The importer
@@ -533,6 +574,9 @@ test("header column order is stable and importer-compatible", () => {
         // Appended last: the importer matches by name, and a reader that
         // mapped the earlier columns by position is unaffected.
         "saved_meal_id",
+        "provenance_version",
+        "nutrient_sources",
+        "source_detail",
     ]);
 });
 
@@ -576,6 +620,8 @@ test("leaves null macros and notes as empty fields", () => {
                     protein_g: null,
                     carbs_g: null,
                     fat_g: null,
+                    saturated_fat_g: null,
+                    trans_fat_g: null,
                     fiber_g: null,
                     sugar_g: null,
                     added_sugar_g: null,
@@ -592,6 +638,8 @@ test("leaves null macros and notes as empty fields", () => {
         "protein_g",
         "carbs_g",
         "fat_g",
+        "saturated_fat_g",
+        "trans_fat_g",
         "fiber_g",
         "sugar_g",
         // NULL on every meal logged before added sugar was tracked: "not
@@ -689,6 +737,7 @@ function goals(overrides: Partial<NutritionGoals> = {}): NutritionGoals {
         daily_protein_g: 150,
         daily_carbs_g: 220,
         daily_fat_g: 70,
+        daily_saturated_fat_g: 20,
         daily_fiber_g: 30,
         daily_sugar_g: 40,
         daily_added_sugar_g: 25,
@@ -710,6 +759,7 @@ function goalsHistoryRow(
         daily_protein_g: 150,
         daily_carbs_g: 220,
         daily_fat_g: 70,
+        daily_saturated_fat_g: 20,
         daily_fiber_g: 30,
         daily_sugar_g: 40,
         daily_added_sugar_g: 25,
@@ -741,9 +791,9 @@ const WATER_HEADER = "id,logged_at,timezone,amount_ml,notes,created_at";
 const WEIGHT_HEADER =
     "id,logged_at,timezone,weight_g,weight_display,weight_unit,notes,created_at";
 const GOALS_HEADER =
-    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
+    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
 const GOALS_HISTORY_HEADER =
-    "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g";
+    "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g";
 const PROFILE_HEADER =
     "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit";
 const BODY_MEASUREMENT_HEADER =
@@ -978,6 +1028,7 @@ test("every goal value lands under its own header name", () => {
         daily_protein_g: "150",
         daily_carbs_g: "220",
         daily_fat_g: "70",
+        daily_saturated_fat_g: "20",
         daily_fiber_g: "30",
         daily_sugar_g: "40",
         daily_added_sugar_g: "25",
@@ -1009,6 +1060,7 @@ test("goals.csv leaves unset targets as empty fields", () => {
             daily_protein_g: null,
             daily_carbs_g: null,
             daily_fat_g: null,
+            daily_saturated_fat_g: null,
             daily_fiber_g: null,
             daily_sugar_g: null,
             daily_added_sugar_g: null,
@@ -1060,8 +1112,8 @@ test("goals_history.csv is byte-for-byte what its rows and zone determine", () =
     expect(csv).toBe(
         [
             GOALS_HISTORY_HEADER,
-            "2026-01-05 09:00:00,Europe/Berlin,2200,150,220,70,30,40,25,14,400,2500,72000",
-            "2026-06-20 16:30:00,Europe/Berlin,2000,150,220,70,30,,,,400,2500,",
+            "2026-01-05 09:00:00,Europe/Berlin,2200,150,220,70,20,30,40,25,14,400,2500,72000",
+            "2026-06-20 16:30:00,Europe/Berlin,2000,150,220,70,20,30,,,,400,2500,",
         ].join("\n"),
     );
     // Same inputs, same bytes: nothing in it depends on the clock or the host.
@@ -1099,6 +1151,7 @@ test("every goals history value lands under its own header name", () => {
         daily_protein_g: "150",
         daily_carbs_g: "220",
         daily_fat_g: "70",
+        daily_saturated_fat_g: "20",
         daily_fiber_g: "30",
         daily_sugar_g: "40",
         daily_added_sugar_g: "25",
@@ -2225,4 +2278,118 @@ test("exportAllData asks the injected stores and fails loudly with them", async 
         "goals-history:user-9",
         "link:user-9",
     ]);
+});
+
+// ---------- provenance columns ----------
+
+const PROVENANCE_DETAIL = {
+    "usda:171477": {
+        name: '=HYPERLINK("https://example.test")',
+        data_type: "SR Legacy",
+        amount_g: 150,
+        fetched_at: "2026-09-01T00:00:00.000Z",
+    },
+    "openfoodfacts:4006040070207": {
+        name: "@cmd Oat drink",
+        amount_g: 250,
+        fetched_at: "2026-09-02T00:00:00.000Z",
+    },
+};
+
+test("meals.csv writes the labels as JSON and defuses each name inside source_detail", () => {
+    const f = fieldsByName(
+        buildMealsCsv(
+            [
+                meal({
+                    nutrient_sources: {
+                        calories: { s: "usda", ref: "171477" },
+                        protein_g: { s: "estimate" },
+                        fat_g: {
+                            s: "mixed",
+                            parts: [
+                                { s: "usda", share: 70 },
+                                { s: "user", share: 30 },
+                            ],
+                        },
+                    },
+                    source_detail: PROVENANCE_DETAIL,
+                }),
+            ],
+            "UTC",
+        ),
+    );
+    expect(f.provenance_version).toBe("1");
+    expect(JSON.parse(f.nutrient_sources!)).toEqual({
+        calories: { s: "usda", ref: "171477" },
+        protein_g: { s: "estimate" },
+        fat_g: {
+            s: "mixed",
+            parts: [
+                { s: "usda", share: 70 },
+                { s: "user", share: 30 },
+            ],
+        },
+    });
+    const detail = JSON.parse(f.source_detail!);
+    // A name a spreadsheet would read as a formula gets the apostrophe; the
+    // others are kept as they are.
+    expect(detail["usda:171477"].name).toBe(
+        '\'=HYPERLINK("https://example.test")',
+    );
+    expect(detail["openfoodfacts:4006040070207"].name).toBe("'@cmd Oat drink");
+    expect(detail["usda:171477"].amount_g).toBe(150);
+    expect(detail["usda:171477"].data_type).toBe("SR Legacy");
+});
+
+test("a row with no provenance writes the marker and two empty JSON cells", () => {
+    const f = fieldsByName(buildMealsCsv([meal()], "UTC"));
+    expect(f.provenance_version).toBe("1");
+    expect(f.nutrient_sources).toBe("");
+    expect(f.source_detail).toBe("");
+});
+
+test("ingredient and saved meal rows carry their own labels, defused the same way", () => {
+    const itemCsv = buildMealItemsCsv([
+        mealItem({
+            nutrient_sources: {
+                calories: { s: "openfoodfacts", ref: "4006040070207" },
+            },
+            source_detail: PROVENANCE_DETAIL,
+        }),
+    ]);
+    const fi = fieldsByName(itemCsv);
+    expect(fi.provenance_version).toBe("1");
+    expect(JSON.parse(fi.nutrient_sources!)).toEqual({
+        calories: { s: "openfoodfacts", ref: "4006040070207" },
+    });
+    expect(JSON.parse(fi.source_detail!)["usda:171477"].name).toBe(
+        '\'=HYPERLINK("https://example.test")',
+    );
+
+    const fs = fieldsByName(
+        buildSavedMealsCsv(
+            [savedMeal({ nutrient_sources: { fat_g: { s: "user" } } })],
+            "UTC",
+        ),
+    );
+    expect(JSON.parse(fs.nutrient_sources!)).toEqual({ fat_g: { s: "user" } });
+    expect(fs.source_detail).toBe("");
+
+    const fsi = fieldsByName(
+        buildSavedMealItemsCsv([
+            savedMealItem({ source_detail: PROVENANCE_DETAIL }),
+        ]),
+    );
+    expect(fsi.provenance_version).toBe("1");
+    expect(
+        JSON.parse(fsi.source_detail!)["openfoodfacts:4006040070207"].name,
+    ).toBe("'@cmd Oat drink");
+});
+
+test("the README describes the provenance columns", () => {
+    const readme = buildExportReadme(README_OPTS);
+    expect(readme).toContain("Where the values came from");
+    expect(readme).toContain("nutrient_sources");
+    expect(readme).toContain("source_detail");
+    expect(readme).toContain("provenance_version");
 });

@@ -29,7 +29,7 @@ export const ALT_UI_FR: AltUiCopy = {
         features: [
             {
                 title: "Tes repas en langage courant",
-                body: "Dis &laquo;&nbsp;porridge avec banane et beurre de cacahuète&nbsp;&raquo; : ton IA estime les calories et les macros, fibres, sucres totaux et caféine compris, puis enregistre le tout. Aucune recherche dans une base de données. Enregistre un repas ingrédient par ingrédient, ou sauvegarde les repas que tu manges souvent pour les enregistrer de nouveau par leur nom.",
+                body: "Dis &laquo;&nbsp;porridge avec banane et beurre de cacahuète&nbsp;&raquo; : ton IA enregistre les calories et les macros, fibres, sucres totaux, caféine, acides gras saturés et acides gras trans compris. Les aliments génériques prennent leurs valeurs dans USDA FoodData Central lorsqu'il y a une correspondance, et des estimations couvrent le reste ; chaque chiffre indique sa provenance. Enregistre un repas ingrédient par ingrédient, ou sauvegarde les repas que tu manges souvent pour les enregistrer de nouveau par leur nom.",
             },
             {
                 title: "Scanner de codes-barres gratuit",
@@ -37,7 +37,7 @@ export const ALT_UI_FR: AltUiCopy = {
             },
             {
                 title: "Poids et objectifs",
-                body: "Enregistre ton poids en kg ou en lb et tes mensurations de neuf zones du corps en cm ou en pouces, fixe tes objectifs de calories, de macros, de fibres, de sucres, de caféine et d'eau (les fibres comme cible à atteindre, les sucres et la caféine comme limites à ne pas dépasser) et suis ton évolution vers un poids cible. Le suivi de l'alcool est là aussi, en option et désactivé tant que tu ne l'actives pas.",
+                body: "Enregistre ton poids en kg ou en lb et tes mensurations de neuf zones du corps en cm ou en pouces, fixe tes objectifs de calories, de macros, d'acides gras saturés, de fibres, de sucres, de caféine et d'eau (les fibres comme cible à atteindre, les acides gras saturés, les sucres et la caféine comme limites à ne pas dépasser) et suis ton évolution vers un poids cible. Le suivi de l'alcool est là aussi, en option et désactivé tant que tu ne l'actives pas.",
             },
             {
                 title: "Résumés et tendances",
@@ -58,7 +58,7 @@ export const ALT_UI_FR: AltUiCopy = {
         compareTitle: "Le comparatif",
         pros: [
             "Conçu comme un serveur MCP : fonctionne dans Claude et ChatGPT",
-            "Décris tes repas en langage courant : calories, macros, fibres, sucres et caféine sont estimés pour toi ; sauvegarde tes repas habituels pour les enregistrer en une ligne",
+            "Décris tes repas en langage courant : valeurs USDA pour les aliments génériques, estimations sinon, chaque chiffre avec sa source ; sauvegarde tes repas habituels pour les enregistrer en une ligne",
             "Scanner de codes-barres, tendances, import et export CSV : tout est gratuit",
             "Pas d'app à part, pas de publicité, open source",
         ],
@@ -91,7 +91,7 @@ export const ALT_UI_FR: AltUiCopy = {
                 "Il n'existe pas de connecteur {app} officiel pour Claude, puisque {app} ne publie aucun serveur MCP public. Une solution : Nutrition MCP, un serveur MCP gratuit référencé dans l'annuaire Claude. Ouvre-le sur https://claude.ai/directory/nutrition-mcp, clique sur Connecter, connecte-toi, puis commence à enregistrer tes repas en discutant.",
             goodAltQ: "Nutrition MCP est-il une bonne alternative à {app} ?",
             goodAltA:
-                "Oui, si tu veux suivre tes calories, tes macros (fibres, sucres totaux et caféine compris), ton hydratation et ton poids sans ouvrir une app à part ni chercher dans une base de données alimentaire. Au lieu de faire défiler une base de données, tu décris ce que tu as mangé en langage courant, tu envoies une photo ou tu scannes un code-barres, et ton IA l'enregistre. Le tout entièrement gratuit et open source.",
+                "Oui, si tu veux suivre tes calories, tes macros (fibres, sucres totaux, caféine, acides gras saturés et trans compris), ton hydratation et ton poids sans ouvrir une app à part ni faire défiler un journal alimentaire. Tu décris ce que tu as mangé en langage courant, tu envoies une photo ou tu scannes un code-barres, et ton IA l'enregistre. Les aliments génériques prennent les valeurs de USDA FoodData Central lorsqu'elles existent, les produits emballés viennent d'Open Food Facts par code-barres, et des estimations couvrent le reste. Le tout entièrement gratuit et open source.",
             importQ: "Puis-je importer mes données {app} ?",
             readExportQ: "L'IA lit-elle mon fichier d'export quand j'importe ?",
             readExportA:
@@ -129,7 +129,7 @@ export const ALT_UI_FR: AltUiCopy = {
         importSub:
             "Ce qui retient le plus souvent les gens sur leur app, ce sont les années déjà enregistrées. Demande à importer tes données et un outil d'import s'ouvre directement dans le chat : choisis ton export, associe les colonnes, vérifie l'aperçu de ce qui sera ajouté, puis confirme. Si ton client n'a pas de panneaux intégrés au chat, colle simplement l'export.",
         importBody: [
-            "Le fichier est analysé dans ton navigateur, pas lu par l'IA : les lignes ne peuvent donc pas être mal recopiées en route, et tu vois exactement quels repas seront ajoutés avant toute écriture. Les colonnes des exports MyFitnessPal, Cronometer, Lose It! et MacroFactor sont reconnues par leur nom ; n'importe quel autre CSV fonctionne aussi, il suffit d'associer chaque colonne une fois. Sont importés : la date et l'heure, l'aliment, le repas, les calories, les protéines, les glucides, les lipides, les fibres, les sucres totaux et la caféine en milligrammes, ainsi que l'alcool, si tu as d'abord activé son suivi.",
+            "Le fichier est analysé dans ton navigateur, pas lu par l'IA : les lignes ne peuvent donc pas être mal recopiées en route, et tu vois exactement quels repas seront ajoutés avant toute écriture. Les colonnes des exports MyFitnessPal, Cronometer, Lose It! et MacroFactor sont reconnues par leur nom ; n'importe quel autre CSV fonctionne aussi, il suffit d'associer chaque colonne une fois. Sont importés : la date et l'heure, l'aliment, le repas, les calories, les protéines, les glucides, les lipides, les fibres, les sucres totaux, la caféine en milligrammes et, quand le fichier les contient, les acides gras saturés et trans, ainsi que l'alcool, si tu as d'abord activé son suivi.",
             "Les bizarreries des vrais fichiers d'export sont prises en charge : dates JJ/MM/AAAA et MM/JJ/AAAA, énergie en kilojoules comme en kilocalories, fichiers européens séparés par des points-virgules avec virgule décimale, champs entre guillemets contenant des retours à la ligne, lignes de totaux en fin de bloc et indicateurs de lignes supprimées. Les en-têtes de colonnes n'ont pas besoin d'être en anglais non plus : Kalorien ou Ballaststoffe dans un export allemand sont reconnus, et les fibres, les sucres et la caféine le sont aussi en espagnol, en français, en italien et en néerlandais. Quand un fichier est vraiment ambigu (05/06 peut aussi bien désigner mai que juin), l'outil d'import montre son interprétation à côté d'une ligne de ton propre fichier et te demande de confirmer au lieu de deviner. Enfin, chaque ligne porte une empreinte de contenu : réimporter le même fichier signale les repas comme déjà enregistrés au lieu de les dupliquer, tant que ton fuseau horaire n'a pas changé entre-temps.",
         ],
 

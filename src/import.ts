@@ -31,6 +31,17 @@ import {
 import { decodeEscapeSequences } from "./normalize.js";
 import { toStoredInteger } from "./units.js";
 import { addedSugarError } from "./added-sugar.js";
+import {
+    detailKey,
+    importedProvenance,
+    memoizeRecordLookup,
+    reverifyImported,
+    type NutrientSources,
+    type RecordLookup,
+    type RecordSource,
+    type SourceDetail,
+} from "./provenance.js";
+import type { MealNutrientKey } from "./meal-items.js";
 
 export type MealType = MealInput["meal_type"];
 
@@ -106,6 +117,11 @@ export interface ImportRow {
     protein_g?: number;
     carbs_g?: number;
     fat_g?: number;
+    /** Grams of saturated fat, a part of fat_g. Optional and never a gate: a
+     *  row without it imports with saturated fat not recorded. */
+    saturated_fat_g?: number;
+    /** Grams of trans fat. Optional; never part of a goal. */
+    trans_fat_g?: number;
     fiber_g?: number;
     /** TOTAL sugars, including sugar naturally present in fruit and milk —
      *  never "added sugar", which has its own field below. */
@@ -132,6 +148,15 @@ export interface ImportRow {
      *  that names an existing meal is that meal, not a copy of it, so it is
      *  reported as deduplicated instead of written again. */
     source_id?: string;
+    /** The provenance_version marker of this server's own export (src/export.ts).
+     *  Only a file that carries it has its nutrient_sources and source_detail
+     *  read; a file without it is third-party, and its provenance is ignored. */
+    provenance_version?: string | number | null;
+    /** The nutrient_sources and source_detail JSON cells of this server's own
+     *  export: JSON text from a file, or the parsed object. Shape-checked and
+     *  re-verified against the stored food records before they are written. */
+    nutrient_sources?: unknown;
+    source_detail?: unknown;
 }
 
 export interface RowError {
@@ -158,6 +183,12 @@ export interface ResolvedRow {
      *  unset-timezone warning to rows that actually depended on the account
      *  default, so a row carrying its own zone never triggers it. */
     logged_at_used_row_timezone: boolean;
+    /** The row's own export provenance, shape-checked but not yet verified
+     *  against the food records. Null for any row not from our own export. */
+    provenance?: {
+        sources: NutrientSources;
+        detail: SourceDetail | null;
+    } | null;
 }
 
 export type RowValidation =
@@ -349,6 +380,10 @@ export interface ImportDeps {
      *  different renderings of the same meal, so a content digest can never
      *  recognize an exported meal on the way back in — the id can. */
     existingMealIds(ids: string[]): Promise<Set<string>>;
+    /** The cached food record a usda or openfoodfacts provenance tag points at,
+     *  ignoring TTL, or null. Re-verifies imported tags: a null lookup (or no
+     *  lookup at all) keeps those values as estimate, and never fails the row. */
+    foodRecord?: RecordLookup;
 }
 
 /** Shape of a meal id in this server's own export: a Postgres uuid. Only a
@@ -709,6 +744,8 @@ export function validateRow(
         ["protein_g", row.protein_g, MAX_MACRO_G, "g"],
         ["carbs_g", row.carbs_g, MAX_MACRO_G, "g"],
         ["fat_g", row.fat_g, MAX_MACRO_G, "g"],
+        ["saturated_fat_g", row.saturated_fat_g, MAX_MACRO_G, "g"],
+        ["trans_fat_g", row.trans_fat_g, MAX_MACRO_G, "g"],
         ["fiber_g", row.fiber_g, MAX_MACRO_G, "g"],
         ["sugar_g", row.sugar_g, MAX_MACRO_G, "g"],
         ["added_sugar_g", row.added_sugar_g, MAX_MACRO_G, "g"],
@@ -748,6 +785,9 @@ export function validateRow(
     if (row.protein_g !== undefined) input.protein_g = row.protein_g;
     if (row.carbs_g !== undefined) input.carbs_g = row.carbs_g;
     if (row.fat_g !== undefined) input.fat_g = row.fat_g;
+    if (row.saturated_fat_g !== undefined)
+        input.saturated_fat_g = row.saturated_fat_g;
+    if (row.trans_fat_g !== undefined) input.trans_fat_g = row.trans_fat_g;
     if (row.fiber_g !== undefined) input.fiber_g = row.fiber_g;
     if (row.sugar_g !== undefined) input.sugar_g = row.sugar_g;
     if (row.added_sugar_g !== undefined)
@@ -779,8 +819,65 @@ export function validateRow(
             logged_at_used_profile_tz: ts.value.usedProfileTimezone,
             logged_at_used_row_timezone:
                 usedRowTimezone && ts.value.usedProfileTimezone,
+            provenance: importedProvenance(row),
         },
     };
+}
+
+/** Record reads in flight at once while an import prefetches its records. */
+const RECORD_PREFETCH_CONCURRENCY = 8;
+
+/**
+ * Re-verifies the imported provenance of each row against the stored food
+ * records (src/provenance.ts reverifyImported) and writes the result onto the
+ * row's input. A row without provenance keeps nothing, so its write records
+ * none. Returns how many record-backed labels did not re-verify.
+ */
+async function reverifyRows(
+    rows: ResolvedRow[],
+    lookup: RecordLookup | undefined,
+): Promise<number> {
+    // One memo for the whole import: each distinct record is read once however
+    // many rows name it. The distinct set is read up front, a few at a time, so
+    // the row loop below finds every record already in hand.
+    const lookupRecord = memoizeRecordLookup(lookup ?? (async () => null));
+    const distinct = new Map<string, [RecordSource, string]>();
+    for (const row of rows) {
+        const detail = row.provenance?.detail ?? null;
+        for (const [key, tag] of Object.entries(
+            row.provenance?.sources ?? {},
+        )) {
+            // Only the tags reverifyImported will look up: a record-backed tag
+            // with a value, and an amount in source_detail to check it against.
+            if (!tag || row.input[key as MealNutrientKey] == null) continue;
+            if (tag.s !== "usda" && tag.s !== "openfoodfacts") continue;
+            if (tag.ref === undefined) continue;
+            const k = detailKey(tag.s, tag.ref);
+            if (detail?.[k]) distinct.set(k, [tag.s, tag.ref]);
+        }
+    }
+    const pairs = [...distinct.values()];
+    for (let i = 0; i < pairs.length; i += RECORD_PREFETCH_CONCURRENCY) {
+        await Promise.all(
+            pairs
+                .slice(i, i + RECORD_PREFETCH_CONCURRENCY)
+                .map(([source, id]) => lookupRecord(source, id)),
+        );
+    }
+    let downgraded = 0;
+    for (const row of rows) {
+        if (!row.provenance) continue;
+        const result = await reverifyImported({
+            sources: row.provenance.sources,
+            detail: row.provenance.detail,
+            values: row.input,
+            lookup: lookupRecord,
+        });
+        row.input.nutrient_sources = result.sources;
+        row.input.source_detail = result.detail;
+        downgraded += result.downgraded;
+    }
+    return downgraded;
 }
 
 // ---------- Idempotency keys ----------
@@ -794,8 +891,8 @@ function sha256Hex(parts: (string | number | null | undefined)[]): string {
 /** Content digest of a resolved row. Excludes source_line so that re-exporting
  *  a file with lines added or removed still dedupes against a prior import. */
 export function rowContentDigest(userId: string, input: MealInput): string {
-    // DO NOT ADD fiber_g, sugar_g, added_sugar_g, alcohol_g OR caffeine_mg TO
-    // THIS ARRAY.
+    // DO NOT ADD saturated_fat_g, trans_fat_g, fiber_g, sugar_g, added_sugar_g,
+    // alcohol_g OR caffeine_mg TO THIS ARRAY.
     //
     // The list below is not "the fields of a meal" — it is a frozen positional
     // hash input. Appending to it changes the digest of every row hashed from
@@ -805,8 +902,8 @@ export function rowContentDigest(userId: string, input: MealInput): string {
     // deriveIdempotencyKey in src/supabase.ts is frozen for the same reason and
     // must stay in step with this one.
     //
-    // The accepted cost: two meals differing ONLY in fiber/sugar/alcohol/caffeine
-    // collapse to one. Dedup stability is worth more than that precision here,
+    // The accepted cost: two meals differing ONLY in saturated or trans fat,
+    // fiber, sugar, alcohol or caffeine collapse to one. Dedup stability is worth more than that precision here,
     // and a caller that needs the rows kept apart can pass an explicit
     // idempotency_key.
     return sha256Hex([
@@ -1253,6 +1350,25 @@ export async function runImport(
             ? v.resolved.source_id
             : null;
     let matchedBySourceId = 0;
+
+    // Re-verify only the rows this run will write. A row that deduplicates is
+    // never inserted, so its record lookups are skipped and its labels are not
+    // counted. Provenance does not touch the idempotency keys, so the dedupe
+    // decisions above do not depend on it.
+    const toWrite = okRows.filter(
+        (v) =>
+            storedIdFor(v) === null &&
+            !existing.has(v.resolved.input.idempotency_key!),
+    );
+    const downgraded = await reverifyRows(
+        toWrite.map((v) => v.resolved),
+        deps.foodRecord,
+    );
+    if (downgraded > 0) {
+        warnings.push(
+            `${downgraded} nutrient value(s) could not be matched to their food record again and were written as estimates.`,
+        );
+    }
 
     const byIndex = new Map<number, ImportResultRow>();
     for (const v of validations) {

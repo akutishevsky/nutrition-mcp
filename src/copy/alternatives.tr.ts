@@ -35,7 +35,7 @@ export const ALTERNATIVES_TR: Record<AppSlug, AppCopy> = {
         migrate: {
             title: "Veritabanını arkanda bırakmak",
             body: [
-                "MyFitnessPal kullanıcı kitlesini dünyanın en büyük besin veritabanlarından biriyle kurdu — kullanıcıların girdiği on milyonlarca kayıt. Bu ölçek aynı zamanda onun zorluğu: herhangi bir besin için neredeyse birbirinin aynısı kayıtlar arasında kaydırıp hangisinin doğru olduğunu tahmin etmen gerekiyor. Sohbet ederek kaydetmek arama adımını tamamen atlar — besini anlatırsın, yapay zekân da makroları tahmin eder.",
+                "MyFitnessPal kullanıcı kitlesini dünyanın en büyük besin veritabanlarından biriyle kurdu — kullanıcıların girdiği on milyonlarca kayıt. Bu ölçek aynı zamanda onun zorluğu: herhangi bir besin için neredeyse birbirinin aynısı kayıtlar arasında kaydırıp hangisinin doğru olduğunu tahmin etmen gerekiyor. Sohbet ederek kaydetmek karşılaştırma adımını atlar — besini anlatırsın; genel besinler USDA FoodData Central değerlerini alır, eşleşme yoksa tahminler devreye girer.",
                 "Bunu yapmak için günlüğünü geride bırakmak zorunda değilsin: MyFitnessPal CSV dışa aktarma dosyası, tüm tuhaflıklarıyla birlikte doğrudan içe aktarılır, yani yıllardır kaydettiklerin seninle gelir. Ondan sonra kaydettiğin her şeyi de istediğin zaman CSV olarak dışa aktarabilirsin.",
                 "MyFitnessPal uygulamasının zamanla Premium arkasına taşıdığı özellikler — barkod tarama, gram cinsinden makrolar, reklamsız kullanım — burada zaten var. Ücretsiz bir sürümü ayda $20 olan bir yükseltmeyle karşılaştırmıyorsun; tek bir ücretsiz, açık kaynak sürüm var ve kurduğun tek yeni şey, ilk bağlandığında yapacağın ücretsiz bir giriş.",
             ],
@@ -49,7 +49,7 @@ export const ALTERNATIVES_TR: Record<AppSlug, AppCopy> = {
             ],
         },
         importFaq:
-            "Evet. Geçmişini içe aktarmayı istediğinde sohbette bir içe aktarıcı açılır: MyFitnessPal uygulamasının verdiği CSV dosyasını seçersin, dosya yapay zekâ tarafından okunmak yerine tarayıcında ayrıştırılır, sütunları eşleştirir ya da eşleşmeyi onaylarsın, neyin ekleneceğini önizler ve onaylarsın. Kalori, protein, karbonhidrat ve yağ gelir; dosyanda varsa lif, toplam şeker ve kafein de gelir. MyFitnessPal dışa aktarma dosyası adıyla tanınır — bayt sırası işareti, sonundaki toplam satırları ve her gün için her öğünü besin adı olmadan tek bir toplu satır olarak yazması dahil; o satırlar öğünlerine göre etiketlenir. Aynı dosyayı yeniden içe aktarmak, arada saat dilimin değişmediği sürece hiçbir kopya oluşturmaz.",
+            "Evet. Geçmişini içe aktarmayı istediğinde sohbette bir içe aktarıcı açılır: MyFitnessPal uygulamasının verdiği CSV dosyasını seçersin, dosya yapay zekâ tarafından okunmak yerine tarayıcında ayrıştırılır, sütunları eşleştirir ya da eşleşmeyi onaylarsın, neyin ekleneceğini önizler ve onaylarsın. Kalori, protein, karbonhidrat ve yağ gelir; dosyanda varsa lif, toplam şeker, kafein, doymuş yağ ve trans yağ da gelir. MyFitnessPal dışa aktarma dosyası adıyla tanınır — bayt sırası işareti, sonundaki toplam satırları ve her gün için her öğünü besin adı olmadan tek bir toplu satır olarak yazması dahil; o satırlar öğünlerine göre etiketlenir. Aynı dosyayı yeniden içe aktarmak, arada saat dilimin değişmediği sürece hiçbir kopya oluşturmaz.",
         extraFaqs: [
             {
                 q: "Nutrition MCP, MyFitnessPal Premium gibi barkod tarayabiliyor mu?",
@@ -57,7 +57,7 @@ export const ALTERNATIVES_TR: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "MyFitnessPal besin veritabanı olmadan kaydetmek nasıl işliyor?",
-                a: "Ne yediğini sade bir dille anlatırsın — “bol pirinçli bir tavuklu burrito kâsesi” — ve yapay zekân kalorileri ve makroları tahmin eder. Arayıp duracağın, kullanıcıların girdiği milyonlarca kayıttan oluşan bir veritabanı yok ve hangisinin doğru olduğunu tahmin etmek de yok.",
+                a: "Ne yediğini sade bir dille anlatırsın — “bol pirinçli bir tavuklu burrito kâsesi” — ve yapay zekân bunu kaydeder; genel besinler USDA FoodData Central değerlerini alır, eşleşme yoksa tahminler devreye girer. Arayıp duracağın, kullanıcıların girdiği milyonlarca kayıttan oluşan bir veritabanı yok ve hangisinin doğru olduğunu tahmin etmek de yok.",
             },
         ],
     },
@@ -88,15 +88,15 @@ export const ALTERNATIVES_TR: Record<AppSlug, AppCopy> = {
             ],
         },
         importFaq:
-            "Evet. İçe aktarmayı istediğinde sohbette bir içe aktarıcı açılır: Cronometer CSV dosyanı seçersin, dosya yapay zekâ tarafından okunmak yerine tarayıcında ayrıştırılır ve onaylamadan önce neyin ekleneceğini önizlersin. Cronometer dışa aktarma dosyası adıyla tanınır — ayrı tarih ve saat sütunlarının ikisi de okunur ve tekrarlanan “Amount” başlığı, sütunlar konuma göre anahtarlandığı için çakışamaz. Tarih ve saat, besin adı, öğün, kalori, protein, karbonhidrat, yağ, lif, toplam şeker, miligram cinsinden kafein ve notlar gelir; alkol da gelir ama ancak alkol takibini önceden açtıysan. Vitaminler, mineraller ve porsiyon miktarları gelmez. Aynı dosyayı yeniden içe aktarmak, arada saat dilimin değişmediği sürece hiçbir kopya oluşturmaz.",
+            "Evet. İçe aktarmayı istediğinde sohbette bir içe aktarıcı açılır: Cronometer CSV dosyanı seçersin, dosya yapay zekâ tarafından okunmak yerine tarayıcında ayrıştırılır ve onaylamadan önce neyin ekleneceğini önizlersin. Cronometer dışa aktarma dosyası adıyla tanınır — ayrı tarih ve saat sütunlarının ikisi de okunur ve tekrarlanan “Amount” başlığı, sütunlar konuma göre anahtarlandığı için çakışamaz. Tarih ve saat, besin adı, öğün, kalori, protein, karbonhidrat, yağ, lif, toplam şeker, miligram cinsinden kafein, doymuş yağ ve trans yağ (Saturated ve Trans-Fats sütunları) ve notlar gelir; alkol da gelir ama ancak alkol takibini önceden açtıysan. Vitaminler, mineraller ve porsiyon miktarları gelmez. Aynı dosyayı yeniden içe aktarmak, arada saat dilimin değişmediği sürece hiçbir kopya oluşturmaz.",
         extraFaqs: [
             {
                 q: "Nutrition MCP, Cronometer gibi mikro besinleri takip ediyor mu?",
-                a: "Hayır. Cronometer uygulamasının 80+ vitamin ve minerali takip etmesi onun uzmanlık alanı ve Nutrition MCP içinde hiç mikro besin verisi yok — ne sodyum ne vitamin. Takip ettiği şeyler kalori, protein, karbonhidrat, yağ, lif, toplam şeker, miligram cinsinden kafein, isteğe bağlı alkol, su ve kilo. Bir yemek için yapay zekândan kabaca bir mikro besin okuması isteyebilirsin, ama laboratuvar düzeyinde mikro besin derinliği şartsa Cronometer daha uygun.",
+                a: "Hayır. Cronometer uygulamasının 80+ vitamin ve minerali takip etmesi onun uzmanlık alanı ve Nutrition MCP içinde hiç mikro besin verisi yok — ne sodyum ne vitamin. Takip ettiği şeyler kalori, protein, karbonhidrat, yağ, lif, toplam şeker, miligram cinsinden kafein, doymuş yağ ve trans yağ, isteğe bağlı alkol, su ve kilo. Bir yemek için yapay zekândan kabaca bir mikro besin okuması isteyebilirsin, ama laboratuvar düzeyinde mikro besin derinliği şartsa Cronometer daha uygun.",
             },
             {
                 q: "Nutrition MCP, Cronometer kadar doğru mu?",
-                a: "Hayır. Sohbete dayalı değerler yapay zekâ tahminidir ve Cronometer tarafındaki özenle derlenmiş, gram gram veritabanıyla örtüşmez — yanlış olabilirler, bu yüzden önemli olan her şeyi doğrula. Paketli gıdalarda bunun yerine bir barkod sorgusu Open Food Facts üzerindeki etiket verisini kullanır, ama o da doğrulanmış değil. Takas ettiğin şey, çok daha az kayıt zahmeti karşılığında bir miktar hassasiyet.",
+                a: "Hayır. Sohbete dayalı değerler Cronometer tarafındaki özenle derlenmiş, gram gram veritabanıyla örtüşmez. Genel besinlerde USDA FoodData Central değerleri eşleşme varsa kullanılır, yoksa tahminler devreye girer; paketli gıdalarda bir barkod sorgusu Open Food Facts üzerindeki etiket verisini kullanır. Bu kaynaklar da yanılabilir ve her rakamın kaynağı yanında gösterilir, bu yüzden önemli olan her şeyi doğrula. Takas ettiğin şey, çok daha az kayıt zahmeti karşılığında bir miktar hassasiyet.",
             },
         ],
     },
@@ -215,7 +215,7 @@ export const ALTERNATIVES_TR: Record<AppSlug, AppCopy> = {
             },
             {
                 q: "Yemekleri Yazio veritabanında aramaktan daha hızlı kaydedebilir miyim?",
-                a: "Genellikle evet. Her malzeme için Yazio veritabanında arayıp porsiyon ayarlamak yerine, bitmiş yemeği bir kez anlatırsın — “yoğurtlu ve meyveli bir kâse müsli” — ve yapay zekân makroları tek adımda tahmin edip kaydeder.",
+                a: "Genellikle evet. Her malzeme için Yazio veritabanında arayıp porsiyon ayarlamak yerine, bitmiş yemeği bir kez anlatırsın — “yoğurtlu ve meyveli bir kâse müsli” — ve yapay zekân makroları tek adımda kaydeder; genel besinlerde USDA değerleri, eşleşme yoksa tahminler kullanılır.",
             },
         ],
     },

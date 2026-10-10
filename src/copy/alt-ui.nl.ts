@@ -29,7 +29,7 @@ export const ALT_UI_NL: AltUiCopy = {
         features: [
             {
                 title: "Maaltijden in gewone taal",
-                body: "Zeg &ldquo;havermout met banaan en pindakaas&rdquo; en je AI schat de calorieën en macro's, inclusief vezels, totale suikers en cafeïne, en logt het. Je hoeft niets op te zoeken in een database. Log een maaltijd per ingrediënt, of bewaar maaltijden die je vaak eet en log ze daarna op naam.",
+                body: "Zeg &ldquo;havermout met banaan en pindakaas&rdquo; en je AI logt de calorieën en macro's, inclusief vezels, totale suikers, cafeïne, verzadigd vet en transvet. Generieke voedingsmiddelen krijgen hun waarden uit USDA FoodData Central als die er is, en schattingen dekken de rest; elk getal toont waar het vandaan komt. Log een maaltijd per ingrediënt, of bewaar maaltijden die je vaak eet en log ze daarna op naam.",
             },
             {
                 title: "Gratis barcodes scannen",
@@ -37,7 +37,7 @@ export const ALT_UI_NL: AltUiCopy = {
             },
             {
                 title: "Gewicht &amp; doelen",
-                body: "Log je lichaamsgewicht in kg of lb en omtrekmaten van negen lichaamsdelen in cm of inch, en stel doelen in voor calorieën, macro's, vezels, suiker, cafeïne en water: voor vezels een streefwaarde om te halen, voor suiker en cafeïne een limiet om onder te blijven. Volg daarnaast trends richting een streefgewicht. Alcoholregistratie is er ook, als opt-in: die staat uit tot je die zelf aanzet.",
+                body: "Log je lichaamsgewicht in kg of lb en omtrekmaten van negen lichaamsdelen in cm of inch, en stel doelen in voor calorieën, macro's, verzadigd vet, vezels, suiker, cafeïne en water: voor vezels een streefwaarde om te halen, voor verzadigd vet, suiker en cafeïne een limiet om onder te blijven. Volg daarnaast trends richting een streefgewicht. Alcoholregistratie is er ook, als opt-in: die staat uit tot je die zelf aanzet.",
             },
             {
                 title: "Overzichten &amp; trends",
@@ -58,7 +58,7 @@ export const ALT_UI_NL: AltUiCopy = {
         compareTitle: "Zo verhouden ze zich",
         pros: [
             "Gebouwd als MCP-server, dus het zit direct in Claude &amp; ChatGPT",
-            "Je omschrijft maaltijden in gewone taal; calorieën, macro's, vezels, suiker &amp; cafeïne worden voor je geschat; bewaar je vaste maaltijden en log ze in één zin",
+            "Je omschrijft maaltijden in gewone taal; USDA-waarden voor generieke voedingsmiddelen, schattingen voor de rest, elk getal met zijn bron; bewaar je vaste maaltijden en log ze in één zin",
             "Barcode scannen, trends, CSV-import &amp; -export: allemaal gratis",
             "Geen aparte app, geen advertenties, open source",
         ],
@@ -91,7 +91,7 @@ export const ALT_UI_NL: AltUiCopy = {
                 "Er is geen officiële {app}-connector voor Claude, omdat {app} geen openbare MCP-server aanbiedt. Een optie is Nutrition MCP, een gratis MCP-server in de Claude-directory: open hem via https://claude.ai/directory/nutrition-mcp, klik op Connect, log in en begin met loggen via een gesprek.",
             goodAltQ: "Is Nutrition MCP een goed {app}-alternatief?",
             goodAltA:
-                "Ja, als je calorieën, macro's (inclusief vezels, totale suikers en cafeïne), water en gewicht wilt bijhouden zonder een aparte app te openen of een voedingsdatabase te doorzoeken. In plaats van door een database te tikken, omschrijf je in gewone taal wat je hebt gegeten, stuur je een foto of scan je een barcode, en je AI logt het. Volledig gratis en open source.",
+                "Ja, als je calorieën, macro's (inclusief vezels, totale suikers, cafeïne, verzadigd vet en transvet), water en gewicht wilt bijhouden zonder een aparte app te openen of door een voedingsdagboek te scrollen. Je omschrijft in gewone taal wat je hebt gegeten, stuurt een foto of scant een barcode, en je AI logt het. Generieke voedingsmiddelen gebruiken waarden uit USDA FoodData Central als die er zijn, verpakte producten komen via de barcode van Open Food Facts, en schattingen dekken de rest. Volledig gratis en open source.",
             importQ: "Kan ik mijn {app}-gegevens importeren?",
             readExportQ: "Leest de AI mijn exportbestand als ik importeer?",
             readExportA:
@@ -129,7 +129,7 @@ export const ALT_UI_NL: AltUiCopy = {
         importSub:
             "Wat mensen meestal tegenhoudt, zijn de jaren die ze al hebben gelogd. Vraag om te importeren en er opent meteen een importvenster in de chat: kies je export, koppel de kolommen, bekijk wat er wordt toegevoegd en bevestig. Of plak de export als je client geen panelen in de chat heeft.",
         importBody: [
-            "Je browser verwerkt het bestand; de AI leest het niet. Daardoor kunnen de rijen onderweg niet verkeerd worden overgetypt, en zie je precies welke maaltijden erin gaan voordat er iets wordt opgeslagen. Exports van MyFitnessPal, Cronometer, Lose It! en MacroFactor worden herkend aan hun kolomnamen. Elke andere CSV werkt ook: je wijst dan in het koppelscherm één keer elke kolom aan. Wat er meegaat: datum en tijd, voedingsmiddel, maaltijd, calorieën, eiwit, koolhydraten, vet, vezels, totale suikers en cafeïne in milligram, en ook alcohol als je eerst alcoholregistratie hebt aangezet.",
+            "Je browser verwerkt het bestand; de AI leest het niet. Daardoor kunnen de rijen onderweg niet verkeerd worden overgetypt, en zie je precies welke maaltijden erin gaan voordat er iets wordt opgeslagen. Exports van MyFitnessPal, Cronometer, Lose It! en MacroFactor worden herkend aan hun kolomnamen. Elke andere CSV werkt ook: je wijst dan in het koppelscherm één keer elke kolom aan. Wat er meegaat: datum en tijd, voedingsmiddel, maaltijd, calorieën, eiwit, koolhydraten, vet, vezels, totale suikers en cafeïne in milligram, plus verzadigd vet en transvet waar het bestand die bevat, en ook alcohol als je eerst alcoholregistratie hebt aangezet.",
             "Ook de lastige kanten van echte exportbestanden worden opgevangen: datums als DD/MM/JJJJ en MM/DD/JJJJ, energie in kilojoules naast kilocalorieën, Europese bestanden met puntkomma's als scheidingsteken en een komma als decimaalteken, velden tussen aanhalingstekens met regeleinden erin, totaalrijen aan het eind en markeringen voor verwijderde rijen. Kolomkoppen hoeven ook niet Engels te zijn: Kalorien of Ballaststoffe uit een Duitse export worden herkend, en vezels, suiker en cafeïne ook in het Spaans, Frans, Italiaans en Nederlands. Is een bestand echt dubbelzinnig (05/06 kan mei of juni zijn), dan laat de importer zijn interpretatie zien naast een rij uit je eigen bestand en vraagt hij je te bevestigen in plaats van te gokken. En elke rij krijgt een vingerafdruk op basis van de inhoud: importeer je hetzelfde bestand opnieuw, dan worden de maaltijden gemeld als al gelogd in plaats van dubbel toegevoegd, zolang je tijdzone intussen niet is veranderd.",
         ],
 

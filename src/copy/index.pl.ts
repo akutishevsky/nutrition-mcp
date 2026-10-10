@@ -20,12 +20,22 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_PL: IndexDoc = {
     title: "Nutrition MCP — Licznik kalorii i makro dla Claude i ChatGPT",
     metaDescription:
-        "Zapisuj posiłki, kalorie i makroskładniki, rozmawiając z Claude lub ChatGPT. Darmowy serwer MCP open source: zapisane posiłki, kody kreskowe, waga i eksport.",
+        "Zapisuj posiłki, kalorie i makra, rozmawiając z Claude lub ChatGPT. Dane USDA, kody kreskowe, zapisane posiłki i eksport. Darmowy, open source.",
     ogDescription:
-        "Zapisuj posiłki, kalorie i makroskładniki, rozmawiając z Claude lub ChatGPT. Darmowy serwer MCP open source: zapisane posiłki, kody kreskowe, waga i eksport.",
+        "Zapisuj posiłki, kalorie i makra, rozmawiając z Claude lub ChatGPT. Dane USDA, kody kreskowe, zapisane posiłki i eksport. Darmowy, open source.",
     keywords:
         "licznik kalorii, liczenie kalorii, aplikacja do liczenia kalorii, liczenie makro, makroskładniki, dzienniczek żywieniowy, serwer MCP, Claude AI, ChatGPT, skaner kodów kreskowych, śledzenie wagi, dziennik wagi, zapisane posiłki, składniki posiłków, przepisy, dieta z AI, Model Context Protocol",
 
+    featureList: [
+        "Posiłki zapisywane zwykłym językiem, z kaloriami, makroskładnikami, błonnikiem, cukrem i cukrem dodanym",
+        "Śledzenie tłuszczów nasyconych i trans, z opcjonalnym limitem tłuszczów nasyconych",
+        "Wartości USDA FoodData Central dla produktów ogólnych, w pozostałych przypadkach szacunki",
+        "Wyszukiwanie produktów pakowanych po kodzie kreskowym przez Open Food Facts",
+        "Każda wartość składnika odżywczego z oznaczeniem źródła",
+        "Zapisane posiłki i ich składniki",
+        "Dzienne cele, limity i postępy oraz trendy masy ciała i pomiarów",
+        "Eksport wszystkich danych jako archiwum ZIP z plikami CSV",
+    ],
     hero: {
         titleBeforeEm: "Śledź, co jesz, po prostu ",
         titleEm: "rozmawiając",
@@ -105,7 +115,7 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 title: "Po prostu opisz posiłek",
-                body: "Napisz własnymi słowami albo wyślij zdjęcie posiłku, zrzut ekranu z aplikacji do zamawiania jedzenia lub kod kreskowy (produkt zostanie wyszukany w internecie). Makroskładniki zapiszą się same.",
+                body: "Opisz to zwykłymi słowami albo wyślij zdjęcie posiłku, zrzut ekranu z aplikacji dostawy albo kod kreskowy (produkt jest wyszukiwany w Open Food Facts). Produkty ogólne dostają wartości z USDA FoodData Central, gdy są dostępne. Makroskładniki zapisują się automatycznie.",
             },
             {
                 title: "Śledź i analizuj",
@@ -176,7 +186,7 @@ export const INDEX_PL: IndexDoc = {
         note: "Wszystko tu jest opcjonalne. Możesz to zrobić teraz, później albo wcale: po prostu zacznij zapisywać, a ustawienia zmień, kiedy zechcesz.",
         toolsCta: {
             heading: "Ciekawi Cię, co naprawdę potrafi?",
-            body: "Przejrzyj wszystkie 46 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
+            body: "Przejrzyj wszystkie 48 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
             arrow: "Zobacz narzędzia",
         },
     },
@@ -340,6 +350,29 @@ export const INDEX_PL: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Naturalny jogurt grecki 0% (kubeczek 150 g)"],
+            },
+            {
+                id: "usda-food",
+                title: "Produkty ogólne z USDA",
+                description:
+                    "Nazwij prosty produkt, a Twoja AI wyszuka go w USDA FoodData Central i przeliczy wartości na 100 g na gramy, które zjadłeś. Tego, czego nie ma w tym wpisie, nie pokazujemy jako zera – jest szacowane, a każda wartość pokazuje swoje źródło.",
+                toolNotes: {
+                    search_foods:
+                        "Wyszukuje wpisy USDA pod angielską nazwą „grilled chicken breast”",
+                    get_food_macros: "Przelicza wartości USDA na 150 g",
+                    log_meal:
+                        "Zapisuje obiad, każda wartość oznaczona jako USDA lub szacunek",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "150 g grillowanej piersi z kurczaka na obiad",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano obiad: 248 kcal, 46,5 g białka i 5,4 g tłuszczu. Białko i tłuszcz pochodzą z wpisu USDA FoodData Central dla ugotowanej piersi z kurczaka, przeliczonego na 150 g. Cukru dodanego nie ma w tym wpisie, więc jest szacowany.",
+                    },
+                ],
             },
             {
                 id: "saved-meal",
@@ -722,7 +755,7 @@ export const INDEX_PL: IndexDoc = {
         cards: [
             {
                 title: "Posiłki opisane własnymi słowami",
-                body: "Opisz posiłek — Twoje AI oszacuje kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem, cukier dodany i kofeinę w miligramach, a potem wszystko zapisze. Posiłki, które jadasz często, zapiszesz razem ze składnikami i potem dodasz po samej nazwie.",
+                body: "Opisz, co jadłeś: dla produktów ogólnych wartości pochodzą z USDA FoodData Central, gdy są dostępne, a resztę szacuje Twoja AI: kalorie, białko, węglowodany, tłuszcz, tłuszcze nasycone i trans, błonnik, cukry ogółem, cukier dodany i kofeinę w miligramach. Posiłek zostaje zapisany, a każda wartość pokazuje swoje źródło.",
             },
             {
                 title: "Zeskanuj kod kreskowy",
@@ -730,7 +763,7 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 title: "Cele i postępy",
-                body: "Ustaw dzienne cele kalorii, makroskładników, błonnika i wody, a do tego limity cukru dodanego, cukrów ogółem, kofeiny i alkoholu, których nie chcesz przekraczać — i na bieżąco sprawdzaj postępy.",
+                body: "Ustaw dzienne cele kalorii, makroskładników, błonnika i wody oraz limity cukru dodanego, tłuszczów nasyconych, cukrów ogółem, kofeiny i alkoholu, których nie chcesz przekraczać, i śledź postępy na bieżąco.",
             },
             {
                 title: "Podsumowania i trendy",
@@ -761,7 +794,7 @@ export const INDEX_PL: IndexDoc = {
 
     why: {
         title: "Rozmowa zamiast klikania.",
-        sub: "Zrób zdjęcie kodu kreskowego albo po prostu opisz posiłek. Bez przekopywania bazy danych i bez otwierania kolejnej aplikacji.",
+        sub: "Zrób zdjęcie kodu kreskowego albo po prostu opisz posiłek. Bez szukania każdego produktu osobno i bez otwierania kolejnej aplikacji.",
         oldHeading: "Tradycyjne aplikacje",
         oldItems: [
             "Wyszukiwanie w bazie każdego produktu z osobna",
@@ -772,7 +805,7 @@ export const INDEX_PL: IndexDoc = {
         newHeading: "Nutrition MCP",
         newItems: [
             "Opisujesz posiłki zwykłymi słowami",
-            "Kalorie i makroskładniki szacowane za Ciebie",
+            "Wartości USDA dla produktów ogólnych, w pozostałych przypadkach szacunki",
             "Działa w Claude albo ChatGPT, za darmo",
             "Pytasz o trendy, podsumowania i cele",
         ],
@@ -799,18 +832,18 @@ export const INDEX_PL: IndexDoc = {
     support: {
         title: "Pomóż utrzymać projekt przy życiu.",
         sub: "Nutrition MCP jest darmowy i bez reklam. Patreon pokrywa rachunki za serwer i bazę danych.",
-        updatesTitle: "Nowości na Patreonie",
+        updatesTitle: "Nowości z serwisu Patreon",
         updatesBadge: "Za darmo",
         updatesNote: "Czytasz za darmo, bez członkostwa.",
         updatesPrevLabel: "Poprzednia aktualizacja",
         updatesNextLabel: "Następna aktualizacja",
         updatesDotLabel: "Aktualizacja",
-        postLinkLabel: "Czytaj na Patreonie",
+        postLinkLabel: "Czytaj w serwisie Patreon",
         free: {
             tier: "Darmowe członkostwo",
             price: "0 zł",
             desc: "Bądź na bieżąco: dostawaj wiadomości o serwerze, nowych narzędziach i planach na przyszłość.",
-            cta: "Obserwuj na Patreonie",
+            cta: "Obserwuj w serwisie Patreon",
         },
         paid: {
             tier: "Płatne członkostwo",
@@ -824,7 +857,7 @@ export const INDEX_PL: IndexDoc = {
         title: "Zacznij śledzić dietę w niecałą minutę.",
         sub: "Darmowy i open source — działa z AI, którego już używasz.",
         primary: "Szybka instalacja",
-        secondary: "Postaw gwiazdkę na GitHubie",
+        secondary: "Postaw gwiazdkę w serwisie GitHub",
     },
 
     contact: {
@@ -840,7 +873,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Czym jest Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP to darmowy serwer Model Context Protocol (MCP) o otwartym kodzie źródłowym, który zamienia Claude, ChatGPT albo inną aplikację obsługującą MCP w licznik kalorii i makroskładników. Zamiast przeszukiwać bazę produktów, mówisz AI, co było na talerzu, a ono zapisuje kalorie, makroskładniki, błonnik, cukry, cukier dodany i kofeinę w Twoim własnym dzienniczku żywieniowym.",
+                "Nutrition MCP to darmowy, open-source serwer MCP (Model Context Protocol), który zamienia Claude, ChatGPT lub innego klienta MCP w licznik kalorii i makroskładników. Zamiast szukać każdego produktu samodzielnie, mówisz swojej AI, co jadłeś, a ona zapisuje w Twoim dzienniku kalorie, makroskładniki, błonnik, cukier, cukier dodany, tłuszcze nasycone i trans oraz kofeinę.",
         },
         {
             question: "Czym jest Model Context Protocol (MCP)?",
@@ -850,7 +883,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Jak liczyć kalorie z Claude albo ChatGPT?",
             visibleHtml:
-                "Połącz Nutrition MCP jeden raz — w Claude z katalogu konektorów, w ChatGPT jako własną aplikację z adresem URL serwera — i zaloguj się. Potem opisz AI własnymi słowami, co było na talerzu, pokaż mu zdjęcie posiłku albo podaj kod kreskowy produktu. Twoje AI oszacuje kalorie, białko, węglowodany, tłuszcz, błonnik, cukry i cukier dodany, a Nutrition MCP zapisze wpis w Twoim dzienniku posiłków. W każdej chwili możesz zapytać o dzisiejsze sumy, tygodniowe trendy albo realizację celów.",
+                "Połącz Nutrition MCP raz – w Claude z katalogu konektorów, w ChatGPT jako niestandardową aplikację z adresem serwera – i zaloguj się. Potem opowiedz swojej AI własnymi słowami, co jadłeś, pokaż jej zdjęcie posiłku albo podaj kod kreskowy produktu. Przy produktach ogólnych wartości pochodzą z USDA FoodData Central, gdy są dostępne, a w przeciwnym razie są szacunkami; kod kreskowy jest wyszukiwany w Open Food Facts. Nutrition MCP zapisuje wpis w Twoim dzienniku. W dowolnym momencie poproś o dzienne sumy, tygodniowe trendy albo postępy w realizacji celów.",
         },
         {
             // Widoczna odpowiedź celowo pomija adres URL serwera (podany już
@@ -871,17 +904,17 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Czy mogę hostować go samodzielnie?",
             visibleHtml:
-                'Tak. Nutrition MCP jest open source (licencja MIT). Możesz uruchomić własną instancję z własnym projektem Supabase — <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">repozytorium na GitHubie</a> zawiera pełny przewodnik po samodzielnym hostingu i plik Dockerfile.',
+                'Tak. Nutrition MCP jest open source (licencja MIT). Możesz uruchomić własną instancję z własnym projektem Supabase — <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">repozytorium w serwisie GitHub</a> zawiera pełny przewodnik po samodzielnym hostingu i plik Dockerfile.',
         },
         {
             question: "Czy Nutrition MCP jest darmowy?",
             visibleHtml:
-                "Tak, jest całkowicie darmowy — bez płatnego planu, bez reklam, bez ukrytych kosztów. Potrzebujesz aplikacji AI obsługującej konektory MCP, takiej jak Claude albo ChatGPT, oraz darmowego konta Nutrition MCP, które zakładasz przy pierwszym połączeniu. Dobrowolne darowizny na Patreonie pomagają pokryć koszty serwera i niczego nie odblokowują.",
+                "Tak, jest całkowicie darmowy — bez płatnego planu, bez reklam, bez ukrytych kosztów. Potrzebujesz aplikacji AI obsługującej konektory MCP, takiej jak Claude albo ChatGPT, oraz darmowego konta Nutrition MCP, które zakładasz przy pierwszym połączeniu. Dobrowolne darowizny przez Patreon pomagają pokryć koszty serwera i niczego nie odblokowują.",
         },
         {
             question: "Co mogę śledzić?",
             visibleHtml:
-                "Kalorie, białko, węglowodany, tłuszcz, błonnik, cukry ogółem, cukier dodany i wodę w każdym wpisie — opisane własnymi słowami albo pobrane z kodu kreskowego produktu przez Open Food Facts. Posiłek można zapisać składnik po składniku, każdy z własną ilością i wartościami, a posiłek, który jadasz często, możesz zachować jako zapisany posiłek i potem dodawać do dziennika po samej nazwie. Śledzona jest też kofeina, w miligramach, czyli w jednostce używanej na każdej etykiecie; nie dodaje ona kalorii. Można też śledzić alkohol, w gramach czystego etanolu; pojawia się po włączeniu śledzenia alkoholu. Możesz również zapisywać masę ciała w kg albo lb i śledzić trendy w drodze do wagi docelowej. Wymiary ciała (talię, biodra, szyję, klatkę piersiową, barki, ramię, przedramię, udo i łydkę) też możesz zapisywać w cm albo calach. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, poprawiaj lub usuwaj wcześniejsze wpisy, ustawiaj cele i obserwuj trendy w czasie.",
+                "Kalorie, białko, węglowodany, tłuszcz, tłuszcze nasycone i trans, błonnik, cukry ogółem, cukier dodany i woda w każdym wpisie – opisane zwykłym językiem, wyszukane jako produkt ogólny w USDA FoodData Central albo pobrane z kodu kreskowego przez Open Food Facts. Posiłek można zapisać składnik po składniku, każdy z własną ilością i składnikami odżywczymi, a posiłek, który jesz często, można zachować jako zapisany posiłek i dodać ponownie po nazwie. Kofeina też jest śledzona, w miligramach – jednostce używanej na każdej etykiecie – i nie dodaje kalorii. Alkohol także można śledzić, w gramach czystego etanolu; jest pokazywany po włączeniu jego śledzenia. Możesz też zapisywać masę ciała w kg lub funtach i śledzić trendy w kierunku docelowej wagi. Pomiary ciała (talia, biodra, szyja, klatka piersiowa, ramiona, ramię, przedramię, udo i łydka) można zapisywać w cm lub calach. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, edytuj lub usuwaj wcześniejsze wpisy, ustawiaj cele i śledź trendy w czasie.",
         },
         {
             question:
@@ -892,7 +925,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Jak dokładne jest liczenie kalorii?",
             visibleHtml:
-                "To szacunki. W przypadku posiłku, który opisujesz albo fotografujesz, wartości szacuje Twoje AI; w przypadku kodu kreskowego pochodzą z danych z etykiety produktu w Open Food Facts, które Twoje AI przelicza na zjedzoną przez Ciebie ilość. Jedno i drugie może być błędne, więc sprawdzaj wszystko, co ma dla Ciebie znaczenie — każdy wpis możesz poprawić albo usunąć, po prostu o to prosząc. Nutrition MCP to narzędzie do zapisywania, a nie porada medyczna ani dietetyczna: zanim podejmiesz decyzje dotyczące zdrowia, porozmawiaj z lekarzem albo dietetykiem, zwłaszcza jeśli jesteś w ciąży, masz problemy zdrowotne albo masz za sobą zaburzenia odżywiania.",
+                "Produkty ogólne korzystają z wartości USDA FoodData Central, gdy są dostępne, a w pozostałych przypadkach z szacunków. Dane z kodu kreskowego pochodzą z karty produktu w Open Food Facts, przeliczonej na ilość, którą zjadłeś. Każda wartość pokazuje swoje źródło (USDA, Open Food Facts, Ty albo szacunek), a oznaczenie USDA lub Open Food Facts pojawia się tylko wtedy, gdy liczba zgadza się z tą kartą dla zapisanej ilości. Szacunki i karty mogą być błędne, więc sprawdzaj to, co ważne; każdy wpis możesz poprawić lub usunąć, po prostu o to prosząc. Nutrition MCP to narzędzie do zapisywania, a nie porada medyczna ani dietetyczna: przed podjęciem decyzji o zdrowiu skonsultuj się z lekarzem lub dietetykiem, zwłaszcza jeśli jesteś w ciąży, masz chorobę przewlekłą albo zaburzenia odżywiania w przeszłości.",
         },
         {
             question: "Czy śledzi alkohol?",
@@ -908,7 +941,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Czy moje dane są prywatne?",
             visibleHtml:
-                'Twoje wpisy są przechowywane w UE i powiązane z Twoim własnym kontem, do którego masz dostęp przez połączone aplikacje AI. Nutrition MCP nigdy nie sprzedaje Twoich danych, nigdy nie udostępnia ich stronom trzecim i nigdy nie wykorzystuje ich do reklam; strona główna pokazuje tylko anonimowe sumy dla całej witryny. To, co Twoje AI odczyta przez narzędzia, trafia do dostawcy tego AI na podstawie Twojej własnej umowy z nim. W każdej chwili możesz wyeksportować wszystko, co o Tobie przechowujemy, albo usunąć konto i wszystkie jego dane — szczegóły znajdziesz w <a href="/privacy" data-link="privacy">polityce prywatności</a>.',
+                'Twoje dane są przechowywane w UE i powiązane z Twoim kontem, do którego dostajesz się przez aplikacje AI, które podłączasz. Nutrition MCP nigdy nie sprzedaje Twoich danych i nie udostępnia ich osobom trzecim – z wyjątkiem nazw produktów wysyłanych do USDA FoodData Central lub Open Food Facts w celu wyszukania – i nigdy nie wykorzystuje ich do reklamy; strona główna pokazuje tylko anonimowe sumy dla całego serwisu. Wszystko, co Twoja AI odczytuje przez narzędzia, trafia do dostawcy tej AI na podstawie Twojej umowy z nim. Możesz w każdej chwili wyeksportować wszystko, co o Tobie przechowujemy, albo usunąć konto i wszystkie dane; szczegóły są w <a href="/privacy" data-link="privacy">polityce prywatności</a>.',
         },
     ],
 };

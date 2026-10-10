@@ -30,7 +30,7 @@ export const ALT_UI_ES: AltUiCopy = {
         features: [
             {
                 title: "Comidas con tus propias palabras",
-                body: "Di «avena con plátano y mantequilla de maní» y tu IA estima las calorías y los macros (fibra, azúcares totales y cafeína incluidos) y lo registra. Sin buscar en ninguna base de datos. Registra una comida ingrediente por ingrediente, o guarda las comidas que comes a menudo y vuelve a registrarlas por su nombre.",
+                body: "Di «avena con plátano y mantequilla de maní» y tu IA registra las calorías y los macros (fibra, azúcares totales, cafeína, grasa saturada y grasas trans incluidas). Los alimentos genéricos toman sus valores de USDA FoodData Central cuando hay un registro, y las estimaciones cubren el resto; cada cifra indica de dónde procede. Registra una comida ingrediente por ingrediente, o guarda las comidas que comes a menudo y vuelve a registrarlas por su nombre.",
             },
             {
                 title: "Escaneo de códigos de barras, gratis",
@@ -38,7 +38,7 @@ export const ALT_UI_ES: AltUiCopy = {
             },
             {
                 title: "Peso y objetivos",
-                body: "Registra tu peso en kg o lb y medidas con cinta métrica de nueve partes del cuerpo en cm o in; fija objetivos de calorías, macros, fibra, azúcar, cafeína y agua (la fibra como mínimo que alcanzar; el azúcar y la cafeína como límites que no superar) y sigue tu tendencia hacia un peso objetivo. También puedes registrar el alcohol: es opcional y está desactivado hasta que lo actives.",
+                body: "Registra tu peso en kg o lb y medidas con cinta métrica de nueve partes del cuerpo en cm o in; fija objetivos de calorías, macros, grasa saturada, fibra, azúcar, cafeína y agua (la fibra como mínimo que alcanzar; la grasa saturada, el azúcar y la cafeína como límites que no superar) y sigue tu tendencia hacia un peso objetivo. También puedes registrar el alcohol: es opcional y está desactivado hasta que lo actives.",
             },
             {
                 title: "Resúmenes y tendencias",
@@ -59,7 +59,7 @@ export const ALT_UI_ES: AltUiCopy = {
         compareTitle: "Cara a cara",
         pros: [
             "Creado como servidor MCP: funciona dentro de Claude y ChatGPT",
-            "Describe tus comidas con tus palabras y obtén una estimación de calorías, macros, fibra, azúcar y cafeína; guarda tus comidas habituales para registrarlas en una línea",
+            "Describe tus comidas con tus palabras: valores de USDA para alimentos genéricos, estimaciones en el resto, cada cifra con su origen; guarda tus comidas habituales para registrarlas en una línea",
             "Escaneo de códigos de barras, tendencias, importación y exportación CSV: todo gratis",
             "Sin app aparte, sin anuncios, de código abierto",
         ],
@@ -92,7 +92,7 @@ export const ALT_UI_ES: AltUiCopy = {
                 "No existe un conector oficial de {app} para Claude, porque {app} no publica ningún servidor MCP público. Una opción es Nutrition MCP, un servidor MCP gratuito que figura en el directorio de Claude: ábrelo en https://claude.ai/directory/nutrition-mcp, haz clic en Conectar, inicia sesión y empieza a registrar conversando.",
             goodAltQ: "¿Es Nutrition MCP una buena alternativa a {app}?",
             goodAltA:
-                "Si quieres controlar calorías, macros (fibra, azúcares totales y cafeína incluidos), agua y peso sin abrir una app aparte ni buscar en una base de datos de alimentos, sí. En vez de ir tocando pantallas en una base de datos, describes con tus palabras lo que comiste, envías una foto o escaneas un código de barras, y tu IA lo registra. Totalmente gratis y de código abierto.",
+                "Si quieres controlar calorías, macros (fibra, azúcares totales, cafeína, grasa saturada y grasas trans incluidas), agua y peso sin abrir una app aparte ni ir tocando un diario de comidas, sí. Describes con tus palabras lo que comiste, envías una foto o escaneas un código de barras, y tu IA lo registra. Los alimentos genéricos usan valores de USDA FoodData Central cuando los hay, los productos envasados llegan por código de barras desde Open Food Facts, y las estimaciones cubren el resto. Totalmente gratis y de código abierto.",
             importQ: "¿Puedo importar mis datos de {app}?",
             readExportQ: "¿La IA lee mi archivo de exportación al importar?",
             readExportA:
@@ -130,7 +130,7 @@ export const ALT_UI_ES: AltUiCopy = {
         importSub:
             "Lo que suele retener a la gente son los años que ya tiene registrados. Pide importar y se abre un importador directamente en el chat: elige tu exportación, asigna las columnas, revisa lo que se añadirá y confirma. Si tu cliente no tiene paneles en el chat, pega la exportación directamente.",
         importBody: [
-            "El archivo lo analiza tu navegador, no lo lee la IA, así que ninguna fila puede copiarse mal al entrar, y ves exactamente qué comidas se añadirán antes de que se guarde ninguna. En las exportaciones de MyFitnessPal, Cronometer, Lose It! y MacroFactor, las columnas se reconocen por su nombre; cualquier otro CSV también sirve: solo tienes que asignar cada columna una vez. Se transfieren la fecha y la hora, el alimento, la comida, las calorías, la proteína, los carbohidratos, la grasa, la fibra, los azúcares totales y la cafeína en miligramos, y también el alcohol, si antes has activado su seguimiento.",
+            "El archivo lo analiza tu navegador, no lo lee la IA, así que ninguna fila puede copiarse mal al entrar, y ves exactamente qué comidas se añadirán antes de que se guarde ninguna. En las exportaciones de MyFitnessPal, Cronometer, Lose It! y MacroFactor, las columnas se reconocen por su nombre; cualquier otro CSV también sirve: solo tienes que asignar cada columna una vez. Se transfieren la fecha y la hora, el alimento, la comida, las calorías, la proteína, los carbohidratos, la grasa, la fibra, los azúcares totales y la cafeína en miligramos, además de la grasa saturada y las grasas trans cuando el archivo las trae, y también el alcohol, si antes has activado su seguimiento.",
             "Las complicaciones de los archivos de exportación reales están resueltas: fechas DD/MM/AAAA y MM/DD/AAAA, energía en kilojulios además de kilocalorías, archivos europeos separados por punto y coma con coma decimal, campos entre comillas con saltos de línea dentro, filas de totales al final y marcas de fila eliminada. Los encabezados tampoco tienen que estar en inglés: se reconocen Kalorien o Ballaststoffe en una exportación alemana, y la fibra, el azúcar y la cafeína también se identifican en español, francés, italiano y neerlandés. Cuando un archivo es ambiguo de verdad (05/06 puede ser mayo o junio), el importador muestra cómo lo interpreta junto a una fila de tu propio archivo y te pide que lo confirmes en vez de adivinar. Y cada fila lleva una huella de contenido, así que si vuelves a importar el mismo archivo, verás que esas comidas ya están registradas en vez de duplicarse, siempre que tu zona horaria no haya cambiado entretanto.",
         ],
 

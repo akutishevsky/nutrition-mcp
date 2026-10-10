@@ -172,6 +172,7 @@
     "export_all_data": null,
     "get_body_measurements": null,
     "get_current_time": null,
+    "get_food_macros": null,
     "get_goal_progress": {
         "type": "object",
         "properties": {
@@ -1339,6 +1340,7 @@
     "log_weight": null,
     "lookup_barcode": null,
     "save_meal": null,
+    "search_foods": null,
     "search_meals": null,
     "set_alcohol_tracking": null,
     "set_language": null,

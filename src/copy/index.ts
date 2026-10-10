@@ -104,6 +104,7 @@ export type ExampleSlideId =
     | "log-meal"
     | "photo-meal"
     | "scan-barcode"
+    | "usda-food"
     | "saved-meal"
     | "goals-progress"
     | "review-week"
@@ -186,6 +187,8 @@ export interface IndexDoc {
     ogDescription: string;
     keywords: string;
 
+    /** Feature names for the SoftwareApplication JSON-LD, per locale. */
+    featureList: string[];
     hero: {
         /** The h1 is `titleBeforeEm` + <em>`titleEm`</em> + `titleAfterEm`;
          * keep the surrounding spaces inside the outer two. */
@@ -410,12 +413,22 @@ export interface IndexDoc {
 const INDEX_EN: IndexDoc = {
     title: "Nutrition MCP — Calorie & Macro Tracker for Claude & ChatGPT",
     metaDescription:
-        "Log meals, calories and macros by talking to Claude or ChatGPT. A free, open-source MCP server with saved meals, barcode lookup, weight tracking and export.",
+        "Log meals, calories and macros by talking to Claude or ChatGPT. USDA food data for generic foods, barcode lookup, saved meals and export. Free and open source.",
     ogDescription:
-        "Log meals, calories and macros by talking to Claude or ChatGPT. A free, open-source MCP server with saved meals, barcode lookup, weight tracking and export.",
+        "Log meals, calories and macros by talking to Claude or ChatGPT. USDA food data for generic foods, barcode lookup, saved meals and export. Free and open source.",
     keywords:
         "nutrition tracker, meal tracker, MCP server, Claude AI, ChatGPT, calorie counter, macro tracker, barcode scanner, food logging, diet tracker, weight tracker, weight log, saved meals, meal ingredients, recipe tracker, AI nutrition, Model Context Protocol",
 
+    featureList: [
+        "Log meals in plain language, with calories, macros, fiber, sugar and added sugar",
+        "Saturated and trans fat tracking, with an optional saturated fat limit",
+        "USDA FoodData Central values for generic foods, estimates otherwise",
+        "Barcode lookup for packaged foods through Open Food Facts",
+        "Every nutrient value tagged with where it came from",
+        "Saved meals and their ingredients",
+        "Daily goals, limits and progress, plus weight and body measurement trends",
+        "Export of all your data as a ZIP of CSV files",
+    ],
     hero: {
         titleBeforeEm: "Track your nutrition by ",
         titleEm: "talking",
@@ -494,7 +507,7 @@ const INDEX_EN: IndexDoc = {
             },
             {
                 title: "Just say what you ate",
-                body: "Describe it in plain language — or send a photo of your meal, a screenshot from a delivery app, or a barcode (it looks the product up online). Macros logged automatically.",
+                body: "Describe it in plain language — or send a photo of your meal, a screenshot from a delivery app, or a barcode (it looks the product up in Open Food Facts). Generic foods use USDA FoodData Central values when available. Macros logged automatically.",
             },
             {
                 title: "Track & review",
@@ -565,7 +578,7 @@ const INDEX_EN: IndexDoc = {
         note: "Everything here is optional. You can do it now, later, or never — just start logging and set these whenever you like.",
         toolsCta: {
             heading: "Curious what it can actually do?",
-            body: "Browse all 46 tools — logging, barcodes, water, weight and body measurements, goals, and trends — with a description and an example prompt for each.",
+            body: "Browse all 48 tools — logging, barcodes, water, weight and body measurements, goals, and trends — with a description and an example prompt for each.",
             arrow: "Explore the tools",
         },
     },
@@ -728,6 +741,29 @@ const INDEX_EN: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Plain Greek yogurt 0% (150 g pot)"],
+            },
+            {
+                id: "usda-food",
+                title: "Generic foods from USDA",
+                description:
+                    "Name a plain food and your AI looks it up in USDA FoodData Central, then scales the per-100 g values to the grams you ate. Anything that record lacks is estimated rather than shown as zero, and every value is tagged with its source.",
+                toolNotes: {
+                    search_foods:
+                        "Finds the USDA entries for “grilled chicken breast”",
+                    get_food_macros: "Scales the USDA values to 150 g",
+                    log_meal:
+                        "Logs the lunch, each value tagged USDA or estimated",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "150 g grilled chicken breast for lunch",
+                    },
+                    {
+                        from: "ai",
+                        text: "Logged lunch: 248 kcal, 46.5 g protein and 5.4 g fat. The protein and fat come from the USDA FoodData Central record for cooked chicken breast, scaled to 150 g. Added sugar isn’t in that record, so it is estimated.",
+                    },
+                ],
             },
             {
                 id: "saved-meal",
@@ -1102,7 +1138,7 @@ const INDEX_EN: IndexDoc = {
         cards: [
             {
                 title: "Meals in plain language",
-                body: "Describe what you ate — your AI estimates calories, protein, carbs, fat, fiber, total sugar, added sugar, and caffeine in milligrams and logs it. Save the meals you eat often, ingredients and all, and log them again by name.",
+                body: "Describe what you ate — generic foods get USDA FoodData Central values when available, and your AI estimates the rest: calories, protein, carbs, fat, saturated and trans fat, fiber, total sugar, added sugar, and caffeine in milligrams. It logs the meal and tags each value with its source.",
             },
             {
                 title: "Scan a barcode",
@@ -1110,7 +1146,7 @@ const INDEX_EN: IndexDoc = {
             },
             {
                 title: "Goals & progress",
-                body: "Set daily calorie, macro, fiber, and water targets — plus added sugar, total sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
+                body: "Set daily calorie, macro, fiber, and water targets — plus added sugar, saturated fat, total sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
             },
             {
                 title: "Summaries & trends",
@@ -1141,7 +1177,7 @@ const INDEX_EN: IndexDoc = {
 
     why: {
         title: "Talking beats tapping.",
-        sub: "Snap a barcode or just say what you ate — no database digging, no separate app to open.",
+        sub: "Snap a barcode or just say what you ate — no need to look up each food yourself, no separate app to open.",
         oldHeading: "Traditional apps",
         oldItems: [
             "Search a database for every item",
@@ -1152,7 +1188,7 @@ const INDEX_EN: IndexDoc = {
         newHeading: "Nutrition MCP",
         newItems: [
             "Describe meals in plain language",
-            "Calories & macros estimated for you",
+            "USDA values for generic foods, estimates otherwise",
             "Works inside Claude or ChatGPT, free",
             "Ask for trends, summaries, and goals",
         ],
@@ -1217,7 +1253,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is a free, open-source Model Context Protocol (MCP) server that turns Claude, ChatGPT or another MCP client into a calorie and macro tracker. Instead of searching a food database, you tell your AI what you ate and it logs the calories, macros, fiber, sugar, added sugar and caffeine to your own food diary.",
+                "Nutrition MCP is a free, open-source Model Context Protocol (MCP) server that turns Claude, ChatGPT or another MCP client into a calorie and macro tracker. Instead of looking up each item yourself, you tell your AI what you ate and it logs the calories, macros, fiber, sugar, added sugar, saturated and trans fat and caffeine to your own food diary.",
         },
         {
             question: "What is the Model Context Protocol (MCP)?",
@@ -1227,7 +1263,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "How do I track calories with Claude or ChatGPT?",
             visibleHtml:
-                "Connect Nutrition MCP once — in Claude from the connectors directory, in ChatGPT as a custom app with the server URL — and sign in. Then tell your AI what you ate in your own words, show it a photo of the meal, or give it a product barcode. Your AI estimates the calories, protein, carbs, fat, fiber, sugar and added sugar, and Nutrition MCP saves the entry to your food diary. Ask for today's totals, weekly trends or progress toward your goals at any time.",
+                "Connect Nutrition MCP once — in Claude from the connectors directory, in ChatGPT as a custom app with the server URL — and sign in. Then tell your AI what you ate in your own words, show it a photo of the meal, or give it a product barcode. For a generic food, the values come from USDA FoodData Central when it has them and are estimated otherwise; a barcode is looked up in Open Food Facts. Nutrition MCP saves the entry to your food diary. Ask for today's totals, weekly trends or progress toward your goals at any time.",
         },
         {
             // The visible answer deliberately omits the server URL (already
@@ -1259,7 +1295,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What can I track?",
             visibleHtml:
-                "Calories, protein, carbohydrates, fat, fiber, total sugar, added sugar, and water for every entry — described in plain language or pulled from a product barcode via Open Food Facts. A meal can be logged ingredient by ingredient, each with its own amount and nutrients, and a meal you eat often can be kept as a saved meal and logged again by its name. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+                "Calories, protein, carbohydrates, fat, saturated and trans fat, fiber, total sugar, added sugar, and water for every entry — described in plain language, looked up as a generic food in USDA FoodData Central, or pulled from a product barcode via Open Food Facts. A meal can be logged ingredient by ingredient, each with its own amount and nutrients, and a meal you eat often can be kept as a saved meal and logged again by its name. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
         },
         {
             question: "Can I save meals I eat often, or my own recipes?",
@@ -1269,7 +1305,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "How accurate are the calorie counts?",
             visibleHtml:
-                "They are estimates. For a meal you describe or photograph, your AI estimates the figures; for a barcode, they come from the product's label data in Open Food Facts, which your AI scales to how much you had. Either can be wrong, so check anything that matters — you can correct or delete any entry just by asking. Nutrition MCP is a logging tool, not medical or dietary advice: talk to a doctor or dietitian before making decisions about your health, especially if you are pregnant, have a medical condition or a history of disordered eating.",
+                "Generic foods use USDA FoodData Central values when available, and estimates otherwise. A barcode's figures come from the product's record in Open Food Facts, scaled to how much you had. Each value is tagged with its source (USDA, Open Food Facts, you or an estimate), and a USDA or Open Food Facts tag appears only when the figure matches that record for the amount you logged. Estimates and records can be wrong, so check anything that matters — you can correct or delete any entry just by asking. Nutrition MCP is a logging tool, not medical or dietary advice: talk to a doctor or dietitian before making decisions about your health, especially if you are pregnant, have a medical condition or a history of disordered eating.",
         },
         {
             question: "Does it track alcohol?",
@@ -1285,7 +1321,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "Is my data private?",
             visibleHtml:
-                'Your logs are stored in the EU and linked to your own account, which you reach through the AI apps you connect. Nutrition MCP never sells your data, never shares it with third parties and never uses it for advertising; the home page shows only anonymous site-wide totals. Whatever your AI reads through the tools is sent to that AI\'s provider under your own agreement with them. You can export everything we store about you, or delete your account and all its data, at any time — the <a href="/privacy" data-link="privacy">privacy policy</a> has the details.',
+                'Your logs are stored in the EU and linked to your own account, which you reach through the AI apps you connect. Nutrition MCP never sells your data, never shares it with third parties, apart from the food names it sends to USDA FoodData Central or Open Food Facts to look a food up, and never uses it for advertising; the home page shows only anonymous site-wide totals. Whatever your AI reads through the tools is sent to that AI\'s provider under your own agreement with them. You can export everything we store about you, or delete your account and all its data, at any time — the <a href="/privacy" data-link="privacy">privacy policy</a> has the details.',
         },
     ],
 };

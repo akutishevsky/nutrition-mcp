@@ -142,8 +142,12 @@ test("the comparison-page copy names caffeine in the tracked set", () => {
     // The shared right-hand column and the shared feature card, which every
     // page carries verbatim.
     expect(altUi).toContain(
-        "calories, macros, fiber, sugar &amp; caffeine estimated for you",
+        "USDA values for generic foods, estimates otherwise, each number tagged with its source",
     );
+});
+
+test("the comparison-page copy has no 'no database search' claim left", () => {
+    expect(altUi).not.toMatch(/No database search/i);
 });
 
 test("every generated comparison page is in step with it", async () => {
@@ -863,6 +867,31 @@ test("every locale's privacy policy and terms name the goals history", () => {
     expect(problems).toEqual([]);
 });
 
+// Nutrient sources (nutrient_sources, source_detail on meals, meal_items,
+// saved_meals and saved_meal_items): each nutrient value records where it came
+// from, and the export carries that, so the Access and portability bullet must
+// say so in every locale. Pinned on the bullet, not on the whole policy, so a
+// reworded meal-log sentence elsewhere does not trip it.
+const NUTRIENT_SOURCES_ACCESS: Record<SiteLocale, string> = {
+    en: "where each nutrient value came from",
+    de: "der Herkunft jedes Nährwerts",
+    es: "el origen de cada valor nutricional",
+    fr: "l'origine de chaque valeur nutritionnelle",
+    it: "l'origine di ogni valore nutrizionale",
+    nl: "de herkomst van elke voedingswaarde",
+    pl: "pochodzenie każdej wartości odżywczej",
+    uk: "походження кожного поживного значення",
+    ja: "各栄養値の出典",
+    tr: "her besin değerinin kaynağıyla",
+};
+
+test("every locale's privacy policy says the export carries nutrient sources", () => {
+    const missing = SITE_LOCALES.filter(
+        (l) => !allText(PRIVACY[l]!).includes(NUTRIENT_SOURCES_ACCESS[l]),
+    );
+    expect(missing).toEqual([]);
+});
+
 // Saved meals (saved_meals, saved_meal_items, meal_items): a new per-user table
 // goes into the export, deleteAllUserData and the privacy policy together. Each
 // locale must name saved meals where stored data is listed, name them in the
@@ -1251,6 +1280,21 @@ const EXPORT_MIN = await scrape(
     "./src/export.ts",
     /const EXPORT_TTL_SECONDS = 60 \* (\d+);/,
 );
+// The USDA lookup's pause, per-user cap and cache lifetime, as the copy
+// states them. The pause and the cache are written as `N * 60 * 1000` and
+// `N * 24 * 60 * 60 * 1000`, so the scrape reads the leading factor.
+const USDA_PAUSE_MIN = await scrape(
+    "./src/usda.ts",
+    /export const USDA_PAUSE_MS = 60 \* (\d+) \* 1000;/,
+);
+const USDA_USER_CAP = await scrape(
+    "./src/usda.ts",
+    /export const USDA_USER_HOURLY_CAP = (\d+);/,
+);
+const USDA_CACHE_DAYS = await scrape(
+    "./src/usda.ts",
+    /export const USDA_CACHE_TTL_MS = (\d+) \* 24 \* 60 \* 60 \* 1000;/,
+);
 const FIRST_BAN = BANS[0]!;
 /** "05:00" — the local time a day closes for Apple Health sync. */
 const CLOSE_TIME = `${String(HEALTH_SYNC_CLOSE_HOUR).padStart(2, "0")}:00`;
@@ -1262,6 +1306,7 @@ const PINNED_DIGITS: Partial<Record<TroubleshootingId, string[]>> = {
     "session-expired": [SESSION_MIN],
     "rate-limited": [LIMIT, AUTH_LIMIT, STRIKES, FIRST_BAN],
     "export-link": [EXPORT_MIN],
+    "usda-unavailable": [USDA_PAUSE_MIN, USDA_USER_CAP, USDA_CACHE_DAYS],
     // Apple Health sync: the 05:00 close is pinned separately below (it is a
     // clock time, not a bare number).
     "health-sync-yesterday": [
@@ -1288,6 +1333,9 @@ test("the English troubleshooting copy states the limits in the code", () => {
         ["rate-limited", `${FIRST_BAN} minutes`],
         ["rate-limited", `at most ${capText}`],
         ["export-link", `${EXPORT_MIN} minutes`],
+        ["usda-unavailable", `pauses calls for ${USDA_PAUSE_MIN} minutes`],
+        ["usda-unavailable", `${USDA_USER_CAP} USDA lookups in the last hour`],
+        ["usda-unavailable", `in the last ${USDA_CACHE_DAYS} days`],
         ["health-sync-yesterday", `at ${CLOSE_TIME} the next morning`],
         ["health-sync-yesterday", `the last ${HEALTH_SYNC_WINDOW_DAYS} days`],
         [
@@ -1578,7 +1626,8 @@ test("every locale has the saved-meal example slide with its figures", () => {
     const at = INDEX.en!.examples.slides.findIndex(
         (s) => s.id === "saved-meal",
     );
-    expect(at).toBe(3);
+    // usda-food sits before it (after scan-barcode), so saved-meal moved to 4.
+    expect(at).toBe(4);
     const problems: string[] = [];
     for (const locale of SITE_LOCALES) {
         const slides = INDEX[locale]!.examples.slides;
@@ -1606,6 +1655,313 @@ test("every locale has the saved-meal example slide with its figures", () => {
             slide.cardMeals?.length !== 1
         )
             problems.push(`${locale}: card structure`);
+    }
+    expect(problems).toEqual([]);
+});
+
+// The landing page's public description of the USDA lookup and of saturated and
+// trans fat (parts 1-4 of the FoodData Central work). Endorsement words are
+// forbidden near USDA in every locale: USDA does not endorse this service.
+const LANDING_TRACK_SATURATED = {
+    en: /saturated/,
+    de: /gesättigt/,
+    es: /saturad/,
+    fr: /satur/,
+    nl: /verzadigd/,
+    pl: /nasycon/,
+    it: /saturi/,
+    uk: /насичен/,
+    ja: /飽和/,
+    tr: /doymuş/,
+};
+
+test("every locale's landing page names USDA and saturated fat in 'What can I track?'", () => {
+    const en = INDEX.en!;
+    const trackAt = en.faq.findIndex((f) => f.question === "What can I track?");
+    expect(trackAt).toBeGreaterThanOrEqual(0);
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const answer = INDEX[locale]!.faq[trackAt]?.visibleHtml ?? "";
+        if (!answer.includes("USDA")) problems.push(`${locale}: no USDA`);
+        if (!LANDING_TRACK_SATURATED[locale].test(answer))
+            problems.push(`${locale}: no saturated fat`);
+    }
+    expect(problems).toEqual([]);
+});
+
+test("the English 'What can I track?' answer, visible and JSON-LD, names saturated and trans fat", () => {
+    const { jsonLd, visible } = trackAnswers();
+    for (const answer of [jsonLd!, visible!]) {
+        const t = normalize(answer);
+        expect(t).toContain("saturated and trans fat");
+        expect(t).toContain("USDA FoodData Central");
+    }
+});
+
+test("the English landing page no longer says it searches a food database", () => {
+    const en = INDEX.en!;
+    const howAnswers = en.faq.map((f) => f.visibleHtml).join("\n");
+    expect(howAnswers).not.toContain("searching a food database");
+    expect(en.why.newItems.join("\n")).not.toContain("estimated for you");
+});
+
+test("every locale's landing page has a featureList of 6 to 8 features", () => {
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const list = INDEX[locale]!.featureList;
+        if (!Array.isArray(list) || list.length < 6 || list.length > 8)
+            problems.push(`${locale}: ${list?.length} features`);
+        if (list?.some((f) => typeof f !== "string" || f.trim() === ""))
+            problems.push(`${locale}: blank feature`);
+    }
+    expect(problems).toEqual([]);
+});
+
+test("the SoftwareApplication JSON-LD carries the featureList on every landing page", async () => {
+    for (const locale of SITE_LOCALES) {
+        const file =
+            locale === "en"
+                ? "./public/index.html"
+                : `./public/${locale}/index.html`;
+        const html = await Bun.file(file).text();
+        const match = html.match(
+            /"@type": "SoftwareApplication"[\s\S]*?"featureList": (\[[\s\S]*?\])/,
+        );
+        expect(
+            match,
+            `${locale}: no featureList in SoftwareApplication`,
+        ).toBeTruthy();
+        expect(JSON.parse(match![1]!)).toEqual(INDEX[locale]!.featureList);
+    }
+});
+
+// Endorsement words, in every language the landing copy is written in, that must
+// never sit within a sentence of USDA: the approved wording is "USDA FoodData
+// Central values for generic foods when available, estimates otherwise".
+const ENDORSEMENT_NEAR_USDA =
+    /verif|certif|offici|endors|approv|zertif|verifi|oficial|certific|officiel|geverifieerd|officieel|zweryf|oficjaln|certificat|ufficial|verificat|onayl|resmi|перевір|офіц|схвал|認証|公式|承認|検証|tescil/i;
+
+test("no landing copy says USDA verifies, certifies or endorses anything", () => {
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const text = JSON.stringify(INDEX[locale]);
+        for (const m of text.matchAll(/USDA/g)) {
+            const from = Math.max(0, m.index! - 80);
+            const window = text.slice(from, m.index! + 80);
+            if (ENDORSEMENT_NEAR_USDA.test(window))
+                problems.push(`${locale}: "${window}"`);
+        }
+    }
+    expect(problems).toEqual([]);
+});
+
+test("the usda-unavailable question quotes the message src/usda.ts sends", async () => {
+    const message = await scrape(
+        "./src/usda.ts",
+        /`(USDA data is unavailable until) \$\{/,
+    );
+    const question = TOOLS_COPY.en!.troubleshooting.items["usda-unavailable"];
+    expect(question.question).toContain(message);
+});
+
+// The approved wording: "USDA FoodData Central values for generic foods when
+// available, estimates otherwise". A sentence may name USDA beside an
+// endorsement word only to deny it ("USDA does not endorse this service"), so
+// a window with a negation in it is exempt. The English disclaimers are the
+// reference; the other locales' negations are listed here.
+const USDA_NEGATION =
+    /\bnot\b|\bno\b|nicht|niet|\bnie\b|\bnon\b|değil|önermez|respald|ません|ていない|не |не$|\bnão\b|\bne\b/i;
+
+const COPY_SOURCES = await (async () => {
+    const out: [string, string][] = [];
+    for await (const file of new Bun.Glob("*.ts").scan({ cwd: "./src/copy" }))
+        out.push([
+            `src/copy/${file}`,
+            await Bun.file(`./src/copy/${file}`).text(),
+        ]);
+    out.push(["README.md", await Bun.file("./README.md").text()]);
+    out.push(["public/llms.txt", await Bun.file("./public/llms.txt").text()]);
+    out.push(["server.json", await Bun.file("./server.json").text()]);
+    return out;
+})();
+
+test("no copy source, README, llms.txt or server.json says USDA verifies, certifies or endorses anything", () => {
+    const problems: string[] = [];
+    for (const [file, text] of COPY_SOURCES)
+        for (const m of text.matchAll(/USDA/g)) {
+            const window = text.slice(
+                Math.max(0, m.index! - 80),
+                m.index! + 80,
+            );
+            if (
+                ENDORSEMENT_NEAR_USDA.test(window) &&
+                !USDA_NEGATION.test(window)
+            )
+                problems.push(`${file}: "${window}"`);
+        }
+    expect(problems).toEqual([]);
+});
+
+test("every locale's privacy policy and terms cite FoodData Central and disclaim endorsement", () => {
+    const missing: string[] = [];
+    for (const locale of SITE_LOCALES)
+        for (const [name, docs] of [
+            ["privacy", PRIVACY],
+            ["terms", TERMS],
+        ] as const) {
+            const text = docs[locale] ? allText(docs[locale]) : "";
+            if (!text.includes("https://fdc.nal.usda.gov/"))
+                missing.push(`${locale} ${name}: no FoodData Central link`);
+            if (
+                !text.includes(
+                    "U.S. Department of Agriculture, Agricultural Research Service",
+                )
+            )
+                missing.push(`${locale} ${name}: no USDA citation`);
+        }
+    // The disclaimer is English-only: the citation's own words stay English in
+    // every locale, and the English privacy policy carries the sentence.
+    if (!allText(PRIVACY.en!).includes("USDA does not endorse this service"))
+        missing.push("en privacy: no endorsement disclaimer");
+    expect(missing).toEqual([]);
+});
+
+test("README and llms.txt carry the FoodData Central citation and the endorsement disclaimer", async () => {
+    for (const file of ["./README.md", "./public/llms.txt"]) {
+        const text = await Bun.file(file).text();
+        expect(text, file).toContain(
+            "U.S. Department of Agriculture, Agricultural Research Service",
+        );
+        expect(text, file).toContain("https://fdc.nal.usda.gov/");
+        expect(text, file).toMatch(
+            /not endorsed by the U\.S\. Department of Agriculture|does not endorse this service/,
+        );
+    }
+});
+
+test("no comparison copy in any locale names a database search", async () => {
+    const problems: string[] = [];
+    for await (const file of new Bun.Glob("alt-ui*.ts").scan({
+        cwd: "./src/copy",
+    })) {
+        const text = await Bun.file(`./src/copy/${file}`).text();
+        if (/database/i.test(text)) problems.push(file);
+    }
+    expect(problems).toEqual([]);
+});
+
+test("every locale's FAQPage JSON-LD answers 'What can I track?' with USDA and saturated fat", async () => {
+    const trackAt = INDEX.en!.faq.findIndex(
+        (f) => f.question === "What can I track?",
+    );
+    const problems: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const file =
+            locale === "en"
+                ? "./public/index.html"
+                : `./public/${locale}/index.html`;
+        const html = await Bun.file(file).text();
+        const blocks = [
+            ...html.matchAll(
+                /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,
+            ),
+        ].map((m) => JSON.parse(m[1]!));
+        const faq = blocks.find((b) => b["@type"] === "FAQPage");
+        const question = INDEX[locale]!.faq[trackAt]!.question;
+        const entry = faq?.mainEntity?.find(
+            (q: { name: string }) => q.name === question,
+        );
+        const answer: string = entry?.acceptedAnswer?.text ?? "";
+        if (!answer.includes("USDA"))
+            problems.push(`${locale}: no USDA in JSON-LD`);
+        if (!LANDING_TRACK_SATURATED[locale].test(answer))
+            problems.push(`${locale}: no saturated fat in JSON-LD`);
+    }
+    expect(problems).toEqual([]);
+});
+
+// FoodData Central's suggested citation, verbatim from fdc.nal.usda.gov, with the
+// access date filled in. Every place that cites it carries the same text.
+const FDC_CITATION =
+    "U.S. Department of Agriculture, Agricultural Research Service, Beltsville Human Nutrition Research Center. FoodData Central. [Internet]. [cited 2026-10-10]. Available from https://fdc.nal.usda.gov/.";
+
+test("the FoodData Central citation is the site's own text in README, llms.txt and every privacy and terms page", async () => {
+    const missing: string[] = [];
+    for (const file of ["./README.md", "./public/llms.txt"]) {
+        if (!(await Bun.file(file).text()).includes(FDC_CITATION))
+            missing.push(file);
+    }
+    for (const locale of SITE_LOCALES)
+        for (const docs of [PRIVACY, TERMS]) {
+            const doc = docs[locale];
+            if (doc && !allText(doc).includes(FDC_CITATION))
+                missing.push(
+                    `${locale} ${docs === PRIVACY ? "privacy" : "terms"}`,
+                );
+        }
+    expect(missing).toEqual([]);
+});
+
+// Brand names are never re-formed or inflected in any locale: no hyphenated
+// compounds on the name, no Turkish case ending after an apostrophe, no Polish
+// case ending on GitHub or Patreon.
+test("no copy file re-forms a brand name as a compound", async () => {
+    const problems: string[] = [];
+    for await (const file of new Bun.Glob("*.ts").scan({ cwd: "./src/copy" })) {
+        const text = await Bun.file(`./src/copy/${file}`).text();
+        if (/USDA-FoodData|FoodData Central-|Open Food Facts-/.test(text))
+            problems.push(file);
+    }
+    expect(problems).toEqual([]);
+});
+
+test("no Turkish copy puts a case ending after a brand name's apostrophe", async () => {
+    const problems: string[] = [];
+    for await (const file of new Bun.Glob("*.tr.ts").scan({
+        cwd: "./src/copy",
+    })) {
+        const text = await Bun.file(`./src/copy/${file}`).text();
+        for (const m of text.matchAll(
+            /(?:FoodData Central|Open Food Facts|USDA|Claude|ChatGPT|GitHub|Patreon)['’][a-zıöüçşğâîû]/g,
+        ))
+            problems.push(`${file}: ${m[0]}`);
+    }
+    expect(problems).toEqual([]);
+});
+
+test("no Polish copy puts a case ending on GitHub or Patreon", async () => {
+    const problems: string[] = [];
+    for await (const file of new Bun.Glob("*.pl.ts").scan({
+        cwd: "./src/copy",
+    })) {
+        const text = await Bun.file(`./src/copy/${file}`).text();
+        for (const m of text.matchAll(
+            /(?:GitHub|Patreon)(?:ie|owi|em|ach|a|u)\b/g,
+        ))
+            problems.push(`${file}: ${m[0]}`);
+    }
+    expect(problems).toEqual([]);
+});
+
+// The landing page's database-search sub-lines were false once search_foods
+// existed. Their old wording must not come back in any locale.
+test("no landing copy in any locale says there is no database search", async () => {
+    const OLD_CLAIMS = [
+        "no database digging",
+        "pas de recherche dans une base de données",
+        "データベースを探し回る必要も",
+        "Bez przekopywania bazy danych",
+        "kein Suchen in Datenbanken",
+        "geen database doorspitten",
+        "niente ricerche nei database",
+    ];
+    const problems: string[] = [];
+    for await (const file of new Bun.Glob("index*.ts").scan({
+        cwd: "./src/copy",
+    })) {
+        const text = await Bun.file(`./src/copy/${file}`).text();
+        for (const claim of OLD_CLAIMS)
+            if (text.includes(claim)) problems.push(`${file}: ${claim}`);
     }
     expect(problems).toEqual([]);
 });

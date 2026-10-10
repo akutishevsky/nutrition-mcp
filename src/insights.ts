@@ -18,6 +18,12 @@ export interface DailyBucket {
     protein_g: number;
     carbs_g: number;
     fat_g: number;
+    /** Part of fat_g. Summed with `?? 0`; whether the day recorded it at all is
+     * dayCarries(meals, "saturated_fat_g"). */
+    saturated_fat_g: number;
+    /** Not part of the fat or saturated figures: a separate fat type. Summed
+     * with `?? 0`; whether the day recorded it is dayCarries(meals, "trans_fat_g"). */
+    trans_fat_g: number;
     fiber_g: number;
     sugar_g: number;
     /** Part of sugar_g. Summed with `?? 0` like the other partial nutrients;
@@ -87,6 +93,8 @@ export function buildDailyBuckets(
             protein_g: 0,
             carbs_g: 0,
             fat_g: 0,
+            saturated_fat_g: 0,
+            trans_fat_g: 0,
             fiber_g: 0,
             sugar_g: 0,
             added_sugar_g: 0,
@@ -105,6 +113,8 @@ export function buildDailyBuckets(
         b.protein_g += m.protein_g ?? 0;
         b.carbs_g += m.carbs_g ?? 0;
         b.fat_g += m.fat_g ?? 0;
+        b.saturated_fat_g += m.saturated_fat_g ?? 0;
+        b.trans_fat_g += m.trans_fat_g ?? 0;
         b.fiber_g += m.fiber_g ?? 0;
         b.sugar_g += m.sugar_g ?? 0;
         b.added_sugar_g += m.added_sugar_g ?? 0;
@@ -132,7 +142,13 @@ export function buildDailyBuckets(
  * under a sugar limit. Caffeine is the same story and then some: most meals will
  * legitimately never carry a value. */
 export type PartialNutrient =
-    "fiber_g" | "sugar_g" | "added_sugar_g" | "alcohol_g" | "caffeine_mg";
+    | "saturated_fat_g"
+    | "trans_fat_g"
+    | "fiber_g"
+    | "sugar_g"
+    | "added_sugar_g"
+    | "alcohol_g"
+    | "caffeine_mg";
 
 /** THE RULE, shared with mcp.ts: a day carries a nutrient when at least one of
  * that day's meals has a non-null value for it. Only carrying days count toward
@@ -143,18 +159,20 @@ export function dayCarries(meals: Meal[], nutrient: PartialNutrient): boolean {
 }
 
 /**
- * The added-sugar figure when a limit is set and the day (or window) holds no
- * recorded value — "not recorded on this day (limit 29g)". One wording for
- * every model-facing place that reports added sugar against its limit
- * (formatProgress and the summary average in mcp.ts, computeTrends and
- * computeWeeklyDigest here), so a model reading two of them never sees two
- * phrasings of the same fact. It exists because dropping the line let a model
- * read total sugar against the added-sugar limit (a 330 ml cola logged with
- * sugar_g 35 and no added_sugar_g, reported as "6 g over your 29 g added-sugar
- * limit"). Describes only — it states the gap, never what to do about it.
- * Callers gate it on an active ceiling (0 is a real one).
+ * The "not recorded" figure when a ceiling is set and the day (or window) holds
+ * no recorded value for that nutrient — "not recorded on this day (limit 29g)".
+ * One wording for every model-facing place that reports a limited partial
+ * nutrient against its limit (added sugar and saturated fat, in formatProgress
+ * and the summary average in mcp.ts, computeTrends and computeWeeklyDigest
+ * here), so a model reading two of them never sees two phrasings of the same
+ * fact. It exists because dropping the line let a model read total sugar
+ * against the added-sugar limit (a 330 ml cola logged with sugar_g 35 and no
+ * added_sugar_g, reported as "6 g over your 29 g added-sugar limit"). The
+ * wording names no nutrient: the caller's label does that. Describes only — it
+ * states the gap, never what to do about it. Callers gate it on an active
+ * ceiling (0 is a real one).
  */
-export function addedSugarNotRecorded(
+export function limitNotRecorded(
     scope: "day" | "period",
     limit: number,
 ): string {
@@ -478,6 +496,32 @@ export function computeTrends(
             goals?.daily_fat_g ?? null,
         ),
     );
+    // Saturated fat is part of the fat above, with a daily ceiling (the
+    // guidance figures are set on it). Trans fat is tracked with no limit.
+    // Both follow the added-sugar pattern: a window with no recorded value
+    // drops the block, except that a set ceiling says "not recorded" instead.
+    const saturatedLimit = goals?.daily_saturated_fat_g ?? null;
+    const saturatedStat = formatStatLine(
+        "Saturated fat",
+        "g",
+        coveredSeries(buckets, "saturated_fat_g"),
+        saturatedLimit,
+        "ceiling",
+    );
+    push(
+        saturatedStat ??
+            (targetApplies(saturatedLimit, "ceiling")
+                ? `Saturated fat: ${limitNotRecorded("period", saturatedLimit!)}`
+                : null),
+    );
+    push(
+        formatStatLine(
+            "Trans fat",
+            "g",
+            coveredSeries(buckets, "trans_fat_g"),
+            null,
+        ),
+    );
     // Fiber and sugar are never gated by a preference, but a window with no
     // fiber data at all has nothing to say — formatStatLine returns null and
     // the section disappears rather than reading "0g" against a 30g target.
@@ -518,7 +562,7 @@ export function computeTrends(
     push(
         addedSugarStat ??
             (targetApplies(addedSugarLimit, "ceiling")
-                ? `Added sugar: ${addedSugarNotRecorded("period", addedSugarLimit!)}`
+                ? `Added sugar: ${limitNotRecorded("period", addedSugarLimit!)}`
                 : null),
     );
     // Alcohol only appears once there is alcohol to talk about — a recorded but
@@ -870,6 +914,8 @@ export function computeWeeklyDigest(
     const fiber = covered("fiber_g");
     const sugar = covered("sugar_g");
     const addedSugar = covered("added_sugar_g");
+    const saturated = covered("saturated_fat_g");
+    const trans = covered("trans_fat_g");
     const alcohol = covered("alcohol_g");
     const caffeine = covered("caffeine_mg");
     // Whole milligrams, like every other caffeine figure the model reads (see
@@ -936,6 +982,29 @@ export function computeWeeklyDigest(
     );
     lines.push(line("Carbs", avgCarbs, "g", goals?.daily_carbs_g ?? null));
     lines.push(line("Fat", avgFat, "g", goals?.daily_fat_g ?? null));
+    // Saturated fat carries a ceiling, so a week with none recorded says so
+    // rather than vanishing; trans fat has no limit and no row when unrecorded.
+    if (saturated.avg != null) {
+        lines.push(
+            line(
+                "Saturated fat",
+                saturated.avg,
+                "g",
+                goals?.daily_saturated_fat_g ?? null,
+                "limit",
+                saturated.days,
+            ),
+        );
+    } else if (targetApplies(goals?.daily_saturated_fat_g ?? null, "ceiling")) {
+        lines.push(
+            `  Saturated fat: ${limitNotRecorded("period", goals!.daily_saturated_fat_g!)}`,
+        );
+    }
+    if (trans.avg != null) {
+        lines.push(
+            line("Trans fat", trans.avg, "g", null, "target", trans.days),
+        );
+    }
     // No fiber/sugar data anywhere in the week -> no row, rather than a "0g"
     // that a pre-feature history would make up out of nothing.
     if (fiber.avg != null) {
@@ -966,7 +1035,7 @@ export function computeWeeklyDigest(
     // can be fewer than sugar's (meals logged before it shipped carry sugar
     // only), and the "over N of 7 days with data" note says so. With a limit
     // set, a week with none recorded says so rather than vanishing (see
-    // addedSugarNotRecorded).
+    // limitNotRecorded).
     if (addedSugar.avg != null) {
         lines.push(
             line(
@@ -980,7 +1049,7 @@ export function computeWeeklyDigest(
         );
     } else if (targetApplies(goals?.daily_added_sugar_g ?? null, "ceiling")) {
         lines.push(
-            `  Added sugar: ${addedSugarNotRecorded("period", goals!.daily_added_sugar_g!)}`,
+            `  Added sugar: ${limitNotRecorded("period", goals!.daily_added_sugar_g!)}`,
         );
     }
     // Suppressed for the same reason as the trends line (see hasAnyPositive), but

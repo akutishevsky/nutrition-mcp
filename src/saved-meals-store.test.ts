@@ -28,6 +28,10 @@ import {
     getAllSavedMeals,
     getAllSavedMealItems,
     SavedMealNameTaken,
+    SnapshotConflictError,
+    snapshotGuardOf,
+    updateMeal,
+    updateSavedMealIfUnchanged,
     type Meal,
     type MealInput,
 } from "./supabase.js";
@@ -51,6 +55,8 @@ function nutrients(overrides: Partial<NutrientValues> = {}): NutrientValues {
         protein_g: null,
         carbs_g: null,
         fat_g: null,
+        saturated_fat_g: null,
+        trans_fat_g: null,
         fiber_g: null,
         sugar_g: null,
         added_sugar_g: null,
@@ -128,8 +134,24 @@ function likeRegex(pattern: string): RegExp {
     return new RegExp(`${re}$`, "is");
 }
 
+/** JSON with object keys sorted, so two jsonb values compare as jsonb does. */
+function canonicalJson(value: unknown): string {
+    if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+    if (value !== null && typeof value === "object") {
+        const entries = Object.entries(value as Record<string, unknown>).sort(
+            ([a], [b]) => (a < b ? -1 : a > b ? 1 : 0),
+        );
+        return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(",")}}`;
+    }
+    return JSON.stringify(value);
+}
+
 function matches(row: Row, column: string, raw: string): boolean {
     const value = row[column];
+    if (raw === "is.null") return value === null || value === undefined;
+    // A jsonb column compares by value, as PostgREST's eq on jsonb does.
+    if (raw.startsWith("eq.") && value !== null && typeof value === "object")
+        return canonicalJson(value) === canonicalJson(JSON.parse(raw.slice(3)));
     if (raw.startsWith("eq.")) return String(value) === raw.slice(3);
     if (raw.startsWith("in.(")) {
         const list = raw
@@ -416,6 +438,13 @@ async function fakePostgrest(
             : json([row], 201);
     }
 
+    if (req.method === "PATCH") {
+        const body = (await req.json()) as Record<string, unknown>;
+        const hit = filtered(table, url.searchParams);
+        for (const row of hit) Object.assign(row, body);
+        return json(hit);
+    }
+
     if (req.method === "DELETE") {
         const removed = filtered(table, url.searchParams);
         const ids = new Set(removed.map((r) => r.id));
@@ -545,6 +574,30 @@ describe("insertMeal with items or a saved meal", () => {
         expect(tables.meal_items).toHaveLength(2);
         // The meal is written by the rpc alone: no select or insert on meals.
         expect(requests.filter((r) => r.table === "meals")).toHaveLength(0);
+    });
+
+    test("saturated and trans fat reach the meal row and each item row through the rpc (#201)", async () => {
+        const items = [
+            item(1, { name: "cheese", saturated_fat_g: 21, trans_fat_g: null }),
+            item(2, { name: "bread", saturated_fat_g: 0.5, trans_fat_g: 0.1 }),
+        ];
+        await insertMeal(
+            USER,
+            mealInput({ items, saturated_fat_g: 21.5, trans_fat_g: 0.1 }),
+        );
+        const p_meal = rpcCalls[0]!.args.p_meal as Record<string, unknown>;
+        expect(p_meal).toMatchObject({
+            saturated_fat_g: 21.5,
+            trans_fat_g: 0.1,
+        });
+        expect(tables.meal_items).toEqual([
+            expect.objectContaining({ name: "cheese", trans_fat_g: null }),
+            expect.objectContaining({
+                name: "bread",
+                saturated_fat_g: 0.5,
+                trans_fat_g: 0.1,
+            }),
+        ]);
     });
 
     test("items do not change the derived idempotency key", async () => {
@@ -873,6 +926,24 @@ describe("saved meals", () => {
         await createSavedMeal(USER, porridge, []);
         const other = await createSavedMeal(OTHER, porridge, []);
         expect(other.user_id).toBe(OTHER);
+    });
+
+    test("create sends both fats on the saved meal and on each ingredient (#201)", async () => {
+        await createSavedMeal(
+            USER,
+            { ...porridge, saturated_fat_g: 2, trans_fat_g: null },
+            [item(1, { saturated_fat_g: 2, trans_fat_g: 0.05 })],
+        );
+        const p_saved = rpcCalls[0]!.args.p_saved as Record<string, unknown>;
+        expect(p_saved).toMatchObject({
+            saturated_fat_g: 2,
+            trans_fat_g: null,
+        });
+        const p_items = rpcCalls[0]!.args.p_items as Record<string, unknown>[];
+        expect(p_items[0]).toMatchObject({
+            saturated_fat_g: 2,
+            trans_fat_g: 0.05,
+        });
     });
 
     test("create rounds calories to an integer and returns the items it was given", async () => {
@@ -1296,5 +1367,114 @@ describe("export readers", () => {
         expect(mealItems).toHaveLength(1);
         expect(mealItems[0]).toHaveProperty("meal_id", created.meal.id);
         expect(mealItems[0]).toHaveProperty("user_id", USER);
+    });
+});
+
+describe("snapshot-guarded writes", () => {
+    const MEAL_ID = "00000000-0000-4000-8000-0000000000aa";
+    const porridge = {
+        name: "Porridge",
+        description: "oats with milk",
+        meal_type: "breakfast" as string | null,
+        calories: 300,
+        fat_g: 6,
+    };
+
+    test("updateSavedMealIfUnchanged writes while the row holds the snapshot and refuses once it moved", async () => {
+        const saved = await createSavedMeal(USER, porridge, []);
+        const snapshot = snapshotGuardOf((await getSavedMeal(USER, saved.id))!);
+        const first = await updateSavedMealIfUnchanged(
+            USER,
+            saved.id,
+            { fat_g: 9 },
+            snapshot,
+        );
+        expect(first!.fat_g).toBe(9);
+        // The same snapshot is stale now: fat_g is 9, not the 6 it was read as.
+        await expect(
+            updateSavedMealIfUnchanged(USER, saved.id, { fat_g: 1 }, snapshot),
+        ).rejects.toBeInstanceOf(SnapshotConflictError);
+        expect((await getSavedMeal(USER, saved.id))!.fat_g).toBe(9);
+    });
+
+    test("a label in the snapshot is compared by its value, and a null one by IS NULL", async () => {
+        const saved = await createSavedMeal(USER, porridge, []);
+        const unlabelled = snapshotGuardOf(
+            (await getSavedMeal(USER, saved.id))!,
+        );
+        await updateSavedMealIfUnchanged(
+            USER,
+            saved.id,
+            { nutrient_sources: { fat_g: { s: "user" } } },
+            unlabelled,
+        );
+        const labelled = snapshotGuardOf((await getSavedMeal(USER, saved.id))!);
+        const next = await updateSavedMealIfUnchanged(
+            USER,
+            saved.id,
+            { fat_g: 2 },
+            labelled,
+        );
+        expect(next!.fat_g).toBe(2);
+        const patches = requests.filter(
+            (r) => r.method === "PATCH" && r.table === "saved_meals",
+        );
+        // The unlabelled snapshot was guarded as IS NULL, the labelled one by
+        // its jsonb value.
+        expect(patches[0]!.params.get("nutrient_sources")).toBe("is.null");
+        expect(patches[1]!.params.get("nutrient_sources")).toBe(
+            `eq.${JSON.stringify({ fat_g: { s: "user" } })}`,
+        );
+    });
+
+    test("updateSavedMealIfUnchanged for an id this user does not hold returns null", async () => {
+        const saved = await createSavedMeal(USER, porridge, []);
+        const snapshot = snapshotGuardOf((await getSavedMeal(USER, saved.id))!);
+        expect(
+            await updateSavedMealIfUnchanged(
+                OTHER,
+                saved.id,
+                { fat_g: 1 },
+                snapshot,
+            ),
+        ).toBeNull();
+        expect(
+            await updateSavedMealIfUnchanged(
+                USER,
+                MISSING,
+                { fat_g: 1 },
+                snapshot,
+            ),
+        ).toBeNull();
+    });
+
+    test("updateMeal with a guard writes only while the guarded sugar still matches", async () => {
+        tables.meals = [
+            {
+                id: MEAL_ID,
+                user_id: USER,
+                description: "yogurt",
+                meal_type: "breakfast",
+                calories: 150,
+                protein_g: 10,
+                carbs_g: 12,
+                fat_g: 4,
+                sugar_g: 10,
+                added_sugar_g: null,
+                logged_at: LOGGED_AT,
+                idempotency_key: "k",
+            },
+        ];
+        await expect(
+            updateMeal(USER, MEAL_ID, { sugar_g: 20 }, { sugar_g: 12 }),
+        ).rejects.toBeInstanceOf(SnapshotConflictError);
+        expect(tables.meals![0]!.sugar_g).toBe(10);
+        const ok = await updateMeal(
+            USER,
+            MEAL_ID,
+            { sugar_g: 20 },
+            { sugar_g: 10 },
+        );
+        expect(ok.sugar_g).toBe(20);
     });
 });

@@ -24,12 +24,22 @@ import type { IndexDoc } from "./index.js";
 export const INDEX_IT: IndexDoc = {
     title: "Nutrition MCP — Contacalorie e macro per Claude e ChatGPT",
     metaDescription:
-        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con pasti salvati, codici a barre, peso ed esportazione.",
+        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Dati USDA, codici a barre, pasti salvati ed esportazione. Gratuito e open source.",
     ogDescription:
-        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Server MCP gratuito e open source con pasti salvati, codici a barre, peso ed esportazione.",
+        "Registra pasti, calorie e macro parlando con Claude o ChatGPT. Dati USDA, codici a barre, pasti salvati ed esportazione. Gratuito e open source.",
     keywords:
         "tracker nutrizionale, registro pasti, server MCP, Claude AI, ChatGPT, conta calorie, contacalorie AI, app calorie, tracker macro, scanner codice a barre, registrazione pasti, diario alimentare, tracker peso, registro peso, pasti salvati, ingredienti dei pasti, ricette, nutrizione IA, Model Context Protocol",
 
+    featureList: [
+        "Pasti registrati con parole semplici, con calorie, macronutrienti, fibre, zuccheri e zuccheri aggiunti",
+        "Monitoraggio di grassi saturi e trans, con limite facoltativo per i grassi saturi",
+        "Valori USDA FoodData Central per gli alimenti generici, stime per il resto",
+        "Ricerca tramite codice a barre per i prodotti confezionati con Open Food Facts",
+        "Ogni valore nutrizionale con l’indicazione della sua fonte",
+        "Pasti salvati e i loro ingredienti",
+        "Obiettivi giornalieri, limiti e progressi, con tendenze di peso e misure corporee",
+        "Esportazione di tutti i tuoi dati in uno ZIP di file CSV",
+    ],
     hero: {
         titleBeforeEm: "Tieni traccia di ciò che mangi ",
         titleEm: "parlando",
@@ -110,7 +120,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Di' semplicemente cosa hai mangiato",
-                body: "Descrivilo a parole tue, oppure invia una foto del piatto, uno screenshot di un'app di consegne a domicilio o un codice a barre (il prodotto viene cercato online). Le macro si registrano da sole.",
+                body: "Descrivilo con parole semplici, oppure invia una foto del pasto, uno screenshot di un’app di consegna o un codice a barre (il prodotto viene cercato in Open Food Facts). Per gli alimenti generici si usano i valori di USDA FoodData Central quando disponibili. I macronutrienti vengono registrati automaticamente.",
             },
             {
                 title: "Monitora e rivedi",
@@ -181,7 +191,7 @@ export const INDEX_IT: IndexDoc = {
         note: "È tutto facoltativo. Puoi farlo ora, più tardi o mai: inizia pure a registrare e imposta queste opzioni quando vuoi.",
         toolsCta: {
             heading: "Vuoi sapere cosa sa fare davvero?",
-            body: "Sfoglia tutti i 46 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
+            body: "Sfoglia tutti i 48 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
             arrow: "Esplora gli strumenti",
         },
     },
@@ -345,6 +355,29 @@ export const INDEX_IT: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Yogurt greco bianco 0% (vasetto da 150 g)"],
+            },
+            {
+                id: "usda-food",
+                title: "Alimenti generici da USDA",
+                description:
+                    "Nomina un alimento semplice: la tua IA lo cerca in USDA FoodData Central e converte i valori per 100 g nei grammi che hai mangiato. Ciò che il dato non contiene viene stimato invece di apparire come zero, e ogni valore mostra la sua fonte.",
+                toolNotes: {
+                    search_foods:
+                        "Trova le voci USDA con il nome inglese “grilled chicken breast”",
+                    get_food_macros: "Converte i valori USDA a 150 g",
+                    log_meal:
+                        "Registra il pranzo, ogni valore indicato come USDA o stimato",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "150 g di petto di pollo alla griglia per pranzo",
+                    },
+                    {
+                        from: "ai",
+                        text: "Pranzo registrato: 248 kcal, 46,5 g di proteine e 5,4 g di grassi. Proteine e grassi arrivano dalla voce USDA FoodData Central per il petto di pollo cotto, convertita a 150 g. Lo zucchero aggiunto non è in quella voce, quindi viene stimato.",
+                    },
+                ],
             },
             {
                 id: "saved-meal",
@@ -721,7 +754,7 @@ export const INDEX_IT: IndexDoc = {
         cards: [
             {
                 title: "Pasti a parole tue",
-                body: "Descrivi cosa hai mangiato: la tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e caffeina in milligrammi, e registra tutto. Salva i pasti che mangi spesso, ingredienti compresi, e registrali di nuovo chiamandoli per nome.",
+                body: "Descrivi cosa hai mangiato: per gli alimenti generici si usano i valori di USDA FoodData Central quando disponibili, e la tua IA stima il resto: calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti e caffeina in milligrammi. Il pasto viene registrato e ogni valore mostra la sua fonte.",
             },
             {
                 title: "Scansiona un codice a barre",
@@ -729,7 +762,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Obiettivi e progressi",
-                body: "Imposta obiettivi giornalieri di calorie, macro, fibre e acqua, più limiti da non superare per zuccheri aggiunti, zuccheri totali, caffeina e alcol, e segui i progressi in tempo reale.",
+                body: "Imposta obiettivi giornalieri di calorie, macronutrienti, fibre e acqua, più i limiti di zuccheri aggiunti, grassi saturi, zuccheri totali, caffeina e alcol da non superare, e controlla i progressi in tempo reale.",
             },
             {
                 title: "Riepiloghi e andamenti",
@@ -760,7 +793,7 @@ export const INDEX_IT: IndexDoc = {
 
     why: {
         title: "Meglio parlare che digitare.",
-        sub: "Scansiona un codice a barre o di' semplicemente cosa hai mangiato: niente ricerche nei database, nessuna app in più da aprire.",
+        sub: "Scansiona un codice a barre o di' semplicemente cosa hai mangiato: nessuna ricerca alimento per alimento, nessuna app in più da aprire.",
         oldHeading: "App tradizionali",
         oldItems: [
             "Cerca ogni alimento in un database",
@@ -771,7 +804,7 @@ export const INDEX_IT: IndexDoc = {
         newHeading: "Nutrition MCP",
         newItems: [
             "Descrivi i pasti a parole tue",
-            "Calorie e macro stimate per te",
+            "Valori USDA per gli alimenti generici, stime per il resto",
             "Funziona dentro Claude o ChatGPT, gratis",
             "Chiedi andamenti, riepiloghi e obiettivi",
         ],
@@ -836,7 +869,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cos'è Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP è un server Model Context Protocol (MCP) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contacalorie e tracker delle macro. Invece di cercare in un database di alimenti, dici alla tua IA cosa hai mangiato e lei registra calorie, macro, fibre, zuccheri, zuccheri aggiunti e caffeina nel tuo diario alimentare.",
+                "Nutrition MCP è un server MCP (Model Context Protocol) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contatore di calorie e macronutrienti. Invece di cercare ogni alimento da solo, dici alla tua IA cosa hai mangiato, ed essa registra nel tuo diario alimentare calorie, macronutrienti, fibre, zuccheri, zuccheri aggiunti, grassi saturi e trans e caffeina.",
         },
         {
             question: "Cos'è il Model Context Protocol (MCP)?",
@@ -846,7 +879,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Come si contano le calorie con Claude o ChatGPT?",
             visibleHtml:
-                "Collega Nutrition MCP una volta sola (in Claude dalla directory dei connettori, in ChatGPT come app personalizzata con l'URL del server) e accedi. Poi di' alla tua IA cosa hai mangiato a parole tue, mostrale una foto del pasto o dalle il codice a barre di un prodotto. La tua IA stima calorie, proteine, carboidrati, grassi, fibre, zuccheri e zuccheri aggiunti, e Nutrition MCP salva la voce nel tuo diario alimentare. Chiedi in qualsiasi momento i totali di oggi, gli andamenti settimanali o i progressi verso i tuoi obiettivi.",
+                "Collega Nutrition MCP una volta – in Claude dalla directory dei connettori, in ChatGPT come app personalizzata con l’URL del server – e accedi. Poi racconta alla tua IA cosa hai mangiato con parole tue, mostrale una foto del pasto o dille un codice a barre. Per gli alimenti generici i valori arrivano da USDA FoodData Central quando disponibili, altrimenti sono stime; un codice a barre viene cercato in Open Food Facts. Nutrition MCP salva la voce nel tuo diario alimentare. Chiedi in qualsiasi momento i totali di oggi, le tendenze settimanali o i progressi verso i tuoi obiettivi.",
         },
         {
             question: "Funziona con ChatGPT?",
@@ -873,7 +906,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cosa posso monitorare?",
             visibleHtml:
-                "Calorie, proteine, carboidrati, grassi, fibre, zuccheri totali, zuccheri aggiunti e acqua per ogni voce, descritti a parole tue o ricavati dal codice a barre di un prodotto tramite Open Food Facts. Un pasto si può registrare ingrediente per ingrediente, ciascuno con la sua quantità e i suoi valori nutrizionali, e un pasto che mangi spesso si può conservare come pasto salvato e registrare di nuovo chiamandolo per nome. Viene registrata anche la caffeina, in milligrammi, l'unità usata su tutte le etichette, e non aggiunge calorie. Puoi monitorare anche l'alcol, in grammi di etanolo puro; compare dopo che attivi il monitoraggio dell'alcol. Puoi anche registrare il tuo peso corporeo in kg o lb e seguirne l'andamento verso un peso obiettivo. Anche le misure corporee (vita, fianchi, collo, torace, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Visualizza riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui gli andamenti nel tempo.",
+                "Calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti e acqua per ogni voce: descritti con parole semplici, cercati come alimento generico in USDA FoodData Central oppure ricavati da un codice a barre tramite Open Food Facts. Un pasto si può registrare ingrediente per ingrediente, ciascuno con la sua quantità e i suoi nutrienti, e un pasto che mangi spesso si può salvare come pasto salvato e registrare di nuovo con il suo nome. Anche la caffeina viene registrata, in milligrammi, l’unità usata su ogni etichetta, e non apporta calorie. Anche l’alcol si può registrare, in grammi di etanolo puro; viene mostrato quando attivi il suo tracciamento. Puoi inoltre registrare il peso corporeo in kg o lb e seguire le tendenze verso un peso obiettivo. Le misure corporee (vita, fianchi, collo, petto, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Consulta i riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui le tendenze nel tempo.",
         },
         {
             question:
@@ -884,7 +917,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Quanto sono precisi i conteggi delle calorie?",
             visibleHtml:
-                "Sono stime. Per un pasto che descrivi o fotografi, i valori li stima la tua IA; per un codice a barre, provengono dai dati dell'etichetta del prodotto su Open Food Facts, che la tua IA ricalcola in base alla quantità che hai consumato. Entrambi possono essere sbagliati, quindi verifica tutto ciò che conta: puoi correggere o eliminare qualsiasi voce semplicemente chiedendolo. Nutrition MCP è uno strumento di registrazione, non un consiglio medico o dietetico: consulta un medico o un dietista prima di prendere decisioni sulla tua salute, soprattutto se sei in gravidanza, hai una patologia o hai sofferto di disturbi alimentari.",
+                "Gli alimenti generici usano i valori di USDA FoodData Central quando disponibili, e stime negli altri casi. I valori di un codice a barre provengono dalla scheda del prodotto in Open Food Facts, riportati alla quantità che hai mangiato. Ogni valore mostra la sua fonte (USDA, Open Food Facts, tu o una stima), e un’indicazione USDA o Open Food Facts compare solo quando il valore corrisponde a quella scheda per la quantità registrata. Stime e schede possono sbagliare, quindi controlla ciò che conta; puoi correggere o eliminare qualsiasi voce semplicemente chiedendolo. Nutrition MCP è uno strumento di registrazione, non un parere medico o dietetico: parla con un medico o un dietista prima di prendere decisioni sulla tua salute, soprattutto se sei in gravidanza, hai una patologia o hai avuto disturbi alimentari.",
         },
         {
             question: "Registra anche l'alcol?",
@@ -900,7 +933,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "I miei dati sono privati?",
             visibleHtml:
-                'I dati che registri sono conservati nell\'UE e collegati al tuo account, a cui accedi tramite le app di IA che colleghi. Nutrition MCP non vende mai i tuoi dati, non li condivide mai con terze parti e non li usa mai per pubblicità; la home page mostra solo totali anonimi dell\'intero sito. Ciò che la tua IA legge tramite gli strumenti viene inviato al fornitore di quella IA, secondo gli accordi tra te e quel fornitore. Puoi esportare tutto ciò che conserviamo su di te, o eliminare il tuo account e tutti i suoi dati, in qualsiasi momento: i dettagli sono nell\'<a href="/privacy" data-link="privacy">informativa sulla privacy</a>.',
+                'I tuoi dati sono conservati nell’UE e collegati al tuo account, a cui accedi tramite le app di IA che colleghi. Nutrition MCP non vende mai i tuoi dati e non li condivide mai con terzi, salvo i nomi dei cibi inviati a USDA FoodData Central o Open Food Facts per una ricerca, e non li usa mai per la pubblicità; la home page mostra solo totali anonimi dell’intero sito. Tutto ciò che la tua IA legge tramite gli strumenti viene inviato al fornitore di quella IA, secondo il tuo accordo con loro. Puoi esportare tutto ciò che conserviamo su di te, oppure eliminare il tuo account e tutti i suoi dati, in qualsiasi momento; i dettagli sono nell’<a href="/privacy" data-link="privacy">informativa sulla privacy</a>.',
         },
     ],
 };
