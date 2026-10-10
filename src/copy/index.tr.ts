@@ -377,6 +377,13 @@ export const INDEX_TR: IndexDoc = {
                         text: "Öğle yemeği kaydedildi: 248 kcal, 46,5 g protein ve 5,4 g yağ. Protein ve yağ, pişmiş tavuk göğsü için USDA FoodData Central kaydından, 150 g’a göre hesaplandı. Eklenen şeker bu kayıtta yok, bu yüzden tahmin edildi.",
                     },
                 ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Izgara tavuk göğsü (150 g)"],
             },
             {
                 id: "saved-meal",
@@ -427,7 +434,7 @@ export const INDEX_TR: IndexDoc = {
                 id: "goals-progress",
                 title: "Hedef koy, durumunu gör",
                 description:
-                    "Kalori ve protein gibi ulaşılacak hedefler, ilave şeker, toplam şeker, alkol ve kafein için altında kalınacak sınırlar belirle; yalnızca söylediğin değişir. Sonra herhangi bir gün için her hedefe ne kaldığını ve her sınıra göre nerede durduğunu sor.",
+                    "Kalori ve protein gibi ulaşılacak hedefler, ilave şeker, doymuş yağ, toplam şeker, alkol ve kafein için altında kalınacak sınırlar belirle; yalnızca söylediğin değişir. Sonra herhangi bir gün için her hedefe ne kaldığını ve her sınıra göre nerede durduğunu sor.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Kalori ve protein hedeflerini ve 400 mg kafein sınırını kaydeder",
@@ -449,7 +456,7 @@ export const INDEX_TR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Tamam: ulaşılacak 2.000 kcal ve 160 g protein, kafein 400 mg altında. Geri kalan her şey olduğu gibi kalıyor: 220 g karbonhidrat, 70 g yağ, 30 g lif, 2,5 L su, 25 g ilave şeker sınırın ve 75 kg hedef kilon.",
+                        text: "Tamam: ulaşılacak 2.000 kcal ve 160 g protein, kafein 400 mg altında. Geri kalan her şey olduğu gibi kalıyor: 220 g karbonhidrat, 70 g yağ, 20 g doymuş yağ, 30 g lif, 2,5 L su, 25 g ilave şeker sınırın ve 75 kg hedef kilon.",
                     },
                     {
                         from: "user",

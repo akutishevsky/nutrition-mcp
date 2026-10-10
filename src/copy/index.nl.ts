@@ -371,6 +371,13 @@ export const INDEX_NL: IndexDoc = {
                         text: "Lunch geregistreerd: 248 kcal, 46,5 g eiwit en 5,4 g vet. Het eiwit en vet komen uit het record van USDA FoodData Central voor gegaarde kipfilet, omgerekend naar 150 g. Toegevoegde suiker staat niet in dat record, dus die wordt geschat.",
                     },
                 ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Gegrilde kipfilet (150 g)"],
             },
             {
                 id: "saved-meal",
@@ -421,7 +428,7 @@ export const INDEX_NL: IndexDoc = {
                 id: "goals-progress",
                 title: "Doelen stellen, stand checken",
                 description:
-                    "Stel doelen in om te halen, zoals calorieën en eiwit, en limieten om onder te blijven, voor toegevoegde suiker, totale suiker, alcohol en cafeïne; alleen wat je noemt, verandert. Vraag daarna naar een willekeurige dag en zie wat er nog over is tot elk doel en waar je staat ten opzichte van elke limiet.",
+                    "Stel doelen in om te halen, zoals calorieën en eiwit, en limieten om onder te blijven, voor toegevoegde suiker, verzadigd vet, totale suiker, alcohol en cafeïne; alleen wat je noemt, verandert. Vraag daarna naar een willekeurige dag en zie wat er nog over is tot elk doel en waar je staat ten opzichte van elke limiet.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Slaat het calorie- en eiwitdoel op, plus een cafeïnelimiet van 400 mg",
@@ -443,7 +450,7 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Klaar: 2.000 kcal en 160 g eiwit om te halen, cafeïne onder de 400 mg. De rest blijft zoals het was: 220 g koolhydraten, 70 g vet, 30 g vezels, 2,5 L water, je limiet van 25 g toegevoegde suiker en je streefgewicht van 75 kg.",
+                        text: "Klaar: 2.000 kcal en 160 g eiwit om te halen, cafeïne onder de 400 mg. De rest blijft zoals het was: 220 g koolhydraten, 70 g vet, 20 g verzadigd vet, 30 g vezels, 2,5 L water, je limiet van 25 g toegevoegde suiker en je streefgewicht van 75 kg.",
                     },
                     {
                         from: "user",

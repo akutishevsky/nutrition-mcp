@@ -373,6 +373,13 @@ export const INDEX_PL: IndexDoc = {
                         text: "Zapisano obiad: 248 kcal, 46,5 g białka i 5,4 g tłuszczu. Białko i tłuszcz pochodzą z wpisu USDA FoodData Central dla ugotowanej piersi z kurczaka, przeliczonego na 150 g. Cukru dodanego nie ma w tym wpisie, więc jest szacowany.",
                     },
                 ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Grillowana pierś z kurczaka (150 g)"],
             },
             {
                 id: "saved-meal",
@@ -425,7 +432,7 @@ export const INDEX_PL: IndexDoc = {
                 id: "goals-progress",
                 title: "Ustaw cele, sprawdzaj postępy",
                 description:
-                    "Ustaw cele do osiągnięcia, np. kalorie i białko, oraz limity cukru dodanego, cukrów ogółem, alkoholu i kofeiny, których nie chcesz przekraczać; zmienia się tylko to, co wymienisz. Potem zapytaj o dowolny dzień, żeby zobaczyć, ile brakuje do każdego celu i jak wypadasz względem każdego limitu.",
+                    "Ustaw cele do osiągnięcia, np. kalorie i białko, oraz limity cukru dodanego, tłuszczu nasyconego, cukrów ogółem, alkoholu i kofeiny, których nie chcesz przekraczać; zmienia się tylko to, co wymienisz. Potem zapytaj o dowolny dzień, żeby zobaczyć, ile brakuje do każdego celu i jak wypadasz względem każdego limitu.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Zapisuje cele kalorii i białka oraz limit kofeiny 400 mg",
@@ -447,7 +454,7 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Gotowe: 2000 kcal i 160 g białka do osiągnięcia, kofeina poniżej 400 mg. Reszta bez zmian: 220 g węglowodanów, 70 g tłuszczu, 30 g błonnika, 2,5 l wody, limit cukru dodanego 25 g i waga docelowa 75 kg.",
+                        text: "Gotowe: 2000 kcal i 160 g białka do osiągnięcia, kofeina poniżej 400 mg. Reszta bez zmian: 220 g węglowodanów, 70 g tłuszczu, 20 g tłuszczu nasyconego, 30 g błonnika, 2,5 l wody, limit cukru dodanego 25 g i waga docelowa 75 kg.",
                     },
                     {
                         from: "user",

@@ -380,6 +380,13 @@ export const INDEX_FR: IndexDoc = {
                         text: "Déjeuner enregistré : 248 kcal, 46,5 g de protéines et 5,4 g de lipides. Les protéines et les lipides viennent de la fiche USDA FoodData Central pour le blanc de poulet cuit, ramenée à 150 g. Le sucre ajouté ne figure pas dans cette fiche, il est donc estimé.",
                     },
                 ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Blanc de poulet grillé (150 g)"],
             },
             {
                 id: "saved-meal",
@@ -430,7 +437,7 @@ export const INDEX_FR: IndexDoc = {
                 id: "goals-progress",
                 title: "Fixe tes objectifs, fais le point",
                 description:
-                    "Fixe des cibles à atteindre, comme les calories et les protéines, et des limites à ne pas dépasser pour les sucres ajoutés, les sucres totaux, l'alcool et la caféine ; seul ce que tu mentionnes change. Ensuite, demande-lui où tu en es pour n'importe quel jour : ce qu'il te reste pour chaque cible, et où tu te situes par rapport à chaque limite.",
+                    "Fixe des cibles à atteindre, comme les calories et les protéines, et des limites à ne pas dépasser pour les sucres ajoutés, les graisses saturées, les sucres totaux, l'alcool et la caféine ; seul ce que tu mentionnes change. Ensuite, demande-lui où tu en es pour n'importe quel jour : ce qu'il te reste pour chaque cible, et où tu te situes par rapport à chaque limite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Enregistre les cibles de calories et de protéines, et une limite de caféine de 400 mg",
@@ -452,7 +459,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "C'est fait : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Le reste ne change pas : 220 g de glucides, 70 g de lipides, 30 g de fibres, 2,5 L d'eau, ta limite de 25 g de sucres ajoutés et ton poids cible de 75 kg.",
+                        text: "C'est fait : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Le reste ne change pas : 220 g de glucides, 70 g de lipides, 20 g d'acides gras saturés, 30 g de fibres, 2,5 L d'eau, ta limite de 25 g de sucres ajoutés et ton poids cible de 75 kg.",
                     },
                     {
                         from: "user",

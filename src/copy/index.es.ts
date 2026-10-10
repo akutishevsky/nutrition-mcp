@@ -369,6 +369,13 @@ export const INDEX_ES: IndexDoc = {
                         text: "Almuerzo registrado: 248 kcal, 46,5 g de proteína y 5,4 g de grasa. La proteína y la grasa vienen del registro de USDA FoodData Central para pechuga de pollo cocida, ajustado a 150 g. El azúcar añadido no está en ese registro, así que se estima.",
                     },
                 ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Pechuga de pollo a la plancha (150 g)"],
             },
             {
                 id: "saved-meal",
@@ -419,7 +426,7 @@ export const INDEX_ES: IndexDoc = {
                 id: "goals-progress",
                 title: "Fija objetivos y revisa tu día",
                 description:
-                    "Define objetivos por alcanzar, como las calorías y la proteína, y límites que no superar para el azúcar añadido, el azúcar total, el alcohol y la cafeína; solo cambia lo que mencionas. Luego pregunta por cualquier día y verás lo que te falta para cada objetivo y cómo vas frente a cada límite.",
+                    "Define objetivos por alcanzar, como las calorías y la proteína, y límites que no superar para el azúcar añadido, las grasas saturadas, el azúcar total, el alcohol y la cafeína; solo cambia lo que mencionas. Luego pregunta por cualquier día y verás lo que te falta para cada objetivo y cómo vas frente a cada límite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Guarda objetivos de calorías y proteína y un límite de cafeína de 400 mg",
@@ -441,7 +448,7 @@ export const INDEX_ES: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Hecho: 2000 kcal y 160 g de proteína por alcanzar, y la cafeína por debajo de 400 mg. Lo demás sigue igual: 220 g de carbohidratos, 70 g de grasa, 30 g de fibra, 2,5 L de agua, tu límite de 25 g de azúcar añadido y tu peso objetivo de 75 kg.",
+                        text: "Hecho: 2000 kcal y 160 g de proteína por alcanzar, y la cafeína por debajo de 400 mg. Lo demás sigue igual: 220 g de carbohidratos, 70 g de grasa, 20 g de grasa saturada, 30 g de fibra, 2,5 L de agua, tu límite de 25 g de azúcar añadido y tu peso objetivo de 75 kg.",
                     },
                     {
                         from: "user",
