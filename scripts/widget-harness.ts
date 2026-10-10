@@ -20,8 +20,11 @@
 //   ?noMeta=1           deliver the tool result WITHOUT its _meta, as a host that
 //                       drops it would (nutrition-summary then shows "N or more",
 //                       weight-trends falls back to its legacy 7/14/30 chart,
-//                       and every macro strip loses its added-sugar cell —
-//                       exactly the strip from before that field existed)
+//                       and every macro strip loses its added-sugar cell and
+//                       its ingredient expanders — exactly the strip from
+//                       before those fields existed)
+//   ?meals=0            goal-progress: no per-meal rows, so the strip takes its
+//                       static path (no tile is a button, no hint)
 //   ?sample=sparse      weight-trends: a 3-weigh-in user instead of 3 years of
 //                       history (the degraded states: no rate chip, no 1y/All)
 //   ?days=90            weight-trends: the tool's `days` argument, which picks
@@ -46,11 +49,13 @@
 // Nothing here is served by the production app; scripts/ is dev-only.
 
 import { addedSugarExtra, buildAddedSugarMeta } from "../src/added-sugar.js";
+import { buildMealItemsMeta, type MealItemValues } from "../src/meal-items.js";
 import {
     ADDED_SUGAR_META_KEY,
     getWidgetHtml,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_CONTRIBUTORS_META_KEY,
+    MEAL_ITEMS_META_KEY,
     PERIOD_AVERAGES_META_KEY,
     WEIGHT_SERIES_META_KEY,
     WIDGET_TEMPLATES,
@@ -414,6 +419,7 @@ function indexPage(): string {
      <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>,
      <code>?noMeta=1</code>, <code>?theme=dark</code>, <code>?locale=pl</code>,
      <code>?addedSugar=unrecorded</code>, <code>?addedSugar=zero</code>;
+     goal-progress takes <code>?meals=0</code> (the static strip);
      weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
      <code>?unit=lb</code>, <code>?target=0</code>; trends takes
      <code>?groupBy=week</code> and <code>?goals=0</code>.</p>
@@ -432,6 +438,8 @@ function hostPage(widget: string, params: URLSearchParams): string {
     // is validated against a cached outputSchema and can never gain a field),
     // so this is how the "N or more smaller meals" fallback is previewed.
     const noMeta = params.get("noMeta") === "1";
+    // goal-progress with no per-meal rows: the strip's static path.
+    const staticGoalProgress = params.get("meals") === "0";
     const theme = params.get("theme") === "dark" ? "dark" : "light";
     const locale = params.get("locale");
     // The alcohol opt-in, as every tool that touches alcohol sends it:
@@ -725,6 +733,166 @@ function hostPage(widget: string, params: URLSearchParams): string {
         ),
     });
 
+    // Ingredients behind a few fixture meals, by description, for the
+    // breakdown's expandable rows: Cyrillic names, an item with no fiber
+    // figure (shows "–") beside one with a recorded 0 (shows "0"), and a wine
+    // whose alcohol the server nulls when tracking is off. The oats and the
+    // espresso have none, so their rows keep the plain markup. Fed through
+    // buildMealItemsMeta (src/meal-items.ts) — the server's own builder —
+    // keyed by the same Meal rows the added-sugar meta uses, in row order.
+    const ingredient = (
+        position: number,
+        name: string,
+        amount: number | null,
+        unit: string | null,
+        v: Partial<MealItemValues>,
+    ): MealItemValues => ({
+        position,
+        name,
+        amount,
+        unit,
+        calories: 0,
+        protein_g: 0,
+        carbs_g: 0,
+        fat_g: 0,
+        fiber_g: null,
+        sugar_g: null,
+        added_sugar_g: null,
+        alcohol_g: null,
+        caffeine_mg: null,
+        ...v,
+    });
+    const ITEMS: Record<string, MealItemValues[]> = {
+        "Grilled chicken & rice bowl": [
+            ingredient(1, "Рис басмати", 180, "g", {
+                calories: 234,
+                protein_g: 4.9,
+                carbs_g: 51,
+                fat_g: 0.5,
+                fiber_g: 1.1,
+                sugar_g: 0.2,
+                added_sugar_g: 0,
+            }),
+            ingredient(2, "Куряче філе гриль", 200, "g", {
+                calories: 330,
+                protein_g: 46,
+                carbs_g: 0,
+                fat_g: 7.2,
+                fiber_g: 0,
+                sugar_g: 0,
+                added_sugar_g: 0,
+            }),
+            ingredient(3, "Соус теріякі", 30, "g", {
+                calories: 38,
+                protein_g: 0.5,
+                carbs_g: 23.4,
+                fat_g: 0,
+                sugar_g: 8.4,
+                added_sugar_g: 6.5,
+            }),
+            ingredient(4, "Едамаме", 40, "g", {
+                calories: 48,
+                protein_g: 0.6,
+                carbs_g: 3.6,
+                fat_g: 8.3,
+                fiber_g: 5.1,
+                sugar_g: 0.8,
+                added_sugar_g: 0,
+            }),
+        ],
+        "Salmon with quinoa & veg": [
+            ingredient(1, "Salmon fillet", 150, "g", {
+                calories: 312,
+                protein_g: 30,
+                carbs_g: 0,
+                fat_g: 20,
+                fiber_g: 0,
+                sugar_g: 0,
+                added_sugar_g: 0,
+            }),
+            ingredient(2, "Quinoa, cooked", 150, "g", {
+                calories: 180,
+                protein_g: 6.6,
+                carbs_g: 32,
+                fat_g: 2.9,
+                fiber_g: 4.2,
+                sugar_g: 1.3,
+                added_sugar_g: 0,
+            }),
+            ingredient(
+                3,
+                "Roasted vegetables with a long olive-oil glaze",
+                150,
+                "g",
+                {
+                    calories: 138,
+                    protein_g: 19.4,
+                    carbs_g: 40.6,
+                    fat_g: 9.1,
+                    fiber_g: 3.7,
+                    sugar_g: 12.4,
+                    added_sugar_g: 2.1,
+                },
+            ),
+            ingredient(4, "Red wine", 250, "ml", {
+                calories: 150,
+                protein_g: 0,
+                carbs_g: 4.4,
+                fat_g: 0,
+                fiber_g: 0,
+                sugar_g: 1,
+                added_sugar_g: 0,
+                alcohol_g: 27.7,
+            }),
+        ],
+        "Beef stir-fry": [
+            ingredient(1, "Яловичина", 150, "g", {
+                calories: 330,
+                protein_g: 36,
+                carbs_g: 0,
+                fat_g: 20,
+                fiber_g: 0,
+                sugar_g: 0,
+                added_sugar_g: 0,
+            }),
+            ingredient(2, "Локшина удон", 200, "g", {
+                calories: 210,
+                protein_g: 5.2,
+                carbs_g: 43,
+                fat_g: 0.8,
+                fiber_g: 2.4,
+                sugar_g: 0.6,
+                added_sugar_g: 0,
+            }),
+            ingredient(3, "Устричний соус", 20, "g", {
+                calories: 70,
+                protein_g: 2.8,
+                carbs_g: 5,
+                fat_g: 3.2,
+                sugar_g: 10.7,
+                added_sugar_g: 6,
+            }),
+        ],
+    };
+    const itemsByRow = (rows: Meal[]) =>
+        new Map(
+            rows
+                .filter((m) => ITEMS[m.description])
+                .map((m) => [m.id, ITEMS[m.description]!]),
+        );
+    // Alcohol: meal-logged has tracking off (so the wine's figure is nulled,
+    // as the server does), the other two have it on.
+    const dayItems = (alcoholOn: boolean) =>
+        buildMealItemsMeta(dayMeals, itemsByRow(dayMeals), alcoholOn);
+    const summaryItems = buildMealItemsMeta(
+        summaryMealRows,
+        itemsByRow(summaryMealRows),
+        true,
+    );
+    // The key is present only when some row has items, as on the server.
+    const itemsEntry = (payload: unknown) =>
+        payload ? { [MEAL_ITEMS_META_KEY]: payload } : {};
+
     // Per-widget CallToolResult `_meta`, delivered beside structuredContent.
     const weight = weightTrendsFixture(params);
     const trends = trendsFixture(params, macroDrinkUnit);
@@ -732,6 +900,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
         "nutrition-summary": {
             ...summaryMeta,
             [ADDED_SUGAR_META_KEY]: summaryAddedSugar,
+            ...itemsEntry(summaryItems),
         },
         "weight-trends": weight.meta,
         trends: trends.meta,
@@ -740,15 +909,24 @@ function hostPage(widget: string, params: URLSearchParams): string {
         // three-cell limits row (alcohol, caffeine, fiber). meal-logged has
         // alcohol off: the sugars row above caffeine and fiber. ?noMeta=1
         // drops the key and sugar goes back into the limits row.
-        "goal-progress": {
-            // Its payload lists no meals, so neither does its `_meta`.
-            [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
-                goal: 25,
-                days: { "2026-07-15": dayMeals },
-                meals: [],
-            }),
+        // With ?meals=0 its payload lists no meals, so neither does its
+        // `_meta`.
+        "goal-progress": staticGoalProgress
+            ? {
+                  [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
+                      goal: 25,
+                      days: { "2026-07-15": dayMeals },
+                      meals: [],
+                  }),
+              }
+            : {
+                  [ADDED_SUGAR_META_KEY]: dayAddedSugar,
+                  ...itemsEntry(dayItems(true)),
+              },
+        "meal-logged": {
+            [ADDED_SUGAR_META_KEY]: dayAddedSugar,
+            ...itemsEntry(dayItems(false)),
         },
-        "meal-logged": { [ADDED_SUGAR_META_KEY]: dayAddedSugar },
     };
 
     // ?addedSugar=unrecorded|zero: the added-sugar edge cases, against a
@@ -844,12 +1022,20 @@ function hostPage(widget: string, params: URLSearchParams): string {
         };
     };
     if (asEdge) {
+        // meal-logged and goal-progress switch to the edge rows, which carry
+        // no ingredients, so their items key goes (it is positional and would
+        // no longer line up). The summary keeps its rows, so it keeps its key.
         METAS["meal-logged"] = {
             [ADDED_SUGAR_META_KEY]: edgeDayMeta(edgeMeals),
         };
-        METAS["goal-progress"] = { [ADDED_SUGAR_META_KEY]: edgeDayMeta([]) };
+        METAS["goal-progress"] = {
+            [ADDED_SUGAR_META_KEY]: edgeDayMeta(
+                staticGoalProgress ? [] : edgeMeals,
+            ),
+        };
         METAS["nutrition-summary"] = {
             ...summaryMeta,
+            ...itemsEntry(summaryItems),
             [ADDED_SUGAR_META_KEY]: {
                 ...edgeWindowMeta(summaryAddedSugar),
                 meals: Object.fromEntries(
@@ -903,12 +1089,12 @@ function hostPage(widget: string, params: URLSearchParams): string {
             goals,
             totals,
             has_goals: true,
-            // Deliberately empty, so one macro widget covers the strip's
-            // static path: with no per-meal rows behind them, no tile is a
-            // button, the "tap a metric" hint is absent and every cell reads
-            // as the plain figure it always was. The interactive path is
-            // meal-logged and nutrition-summary below, which carry meals.
-            meals: [],
+            // The four day rows (alcohol on), two of them with ingredients.
+            // ?meals=0 empties it to preview the strip's static path: with no
+            // per-meal rows behind them, no tile is a button, the "tap a
+            // metric" hint is absent and every cell reads as the plain figure
+            // it always was.
+            meals: staticGoalProgress ? [] : meals,
         },
         "meal-logged": {
             action: "logged",
@@ -975,6 +1161,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
             // edgeTotals has no water, so neither does the header's count.
             water_entries: 0,
             totals: edgeTotals,
+            meals: staticGoalProgress ? [] : edgeRows,
         };
     }
     // Probe and gallery paint their own UI; anything non-null will do.
@@ -997,7 +1184,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
 </style></head>
 <body>
   <strong>${widget}</strong>
-  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""}${noMeta ? " noMeta=1" : ""} theme=${theme}${locale ? " locale=" + locale : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"}</span>
+  <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""}${noMeta ? " noMeta=1" : ""}${staticGoalProgress ? " meals=0" : ""} theme=${theme}${locale ? " locale=" + locale : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"}</span>
   <div style="margin-top:8px"><iframe id="frame" sandbox="allow-scripts" src="/widget/${encodeURIComponent(widget)}"></iframe></div>
   <div style="margin-top:8px">
     <button onclick="hostRequest(1)">host req id=1</button>
