@@ -4544,7 +4544,7 @@ export function registerTools(
                     .enum(DIGEST_PERIODS)
                     .optional()
                     .describe(
-                        "yesterday (the default), today (so far, up to now), last_7_days or last_30_days. Both ranges end yesterday.",
+                        "yesterday (the default), today (so far), last_7_days or last_30_days. Both ranges end yesterday.",
                     ),
             }),
             outputSchema: z.object({

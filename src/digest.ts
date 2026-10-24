@@ -432,7 +432,11 @@ export type DigestHighlight =
           key: DigestMetric;
           days: number | null;
           name: string;
-          each: number;
+          /** Per occurrence, when every occurrence carried the same value;
+           * null when they differ (estimates vary), and `total` then is the
+           * only true figure. */
+          each: number | null;
+          total: number;
           count: number;
       }
     | {
@@ -589,10 +593,16 @@ export function computeDigest(input: DigestInput): DigestResult {
         (k) => k !== "alcohol_g" || alcohol != null,
     );
 
-    // Bucket the window by local day once.
+    // Bucket the window by local day once. Rows are cut by local DAY, not by
+    // instant: a bare-date entry for today is anchored at local noon, a
+    // placeholder for an unknown time, so cutting at `now` would hide it
+    // from "today so far" until 12:00. Every other read path (summary,
+    // get_meals_today) buckets by `dateInTz` alone; this matches them and
+    // drops only rows dated after today (the importer accepts 48 h ahead).
+    const afterToday = (iso: string) => dateInTz(iso, tz) > today;
     const mealsBy = new Map<string, Meal[]>();
     for (const m of input.meals) {
-        if (new Date(m.logged_at).getTime() > now.getTime()) continue;
+        if (afterToday(m.logged_at)) continue;
         const d = dateInTz(m.logged_at, tz);
         const list = mealsBy.get(d) ?? [];
         list.push(m);
@@ -602,7 +612,7 @@ export function computeDigest(input: DigestInput): DigestResult {
         list.sort((a, b) => a.logged_at.localeCompare(b.logged_at));
     const waterBy = new Map<string, WaterEntry[]>();
     for (const w of input.water) {
-        if (new Date(w.logged_at).getTime() > now.getTime()) continue;
+        if (afterToday(w.logged_at)) continue;
         const d = dateInTz(w.logged_at, tz);
         const list = waterBy.get(d) ?? [];
         list.push(w);
@@ -611,7 +621,7 @@ export function computeDigest(input: DigestInput): DigestResult {
     // Weight: the day's last weigh-in, in the user's unit.
     const weightBy = new Map<string, number>();
     const weightsSorted = [...input.weights]
-        .filter((w) => new Date(w.logged_at).getTime() <= now.getTime())
+        .filter((w) => !afterToday(w.logged_at))
         .sort((a, b) => a.logged_at.localeCompare(b.logged_at));
     for (const w of weightsSorted)
         weightBy.set(
@@ -1315,7 +1325,13 @@ export function computeDigest(input: DigestInput): DigestResult {
                 if (w.kind !== "target") {
                     const by = new Map<
                         string,
-                        { name: string; v: number; c: number; one: number }
+                        {
+                            name: string;
+                            v: number;
+                            c: number;
+                            one: number;
+                            same: boolean;
+                        }
                     >();
                     for (const m of allMeals) {
                         const v = metricValue(m, w.key);
@@ -1326,7 +1342,9 @@ export function computeDigest(input: DigestInput): DigestResult {
                             v: 0,
                             c: 0,
                             one: v,
+                            same: true,
                         };
+                        if (v !== e.one) e.same = false;
                         e.v += v;
                         e.c += 1;
                         by.set(k, e);
@@ -1341,7 +1359,8 @@ export function computeDigest(input: DigestInput): DigestResult {
                         key: w.key,
                         days: isDay ? null : w.over_days,
                         name: top[1].name,
-                        each: rv(w.key, top[1].one),
+                        each: top[1].same ? rv(w.key, top[1].one) : null,
+                        total: rv(w.key, top[1].v),
                         count: top[1].c,
                     };
                 } else {

@@ -461,6 +461,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         intakeRange: "{kcal} kcal a day · logged {n} of {of} days", // i18n:pending
         mealCount: { one: "{n} meal", other: "{n} meals" }, // i18n:pending
         noGoals: "No goals set", // i18n:pending
+        averagesOnly: "Only the averages and goals are available in this view.", // i18n:pending
         score: {
             met: "{n} of {of} goals met", // i18n:pending
             onTrack: "{n} of {of} goals on track", // i18n:pending
@@ -697,6 +698,7 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
             overToday: "{label} is over so far", // i18n:pending
             overPast: "{label} went over", // i18n:pending
             overEach: " — largest source: {name}, {x} each time (×{n}).", // i18n:pending
+            overTotal: " — largest source: {name}, {x} in total (×{n}).", // i18n:pending
             overOnce: " — largest source: {name}, {x}.", // i18n:pending
             shortRange: {
                 one: "{label} fell short on {n} day", // i18n:pending

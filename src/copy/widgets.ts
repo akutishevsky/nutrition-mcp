@@ -172,6 +172,8 @@ export const DIGEST_STRINGS_EN = {
     intakeRange: "{kcal} kcal a day · logged {n} of {of} days",
     mealCount: { one: "{n} meal", other: "{n} meals" },
     noGoals: "No goals set",
+    // When a host drops `_meta`: only the frozen averages and goals are known.
+    averagesOnly: "Only the averages and goals are available in this view.",
     score: {
         met: "{n} of {of} goals met",
         onTrack: "{n} of {of} goals on track",
@@ -408,6 +410,7 @@ export const DIGEST_STRINGS_EN = {
         overToday: "{label} is over so far",
         overPast: "{label} went over",
         overEach: " — largest source: {name}, {x} each time (×{n}).",
+        overTotal: " — largest source: {name}, {x} in total (×{n}).",
         overOnce: " — largest source: {name}, {x}.",
         shortRange: {
             one: "{label} fell short on {n} day",

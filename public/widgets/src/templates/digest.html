@@ -2011,6 +2011,23 @@
                 "alcohol_g",
                 "water_ml",
             ];
+            // Each metric's kind once a goal is set (src/digest.ts KIND); only
+            // the no-_meta fallback needs it, to label a goal it passes through.
+            const KIND = {
+                calories: "budget",
+                protein_g: "target",
+                carbs_g: "target",
+                fat_g: "target",
+                fiber_g: "target",
+                sugar_g: "limit",
+                added_sugar_g: "limit",
+                saturated_fat_g: "limit",
+                trans_fat_g: "none",
+                sodium_mg: "limit",
+                caffeine_mg: "limit",
+                alcohol_g: "limit",
+                water_ml: "target",
+            };
             const UNIT = {
                 calories: "kcal",
                 protein_g: "g",
@@ -2245,8 +2262,12 @@
 
             // ---------- payload ----------
             // The averages-only view when a host dropped `_meta`: the same
-            // shape, built from the frozen structuredContent, with no
-            // statuses (nothing here knows the goal semantics).
+            // shape, built from the frozen structuredContent. Goals pass
+            // through with their kind, but nothing gets a status (no met or
+            // over claims), and html() draws only what this can back: the
+            // header, calories, the nutrient table and water — never goals,
+            // trends, weight, meals or highlights, whose empty defaults would
+            // read as facts ("No weigh-ins yet", "Not enough logged days").
             function fallbackMeta(data) {
                 const av = O(data.averages);
                 const gl = O(data.goals);
@@ -2256,7 +2277,7 @@
                     (k) => k !== "alcohol_g" || N(av.alcohol_g) != null,
                 ).map((k) => ({
                     key: k,
-                    kind: "none",
+                    kind: N(gl[k]) != null ? KIND[k] : "none",
                     value: N(av[k]),
                     goal: N(gl[k]),
                     status: N(av[k]) == null ? "nr" : "none",
@@ -3769,6 +3790,10 @@
                                                   .join(", "),
                                           },
                                       )
+                                          // No delta (the no-_meta view
+                                          // has no statuses): drop the
+                                          // dangling separator.
+                                          .replace(/[,、，]\s*$/, "")
                                     : tpl(D.ariaPlain, {
                                           label: label(r.key),
                                           value: valU,
@@ -3900,8 +3925,10 @@
                         '</span><span class="bu">' +
                         esc(unit) +
                         "</span></div>";
-                    if (c.isDay) {
-                        const per = wi.g ? wi.g / 10 : 250;
+                    // Day cells are tenths of the goal; with no goal there is
+                    // no scale to fill, and a fixed one would read as a target.
+                    if (c.isDay && wi.g) {
+                        const per = wi.g / 10;
                         const fill = Math.min(wi.v / per, 10);
                         let cells = "";
                         for (let j = 0; j < 10; j++)
@@ -3917,9 +3944,9 @@
                             '<div class="wcells" aria-hidden="true">' +
                             cells +
                             "</div>";
-                    } else {
+                    } else if (c.isRange && !c.d.fallback) {
                         const days = rangeDays(c);
-                        if (wi.g)
+                        if (wi.g && wi.rec)
                             water +=
                                 '<div class="cmeta">' +
                                 esc(
@@ -4042,7 +4069,12 @@
                         "</div>";
                 }
                 weight += "</div>";
-                return '<div class="cards2">' + water + weight + "</div>";
+                return (
+                    '<div class="cards2">' +
+                    water +
+                    (c.d.fallback ? "" : weight) +
+                    "</div>"
+                );
             }
             function cardsSummary(c) {
                 const D = T.digest.summaries;
@@ -4056,6 +4088,7 @@
                                   (c.isRange ? " " + T.digest.water.aDay : ""),
                           })
                         : D.noWater;
+                if (c.d.fallback) return w;
                 const k = wi2.latest
                     ? tpl(D.weight, { v: wu("weight", wi2.latest.value) })
                     : D.noWeigh;
@@ -4330,11 +4363,26 @@
                                           c.isToday ? D.overToday : D.overPast,
                                           { label: label(h.key) },
                                       ),
-                            c: tpl(cnt > 1 ? D.overEach : D.overOnce, {
-                                name: trim(S(h.name)),
-                                x: wu(h.key, N(h.each) || 0),
-                                n: cnt,
-                            }),
+                            // `each` is null when the occurrences differ;
+                            // the total is then the only true figure.
+                            c: tpl(
+                                cnt <= 1
+                                    ? D.overOnce
+                                    : N(h.each) != null
+                                      ? D.overEach
+                                      : D.overTotal,
+                                {
+                                    name: trim(S(h.name)),
+                                    x: wu(
+                                        h.key,
+                                        (cnt > 1 ? N(h.each) : null) ??
+                                            N(h.total) ??
+                                            N(h.each) ??
+                                            0,
+                                    ),
+                                    n: cnt,
+                                },
+                            ),
                         });
                     } else if (h.code === "short_source" && isKey(h.key)) {
                         const days = N(h.days);
@@ -4597,27 +4645,32 @@
                 const lv1 = ST.level >= 1;
                 out +=
                     '<div class="gcard' + (ST.closing ? " closing" : "") + '">';
+                const fb = !!c.d.fallback;
+                const fbNote =
+                    '<div class="nrnote">' + esc(D.averagesOnly) + "</div>";
                 if (!lv1) {
                     out +=
                         '<div class="dg"><div class="dA">' +
                         calSection(c) +
                         '</div><div class="dB">' +
-                        gMini(c) +
+                        (fb ? fbNote : gMini(c)) +
                         "</div></div>" +
                         factsHtml(c) +
                         bigChev(c) +
                         "</div>";
                     return out;
                 }
-                const goals = sec(
-                    "goals",
-                    2,
-                    "o-goals",
-                    D.sections.goals,
-                    goalsMeta(c),
-                    goalsSummary(c),
-                    goalsBody(c),
-                );
+                const goals = fb
+                    ? ""
+                    : sec(
+                          "goals",
+                          2,
+                          "o-goals",
+                          D.sections.goals,
+                          goalsMeta(c),
+                          goalsSummary(c),
+                          goalsBody(c),
+                      );
                 const cards = sec(
                     "cards",
                     5,
@@ -4631,15 +4684,17 @@
                     cardsSummary(c),
                     cardsBody(c),
                 );
-                const trends = sec(
-                    "trends",
-                    3,
-                    "o-trends",
-                    D.sections.trends,
-                    trendsMeta(c),
-                    trendsSummary(c),
-                    trendsBody(c),
-                );
+                const trends = fb
+                    ? ""
+                    : sec(
+                          "trends",
+                          3,
+                          "o-trends",
+                          D.sections.trends,
+                          trendsMeta(c),
+                          trendsSummary(c),
+                          trendsBody(c),
+                      );
                 const nRows = nutsRows(c);
                 const nOver = nRows.filter((r) => r.status === "over").length;
                 const nuts = sec(
@@ -4656,10 +4711,10 @@
                         (nOver
                             ? SEP() + tpl(D.summaries.over, { n: nOver })
                             : ""),
-                    nutsBody(c),
+                    nutsBody(c) + (fb ? fbNote : ""),
                 );
                 const meals =
-                    c.isDay && !dayMeals(c).length
+                    fb || (c.isDay && !dayMeals(c).length)
                         ? ""
                         : sec(
                               "meals",
@@ -4670,7 +4725,7 @@
                               mealsSummary(c),
                               mealsBody(c),
                           );
-                const items = hlItems(c);
+                const items = fb ? [] : hlItems(c);
                 const hl = items.length
                     ? sec(
                           "hl",
@@ -4683,7 +4738,7 @@
                       )
                     : "";
                 const rest =
-                    c.isToday && c.d.rest
+                    !fb && c.isToday && c.d.rest
                         ? sec(
                               "rest",
                               8,

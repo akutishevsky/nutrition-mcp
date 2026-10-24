@@ -8139,6 +8139,47 @@ describe("get_digest", () => {
         });
     });
 
+    test("a failed meal-items read drops the items, never the digest", async () => {
+        // No profile: the day is UTC, so yesterday's noon is yesterday.
+        const yesterday = new Date(Date.now() - 86_400_000)
+            .toISOString()
+            .slice(0, 10);
+        db.goals = goals();
+        db.meals = [meal({ logged_at: `${yesterday}T12:00:00.000Z` })];
+        db.mealItems.set(MEAL_ID, [ingredient(1, "Fusilli")]);
+        type DigestMeals = { meals: { items: { name: string }[] | null }[] };
+        await withTools(null, async (call) => {
+            const ok = await call("get_digest", { period: "yesterday" });
+            const okMeta = ok._meta![DIGEST_META_KEY] as DigestMeals;
+            expect(okMeta.meals[0]!.items!.map((i) => i.name)).toEqual([
+                "Fusilli",
+            ]);
+        });
+        db.mealItemsFailure = new Error("connection reset");
+        const warn = spyOn(console, "warn").mockImplementation(() => {});
+        try {
+            // withTools lists tools first, so the client checks this
+            // structuredContent against the advertised strict schema.
+            await withTools(null, async (call) => {
+                const r = await call("get_digest", { period: "yesterday" });
+                expect(r.isError).toBeFalsy();
+                expect(r.structuredContent?.logged_days).toBe(1);
+                const meta = r._meta![DIGEST_META_KEY] as DigestMeals;
+                expect(meta.meals).toHaveLength(1);
+                expect(meta.meals[0]!.items).toBeNull();
+            });
+            expect(
+                warn.mock.calls.some((c) =>
+                    String(c[0]).startsWith(
+                        "[widget] digest meal-items read error ref=",
+                    ),
+                ),
+            ).toBe(true);
+        } finally {
+            warn.mockRestore();
+        }
+    });
+
     test("an unknown period is refused by the schema", async () => {
         await withTools(null, async (call) => {
             const r = await call("get_digest", { period: "last_year" });

@@ -165,13 +165,11 @@ describe("periods", () => {
         expect(row(r, "calories")!.value).toBe(777);
     });
 
-    test("today stops at now, and yesterday is compared up to the same clock time", () => {
+    test("today is everything dated today, and yesterday is compared up to the same clock time", () => {
         const r = run({
             period: "today",
             meals: [
                 meal("2026-10-24", "08:00", { calories: 400 }),
-                // After 17:40: not part of "so far" (a future-dated entry).
-                meal("2026-10-24", "19:00", { calories: 900 }),
                 meal("2026-10-23", "12:00", { calories: 600 }),
                 meal("2026-10-23", "20:00", { calories: 1000 }),
             ],
@@ -179,6 +177,26 @@ describe("periods", () => {
         expect(row(r, "calories")!.value).toBe(400);
         expect(r.meta.meals).toHaveLength(1);
         expect(r.meta.meals[0]!.time).toBe("08:00");
+    });
+
+    test("a bare-date entry for today (anchored at local noon) counts before noon; tomorrow's does not", () => {
+        // 09:00 in Kyiv. Bare dates resolve to local 12:00, a placeholder for
+        // an unknown time, so cutting today at the current instant would hide
+        // the row until noon; the digest cuts by local day like every other
+        // read path, and drops only rows dated after today.
+        const r = run({
+            period: "today",
+            now: new Date("2026-10-24T06:00:00Z"),
+            meals: [
+                meal("2026-10-24", "12:00", { calories: 700 }),
+                meal("2026-10-25", "12:00", { calories: 900 }),
+            ],
+            water: [water("2026-10-24", "12:00", 500)],
+        });
+        expect(r.meta.as_of).toBe("09:00");
+        expect(row(r, "calories")!.value).toBe(700);
+        expect(r.meta.meals).toHaveLength(1);
+        expect(r.meta.water.value_ml).toBe(500);
     });
 });
 
@@ -426,7 +444,43 @@ describe("highlights are descriptive and drawn from the user's own log", () => {
             days: null,
             name: "Ramen",
             each: 2650,
+            total: 2650,
             count: 1,
+        });
+    });
+
+    test("a repeated source with differing values reports its total, not one occurrence as 'each'", () => {
+        const ramen = (hhmm: string, sodium_mg: number) =>
+            meal("2026-10-23", hhmm, {
+                description: "Ramen",
+                sugar_g: 2,
+                sodium_mg,
+            });
+        const varied = run({
+            period: "yesterday",
+            meals: [ramen("12:00", 1200), ramen("19:00", 2000)],
+        });
+        expect(varied.meta.highlights).toContainEqual({
+            code: "over_source",
+            key: "sodium_mg",
+            days: null,
+            name: "Ramen",
+            each: null,
+            total: 3200,
+            count: 2,
+        });
+        const same = run({
+            period: "yesterday",
+            meals: [ramen("12:00", 1500), ramen("19:00", 1500)],
+        });
+        expect(same.meta.highlights).toContainEqual({
+            code: "over_source",
+            key: "sodium_mg",
+            days: null,
+            name: "Ramen",
+            each: 1500,
+            total: 3000,
+            count: 2,
         });
     });
 
