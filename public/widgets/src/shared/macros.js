@@ -1124,6 +1124,7 @@ const SOURCE_NUTRIENT_KEYS = [
     "added_sugar_g",
     "alcohol_g",
     "caffeine_mg",
+    "sodium_mg",
 ];
 // Translated word per tag kind. The brand words (USDA, OFF) are the same in
 // every locale; the rest are T.macros entries.

@@ -287,6 +287,17 @@ function nvRowDelta(row, V) {
         : "";
 }
 
+// On meal-logged the row's inline word is this meal's part ("+5 g") and the
+// over / near state is colour only until the row opens; say it in the row's
+// accessible name. Elsewhere the status word is already visible text.
+function nvRowStatusVh(row, V) {
+    if (V.mode !== "meal" || row.nr || !row.hasGoal) return "";
+    if (!row.status.over && !row.status.near) return "";
+    return row.status.text
+        ? `<span class="vh">, ${esc(row.status.text)}</span>`
+        : "";
+}
+
 function nvRowValue(row, V) {
     const S = T.nutritionSummary;
     const unitTxt = nvUnitLabel(row.unit, V.drinkUnit);
@@ -417,6 +428,34 @@ function nvMoreHtml(V, key, rowsLen, shown) {
     return txt ? `<div class="mnote num">${esc(txt)}</div>` : "";
 }
 
+// A one-day summary is not always every meal of the day: get_nutrition_summary
+// keeps the union of each metric's top 8 (topMealBreakdown), so a day of more
+// than 8 meals can arrive trimmed. `meal_count` says by how much. Returns how
+// many meals behind `key` the list leaves out: exact for a list of every meal
+// (the trimmed rows), exact from `_meta`'s count for a sparse list, and -1
+// ("unknown, maybe some") when a host dropped `_meta`. 0 when nothing was
+// trimmed — then the list is the whole day.
+function nvDayHidden(V, key, list) {
+    const shown = (V.meals || []).length;
+    if (!V.bounded || V.mealTotal == null || V.mealTotal <= shown) return 0;
+    if (!NV_SPARSE.includes(key)) return V.mealTotal - shown;
+    const count = V.contributors ? V.contributors[key] : null;
+    if (!Number.isFinite(count)) return -1;
+    const listed = list.filter((x) => x.v != null && x.v > 0).length;
+    return Math.max(count - listed, 0);
+}
+
+function nvDayMoreHtml(V, key, list) {
+    const hidden = nvDayHidden(V, key, list);
+    const txt =
+        hidden < 0
+            ? T.macros.moreMealsMaybe
+            : hidden > 0
+              ? plural(T.macros.moreMeals, hidden)
+              : "";
+    return txt ? `<div class="mnote num">${esc(txt)}</div>` : "";
+}
+
 // The by-day strip of a range for one nutrient (calories included).
 function nvStripHtml(V, key, k, goal, kind) {
     const S = T.nutritionSummary;
@@ -524,15 +563,23 @@ function nvBodyHtml(V, row, st, enter) {
                 : all;
         }
         if (!list.length) {
-            msg = tpl(S["noneIn" + dayKey], { label: row.label });
+            // A trimmed day can hide every meal behind a sparse nutrient.
+            if (V.mode === "day" && nvDayHidden(V, key, list) !== 0)
+                html += nvDayMoreHtml(V, key, list);
+            else msg = tpl(S["noneIn" + dayKey], { label: row.label });
         } else {
             if (V.mode === "range")
                 html += `<div class="bh bh2">${esc(S.topMeals)}</div>`;
             else if (V.mode === "day") {
-                // The meals listed, and how many of them carry no figure.
+                // The meals listed (or, when the server trimmed the day, the
+                // day's whole count), and how many listed carry no figure.
                 const nrMeals = list.filter((x) => x.v == null).length;
+                const dayHidden = nvDayHidden(V, key, list);
                 html += `<div class="bh num">${esc(
-                    plural(S.byMealCount, list.length) +
+                    plural(
+                        S.byMealCount,
+                        list.length + (dayHidden > 0 ? dayHidden : 0),
+                    ) +
                         (nrMeals
                             ? " · " + plural(S.notRecordedCount, nrMeals)
                             : ""),
@@ -551,6 +598,7 @@ function nvBodyHtml(V, row, st, enter) {
             );
             if (V.mode === "range")
                 html += nvMoreHtml(V, key, all.length, list.length);
+            else if (V.mode === "day") html += nvDayMoreHtml(V, key, list);
         }
     }
     if (msg) html += `<div class="msg">${esc(msg)}</div>`;
@@ -620,7 +668,7 @@ function nvRowsHtml(V, rows, st, enterRows, enterBody) {
             const body = sel
                 ? `<div class="accB${enterBody ? " enter" : ""}">${nvBodyHtml(V, row, st, enterBody)}</div>`
                 : "";
-            return `<div class="acc${sel ? " sel" : ""}${row.status.over ? " is-over" : ""}" data-mc="1" style="--mc:var(--${row.def.mc});--i:${i + 1}"><button type="button" class="reset accH" data-act="row" data-k="${row.key}" data-fk="row:${row.key}" aria-expanded="${sel ? "true" : "false"}"><span class="em" aria-hidden="true">${row.def.emoji}</span><span class="ab"><span class="lb">${esc(row.label)}${nvRowDelta(row, V)}</span><span class="vl num">${nvRowValue(row, V)}</span></span>${nvMiniGauge(row, V)}${NV_CHEV_DOWN}</button>${body}</div>`;
+            return `<div class="acc${sel ? " sel" : ""}${row.status.over ? " is-over" : ""}" data-mc="1" style="--mc:var(--${row.def.mc});--i:${i + 1}"><button type="button" class="reset accH" data-act="row" data-k="${row.key}" data-fk="row:${row.key}" aria-expanded="${sel ? "true" : "false"}"><span class="em" aria-hidden="true">${row.def.emoji}</span><span class="ab"><span class="lb">${esc(row.label)}${nvRowDelta(row, V)}</span><span class="vl num">${nvRowValue(row, V)}</span>${nvRowStatusVh(row, V)}</span>${nvMiniGauge(row, V)}${NV_CHEV_DOWN}</button>${body}</div>`;
         })
         .join("")}</div>`;
 }
@@ -671,7 +719,7 @@ function nvHeroHtml(V, st) {
             ? `<div class="gdelta num">${h.deltaHtml}</div>`
             : ""
         : `<div class="gempty">${esc(h.emptyText || "")}</div>`;
-    return `<div class="ghero">${gtop}${gaugeHtml(Object.assign({}, h.gauge, { calOpen: st.open && st.sel === "calories", picked: nvPickedSeg(V, st) }))}${below}${V.hasData && h.stats ? gaugeStatsHtml(h.stats) : ""}${V.hasData ? gaugePillButton(st.open) : ""}</div>`;
+    return `<div class="ghero">${gtop}${gaugeHtml(Object.assign({}, h.gauge, { calOpen: st.open && st.sel === "calories", picked: nvPickedSeg(V, st), inert: !V.hasData }))}${below}${V.hasData && h.stats ? gaugeStatsHtml(h.stats) : ""}${V.hasData ? gaugePillButton(st.open) : ""}</div>`;
 }
 
 // The gauge segment holding the open meal, when the calories panel is open.
@@ -708,7 +756,7 @@ function nvAct(root, c, el) {
     if (st.closing) return;
     const act = el.getAttribute("data-act");
     const live = (txt) => {
-        const v = root.querySelector(".vh");
+        const v = root.querySelector(".gcard > .vh");
         if (v) v.textContent = txt || "";
     };
     if (act === "tog") {

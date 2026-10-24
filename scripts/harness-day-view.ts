@@ -738,6 +738,10 @@ function summaryDay(name: string) {
             water: number;
             alcohol?: boolean;
             goals?: boolean;
+            /** Bound the rows the way get_nutrition_summary does (each
+             *  metric's top MEAL_BREAKDOWN_TOP_N), so the day arrives with
+             *  fewer rows than meal_count. */
+            trim?: boolean;
         }
     > = {
         today: {
@@ -782,6 +786,26 @@ function summaryDay(name: string) {
             water: 0,
         },
         nothing: { list: [], water: 0 },
+        // Twelve meals: the green tea tops no metric, so the server drops
+        // its row and meal_count (12) says so.
+        trimmed: {
+            list: [
+                [OATS, "07:40"],
+                [SNACK("Apple", 95, 25, 2), "09:30"],
+                [YOG, "10:40"],
+                [SAND, "13:05"],
+                [SNACK("Banana", 105, 27, 1), "14:10"],
+                [FLAT, "15:30"],
+                [SNACK("Cola", 140, 35, 15), "16:20"],
+                [SNACK("Potato chips", 160, 15, 150), "17:00"],
+                [SALAD, "19:20"],
+                [PIZZA, "20:45"],
+                [SNACK("Protein bar", 210, 22, 200), "21:10"],
+                [SNACK("Green tea", 2, 0, 2), "22:15"],
+            ],
+            water: 1400,
+            trim: true,
+        },
         "no-goals": {
             list: [
                 [OATS, "08:10"],
@@ -802,7 +826,10 @@ function summaryDay(name: string) {
             : { ...GOALS, alcohol_g: alcohol ? 20 : null };
     const t = totalsOf(meals, sc.water, alcohol);
     const rec = (k: keyof Meal) => (meals.some((m) => m[k] != null) ? 1 : 0);
-    const rows = breakdown(meals, true, alcohol);
+    const allRows = breakdown(meals, true, alcohol);
+    const kept = sc.trim ? topRows(allRows) : allRows.map((_, i) => i);
+    const rows = kept.map((i) => allRows[i]!);
+    const keptMeals = kept.map((i) => meals[i]!);
     const result = {
         start_date: date,
         end_date: date,
@@ -844,14 +871,14 @@ function summaryDay(name: string) {
         [ADDED_SUGAR_META_KEY]: buildAddedSugarMeta({
             goal: lim.added_sugar_g,
             days,
-            meals,
+            meals: keptMeals,
             contributorsOf: meals,
             extra: [],
         }),
         [SATURATED_FAT_META_KEY]: buildSaturatedFatMeta({
             goal: lim.saturated_fat_g,
             days,
-            meals,
+            meals: keptMeals,
             contributorsOf: meals,
             extra: [],
             transExtra: [],
@@ -859,14 +886,38 @@ function summaryDay(name: string) {
         [SODIUM_META_KEY]: buildSodiumMeta({
             goal: lim.sodium_mg,
             days,
-            meals,
+            meals: keptMeals,
             contributorsOf: meals,
             extra: [],
         }),
-        [MEAL_TIMES_META_KEY]: buildMealTimesMeta(meals, TZ),
-        ...itemsAndSources(meals, items, alcohol),
+        [MEAL_TIMES_META_KEY]: buildMealTimesMeta(keptMeals, TZ),
+        ...itemsAndSources(keptMeals, items, alcohol),
     };
     return { result, meta };
+}
+
+// topMealBreakdown's rule (src/mcp.ts, not importable here: it pulls in
+// Supabase): the order-preserving union of each metric's top N rows with a
+// value above 0, ties to the earlier row.
+function topRows(rows: ReturnType<typeof breakdown>): number[] {
+    const keys = [
+        "calories",
+        "protein_g",
+        "carbs_g",
+        "fat_g",
+        "fiber_g",
+        "sugar_g",
+        "alcohol_g",
+        "caffeine_mg",
+    ] as const;
+    const keep = new Set<number>();
+    for (const k of keys)
+        rows.map((r, i) => ({ i, v: r[k] ?? 0 }))
+            .filter((r) => r.v > 0)
+            .sort((a, b) => b.v - a.v || a.i - b.i)
+            .slice(0, MEAL_BREAKDOWN_TOP_N)
+            .forEach((r) => keep.add(r.i));
+    return rows.map((_, i) => i).filter((i) => keep.has(i));
 }
 
 function summaryRange(name: string) {

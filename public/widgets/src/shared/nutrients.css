@@ -503,6 +503,13 @@
 
 /* ---- Desktop: three columns of rows; an open card spans the row --------- */
 @media (min-width: 640px) {
+    /* base.css caps every widget at 760px; the day view's three-column rows
+       are drawn for the ~884px the desktop artboards lay out, and at 760px
+       the value line cuts its goal off ("2,073 / 2,3…"). Scoped to the two
+       day-view templates' root, so no other widget widens. */
+    .wrap.dayview {
+        max-width: 920px;
+    }
     .gcard .rows {
         display: grid;
         grid-auto-flow: row dense;

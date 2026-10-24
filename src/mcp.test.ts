@@ -1667,6 +1667,10 @@ const db = {
     profile: null as actualSupabase.Profile | null,
     goals: null as NutritionGoals | null,
     meals: [] as Meal[],
+    // Other meals on the day getMealsByDate reads, kept apart from `meals`
+    // because insertMeal/updateMeal replace that list with the written row.
+    // Merged in logged_at order, like the real reader.
+    sameDayMeals: [] as Meal[],
     // Every getMealsInRange call's [start, end], in order: get_trends'
     // group_by widens its one meal read to the 5-year span, and must not
     // without group_by.
@@ -1827,7 +1831,12 @@ mock.module("./supabase.js", () => ({
     },
     getUserTimezone: async () => db.profile?.timezone ?? "UTC",
     getNutritionGoals: async () => db.goals,
-    getMealsByDate: async () => db.meals,
+    getMealsByDate: async () =>
+        db.sameDayMeals.length
+            ? [...db.meals, ...db.sameDayMeals].sort((a, b) =>
+                  a.logged_at < b.logged_at ? -1 : 1,
+              )
+            : db.meals,
     getWaterByDate: async () => db.waterByDate,
     // The range readers behind get_nutrition_summary. They ignore the dates and
     // hand back whatever the test staged: the fixtures below already sit inside
@@ -2203,6 +2212,7 @@ afterAll(() => {
 
 beforeEach(() => {
     db.profile = { ...PROFILE_BASE };
+    db.sameDayMeals = [];
     db.goals = null;
     db.healthSyncLink = null;
     db.healthSyncSentThrough = null;
@@ -10720,6 +10730,65 @@ describe("meal times ride in _meta beside the breakdown rows", () => {
                 expect(meta.times).toHaveLength(sc.meals.length);
                 expect(meta.current).toBe(sc.meals.length - 1);
                 expect(JSON.stringify(sc)).not.toContain('"times"');
+            });
+        });
+
+        test("a backdated log_meal points `current` at its own row, not the last one", async () => {
+            db.sameDayMeals = [
+                meal({
+                    id: "00000000-0000-4000-8000-0000000000aa",
+                    logged_at: `${DAY}T19:00:00Z`,
+                    description: "Late dinner",
+                }),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const r = (await client.callTool({
+                    name: "log_meal",
+                    arguments: {
+                        description: "Early oats",
+                        meal_type: "breakfast",
+                        calories: 350,
+                        logged_at: `${DAY}T07:00:00Z`,
+                    },
+                })) as unknown as ToolResult;
+                expect(r.isError).toBeFalsy();
+                const sc = r.structuredContent as {
+                    meals: { description: string }[];
+                };
+                const meta = TIMES_META.parse(r._meta?.[MEAL_TIMES_META_KEY]);
+                expect(sc.meals).toHaveLength(2);
+                expect(meta.current).not.toBe(sc.meals.length - 1);
+                expect(sc.meals[meta.current!]!.description).toBe("Early oats");
+            });
+        });
+
+        test("update_meal points `current` at the edited meal among later ones", async () => {
+            db.meals = [
+                meal({ logged_at: `${DAY}T08:00:00Z`, description: "Toast" }),
+            ];
+            db.sameDayMeals = [
+                meal({
+                    id: "00000000-0000-4000-8000-0000000000bb",
+                    logged_at: `${DAY}T19:00:00Z`,
+                    description: "Late dinner",
+                }),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const r = (await client.callTool({
+                    name: "update_meal",
+                    arguments: {
+                        id: MEAL_ID,
+                        description: "Toast",
+                        calories: 320,
+                    },
+                })) as unknown as ToolResult;
+                expect(r.isError).toBeFalsy();
+                const sc = r.structuredContent as {
+                    meals: { description: string }[];
+                };
+                const meta = TIMES_META.parse(r._meta?.[MEAL_TIMES_META_KEY]);
+                expect(sc.meals[meta.current!]!.description).toBe("Toast");
+                expect(meta.current).toBe(0);
             });
         });
 

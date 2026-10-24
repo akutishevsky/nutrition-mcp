@@ -208,6 +208,14 @@ function gaugeHtml(g) {
         "gw" +
         (g.over ? " over" : "") +
         (segs && g.picked >= 0 ? " picked" : "");
+    // The centre opens the calories panel; with nothing logged there is no
+    // panel, so it is plain text rather than a button that does nothing.
+    const face = `<span class="gemo" aria-hidden="true">🔥</span>
+    <span class="gnum num" aria-hidden="true">${gaugeReels(g.numTxt)}</span>
+    <span class="glab num" aria-hidden="true">${esc(g.glab)}</span>`;
+    const centre = g.inert
+        ? `<div class="gbtn">${face}</div>`
+        : `<button type="button" class="reset gbtn" data-act="cal" data-fk="cal" aria-expanded="${g.calOpen ? "true" : "false"}" aria-label="${esc(g.btnLabel)}">${face}</button>`;
     // The label sits on the drawing, not the wrapper: a role="img" wrapper
     // would make the centre button inside it presentational, unreachable by
     // a screen reader.
@@ -217,11 +225,7 @@ function gaugeHtml(g) {
     ${pill ? `<path class="gcap" pathLength="100" d="${GAUGE_ARC}" style="stroke-dasharray:${pill.dash};stroke-dashoffset:${pill.off}"></path>` : ""}
   </svg>
   ${pill ? `<span class="gpt2 num" aria-hidden="true" style="left:${pill.x}%;top:${pill.y}%;transform:translate(-50%,-50%) rotate(${pill.rot}deg)">${gaugeReels(g.pctTxt)}</span>` : ""}
-  <button type="button" class="reset gbtn" data-act="cal" data-fk="cal" aria-expanded="${g.calOpen ? "true" : "false"}" aria-label="${esc(g.btnLabel)}">
-    <span class="gemo" aria-hidden="true">🔥</span>
-    <span class="gnum num" aria-hidden="true">${gaugeReels(g.numTxt)}</span>
-    <span class="glab num" aria-hidden="true">${esc(g.glab)}</span>
-  </button>
+  ${centre}
 </div>`;
 }
 

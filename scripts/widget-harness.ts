@@ -63,7 +63,8 @@
 //                       _meta. meal-logged: typical, long-names, over-goal,
 //                       tiny, edited-past, sparse, busy, no-goals, no-limits;
 //                       summary: today, past-over, long-names, sparse,
-//                       nothing, no-goals, week, month-over
+//                       nothing, no-goals, trimmed (12 meals, one row
+//                       dropped as the server drops it), week, month-over
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
 
