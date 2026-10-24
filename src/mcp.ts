@@ -208,7 +208,14 @@ import {
     MEAL_BREAKDOWN_TOP_N,
     MEAL_ITEMS_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
+    GOAL_DAY_META_KEY,
 } from "./widgets.js";
+import {
+    buildGoalDayMeta,
+    GOAL_DAY_HISTORY_DAYS,
+    historyFoods,
+    type GoalDayFood,
+} from "./goal-day.js";
 import {
     assertFoodRefPlacement,
     buildNutrientSourcesMeta,
@@ -1235,6 +1242,56 @@ async function mealItemsMetaEntry(
     return {
         ...(payload ? { [MEAL_ITEMS_META_KEY]: payload } : {}),
         ...(sources ? { [NUTRIENT_SOURCES_META_KEY]: sources } : {}),
+    };
+}
+
+// get_goal_progress's GOAL_DAY_META_KEY entry (src/goal-day.ts). On today it
+// also reads the GOAL_DAY_HISTORY_DAYS before the date, and their ingredients,
+// for the foods the widget may name; a failed read drops only `foods` (logged
+// with a ref, never a user id), so the tool and the rest of the day detail
+// still go out.
+async function goalDayMetaEntry(
+    userId: string,
+    targetDate: string,
+    tz: string,
+    meals: Meal[],
+    water: WaterEntry[],
+    isToday: boolean,
+) {
+    let foods: GoalDayFood[] | undefined;
+    if (isToday) {
+        try {
+            const past = await getMealsInRange(
+                userId,
+                shiftLocalDate(targetDate, -GOAL_DAY_HISTORY_DAYS),
+                shiftLocalDate(targetDate, -1),
+                tz,
+            );
+            const all = [...past, ...meals];
+            foods = historyFoods(
+                all,
+                all.length
+                    ? await getMealItems(
+                          userId,
+                          all.map((m) => m.id),
+                      )
+                    : new Map(),
+            );
+        } catch (err) {
+            const ref = newErrorRef();
+            console.warn(
+                `[widget] goal-day history read error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+            );
+        }
+    }
+    return {
+        [GOAL_DAY_META_KEY]: buildGoalDayMeta({
+            meals,
+            water,
+            tz,
+            now: isToday ? new Date() : null,
+            foods,
+        }),
     };
 }
 
@@ -4867,6 +4924,19 @@ export function registerTools(
                               }
                             : null;
 
+                    // Independent reads, so in parallel.
+                    const [itemsEntry, dayEntry] = await Promise.all([
+                        mealItemsMetaEntry(userId, meals, alcohol),
+                        goalDayMetaEntry(
+                            userId,
+                            targetDate,
+                            tz,
+                            meals,
+                            water,
+                            targetDate === todayInTz(tz),
+                        ),
+                    ]);
+
                     return {
                         content: [
                             {
@@ -4904,11 +4974,8 @@ export function registerTools(
                                 days: { [targetDate]: meals },
                                 meals,
                             }),
-                            ...(await mealItemsMetaEntry(
-                                userId,
-                                meals,
-                                alcohol,
-                            )),
+                            ...itemsEntry,
+                            ...dayEntry,
                         },
                     };
                 },

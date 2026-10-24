@@ -92,7 +92,7 @@ import type { MealNutrientKey as UsdaMealNutrientKey } from "./meal-items.js";
 import searchBananaFx from "./__fixtures__/usda/search-banana.json";
 import usdaSrBananaFx from "./__fixtures__/usda/detail-SR_Legacy-173944-full.json";
 import usdaFoundationBananaFx from "./__fixtures__/usda/detail-Foundation-1105073-filtered.json";
-import { NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
+import { GOAL_DAY_META_KEY, NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
 
 // Snapshot BEFORE mock.module runs: Bun patches a mocked module's namespace
 // in place, so restoring from the live `actualSupabase` afterwards would hand
@@ -12269,5 +12269,107 @@ describe("USDA end to end: get_food_macros then log_meal", () => {
             );
         });
         db.foodRecords.clear();
+    });
+});
+
+// get_goal_progress's day detail (GOAL_DAY_META_KEY, built by buildGoalDayMeta
+// in src/goal-day.ts): meal times, unrecorded row nutrients, water entries and,
+// on today only, the user's own logged foods. In _meta, never structuredContent
+// (frozen), and the template must spell every key it reads.
+describe("get_goal_progress carries the day detail in _meta", () => {
+    const DAY = "2026-07-26";
+    async function call(client: Client, args: Record<string, unknown>) {
+        const r = (await client.callTool({
+            name: "get_goal_progress",
+            arguments: args,
+        })) as unknown as ToolResult;
+        expect(r.isError).toBeFalsy();
+        expect(JSON.stringify(r.structuredContent)).not.toContain("foods");
+        return r._meta?.[GOAL_DAY_META_KEY] as Record<string, unknown>;
+    }
+
+    describe.each(ERAS)("%p", (mode) => {
+        test("a past day: times and gaps per row, water, no clock, no foods", async () => {
+            db.meals = [meal({ logged_at: `${DAY}T08:10:00Z`, fiber_g: null })];
+            db.waterByDate = [
+                {
+                    id: WATER_ID,
+                    user_id: "u1",
+                    amount_ml: 300,
+                    logged_at: `${DAY}T07:50:00Z`,
+                    notes: null,
+                    created_at: `${DAY}T07:50:00Z`,
+                    idempotency_key: null,
+                },
+            ];
+            db.mealRangeArgs = [];
+            await withHttpClient("u1", mode, async (client) => {
+                const meta = await call(client, { date: DAY });
+                expect(meta).toEqual({
+                    v: 1,
+                    now: null,
+                    meals: [{ time: "08:10", missing: ["fiber_g"] }],
+                    water: [{ time: "07:50", ml: 300 }],
+                });
+            });
+            // No history read for a past day.
+            expect(db.mealRangeArgs).toEqual([]);
+            db.waterByDate = [];
+        });
+
+        test("today: the clock and the user's own foods, alcohol never named", async () => {
+            db.meals = [
+                meal({
+                    description: "Chicken bowl",
+                    protein_g: 46,
+                    alcohol_g: 0,
+                }),
+                meal({
+                    id: "00000000-0000-4000-8000-0000000000f2",
+                    description: "Beer",
+                    protein_g: 12,
+                    alcohol_g: 14,
+                }),
+            ];
+            db.mealRangeArgs = [];
+            await withHttpClient("u1", mode, async (client) => {
+                const meta = await call(client, {});
+                expect(meta.now).toMatch(/^\d\d:\d\d$/);
+                const foods = meta.foods as { name: string }[];
+                expect(foods.map((f) => f.name)).toEqual(["Chicken bowl"]);
+            });
+            expect(db.mealRangeArgs).toHaveLength(1);
+        });
+
+        test("a failed history read drops only the foods", async () => {
+            db.meals = [meal()];
+            db.mealItemsFailure = new Error("boom");
+            const warn = spyOn(console, "warn").mockImplementation(() => {});
+            try {
+                await withHttpClient("u1", mode, async (client) => {
+                    const meta = await call(client, {});
+                    expect(meta.now).not.toBeNull();
+                    expect(meta.foods).toBeUndefined();
+                    expect(meta.meals).toHaveLength(1);
+                });
+            } finally {
+                warn.mockRestore();
+                db.mealItemsFailure = null;
+            }
+        });
+    });
+
+    test("the goal-progress widget reads every key it is sent", async () => {
+        const html = await getWidgetHtml("goal-progress");
+        for (const key of [
+            GOAL_DAY_META_KEY,
+            SODIUM_META_KEY,
+            ADDED_SUGAR_META_KEY,
+            SATURATED_FAT_META_KEY,
+            MEAL_ITEMS_META_KEY,
+            NUTRIENT_SOURCES_META_KEY,
+        ]) {
+            expect(html).toContain(JSON.stringify(key));
+        }
     });
 });

@@ -139,10 +139,22 @@ export const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
  * `_meta` key for sodium, on the same tools as SATURATED_FAT_META_KEY:
  * `{ v: 1, goal, days, meals, contributors?, extra? }` built by buildSodiumMeta
  * (src/sodium.ts), milligrams. Same reason for `_meta`: output schemas are
- * frozen. No widget reads it yet; a widget that draws the sodium limit repeats
- * this literal.
+ * frozen. The goal-progress widget reads it (its sodium goal row); every
+ * widget that draws the sodium limit repeats this literal.
  */
 export const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
+
+/**
+ * get_goal_progress's day detail (GoalDayMeta, built by buildGoalDayMeta in
+ * src/goal-day.ts): the account's local clock when the date is today, each
+ * breakdown row's local time and unrecorded nutrients (aligned by position
+ * with structuredContent.meals), the day's water entries, and on today the
+ * foods from the user's own recent log that the widget may name. In `_meta`
+ * for the same frozen-outputSchema reason as the keys above, and only on that
+ * tool. The goal-progress template repeats this literal; a host that drops
+ * `_meta` leaves it without meal times, water entries or logged-food lines.
+ */
+export const GOAL_DAY_META_KEY = "nutrition-mcp.com/goal-day";
 
 /**
  * Where log_meal, update_meal, log_saved_meal, get_goal_progress and
