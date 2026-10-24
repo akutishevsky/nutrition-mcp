@@ -1,4 +1,4 @@
-// Typed content for /tools (the "all 48 tools" reference page), rendered
+// Typed content for /tools (the "all 49 tools" reference page), rendered
 // by scripts/gen-tools.ts. Extracted verbatim from the previously
 // hand-authored public/tools.html — see CLAUDE.md's "Public site" section
 // for the generator family this belongs to, and gen-tools.ts's own header
@@ -129,9 +129,9 @@ export interface ToolIdentity {
 }
 
 /**
- * All 48 tools, in the exact document order of public/tools.html (grouped
+ * All 49 tools, in the exact document order of public/tools.html (grouped
  * by category — see CategoryId — for the reader). The *set* of names must
- * equal the 48 `server.registerTool()` calls in src/mcp.ts; the two orders
+ * equal the 49 `server.registerTool()` calls in src/mcp.ts; the two orders
  * differ (mcp.ts registers in its own order, unrelated to this page's
  * reader-facing grouping). "the registered tool set and every hand-typed
  * tool count agree" in src/site-copy.test.ts enforces the set and the
@@ -556,6 +556,13 @@ export const TOOLS: ToolIdentity[] = [
         hasPhotoHint: false,
     },
     {
+        name: "get_digest",
+        category: "goals-progress",
+        badges: ["view", "widget"],
+        params: [{ name: "period", required: false }],
+        hasPhotoHint: false,
+    },
+    {
         name: "get_trends",
         category: "insights-trends",
         badges: ["view", "widget"],
@@ -768,11 +775,11 @@ export interface ToolsDoc {
 
 const TOOLS_EN: ToolsDoc = {
     meta: {
-        title: "48 Calorie, Macro, Water & Weight Tools",
+        title: "49 Calorie, Macro, Water & Weight Tools",
         description:
-            "All 48 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
+            "All 49 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
         ogDescription:
-            "All 48 tools the Nutrition MCP server gives your AI, from saved meals to a CSV importer for your history — with descriptions and example prompts.",
+            "All 49 tools the Nutrition MCP server gives your AI, from saved meals to a CSV importer for your history — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
@@ -780,7 +787,7 @@ const TOOLS_EN: ToolsDoc = {
         titleEm: "do",
         titleAfterEm: "",
         lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals and saved meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
-        countBold: "48 tools",
+        countBold: "49 tools",
         countTail: "across 7 areas",
     },
     categories: {
@@ -1291,6 +1298,14 @@ const TOOLS_EN: ToolsDoc = {
                     "End date (YYYY-MM-DD), up to 92 days including the start",
             },
             example: "Give me a summary of this past week",
+        },
+        get_digest: {
+            description:
+                "A digest of one period — yesterday, today so far, or the last 7 or 30 days — as an interactive card: calories and every nutrient against your goals, trends against the previous period, water and weight, your meals or logging habits, and a few highlights from your own log.",
+            params: {
+                period: "<code>yesterday</code> (default), <code>today</code>, <code>last_7_days</code> or <code>last_30_days</code>. Both ranges end yesterday.",
+            },
+            example: "How did I do yesterday?",
         },
         get_trends: {
             description:

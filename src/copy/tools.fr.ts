@@ -18,11 +18,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_FR: ToolsDoc = {
     meta: {
-        title: "48 outils pour suivre calories, macros, eau et poids",
+        title: "49 outils pour suivre calories, macros, eau et poids",
         description:
-            "Les 48 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
+            "Les 49 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
         ogDescription:
-            "Les 48 outils que le serveur Nutrition MCP donne à ton IA, des repas sauvegardés à l'import CSV de ton historique d'une autre app, avec descriptions et exemples de demandes.",
+            "Les 49 outils que le serveur Nutrition MCP donne à ton IA, des repas sauvegardés à l'import CSV de ton historique d'une autre app, avec descriptions et exemples de demandes.",
     },
     hero: {
         eyebrow: "Référence",
@@ -30,7 +30,7 @@ export const TOOLS_FR: ToolsDoc = {
         titleEm: "faire",
         titleAfterEm: "",
         lead: "Tu n'appelles jamais ces outils toi-même : tu parles simplement à Claude, à ChatGPT ou à un autre client MCP, et il choisit le bon outil. Voici tous les outils que le serveur Nutrition MCP met à disposition pour les repas et les repas sauvegardés, les calories et les macros, l'eau et le poids, avec ce que fait chacun et une phrase qui le déclenche.",
-        countBold: "48 outils",
+        countBold: "49 outils",
         countTail: "répartis en 7 catégories",
     },
     categories: {
@@ -555,6 +555,14 @@ export const TOOLS_FR: ToolsDoc = {
                     "Date de fin (AAAA-MM-JJ), 92 jours maximum, jour de début compris",
             },
             example: "Fais-moi un résumé de la semaine écoulée",
+        },
+        get_digest: {
+            description:
+                "Un bilan d'une période — hier, aujourd'hui jusqu'à maintenant, ou les 7 ou 30 derniers jours — sous forme de carte interactive : calories et chaque nutriment face à tes objectifs, tendances par rapport à la période précédente, eau et poids, tes repas ou habitudes de saisie, et quelques points marquants tirés de ton propre journal.",
+            params: {
+                period: "<code>yesterday</code> (par défaut), <code>today</code>, <code>last_7_days</code> ou <code>last_30_days</code>. Les deux périodes se terminent hier.",
+            },
+            example: "Comment s'est passée ma journée d'hier ?",
         },
         get_trends: {
             description:

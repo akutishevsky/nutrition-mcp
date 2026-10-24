@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_TR: ToolsDoc = {
     meta: {
-        title: "Kalori, makro, su ve kilo için 48 araç",
+        title: "Kalori, makro, su ve kilo için 49 araç",
         description:
-            "Claude, ChatGPT ve diğerleri için 48 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
+            "Claude, ChatGPT ve diğerleri için 49 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
         ogDescription:
-            "Nutrition MCP sunucusunun yapay zekâna sunduğu 48 aracın tamamı — kayıtlı yemeklerden geçmişin için bir CSV içe aktarıcıya kadar — açıklamaları ve örnek cümleleriyle.",
+            "Nutrition MCP sunucusunun yapay zekâna sunduğu 49 aracın tamamı — kayıtlı yemeklerden geçmişin için bir CSV içe aktarıcıya kadar — açıklamaları ve örnek cümleleriyle.",
     },
     hero: {
         eyebrow: "Başvuru",
@@ -20,7 +20,7 @@ export const TOOLS_TR: ToolsDoc = {
         titleEm: "her şey",
         titleAfterEm: "",
         lead: "Bu araçları hiçbir zaman kendin çağırmazsın: sadece Claude, ChatGPT ya da başka bir MCP istemcisiyle konuşursun, o da doğru aracı seçer. Aşağıda Nutrition MCP sunucusunun yemekler ve kayıtlı yemekler, kalori ve makrolar, su ve kilo için sunduğu her araç var; her birinin ne yaptığı ve onu çalıştıran bir cümleyle birlikte.",
-        countBold: "48 araç",
+        countBold: "49 araç",
         countTail: "7 alana yayılmış",
     },
     categories: {
@@ -540,6 +540,14 @@ export const TOOLS_TR: ToolsDoc = {
                     "Bitiş tarihi (YYYY-MM-DD), başlangıç dahil en fazla 92 gün",
             },
             example: "Geçen haftanın özetini ver",
+        },
+        get_digest: {
+            description:
+                "Tek bir dönemin özeti — dün, bugün şu ana kadar ya da son 7 veya 30 gün — etkileşimli bir kart olarak: kalori ve her besin öğesi hedeflerine göre, önceki döneme göre eğilimler, su ve kilo, yemeklerin ya da kayıt alışkanlıkların ve kendi kaydından birkaç öne çıkan bilgi.",
+            params: {
+                period: "<code>yesterday</code> (varsayılan), <code>today</code>, <code>last_7_days</code> veya <code>last_30_days</code>. İki aralık da dün sona erer.",
+            },
+            example: "Dün nasıl geçti?",
         },
         get_trends: {
             description:

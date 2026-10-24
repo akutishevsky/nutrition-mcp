@@ -25,11 +25,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_JA: ToolsDoc = {
     meta: {
-        title: "カロリー計算・PFC・水分・体重・体の計測値の全48ツール",
+        title: "カロリー計算・PFC・水分・体重・体の計測値の全49ツール",
         description:
-            "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全48ツール。食事記録、食べることの多い食事の保存、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重・体の計測値の記録に対応。",
+            "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全49ツール。食事記録、食べることの多い食事の保存、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重・体の計測値の記録に対応。",
         ogDescription:
-            "Nutrition MCPサーバーがお使いのAIに追加する全48ツールを、説明と例文つきで紹介。保存した食事から、他のアプリの履歴を取り込めるCSVインポーターまでそろっています。",
+            "Nutrition MCPサーバーがお使いのAIに追加する全49ツールを、説明と例文つきで紹介。保存した食事から、他のアプリの履歴を取り込めるCSVインポーターまでそろっています。",
     },
     hero: {
         eyebrow: "リファレンス",
@@ -37,7 +37,7 @@ export const TOOLS_JA: ToolsDoc = {
         titleEm: "できる",
         titleAfterEm: "こと、すべて",
         lead: "ツールを直接呼び出す必要はありません。Claude、ChatGPTなどのMCPクライアントに話しかけるだけで、AIが適切なツールを選びます。ここでは、Nutrition MCPサーバーが提供する食事と保存した食事・カロリーとPFC・水分・体重のツールをすべて取り上げ、それぞれの機能と、そのツールが使われるきっかけになるフレーズを紹介します。",
-        countBold: "全48ツール",
+        countBold: "全49ツール",
         countTail: "· 7分野",
     },
     categories: {
@@ -543,6 +543,14 @@ export const TOOLS_JA: ToolsDoc = {
                 end_date: "終了日（YYYY-MM-DD）。開始日を含めて最大92日",
             },
             example: "この1週間のサマリーを見せて",
+        },
+        get_digest: {
+            description:
+                "1つの期間（昨日、今日のここまで、直近7日間または30日間）のまとめをインタラクティブなカードで表示します。カロリーと各栄養素の目標との比較、前の期間と比べたトレンド、水分と体重、食事内容または記録の習慣、そしてご自身の記録からのハイライトをまとめます。",
+            params: {
+                period: "<code>yesterday</code>（既定）、<code>today</code>、<code>last_7_days</code>、<code>last_30_days</code>のいずれか。期間はどちらも昨日までです。",
+            },
+            example: "昨日はどうだった？",
         },
         get_trends: {
             description:

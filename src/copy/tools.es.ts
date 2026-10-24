@@ -11,11 +11,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_ES: ToolsDoc = {
     meta: {
-        title: "48 herramientas: calorías, macros, agua y peso",
+        title: "49 herramientas: calorías, macros, agua y peso",
         description:
-            "Las 48 herramientas de Nutrition MCP para Claude, ChatGPT y más: registra comidas, guarda las que comes a menudo, agua, peso y medidas corporales, escanea códigos e importa CSV de MyFitnessPal o Cronometer.",
+            "Las 49 herramientas de Nutrition MCP para Claude, ChatGPT y más: registra comidas, guarda las que comes a menudo, agua, peso y medidas corporales, escanea códigos e importa CSV de MyFitnessPal o Cronometer.",
         ogDescription:
-            "Las 48 herramientas que el servidor Nutrition MCP da a tu IA, de las comidas guardadas a un importador CSV para tu historial, con descripciones y ejemplos.",
+            "Las 49 herramientas que el servidor Nutrition MCP da a tu IA, de las comidas guardadas a un importador CSV para tu historial, con descripciones y ejemplos.",
     },
     hero: {
         eyebrow: "Referencia",
@@ -23,7 +23,7 @@ export const TOOLS_ES: ToolsDoc = {
         titleEm: "hacer",
         titleAfterEm: "",
         lead: "Nunca tienes que usar estas herramientas tú mismo: basta con hablar con Claude, ChatGPT u otro cliente MCP, y él elige la adecuada. Aquí tienes todas las herramientas que ofrece el servidor Nutrition MCP para comidas y comidas guardadas, calorías y macros, agua y peso, con lo que hace cada una y una frase que la activa.",
-        countBold: "48 herramientas",
+        countBold: "49 herramientas",
         countTail: "en 7 áreas",
     },
     categories: {
@@ -545,6 +545,14 @@ export const TOOLS_ES: ToolsDoc = {
                     "Fecha de fin (AAAA-MM-DD), hasta 92 días contando el de inicio",
             },
             example: "Hazme un resumen de esta última semana",
+        },
+        get_digest: {
+            description:
+                "Un resumen de un periodo —ayer, hoy hasta ahora o los últimos 7 o 30 días— como tarjeta interactiva: calorías y todos los nutrientes frente a tus objetivos, tendencias respecto al periodo anterior, agua y peso, tus comidas o hábitos de registro y algunos datos destacados de tu propio registro.",
+            params: {
+                period: "<code>yesterday</code> (por defecto), <code>today</code>, <code>last_7_days</code> o <code>last_30_days</code>. Ambos periodos terminan ayer.",
+            },
+            example: "¿Qué tal me fue ayer?",
         },
         get_trends: {
             description:

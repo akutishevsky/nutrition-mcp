@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_NL: ToolsDoc = {
     meta: {
-        title: "48 tools voor calorieën, macro's, water & gewicht",
+        title: "49 tools voor calorieën, macro's, water & gewicht",
         description:
-            "Alle 48 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
+            "Alle 49 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
         ogDescription:
-            "Alle 48 tools die de Nutrition MCP-server aan je AI geeft, van opgeslagen maaltijden tot een CSV-importer voor je geschiedenis uit een andere app. Met beschrijvingen en voorbeeldzinnen.",
+            "Alle 49 tools die de Nutrition MCP-server aan je AI geeft, van opgeslagen maaltijden tot een CSV-importer voor je geschiedenis uit een andere app. Met beschrijvingen en voorbeeldzinnen.",
     },
     hero: {
         eyebrow: "Naslag",
@@ -20,7 +20,7 @@ export const TOOLS_NL: ToolsDoc = {
         titleEm: "doen",
         titleAfterEm: "",
         lead: "Je roept deze tools nooit zelf aan: je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hieronder staat elke tool die de Nutrition MCP-server biedt voor maaltijden en opgeslagen maaltijden, calorieën en macro's, water en gewicht, met wat hij doet en een zin waarmee je hem aan het werk zet.",
-        countBold: "48 tools",
+        countBold: "49 tools",
         countTail: "verdeeld over 7 categorieën",
     },
     categories: {
@@ -541,6 +541,14 @@ export const TOOLS_NL: ToolsDoc = {
                     "Einddatum (JJJJ-MM-DD), maximaal 92 dagen inclusief de startdatum",
             },
             example: "Geef me een overzicht van de afgelopen week",
+        },
+        get_digest: {
+            description:
+                "Een overzicht van één periode — gisteren, vandaag tot nu, of de laatste 7 of 30 dagen — als interactieve kaart: calorieën en elke voedingsstof tegenover je doelen, trends ten opzichte van de vorige periode, water en gewicht, je maaltijden of loggewoontes, en een paar highlights uit je eigen log.",
+            params: {
+                period: "<code>yesterday</code> (standaard), <code>today</code>, <code>last_7_days</code> of <code>last_30_days</code>. Beide periodes eindigen gisteren.",
+            },
+            example: "Hoe ging het gisteren?",
         },
         get_trends: {
             description:
