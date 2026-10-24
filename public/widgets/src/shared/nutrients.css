@@ -1,0 +1,656 @@
+/*
+ * The nutrient accordion under the half-gauge hero (shared/nutrients.js):
+ * one card per nutrient with a mini half-gauge, an open card's per-meal list
+ * (share ring, value, ingredients), the calories-by-meal panel, the by-day
+ * strip of a range, and Collapse all. Used by meal-logged and
+ * nutrition-summary with shared/gauge.css.
+ *
+ * `--mc` is the card's metric colour (a nutrient token: identity only, never
+ * status). Tints mix it toward var(--panel) and text mixes it toward
+ * var(--text), so one rule reads right in both themes: toward dark ink on a
+ * light panel, toward light ink on a dark one.
+ */
+.gcard [data-mc] {
+    --mk: color-mix(in oklab, var(--mc) 86%, var(--text));
+    --mink: color-mix(in oklab, var(--mc) 64%, var(--text));
+}
+.gcard .msg {
+    font-size: 13px;
+    color: var(--text-dim);
+    padding: 10px 0;
+    line-height: 1.45;
+}
+.gcard .over {
+    color: var(--over);
+}
+
+/* Status words on a row: the metric colour stays identity only. */
+.gcard .st-ok {
+    color: var(--status-ok-ink);
+}
+.gcard .st-near {
+    color: var(--status-near-ink);
+}
+.gcard .st-low {
+    color: var(--status-togo-ink);
+}
+.gcard .st-over {
+    color: var(--status-over-ink);
+}
+.gcard .st-zero {
+    color: var(--status-nr-ink);
+    font-weight: 600 !important;
+}
+.gcard .st-meal {
+    color: var(--mink);
+}
+
+/* ---- Rows ------------------------------------------------------------- */
+.gcard .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 16px;
+}
+.gcard .slab2 {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 2px 2px 0;
+    grid-column: 1 / -1;
+}
+.gcard .acc {
+    border-radius: 18px;
+    background: color-mix(in oklab, var(--mc) 10%, var(--panel));
+    box-shadow: inset 0 0 0 4px transparent;
+    transition:
+        box-shadow 0.35s ease,
+        background-color 0.35s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.gcard .acc.sel {
+    background: color-mix(in oklab, var(--mc) 7%, var(--panel));
+    box-shadow: inset 0 0 0 4px color-mix(in oklab, var(--mc) 34%, var(--panel));
+}
+.gcard .accH {
+    display: grid !important;
+    grid-template-columns: 30px minmax(0, 1fr) 60px 16px;
+    column-gap: 10px;
+    align-items: center;
+    width: 100%;
+    padding: 12px 14px !important;
+    flex: 1 0 auto;
+    border-radius: 18px;
+}
+.gcard .accH .em {
+    font-size: 22px;
+    line-height: 1;
+}
+.gcard .accH .ab {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.gcard .accH .lb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 7px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+.gcard .accH .dl {
+    font-size: 12px;
+    font-weight: 800;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.gcard .accH .vl {
+    font-size: 13px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gcard .accH .vl b {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+}
+.gcard .accH .vl b.over {
+    color: var(--status-over-ink);
+}
+.gcard .accH .vl b.near {
+    color: var(--status-near-ink);
+}
+.gcard .accH .vl b.nrv {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+}
+.gcard .accH .achev {
+    color: var(--mink);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.gcard .acc.sel .achev {
+    transform: rotate(180deg);
+}
+
+/* Mini half-gauge: track, eaten-before (meal-logged) or peak (range), value. */
+.gcard .mg {
+    position: relative;
+    width: 60px;
+    height: 36px;
+    display: block;
+}
+.gcard .mg svg {
+    position: absolute;
+    inset: 0;
+    width: 60px;
+    height: 34px;
+    overflow: visible;
+}
+.gcard .mg path {
+    fill: none;
+    stroke-linecap: round;
+}
+.gcard .mg .mtrk {
+    stroke: color-mix(in oklab, var(--mc) 18%, var(--panel));
+    stroke-width: 11;
+}
+.gcard .mg .mpre {
+    stroke: color-mix(in oklab, var(--mc) 45%, var(--panel));
+    stroke-width: 7;
+}
+.gcard .mg .madd {
+    stroke: var(--mk);
+    stroke-width: 7;
+}
+.gcard .acc.is-over .mg .madd {
+    stroke: var(--status-over);
+}
+.gcard .mg b {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 1px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--mink);
+}
+.gcard .mg b.over {
+    color: var(--status-over-ink);
+}
+
+/* ---- An open card's body, and the calories panel ------------------------ */
+.gcard .accB {
+    padding: 2px 14px 12px;
+}
+.gcard .mp {
+    --mc: var(--gauge-fill);
+    margin-top: 16px;
+    border-radius: 18px;
+    padding: 4px 14px 12px;
+    background: color-mix(in oklab, var(--mc) 8%, var(--panel));
+    border: 4px solid color-mix(in oklab, var(--mc) 32%, var(--panel));
+}
+.gcard .mph {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 0 4px;
+    font-size: 13.5px;
+}
+.gcard .mph b {
+    font-size: 15px;
+    color: var(--gauge-ink);
+}
+.gcard .mph .dim {
+    color: var(--text-dim);
+}
+.gcard .bh {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 6px 0 8px;
+    line-height: 1.4;
+}
+.gcard .bh2 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 12px 0 2px;
+}
+.gcard .mnote {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    padding: 8px 0 2px;
+    border-top: 1px solid color-mix(in oklab, var(--mc) 20%, var(--panel));
+}
+
+/* By-day strip (a range). */
+.gcard .dstrip {
+    padding: 6px 0 4px;
+}
+.gcard .dbars {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 68px;
+    padding: 6px 6px 0;
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--mc) 8%, var(--panel));
+}
+.gcard .db {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    position: relative;
+    z-index: 1;
+}
+.gcard .db i {
+    display: block;
+    width: 100%;
+    border-radius: 5px 5px 2px 2px;
+    background: color-mix(in oklab, var(--mc) 70%, var(--panel));
+    transform-origin: bottom;
+}
+.gcard .db.peak i {
+    background: var(--mk);
+}
+.gcard .db.ov i {
+    background: color-mix(in oklab, var(--status-over) 78%, var(--panel));
+}
+.gcard .db.ov.peak i {
+    background: var(--status-over);
+}
+.gcard .db.miss i {
+    height: 6px !important;
+    border-radius: 3px;
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--mk);
+    margin-bottom: 1px;
+}
+.gcard .db.gap i {
+    height: 4px !important;
+    width: 4px;
+    margin: 0 auto 2px;
+    border-radius: 2px;
+    background: var(--text-mute);
+}
+.gcard .dgl {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    height: 0;
+    border-top: 1.5px dashed color-mix(in oklab, var(--mc) 55%, var(--text));
+    z-index: 2;
+    pointer-events: none;
+}
+.gcard .dgl em {
+    position: absolute;
+    right: 0;
+    top: -15px;
+    font-style: normal;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--mink);
+    background: color-mix(in oklab, var(--mc) 8%, var(--panel));
+    padding: 0 3px;
+    border-radius: 4px;
+}
+.gcard .dlbls {
+    display: flex;
+    gap: 3px;
+    padding: 5px 6px 0;
+}
+.gcard .dlbls span {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+}
+.gcard .dlab {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 2px 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+}
+
+/* Meal rows (calories panel and open cards). */
+.gcard .mls {
+    display: flex;
+    flex-direction: column;
+}
+.gcard .mlg {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 20px minmax(44px, max-content) 14px;
+    column-gap: 10px;
+    align-items: center;
+    width: 100%;
+    padding: 10px 0 !important;
+    border-top: 1px solid color-mix(in oklab, var(--mc) 20%, var(--panel));
+    font-size: 13.5px;
+}
+.gcard .mls > .mlg:first-child,
+.gcard .mls > .mlw:first-child > .mlg {
+    border-top: none;
+}
+.gcard .mlg .nmf {
+    line-height: 1.35;
+    padding-right: 4px;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+.gcard .mlg.cur .nmf {
+    font-weight: 700;
+}
+.gcard .mlg .nmf .sub {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--text-dim);
+}
+.gcard .mlg > b {
+    justify-self: end;
+    white-space: nowrap;
+}
+.gcard .mlg > b .u {
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--text-dim);
+}
+.gcard .mlg > b .nrv {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+}
+.gcard .mlg .mc {
+    color: var(--text-dim);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.2s;
+}
+.gcard .mlg[aria-expanded="true"] .mc {
+    transform: rotate(90deg);
+}
+/* A meal with nothing to open is a plain row, not a button. */
+.gcard .mlg.flat {
+    cursor: default;
+}
+.gcard .mring,
+.gcard .mring svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+.gcard .mring circle {
+    fill: none;
+    stroke-width: 5;
+}
+.gcard .mring .rtrk {
+    stroke: color-mix(in oklab, var(--mc) 18%, var(--panel));
+}
+.gcard .mring .rval {
+    stroke: color-mix(in oklab, var(--mc) 55%, var(--panel));
+    stroke-linecap: round;
+}
+.gcard .mlg.cur .mring .rval,
+.gcard .mls.ranked .mring .rval {
+    stroke: var(--mk);
+}
+
+.gcard .itl {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-inset);
+    border-radius: 12px;
+    padding: 2px 10px;
+    margin: 4px 0 6px;
+}
+.gcard .itr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 10px;
+    padding: 7px 0;
+    border-top: 1px solid var(--panel-border);
+    font-size: 13px;
+}
+.gcard .itr:first-child {
+    border-top: none;
+}
+.gcard .itr .inm {
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+.gcard .itr .iv {
+    grid-row: 1;
+    grid-column: 2;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.gcard .itr .im {
+    grid-column: 1;
+    font-size: 11.5px;
+    color: var(--text-dim);
+}
+.gcard .est {
+    text-decoration: underline dotted;
+    text-underline-offset: 2px;
+}
+
+/* ---- Collapse all ------------------------------------------------------ */
+.gcard .collall {
+    display: flex !important;
+    align-self: center;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 20px !important;
+    margin-top: 16px;
+    margin-bottom: 4px;
+    border-radius: 20px;
+    background: var(--surface-soft);
+    color: var(--text);
+    font-size: 14.5px;
+    font-weight: 700;
+    transition:
+        background-color 0.25s ease,
+        transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.gcard .collall:hover {
+    background: color-mix(in oklab, var(--surface-soft) 92%, var(--text));
+}
+.gcard .collall:active {
+    transform: scale(0.95);
+}
+.gcard .collall svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.gcard .gbody {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---- Desktop: three columns of rows; an open card spans the row --------- */
+@media (min-width: 640px) {
+    .gcard .rows {
+        display: grid;
+        grid-auto-flow: row dense;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        padding-top: 22px;
+    }
+    .gcard .rows .acc.sel {
+        grid-column: 1 / -1;
+    }
+    .gcard .rows .acc:not(.sel) .accH {
+        grid-template-columns: 26px minmax(0, 1fr) 52px 14px;
+        column-gap: 8px;
+        padding: 12px !important;
+    }
+    .gcard .rows .acc:not(.sel) .em {
+        font-size: 20px;
+    }
+    .gcard .rows .acc:not(.sel) .lb {
+        font-size: 14.5px;
+    }
+    .gcard .rows .acc:not(.sel) .mg {
+        width: 52px;
+        height: 31px;
+    }
+    .gcard .rows .acc:not(.sel) .mg svg {
+        width: 52px;
+        height: 29px;
+    }
+    .gcard .rows .acc:not(.sel) .mg b {
+        font-size: 10.5px;
+    }
+    .gcard .accH:hover {
+        background: color-mix(in oklab, var(--mc) 6%, transparent);
+    }
+    .gcard .mp {
+        margin-top: 22px;
+    }
+    .gcard .collall:hover {
+        filter: brightness(0.97);
+    }
+}
+
+/* ---- Motion ------------------------------------------------------------ */
+@keyframes gRise {
+    0% {
+        opacity: 0;
+        transform: translateY(18px) scale(0.94);
+        filter: blur(3px);
+    }
+    60% {
+        opacity: 1;
+        filter: blur(0);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+        filter: none;
+    }
+}
+@keyframes gDrop {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+        max-height: 0;
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+        max-height: 3000px;
+    }
+}
+@keyframes gFade {
+    0% {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: none;
+    }
+}
+@keyframes gOut {
+    0% {
+        opacity: 1;
+        transform: none;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-14px) scale(0.95);
+        filter: blur(2px);
+    }
+}
+@keyframes gFold {
+    0% {
+        opacity: 1;
+        max-height: 3000px;
+    }
+    100% {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-8px);
+    }
+}
+@keyframes barUp {
+    from {
+        transform: scaleY(0);
+    }
+}
+.gcard .rows.enter .acc,
+.gcard .rows.enter .slab2 {
+    animation: gRise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0.04s + var(--i, 0) * 0.045s);
+}
+.gcard .gbody.enter .collall {
+    animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.4s both;
+}
+.gcard .accB.enter,
+.gcard .mp.enter {
+    animation: gDrop 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    overflow: hidden;
+}
+.gcard .enter .mlg {
+    animation: gFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0.1s + var(--i, 0) * 0.04s);
+}
+.gcard .enter .db i {
+    animation: barUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gcard .itl.enter {
+    animation: gFade 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gcard.closing .rows .acc,
+.gcard.closing .rows .slab2 {
+    animation: gOut 0.36s cubic-bezier(0.55, 0, 0.75, 0.3) both;
+}
+.gcard.closing .accB,
+.gcard.closing .mp {
+    animation: gFold 0.34s cubic-bezier(0.55, 0, 0.75, 0.3) both;
+    overflow: hidden;
+}
+.gcard.closing .collall {
+    animation: gOut 0.3s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+    .gcard .gbody *,
+    .gcard.closing * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

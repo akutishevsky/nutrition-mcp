@@ -78,16 +78,100 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
         loading: "Beslenme özetin yükleniyor…",
         empty: "Bu aralıkta yemek veya su kaydı yok.",
         caloriesPerDay: "Kalori / gün",
-        chartAriaLabel: "Seçili aralıkta günlük kalori",
-        avg: "ort.",
-        goal: "hedef",
-        dailyAvgLoggedDays: "Günlük ort. · kayıtlı günler",
-        total: "Toplam",
         daysLogged: {
             one: "{n} gün kayıtlı",
             other: "{n} gün kayıtlı",
         },
         daysOfLogged: "{span} günün {logged} günü kayıtlı",
+        periodToday: "Today", // i18n:pending
+        periodPastDay: "Past day", // i18n:pending
+        showMore: "Show more", // i18n:pending
+        showLess: "Show less", // i18n:pending
+        collapseAll: "Collapse all", // i18n:pending
+        ofGoal: "of {goal} kcal", // i18n:pending
+        avgOfGoal: "avg/day of {goal} kcal", // i18n:pending
+        left: "{amount} left", // i18n:pending
+        over: "{amount} over", // i18n:pending
+        toGo: "{amount} to go", // i18n:pending
+        above: "{amount} above", // i18n:pending
+        onTarget: "on target", // i18n:pending
+        goalMet: "goal met", // i18n:pending
+        noLimit: "no limit", // i18n:pending
+        none: "none", // i18n:pending
+        notRecorded: "Not recorded", // i18n:pending
+        leftToday: "{amount} left today", // i18n:pending
+        overToday: "{amount} over today", // i18n:pending
+        leftThatDay: "{amount} left that day", // i18n:pending
+        overThatDay: "{amount} over that day", // i18n:pending
+        underGoal: "{amount} under goal", // i18n:pending
+        overGoal: "{amount} over goal", // i18n:pending
+        peak: "peak {amount}", // i18n:pending
+        mealsCount: {
+            one: "{n} meal", // i18n:pending
+            other: "{n} meals", // i18n:pending
+        },
+        emptyToday: "No meals logged today yet", // i18n:pending
+        emptyThatDay: "No meals logged that day", // i18n:pending
+        emptyRange: "No meals logged in this range", // i18n:pending
+        statEatenSoFar: "Eaten so far", // i18n:pending
+        statEaten: "Eaten", // i18n:pending
+        statRemaining: "Remaining", // i18n:pending
+        statOverGoal: "Over goal", // i18n:pending
+        statMeals: "Meals", // i18n:pending
+        statLogged: "logged", // i18n:pending
+        statAvgDay: "Avg / day", // i18n:pending
+        statPeakDay: "Peak day", // i18n:pending
+        statLoggedDays: "Logged", // i18n:pending
+        statOfDays: "of {n} days", // i18n:pending
+        gaugeAriaToday:
+            "{eaten} of {goal} kcal today, {pct}% of goal, {status}.", // i18n:pending
+        gaugeAriaThatDay:
+            "{eaten} of {goal} kcal that day, {pct}% of goal, {status}.", // i18n:pending
+        gaugeAriaRange:
+            "Average {eaten} of {goal} kcal a day, {pct}% of goal, {status}.", // i18n:pending
+        gaugeAriaNoGoal: "{eaten} kcal.", // i18n:pending
+        gaugeAriaMeals: "Meals: {list}.", // i18n:pending
+        caloriesByDay: "Calories by day", // i18n:pending
+        mealTypes: {
+            breakfast: "Breakfast", // i18n:pending
+            lunch: "Lunch", // i18n:pending
+            dinner: "Dinner", // i18n:pending
+            snack: "Snack", // i18n:pending
+        },
+        items: {
+            one: "{n} item", // i18n:pending
+            other: "{n} items", // i18n:pending
+        },
+        totalOnlyShort: "total only", // i18n:pending
+        totalOnly: "Logged as a total, without ingredients.", // i18n:pending
+        goalLine: "goal", // i18n:pending
+        byDay: "By day", // i18n:pending
+        byDayPartial: "By day · recorded on {rec} of {logged} logged days", // i18n:pending
+        byMealCount: {
+            one: "By meal · {n} meal", // i18n:pending
+            other: "By meal · {n} meals", // i18n:pending
+        },
+        notRecordedCount: {
+            one: "{n} not recorded", // i18n:pending
+            other: "{n} not recorded", // i18n:pending
+        },
+        notRecordedToday: "{label} wasn't recorded for today's meals.", // i18n:pending
+        notRecordedThatDay: "{label} wasn't recorded for that day's meals.", // i18n:pending
+        notRecordedRange: "{label} wasn't recorded on any day in this range.", // i18n:pending
+        waterToday:
+            "Water is logged on its own, not with meals: {amount} today.", // i18n:pending
+        waterThatDay:
+            "Water is logged on its own, not with meals: {amount} that day.", // i18n:pending
+        waterRange: "Water is logged on its own, not with meals.", // i18n:pending
+        noneInToday: "{label}: none in today's meals.", // i18n:pending
+        noneInThatDay: "{label}: none in that day's meals.", // i18n:pending
+        noneInRange: "{label}: none in the listed meals.", // i18n:pending
+        topMeals: "Top meals", // i18n:pending
+        dailyAverages: {
+            one: "Daily averages · {n} logged day", // i18n:pending
+            other: "Daily averages · {n} logged days", // i18n:pending
+        },
+        selected: "Selected {tip}", // i18n:pending
         months: [
             "Oca",
             "Şub",
@@ -125,9 +209,13 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
         weightAria: "Kilo {current}, hedef {target}, {state}{metaSuffix}",
     },
     mealLogged: {
-        titleLogged: "Yemek kaydedildi",
-        titleUpdated: "Yemek güncellendi",
-        addedKcal: "+{kcal} kcal",
+        logged: "logged", // i18n:pending
+        edited: "edited", // i18n:pending
+        thisMeal: "{amount} this meal", // i18n:pending
+        statThisMeal: "This meal", // i18n:pending
+        statToday: "Today", // i18n:pending
+        statLeftToday: "Left today", // i18n:pending
+        statLeftThatDay: "Left that day", // i18n:pending
     },
     trends: {
         loading: "Trendlerin yükleniyor…",

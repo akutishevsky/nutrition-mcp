@@ -180,7 +180,11 @@ export interface WidgetStrings {
         connectFailed: string;
     };
 
-    /** templates/nutrition-summary.html's own top matter. */
+    /** templates/nutrition-summary.html, and the day view both it and
+     * meal-logged draw (shared/gauge.js, shared/nutrients.js): the hero, the
+     * nutrient rows, their status words and open bodies. meal-logged reads
+     * these too; only its own eyebrow and stat labels are in `mealLogged`.
+     * `months` is also shared/date.js's (shortDate). */
     nutritionSummary: {
         /** Panel header. */
         title: string;
@@ -189,22 +193,120 @@ export interface WidgetStrings {
         empty: string;
         /** Trend chart title. */
         caloriesPerDay: string;
-        /** aria-label on the calorie trend chart's <svg>. Unlike
-         * trends.caloriesOverRange, this widget's range is fixed by the
-         * tool call (no in-widget toggle), so there's no {range} placeholder. */
-        chartAriaLabel: string;
-        /** Trend chart caption prefix, e.g. "avg 2,035". */
-        avg: string;
-        /** Trend chart caption prefix, e.g. "goal 2,200". */
-        goal: string;
-        /** calLabel for a multi-day range. */
-        dailyAvgLoggedDays: string;
-        /** calLabel for a single-day range. */
-        total: string;
         /** "N day(s) logged", no wider window known. Placeholder: {n}. */
         daysLogged: PluralForms;
         /** "{logged} of {span} days logged", when days_in_range is wider. */
         daysOfLogged: string;
+        /** Eyebrow period of a one-day summary of the viewer's today: "Nutrition summary · Today". */
+        periodToday: string;
+        /** Eyebrow period of a one-day summary of another day. */
+        periodPastDay: string;
+        /** The pill under the gauge that opens the nutrient rows (shared/gauge.js). */
+        showMore: string;
+        showLess: string;
+        /** Button under the open rows that folds the card back. */
+        collapseAll: string;
+        /** Under the gauge's figure. Placeholder: {goal} (pre-formatted). */
+        ofGoal: string;
+        /** The same for a range's daily average. */
+        avgOfGoal: string;
+        /** Status of a ceiling (or calories) under its goal. Placeholder: {amount}, figure with unit. */
+        left: string;
+        /** Status past a ceiling. Placeholder: {amount}. */
+        over: string;
+        /** Status of a floor or target below its goal. Placeholder: {amount}. */
+        toGo: string;
+        /** Status of a target (protein, carbs, fat) more than 5% above it. Placeholder: {amount}. */
+        above: string;
+        /** A target within 5% of its goal. */
+        onTarget: string;
+        /** A floor (fiber, water) reached. */
+        goalMet: string;
+        /** A ceiling-type nutrient with no limit set (trans fat never has one). */
+        noLimit: string;
+        /** Alcohol at 0 against its limit. */
+        none: string;
+        /** A row's figure when no meal recorded the nutrient. */
+        notRecorded: string;
+        /** Delta line under the gauge. Placeholder: {amount} ("600 kcal"). */
+        leftToday: string;
+        overToday: string;
+        leftThatDay: string;
+        overThatDay: string;
+        /** A range's daily average below its calorie goal. Placeholder: {amount}. */
+        underGoal: string;
+        overGoal: string;
+        /** A range's highest day. Placeholder: {amount} ("2,410 kcal"). */
+        peak: string;
+        /** How many meals a day holds. */
+        mealsCount: PluralForms;
+        /** Under an empty gauge. */
+        emptyToday: string;
+        emptyThatDay: string;
+        emptyRange: string;
+        /** Desktop stat labels (uppercase via CSS). */
+        statEatenSoFar: string;
+        statEaten: string;
+        statRemaining: string;
+        statOverGoal: string;
+        statMeals: string;
+        /** Small text after the meal count stat: "5 logged". */
+        statLogged: string;
+        statAvgDay: string;
+        statPeakDay: string;
+        statLoggedDays: string;
+        /** Small text after the logged-days stat. Placeholder: {n}. */
+        statOfDays: string;
+        /** aria-label of the gauge. Placeholders: {eaten}, {goal}, {pct}, {status} ("600 kcal left"). */
+        gaugeAriaToday: string;
+        gaugeAriaThatDay: string;
+        gaugeAriaRange: string;
+        /** The gauge with no calorie goal set. Placeholder: {eaten}. */
+        gaugeAriaNoGoal: string;
+        /** Appended to a day's gauge label. Placeholder: {list}, "name 420 kcal, …". */
+        gaugeAriaMeals: string;
+        /** Title of a range's calories panel (a day's uses macros.byMealTitle). */
+        caloriesByDay: string;
+        /** The four meal types log_meal offers; any other stored type is shown as typed. */
+        mealTypes: {
+            breakfast: string;
+            lunch: string;
+            dinner: string;
+            snack: string;
+        };
+        /** Ingredient count on a meal row's meta line. */
+        items: PluralForms;
+        /** A meal row's meta line when the meal has no ingredients. */
+        totalOnlyShort: string;
+        totalOnly: string;
+        /** Label on the dashed goal line of the by-day strip. */
+        goalLine: string;
+        /** Head of an open row in a range. */
+        byDay: string;
+        /** The same when not every logged day recorded the nutrient. Placeholders: {rec}, {logged}. */
+        byDayPartial: string;
+        /** Head of an open row on one day. */
+        byMealCount: PluralForms;
+        /** Appended to that head. */
+        notRecordedCount: PluralForms;
+        /** An open row with no recorded figure. Placeholder: {label}. */
+        notRecordedToday: string;
+        notRecordedThatDay: string;
+        notRecordedRange: string;
+        /** The open water row. Placeholder: {amount} ("1.6 L"). */
+        waterToday: string;
+        waterThatDay: string;
+        waterRange: string;
+        /** An open row whose meals carry none of it. Placeholder: {label}. */
+        noneInToday: string;
+        noneInThatDay: string;
+        noneInRange: string;
+        /** Sub-label over a range's ranked meal list. */
+        topMeals: string;
+        /** Label over a range's rows. */
+        dailyAverages: PluralForms;
+        /** Live-region text when a gauge segment is picked. Placeholder: {tip} ("Oats + Yogurt · 680 kcal"). */
+        selected: string;
         /** Jan..Dec, in that order. */
         months: readonly [
             string,
@@ -258,14 +360,21 @@ export interface WidgetStrings {
         weightAria: string;
     };
 
-    /** templates/meal-logged.html's own top matter (the header line; the
-     * strip below it is shared/macros.js). Shared by log_meal and
-     * update_meal — only `action` picks titleLogged vs titleUpdated. */
+    /** templates/meal-logged.html's own hero words (log_meal, update_meal,
+     * log_saved_meal): the eyebrow's action word, the delta line and the
+     * desktop stat labels. The rows below the gauge read `nutritionSummary`. */
     mealLogged: {
-        titleLogged: string;
-        titleUpdated: string;
-        /** Template. Placeholder: {kcal} (pre-formatted). */
-        addedKcal: string;
+        /** Eyebrow word after the meal type: "Dinner · logged". */
+        logged: string;
+        /** The same after update_meal: "Dinner · edited". */
+        edited: string;
+        /** Delta line under the gauge. Placeholder: {amount} ("+520 kcal"). */
+        thisMeal: string;
+        /** Desktop stat labels. */
+        statThisMeal: string;
+        statToday: string;
+        statLeftToday: string;
+        statLeftThatDay: string;
     };
 
     /** templates/trends.html's own top matter (the toggle header and chart;
@@ -648,16 +757,100 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         loading: "Loading your nutrition summary…",
         empty: "No meals or water logged in this range.",
         caloriesPerDay: "Calories / day",
-        chartAriaLabel: "Calories per day over the selected range",
-        avg: "avg",
-        goal: "goal",
-        dailyAvgLoggedDays: "Daily avg · logged days",
-        total: "Total",
         daysLogged: {
             one: "{n} day logged",
             other: "{n} days logged",
         },
         daysOfLogged: "{logged} of {span} days logged",
+        periodToday: "Today",
+        periodPastDay: "Past day",
+        showMore: "Show more",
+        showLess: "Show less",
+        collapseAll: "Collapse all",
+        ofGoal: "of {goal} kcal",
+        avgOfGoal: "avg/day of {goal} kcal",
+        left: "{amount} left",
+        over: "{amount} over",
+        toGo: "{amount} to go",
+        above: "{amount} above",
+        onTarget: "on target",
+        goalMet: "goal met",
+        noLimit: "no limit",
+        none: "none",
+        notRecorded: "Not recorded",
+        leftToday: "{amount} left today",
+        overToday: "{amount} over today",
+        leftThatDay: "{amount} left that day",
+        overThatDay: "{amount} over that day",
+        underGoal: "{amount} under goal",
+        overGoal: "{amount} over goal",
+        peak: "peak {amount}",
+        mealsCount: {
+            one: "{n} meal",
+            other: "{n} meals",
+        },
+        emptyToday: "No meals logged today yet",
+        emptyThatDay: "No meals logged that day",
+        emptyRange: "No meals logged in this range",
+        statEatenSoFar: "Eaten so far",
+        statEaten: "Eaten",
+        statRemaining: "Remaining",
+        statOverGoal: "Over goal",
+        statMeals: "Meals",
+        statLogged: "logged",
+        statAvgDay: "Avg / day",
+        statPeakDay: "Peak day",
+        statLoggedDays: "Logged",
+        statOfDays: "of {n} days",
+        gaugeAriaToday:
+            "{eaten} of {goal} kcal today, {pct}% of goal, {status}.",
+        gaugeAriaThatDay:
+            "{eaten} of {goal} kcal that day, {pct}% of goal, {status}.",
+        gaugeAriaRange:
+            "Average {eaten} of {goal} kcal a day, {pct}% of goal, {status}.",
+        gaugeAriaNoGoal: "{eaten} kcal.",
+        gaugeAriaMeals: "Meals: {list}.",
+        caloriesByDay: "Calories by day",
+        mealTypes: {
+            breakfast: "Breakfast",
+            lunch: "Lunch",
+            dinner: "Dinner",
+            snack: "Snack",
+        },
+        items: {
+            one: "{n} item",
+            other: "{n} items",
+        },
+        totalOnlyShort: "total only",
+        totalOnly: "Logged as a total, without ingredients.",
+        goalLine: "goal",
+        byDay: "By day",
+        byDayPartial: "By day · recorded on {rec} of {logged} logged days",
+        byMealCount: {
+            one: "By meal · {n} meal",
+            other: "By meal · {n} meals",
+        },
+        notRecordedCount: {
+            one: "{n} not recorded",
+            other: "{n} not recorded",
+        },
+        notRecordedToday: "{label} wasn't recorded for today's meals.",
+        notRecordedThatDay: "{label} wasn't recorded for that day's meals.",
+        notRecordedRange: "{label} wasn't recorded on any day in this range.",
+        waterToday:
+            "Water is logged on its own, not with meals: {amount} today.",
+        waterThatDay:
+            "Water is logged on its own, not with meals: {amount} that day.",
+        waterRange: "Water is logged on its own, not with meals.",
+        noneInToday: "{label}: none in today's meals.",
+        noneInThatDay: "{label}: none in that day's meals.",
+        noneInRange: "{label}: none in the listed meals.",
+        topMeals: "Top meals",
+        dailyAverages: {
+            one: "Daily averages · {n} logged day",
+            other: "Daily averages · {n} logged days",
+        },
+        selected: "Selected {tip}",
         months: [
             "Jan",
             "Feb",
@@ -695,9 +888,13 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         weightAria: "Weight {current}, target {target}, {state}{metaSuffix}",
     },
     mealLogged: {
-        titleLogged: "Meal logged",
-        titleUpdated: "Meal updated",
-        addedKcal: "+{kcal} kcal",
+        logged: "logged",
+        edited: "edited",
+        thisMeal: "{amount} this meal",
+        statThisMeal: "This meal",
+        statToday: "Today",
+        statLeftToday: "Left today",
+        statLeftThatDay: "Left that day",
     },
     trends: {
         loading: "Loading your trends…",
