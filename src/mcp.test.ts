@@ -94,7 +94,12 @@ import type { MealNutrientKey as UsdaMealNutrientKey } from "./meal-items.js";
 import searchBananaFx from "./__fixtures__/usda/search-banana.json";
 import usdaSrBananaFx from "./__fixtures__/usda/detail-SR_Legacy-173944-full.json";
 import usdaFoundationBananaFx from "./__fixtures__/usda/detail-Foundation-1105073-filtered.json";
-import { GOAL_DAY_META_KEY, NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
+import {
+    BODY_MEASUREMENTS_META_KEY,
+    GOAL_DAY_META_KEY,
+    NUTRIENT_SOURCES_META_KEY,
+    WEIGHT_ENTRIES_META_KEY,
+} from "./widgets.js";
 
 // Snapshot BEFORE mock.module runs: Bun patches a mocked module's namespace
 // in place, so restoring from the live `actualSupabase` afterwards would hand
@@ -8080,6 +8085,7 @@ const WEIGHT_SERIES = z.strictObject({
     v: z.literal(1),
     unit: z.string(),
     daily: z.array(z.strictObject({ date: z.iso.date(), ...POINT })),
+    daily_year: z.array(z.strictObject({ date: z.iso.date(), ...POINT })),
     weekly: z.array(z.strictObject({ start: z.iso.date(), ...POINT })),
     monthly: z.array(
         z.strictObject({ month: z.string().regex(/^\d{4}-\d{2}$/), ...POINT }),
@@ -8308,6 +8314,136 @@ describe("get_weight_trends", () => {
                 weekly_rate: null,
             });
         });
+    });
+
+    test("the per-reading list and the measurements ride in _meta, local and in display units", async () => {
+        db.profile = {
+            ...PROFILE_BASE,
+            timezone: "Europe/Kyiv",
+            preferred_length_unit: null,
+        };
+        db.weights = [
+            weighIn("2026-06-29T22:30:00.000Z", 79_000), // June 30, 01:30 local
+            {
+                ...weighIn("2026-06-30T17:05:00.000Z", 79_400),
+                notes: "Evening",
+            },
+            weighIn("2025-01-10T08:00:00.000Z", 90_000), // before the 365-day window
+        ];
+        db.measurements = [
+            measurementRow({
+                kind: "waist",
+                value_mm: 845,
+                value_entered: 84.5,
+                entered_unit: "cm",
+                logged_at: "2026-06-20T08:00:00.000Z",
+            }),
+            // Entered in inches: shown back as typed, not round-tripped.
+            measurementRow({
+                kind: "waist",
+                value_mm: 838,
+                value_entered: 33,
+                entered_unit: "in",
+                logged_at: "2026-06-28T08:00:00.000Z",
+            }),
+            measurementRow({
+                kind: "neck",
+                value_mm: 390,
+                value_entered: 39,
+                entered_unit: "cm",
+                logged_at: "2026-06-25T08:00:00.000Z",
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("get_weight_trends", {
+                end_date: "2026-06-30",
+            });
+            expect(r.isError).toBeFalsy();
+            const entries = r._meta?.[WEIGHT_ENTRIES_META_KEY] as {
+                v: number;
+                to: string;
+                truncated: boolean;
+                entries: {
+                    date: string;
+                    time: string;
+                    weight: number;
+                    note: string | null;
+                }[];
+            };
+            expect(entries.v).toBe(1);
+            expect(entries.to).toBe("2026-06-30");
+            expect(entries.truncated).toBe(false);
+            expect(entries.entries).toEqual([
+                { date: "2026-06-30", time: "01:30", weight: 79, note: null },
+                {
+                    date: "2026-06-30",
+                    time: "20:05",
+                    weight: 79.4,
+                    note: "Evening",
+                },
+            ]);
+            const meas = r._meta?.[BODY_MEASUREMENTS_META_KEY] as {
+                sites: Record<
+                    string,
+                    { unit: string; entries: { date: string; value: number }[] }
+                >;
+            };
+            // No saved length unit: each site in the unit of its latest entry.
+            expect(meas.sites.waist).toEqual({
+                unit: "in",
+                entries: [
+                    { date: "2026-06-20", value: 33.3 },
+                    { date: "2026-06-28", value: 33 },
+                ],
+            });
+            expect(meas.sites.neck!.unit).toBe("cm");
+            expect(Object.keys(meas.sites)).toEqual(["waist", "neck"]);
+        });
+    });
+
+    test("a failed measurements read drops that key, never the tool", async () => {
+        db.weights = dailyWeighIns("2026-06-01", 30, 80_000);
+        const orig = console.warn;
+        const warned: string[] = [];
+        console.warn = (...a: unknown[]) => void warned.push(a.join(" "));
+        const realMeasurements = db.measurements;
+        Object.defineProperty(db, "measurements", {
+            configurable: true,
+            get() {
+                throw new Error("boom: user u1");
+            },
+        });
+        try {
+            await withTools(null, async (call) => {
+                const r = await call("get_weight_trends", {
+                    end_date: "2026-06-30",
+                });
+                expect(r.isError).toBeFalsy();
+                expect(r._meta?.[BODY_MEASUREMENTS_META_KEY]).toBeUndefined();
+                expect(r._meta?.[WEIGHT_ENTRIES_META_KEY]).toBeDefined();
+            });
+        } finally {
+            Object.defineProperty(db, "measurements", {
+                configurable: true,
+                writable: true,
+                value: realMeasurements,
+            });
+            console.warn = orig;
+        }
+        // Logged without the error text (it could carry user data).
+        expect(warned.join("\n")).not.toContain("u1");
+    });
+
+    test("the weight-trends widget repeats the entries and measurements keys", async () => {
+        expect(WEIGHT_ENTRIES_META_KEY).toBe(
+            "nutrition-mcp.com/weight-entries",
+        );
+        expect(BODY_MEASUREMENTS_META_KEY).toBe(
+            "nutrition-mcp.com/body-measurements",
+        );
+        const html = await getWidgetHtml("weight-trends");
+        expect(html).toContain(JSON.stringify(WEIGHT_ENTRIES_META_KEY));
+        expect(html).toContain(JSON.stringify(BODY_MEASUREMENTS_META_KEY));
     });
 
     // The widget cannot import the key, so it carries the literal; a rename

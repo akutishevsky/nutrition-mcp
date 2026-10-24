@@ -380,6 +380,7 @@ describe("analyzeWeightHistory", () => {
             v: 1,
             unit: "kg",
             daily: [],
+            daily_year: [],
             weekly: [],
             monthly: [],
             first: null,
@@ -402,6 +403,11 @@ describe("analyzeWeightHistory", () => {
         expect(a.meta.daily).toHaveLength(90);
         expect(a.meta.daily[0]!.date).toBe(shiftLocalDate(today, -89));
         expect(a.meta.daily[89]!.date).toBe(today);
+        // daily_year: the same points over the last 365 days, so its tail
+        // is exactly `daily`.
+        expect(a.meta.daily_year).toHaveLength(365);
+        expect(a.meta.daily_year[0]!.date).toBe(shiftLocalDate(today, -364));
+        expect(a.meta.daily_year.slice(-90)).toEqual(a.meta.daily);
         expect(a.meta.weekly).toHaveLength(53);
         expect(a.meta.weekly[52]!.start).toBe(isoWeekStart(today));
         // 2023-10 through 2026-10 inclusive.

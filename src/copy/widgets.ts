@@ -75,6 +75,41 @@ export interface GoalProgressMetrics {
     water: string;
 }
 
+
+/** The weight-trends widget's range ids (its pills: 7d 30d 90d 1y All). */
+export type WeightRangeId = "7" | "30" | "90" | "1y" | "all";
+
+/** How one weight-trends range is named, in each place a range is named. */
+export interface WeightRangeCopy {
+    /** Pill label, e.g. "30d". */
+    label: string;
+    /** Pill aria-label, e.g. "Show last 30 days". */
+    aria: string;
+    /** After "in": "No weigh-ins in the last 30 days". A locale whose
+     * preposition changes with the range ("in den letzten 30 Tagen", "im
+     * letzten Jahr") carries it here and leaves it out of the templates that
+     * use `word` (emptyRange, emptyRangeLast, oneTitle). */
+    word: string;
+    /** Trailing phrase: "12 weigh-ins in 30 days". */
+    inRange: string;
+    /** In the measurements heading: "Body measurements · last 30 days". */
+    heading: string;
+    /** In the change chip: "−1.2 kg · 30 d". */
+    chip: string;
+}
+
+/** Stored body-measurement kinds (BODY_MEASUREMENT_KINDS in src/units.ts). */
+export type WeightMeasurementSite =
+    | "waist"
+    | "hips"
+    | "neck"
+    | "chest"
+    | "shoulders"
+    | "upper_arm"
+    | "forearm"
+    | "thigh"
+    | "calf";
+
 export interface WidgetStrings {
     /** shared/macros.js — the macro strip every widget embeds. */
     macros: {
@@ -764,62 +799,182 @@ export interface WidgetStrings {
 
     /** templates/weight-trends.html's own top matter. No macro strip here. */
     weightTrends: {
-        /** Loading line shown before the first tool result arrives —
-         * before the payload's locale is known, so shared/bridge.js picks
-         * it from the browser language. */
+        /** Loading line shown before the first tool result arrives — before the payload's locale is known, so shared/bridge.js picks it from the browser language. */
         loading: string;
-        title: string;
+        /** No weigh-in anywhere in the payload. */
         empty: string;
-        /** A selected range with no weigh-ins in it. Placeholder: {range}. */
-        rangeEmpty: string;
-        /** aria-label on the 7/14/30-day segmented control. */
-        windowAriaLabel: string;
-        /** Template for a range button's aria-label. Placeholder: {n}. */
-        rangeAriaLabel: string;
-        /** Template for the chart's aria-label. Placeholders: {from}, {to},
-         * {latest} (pre-formatted with unit). Names the smoothed trend line. */
-        /** The raw-weight chart shown when the host dropped `_meta`. */
-        chartAriaLabel: string;
-        /** The trend chart (`_meta` present): raw dots plus the smoothed line. */
-        trendChartAriaLabel: string;
-        latest: string;
-        /** Fewer than 2 weigh-ins in the selected range. */
-        needTwo: string;
-        /** Template. Placeholders: {change} (pre-formatted with unit), {date}. */
-        sinceDate: string;
-        weighIns: PluralForms;
-        atTarget: string;
-        /** Template. Placeholder: {amount} (pre-formatted with its unit). */
-        toLose: string;
-        /** Template. Placeholder: {amount} (pre-formatted with its unit). */
-        toGain: string;
-        /** Template. Placeholder: {value} (pre-formatted with its unit). */
-        target: string;
-        noTarget: string;
-        /** Label for the trend weight (the EWMA), shown as the big number. */
-        trend: string;
-        /** Template. Placeholder: {value} (pre-formatted with its unit) — the
-         * latest raw scale reading, the small secondary figure. */
-        scaleToday: string;
-        /** Rate chip text. Placeholder: {amount} (signed, pre-formatted with
-         * its unit), e.g. "−0.4 kg/wk". */
+        /** Eyebrow when the latest weigh-in is today. */
+        eyebrowToday: string;
+        /** Eyebrow otherwise. Placeholder: {date} (short date). */
+        eyebrowLast: string;
+        /** Title: only one weigh-in ever. */
+        titleFirst: string;
+        /** Title: fewer than 4 weigh-in days in the range. */
+        titleFew: string;
+        /** Title: enough points, but the server sent no weekly rate (too few weigh-ins in the last 3 weeks). */
+        titleNoRate: string;
+        /** Title, no goal set: rate under 0.03 a week either way. */
+        titleSteady: string;
+        /** Title, no goal set. */
+        titleDown: string;
+        /** Title, no goal set. */
+        titleUp: string;
+        /** Title: the latest weight is at or past the target. */
+        titleGoalReached: string;
+        /** Title: the rate points away from the target. */
+        titleAway: string;
+        /** Title: the rate points toward the target. */
+        titleOnTrack: string;
+        /** Title: flat, target not reached. */
+        titleShortSteady: string;
+        /** aria-label on the range pill group. */
+        rangeGroupAriaLabel: string;
+        /** Per range id: the pill's label and aria-label, plus the range named inside other strings — `word` after "in" ("No weigh-ins in {range}"), `inRange` as a trailing phrase ("12 weigh-ins in 30 days"), `heading` in the measurements heading, `chip` in the change chip. */
+        ranges: Record<WeightRangeId, WeightRangeCopy>;
+        /** Change chip beside the big number. Placeholders: {change} (signed, with unit), {range} (ranges.*.chip). */
+        chip: string;
+        /** Summary part. Placeholder: {amount} (signed, with unit; rendered bold). */
         perWeek: string;
-        /** aria-label on the rate chip. Placeholder: {amount} (signed,
-         * pre-formatted with its unit). */
-        rateAriaLabel: string;
-        /** Short label marking the chip as the 2-week rate, shown beside it
-         * in the long ranges (90/1y/All) so the chip keeps one meaning. */
-        rateTwoWeeks: string;
-        /** Range button labels for the long ranges (the day ranges show bare
-         * numbers; 90 uses rangeAriaLabel with {n} = 90 like 7/14/30). */
-        range1y: string;
-        rangeAll: string;
-        range1yAriaLabel: string;
-        rangeAllAriaLabel: string;
-        /** Template for the 1y/All change line, where {date} is a month
-         * (pre-formatted, e.g. "Mar 2024"). Placeholders: {change}
-         * (pre-formatted with unit), {date}. */
-        sinceMonth: string;
+        /** Summary part with no goal set. Placeholder: {amount}. */
+        perWeekAvg: string;
+        /** Summary part. Placeholder: {value} (weeksApprox or yearsPlus; rendered bold). */
+        toGoal: string;
+        /** Projected time to the goal at the current rate. */
+        weeksApprox: PluralForms;
+        /** Projected time to the goal beyond 104 weeks. */
+        yearsPlus: string;
+        /** Summary part. Placeholder: {date} (short date; rendered bold). */
+        reachedOn: string;
+        /** Summary part. */
+        movingAway: string;
+        /** Summary part. */
+        tooFlat: string;
+        /** Summary line when the range holds 2–3 weigh-in days. */
+        hintFew: string;
+        /** Summary line when the server sent no weekly rate. */
+        hintNoRate: string;
+        /** Desktop stat label. */
+        statPerWeek: string;
+        /** Desktop stat label. */
+        statGoalPace: string;
+        /** Desktop stat label. */
+        statGoalReached: string;
+        /** Desktop stat label. */
+        statToGoal: string;
+        /** Desktop stat label. Placeholder: {date} (short date, or month and year). */
+        statSince: string;
+        /** Unit beside the "Goal at this pace" figure. */
+        unitWeeks: PluralForms;
+        /** Unit beside "2+". */
+        unitYears: string;
+        /** Goal pill on the chart. Placeholders: {goal}, {left} (each with unit). */
+        goalPill: string;
+        /** Goal pill once reached. Placeholder: {goal}. */
+        goalPillReached: string;
+        /** Goal pill pinned under a chart whose range sits above the goal. Placeholders: {goal}, {left}. */
+        goalBelow: string;
+        /** Goal pill pinned over a chart whose range sits below the goal. Placeholders: {goal}, {left}. */
+        goalAbove: string;
+        /** Day name for the current date. */
+        today: string;
+        /** Day name for the day before. */
+        yesterday: string;
+        /** A date with a local time. Placeholders: {date}, {time} (HH:MM). */
+        whenTime: string;
+        /** Tooltip value for a day with several weigh-ins. Placeholders: {value}, {n}. */
+        scrubAvg: string;
+        /** aria-label of a chart point. Placeholders: {date}, {value}. */
+        hitLabel: string;
+        /** aria-label of a chart point averaging several weigh-ins. Placeholders: {date}, {value}, {n}. */
+        hitLabelAvg: string;
+        /** aria-label of the chart. Placeholders: {latest}; {goal} (chartAriaGoal or empty); {change} (chartAriaChange or empty). */
+        chartAriaLabel: string;
+        /** Optional part of chartAriaLabel. Placeholder: {goal}. */
+        chartAriaGoal: string;
+        /** Optional part of chartAriaLabel. Placeholders: {change}, {range} (ranges.*.inRange). */
+        chartAriaChange: string;
+        /** aria-label of the tooltip's close button. */
+        close: string;
+        /** Single-point card, first weigh-in ever. */
+        oneTitleFirst: string;
+        /** Single-point card. Placeholder: {range} (ranges.*.word). */
+        oneTitle: string;
+        /** Single-point card line. Placeholders: {when}, {value}. */
+        oneFirst: string;
+        /** Single-point card line. Placeholders: {when}, {value}. */
+        oneLine: string;
+        /** Single-point card hint, first weigh-in ever. */
+        oneHintFirst: string;
+        /** Single-point card hint: how many logged days the longer ranges add. */
+        oneHintEarlier: PluralForms;
+        /** Empty-range card. Placeholder: {range} (ranges.*.word). */
+        emptyRange: string;
+        /** Empty-range card when an earlier weigh-in is known. Placeholders: {range}, {date}. */
+        emptyRangeLast: string;
+        /** Details toggle, closed. */
+        showMore: string;
+        /** Details toggle, open. */
+        showLess: string;
+        /** aria-label of the details toggle; starts with its visible text. Placeholder: {action} (showMore or showLess). */
+        detailsAria: string;
+        /** The same without a measurements section. Placeholder: {action}. */
+        detailsAriaWeighIns: string;
+        /** Button closing the details. */
+        collapseAll: string;
+        /** Section heading (uppercased by CSS). */
+        sectionWeighIns: string;
+        /** Section heading. Placeholder: {range} (ranges.*.heading). */
+        sectionMeasurements: string;
+        /** Weigh-ins row. Placeholders: {n} (readings), {range} (ranges.*.inRange). */
+        accLabel: PluralForms;
+        /** Weigh-ins row with none in range. Placeholder: {range} (ranges.*.inRange). */
+        accEmpty: string;
+        /** Weigh-ins row sub-line. Placeholders: {avg} (with unit), {min}, {max}. */
+        accAvgRange: string;
+        /** Weigh-ins row sub-line for one reading. */
+        loggedToday: string;
+        /** Weigh-ins row sub-line for one reading. */
+        loggedYesterday: string;
+        /** Weigh-ins row sub-line for one reading. Placeholder: {date}. */
+        loggedOn: string;
+        /** Week group name. */
+        weekThis: string;
+        /** Week group name. */
+        weekLast: string;
+        /** Week group average. Placeholder: {value} (with unit). */
+        weekAvg: string;
+        /** Change of this week's average. Placeholder: {change}. */
+        weekVsLast: string;
+        /** Change of an older week's average. Placeholder: {change}. */
+        weekVsBefore: string;
+        /** Day row meta for a day with several readings. */
+        dayMulti: PluralForms;
+        /** Reveals the remaining week groups. */
+        showEarlierWeeks: PluralForms;
+        /** Body-measurement site names, keyed by the stored kind. */
+        sites: Record<WeightMeasurementSite, string>;
+        /** Card change line. Placeholders: {change} (changeDown/Up/Flat), {date}. */
+        measSince: string;
+        /** A decrease. Placeholder: {delta} (with unit). */
+        changeDown: string;
+        /** An increase. Placeholder: {delta} (with unit). */
+        changeUp: string;
+        /** No change. */
+        changeFlat: string;
+        /** Card change line for a site's only entry. Placeholder: {date}. */
+        measFirst: string;
+        /** History row with no earlier entry. */
+        measFirstRow: string;
+        /** Card change line for a site with nothing in range. Placeholder: {date}. */
+        measStale: string;
+        /** Open-card heading for a stale site. */
+        measEarlier: string;
+        /** Open-card heading. Placeholders: {site}, {range} (ranges.*.heading). */
+        measHeading: string;
+        /** Reveals a card's remaining history rows. */
+        showMoreN: PluralForms;
+        /** Measurements section with nothing logged in the last 365 days. */
+        noMeasurements: string;
     };
 
     /** templates/import-meals.html's own strings — the file/map/preview/import
@@ -1538,33 +1693,158 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
     },
     weightTrends: {
         loading: "Loading your weight trends…",
-        title: "Weight",
         empty: "No weight logged in this range yet.",
-        rangeEmpty: "No weigh-ins in the last {range} days. Try a wider range.",
-        windowAriaLabel: "Trend window",
-        rangeAriaLabel: "Last {n} days",
-        chartAriaLabel: "Weight from {from} to {to}, latest {latest}",
-        trendChartAriaLabel:
-            "Weight from {from} to {to} with a smoothed trend line, latest {latest}",
-        latest: "Latest",
-        needTwo: "need 2+ weigh-ins",
-        sinceDate: "{change} since {date}",
-        weighIns: { one: "{n} weigh-in", other: "{n} weigh-ins" },
-        atTarget: "at target",
-        toLose: "{amount} to lose",
-        toGain: "{amount} to gain",
-        target: "Target {value}",
-        noTarget: "No target set",
-        trend: "Trend",
-        scaleToday: "Scale today {value}",
-        perWeek: "{amount}/wk",
-        rateAriaLabel: "Trend changing {amount} per week over the last 2 weeks",
-        rateTwoWeeks: "2-wk rate",
-        range1y: "1y",
-        rangeAll: "All",
-        range1yAriaLabel: "Last year",
-        rangeAllAriaLabel: "All history",
-        sinceMonth: "{change} since {date}",
+        eyebrowToday: "Weight · today",
+        eyebrowLast: "Weight · last weigh-in {date}",
+        titleFirst: "First weigh-in logged",
+        titleFew: "A few weigh-ins so far",
+        titleNoRate: "Not enough recent weigh-ins for a weekly rate",
+        titleSteady: "Holding steady",
+        titleDown: "Trending down",
+        titleUp: "Trending up",
+        titleGoalReached: "Goal reached",
+        titleAway: "Drifting away from your goal",
+        titleOnTrack: "On track for your goal",
+        titleShortSteady: "Holding steady, short of your goal",
+        rangeGroupAriaLabel: "Range",
+        ranges: {
+            "7": {
+                label: "7d",
+                aria: "Show last 7 days",
+                word: "the last 7 days",
+                inRange: "in 7 days",
+                heading: "last 7 days",
+                chip: "7 d",
+            },
+            "30": {
+                label: "30d",
+                aria: "Show last 30 days",
+                word: "the last 30 days",
+                inRange: "in 30 days",
+                heading: "last 30 days",
+                chip: "30 d",
+            },
+            "90": {
+                label: "90d",
+                aria: "Show last 90 days",
+                word: "the last 90 days",
+                inRange: "in 90 days",
+                heading: "last 90 days",
+                chip: "90 d",
+            },
+            "1y": {
+                label: "1y",
+                aria: "Show last year",
+                word: "the last year",
+                inRange: "in a year",
+                heading: "last year",
+                chip: "1 y",
+            },
+            all: {
+                label: "All",
+                aria: "Show all time",
+                word: "all time",
+                inRange: "overall",
+                heading: "all time",
+                chip: "All",
+            },
+        },
+        chip: "{change} · {range}",
+        perWeek: "{amount} per week",
+        perWeekAvg: "{amount} per week on average",
+        toGoal: "{value} to goal",
+        weeksApprox: { one: "~{n} week", other: "~{n} weeks" },
+        yearsPlus: "2+ years",
+        reachedOn: "reached on {date}",
+        movingAway: "moving away from goal",
+        tooFlat: "too flat to project a goal date",
+        hintFew: "A trend line needs at least 4 weigh-ins in the range",
+        hintNoRate: "The weekly rate needs 4 weigh-ins in the last 3 weeks",
+        statPerWeek: "Per week",
+        statGoalPace: "Goal at this pace",
+        statGoalReached: "Goal reached",
+        statToGoal: "To goal",
+        statSince: "Since {date}",
+        unitWeeks: { one: "week", other: "weeks" },
+        unitYears: "years",
+        goalPill: "Goal {goal} · {left} to go",
+        goalPillReached: "Goal {goal} ✓",
+        goalBelow: "Goal {goal}  ↓ {left} below",
+        goalAbove: "Goal {goal}  ↑ {left} above",
+        today: "Today",
+        yesterday: "Yesterday",
+        whenTime: "{date}, {time}",
+        scrubAvg: "{value} (avg of {n})",
+        hitLabel: "{date}, {value}",
+        hitLabelAvg: "{date}, {value}, average of {n}",
+        chartAriaLabel:
+            "Weight chart, latest {latest}{goal}{change}. Tap a day to read its value.",
+        chartAriaGoal: ", goal {goal}",
+        chartAriaChange: ", {change} {range}",
+        close: "Close",
+        oneTitleFirst: "Your trend starts here",
+        oneTitle: "Only one weigh-in in {range}",
+        oneFirst: "First weigh-in · {when} · {value}",
+        oneLine: "{when} · {value}",
+        oneHintFirst: "The chart starts with a second weigh-in",
+        oneHintEarlier: {
+            one: "{n} earlier weigh-in day in longer ranges",
+            other: "{n} earlier weigh-in days in longer ranges",
+        },
+        emptyRange: "No weigh-ins in {range}.",
+        emptyRangeLast: "No weigh-ins in {range}. The last one was on {date}.",
+        showMore: "Show more",
+        showLess: "Show less",
+        detailsAria: "{action}: weigh-ins and measurements",
+        detailsAriaWeighIns: "{action}: weigh-ins",
+        collapseAll: "Collapse all",
+        sectionWeighIns: "Weigh-ins",
+        sectionMeasurements: "Body measurements · {range}",
+        accLabel: {
+            one: "{n} weigh-in {range}",
+            other: "{n} weigh-ins {range}",
+        },
+        accEmpty: "No weigh-ins {range}",
+        accAvgRange: "avg {avg} · range {min}–{max}",
+        loggedToday: "logged today",
+        loggedYesterday: "logged yesterday",
+        loggedOn: "logged on {date}",
+        weekThis: "This week",
+        weekLast: "Last week",
+        weekAvg: "avg {value}",
+        weekVsLast: "{change} vs last week",
+        weekVsBefore: "{change} vs week before",
+        dayMulti: {
+            one: "{n} weigh-in · averaged",
+            other: "{n} weigh-ins · averaged",
+        },
+        showEarlierWeeks: {
+            one: "Show {n} earlier week",
+            other: "Show {n} earlier weeks",
+        },
+        sites: {
+            waist: "Waist",
+            hips: "Hips",
+            neck: "Neck",
+            chest: "Chest",
+            shoulders: "Shoulders",
+            upper_arm: "Upper arm",
+            forearm: "Forearm",
+            thigh: "Thigh",
+            calf: "Calf",
+        },
+        measSince: "{change} since {date}",
+        changeDown: "↓ {delta}",
+        changeUp: "↑ {delta}",
+        changeFlat: "→ no change",
+        measFirst: "first measurement · {date}",
+        measFirstRow: "first",
+        measStale: "not measured in this range · last on {date}",
+        measEarlier: "Earlier measurements",
+        measHeading: "{site} · {range}",
+        showMoreN: { one: "Show {n} more", other: "Show {n} more" },
+        noMeasurements:
+            "No body measurements in the last year. Waist, hips and seven other sites can be tracked in centimetres or inches.",
     },
     importMeals: {
         loading: "Preparing import…",

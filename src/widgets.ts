@@ -106,6 +106,24 @@ export const MEAL_BREAKDOWN_TOP_N = 8;
 export const WEIGHT_SERIES_META_KEY = "nutrition-mcp.com/weight-series";
 
 /**
+ * get_weight_trends' per-reading weigh-in list for the widget's Weigh-ins
+ * view (WeightEntriesMeta, built by buildWeightEntriesMeta in
+ * src/weight-widget.ts): local time, value and note of every weigh-in in the
+ * last 365 days. `_meta`, not structuredContent (the output schema is
+ * frozen). The weight-trends template repeats the literal (asserted in
+ * src/mcp.test.ts); without it the view lists day averages without times.
+ */
+export const WEIGHT_ENTRIES_META_KEY = "nutrition-mcp.com/weight-entries";
+
+/**
+ * get_weight_trends' body-measurement history for the widget's Body
+ * measurements cards (BodyMeasurementsMeta, buildBodyMeasurementsMeta in
+ * src/weight-widget.ts). Dropped, never an error, when the read fails; the
+ * widget then hides the section. Repeated as a literal in the template.
+ */
+export const BODY_MEASUREMENTS_META_KEY = "nutrition-mcp.com/body-measurements";
+
+/**
  * Where get_trends puts its per-period averages when called with `group_by`
  * (the PeriodAveragesMeta built by buildPeriodAveragesMeta in src/periods.ts):
  * the CallToolResult's `_meta`, for the same frozen-outputSchema reason as the

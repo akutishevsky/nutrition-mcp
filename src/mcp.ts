@@ -113,6 +113,11 @@ import {
 } from "./insights.js";
 import { analyzeWeightHistory, defaultRangeFor } from "./weight-trend.js";
 import {
+    buildBodyMeasurementsMeta,
+    buildWeightEntriesMeta,
+    WIDGET_HISTORY_DAYS,
+} from "./weight-widget.js";
+import {
     toGrams,
     formatWeight,
     fromGrams,
@@ -201,6 +206,8 @@ import {
     getWidgetHtml,
     MEAL_CONTRIBUTORS_META_KEY,
     WEIGHT_SERIES_META_KEY,
+    WEIGHT_ENTRIES_META_KEY,
+    BODY_MEASUREMENTS_META_KEY,
     PERIOD_AVERAGES_META_KEY,
     ADDED_SUGAR_META_KEY,
     SATURATED_FAT_META_KEY,
@@ -4132,7 +4139,7 @@ export function registerTools(
         {
             title: "Weight Trends",
             description:
-                "Interactive UI for get_weight_trends: a range toggle (up to the whole history) over a weight-over-time chart (daily weigh-ins, smoothed trend line, data-scaled axis, target line) plus trend weight, weekly rate, change and target stats, with automatic light/dark theming.",
+                "Interactive UI for get_weight_trends: the latest weigh-in, its change over a selectable range (up to the whole history) and a weight-over-time chart (daily weigh-ins, smoothed trend line, data-scaled axis, target line), the weekly rate and goal projection, plus expandable lists of the weigh-ins by week and of body measurements by site, with automatic light/dark theming.",
             mimeType: APP_UI_MIME_TYPE,
         },
         async (uri) => {
@@ -6845,9 +6852,23 @@ export function registerTools(
                     // in _meta. getAllWeight pages and reconciles against an
                     // exact count, so a long history throws rather than
                     // silently starting the trend late.
-                    const [entries, goals] = await Promise.all([
+                    // Body measurements feed only the widget's details
+                    // view: a failed read drops that `_meta` key (the widget
+                    // then hides the section) instead of failing the tool.
+                    const [entries, goals, measurements] = await Promise.all([
                         getAllWeight(userId),
                         getNutritionGoals(userId),
+                        getBodyMeasurementsInRange(
+                            userId,
+                            shiftLocalDate(endDate, -(WIDGET_HISTORY_DAYS - 1)),
+                            endDate,
+                            tz,
+                        ).catch((err: unknown) => {
+                            console.warn(
+                                `[get_weight_trends] body-measurements read failed; widget key dropped (${err instanceof Error ? err.name : "error"})`,
+                            );
+                            return null;
+                        }),
                     ]);
                     const targetG = goals?.target_weight_g ?? null;
                     const analysis = analyzeWeightHistory(
@@ -6900,8 +6921,30 @@ export function registerTools(
                         // Trend, rate and the 90-day / weekly / monthly
                         // series: _meta, not structuredContent, because the
                         // output schema is frozen (see WEIGHT_SERIES_META_KEY).
+                        // The per-reading list and the measurements are
+                        // widget-only details for the same reason.
                         _meta: {
                             [WEIGHT_SERIES_META_KEY]: analysis.meta,
+                            [WEIGHT_ENTRIES_META_KEY]: buildWeightEntriesMeta(
+                                entries,
+                                tz,
+                                unit,
+                                endDate,
+                                todayInTz(tz),
+                            ),
+                            ...(measurements
+                                ? {
+                                      [BODY_MEASUREMENTS_META_KEY]:
+                                          buildBodyMeasurementsMeta(
+                                              measurements,
+                                              tz,
+                                              preferredLengthUnitFromProfile(
+                                                  profile,
+                                              ),
+                                              endDate,
+                                          ),
+                                  }
+                                : {}),
                         },
                     };
                 },

@@ -21,6 +21,8 @@ export const TREND_WARMUP_DAYS = 60;
 
 /** `daily` in the _meta payload covers the last this-many days. */
 export const DAILY_SERIES_DAYS = 90;
+/** `daily_year` (additive within v1) covers the last this-many days. */
+export const DAILY_YEAR_SERIES_DAYS = 365;
 /** `weekly` keeps the last this-many ISO weeks (the current one included). */
 export const WEEKLY_SERIES_WEEKS = 53;
 /** `monthly` keeps at most this many months, newest first kept. */
@@ -263,6 +265,9 @@ export interface WeightSeriesMeta {
     v: 1;
     unit: string;
     daily: { date: string; weight: number; trend: number }[];
+    /** Same shape as `daily` over the last 365 days, so the 1y range can
+     *  plot every logged day. Additive: older widgets ignore it. */
+    daily_year: { date: string; weight: number; trend: number }[];
     weekly: { start: string; weight: number; trend: number }[];
     monthly: { month: string; weight: number; trend: number }[];
     first: { date: string; weight: number } | null;
@@ -296,20 +301,21 @@ export function analyzeWeightHistory(
     const rate_g = weeklyRate(series, today);
 
     const dailyFrom = shiftLocalDate(today, -(DAILY_SERIES_DAYS - 1));
+    const yearFrom = shiftLocalDate(today, -(DAILY_YEAR_SERIES_DAYS - 1));
     const conv = (g: number) => fromGrams(g, unit);
+    const point = (p: TrendPoint) => ({
+        date: p.date,
+        weight: conv(p.weight_g),
+        trend: conv(p.trend_g),
+    });
     const last = series.length > 0 ? series[series.length - 1]! : null;
     const firstDay = series.length > 0 ? series[0]! : null;
 
     const meta: WeightSeriesMeta = {
         v: WEIGHT_SERIES_META_VERSION,
         unit,
-        daily: series
-            .filter((p) => p.date >= dailyFrom)
-            .map((p) => ({
-                date: p.date,
-                weight: conv(p.weight_g),
-                trend: conv(p.trend_g),
-            })),
+        daily: series.filter((p) => p.date >= dailyFrom).map(point),
+        daily_year: series.filter((p) => p.date >= yearFrom).map(point),
         weekly: weeklyBuckets(series, today).map((b) => ({
             start: b.start,
             weight: conv(b.weight_g),
