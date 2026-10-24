@@ -1,41 +1,48 @@
 <!doctype html>
 <!--
-  Weight-trends widget (MCP Apps).
+  Weight-trends widget (MCP Apps), the 2026-10 redesign (W4).
 
   Assembled from shared partials at server startup (see src/widgets.ts); the
-  @include markers below inline the shared design tokens, compact widget shell,
-  segmented control, chart rules, and host bridge. The result is fully
-  self-contained — inline CSS + JS, zero network requests — because the MCP Apps
-  sandbox blocks external hosts.
+  @include markers below inline the shared design tokens, the widget shell and
+  the host bridge. The result is fully self-contained — inline CSS + JS, zero
+  network requests — because the MCP Apps sandbox blocks external hosts.
 
-  Shown after get_weight_trends. The whole widget is ONE panel: a header line
-  carrying the range toggle, then the headline figure beside the weight chart,
-  then a hairline footer with the weigh-in count and the target. There is NO
-  macro strip here — this widget is about a single series, so it includes
-  neither macros.css nor macros.js.
+  Shown after get_weight_trends. ONE panel, top to bottom:
 
-  Two modes, picked per render from what the host delivered:
+  - a header button (eyebrow + one-line status title) that opens the details;
+  - the hero row: the latest weigh-in as a big reel-animated number, a chip
+    with the change over the selected range, and 7d · 30d · 90d · 1y · All
+    range pills;
+  - a date-proportional chart: faint daily dots, the smoothed trend line with
+    an area under it, dashed segments across gaps, a dashed goal line with a
+    goal pill (pinned to an edge when the goal is off the data range), and a
+    tap/hover scrub tooltip. One weigh-in in range is a "cone" card, none an
+    empty card;
+  - a summary line (phone) or a stats row (from 640px wide), and the
+    Show more / Show less button;
+  - details: Weigh-ins (an accordion of the range's weigh-ins grouped by week,
+    with expandable multi-reading days) and Body measurements (one card per
+    site, one open at a time). Side by side from 640px.
 
-  - TREND (the result's `_meta` carries "nutrition-mcp.com/weight-series"):
-    the smoothed trend weight is the big number with the scale reading and a
-    2-week rate chip beside it; the chart is date-proportional, raw daily
-    weights are faint dots and the trend is the solid accent line. The toggle
-    is 7 · 30 · 90 · 1y · All — 7/30/90 slice `daily`, 1y draws `weekly`,
-    All draws `monthly` (each long range shown only when its series exists,
-    All only once the history spans more than a year).
-  - LEGACY (a host that dropped `_meta`, or an older server): exactly the
-    pre-trend widget — raw line over an index-spaced X, 7 / 14 / 30 toggle
-    over `structuredContent.days`. Keep this path byte-for-byte in behaviour;
-    `structuredContent` is frozen, so it is what every stale host still sees.
+  The layout switch is a CSS media query on the iframe's own width; the chart
+  is drawn twice (a 287×172 and an 814×200 geometry) and CSS shows one.
 
-  Both modes filter CLIENT-SIDE and re-render on a toggle — no host
-  round-trip. The weight axis is scaled to the data range (NOT zero-based) so
-  small changes stay visible, with a dashed target line.
+  Data, all treated as untrusted and every piece optional beyond
+  structuredContent (frozen: end_date, unit, target, default_range, locale,
+  30 days of daily averages):
 
-  Data arrives as the `structuredContent` of the get_weight_trends tool result
-  (plus its `_meta` as render()'s second argument); the shared bridge
-  (shared/bridge.js) reads it across host conventions and calls render().
-  Standalone preview uses the SAMPLE below.
+  - _meta "nutrition-mcp.com/weight-series": the server's EWMA trend, weekly
+    rate and the long series (daily 90 d, daily_year 365 d, weekly, monthly).
+    Without it the widget draws structuredContent.days only (7d/30d), with a
+    centred moving average for the line.
+  - _meta "nutrition-mcp.com/weight-entries": every weigh-in of the last year
+    with its local time and note (multi-reading days, times, notes).
+  - _meta "nutrition-mcp.com/body-measurements": per-site measurement
+    history. Absent → the Body measurements section is not shown.
+
+  Every range, toggle and scrub is client-side; nothing round-trips to the
+  host. Interactions repaint #wt (inside #root), so the bridge's settings
+  footer, appended to #root after render(), survives them.
 -->
 <html lang="en">
     <head>
@@ -47,135 +54,1268 @@
 
             /*@include shared/base.css@*/
 
-            /*@include shared/seg.css@*/
+            /* ---- Local, theme-aware mixes (no hexes: tokens only) ---- */
+            :root {
+                --wt-chip: color-mix(in srgb, var(--text) 6%, var(--panel));
+                --wt-chip-h: color-mix(in srgb, var(--text) 10%, var(--panel));
+                --wt-acc: 9%;
+                --wt-acc-sel: 6%;
+                --wt-ring: 32%;
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --wt-acc: 13%;
+                    --wt-acc-sel: 9%;
+                    --wt-ring: 38%;
+                }
+            }
+            :root[data-theme="light"] {
+                --wt-acc: 9%;
+                --wt-acc-sel: 6%;
+                --wt-ring: 32%;
+            }
+            :root[data-theme="dark"] {
+                --wt-acc: 13%;
+                --wt-acc-sel: 9%;
+                --wt-ring: 38%;
+            }
 
-            /*@include shared/trend.css@*/
-
-            /* Weight-only layout. The chart does not sit in a `.chart` block:
-               it shares one row with the latest reading, which is the figure
-               the chart is context for. */
-            .wmain {
-                display: flex;
-                align-items: flex-end;
-                gap: 12px;
-            }
-            .wnow {
-                flex: none;
-            }
-            .wlabel {
-                font-size: 9.5px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                color: var(--text-dim);
-            }
-            .wval {
-                font-size: 20px;
-                font-weight: 800;
-                letter-spacing: -0.03em;
-                line-height: 1.2;
-                font-variant-numeric: tabular-nums;
-            }
-            .wval .wunit {
-                font-size: 12px;
-                font-weight: 600;
-                letter-spacing: 0;
-                color: var(--text-dim);
-                margin-left: 2px;
-            }
-            .wdelta {
-                font-size: 10.5px;
-                font-weight: 700;
-                font-variant-numeric: tabular-nums;
-            }
-            .wchart {
-                flex: 1;
-                min-width: 0;
-                height: auto;
+            .panel.wt {
                 display: block;
+                padding: 14px 16px 12px;
             }
-
-            /* Footer: how much data this is, and what it is aimed at. */
-            /* Wraps as two whole phrases, never mid-value: without the wrap
-               and the nowrap on each half, a 360px phone breaks "13 Jun → 11
-               Jul" after the arrow and "2.0 kg to lose" after "to". */
-            .wfoot {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: space-between;
-                gap: 2px 10px;
-                font-size: 11px;
-                color: var(--text-dim);
+            .num {
                 font-variant-numeric: tabular-nums;
             }
-            .wfoot > span {
+            button {
+                font: inherit;
+                color: inherit;
+            }
+            :where(button.reset) {
+                all: unset;
+                box-sizing: border-box;
+                cursor: pointer;
+                text-align: left;
+            }
+            button.reset:focus-visible {
+                outline: 2px solid var(--focus);
+                outline-offset: 2px;
+                border-radius: 8px;
+            }
+            .vh {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
                 white-space: nowrap;
             }
-            .wfoot b {
-                font-weight: 700;
-                color: var(--text);
+            .only-d {
+                display: none !important;
             }
 
-            /* A range the user selected that happens to hold no weigh-ins —
-               distinct from the widget-wide empty state, since the toggle is
-               still there to widen. */
-            .cempty {
-                padding: 18px 0 14px;
-                text-align: center;
-                color: var(--text-dim);
-                font-size: 12.5px;
-            }
-
-            /* ---- Trend mode only (the `_meta` series is present) ---- */
-            /* The chart column: the SVG plus its start/end date labels. */
-            /* The trend headline is wider than the legacy one, so on a
-               narrow host the chart would shrink to a sliver beside it (the
-               viewBox's fixed aspect makes it short as well as thin). Below
-               ~180px of chart it wraps under the headline at full width. */
-            /* Top-aligned (legacy is bottom-aligned): the headline's last
-               line ("−0.3 kg since 29 Sep") would otherwise sit on the same
-               baseline as the chart's start date label right beside it and
-               read as one run-on line. */
-            .wmain.wtrend {
-                flex-wrap: wrap;
-                align-items: flex-start;
-                column-gap: 18px;
-            }
-            .wcol {
-                flex: 1;
-                min-width: 180px;
-            }
-            .wcol .wchart {
+            /* ---- Header ---- */
+            .gtop {
+                display: flex !important;
+                flex-direction: column;
+                gap: 2px;
                 width: 100%;
             }
-            .wscale {
-                font-size: 10.5px;
+            .eyb2 {
+                font-size: 12.5px;
+                font-weight: 600;
                 color: var(--text-dim);
+                letter-spacing: 0.01em;
+                margin-bottom: 3px;
+            }
+            .gtop .t {
+                font-size: 17px;
+                font-weight: 650;
+                letter-spacing: -0.015em;
+                line-height: 1.3;
+                color: var(--text);
+                overflow-wrap: anywhere;
+            }
+
+            /* ---- Hero row ---- */
+            .wtop {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+                margin-top: 14px;
+            }
+            .wnow {
+                display: flex;
+                align-items: baseline;
+                flex-wrap: wrap;
+                gap: 4px 0;
+                min-width: 0;
+            }
+            .wbig {
+                display: inline-flex;
+                line-height: 1;
+                height: 1em;
+                font-size: 44px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                color: var(--text);
+            }
+            /* The reel: each digit is a column of 0–9 four times, parked on
+               the fourth cycle's digit; the intro animation spins it there
+               from 0. Without the animation (reduced motion, or any repaint
+               after the first) it simply sits on its final digit. */
+            .rl {
+                display: inline-block;
+                height: 1em;
+                line-height: 1;
+                overflow: hidden;
+                vertical-align: top;
+            }
+            .rs {
+                display: flex;
+                flex-direction: column;
+                transform: translateY(calc((30 + var(--d)) * -1em));
+            }
+            .rs span {
+                display: block;
+                height: 1em;
+                line-height: 1;
+                text-align: center;
+            }
+            .intro .rs {
+                animation: reel calc(1.4s + var(--i) * 0.3s)
+                    cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+            }
+            @keyframes reel {
+                from {
+                    transform: translateY(0);
+                }
+            }
+            .wunit {
+                font-size: 17px;
+                font-weight: 650;
+                color: var(--text-dim);
+                margin-left: 5px;
+                margin-right: 12px;
+            }
+            .dchip {
+                align-self: center;
+                display: inline-flex;
+                align-items: center;
+                height: 28px;
+                padding: 0 11px;
+                border-radius: 14px;
+                font-size: 13px;
+                font-weight: 800;
+                white-space: nowrap;
                 font-variant-numeric: tabular-nums;
+            }
+            .intro .dchip {
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.6s both;
+            }
+            .dchip.good,
+            .wchip.g {
+                background: var(--gauge-track);
+                color: var(--status-ok-ink);
+            }
+            .dchip.bad,
+            .wchip.b {
+                background: var(--gauge-over-track);
+                color: var(--status-over-ink);
+            }
+            .dchip.neu,
+            .wchip.n,
+            .wchip.z {
+                background: var(--wt-chip);
+                color: var(--text-dim);
+            }
+            .rpills {
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            .rp {
+                height: 32px;
+                min-width: 44px;
+                padding: 0 12px !important;
+                border-radius: 16px;
+                background: var(--wt-chip);
+                color: var(--text);
+                font-size: 13.5px;
+                font-weight: 700;
+                display: inline-flex !important;
+                align-items: center;
+                justify-content: center;
+                transition:
+                    background-color 0.25s ease,
+                    color 0.25s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .rp:hover {
+                background: var(--wt-chip-h);
+            }
+            .rp:active {
+                transform: scale(0.94);
+            }
+            .rp.on,
+            .rp.on:hover {
+                background: var(--weight-strong);
+                color: var(--on-weight);
+            }
+
+            /* ---- Chart ---- */
+            .hchart {
+                position: relative;
+                margin-top: 14px;
+            }
+            .wplot {
+                position: relative;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .cbody {
+                display: grid;
+                grid-template-columns: 30px minmax(0, 1fr);
+                column-gap: 6px;
+                row-gap: 7px;
+            }
+            .cyl {
+                position: relative;
+                min-height: 0;
+            }
+            .cyl span {
+                position: absolute;
+                right: 0;
+                transform: translateY(-50%);
+                font-size: 11px;
+                font-weight: 600;
+                line-height: 1;
+                color: var(--text-dim);
                 white-space: nowrap;
             }
-            .wrate {
+            .cplot {
+                position: relative;
+                width: 100%;
+            }
+            .wch {
+                position: absolute;
+                inset: 0;
+                display: block;
+                width: 100%;
+                height: 100%;
+                overflow: visible;
+            }
+            .cu {
+                font-size: 11px;
+                font-weight: 700;
+                line-height: 14px;
+                color: var(--text-dim);
+                text-align: right;
+            }
+            .cx {
+                position: relative;
+                height: 14px;
+                font-size: 11.5px;
+                font-weight: 600;
+                line-height: 14px;
+                color: var(--text-dim);
+            }
+            .cx span {
+                position: absolute;
+                top: 0;
+                white-space: nowrap;
+            }
+            .cx span.md,
+            .cgp.md {
+                transform: translateX(-50%);
+            }
+            .cx span.en {
+                transform: translateX(-100%);
+            }
+            .cg {
+                fill: none;
+                stroke: var(--track);
+                stroke-width: 1;
+                vector-effect: non-scaling-stroke;
+            }
+            .cgoal {
+                fill: none;
+                stroke: var(--text);
+                stroke-width: 1.5;
+                stroke-dasharray: 5 5;
+                opacity: 0.6;
+                vector-effect: non-scaling-stroke;
+            }
+            .carea {
+                fill: var(--weight);
+                fill-opacity: 0.09;
+                stroke: none;
+            }
+            .cdot {
+                fill: none;
+                stroke: var(--weight);
+                stroke-width: 5;
+                stroke-linecap: round;
+                opacity: 0.42;
+                vector-effect: non-scaling-stroke;
+            }
+            .cdot.tiny {
+                stroke-width: 4;
+            }
+            .cdot.few {
+                stroke-width: 9;
+                opacity: 1;
+            }
+            .cline {
+                fill: none;
+                stroke: var(--weight);
+                stroke-width: 3;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                stroke-dasharray: 100;
+                stroke-dashoffset: 0;
+            }
+            .cline.dash {
+                stroke-width: 2;
+                stroke-dasharray: 4 6;
+                opacity: 0.85;
+                vector-effect: non-scaling-stroke;
+            }
+            .intro .carea {
+                animation: gIn 1s ease 0.7s both;
+            }
+            .intro .cgoal {
+                animation: gIn 0.6s ease 1s both;
+            }
+            .intro .cdot {
+                animation: gIn 0.6s ease 0.3s both;
+            }
+            .intro .cline {
+                animation: cDraw 1.6s cubic-bezier(0.45, 0.05, 0.25, 1) 0.15s
+                    both;
+            }
+            .intro .cline.dash {
+                animation: gIn 0.8s ease 0.9s both;
+            }
+            .cval {
+                position: absolute;
+                transform: translateY(-100%);
+                font-size: 11.5px;
+                font-weight: 700;
+                line-height: 1;
+                color: var(--text-dim);
+                white-space: nowrap;
+                pointer-events: none;
+            }
+            .cval.md {
+                transform: translate(-50%, -100%);
+            }
+            .cval.en {
+                transform: translate(-100%, -100%);
+            }
+            .cval.bl {
+                transform: none;
+            }
+            .cval.md.bl {
+                transform: translateX(-50%);
+            }
+            .cval.en.bl {
+                transform: translateX(-100%);
+            }
+            .cgp {
+                position: absolute;
+                display: inline-flex;
+                align-items: center;
+                height: 20px;
+                padding: 0 9px;
+                border-radius: 10px;
+                background: var(--panel);
+                box-shadow: inset 0 0 0 1px
+                    color-mix(in srgb, var(--text) 16%, var(--panel));
+                font-size: 11.5px;
+                font-weight: 700;
+                color: var(--text);
+                white-space: pre;
+                font-variant-numeric: tabular-nums;
+                pointer-events: none;
+            }
+            .cgp.en {
+                transform: translateX(-100%);
+            }
+            .intro .cval,
+            .intro .cgp {
+                animation: gIn 0.6s ease 1.1s both;
+            }
+            .cend {
+                position: absolute;
+                width: 12px;
+                height: 12px;
+                margin: -6px 0 0 -6px;
+                border-radius: 50%;
+                background: var(--panel);
+                border: 3.5px solid var(--weight);
+                box-shadow: 0 0 0 6px
+                    color-mix(in srgb, var(--weight) 18%, transparent);
+                pointer-events: none;
+            }
+            .intro .cend,
+            .intro .conedot {
+                animation: gPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.6s both;
+            }
+            .chits {
+                position: absolute;
+                inset: 0;
+                z-index: 1;
+            }
+            .chit {
+                position: absolute !important;
+                top: 0;
+                bottom: 0;
+                cursor: pointer;
+                border-radius: 4px;
+            }
+            .chit:hover {
+                background: color-mix(in srgb, var(--weight) 7%, transparent);
+            }
+            button.reset.chit:focus-visible {
+                outline: 2px solid var(--focus);
+                outline-offset: -2px;
+                border-radius: 4px;
+            }
+            .shair {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                width: 1px;
+                margin-left: -0.5px;
+                background: var(--text);
+                opacity: 0.5;
+                pointer-events: none;
+            }
+            .sdot {
+                position: absolute;
+                width: 11px;
+                height: 11px;
+                margin: -5.5px 0 0 -5.5px;
+                border-radius: 50%;
+                background: var(--weight);
+                border: 2px solid var(--panel);
+                pointer-events: none;
+                z-index: 2;
+            }
+            .stip {
+                position: absolute;
+                z-index: 3;
                 display: flex;
                 align-items: center;
-                gap: 5px;
-                margin: 2px 0 1px;
+                gap: 4px;
+                height: 30px;
+                margin-top: -12px;
+                padding: 0 0 0 11px;
+                border-radius: 14px;
+                background: var(--text);
+                color: var(--panel);
+                font-size: 12px;
                 white-space: nowrap;
+                box-shadow: 0 4px 12px rgba(16, 24, 40, 0.18);
+                transform: translateY(-100%);
             }
-            .wratelab {
-                font-size: 10px;
+            .stip.fresh {
+                animation: gIn 0.15s ease both;
+            }
+            .stip b {
+                font-weight: 800;
+            }
+            .stip > span {
+                font-weight: 600;
+            }
+            .stip.st {
+                transform: translate(-14px, -100%);
+            }
+            .stip.md {
+                transform: translate(-50%, -100%);
+            }
+            .stip.en {
+                transform: translate(calc(-100% + 14px), -100%);
+            }
+            .stip.bl {
+                margin-top: 12px;
+            }
+            .stip.st.bl {
+                transform: translateX(-14px);
+            }
+            .stip.md.bl {
+                transform: translateX(-50%);
+            }
+            .stip.en.bl {
+                transform: translateX(calc(-100% + 14px));
+            }
+            .sx {
+                width: 32px;
+                height: 32px;
+                margin: -2px 0;
+                display: inline-flex !important;
+                align-items: center;
+                justify-content: center;
+                border-radius: 16px;
+                font-size: 17px;
+                line-height: 1;
+                opacity: 0.8;
+                text-align: center !important;
+            }
+            .sx:hover {
+                opacity: 1;
+                background: color-mix(in srgb, var(--panel) 16%, transparent);
+            }
+            .cone {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 3px;
+                padding: 22px 16px 20px;
+                border-radius: 16px;
+                background: color-mix(in srgb, var(--weight) 8%, var(--panel));
+                text-align: center;
+                font-size: 13px;
+                color: var(--text-dim);
+                line-height: 1.4;
+            }
+            .cone b {
+                font-size: 14.5px;
+                font-weight: 750;
+                color: var(--text);
+            }
+            .cone .coneh {
+                margin-top: 2px;
+            }
+            .conedot {
+                width: 12px;
+                height: 12px;
+                margin-bottom: 9px;
+                border-radius: 50%;
+                background: var(--panel);
+                border: 3.5px solid var(--weight);
+                box-shadow: 0 0 0 6px
+                    color-mix(in srgb, var(--weight) 18%, transparent);
+            }
+            .cempty {
+                border-radius: 16px;
+                background: color-mix(in srgb, var(--weight) 7%, var(--panel));
+                padding: 28px 20px;
+                text-align: center;
+                font-size: 13.5px;
+                line-height: 1.45;
                 color: var(--text-dim);
             }
-            /* The rate chip: a tinted pill in its own colour (accent toward
-               the target, --over away from it, --text-dim with no target). */
-            .wchip {
-                display: inline-block;
-                font-size: 10.5px;
+
+            /* ---- Summary (phone) ---- */
+            .gdelta {
+                text-align: center;
+                font-size: 13.5px;
+                color: var(--text-dim);
+                margin-top: 14px;
+                line-height: 1.45;
+            }
+            .gdelta b {
+                color: var(--text);
                 font-weight: 700;
-                line-height: 1.5;
-                padding: 0 7px;
-                border-radius: 999px;
-                font-variant-numeric: tabular-nums;
-                background: color-mix(in srgb, currentColor 14%, transparent);
+            }
+            .gdelta b.over,
+            .gs b.over {
+                color: var(--over);
+            }
+            .gdelta .dot {
+                margin: 0 6px;
+                color: color-mix(in srgb, var(--text) 30%, var(--panel));
+            }
+            .intro .gdelta {
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 2.3s both;
+            }
+
+            /* ---- Show more / less ---- */
+            .bigchev {
+                display: flex !important;
+                align-self: center;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                height: 40px;
+                padding: 0 18px 0 20px !important;
+                margin: 16px auto 0;
+                width: max-content;
+                border-radius: 20px;
+                background: var(--pill-bg);
+                font-size: 15px;
+                font-weight: 800;
+                color: var(--text);
+                transition:
+                    background-color 0.3s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .bigchev:hover {
+                background: var(--pill-bg-hover);
+            }
+            .bigchev:active {
+                transform: scale(0.94);
+            }
+            .bigchev svg {
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 6.5;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                flex: none;
+                transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .bigchev.open svg {
+                transform: rotate(180deg);
+            }
+            .closing .bigchev svg {
+                transform: none;
+            }
+            .intro .bigchev {
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 2.6s both;
+            }
+
+            /* ---- Desktop footer row (stats + button) ---- */
+            .dfoot {
+                align-items: center;
+                justify-content: space-between;
+                gap: 24px;
+                margin-top: 14px;
+                padding-top: 14px;
+                border-top: 1px solid var(--track);
+            }
+            .dfoot .bigchev {
+                margin: 0;
+                flex: none;
+            }
+            .dleft {
+                min-width: 0;
+            }
+            .dhint {
+                font-size: 13.5px;
+                color: var(--text-dim);
+            }
+            .gstats + .dhint {
+                margin-top: 10px;
+            }
+            .gstats {
+                display: grid;
+                grid-auto-flow: column;
+                grid-auto-columns: max-content;
+                gap: 10px 44px;
+                min-width: 0;
+            }
+            .gs {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                min-width: 0;
+            }
+            .gsl {
+                font-size: 11.5px;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--text-dim);
+                white-space: nowrap;
+            }
+            .gs b {
+                font-size: 20px;
+                font-weight: 800;
+                color: var(--text);
+                letter-spacing: -0.01em;
+                white-space: nowrap;
+            }
+            .gs b small {
+                font-size: 12.5px;
+                font-weight: 500;
+                color: var(--text-dim);
+            }
+            .intro .gs {
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 2.1s both;
+            }
+
+            /* ---- Details ---- */
+            .dets {
+                display: flex;
+                flex-direction: column;
+                gap: 22px;
+                padding-top: 22px;
+            }
+            .sec {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                min-width: 0;
+            }
+            .sech {
+                font-size: 11.5px;
+                font-weight: 700;
+                color: var(--text-dim);
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                line-height: 1.3;
+                padding-left: 2px;
+                margin-bottom: 2px;
+            }
+            .acc {
+                --mc: var(--weight);
+                border-radius: 16px;
+                background: color-mix(
+                    in oklab,
+                    var(--mc) var(--wt-acc),
+                    var(--panel)
+                );
+                box-shadow: inset 0 0 0 4px transparent;
+                transition:
+                    box-shadow 0.35s ease,
+                    background-color 0.35s ease;
+                overflow: hidden;
+            }
+            .acc.sel {
+                box-shadow: inset 0 0 0 4px
+                    color-mix(in oklab, var(--mc) var(--wt-ring), var(--panel));
+                background: color-mix(
+                    in oklab,
+                    var(--mc) var(--wt-acc-sel),
+                    var(--panel)
+                );
+            }
+            .accH {
+                display: grid !important;
+                grid-template-columns: 30px minmax(0, 1fr) 16px;
+                column-gap: 10px;
+                align-items: center;
+                width: 100%;
+                padding: 12px 14px;
+                min-height: 56px;
+            }
+            .accH .em {
+                font-size: 22px;
+                line-height: 1;
+            }
+            .accH .ab {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                min-width: 0;
+            }
+            .accH .lb {
+                font-size: 15px;
+                font-weight: 700;
+                color: var(--text);
+                overflow-wrap: anywhere;
+            }
+            .accH .vl {
+                font-size: 13px;
+                color: var(--text-dim);
+                overflow-wrap: anywhere;
+                line-height: 1.35;
+            }
+            .achev {
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 2.6;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                flex: none;
+                transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .accH .achev {
+                color: color-mix(in oklab, var(--mc) 80%, var(--text));
+            }
+            .acc.sel .achev,
+            .mcard.open .achev {
+                transform: rotate(180deg);
+            }
+            .accB {
+                padding: 0 14px 8px;
+            }
+            .wk {
+                padding-top: 4px;
+            }
+            .wkh {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                gap: 2px 8px;
+                padding: 10px 0 6px;
+                font-size: 12.5px;
+                color: var(--text-dim);
+            }
+            .wkh b {
+                font-size: 13.5px;
+                font-weight: 800;
+                color: var(--text);
+            }
+            .wkc {
+                font-weight: 700;
+            }
+            .wkc.g {
+                color: var(--status-ok-ink);
+            }
+            .wkc.b {
+                color: var(--over);
+            }
+            .wkc.n,
+            .wkc.z {
+                color: var(--text-dim);
+            }
+            .wdr {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) auto 50px 14px;
+                column-gap: 10px;
+                align-items: center;
+                width: 100%;
+                padding: 9px 0;
+                border-top: 1px solid
+                    color-mix(in oklab, var(--mc) 18%, var(--panel));
+                font-size: 13.5px;
+                color: var(--text);
+                min-height: 44px;
+            }
+            .wdt {
+                display: flex;
+                flex-direction: column;
+                gap: 1px;
+                min-width: 0;
+            }
+            .wdt b {
+                font-weight: 650;
+            }
+            .wdm {
+                font-size: 11.5px;
+                color: var(--text-dim);
+            }
+            .wdn {
+                font-size: 11.5px;
+                color: var(--text-dim);
+                font-style: italic;
+                overflow-wrap: anywhere;
+                line-height: 1.35;
+            }
+            .wdv {
+                font-weight: 750;
+                white-space: nowrap;
+                justify-self: end;
+            }
+            .wdv small,
+            .mle b small {
+                font-size: 11px;
+                font-weight: 500;
+                color: var(--text-dim);
+            }
+            .wchip {
+                justify-self: end;
+                font-size: 11.5px;
+                font-weight: 800;
+                padding: 2px 7px;
+                border-radius: 9px;
+                white-space: nowrap;
+            }
+            .wchip.none {
+                visibility: hidden;
+            }
+            .mc {
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 2.4;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                flex: none;
+                color: var(--text-dim);
+                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .mc.open {
+                transform: rotate(90deg);
+            }
+            .mc.hide {
+                visibility: hidden;
+            }
+            .itl {
+                background: var(--surface-inset);
+                border-radius: 12px;
+                padding: 2px 10px;
+                margin: 0 0 8px;
+                display: flex;
+                flex-direction: column;
+            }
+            .itr {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 2px 10px;
+                padding: 7px 0;
+                border-top: 1px solid var(--panel-border);
+                font-size: 13px;
+                color: var(--text);
+            }
+            .itr:first-child {
+                border-top: none;
+            }
+            .itr .im {
+                grid-column: 1 / -1;
+                font-size: 11.5px;
+                color: var(--text-dim);
+                overflow-wrap: anywhere;
+                line-height: 1.35;
+            }
+            .itr .iv {
+                grid-row: 1;
+                grid-column: 2;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            .pmore {
+                min-height: 40px;
+                display: flex !important;
+                align-items: center;
+                font-size: 13px;
+                font-weight: 700;
+                color: color-mix(
+                    in oklab,
+                    var(--mc, var(--meas)) 72%,
+                    var(--text)
+                );
+                border-top: 1px solid
+                    color-mix(
+                        in oklab,
+                        var(--mc, var(--meas)) 20%,
+                        var(--panel)
+                    );
+                width: 100%;
+            }
+            .mgrid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-auto-flow: row dense;
+                gap: 8px;
+            }
+            .mgrid.one {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .mcard {
+                --mc: var(--meas);
+                border-radius: 16px;
+                background: var(--surface-soft);
+                box-shadow: inset 0 0 0 3px transparent;
+                transition: box-shadow 0.3s ease;
+                min-width: 0;
+            }
+            .mcard:nth-child(odd):last-child {
+                grid-column: 1 / -1;
+            }
+            .mcard.open {
+                grid-column: 1 / -1;
+                box-shadow: inset 0 0 0 3px
+                    color-mix(in srgb, var(--text) 10%, var(--panel));
+                background: color-mix(in srgb, var(--text) 2%, var(--panel));
+            }
+            .mcH {
+                display: flex !important;
+                flex-direction: column;
+                gap: 3px;
+                width: 100%;
+                padding: 11px 12px 12px;
+                min-height: 44px;
+            }
+            .mct {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 13px;
+                font-weight: 700;
+                color: var(--text-dim);
+            }
+            .mce {
+                font-size: 16px;
+                line-height: 1;
+            }
+            .mcn {
+                flex: 1;
+                min-width: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .mct .achev {
+                color: var(--text-mute);
+            }
+            .mcv {
+                font-size: 13px;
+                color: var(--text-dim);
+            }
+            .mcv b {
+                font-size: 21px;
+                font-weight: 800;
+                color: var(--text);
+                letter-spacing: -0.01em;
+            }
+            .mcd {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-dim);
+                line-height: 1.35;
+            }
+            .mcard.stale .mcv b,
+            .mcard.stale .mcd {
+                color: var(--text-mute);
+            }
+            .mcard.stale .mcd {
+                font-weight: 500;
+            }
+            .mcB {
+                padding: 0 12px 6px;
+            }
+            .mch {
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--text-dim);
+                padding: 2px 0 4px;
+            }
+            .mle {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto 92px;
+                column-gap: 10px;
+                align-items: baseline;
+                padding: 8px 0;
+                border-top: 1px solid var(--panel-border);
+                font-size: 13px;
+                color: var(--text);
+            }
+            .mle b {
+                font-weight: 700;
+                white-space: nowrap;
+                justify-self: end;
+            }
+            .mld {
+                font-size: 12px;
+                color: var(--text-dim);
+                justify-self: end;
+                white-space: nowrap;
+            }
+            .mcard .pmore {
+                border-top-color: var(--panel-border);
+                color: var(--text-dim);
+            }
+            .nomeas {
+                font-size: 13px;
+                color: var(--text-dim);
+                padding: 4px 2px 0;
+                line-height: 1.45;
+            }
+            .collall {
+                display: flex !important;
+                align-items: center;
+                gap: 8px;
+                height: 40px;
+                padding: 0 20px !important;
+                margin: 16px auto 4px;
+                width: max-content;
+                border-radius: 20px;
+                background: var(--wt-chip);
+                color: var(--text);
+                font-size: 14.5px;
+                font-weight: 700;
+                transition:
+                    background-color 0.25s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .collall svg {
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 2.6;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+            .collall:hover {
+                background: var(--wt-chip-h);
+            }
+            .collall:active {
+                transform: scale(0.95);
+            }
+
+            /* Entrance animations for what an interaction just opened. */
+            .dets.fresh .sech {
+                animation: gIn 0.5s ease both;
+            }
+            .dets.fresh .acc {
+                animation: gRise 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+            }
+            .dets.fresh .mcard {
+                animation: gRise 0.7s cubic-bezier(0.22, 1, 0.36, 1)
+                    calc(var(--n, 0) * 0.04s) both;
+            }
+            .dets.fresh + .collall {
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+            }
+            .accB.fresh {
+                animation: gDrop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .accB.fresh .wk {
+                animation: gFade 0.5s cubic-bezier(0.22, 1, 0.36, 1)
+                    calc(var(--n, 0) * 0.06s) both;
+            }
+            .itl.fresh {
+                animation: gFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .mcB.fresh {
+                animation: gDrop 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .closing .sec {
+                animation: gOut 0.42s cubic-bezier(0.55, 0, 0.75, 0.3) both;
+            }
+            .closing .sec.swi {
+                animation-delay: 0.07s;
+            }
+            .closing .collall {
+                animation: gOut 0.3s ease both;
+            }
+
+            @keyframes gIn {
+                from {
+                    opacity: 0;
+                }
+            }
+            @keyframes gUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+            }
+            @keyframes gPop {
+                0% {
+                    opacity: 0;
+                    transform: scale(0.4) rotate(-12deg);
+                }
+                70% {
+                    opacity: 1;
+                    transform: scale(1.15) rotate(4deg);
+                }
+                100% {
+                    transform: none;
+                }
+            }
+            @keyframes cDraw {
+                from {
+                    stroke-dashoffset: 100;
+                }
+            }
+            @keyframes gRise {
+                0% {
+                    opacity: 0;
+                    transform: translateY(18px) scale(0.94);
+                    filter: blur(3px);
+                }
+                60% {
+                    opacity: 1;
+                    filter: blur(0);
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                    filter: none;
+                }
+            }
+            @keyframes gDrop {
+                0% {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                    max-height: 0;
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                    max-height: 3000px;
+                }
+            }
+            @keyframes gFade {
+                0% {
+                    opacity: 0;
+                    transform: translateY(8px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                }
+            }
+            @keyframes gOut {
+                0% {
+                    opacity: 1;
+                    transform: none;
+                    filter: none;
+                }
+                100% {
+                    opacity: 0;
+                    transform: translateY(-14px) scale(0.95);
+                    filter: blur(2px);
+                }
+            }
+
+            /* ---- Desktop: from 640px of iframe width ---- */
+            @media (min-width: 640px) {
+                .only-m {
+                    display: none !important;
+                }
+                .only-d {
+                    display: revert !important;
+                }
+                .dfoot.only-d {
+                    display: flex !important;
+                }
+                .gtop .t {
+                    font-size: 21px;
+                    line-height: 1.25;
+                }
+                .wtop {
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 16px;
+                    margin-top: 16px;
+                }
+                .wbig {
+                    font-size: 48px;
+                }
+                .hchart {
+                    margin-top: 18px;
+                }
+                .dets {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                    gap: 22px 20px;
+                    align-items: start;
+                    padding-top: 24px;
+                }
+                .dets.solo {
+                    grid-template-columns: minmax(0, 1fr);
+                }
+                .mcard:nth-child(odd):last-child {
+                    grid-column: auto;
+                }
+                .mcard.open {
+                    grid-column: 1 / -1;
+                }
+                .accH:hover {
+                    background: color-mix(in oklab, var(--mc) 6%, transparent);
+                }
+                .mcH:hover {
+                    filter: brightness(0.98);
+                }
+                .bigchev:hover,
+                .collall:hover {
+                    filter: brightness(0.97);
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                    animation: none !important;
+                    transition: none !important;
+                }
             }
         </style>
     </head>
@@ -192,111 +1332,42 @@
 
             /*@include shared/bridge.js@*/
 
-            const RANGES = [7, 14, 30];
+            // ---- _meta keys (src/widgets.ts). Repeated as literals because
+            // a widget cannot import; src/mcp.test.ts asserts the assembled
+            // HTML contains each one. ----
+            const SERIES_KEY = "nutrition-mcp.com/weight-series";
+            const ENTRIES_KEY = "nutrition-mcp.com/weight-entries";
+            const MEAS_KEY = "nutrition-mcp.com/body-measurements";
 
-            function shiftDate(date, delta) {
-                const d = new Date(date + "T00:00:00Z");
-                d.setUTCDate(d.getUTCDate() + delta);
-                return d.toISOString().slice(0, 10);
-            }
+            const RANGES = [
+                { id: "7", days: 7 },
+                { id: "30", days: 30 },
+                { id: "90", days: 90 },
+                { id: "1y", days: 365 },
+                { id: "all", days: null },
+            ];
+            // Display order and emoji of the nine stored sites.
+            const SITES = [
+                ["waist", "📏"],
+                ["hips", "🍑"],
+                ["chest", "👕"],
+                ["shoulders", "🧥"],
+                ["neck", "🧣"],
+                ["upper_arm", "💪"],
+                ["forearm", "✊"],
+                ["thigh", "🦵"],
+                ["calf", "🦶"],
+            ];
+            // How many week groups / card rows show before "Show N more".
+            const WEEKS_CAP = 3;
+            const CARD_ROWS_CAP = 6;
+            // The two chart geometries (phone / desktop), in SVG units.
+            const GEOMS = [
+                { v: "m", cw: 287, ch: 172 },
+                { v: "d", cw: 814, ch: 200 },
+            ];
 
-            // ---- Sample data so the file renders on its own (browser preview) ----
-            function buildSample() {
-                const days = [];
-                const end = new Date("2026-07-11T00:00:00Z");
-                for (let i = 30; i >= 0; i -= 2) {
-                    const d = new Date(end);
-                    d.setUTCDate(d.getUTCDate() - i);
-                    const date = d.toISOString().slice(0, 10);
-                    const t = (30 - i) / 30;
-                    const w = 80 - t * 3 + Math.sin(i) * 0.25;
-                    days.push({ date, weight: Math.round(w * 10) / 10 });
-                }
-                return {
-                    end_date: "2026-07-11",
-                    unit: "kg",
-                    target: 75,
-                    default_range: 30,
-                    locale: "en",
-                    days,
-                };
-            }
-            const SAMPLE = buildSample();
-
-            // The matching `_meta` series for the standalone preview: ~20
-            // months of every-other-day weigh-ins drifting down, smoothed with
-            // the server's EWMA (α 0.15, gap-corrected) and bucketed the same
-            // way. Only for the browser preview; the harness builds its
-            // fixtures with the real src/weight-trend.ts.
-            function buildSampleMeta() {
-                const r1 = (v) => Math.round(v * 10) / 10;
-                const days = [];
-                for (let i = 600; i >= 0; i -= 2) {
-                    const date = shiftDate("2026-07-11", -i);
-                    const w = 86 - ((600 - i) / 600) * 8 + Math.sin(i * 1.7);
-                    days.push({ date, weight: w });
-                }
-                let t = days[0].weight;
-                let prev = null;
-                for (const d of days) {
-                    if (prev) {
-                        const gap =
-                            (Date.parse(d.date) - Date.parse(prev)) / 864e5;
-                        t += (1 - Math.pow(0.85, gap)) * (d.weight - t);
-                    }
-                    d.trend = t;
-                    prev = d.date;
-                }
-                const bucket = (keyOf) => {
-                    const map = new Map();
-                    for (const d of days) {
-                        const k = keyOf(d.date);
-                        const b = map.get(k) || { sum: 0, n: 0, trend: 0 };
-                        b.sum += d.weight;
-                        b.n += 1;
-                        b.trend = d.trend;
-                        map.set(k, b);
-                    }
-                    return [...map.entries()].map(([k, b]) => ({
-                        k,
-                        weight: r1(b.sum / b.n),
-                        trend: r1(b.trend),
-                    }));
-                };
-                const monday = (iso) => {
-                    const dow =
-                        (new Date(iso + "T00:00:00Z").getUTCDay() + 6) % 7;
-                    return shiftDate(iso, -dow);
-                };
-                const last = days[days.length - 1];
-                return {
-                    [SERIES_KEY]: {
-                        v: 1,
-                        unit: "kg",
-                        daily: days
-                            .filter((d) => d.date >= shiftDate(last.date, -89))
-                            .map((d) => ({
-                                date: d.date,
-                                weight: r1(d.weight),
-                                trend: r1(d.trend),
-                            })),
-                        weekly: bucket(monday)
-                            .slice(-53)
-                            .map(({ k, ...b }) => ({ start: k, ...b })),
-                        monthly: bucket((iso) => iso.slice(0, 7)).map(
-                            ({ k, ...b }) => ({ month: k, ...b }),
-                        ),
-                        first: {
-                            date: days[0].date,
-                            weight: r1(days[0].weight),
-                        },
-                        trend_latest: r1(last.trend),
-                        trend_date: last.date,
-                        weekly_rate: -0.31,
-                    },
-                };
-            }
-
+            // ---- Small helpers ----
             function esc(s) {
                 return String(s).replace(
                     /[&<>"]/g,
@@ -309,240 +1380,142 @@
                         })[c],
                 );
             }
-            // Every weight on screen carries exactly one decimal — 77.0, not
-            // 77. This widget has no whole-number figures at all, so it uses
-            // this instead of the usual fmt(): rounding away a trailing zero
-            // would make the headline read at a different precision than the
-            // −2.9 beneath it.
-            function w1(n) {
-                if (n == null || isNaN(n)) return "0.0";
-                return Number(n).toLocaleString(undefined, {
-                    minimumFractionDigits: 1,
-                    maximumFractionDigits: 1,
-                });
-            }
-            function signed(n) {
-                const s = n > 0 ? "+" : n < 0 ? "−" : "";
-                return `${s}${w1(Math.abs(n))}`;
-            }
-
-            // Weight-over-time line chart. Y is scaled to the data range (plus
-            // the target) — NOT zero-based — so small changes stay visible.
-            function weightChart(days, target, unit) {
-                const W = 300,
-                    H = 62,
-                    padL = 5,
-                    padR = 5,
-                    padT = 7,
-                    padB = 5;
-                const n = days.length;
-                const weights = days.map((d) => d.weight);
-                let lo = Math.min(...weights);
-                let hi = Math.max(...weights);
-                if (target != null) {
-                    lo = Math.min(lo, target);
-                    hi = Math.max(hi, target);
-                }
-                if (hi === lo) {
-                    hi = lo + 1;
-                    lo = lo - 1;
-                }
-                const pad = (hi - lo) * 0.18;
-                const yMin = lo - pad;
-                const yMax = hi + pad;
-                const plotW = W - padL - padR;
-                const plotH = H - padT - padB;
-                const base = padT + plotH;
-                const x = (i) =>
-                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
-                const y = (v) =>
-                    padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
-                const pts = weights.map((v, i) => [x(i), y(v)]);
-
-                const line =
-                    n >= 2
-                        ? pts
-                              .map(
-                                  (p, i) =>
-                                      `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
-                              )
-                              .join(" ")
-                        : "";
-                const area =
-                    n >= 2
-                        ? `M${pts[0][0].toFixed(1)} ${base} ` +
-                          pts
-                              .map(
-                                  (p) =>
-                                      `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
-                              )
-                              .join(" ") +
-                          ` L${pts[n - 1][0].toFixed(1)} ${base} Z`
-                        : "";
-                const targetLine =
-                    target != null
-                        ? `<line class="goalline" x1="${padL}" y1="${y(target).toFixed(1)}" x2="${W - padR}" y2="${y(target).toFixed(1)}"/>`
-                        : "";
-                const dots = pts
-                    .map(
-                        (p) =>
-                            `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--accent)"/>`,
-                    )
+            // A translated template whose text is escaped and whose
+            // placeholders take ready-made HTML (e.g. a <b> figure).
+            function tplHtml(s, vars) {
+                return String(s)
+                    .split(/(\{\w+\})/)
+                    .map((part) => {
+                        const m = /^\{(\w+)\}$/.exec(part);
+                        if (!m) return esc(part);
+                        return vars && vars[m[1]] != null ? vars[m[1]] : "";
+                    })
                     .join("");
-
-                const label = tpl(T.weightTrends.chartAriaLabel, {
-                    from: shortDate(days[0].date),
-                    to: shortDate(days[n - 1].date),
-                    latest: `${w1(weights[n - 1])} ${unit}`,
-                });
-
-                return `
-          <svg class="wchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
-            ${targetLine}
-            ${area ? `<path d="${area}" fill="var(--accent)" opacity="0.16"/>` : ""}
-            ${line ? `<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
-            ${dots}
-          </svg>`;
             }
-
-            // The left-hand block of the chart row: the number the whole widget
-            // is about, and how far it has moved over the selected window.
-            function latestBlock(slice, target, unit) {
-                const n = slice.length;
-                const first = slice[0].weight;
-                const last = slice[n - 1].weight;
-
-                let delta = "";
-                if (n >= 2) {
-                    const change = Math.round((last - first) * 10) / 10;
-                    // A change is "good" (accent) when it shrinks the gap to
-                    // the target; with no target there is no direction to
-                    // judge it against, so it stays neutral.
-                    let color = "var(--text-dim)";
-                    if (target != null) {
-                        const closer =
-                            Math.abs(last - target) < Math.abs(first - target);
-                        color = closer ? "var(--accent)" : "var(--over)";
-                    }
-                    // Dated from the first weigh-in IN the window, not from
-                    // the window's own length: two readings a day apart
-                    // inside a 30-day range are a one-day change, and
-                    // "−1.0 kg in 30 d" claims a month-long trend that was
-                    // never measured.
-                    delta = `<div class="wdelta" style="color:${color}">${tpl(T.weightTrends.sinceDate, { change: `${signed(change)} ${esc(unit)}`, date: shortDate(slice[0].date) })}</div>`;
-                } else {
-                    delta = `<div class="wdelta" style="color:var(--text-dim)">${esc(T.weightTrends.needTwo)}</div>`;
-                }
-
-                return `
-          <div class="wnow">
-            <div class="wlabel">${esc(T.weightTrends.latest)}</div>
-            <div class="wval">${w1(last)}<span class="wunit">${esc(unit)}</span></div>
-            ${delta}
-          </div>`;
-            }
-
-            function footer(slice, target, unit) {
-                const n = slice.length;
-                // A single day is its own span — "11 Jul → 11 Jul" reads like
-                // a bug.
-                const from = shortDate(slice[0].date);
-                const to = shortDate(slice[n - 1].date);
-                const span = `${plural(T.weightTrends.weighIns, n)} · ${from === to ? from : `${from} → ${to}`}`;
-
-                let right;
-                if (target != null) {
-                    const delta =
-                        Math.round((slice[n - 1].weight - target) * 10) / 10;
-                    const gap =
-                        Math.abs(delta) < 0.05
-                            ? T.weightTrends.atTarget
-                            : tpl(
-                                  delta > 0
-                                      ? T.weightTrends.toLose
-                                      : T.weightTrends.toGain,
-                                  {
-                                      amount: `${w1(Math.abs(delta))} ${esc(unit)}`,
-                                  },
-                              );
-                    const targetVal = tpl(T.weightTrends.target, {
-                        value: `${w1(target)} ${unit}`,
-                    });
-                    right = `<b>${esc(targetVal)}</b> · ${gap}`;
-                } else {
-                    right = esc(T.weightTrends.noTarget);
-                }
-
-                return `
-          <div class="psec wfoot">
-            <span>${span}</span>
-            <span>${right}</span>
-          </div>`;
-            }
-
-            // ---- Trend mode (`_meta` series present) ----------------------------
-            // The result `_meta` key the server writes the long series under
-            // (WEIGHT_SERIES_META_KEY in src/widgets.ts). Repeated as a literal
-            // because a widget cannot import; src/mcp.test.ts asserts the
-            // assembled HTML contains it.
-            const SERIES_KEY = "nutrition-mcp.com/weight-series";
-            // Trend-mode ranges, keyed by string id (the buttons carry
-            // data-r="1y" / "all", which Number() would turn into NaN).
-            // `days` is the window for the daily ranges and the {range} of the
-            // empty-range line; All is never empty, since it only exists when
-            // there is history.
-            const TREND_RANGES = [
-                { id: "7", days: 7 },
-                { id: "30", days: 30 },
-                { id: "90", days: 90 },
-                { id: "1y", days: 365 },
-                { id: "all", days: null },
-            ];
-            // Above this many points the raw dots turn into a grey smear and
-            // only the trend line and its area are drawn.
-            const MAX_DOTS = 45;
-
             const isNum = (v) => typeof v === "number" && isFinite(v);
             const isDate = (v) =>
                 typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
             const dayNum = (iso) => Date.parse(iso + "T00:00:00Z") / 864e5;
+            function shiftDate(date, delta) {
+                const d = new Date(date + "T00:00:00Z");
+                d.setUTCDate(d.getUTCDate() + delta);
+                return d.toISOString().slice(0, 10);
+            }
+            function dateOfDayNum(n) {
+                return new Date(Math.round(n) * 864e5)
+                    .toISOString()
+                    .slice(0, 10);
+            }
+            function weekStart(iso) {
+                const dow = (new Date(iso + "T00:00:00Z").getUTCDay() + 6) % 7;
+                return shiftDate(iso, -dow);
+            }
+            function localToday() {
+                const now = new Date();
+                const p = (n) => String(n).padStart(2, "0");
+                return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+            }
+            const NF = {};
+            function nf(dp) {
+                const k = WIDGET_LOCALE + dp;
+                if (!NF[k]) {
+                    try {
+                        NF[k] = new Intl.NumberFormat(WIDGET_LOCALE, {
+                            minimumFractionDigits: dp,
+                            maximumFractionDigits: dp,
+                        });
+                    } catch (_) {
+                        NF[k] = { format: (v) => Number(v).toFixed(dp) };
+                    }
+                }
+                return NF[k];
+            }
+            // Every weight on screen carries exactly one decimal (77.0, not
+            // 77): this widget has no whole-number figures.
+            function f1(v) {
+                return nf(1).format(Math.round(Number(v) * 10) / 10);
+            }
+            // Signed with a real minus (U+2212); ± for a change that rounds
+            // to zero.
+            function sg(v, dp) {
+                const d = dp == null ? 1 : dp;
+                const n = Number(Math.abs(v).toFixed(d));
+                const s = n === 0 ? "±" : v < 0 ? "−" : "+";
+                return s + nf(d).format(n);
+            }
+            function dtf(opts) {
+                try {
+                    return new Intl.DateTimeFormat(
+                        WIDGET_LOCALE,
+                        Object.assign({ timeZone: "UTC" }, opts),
+                    );
+                } catch (_) {
+                    return null;
+                }
+            }
+            function utc(iso) {
+                return new Date(iso + "T12:00:00Z");
+            }
+            function weekday(iso) {
+                const f = dtf({ weekday: "short" });
+                return f ? f.format(utc(iso)) : "";
+            }
+            // "Mar 2025".
+            function monthYear(iso) {
+                const f = dtf({ month: "short", year: "numeric" });
+                return f ? f.format(utc(iso.slice(0, 7) + "-15")) : iso;
+            }
+            // "Mar 25" — the long ranges' axis labels.
+            function monthYear2(iso) {
+                const f = dtf({ month: "short", year: "2-digit" });
+                return f ? f.format(utc(iso.slice(0, 7) + "-15")) : iso;
+            }
+            // "Today", "Yesterday", else "Mon 20 Oct".
+            function dLong(iso) {
+                const today = MODEL.today;
+                if (iso === today) return T.weightTrends.today;
+                if (iso === shiftDate(today, -1))
+                    return T.weightTrends.yesterday;
+                return `${weekday(iso)} ${shortDate(iso)}`;
+            }
+            function dFull(iso) {
+                return `${weekday(iso)} ${shortDate(iso)}`;
+            }
 
-            // Pull the series out of the result `_meta`, treating every field
-            // as optional: a malformed entry is dropped, never painted. Null
-            // (→ legacy mode) when there is nothing to draw at all.
+            // ---- Payload intake: every _meta field is optional and checked ----
+            function rowsOf(arr, key, ok) {
+                return (Array.isArray(arr) ? arr : [])
+                    .filter(
+                        (r) =>
+                            r &&
+                            ok(r[key]) &&
+                            isNum(r.weight) &&
+                            isNum(r.trend),
+                    )
+                    .slice()
+                    .sort((a, b) => (a[key] < b[key] ? -1 : 1));
+            }
             function seriesFrom(meta) {
                 const s = meta && meta[SERIES_KEY];
                 if (!s || typeof s !== "object") return null;
-                const rows = (arr, key, ok) =>
-                    (Array.isArray(arr) ? arr : [])
-                        .filter(
-                            (r) =>
-                                r &&
-                                ok(r[key]) &&
-                                isNum(r.weight) &&
-                                isNum(r.trend),
-                        )
-                        .slice()
-                        .sort((a, b) => (a[key] < b[key] ? -1 : 1));
                 const out = {
                     hasDaily: Array.isArray(s.daily),
-                    hasWeekly: Array.isArray(s.weekly),
-                    hasMonthly: Array.isArray(s.monthly),
-                    daily: rows(s.daily, "date", isDate),
-                    weekly: rows(s.weekly, "start", isDate),
-                    monthly: rows(s.monthly, "month", (m) =>
+                    daily: rowsOf(s.daily, "date", isDate),
+                    year: rowsOf(s.daily_year, "date", isDate),
+                    weekly: rowsOf(s.weekly, "start", isDate),
+                    monthly: rowsOf(s.monthly, "month", (m) =>
                         /^\d{4}-\d{2}$/.test(String(m)),
                     ),
                     first:
                         s.first && isDate(s.first.date) && isNum(s.first.weight)
-                            ? s.first
+                            ? { date: s.first.date, w: s.first.weight }
                             : null,
-                    trendLatest: isNum(s.trend_latest) ? s.trend_latest : null,
                     trendDate: isDate(s.trend_date) ? s.trend_date : null,
                     weeklyRate: isNum(s.weekly_rate) ? s.weekly_rate : null,
                 };
                 if (
                     !out.daily.length &&
+                    !out.year.length &&
                     !out.weekly.length &&
                     !out.monthly.length
                 ) {
@@ -550,521 +1523,1627 @@
                 }
                 return out;
             }
+            function entriesFrom(meta) {
+                const e = meta && meta[ENTRIES_KEY];
+                if (!e || typeof e !== "object" || !Array.isArray(e.entries))
+                    return null;
+                const byDate = new Map();
+                for (const r of e.entries) {
+                    if (
+                        !r ||
+                        !isDate(r.date) ||
+                        !isNum(r.weight) ||
+                        typeof r.time !== "string" ||
+                        !/^\d{2}:\d{2}$/.test(r.time)
+                    )
+                        continue;
+                    const note =
+                        typeof r.note === "string" && r.note.trim()
+                            ? r.note.trim().slice(0, 300)
+                            : null;
+                    const list = byDate.get(r.date) || [];
+                    list.push({ t: r.time, w: r.weight, note });
+                    byDate.set(r.date, list);
+                }
+                for (const list of byDate.values())
+                    list.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
+                return {
+                    today: isDate(e.today) ? e.today : null,
+                    byDate,
+                };
+            }
+            function measFrom(meta) {
+                const m = meta && meta[MEAS_KEY];
+                if (!m || typeof m !== "object") return null;
+                const src =
+                    m.sites && typeof m.sites === "object" ? m.sites : null;
+                if (!src) return null;
+                const sites = {};
+                for (const [kind] of SITES) {
+                    const s = src[kind];
+                    if (!s || (s.unit !== "cm" && s.unit !== "in")) continue;
+                    const entries = (Array.isArray(s.entries) ? s.entries : [])
+                        .filter(
+                            (r) =>
+                                r &&
+                                isDate(r.date) &&
+                                isNum(r.value) &&
+                                r.value > 0,
+                        )
+                        .map((r) => ({ date: r.date, v: r.value }))
+                        .sort((a, b) =>
+                            a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
+                        );
+                    if (entries.length) sites[kind] = { unit: s.unit, entries };
+                }
+                return { sites };
+            }
 
-            // The day the whole history ends on: the tool's window end, else
-            // the last weigh-in the series knows about.
-            function seriesEnd(s, data) {
-                if (isDate(data && data.end_date)) return data.end_date;
-                if (s.trendDate) return s.trendDate;
-                const d = s.daily[s.daily.length - 1];
-                return d ? d.date : null;
-            }
-            // First weigh-in ever, from `first` or failing that the oldest
-            // bucket the payload carries.
-            function seriesStart(s) {
-                if (s.first) return s.first.date;
-                const m = s.monthly[0];
-                if (m) return m.month + "-01";
-                const w = s.weekly[0];
-                if (w) return w.start;
-                const d = s.daily[0];
-                return d ? d.date : null;
-            }
-            function historySpanDays(s, data) {
-                const a = seriesStart(s);
-                const b = seriesEnd(s, data);
-                return a && b ? dayNum(b) - dayNum(a) : 0;
+            // ---- The model: everything one paint needs, rebuilt per paint ----
+            let MODEL = { today: "" };
+
+            function baseDays(data, s, ent) {
+                let src;
+                if (s) src = s.year.length ? s.year : s.daily;
+                else
+                    src = (Array.isArray(data.days) ? data.days : [])
+                        .filter((d) => d && isDate(d.date) && isNum(d.weight))
+                        .slice()
+                        .sort((a, b) => (a.date < b.date ? -1 : 1));
+                const end = MODEL.end;
+                return src
+                    .filter((d) => !end || d.date <= end)
+                    .map((d) => {
+                        const ins = ent ? ent.byDate.get(d.date) || null : null;
+                        return {
+                            x: d.date,
+                            date: d.date,
+                            w: d.weight,
+                            tr: s ? d.trend : null,
+                            ins,
+                            kind: "day",
+                        };
+                    });
             }
 
-            // Which ranges this payload can fill. 7/30 always (they read
-            // `daily`, as 90 does once the server sends it); 1y needs
-            // `weekly`; All needs a series that reaches back further than 1y.
-            function availableRanges(s, data) {
-                return TREND_RANGES.filter((r) => {
+            function availableRanges(s, days) {
+                if (!s)
+                    return RANGES.filter((r) => r.id === "7" || r.id === "30");
+                const span = MODEL.span;
+                return RANGES.filter((r) => {
                     if (r.id === "7" || r.id === "30") return true;
                     if (r.id === "90") return s.hasDaily;
-                    if (r.id === "1y") return s.weekly.length > 0;
+                    if (r.id === "1y")
+                        return (
+                            span > 90 &&
+                            (s.year.length > 0 || s.weekly.length > 0)
+                        );
                     return (
-                        (s.monthly.length > 0 || s.weekly.length > 0) &&
-                        historySpanDays(s, data) > 365
+                        span > 365 &&
+                        (s.monthly.length > 0 || s.weekly.length > 0)
                     );
                 });
             }
 
-            // "Mar 2024" — the long ranges need the year, which shortDate()
-            // never shows. UTC on both sides, so the 15th can't slide into a
-            // neighbouring month for anyone.
-            function monthLabel(iso) {
-                const m = /^(\d{4})-(\d{2})/.exec(String(iso || ""));
-                if (!m) return String(iso || "");
-                const d = new Date(Date.UTC(+m[1], +m[2] - 1, 15));
-                try {
-                    return new Intl.DateTimeFormat(WIDGET_LOCALE, {
-                        month: "short",
-                        year: "numeric",
-                        timeZone: "UTC",
-                    }).format(d);
-                } catch (_) {
-                    return `${T.nutritionSummary.months[+m[2] - 1]} ${m[1]}`;
-                }
+            function cutoffOf(id) {
+                const r = RANGES.find((x) => x.id === id);
+                return r && r.days && MODEL.end
+                    ? shiftDate(MODEL.end, -(r.days - 1))
+                    : "";
             }
 
-            // The points a range draws, as { x, label, weight, trend } with
-            // `x` the calendar day the point is plotted at.
-            //   7/30/90 → `daily`, cut to the window ending on end_date;
-            //   1y      → `weekly` (53 ISO weeks, plotted mid-week);
-            //   All     → `weekly` when it reaches back to the first weigh-in,
-            //             else `monthly` (plotted mid-month). `weekly` stops at
-            //             53 weeks, so a 13–24-month history would otherwise
-            //             lose its first months under "All".
-            //             All only appears past 365 days and `weekly` cannot
-            //             reach back further than 53 weeks, so in practice All
-            //             draws `monthly`. Weekly points for a 1–2-year history
-            //             would need a longer weekly series (e.g. an additive
-            //             104-week field).
-            function rangePoints(s, data, id) {
-                const end = seriesEnd(s, data);
-                if (id === "1y") {
-                    return {
-                        long: true,
-                        points: s.weekly.map((w) => ({
-                            x: shiftDate(w.start, 3),
-                            label: w.start,
-                            weight: w.weight,
-                            trend: w.trend,
-                        })),
-                    };
+            // The points a range plots, oldest first.
+            function rangePoints(id) {
+                const s = MODEL.s;
+                const days = MODEL.days;
+                if (id === "1y" && s && !s.year.length) {
+                    return s.weekly.map((w) => ({
+                        x: shiftDate(w.start, 3),
+                        date: w.start,
+                        w: w.weight,
+                        tr: w.trend,
+                        ins: null,
+                        kind: "week",
+                    }));
                 }
-                if (id === "all") {
-                    const start = seriesStart(s);
+                if (id === "all" && s) {
+                    const start = MODEL.firstDate;
+                    if (s.year.length && start && s.year[0].date <= start) {
+                        return days;
+                    }
                     const weeklyCovers =
                         s.weekly.length > 0 &&
                         start != null &&
                         s.weekly[0].start <= start;
-                    const src = weeklyCovers
+                    return weeklyCovers
                         ? s.weekly.map((w) => ({
                               x: shiftDate(w.start, 3),
-                              label: w.start,
-                              weight: w.weight,
-                              trend: w.trend,
+                              date: w.start,
+                              w: w.weight,
+                              tr: w.trend,
+                              ins: null,
+                              kind: "week",
                           }))
                         : s.monthly.map((m) => ({
                               x: m.month + "-15",
-                              label: m.month + "-01",
-                              weight: m.weight,
-                              trend: m.trend,
+                              date: m.month + "-01",
+                              w: m.weight,
+                              tr: m.trend,
+                              ins: null,
+                              kind: "month",
                           }));
-                    return { long: true, points: src };
                 }
-                const n = Number(id);
-                const cutoff = end ? shiftDate(end, -(n - 1)) : "";
-                return {
-                    long: false,
-                    points: s.daily
-                        .filter((d) => d.date >= cutoff)
-                        .map((d) => ({
-                            x: d.date,
-                            label: d.date,
-                            weight: d.weight,
-                            trend: d.trend,
-                        })),
-                };
+                const cut = cutoffOf(id);
+                return days.filter((d) => d.date >= cut);
             }
 
-            // Date-proportional chart: raw weights as faint dots, the trend
-            // as the solid accent line with the area under it. Same viewBox,
-            // padding and ±18% Y padding as the legacy chart.
-            function trendChart(points, target, unit, fmtDate) {
-                const W = 300,
-                    H = 62,
-                    padL = 5,
-                    padR = 5,
-                    padT = 7,
-                    padB = 5;
-                const n = points.length;
-                const vals = [];
-                for (const p of points) vals.push(p.weight, p.trend);
-                let lo = Math.min(...vals);
-                let hi = Math.max(...vals);
-                if (target != null) {
-                    lo = Math.min(lo, target);
-                    hi = Math.max(hi, target);
-                }
-                if (hi === lo) {
-                    hi = lo + 1;
-                    lo = lo - 1;
-                }
-                const pad = (hi - lo) * 0.18;
-                const yMin = lo - pad;
-                const yMax = hi + pad;
-                const plotW = W - padL - padR;
-                const plotH = H - padT - padB;
-                const base = padT + plotH;
-                const t0 = dayNum(points[0].x);
-                const span = dayNum(points[n - 1].x) - t0;
-                const x = (p) =>
-                    span <= 0
-                        ? padL + plotW / 2
-                        : padL + (plotW * (dayNum(p.x) - t0)) / span;
-                const y = (v) =>
-                    padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
-                const f = (v) => v.toFixed(1);
-                const tp = points.map((p) => [x(p), y(p.trend)]);
-
-                const line =
-                    n >= 2
-                        ? tp
-                              .map(
-                                  (q, i) =>
-                                      `${i ? "L" : "M"}${f(q[0])} ${f(q[1])}`,
-                              )
-                              .join(" ")
-                        : "";
-                const area =
-                    n >= 2
-                        ? `M${f(tp[0][0])} ${base} ` +
-                          tp.map((q) => `L${f(q[0])} ${f(q[1])}`).join(" ") +
-                          ` L${f(tp[n - 1][0])} ${base} Z`
-                        : "";
-                const targetLine =
-                    target != null
-                        ? `<line class="goalline" x1="${padL}" y1="${f(y(target))}" x2="${W - padR}" y2="${f(y(target))}"/>`
-                        : "";
-                const dots =
-                    n <= MAX_DOTS
-                        ? points
-                              .map(
-                                  (p) =>
-                                      `<circle cx="${f(x(p))}" cy="${f(y(p.weight))}" r="2" fill="var(--text-dim)" opacity="0.55"/>`,
-                              )
-                              .join("")
-                        : "";
-                // A lone point has no line to carry the trend, so it gets a
-                // marker of its own on top of the raw dot.
-                const lone =
-                    n === 1
-                        ? `<circle cx="${f(tp[0][0])}" cy="${f(tp[0][1])}" r="2.6" fill="var(--accent)"/>`
-                        : "";
-
-                const from = fmtDate(points[0].label);
-                const to = fmtDate(points[n - 1].label);
-                const label = tpl(T.weightTrends.trendChartAriaLabel, {
-                    from,
-                    to,
-                    latest: `${w1(points[n - 1].trend)} ${unit}`,
-                });
-                const dates =
-                    from === to
-                        ? `<span>${esc(from)}</span>`
-                        : `<span>${esc(from)}</span><span>${esc(to)}</span>`;
-
-                return `
-          <div class="wcol">
-            <svg class="wchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
-              ${targetLine}
-              ${area ? `<path d="${area}" fill="var(--accent)" opacity="0.16"/>` : ""}
-              ${dots}
-              ${line ? `<path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
-              ${lone}
-            </svg>
-            <div class="tdates" aria-hidden="true">${dates}</div>
-          </div>`;
-            }
-
-            // Accent when a move shrinks the gap to the target, --over when it
-            // widens it, neutral with no target or no move.
-            function towardColor(from, to, target) {
-                if (target == null || from === to) return "var(--text-dim)";
-                return Math.abs(to - target) < Math.abs(from - target)
-                    ? "var(--accent)"
-                    : "var(--over)";
-            }
-
-            // Headline: trend weight big, the scale reading small, then the
-            // 2-week rate chip and the change over the selected range.
-            function trendHead(s, data, id, rp, target, unit) {
-                const pts = rp.points;
-                const n = pts.length;
-                const last = pts[n - 1];
-                const trendNow = s.trendLatest ?? last.trend;
-
-                // The latest raw reading. "Scale today" only when it really is
-                // today's (the window's end day); an older reading is plain
-                // "Latest", so the line never claims a weigh-in that didn't
-                // happen.
-                const lastDay = s.daily[s.daily.length - 1] || null;
-                let scale = "";
-                if (lastDay) {
-                    const value = `${w1(lastDay.weight)} ${esc(unit)}`;
-                    scale =
-                        lastDay.date === seriesEnd(s, data)
-                            ? tpl(T.weightTrends.scaleToday, { value })
-                            : `${esc(T.weightTrends.latest)} ${value}`;
-                    scale = `<div class="wscale">${scale}</div>`;
-                }
-
-                // Rate chip: weekly_rate (2 decimals, display unit) shown at 1
-                // decimal — the same rounding the text content applies to the
-                // same value, so the two never disagree.
-                let rate = "";
-                if (s.weeklyRate != null) {
-                    const r = Math.round(s.weeklyRate * 10) / 10 || 0;
-                    const amount = `${signed(r)} ${esc(unit)}`;
-                    let color = "var(--text-dim)";
-                    if (target != null && r !== 0) {
-                        const gap = target - trendNow;
-                        color = r * gap > 0 ? "var(--accent)" : "var(--over)";
-                    }
-                    const aria = esc(
-                        tpl(T.weightTrends.rateAriaLabel, { amount }),
-                    );
-                    const lab =
-                        id === "7" || id === "30"
-                            ? ""
-                            : `<span class="wratelab">${esc(T.weightTrends.rateTwoWeeks)}</span>`;
-                    rate = `<div class="wrate">${lab}<span class="wchip" style="color:${color}" role="img" aria-label="${aria}" title="${aria}">${tpl(T.weightTrends.perWeek, { amount })}</span></div>`;
-                }
-
-                // Change over the range, trend to trend: the headline is a
-                // trend figure, so the change under it is one too. Dated from
-                // the first point IN the range, not the window's length (see
-                // latestBlock); the long ranges name a month.
-                let delta;
-                if (n >= 2) {
-                    const from = pts[0].trend;
-                    const change = Math.round((last.trend - from) * 10) / 10;
-                    const color = towardColor(from, last.trend, target);
-                    const text = rp.long
-                        ? tpl(T.weightTrends.sinceMonth, {
-                              change: `${signed(change)} ${esc(unit)}`,
-                              date: esc(monthLabel(pts[0].label)),
-                          })
-                        : tpl(T.weightTrends.sinceDate, {
-                              change: `${signed(change)} ${esc(unit)}`,
-                              date: shortDate(pts[0].label),
-                          });
-                    delta = `<div class="wdelta" style="color:${color}">${text}</div>`;
-                } else {
-                    delta = `<div class="wdelta" style="color:var(--text-dim)">${esc(T.weightTrends.needTwo)}</div>`;
-                }
-
-                return `
-          <div class="wnow">
-            <div class="wlabel">${esc(T.weightTrends.trend)}</div>
-            <div class="wval">${w1(trendNow)}<span class="wunit">${esc(unit)}</span></div>
-            ${scale}
-            ${rate}
-            ${delta}
-          </div>`;
-            }
-
-            // Footer: the weigh-in count for the daily ranges (a bucket is not
-            // a weigh-in, so the long ranges leave it out — their span is in
-            // the chart's date labels), and the target measured from the trend.
-            function trendFooter(s, rp, target, unit) {
-                const left = rp.long
-                    ? ""
-                    : plural(T.weightTrends.weighIns, rp.points.length);
-                let right;
-                if (target != null) {
-                    const now =
-                        s.trendLatest ?? rp.points[rp.points.length - 1].trend;
-                    const delta = Math.round((now - target) * 10) / 10;
-                    const gap =
-                        Math.abs(delta) < 0.05
-                            ? T.weightTrends.atTarget
-                            : tpl(
-                                  delta > 0
-                                      ? T.weightTrends.toLose
-                                      : T.weightTrends.toGain,
-                                  {
-                                      amount: `${w1(Math.abs(delta))} ${esc(unit)}`,
-                                  },
-                              );
-                    const targetVal = tpl(T.weightTrends.target, {
-                        value: `${w1(target)} ${unit}`,
-                    });
-                    right = `<b>${esc(targetVal)}</b> · ${gap}`;
-                } else {
-                    right = esc(T.weightTrends.noTarget);
-                }
-                return `
-          <div class="psec wfoot">
-            <span>${left}</span>
-            <span>${right}</span>
-          </div>`;
-            }
-
-            function initialTrendRange(s, data) {
+            function initialRange(data) {
                 const want =
-                    {
-                        7: "7",
-                        30: "30",
-                        90: "90",
-                        365: "1y",
-                    }[data && data.default_range] || "30";
-                const ids = availableRanges(s, data).map((r) => r.id);
+                    { 7: "7", 14: "30", 30: "30", 90: "90", 365: "1y" }[
+                        data && data.default_range
+                    ] || "30";
+                const ids = MODEL.ranges.map((r) => r.id);
                 const pick = ids.includes(want) ? want : "30";
-                // A range with nothing in it (no weigh-in in the last 30
-                // days, say) would open on the empty line while longer
-                // ranges hold data: widen to the next range that has points.
-                const has = (id) => rangePoints(s, data, id).points.length > 0;
+                const has = (id) => rangePoints(id).length > 0;
                 if (has(pick)) return pick;
                 const wider = ids.slice(ids.indexOf(pick) + 1).find(has);
                 return wider || pick;
             }
 
-            function paintTrend() {
-                const root = document.getElementById("root");
+            // Least-squares slope × 7 over the range: only when there is no
+            // server series (a host that dropped `_meta`), and only for a
+            // range long and dense enough to mean something.
+            function legacyRate(pts) {
+                const n = pts.length;
+                if (n < 4) return null;
+                const xs = pts.map((p) => dayNum(p.x));
+                if (xs[n - 1] - xs[0] < 10) return null;
+                const ys = pts.map((p) => p.w);
+                const mx = xs.reduce((a, b) => a + b, 0) / n;
+                const my = ys.reduce((a, b) => a + b, 0) / n;
+                let num = 0,
+                    den = 0;
+                xs.forEach((x, i) => {
+                    num += (x - mx) * (ys[i] - my);
+                    den += (x - mx) * (x - mx);
+                });
+                return den ? (num / den) * 7 : null;
+            }
+
+            function buildModel() {
                 const data = STATE.data || {};
                 const s = STATE.series;
-                const unit = weightUnit(data.unit || s.unit || "kg");
-                const target = isNum(data.target) ? data.target : null;
-                const ranges = availableRanges(s, data);
-                const id = STATE.range;
-                const rp = rangePoints(s, data, id);
-                const n = rp.points.length;
+                const ent = STATE.entries;
+                const M = { s, ent, meas: STATE.meas };
+                MODEL = M;
+                M.code = data.unit || (s && s.unit) || "kg";
+                M.unit = weightUnit(M.code);
+                M.goal = isNum(data.target) ? data.target : null;
+                M.end = isDate(data.end_date)
+                    ? data.end_date
+                    : s && s.trendDate
+                      ? s.trendDate
+                      : null;
+                M.today = (ent && ent.today) || localToday();
+                M.days = baseDays(data, s, ent);
+                if (!M.end && M.days.length)
+                    M.end = M.days[M.days.length - 1].date;
+                M.firstDate =
+                    s && s.first
+                        ? s.first.date
+                        : M.days.length
+                          ? M.days[0].date
+                          : null;
+                M.firstW =
+                    s && s.first
+                        ? s.first.w
+                        : M.days.length
+                          ? M.days[0].w
+                          : null;
+                M.span =
+                    M.firstDate && M.end
+                        ? dayNum(M.end) - dayNum(M.firstDate)
+                        : 0;
+                // Latest weigh-in: the newest logged day; with no day in the
+                // daily coverage, the newest bucket.
+                M.last = M.days.length ? M.days[M.days.length - 1] : null;
+                if (!M.last && s) {
+                    const b = s.monthly[s.monthly.length - 1];
+                    if (b)
+                        M.last = {
+                            x: b.month + "-15",
+                            date: b.month + "-15",
+                            w: b.weight,
+                            kind: "month",
+                        };
+                }
+                M.ranges = availableRanges(s, M.days);
+                return M;
+            }
 
-                const seg = ranges
-                    .map((r) => {
-                        const text =
-                            r.id === "1y"
-                                ? T.weightTrends.range1y
-                                : r.id === "all"
-                                  ? T.weightTrends.rangeAll
-                                  : r.id;
-                        const aria =
-                            r.id === "1y"
-                                ? T.weightTrends.range1yAriaLabel
-                                : r.id === "all"
-                                  ? T.weightTrends.rangeAllAriaLabel
-                                  : tpl(T.weightTrends.rangeAriaLabel, {
-                                        n: r.days,
-                                    });
-                        return `<button class="seg-btn${r.id === id ? " active" : ""}" data-r="${r.id}" aria-label="${esc(aria)}" aria-pressed="${r.id === id}">${esc(text)}</button>`;
+            // Everything that depends on the selected range.
+            function rangeModel(M, id) {
+                const R = {};
+                R.id = id;
+                R.copy =
+                    T.weightTrends.ranges[id] || T.weightTrends.ranges["30"];
+                R.days = (RANGES.find((r) => r.id === id) || {}).days || null;
+                R.pts = rangePoints(id);
+                const n = R.pts.length;
+                R.n = n;
+                const hasG = M.goal != null;
+                const G = M.goal;
+                const lastW = M.last.w;
+                R.single =
+                    M.days.length <= 1 &&
+                    (!M.firstDate || M.firstDate === M.last.date);
+                R.losing = hasG && M.firstW != null && G < M.firstW;
+                const toward = (v) => (!hasG ? 0 : R.losing ? -v : v);
+                R.toward = toward;
+                R.reached = hasG && (R.losing ? lastW <= G : lastW >= G);
+                R.left = hasG ? Math.abs(lastW - G) : 0;
+                R.chg = n >= 2 ? R.pts[n - 1].w - R.pts[0].w : 0;
+                R.enough = n >= 4;
+                R.rate = M.s ? M.s.weeklyRate : legacyRate(R.pts);
+                const rate = R.rate;
+                R.away =
+                    hasG &&
+                    R.enough &&
+                    rate != null &&
+                    !R.reached &&
+                    toward(rate) < -0.02;
+                R.dir = (v) =>
+                    Math.abs(v) < 0.05
+                        ? "z"
+                        : !hasG
+                          ? "n"
+                          : toward(v) > 0
+                            ? "g"
+                            : "b";
+                R.wk =
+                    hasG &&
+                    !R.reached &&
+                    R.enough &&
+                    rate != null &&
+                    toward(rate) > 0.02
+                        ? Math.ceil(R.left / Math.abs(rate))
+                        : null;
+                R.reachDay = null;
+                if (hasG && R.reached) {
+                    const ok = (d) => (R.losing ? d.w <= G : d.w >= G);
+                    const D = M.days;
+                    for (let i = D.length - 1; i > 0; i--) {
+                        if (ok(D[i]) && !ok(D[i - 1])) {
+                            R.reachDay = D[i];
+                            break;
+                        }
+                    }
+                    if (!R.reachDay && D.length) R.reachDay = D[0];
+                }
+                return R;
+            }
+
+            // ---- Header ----
+            function titleOf(M, R) {
+                const W = T.weightTrends;
+                if (R.single) return W.titleFirst;
+                if (!R.enough) return W.titleFew;
+                if (R.rate == null)
+                    return R.reached ? W.titleGoalReached : W.titleNoRate;
+                if (M.goal == null)
+                    return Math.abs(R.rate) < 0.03
+                        ? W.titleSteady
+                        : R.rate < 0
+                          ? W.titleDown
+                          : W.titleUp;
+                if (R.reached) return W.titleGoalReached;
+                if (R.away) return W.titleAway;
+                if (R.toward(R.rate) > 0.02) return W.titleOnTrack;
+                return W.titleShortSteady;
+            }
+
+            function reelHtml(str) {
+                let i = 0;
+                const col = [];
+                for (let c = 0; c < 4; c++)
+                    for (let d = 0; d <= 9; d++) col.push(`<span>${d}</span>`);
+                col.push("<span>0</span>");
+                const colHtml = col.join("");
+                return str
+                    .split("")
+                    .map((ch) => {
+                        if (!/[0-9]/.test(ch)) return `<span>${esc(ch)}</span>`;
+                        const html = `<span class="rl"><span class="rs" style="--d:${ch};--i:${i}">${colHtml}</span></span>`;
+                        i++;
+                        return html;
                     })
                     .join("");
+            }
 
-                const days = (TREND_RANGES.find((r) => r.id === id) || {}).days;
-                const fmtDate = rp.long ? monthLabel : shortDate;
-                const body =
-                    n === 0
-                        ? `<div class="cempty">${esc(tpl(T.weightTrends.rangeEmpty, { range: days ?? "" }))}</div>`
-                        : `
-          <div class="wmain wtrend">
-            ${trendHead(s, data, id, rp, target, unit)}
-            ${trendChart(rp.points, target, unit, fmtDate)}
-          </div>
-          ${trendFooter(s, rp, target, unit)}`;
-
-                root.innerHTML = `
-          <div class="panel">
-            <div class="phead mid">
-              <div class="ptitle">${esc(T.weightTrends.title)}</div>
-              <div class="seg seg-sm" role="group" aria-label="${esc(T.weightTrends.windowAriaLabel)}">${seg}</div>
+            function heroHtml(M, R) {
+                const W = T.weightTrends;
+                const value = f1(M.last.w);
+                let chip = "";
+                if (!R.single && R.n >= 2) {
+                    const dc = R.dir(R.chg);
+                    const cls =
+                        dc === "g"
+                            ? "good"
+                            : dc === "b" && !R.reached
+                              ? "bad"
+                              : "neu";
+                    chip = `<span class="dchip ${cls}">${esc(
+                        tpl(W.chip, {
+                            change: `${sg(R.chg)} ${M.unit}`,
+                            range: R.copy.chip,
+                        }),
+                    )}</span>`;
+                }
+                const pills = M.ranges
+                    .map((r) => {
+                        const c = W.ranges[r.id];
+                        const on = r.id === R.id;
+                        return `<button type="button" class="reset rp${on ? " on" : ""}" data-act="range" data-r="${r.id}" data-f="r${r.id}" aria-pressed="${on}" aria-label="${esc(c.aria)}">${esc(c.label)}</button>`;
+                    })
+                    .join("");
+                return `
+          <div class="wtop">
+            <div class="wnow">
+              <span class="wbig num" role="img" aria-label="${esc(`${value} ${M.unit}`)}"><span aria-hidden="true" style="display:inline-flex">${reelHtml(value)}</span></span><span class="wunit" aria-hidden="true">${esc(M.unit)}</span>${chip}
             </div>
-            ${body}
+            ${M.ranges.length > 1 ? `<div class="rpills" role="group" aria-label="${esc(W.rangeGroupAriaLabel)}">${pills}</div>` : ""}
           </div>`;
             }
 
-            // ---- State + rendering ---------------------------------------------
-            // `range` is a string id in both modes ("7", "14", "30" in legacy;
-            // "7" … "1y", "all" in trend mode). `series` is the parsed `_meta`
-            // series, or null for legacy mode.
-            const STATE = { data: null, series: null, range: "30" };
+            // ---- Chart ----
+            function niceDomain(lo, hi, lb) {
+                const minSp = lb ? 6 : 3;
+                const steps = lb
+                    ? [1, 2, 5, 10, 20, 50]
+                    : [0.5, 1, 2, 5, 10, 20];
+                const pad = Math.max((hi - lo) * 0.08, lb ? 0.4 : 0.2);
+                lo -= pad;
+                hi += pad;
+                if (hi - lo < minSp) {
+                    const m = (hi + lo) / 2;
+                    lo = m - minSp / 2;
+                    hi = m + minSp / 2;
+                }
+                for (const s of steps) {
+                    const a = Math.floor(lo / s + 1e-9) * s;
+                    let b = Math.ceil(hi / s - 1e-9) * s;
+                    let c = Math.round((b - a) / s) + 1;
+                    if (c <= 5) {
+                        while (c < 3) {
+                            b += s;
+                            c++;
+                        }
+                        return { lo: a, hi: b, step: s };
+                    }
+                }
+                const s = steps[steps.length - 1];
+                return {
+                    lo: Math.floor(lo / s) * s,
+                    hi: Math.ceil(hi / s) * s,
+                    step: s,
+                };
+            }
+
+            // The line's values: the server's EWMA when present, else (no
+            // `_meta`) the design's centred moving average over the range.
+            function smoothOf(pts) {
+                const n = pts.length;
+                if (pts.every((p) => isNum(p.tr))) return pts.map((p) => p.tr);
+                const K = n > 120 ? 4 : n > 20 ? 2 : 1;
+                return pts.map((_, i) => {
+                    let s = 0,
+                        c = 0;
+                    for (
+                        let j = Math.max(0, i - K);
+                        j <= Math.min(n - 1, i + K);
+                        j++
+                    ) {
+                        s += pts[j].w;
+                        c++;
+                    }
+                    return s / c;
+                });
+            }
+
+            function pointDateLabel(p) {
+                if (p.kind === "month") return monthYear(p.date);
+                if (p.kind === "week") return shortDate(p.date);
+                return dFull(p.date);
+            }
+            function pointValue(p, withAvg) {
+                const v = `${f1(p.w)} ${MODEL.unit}`;
+                const k = p.ins ? p.ins.length : 1;
+                return withAvg && k > 1
+                    ? tpl(T.weightTrends.scrubAvg, { value: v, n: k })
+                    : v;
+            }
+
+            function chartGeom(M, R, G) {
+                const W = T.weightTrends;
+                const CW = G.cw,
+                    CH = G.ch;
+                const pts = R.pts;
+                const n = pts.length;
+                const lb = M.code === "lb";
+                const hasG = M.goal != null;
+                const goal = M.goal;
+                const few = n < 4;
+                const padL = 8,
+                    padR = 10,
+                    padT = 10,
+                    padB = 8,
+                    band = 30;
+                const pc = (v, of) => ((v / of) * 100).toFixed(2);
+                const raw = pts.map((p) => p.w);
+                const sm = few ? raw : smoothOf(pts);
+                const all = raw.concat(sm);
+                const dLo = Math.min(...all),
+                    dHi = Math.max(...all);
+                let Dm = niceDomain(dLo, dHi, lb),
+                    goalIn = false,
+                    pin = "";
+                if (hasG) {
+                    const Dg = niceDomain(
+                        Math.min(dLo, goal),
+                        Math.max(dHi, goal),
+                        lb,
+                    );
+                    const share = (dHi - dLo) / (Dg.hi - Dg.lo);
+                    // A goal the data's own axis already spans is drawn in
+                    // place (the design pinned one sitting on the axis
+                    // floor to the top edge, pointing the wrong way).
+                    if (goal >= Dm.lo && goal <= Dm.hi) goalIn = true;
+                    else if (
+                        share >= 0.45 ||
+                        Dg.hi - Dg.lo <= (Dm.hi - Dm.lo) * 1.15
+                    ) {
+                        Dm = Dg;
+                        goalIn = true;
+                    } else pin = goal < Dm.lo ? "down" : "up";
+                }
+                const top0 = padT + (pin === "up" ? band : 0),
+                    bot0 = CH - padB - (pin === "down" ? band : 0);
+                const ph = bot0 - top0,
+                    pw = CW - padL - padR;
+                const x0 = dayNum(pts[0].x),
+                    x1 = dayNum(pts[n - 1].x);
+                const xs = (d) => padL + ((d - x0) / (x1 - x0 || 1)) * pw;
+                const ys = (v) => top0 + ((Dm.hi - v) / (Dm.hi - Dm.lo)) * ph;
+                const Rp = pts.map((p) => [xs(dayNum(p.x)), ys(p.w)]);
+                const P = few
+                    ? Rp
+                    : pts.map((p, i) => [xs(dayNum(p.x)), ys(sm[i])]);
+                const q = (p) => p[0].toFixed(1) + " " + p[1].toFixed(1);
+                const cr = (i) => {
+                    const p0 = P[i - 2] || P[i - 1],
+                        p1 = P[i - 1],
+                        p2 = P[i],
+                        p3 = P[i + 1] || P[i];
+                    return (
+                        " C" +
+                        (p1[0] + (p2[0] - p0[0]) / 6).toFixed(1) +
+                        " " +
+                        (p1[1] + (p2[1] - p0[1]) / 6).toFixed(1) +
+                        " " +
+                        (p2[0] - (p3[0] - p1[0]) / 6).toFixed(1) +
+                        " " +
+                        (p2[1] - (p3[1] - p1[1]) / 6).toFixed(1) +
+                        " " +
+                        q(p2)
+                    );
+                };
+                const gapDays =
+                    pts[0].kind === "month"
+                        ? 45
+                        : pts[0].kind === "week"
+                          ? 10
+                          : 4;
+                let solid = "",
+                    dash = "",
+                    full = "M" + q(P[0]),
+                    lastKind = null;
+                for (let i = 1; i < n; i++) {
+                    const kind =
+                        few || dayNum(pts[i].x) - dayNum(pts[i - 1].x) > gapDays
+                            ? "d"
+                            : "s";
+                    const cmd = few ? " L" + q(P[i]) : cr(i);
+                    full += cmd;
+                    if (kind === "s") {
+                        if (lastKind !== "s")
+                            solid += (solid ? " " : "") + "M" + q(P[i - 1]);
+                        solid += cmd;
+                    } else {
+                        if (lastKind !== "d")
+                            dash += (dash ? " " : "") + "M" + q(P[i - 1]);
+                        dash += cmd;
+                    }
+                    lastKind = kind;
+                }
+                const area = !few
+                    ? full +
+                      " L" +
+                      P[n - 1][0].toFixed(1) +
+                      " " +
+                      bot0 +
+                      " L" +
+                      P[0][0].toFixed(1) +
+                      " " +
+                      bot0 +
+                      " Z"
+                    : "";
+                const ticks = [];
+                for (let v = Dm.lo; v <= Dm.hi + 1e-9; v += Dm.step)
+                    ticks.push(Math.round(v * 10) / 10);
+                const tf = (v) =>
+                    Dm.step < 1 ? nf(1).format(v) : nf(0).format(Math.round(v));
+                const grid = ticks
+                    .map((v) => "M0 " + ys(v).toFixed(1) + "H" + CW)
+                    .join(" ");
+                const lp = Rp[n - 1];
+
+                // Goal: dashed line inside the domain with a pill placed off
+                // the line, or pinned in a band at the edge.
+                let goalEl = null;
+                const goalTxt = hasG ? `${f1(goal)} ${M.unit}` : "";
+                const leftTxt = `${f1(R.left)} ${M.unit}`;
+                if (hasG && goalIn) {
+                    const gy = ys(goal);
+                    const txt = R.reached
+                        ? tpl(W.goalPillReached, { goal: goalTxt })
+                        : tpl(W.goalPill, { goal: goalTxt, left: leftTxt });
+                    const w = txt.length * 6.3 + 18,
+                        hgt = 20;
+                    const yAt = (x) => {
+                        const i = P.findIndex((p) => p[0] >= x);
+                        if (i < 0) return P[n - 1][1];
+                        if (i === 0) return P[0][1];
+                        const a = P[i - 1],
+                            b = P[i];
+                        return (
+                            a[1] +
+                            ((b[1] - a[1]) * (x - a[0])) / (b[0] - a[0] || 1)
+                        );
+                    };
+                    const hits = (x, y) => {
+                        for (let xx = x - 4; xx <= x + w + 4; xx += 3) {
+                            const ly = yAt(xx);
+                            if (ly > y - 6 && ly < y + hgt + 6) return true;
+                        }
+                        return (
+                            Rp.some(
+                                (p) =>
+                                    p[0] > x - 6 &&
+                                    p[0] < x + w + 6 &&
+                                    p[1] > y - 5 &&
+                                    p[1] < y + hgt + 5,
+                            ) ||
+                            (lp[0] > x - 14 &&
+                                lp[0] < x + w + 14 &&
+                                lp[1] > y - 14 &&
+                                lp[1] < y + hgt + 14)
+                        );
+                    };
+                    const cands = [];
+                    [
+                        ["st", padL],
+                        ["en", CW - padR - w],
+                        ["md", padL + (pw - w) / 2],
+                    ].forEach(([a, x]) => {
+                        cands.push({ a, x, y: gy - hgt - 5 });
+                        cands.push({ a, x, y: gy + 5 });
+                    });
+                    [
+                        ["en", CW - padR - w],
+                        ["st", padL],
+                    ].forEach(([a, x]) => {
+                        cands.push({ a, x, y: top0 - 6 });
+                        cands.push({ a, x, y: bot0 - hgt + 4 });
+                    });
+                    const ok = cands.filter((c) => c.y >= 0 && c.y + hgt <= CH);
+                    const c =
+                        ok.find((c) => !hits(c.x, c.y)) || ok[0] || cands[0];
+                    const ax =
+                        c.a === "st" ? padL : c.a === "en" ? CW - padR : CW / 2;
+                    goalEl = {
+                        d: "M0 " + gy.toFixed(1) + "H" + CW,
+                        l: pc(ax, CW),
+                        t: pc(c.y, CH),
+                        cls: "cgp " + c.a,
+                        txt,
+                    };
+                } else if (hasG) {
+                    const ly =
+                        pin === "down" ? CH - band / 2 - 2 : band / 2 + 2;
+                    const txt = tpl(
+                        pin === "down" ? W.goalBelow : W.goalAbove,
+                        {
+                            goal: goalTxt,
+                            left: leftTxt,
+                        },
+                    );
+                    goalEl = {
+                        d: "M0 " + ly.toFixed(1) + "H" + CW,
+                        l: pc(0, CW),
+                        t: pc(ly - 10, CH),
+                        cls: "cgp st",
+                        txt,
+                    };
+                }
+
+                // Value labels for sparse data; the last value is the hero
+                // number, so it gets none.
+                const vlabels = few
+                    ? Rp.slice(0, -1).map((p, i) => {
+                          const below = p[1] - 24 < 0;
+                          const a =
+                              p[0] < 22 ? "st" : p[0] > CW - 22 ? "en" : "md";
+                          return `<span class="cval ${a}${below ? " bl" : ""}" style="left:${pc(p[0], CW)}%;top:${pc(below ? p[1] + 8 : p[1] - 8, CH)}%">${esc(f1(pts[i].w))}</span>`;
+                      })
+                    : [];
+
+                // X labels: start, middle, end.
+                const longR = R.days == null || R.days >= 365;
+                const xl = [x0, (x0 + x1) / 2, x1];
+                const xlab = (d, i) => {
+                    const iso =
+                        i === 0
+                            ? pts[0].date
+                            : i === 2
+                              ? pts[n - 1].date
+                              : dateOfDayNum(d);
+                    if (i === 2 && pts[n - 1].kind === "day" && iso === M.today)
+                        return W.today;
+                    if (longR && i < 2) return monthYear2(iso);
+                    if (pts[0].kind === "month") return monthYear2(iso);
+                    return shortDate(iso);
+                };
+                const xlabels =
+                    n === 1
+                        ? ""
+                        : xl
+                              .map((d, i) => {
+                                  const cls =
+                                      i === 0 ? "st" : i === 1 ? "md" : "en";
+                                  const l = pc(
+                                      i === 0
+                                          ? padL
+                                          : i === 1
+                                            ? CW / 2
+                                            : CW - padR,
+                                      CW,
+                                  );
+                                  return `<span class="${cls}" style="left:${l}%">${esc(xlab(d, i))}</span>`;
+                              })
+                              .join("");
+
+                // Hit columns: one button per point, spanning midpoint to
+                // midpoint.
+                const si = VIEW.scrub;
+                const hits = Rp.map((p, i) => {
+                    const a = i === 0 ? 0 : (Rp[i - 1][0] + p[0]) / 2,
+                        b = i === n - 1 ? CW : (p[0] + Rp[i + 1][0]) / 2;
+                    const pt = pts[i];
+                    const k = pt.ins ? pt.ins.length : 1;
+                    const aria =
+                        k > 1
+                            ? tpl(W.hitLabelAvg, {
+                                  date: pointDateLabel(pt),
+                                  value: `${f1(pt.w)} ${M.unit}`,
+                                  n: k,
+                              })
+                            : tpl(W.hitLabel, {
+                                  date: pointDateLabel(pt),
+                                  value: `${f1(pt.w)} ${M.unit}`,
+                              });
+                    const on = si === i;
+                    return `<button type="button" class="reset chit${on ? " on" : ""}" data-act="hit" data-i="${i}" data-f="h${i}" style="left:${pc(a, CW)}%;width:${pc(b - a, CW)}%" aria-pressed="${on}" aria-label="${esc(aria)}"></button>`;
+                }).join("");
+
+                let scrub = "";
+                if (si != null && si < n) {
+                    const pt = pts[si],
+                        p = Rp[si];
+                    const xr = p[0] / CW;
+                    const below = p[1] < 44;
+                    const cls =
+                        "stip " +
+                        (xr < 0.3 ? "st" : xr > 0.7 ? "en" : "md") +
+                        (below ? " bl" : "") +
+                        (FRESH.has("scrub") ? " fresh" : "");
+                    scrub = `
+              <span class="shair" style="left:${pc(p[0], CW)}%"></span>
+              <span class="sdot" style="left:${pc(p[0], CW)}%;top:${pc(p[1], CH)}%"></span>
+              <div class="${cls}" style="left:${pc(p[0], CW)}%;top:${pc(p[1], CH)}%"><span class="num"><b>${esc(pointDateLabel(pt))}</b> · ${esc(pointValue(pt, true))}</span><button type="button" class="reset sx" data-act="sx" data-f="sx" aria-label="${esc(W.close)}">×</button></div>`;
+                }
+
+                const yl = ticks
+                    .map(
+                        (v) =>
+                            `<span class="num" style="top:${pc(ys(v), CH)}%">${esc(tf(v))}</span>`,
+                    )
+                    .reverse()
+                    .join("");
+                const dotCls = few ? "cdot few" : n > 90 ? "cdot tiny" : "cdot";
+                const dots = Rp.map((p) => "M" + q(p) + "h0").join(" ");
+                return `
+          <div class="cbody">
+            <div class="cyl" aria-hidden="true">${yl}</div>
+            <div class="cplot" style="aspect-ratio:${CW} / ${CH}">
+              <svg class="wch" viewBox="0 0 ${CW} ${CH}" aria-hidden="true">
+                <path d="${grid}" class="cg"></path>
+                ${area ? `<path d="${area}" class="carea"></path>` : ""}
+                ${goalEl ? `<path d="${goalEl.d}" class="cgoal"></path>` : ""}
+                <path d="${dots}" class="${dotCls}"></path>
+                ${dash ? `<path d="${dash}" class="cline dash"></path>` : ""}
+                ${solid ? `<path d="${solid}" pathLength="100" class="cline"></path>` : ""}
+              </svg>
+              ${vlabels.join("")}
+              ${goalEl ? `<span class="${goalEl.cls}" style="left:${goalEl.l}%;top:${goalEl.t}%">${esc(goalEl.txt)}</span>` : ""}
+              <span class="cend" style="left:${pc(lp[0], CW)}%;top:${pc(lp[1], CH)}%" aria-hidden="true"></span>
+              <div class="chits">${hits}</div>
+              ${scrub}
+            </div>
+            <span class="cu" aria-hidden="true">${esc(M.unit)}</span>
+            <div class="cx num" aria-hidden="true">${xlabels}</div>
+          </div>`;
+            }
+
+            function chartHtml(M, R) {
+                const W = T.weightTrends;
+                const n = R.n;
+                if (n === 0) {
+                    const last = M.last;
+                    const txt =
+                        last && last.kind === "day"
+                            ? tpl(W.emptyRangeLast, {
+                                  range: R.copy.word,
+                                  date: shortDate(last.date),
+                              })
+                            : tpl(W.emptyRange, { range: R.copy.word });
+                    return `<div class="cempty">${esc(txt)}</div>`;
+                }
+                if (n === 1) {
+                    const p = R.pts[0];
+                    const recent =
+                        p.kind === "day" &&
+                        p.ins &&
+                        p.ins.length === 1 &&
+                        dayNum(M.today) - dayNum(p.date) < 2;
+                    const when = recent
+                        ? tpl(W.whenTime, {
+                              date: dLong(p.date),
+                              time: p.ins[0].t,
+                          })
+                        : p.kind === "day"
+                          ? dLong(p.date)
+                          : pointDateLabel(p);
+                    const value = `${f1(p.w)} ${M.unit}`;
+                    let title, line, hint;
+                    if (R.single) {
+                        title = W.oneTitleFirst;
+                        line = tpl(W.oneFirst, { when, value });
+                        hint = W.oneHintFirst;
+                    } else {
+                        title = tpl(W.oneTitle, { range: R.copy.word });
+                        line = tpl(W.oneLine, { when, value });
+                        const earlier = M.days.filter(
+                            (d) => d.date < p.date,
+                        ).length;
+                        hint =
+                            earlier > 0
+                                ? plural(W.oneHintEarlier, earlier)
+                                : "";
+                    }
+                    return `
+          <div class="cone">
+            <span class="conedot" aria-hidden="true"></span>
+            <b>${esc(title)}</b>
+            <span class="num">${esc(line)}</span>
+            ${hint ? `<span class="coneh">${esc(hint)}</span>` : ""}
+          </div>`;
+                }
+                const hasG = M.goal != null;
+                const aria = tpl(W.chartAriaLabel, {
+                    latest: `${f1(M.last.w)} ${M.unit}`,
+                    goal: hasG
+                        ? tpl(W.chartAriaGoal, {
+                              goal: `${f1(M.goal)} ${M.unit}`,
+                          })
+                        : "",
+                    change: tpl(W.chartAriaChange, {
+                        change: `${sg(R.chg)} ${M.unit}`,
+                        range: R.copy.inRange,
+                    }),
+                });
+                let live = "";
+                if (VIEW.scrub != null && VIEW.scrub < n) {
+                    const pt = R.pts[VIEW.scrub];
+                    live = `${pointDateLabel(pt)} · ${pointValue(pt, true)}`;
+                }
+                return `
+          <div class="wplot" role="group" aria-label="${esc(aria)}">
+            <div class="only-m">${chartGeom(M, R, GEOMS[0])}</div>
+            <div class="only-d">${chartGeom(M, R, GEOMS[1])}</div>
+            <span class="vh" aria-live="polite">${esc(live)}</span>
+          </div>`;
+            }
+
+            // ---- Summary (phone) and stats (desktop) ----
+            function summaryOf(M, R) {
+                const W = T.weightTrends;
+                const parts = [];
+                let hint = "";
+                const b = (txt, cls) =>
+                    `<b class="num${cls ? " " + cls : ""}">${esc(txt)}</b>`;
+                const reachedPart = () =>
+                    tplHtml(W.reachedOn, {
+                        date: b(shortDate(R.reachDay.date)),
+                    });
+                if (R.n <= 1) return { parts, hint };
+                if (!R.enough) hint = W.hintFew;
+                else if (R.rate == null) {
+                    if (R.reachDay) parts.push(reachedPart());
+                    else hint = W.hintNoRate;
+                } else {
+                    const amount = b(
+                        `${sg(R.rate, 2)} ${M.unit}`,
+                        R.away ? "over" : "",
+                    );
+                    parts.push(
+                        tplHtml(M.goal != null ? W.perWeek : W.perWeekAvg, {
+                            amount,
+                        }),
+                    );
+                    if (R.wk != null)
+                        parts.push(
+                            tplHtml(W.toGoal, {
+                                value: b(
+                                    R.wk > 104
+                                        ? W.yearsPlus
+                                        : plural(W.weeksApprox, R.wk),
+                                ),
+                            }),
+                        );
+                    else if (R.reachDay) parts.push(reachedPart());
+                    else if (R.away) parts.push(esc(W.movingAway));
+                    else if (M.goal != null) parts.push(esc(W.tooFlat));
+                }
+                return { parts, hint };
+            }
+
+            function statsOf(M, R) {
+                const W = T.weightTrends;
+                const stats = [];
+                if (R.enough && R.rate != null) {
+                    stats.push({
+                        k: W.statPerWeek,
+                        v: sg(R.rate, 2),
+                        u: M.unit,
+                        cls: R.away ? "over" : "",
+                    });
+                    if (R.wk != null)
+                        stats.push({
+                            k: W.statGoalPace,
+                            v: R.wk > 104 ? "2+" : "~" + R.wk,
+                            u:
+                                R.wk > 104
+                                    ? W.unitYears
+                                    : plural(W.unitWeeks, R.wk),
+                        });
+                    else if (R.reachDay)
+                        stats.push({
+                            k: W.statGoalReached,
+                            v: shortDate(R.reachDay.date),
+                            u: "",
+                        });
+                } else if (R.enough && R.reachDay) {
+                    stats.push({
+                        k: W.statGoalReached,
+                        v: shortDate(R.reachDay.date),
+                        u: "",
+                    });
+                }
+                if (M.goal != null && !R.reached && !R.enough)
+                    stats.push({ k: W.statToGoal, v: f1(R.left), u: M.unit });
+                const cut = cutoffOf(R.id);
+                if (
+                    !R.single &&
+                    R.n &&
+                    M.firstDate &&
+                    cut &&
+                    M.firstDate < cut &&
+                    M.firstW != null
+                ) {
+                    const old = dayNum(M.today) - dayNum(M.firstDate) > 300;
+                    stats.push({
+                        k: tpl(W.statSince, {
+                            date: old
+                                ? monthYear(M.firstDate)
+                                : shortDate(M.firstDate),
+                        }),
+                        v: sg(M.last.w - M.firstW),
+                        u: M.unit,
+                    });
+                }
+                return stats;
+            }
+
+            function toggleBtn(M) {
+                const W = T.weightTrends;
+                const open = VIEW.level >= 1;
+                const text = open ? W.showLess : W.showMore;
+                // The accessible name starts with the visible text.
+                const aria = tpl(
+                    M.meas ? W.detailsAria : W.detailsAriaWeighIns,
+                    { action: text },
+                );
+                return `<button type="button" class="reset bigchev${open ? " open" : ""}" data-act="tog" data-f="tog" aria-expanded="${open}" aria-label="${esc(aria)}"><span>${esc(text)}</span><svg width="14" height="9" viewBox="0 0 34 22" aria-hidden="true"><path d="M5 5l12 12 12-12"></path></svg></button>`;
+            }
+
+            function footHtml(M, R) {
+                const sum = summaryOf(M, R);
+                const stats = statsOf(M, R);
+                const dot = '<span class="dot" aria-hidden="true">·</span>';
+                const line = sum.parts.length
+                    ? sum.parts.join(dot)
+                    : esc(sum.hint);
+                const mobile = `
+          <div class="only-m">
+            ${line ? `<div class="gdelta">${line}</div>` : ""}
+            ${toggleBtn(M)}
+          </div>`;
+                const statsHtml = stats.length
+                    ? `<div class="gstats">${stats
+                          .map(
+                              (s) =>
+                                  `<div class="gs"><span class="gsl">${esc(s.k)}</span><b class="num${s.cls ? " " + s.cls : ""}">${esc(s.v)}${s.u ? ` <small>${esc(s.u)}</small>` : ""}</b></div>`,
+                          )
+                          .join("")}</div>`
+                    : "";
+                const desk = `
+          <div class="dfoot only-d">
+            <div class="dleft">${statsHtml}${sum.hint ? `<div class="dhint">${esc(sum.hint)}</div>` : ""}</div>
+            ${toggleBtn(M)}
+          </div>`;
+                return mobile + desk;
+            }
+
+            // ---- Details: weigh-ins ----
+            // The weigh-in list covers the daily data the payload carries; a
+            // range reaching further back than that is named by the range it
+            // actually covers.
+            function listingOf(M, R) {
+                const cut = cutoffOf(R.id);
+                const days = M.days.filter((d) => d.date >= cut);
+                let copy = R.copy;
+                const covStart = M.days.length ? M.days[0].date : null;
+                if (
+                    covStart &&
+                    M.firstDate &&
+                    M.firstDate < covStart &&
+                    (!cut || cut < covStart)
+                ) {
+                    copy =
+                        T.weightTrends.ranges[
+                            M.s && M.s.year.length ? "1y" : M.s ? "90" : "30"
+                        ];
+                }
+                return { days, copy };
+            }
+
+            function weighInsHtml(M, R) {
+                const W = T.weightTrends;
+                const L = listingOf(M, R);
+                const ds = L.days;
+                const n = ds.length;
+                const open = VIEW.wo && n > 0;
+                const readings = ds.reduce(
+                    (s, d) => s + (d.ins ? d.ins.length : 1),
+                    0,
+                );
+                const ws = ds.map((d) => d.w);
+                const avg = n ? ws.reduce((a, b) => a + b, 0) / n : 0;
+                const label = n
+                    ? plural(W.accLabel, readings, { range: L.copy.inRange })
+                    : tpl(W.accEmpty, { range: L.copy.inRange });
+                let sub = "";
+                if (n > 1)
+                    sub = tpl(W.accAvgRange, {
+                        avg: `${f1(avg)} ${M.unit}`,
+                        min: f1(Math.min(...ws)),
+                        max: f1(Math.max(...ws)),
+                    });
+                else if (n === 1) {
+                    const d = ds[0].date;
+                    sub =
+                        d === M.today
+                            ? W.loggedToday
+                            : d === shiftDate(M.today, -1)
+                              ? W.loggedYesterday
+                              : tpl(W.loggedOn, { date: shortDate(d) });
+                }
+                const chev = `<svg class="achev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>`;
+                const inner = `<span class="em" aria-hidden="true">⚖️</span><span class="ab"><span class="lb num">${esc(label)}</span>${sub ? `<span class="vl num">${esc(sub)}</span>` : ""}</span>`;
+                const head = n
+                    ? `<button type="button" class="reset accH" data-act="wi" data-f="wi" aria-expanded="${open}">${inner}${chev}</button>`
+                    : `<div class="accH">${inner}<span></span></div>`;
+                let body = "";
+                if (open)
+                    body = `<div class="accB${FRESH.has("wi") ? " fresh" : ""}">${weeksHtml(M, ds)}</div>`;
+                return `
+          <section class="sec swi">
+            <div class="sech">${esc(W.sectionWeighIns)}</div>
+            <div class="acc${open ? " sel" : ""}" data-key="wi">${head}${body}</div>
+          </section>`;
+            }
+
+            function weekName(k) {
+                const W = T.weightTrends;
+                const cur = weekStart(M_today());
+                if (k === cur) return W.weekThis;
+                if (k === shiftDate(cur, -7)) return W.weekLast;
+                const e = shiftDate(k, 6);
+                if (k.slice(0, 7) === e.slice(0, 7) && WIDGET_LOCALE !== "ja")
+                    return `${Number(k.slice(8))}–${shortDate(e)}`;
+                return `${shortDate(k)} – ${shortDate(e)}`;
+            }
+            function M_today() {
+                return MODEL.today;
+            }
+
+            function weeksHtml(M, ds) {
+                const W = T.weightTrends;
+                const unit = M.unit;
+                // Week averages over every known day (so a week cut by the
+                // range edge still compares against the full previous week).
+                const byWk = new Map();
+                for (const d of M.days) {
+                    const k = weekStart(d.date);
+                    const a = byWk.get(k) || [];
+                    a.push(d.w);
+                    byWk.set(k, a);
+                }
+                const avgOf = (k) => {
+                    const a = byWk.get(k);
+                    return a ? a.reduce((s, x) => s + x, 0) / a.length : null;
+                };
+                const idx = new Map(M.days.map((d, i) => [d.date, i]));
+                const R = RANGE_NOW;
+                const groups = [];
+                ds.slice()
+                    .reverse()
+                    .forEach((d) => {
+                        const k = weekStart(d.date);
+                        let g = groups[groups.length - 1];
+                        if (!g || g.k !== k) {
+                            g = { k, days: [] };
+                            groups.push(g);
+                        }
+                        g.days.push(d);
+                    });
+                const shown = VIEW.allW ? groups : groups.slice(0, WEEKS_CAP);
+                const more = groups.length - shown.length;
+                const cur = weekStart(M.today);
+                const html = shown
+                    .map((g, gi) => {
+                        const a = avgOf(g.k),
+                            pv = avgOf(shiftDate(g.k, -7));
+                        const c = pv != null ? a - pv : null;
+                        const cTxt =
+                            c != null
+                                ? tpl(
+                                      g.k === cur
+                                          ? W.weekVsLast
+                                          : W.weekVsBefore,
+                                      { change: sg(c) },
+                                  )
+                                : "";
+                        const days = g.days
+                            .map((d) => {
+                                const i = idx.get(d.date);
+                                const pd = i > 0 ? M.days[i - 1] : null;
+                                const multi = !!(d.ins && d.ins.length > 1);
+                                const openD = multi && VIEW.mo === d.date;
+                                const meta = multi
+                                    ? plural(W.dayMulti, d.ins.length)
+                                    : d.ins
+                                      ? d.ins[0].t
+                                      : "";
+                                const note =
+                                    !multi && d.ins && d.ins[0].note
+                                        ? d.ins[0].note
+                                        : "";
+                                const chip = pd
+                                    ? `<span class="num wchip ${R.dir(d.w - pd.w)}">${esc(sg(d.w - pd.w))}</span>`
+                                    : `<span class="wchip none"></span>`;
+                                const inner = `<span class="wdt"><b>${esc(dLong(d.date))}</b>${meta ? `<span class="wdm num">${esc(meta)}</span>` : ""}${note ? `<span class="wdn">${esc(note)}</span>` : ""}</span><b class="wdv num">${esc(f1(d.w))} <small>${esc(unit)}</small></b>${chip}<svg class="mc${!multi ? " hide" : openD ? " open" : ""}" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>`;
+                                const row = multi
+                                    ? `<button type="button" class="reset wdr" data-act="day" data-d="${d.date}" data-f="d${d.date}" aria-expanded="${openD}">${inner}</button>`
+                                    : `<div class="wdr">${inner}</div>`;
+                                const list = openD
+                                    ? `<div class="itl${FRESH.has("mo") ? " fresh" : ""}">${d.ins
+                                          .map(
+                                              (x) =>
+                                                  `<div class="itr"><span class="num">${esc(x.t)}</span><span class="iv num">${esc(f1(x.w))} ${esc(unit)}</span>${x.note ? `<span class="im">${esc(x.note)}</span>` : ""}</div>`,
+                                          )
+                                          .join("")}</div>`
+                                    : "";
+                                return `<div class="wd">${row}${list}</div>`;
+                            })
+                            .join("");
+                        return `<div class="wk" data-key="wk${g.k}" style="--n:${gi}"><div class="wkh"><b>${esc(weekName(g.k))}</b><span class="num">${esc(tpl(W.weekAvg, { value: `${f1(a)} ${unit}` }))}</span>${cTxt ? `<span class="num wkc ${R.dir(c)}">${esc(cTxt)}</span>` : ""}</div>${days}</div>`;
+                    })
+                    .join("");
+                const moreBtn =
+                    more > 0
+                        ? `<button type="button" class="reset pmore" data-act="wmore" data-f="wmore">${esc(plural(W.showEarlierWeeks, more))}</button>`
+                        : "";
+                return html + moreBtn;
+            }
+
+            // ---- Details: body measurements ----
+            function measHtml(M, R) {
+                const W = T.weightTrends;
+                const cut = cutoffOf(R.id);
+                const sites = M.meas.sites;
+                const arrow = (c, unit) =>
+                    Math.abs(c) < 0.05
+                        ? W.changeFlat
+                        : tpl(c < 0 ? W.changeDown : W.changeUp, {
+                              delta: `${f1(Math.abs(c))} ${unit}`,
+                          });
+                const cards = SITES.filter(([k]) => sites[k]).map(
+                    ([k, emoji], ci) => {
+                        const site = sites[k];
+                        const unit = site.unit;
+                        const all = site.entries;
+                        const inR = all.filter((e) => e.date >= cut);
+                        const lastE = all[all.length - 1];
+                        const stale = inR.length === 0;
+                        let chg;
+                        if (stale)
+                            chg = tpl(W.measStale, {
+                                date: shortDate(lastE.date),
+                            });
+                        else {
+                            const i0 = all.indexOf(inR[0]);
+                            const base =
+                                inR.length >= 2
+                                    ? inR[0]
+                                    : i0 > 0
+                                      ? all[i0 - 1]
+                                      : null;
+                            chg = base
+                                ? tpl(W.measSince, {
+                                      change: arrow(lastE.v - base.v, unit),
+                                      date: shortDate(base.date),
+                                  })
+                                : tpl(W.measFirst, {
+                                      date: shortDate(lastE.date),
+                                  });
+                        }
+                        const label = W.sites[k] || k;
+                        const open = VIEW.mk === k;
+                        let body = "";
+                        if (open) {
+                            const src = (stale ? all.slice(-3) : inR)
+                                .slice()
+                                .reverse();
+                            const shown = VIEW.allM
+                                ? src
+                                : src.slice(0, CARD_ROWS_CAP);
+                            const more = src.length - shown.length;
+                            const rows = shown
+                                .map((e) => {
+                                    const i = all.indexOf(e),
+                                        pe = i > 0 ? all[i - 1] : null;
+                                    return `<div class="mle"><span>${esc(dLong(e.date))}</span><b class="num">${esc(f1(e.v))} <small>${esc(unit)}</small></b><span class="mld num">${esc(pe ? arrow(e.v - pe.v, unit) : W.measFirstRow)}</span></div>`;
+                                })
+                                .join("");
+                            const head = stale
+                                ? W.measEarlier
+                                : tpl(W.measHeading, {
+                                      site: label,
+                                      range: R.copy.heading,
+                                  });
+                            body = `<div class="mcB${FRESH.has("mk") ? " fresh" : ""}"><div class="mch">${esc(head)}</div>${rows}${more > 0 ? `<button type="button" class="reset pmore" data-act="mmore" data-f="mmore">${esc(plural(W.showMoreN, more))}</button>` : ""}</div>`;
+                        }
+                        return `<div class="mcard${open ? " open" : ""}${stale ? " stale" : ""}" data-key="m${k}" style="--n:${ci}"><button type="button" class="reset mcH" data-act="card" data-k="${k}" data-f="c${k}" aria-expanded="${open}"><span class="mct"><span class="mce" aria-hidden="true">${emoji}</span><span class="mcn">${esc(label)}</span><svg class="achev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></span><span class="mcv num"><b>${esc(f1(lastE.v))}</b> ${esc(unit)}</span><span class="mcd num">${esc(chg)}</span></button>${body}</div>`;
+                    },
+                );
+                const inner = cards.length
+                    ? `<div class="mgrid${cards.length === 1 ? " one" : ""}">${cards.join("")}</div>`
+                    : `<div class="nomeas">${esc(W.noMeasurements)}</div>`;
+                return `
+          <section class="sec sms">
+            <div class="sech">${esc(tpl(W.sectionMeasurements, { range: R.copy.heading }))}</div>
+            ${inner}
+          </section>`;
+            }
+
+            function detailsHtml(M, R) {
+                if (VIEW.level < 1) return "";
+                const W = T.weightTrends;
+                const meas = M.meas ? measHtml(M, R) : "";
+                return `
+          <div class="dets${FRESH.has("dets") ? " fresh" : ""}${meas ? "" : " solo"}">
+            ${weighInsHtml(M, R)}
+            ${meas}
+          </div>
+          <button type="button" class="reset collall" data-act="coll" data-f="coll"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11l5-5 5 5"></path><path d="M7 18l5-5 5 5"></path></svg><span>${esc(W.collapseAll)}</span></button>`;
+            }
+
+            // ---- Paint ----
+            const STATE = {
+                data: null,
+                series: null,
+                entries: null,
+                meas: null,
+                range: "30",
+            };
+            let VIEW = freshView();
+            let FRESH = new Set();
+            let RANGE_NOW = null;
             let __widgetApi = null;
 
-            function render(data, meta) {
-                STATE.data = data;
-                STATE.series = seriesFrom(meta);
-                const root = document.getElementById("root");
-                setLocaleFrom(data, __widgetApi);
-                if (STATE.series) {
-                    STATE.range = initialTrendRange(STATE.series, data);
-                    paint();
-                    return;
+            function freshView() {
+                return {
+                    level: 0,
+                    wo: false,
+                    mk: null,
+                    mo: null,
+                    allW: false,
+                    allM: false,
+                    scrub: null,
+                };
+            }
+
+            function markup() {
+                const W = T.weightTrends;
+                const M = buildModel();
+                if (!M.last) {
+                    return `<div class="empty"><div class="big">⚖️</div><div>${esc(W.empty)}</div></div>`;
                 }
-                if (
-                    !data ||
-                    !Array.isArray(data.days) ||
-                    data.days.length === 0
-                ) {
-                    root.innerHTML = `
-            <div class="empty">
-              <div class="big">⚖️</div>
-              <div>${esc(T.weightTrends.empty)}</div>
-            </div>`;
-                    return;
-                }
-                STATE.range = String(
-                    RANGES.includes(data.default_range)
-                        ? data.default_range
-                        : 30,
-                );
-                paint();
+                if (!M.ranges.some((r) => r.id === STATE.range))
+                    STATE.range = "30";
+                const R = rangeModel(M, STATE.range);
+                RANGE_NOW = R;
+                const eyebrow =
+                    M.last.kind === "day" && M.last.date === M.today
+                        ? W.eyebrowToday
+                        : tpl(W.eyebrowLast, {
+                              date:
+                                  M.last.kind === "day"
+                                      ? shortDate(M.last.date)
+                                      : monthYear(M.last.date),
+                          });
+                const open = VIEW.level >= 1;
+                return `
+          <div class="panel wt${FRESH.has("intro") ? " intro" : ""}">
+            <button type="button" class="reset gtop" data-act="tog" data-f="gtop" aria-expanded="${open}"><span class="eyb2">${esc(eyebrow)}</span><span class="t">${esc(titleOf(M, R))}</span></button>
+            ${heroHtml(M, R)}
+            <div class="hchart">${chartHtml(M, R)}</div>
+            ${footHtml(M, R)}
+            ${detailsHtml(M, R)}
+          </div>`;
             }
 
             function paint() {
-                if (STATE.series) paintTrend();
-                else paintLegacy();
+                const host = document.getElementById("wt");
+                if (!host) return;
+                const active = document.activeElement;
+                const fkey = active && active.dataset ? active.dataset.f : null;
+                host.innerHTML = markup();
+                FRESH = new Set();
+                // Focus survives the repaint: the phone and desktop layouts
+                // share focus keys, and the visible twin gets it.
+                if (fkey) {
+                    const el = Array.from(
+                        host.querySelectorAll(`[data-f="${fkey}"]`),
+                    ).find((x) => x.offsetParent !== null);
+                    if (el) el.focus({ preventScroll: true });
+                }
             }
 
-            // The pre-trend widget, for a host that dropped `_meta`. Keep it
-            // exactly as it was: it is what every such host still shows.
-            function paintLegacy() {
-                const root = document.getElementById("root");
-                const data = STATE.data;
-                const unit = weightUnit(data.unit || "kg");
-                const target = data.target ?? null;
-                const all = data.days
-                    .slice()
-                    .sort((a, b) => (a.date < b.date ? -1 : 1));
-                const range = Number(STATE.range);
-                const cutoff = shiftDate(
-                    data.end_date || all[all.length - 1].date,
-                    -(range - 1),
+            function reduced() {
+                try {
+                    return window.matchMedia("(prefers-reduced-motion: reduce)")
+                        .matches;
+                } catch (_) {
+                    return false;
+                }
+            }
+            function isDesk() {
+                try {
+                    return window.matchMedia("(min-width: 640px)").matches;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            // Desktop: animate details cards from their old boxes to their
+            // new ones when a card or the weigh-ins accordion opens/closes.
+            function flip(apply) {
+                const host = document.getElementById("wt");
+                if (
+                    !host ||
+                    !isDesk() ||
+                    reduced() ||
+                    typeof Element === "undefined" ||
+                    !Element.prototype.animate
+                ) {
+                    apply();
+                    return;
+                }
+                const q = () =>
+                    Array.from(host.querySelectorAll(".dets [data-key]"));
+                const before = new Map(
+                    q().map((e) => [e.dataset.key, e.getBoundingClientRect()]),
                 );
-                const slice = all.filter((d) => d.date >= cutoff);
-                const n = slice.length;
-
-                const seg = RANGES.map(
-                    (r) =>
-                        `<button class="seg-btn${r === range ? " active" : ""}" data-r="${r}" aria-label="${esc(tpl(T.weightTrends.rangeAriaLabel, { n: r }))}" aria-pressed="${r === range}">${r}</button>`,
-                ).join("");
-
-                const body =
-                    n === 0
-                        ? `<div class="cempty">${esc(tpl(T.weightTrends.rangeEmpty, { range }))}</div>`
-                        : `
-          <div class="wmain">
-            ${latestBlock(slice, target, unit)}
-            ${weightChart(slice, target, unit)}
-          </div>
-          ${footer(slice, target, unit)}`;
-
-                root.innerHTML = `
-          <div class="panel">
-            <div class="phead mid">
-              <div class="ptitle">${esc(T.weightTrends.title)}</div>
-              <div class="seg seg-sm" role="group" aria-label="${esc(T.weightTrends.windowAriaLabel)}">${seg}</div>
-            </div>
-            ${body}
-          </div>`;
+                apply();
+                const go = () =>
+                    q().forEach((e) => {
+                        const f = before.get(e.dataset.key);
+                        if (!f) return;
+                        const l = e.getBoundingClientRect();
+                        const dx = f.left - l.left,
+                            dy = f.top - l.top;
+                        const grow =
+                            l.width - f.width > 2 || l.height - f.height > 2;
+                        const shrink =
+                            f.width - l.width > 2 || f.height - l.height > 2;
+                        if (
+                            Math.abs(dx) < 1 &&
+                            Math.abs(dy) < 1 &&
+                            !grow &&
+                            !shrink
+                        )
+                            return;
+                        const kf = [
+                            { transform: `translate(${dx}px, ${dy}px)` },
+                            { transform: "translate(0, 0)" },
+                        ];
+                        if (grow) {
+                            kf[0].clipPath = `inset(0 ${Math.max(l.width - f.width, 0)}px ${Math.max(l.height - f.height, 0)}px 0 round 16px)`;
+                            kf[1].clipPath = "inset(0 0 0 0 round 16px)";
+                        }
+                        e.animate(kf, {
+                            duration: 560,
+                            easing: "cubic-bezier(.22,1,.36,1)",
+                        });
+                    });
+                requestAnimationFrame(() => requestAnimationFrame(go));
             }
 
-            // Delegated on #root, which survives paint()'s innerHTML rewrites.
-            document.getElementById("root").addEventListener("click", (e) => {
-                const btn = e.target.closest(".seg-btn");
-                if (!btn) return;
-                // A string id, never Number(): "1y" and "all" are ids too.
-                const r = btn.dataset.r;
-                if (r && r !== STATE.range && STATE.data) {
-                    STATE.range = r;
+            let closingTimer = 0;
+            function collapse() {
+                if (closingTimer) return;
+                const done = () => {
+                    closingTimer = 0;
+                    VIEW = freshView();
+                    paint();
+                    const t = document.querySelector('[data-f="gtop"]');
+                    if (t && document.activeElement === document.body)
+                        t.focus({ preventScroll: true });
+                };
+                const panel = document.querySelector("#wt .panel");
+                if (reduced() || !panel) {
+                    done();
+                    return;
+                }
+                panel.classList.add("closing");
+                closingTimer = setTimeout(done, 460);
+            }
+
+            function act(btn) {
+                const a = btn.dataset.act;
+                if (a === "tog") {
+                    if (VIEW.level === 0) {
+                        VIEW.level = 1;
+                        FRESH.add("dets");
+                        paint();
+                    } else collapse();
+                    return;
+                }
+                if (a === "coll") return collapse();
+                if (a === "range") {
+                    const r = btn.dataset.r;
+                    if (r && r !== STATE.range) {
+                        STATE.range = r;
+                        VIEW.scrub = null;
+                        VIEW.mo = null;
+                        VIEW.allW = false;
+                        VIEW.allM = false;
+                        paint();
+                    }
+                    return;
+                }
+                if (a === "hit") {
+                    const i = Number(btn.dataset.i);
+                    VIEW.scrub = VIEW.scrub === i ? null : i;
+                    if (VIEW.scrub != null) FRESH.add("scrub");
+                    paint();
+                    return;
+                }
+                if (a === "sx") {
+                    VIEW.scrub = null;
+                    paint();
+                    return;
+                }
+                if (a === "wi") {
+                    flip(() => {
+                        VIEW.wo = !VIEW.wo;
+                        VIEW.level = VIEW.wo ? 2 : 1;
+                        VIEW.mo = null;
+                        VIEW.allW = false;
+                        if (VIEW.wo) FRESH.add("wi");
+                        paint();
+                    });
+                    return;
+                }
+                if (a === "wmore") {
+                    VIEW.allW = true;
+                    paint();
+                    return;
+                }
+                if (a === "day") {
+                    const d = btn.dataset.d;
+                    VIEW.mo = VIEW.mo === d ? null : d;
+                    if (VIEW.mo) FRESH.add("mo");
+                    paint();
+                    return;
+                }
+                if (a === "card") {
+                    const k = btn.dataset.k;
+                    flip(() => {
+                        VIEW.mk = VIEW.mk === k ? null : k;
+                        VIEW.allM = false;
+                        if (VIEW.mk) FRESH.add("mk");
+                        paint();
+                    });
+                    return;
+                }
+                if (a === "mmore") {
+                    VIEW.allM = true;
                     paint();
                 }
+            }
+
+            // Chrome can keep the classic scrollbar it drew while the host's
+            // iframe was still short (130px) after the host grows the frame
+            // to the reported height. Toggling overflow once per resize makes
+            // it recompute; a host that caps the height still scrolls.
+            // (Guarded: the landing page's static renderer has no listeners.)
+            if (typeof window.addEventListener === "function")
+                window.addEventListener("resize", () =>
+                    requestAnimationFrame(() => {
+                        const de = document.documentElement;
+                        if (!de || !de.style) return;
+                        de.style.overflow = "hidden";
+                        void de.offsetHeight;
+                        requestAnimationFrame(() => (de.style.overflow = ""));
+                    }),
+                );
+
+            // Delegated on #root, which survives every repaint of #wt.
+            document.getElementById("root").addEventListener("click", (e) => {
+                const btn =
+                    e.target && e.target.closest
+                        ? e.target.closest("[data-act]")
+                        : null;
+                if (!btn || !STATE.data) return;
+                act(btn);
             });
 
-            // ---- Rendering intake ----------------------------------------------
+            function render(data, meta) {
+                STATE.data = data || {};
+                STATE.series = seriesFrom(meta);
+                STATE.entries = entriesFrom(meta);
+                STATE.meas = measFrom(meta);
+                setLocale(
+                    pickLocale(
+                        data && data.locale,
+                        __widgetApi && __widgetApi.hostContext
+                            ? __widgetApi.hostContext.locale
+                            : null,
+                    ),
+                );
+                VIEW = freshView();
+                FRESH = new Set(["intro"]);
+                buildModel();
+                STATE.range = MODEL.last ? initialRange(data) : "30";
+                // One string into #root (the static renderer reads it back);
+                // later repaints rewrite #wt only.
+                document.getElementById("root").innerHTML =
+                    `<div id="wt">${markup()}</div>`;
+                FRESH = new Set();
+            }
+
+            // ---- Standalone preview sample (no host) ----
+            function buildSample() {
+                const days = [];
+                for (let i = 120; i >= 0; i--) {
+                    if (i % 3 === 1) continue;
+                    const date = shiftDate("2026-10-24", -i);
+                    const w =
+                        86 - ((120 - i) / 120) * 4 + Math.sin(i * 1.3) * 0.4;
+                    days.push({ date, weight: Math.round(w * 10) / 10 });
+                }
+                return {
+                    end_date: "2026-10-24",
+                    unit: "kg",
+                    target: 78,
+                    default_range: 30,
+                    locale: "en",
+                    days,
+                };
+            }
+            const SAMPLE = buildSample();
+            function buildSampleMeta() {
+                let t = SAMPLE.days[0].weight;
+                let prev = null;
+                const pts = SAMPLE.days.map((d) => {
+                    if (prev)
+                        t +=
+                            (1 -
+                                Math.pow(0.85, dayNum(d.date) - dayNum(prev))) *
+                            (d.weight - t);
+                    prev = d.date;
+                    return {
+                        date: d.date,
+                        weight: d.weight,
+                        trend: Math.round(t * 10) / 10,
+                    };
+                });
+                return {
+                    [SERIES_KEY]: {
+                        v: 1,
+                        unit: "kg",
+                        daily: pts.filter(
+                            (p) => p.date >= shiftDate("2026-10-24", -89),
+                        ),
+                        daily_year: pts,
+                        weekly: [],
+                        monthly: [],
+                        first: { date: pts[0].date, weight: pts[0].weight },
+                        trend_latest: pts[pts.length - 1].trend,
+                        trend_date: "2026-10-24",
+                        weekly_rate: -0.24,
+                    },
+                    [ENTRIES_KEY]: {
+                        v: 1,
+                        unit: "kg",
+                        today: "2026-10-24",
+                        entries: SAMPLE.days.map((d) => ({
+                            date: d.date,
+                            time: "07:30",
+                            weight: d.weight,
+                            note: null,
+                        })),
+                    },
+                    [MEAS_KEY]: {
+                        v: 1,
+                        sites: {
+                            waist: {
+                                unit: "cm",
+                                entries: [
+                                    { date: "2026-08-01", value: 92.5 },
+                                    { date: "2026-09-01", value: 91.0 },
+                                    { date: "2026-10-20", value: 89.5 },
+                                ],
+                            },
+                        },
+                    },
+                };
+            }
+
+            // ---- Rendering intake ----
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
                 if (Array.isArray(payload.days)) return payload;

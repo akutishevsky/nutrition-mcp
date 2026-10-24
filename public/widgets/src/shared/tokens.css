@@ -38,6 +38,9 @@
     --caffeine: #8b5e34;
     --water: #0ea5e9;
     --weight: #2f7fd1;
+    --weight-strong: #2a72bc;
+    --on-weight: #ffffff;
+    --meas: #4b7d8c;
     --over: #c4381f;
     --warn: #b86e00;
 
@@ -99,6 +102,9 @@
         --caffeine: #c69a6d;
         --water: #38bdf8;
         --weight: #6aaef5;
+        --weight-strong: #6aaef5;
+        --on-weight: #0b1726;
+        --meas: #86b9c8;
         --over: #ff6b52;
         --warn: #f0a640;
 
@@ -155,6 +161,9 @@
     --caffeine: #8b5e34;
     --water: #0ea5e9;
     --weight: #2f7fd1;
+    --weight-strong: #2a72bc;
+    --on-weight: #ffffff;
+    --meas: #4b7d8c;
     --over: #c4381f;
     --warn: #b86e00;
 
@@ -208,6 +217,9 @@
     --caffeine: #c69a6d;
     --water: #38bdf8;
     --weight: #6aaef5;
+    --weight-strong: #6aaef5;
+    --on-weight: #0b1726;
+    --meas: #86b9c8;
     --over: #ff6b52;
     --warn: #f0a640;
 
