@@ -12357,6 +12357,41 @@ describe("get_goal_progress carries the day detail in _meta", () => {
                 db.mealItemsFailure = null;
             }
         });
+
+        test("a failed history range read drops only the foods, not the items", async () => {
+            db.meals = [meal({ description: "Chicken bowl" })];
+            db.mealItems.set(MEAL_ID, [ingredient(1, "Chicken")]);
+            db.failWith = new Error("range boom");
+            const warn = spyOn(console, "warn").mockImplementation(() => {});
+            try {
+                await withHttpClient("u1", mode, async (client) => {
+                    const r = (await client.callTool({
+                        name: "get_goal_progress",
+                        arguments: {},
+                    })) as unknown as ToolResult;
+                    expect(r.isError).toBeFalsy();
+                    const meta = r._meta?.[GOAL_DAY_META_KEY] as Record<
+                        string,
+                        unknown
+                    >;
+                    expect(meta.now).not.toBeNull();
+                    expect(meta.foods).toBeUndefined();
+                    expect(meta.meals).toHaveLength(1);
+                    expect(Object.keys(r._meta ?? {})).toContain(
+                        MEAL_ITEMS_META_KEY,
+                    );
+                });
+                expect(
+                    warn.mock.calls.some((c) =>
+                        String(c[0]).includes("goal-day history read error"),
+                    ),
+                ).toBe(true);
+            } finally {
+                warn.mockRestore();
+                db.failWith = null;
+                db.mealItems = new Map();
+            }
+        });
     });
 
     test("the goal-progress widget reads every key it is sent", async () => {

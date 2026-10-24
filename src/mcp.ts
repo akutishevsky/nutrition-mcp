@@ -1200,11 +1200,14 @@ export function startImportPayload(opts: {
 // widget simply shows no expanders.
 //
 // The same read carries each row's nutrient labels (NUTRIENT_SOURCES_META_KEY),
-// with the same gate and the same drop-the-key behaviour.
+// with the same gate and the same drop-the-key behaviour. `itemsRead` is an
+// items read for exactly `rowMeals` already in flight, for a caller that
+// shares it with another consumer (get_goal_progress's goal-day entry).
 async function mealItemsMetaEntry(
     userId: string,
     rowMeals: readonly Meal[],
     alcohol: AlcoholDisplay,
+    itemsRead?: Promise<Map<string, MealItemValues[]>>,
 ): Promise<{
     [MEAL_ITEMS_META_KEY]?: MealItemsMeta;
     [NUTRIENT_SOURCES_META_KEY]?: NutrientSourcesMeta;
@@ -1212,10 +1215,11 @@ async function mealItemsMetaEntry(
     if (rowMeals.length === 0) return {};
     let items: Map<string, MealItemValues[]>;
     try {
-        items = await getMealItems(
-            userId,
-            rowMeals.map((m) => m.id),
-        );
+        items = await (itemsRead ??
+            getMealItems(
+                userId,
+                rowMeals.map((m) => m.id),
+            ));
     } catch (err) {
         const ref = newErrorRef();
         console.warn(
@@ -1249,7 +1253,9 @@ async function mealItemsMetaEntry(
 // also reads the GOAL_DAY_HISTORY_DAYS before the date, and their ingredients,
 // for the foods the widget may name; a failed read drops only `foods` (logged
 // with a ref, never a user id), so the tool and the rest of the day detail
-// still go out.
+// still go out. `todayItems` is the items read for `meals` that
+// mealItemsMetaEntry also awaits, so today's ingredients are read once; only
+// the past days' items are read here.
 async function goalDayMetaEntry(
     userId: string,
     targetDate: string,
@@ -1257,6 +1263,7 @@ async function goalDayMetaEntry(
     meals: Meal[],
     water: WaterEntry[],
     isToday: boolean,
+    todayItems: Promise<Map<string, MealItemValues[]>>,
 ) {
     let foods: GoalDayFood[] | undefined;
     if (isToday) {
@@ -1267,15 +1274,18 @@ async function goalDayMetaEntry(
                 shiftLocalDate(targetDate, -1),
                 tz,
             );
-            const all = [...past, ...meals];
-            foods = historyFoods(
-                all,
-                all.length
-                    ? await getMealItems(
+            const [pastItems, dayItems] = await Promise.all([
+                past.length
+                    ? getMealItems(
                           userId,
-                          all.map((m) => m.id),
+                          past.map((m) => m.id),
                       )
-                    : new Map(),
+                    : new Map<string, MealItemValues[]>(),
+                todayItems,
+            ]);
+            foods = historyFoods(
+                [...past, ...meals],
+                new Map([...pastItems, ...dayItems]),
             );
         } catch (err) {
             const ref = newErrorRef();
@@ -4035,7 +4045,7 @@ export function registerTools(
         {
             title: "Goal Progress",
             description:
-                "Interactive UI for get_goal_progress: intake-vs-goal rings for a single day plus body-weight progress, with automatic light/dark theming.",
+                "Interactive UI for get_goal_progress: a single day's goals grouped by status (over, near the limit, still to go, on track) with per-meal sources and the latest weight, with automatic light/dark theming.",
             mimeType: APP_UI_MIME_TYPE,
         },
         async (uri) => {
@@ -4804,7 +4814,7 @@ export function registerTools(
         {
             title: "Get Goal Progress",
             description:
-                "Get progress against daily nutrition goals for a specific date (defaults to today). Renders intake-vs-goal rings plus body-weight progress in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
+                "Get progress against daily nutrition goals for a specific date (defaults to today). Renders a goal-status view (which goals are over, near the limit, still to go or on track, with per-meal sources and the latest weight) in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
             annotations: {
                 title: "Get Goal Progress",
                 readOnlyHint: true,
@@ -4924,9 +4934,19 @@ export function registerTools(
                               }
                             : null;
 
-                    // Independent reads, so in parallel.
+                    // Independent reads, so in parallel. Today's items are
+                    // read once and shared: both entries await this promise
+                    // (so a rejection is always handled), and each drops only
+                    // its own part when it fails.
+                    const todayItems: Promise<Map<string, MealItemValues[]>> =
+                        meals.length
+                            ? getMealItems(
+                                  userId,
+                                  meals.map((m) => m.id),
+                              )
+                            : Promise.resolve(new Map());
                     const [itemsEntry, dayEntry] = await Promise.all([
-                        mealItemsMetaEntry(userId, meals, alcohol),
+                        mealItemsMetaEntry(userId, meals, alcohol, todayItems),
                         goalDayMetaEntry(
                             userId,
                             targetDate,
@@ -4934,6 +4954,7 @@ export function registerTools(
                             meals,
                             water,
                             targetDate === todayInTz(tz),
+                            todayItems,
                         ),
                     ]);
 

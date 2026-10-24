@@ -1962,7 +1962,7 @@
                         const a = amountText(b.amount, b.unit);
                         const name = a ? `${b.name} (${a})` : b.name;
                         out.push(
-                            `<div class="lead"><b>${esc(G.leadK)}</b>${esc(tpl(G.leadV, { name, value: wu(r.unit, b.v) }))}</div>`,
+                            `<div class="lead"><b>${esc(G.leadK)}</b>${esc(tpl(G.leadV, { name, value: wu(r.unit, b.v), nutrient: r.key === "calories" ? "" : nameOf(r) }).trim())}</div>`,
                         );
                     }
                 }
@@ -1976,7 +1976,12 @@
                     }
                     const w = (day.water || []).slice();
                     if (w.length) {
-                        const total = w.reduce((s, x) => s + x.ml, 0) || 1;
+                        // The server keeps only the latest entries on a busy day,
+                        // so shares are of the day's total, not of this list.
+                        const total =
+                            r.t > 0
+                                ? r.t
+                                : w.reduce((s, x) => s + x.ml, 0) || 1;
                         out.push(
                             `<div class="mlh">${esc(day.today ? G.waterToday : G.waterPast)}</div><div class="mls">${w
                                 .map(
@@ -1999,7 +2004,7 @@
                             `<div class="gap"><div class="gaph">${esc(G.gapTitle)}</div>${foods
                                 .map((f) => {
                                     const a = amountText(f.amount, f.unit);
-                                    return `<div class="gapr"><span>${esc(a ? `${f.name}, ${a}` : f.name)}</span><b class="num">${wu(r.unit, f.v[r.key])}</b></div>`;
+                                    return `<div class="gapr"><span>${esc(a ? `${f.name}, ${a}` : f.name)}</span><b class="num">+${wu(r.unit, f.v[r.key])}</b></div>`;
                                 })
                                 .join("")}</div>`,
                         );

@@ -217,8 +217,8 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         nrNoteToday: "Not recorded today, so not counted: {list}", // i18n:pending
         nrNotePast: "Not recorded that day, so not counted: {list}", // i18n:pending
         emptyToday:
-            "Nothing logged today yet. Once a meal or water is logged, this shows what is over, what is close and what is still to go.", // i18n:pending
-        emptyPast: "Nothing was logged that day.", // i18n:pending
+            "Once a meal or water is logged, this shows what is over, what is close and what is still to go.", // i18n:pending
+        emptyPast: "There is nothing to compare with the goals for that day.", // i18n:pending
         dailyGoals: "Daily goals: {list}.", // i18n:pending
         goalItem: "{value} {name}", // i18n:pending
         goalLimitItem: "{value} {name} limit", // i18n:pending
@@ -279,8 +279,8 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         },
         hintAllK: "All set:", // i18n:pending
         hintAll: "every goal is on track.", // i18n:pending
-        leadK: "Largest source:", // i18n:pending
-        leadV: "{name}, {value}", // i18n:pending
+        leadK: "Biggest source:", // i18n:pending
+        leadV: "{name} — {value} {nutrient}", // i18n:pending
         gapTitle: "Foods you’ve logged before", // i18n:pending
         mealsTitle: "Where it came from", // i18n:pending
         waterToday: "Logged today", // i18n:pending

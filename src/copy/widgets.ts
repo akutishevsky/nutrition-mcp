@@ -384,7 +384,7 @@ export interface WidgetStrings {
         hintAllK: string;
         hintAll: string;
         leadK: string;
-        /** Template. Placeholders: {name}, {value}. */
+        /** Template. Placeholders: {name} (food and amount), {value}, {nutrient} (lower-case goal name; empty for calories, whose value already reads "kcal"). */
         leadV: string;
         gapTitle: string;
         mealsTitle: string;
@@ -952,8 +952,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         nrNoteToday: "Not recorded today, so not counted: {list}",
         nrNotePast: "Not recorded that day, so not counted: {list}",
         emptyToday:
-            "Nothing logged today yet. Once a meal or water is logged, this shows what is over, what is close and what is still to go.",
-        emptyPast: "Nothing was logged that day.",
+            "Once a meal or water is logged, this shows what is over, what is close and what is still to go.",
+        emptyPast: "There is nothing to compare with the goals for that day.",
         dailyGoals: "Daily goals: {list}.",
         goalItem: "{value} {name}",
         goalLimitItem: "{value} {name} limit",
@@ -1014,8 +1014,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         },
         hintAllK: "All set:",
         hintAll: "every goal is on track.",
-        leadK: "Largest source:",
-        leadV: "{name}, {value}",
+        leadK: "Biggest source:",
+        leadV: "{name} — {value} {nutrient}",
         gapTitle: "Foods you’ve logged before",
         mealsTitle: "Where it came from",
         waterToday: "Logged today",

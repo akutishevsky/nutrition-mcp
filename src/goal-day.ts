@@ -18,7 +18,8 @@ import { formatLocalDateTime } from "./tz.js";
  *   were not recorded. The rows print an unrecorded fiber or sugar as 0, which
  *   the widget must not read as a measured zero.
  * - `water`: the day's water entries, local time and millilitres, oldest
- *   first.
+ *   first; past GOAL_DAY_WATER_MAX only the latest are kept, so shares are
+ *   worked out against structuredContent.totals.water_ml, not this list.
  * - `foods`: foods and meals from the user's own log (the requested day and
  *   the GOAL_DAY_HISTORY_DAYS before it), only on today. The widget lists them
  *   as facts ("logged before, 17 g protein"); it never names a food the user
@@ -33,7 +34,7 @@ export const GOAL_DAY_FOODS_PER_NUTRIENT = 8;
 export const GOAL_DAY_FOODS_MAX = 32;
 /** Longer names read as a description, not a food, and are left out. */
 export const GOAL_DAY_FOOD_NAME_CHARS = 60;
-/** At most this many water entries are sent. */
+/** At most this many water entries are sent: the latest ones. */
 export const GOAL_DAY_WATER_MAX = 60;
 
 /** The row nutrients whose absence the widget needs to see. */
@@ -237,7 +238,7 @@ export function buildGoalDayMeta(input: {
                       ? 1
                       : 0,
             )
-            .slice(0, GOAL_DAY_WATER_MAX)
+            .slice(-GOAL_DAY_WATER_MAX)
             .map((w) => ({
                 time: localClock(w.logged_at, input.tz),
                 ml: Math.round(w.amount_ml),

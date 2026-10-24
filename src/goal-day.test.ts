@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
     buildGoalDayMeta,
     GOAL_DAY_FOODS_PER_NUTRIENT,
+    GOAL_DAY_WATER_MAX,
     historyFoods,
     localClock,
 } from "./goal-day.js";
@@ -156,5 +157,31 @@ describe("buildGoalDayMeta", () => {
             ],
         });
         expect(localClock("2026-10-24T21:00:00Z", "UTC")).toBe("21:00");
+    });
+
+    test("past the water cap, the latest entries are the ones kept", () => {
+        const water = Array.from(
+            { length: GOAL_DAY_WATER_MAX + 5 },
+            (_, i) => ({
+                id: `w${i}`,
+                user_id: "u1",
+                amount_ml: i + 1,
+                logged_at: new Date(
+                    Date.UTC(2026, 9, 24, 0, i * 10),
+                ).toISOString(),
+                notes: null,
+                created_at: "",
+                idempotency_key: null,
+            }),
+        );
+        const meta = buildGoalDayMeta({
+            meals: [],
+            water: water.reverse(),
+            tz: "UTC",
+            now: null,
+        });
+        expect(meta.water).toHaveLength(GOAL_DAY_WATER_MAX);
+        expect(meta.water[0]!.ml).toBe(6);
+        expect(meta.water.at(-1)!.ml).toBe(GOAL_DAY_WATER_MAX + 5);
     });
 });
