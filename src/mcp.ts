@@ -207,6 +207,7 @@ import {
     SODIUM_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_ITEMS_META_KEY,
+    MEAL_TIMES_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
 } from "./widgets.js";
 import {
@@ -234,6 +235,7 @@ import {
     saturatedAboveFatNote,
 } from "./saturated-fat.js";
 import { buildSodiumMeta, sodiumExtra } from "./sodium.js";
+import { buildMealTimesMeta } from "./meal-times.js";
 import {
     GRANULARITIES,
     buildPeriodAveragesMeta,
@@ -730,6 +732,10 @@ export { ADDED_SUGAR_META_KEY, SATURATED_FAT_META_KEY, SODIUM_META_KEY };
 // And for the ingredients behind the breakdown rows (MealItemsMeta, built in
 // src/meal-items.ts), present only when some row has items.
 export { MEAL_ITEMS_META_KEY };
+// And for each row's local clock time (MealTimesMeta, built in
+// src/meal-times.ts), plus the written meal's position on the meal-progress
+// tools.
+export { MEAL_TIMES_META_KEY };
 
 /** Zero contributors, for a window with no meals at all. `.nullable()` is not
  *  optional: the alcohol key is always present, null when tracking is off. */
@@ -1312,6 +1318,9 @@ async function buildMealProgress(
             days: { [mealDate]: meals },
             meals,
         }),
+        // Each row's local time, and which row is the meal this call wrote
+        // (a backdated or edited meal is not necessarily the last one).
+        [MEAL_TIMES_META_KEY]: buildMealTimesMeta(meals, tz, meal.id),
         ...(await mealItemsMetaEntry(userId, meals, alcohol)),
     };
 
@@ -4224,6 +4233,10 @@ export function registerTools(
                                     days: {},
                                     meals: [],
                                 }),
+                                [MEAL_TIMES_META_KEY]: buildMealTimesMeta(
+                                    [],
+                                    tz,
+                                ),
                             },
                         };
                     }
@@ -4463,6 +4476,11 @@ export function registerTools(
                                     MEAL_BREAKDOWN_TOP_N,
                                 ),
                             }),
+                            // The kept rows' local times, in row order.
+                            [MEAL_TIMES_META_KEY]: buildMealTimesMeta(
+                                keptMeals,
+                                tz,
+                            ),
                             ...itemsEntry,
                         },
                     };

@@ -42,6 +42,7 @@ import {
     SATURATED_FAT_META_KEY,
     SODIUM_META_KEY,
     MEAL_ITEMS_META_KEY,
+    MEAL_TIMES_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
     MAX_CALORIES,
@@ -10566,8 +10567,8 @@ describe("saturated fat rides in _meta on every widget tool", () => {
 // buildSodiumMeta in src/sodium.ts), on every tool that carries the
 // saturated-fat payload. Output schemas are frozen, so the figure is asserted
 // absent from structuredContent here; the frozen pin is the "output schemas"
-// test above. No widget reads the key yet (the widgets are being redesigned),
-// so there is no assembled-template literal check for it.
+// test above. The meal-logged and nutrition-summary widgets read the key; the
+// literal check for those templates is the "meal times" block below.
 describe("sodium rides in _meta on every widget tool", () => {
     const SODIUM_META = z.strictObject({
         v: z.literal(1),
@@ -10687,6 +10688,79 @@ describe("sodium rides in _meta on every widget tool", () => {
             });
         });
     });
+});
+
+// Each row's local clock time rides in _meta (MEAL_TIMES_META_KEY, built by
+// buildMealTimesMeta in src/meal-times.ts), aligned with structuredContent.meals;
+// the meal-progress tools add the written meal's position. Output schemas are
+// frozen, so none of it may reach structuredContent.
+describe("meal times ride in _meta beside the breakdown rows", () => {
+    const TIMES_META = z.strictObject({
+        v: z.literal(1),
+        times: z.array(z.string().regex(/^\d{2}:\d{2}$/)),
+        current: z.number().nullable().optional(),
+    });
+    const DAY = "2026-07-26";
+
+    describe.each(ERAS)("%p", (mode) => {
+        test("log_meal names the written meal's position and every row's time", async () => {
+            await withHttpClient("u1", mode, async (client) => {
+                const r = (await client.callTool({
+                    name: "log_meal",
+                    arguments: {
+                        description: "Ramen",
+                        meal_type: "dinner",
+                        calories: 600,
+                        logged_at: `${DAY}T18:00:00Z`,
+                    },
+                })) as unknown as ToolResult;
+                expect(r.isError).toBeFalsy();
+                const sc = r.structuredContent as { meals: unknown[] };
+                const meta = TIMES_META.parse(r._meta?.[MEAL_TIMES_META_KEY]);
+                expect(meta.times).toHaveLength(sc.meals.length);
+                expect(meta.current).toBe(sc.meals.length - 1);
+                expect(JSON.stringify(sc)).not.toContain('"times"');
+            });
+        });
+
+        test("get_nutrition_summary carries one time per kept row, and none on an empty range", async () => {
+            db.meals = [meal({ logged_at: `${DAY}T12:30:00Z` })];
+            await withHttpClient("u1", mode, async (client) => {
+                const r = (await client.callTool({
+                    name: "get_nutrition_summary",
+                    arguments: { start_date: DAY, end_date: DAY },
+                })) as unknown as ToolResult;
+                const sc = r.structuredContent as { meals: unknown[] };
+                const meta = TIMES_META.parse(r._meta?.[MEAL_TIMES_META_KEY]);
+                expect(meta.times).toHaveLength(sc.meals.length);
+                expect(meta.current).toBeUndefined();
+
+                db.meals = [];
+                const empty = (await client.callTool({
+                    name: "get_nutrition_summary",
+                    arguments: { start_date: DAY, end_date: DAY },
+                })) as unknown as ToolResult;
+                expect(
+                    TIMES_META.parse(empty._meta?.[MEAL_TIMES_META_KEY]),
+                ).toEqual({ v: 1, times: [] });
+            });
+        });
+    });
+
+    // The widgets cannot import the keys, so each repeats the literals.
+    test.each(["meal-logged", "nutrition-summary"])(
+        "the %s template reads the meal-times and sodium keys",
+        async (key) => {
+            const tpl = await Bun.file(
+                `./public/widgets/src/templates/${key}.html`,
+            ).text();
+            expect(tpl).toContain(JSON.stringify(MEAL_TIMES_META_KEY));
+            expect(tpl).toContain(JSON.stringify(SODIUM_META_KEY));
+            const html = await getWidgetHtml(key);
+            expect(html).toContain(JSON.stringify(MEAL_TIMES_META_KEY));
+            expect(html).toContain(JSON.stringify(SODIUM_META_KEY));
+        },
+    );
 });
 
 describe("sodium in the model-facing text", () => {
