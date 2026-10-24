@@ -845,6 +845,16 @@
                 font-size: 12.5px;
                 color: var(--text-dim);
             }
+            .wkh:focus,
+            .mle:focus {
+                outline: none;
+            }
+            .wkh:focus-visible,
+            .mle:focus-visible {
+                outline: 2px solid var(--focus);
+                outline-offset: 2px;
+                border-radius: 6px;
+            }
             .wkh b {
                 font-size: 13.5px;
                 font-weight: 800;
@@ -1465,10 +1475,19 @@
                 const f = dtf({ month: "short", year: "numeric" });
                 return f ? f.format(utc(iso.slice(0, 7) + "-15")) : iso;
             }
-            // "Mar 25" — the long ranges' axis labels.
+            // "Mar ’25" — the long ranges' axis labels. A bare two-digit
+            // year ("Mar 25") reads as a day of the month, so where the
+            // locale puts the month first the year gets an apostrophe;
+            // elsewhere (ja: "2025年3月") the full month-year is unambiguous.
             function monthYear2(iso) {
                 const f = dtf({ month: "short", year: "2-digit" });
-                return f ? f.format(utc(iso.slice(0, 7) + "-15")) : iso;
+                if (!f || typeof f.formatToParts !== "function")
+                    return monthYear(iso);
+                const parts = f.formatToParts(utc(iso.slice(0, 7) + "-15"));
+                const mi = parts.findIndex((p) => p.type === "month");
+                const yi = parts.findIndex((p) => p.type === "year");
+                if (mi < 0 || yi < 0 || yi < mi) return monthYear(iso);
+                return `${parts[mi].value} ’${parts[yi].value}`;
             }
             // "Today", "Yesterday", else "Mon 20 Oct".
             function dLong(iso) {
@@ -1632,19 +1651,33 @@
                     : "";
             }
 
+            // A bucketed range (weekly or monthly averages) ends on the
+            // latest logged day itself, not on the newest bucket's average,
+            // so the end dot, the "Today" label and the change chip agree
+            // with the big number. Buckets centred on or after that day are
+            // dropped: their average is the same recent stretch.
+            function withLatest(b) {
+                const D = MODEL.days;
+                const L = D.length ? D[D.length - 1] : null;
+                if (!L || !b.length) return b;
+                return b.filter((p) => p.x < L.date).concat([L]);
+            }
+
             // The points a range plots, oldest first.
             function rangePoints(id) {
                 const s = MODEL.s;
                 const days = MODEL.days;
                 if (id === "1y" && s && !s.year.length) {
-                    return s.weekly.map((w) => ({
-                        x: shiftDate(w.start, 3),
-                        date: w.start,
-                        w: w.weight,
-                        tr: w.trend,
-                        ins: null,
-                        kind: "week",
-                    }));
+                    return withLatest(
+                        s.weekly.map((w) => ({
+                            x: shiftDate(w.start, 3),
+                            date: w.start,
+                            w: w.weight,
+                            tr: w.trend,
+                            ins: null,
+                            kind: "week",
+                        })),
+                    );
                 }
                 if (id === "all" && s) {
                     const start = MODEL.firstDate;
@@ -1655,23 +1688,25 @@
                         s.weekly.length > 0 &&
                         start != null &&
                         s.weekly[0].start <= start;
-                    return weeklyCovers
-                        ? s.weekly.map((w) => ({
-                              x: shiftDate(w.start, 3),
-                              date: w.start,
-                              w: w.weight,
-                              tr: w.trend,
-                              ins: null,
-                              kind: "week",
-                          }))
-                        : s.monthly.map((m) => ({
-                              x: m.month + "-15",
-                              date: m.month + "-01",
-                              w: m.weight,
-                              tr: m.trend,
-                              ins: null,
-                              kind: "month",
-                          }));
+                    return withLatest(
+                        weeklyCovers
+                            ? s.weekly.map((w) => ({
+                                  x: shiftDate(w.start, 3),
+                                  date: w.start,
+                                  w: w.weight,
+                                  tr: w.trend,
+                                  ins: null,
+                                  kind: "week",
+                              }))
+                            : s.monthly.map((m) => ({
+                                  x: m.month + "-15",
+                                  date: m.month + "-01",
+                                  w: m.weight,
+                                  tr: m.trend,
+                                  ins: null,
+                                  kind: "month",
+                              })),
+                    );
                 }
                 const cut = cutoffOf(id);
                 return days.filter((d) => d.date >= cut);
@@ -1724,7 +1759,12 @@
                     : s && s.trendDate
                       ? s.trendDate
                       : null;
-                M.today = (ent && ent.today) || localToday();
+                // Without `_meta`, end_date is the profile-timezone today
+                // (unless the call named a past end date); the device clock
+                // is the last resort.
+                M.today =
+                    (ent && ent.today) ||
+                    (isDate(data.end_date) ? data.end_date : localToday());
                 M.days = baseDays(data, s, ent);
                 if (!M.end && M.days.length)
                     M.end = M.days[M.days.length - 1].date;
@@ -1782,7 +1822,17 @@
                 R.toward = toward;
                 R.reached = hasG && (R.losing ? lastW <= G : lastW >= G);
                 R.left = hasG ? Math.abs(lastW - G) : 0;
-                R.chg = n >= 2 ? R.pts[n - 1].w - R.pts[0].w : 0;
+                // From raw readings, like the "Since" stat: All starts at the
+                // first weigh-in ever even when its first point is a bucket
+                // average. (1y without daily_year has no raw start in range,
+                // so it starts at the first weekly average.)
+                const first =
+                    id === "all" && M.firstW != null
+                        ? M.firstW
+                        : n
+                          ? R.pts[0].w
+                          : 0;
+                R.chg = n >= 2 ? R.pts[n - 1].w - first : 0;
                 R.enough = n >= 4;
                 R.rate = M.s ? M.s.weeklyRate : legacyRate(R.pts);
                 const rate = R.rate;
@@ -1827,7 +1877,14 @@
             function titleOf(M, R) {
                 const W = T.weightTrends;
                 if (R.single) return W.titleFirst;
-                if (!R.enough) return W.titleFew;
+                // The server's weekly rate is range-independent, so with it
+                // the title speaks for the whole history, not for how many
+                // points the selected range holds (an empty 7-day range is not
+                // "a few weigh-ins so far" for a user with months of them).
+                const enough = M.s
+                    ? M.days.length >= 4 || M.s.weekly.length >= 4
+                    : R.enough;
+                if (!enough) return W.titleFew;
                 if (R.rate == null)
                     return R.reached ? W.titleGoalReached : W.titleNoRate;
                 if (M.goal == null)
@@ -1837,7 +1894,7 @@
                           ? W.titleDown
                           : W.titleUp;
                 if (R.reached) return W.titleGoalReached;
-                if (R.away) return W.titleAway;
+                if (R.toward(R.rate) < -0.02) return W.titleAway;
                 if (R.toward(R.rate) > 0.02) return W.titleOnTrack;
                 return W.titleShortSteady;
             }
@@ -2677,7 +2734,7 @@
                                 return `<div class="wd">${row}${list}</div>`;
                             })
                             .join("");
-                        return `<div class="wk" data-key="wk${g.k}" style="--n:${gi}"><div class="wkh"><b>${esc(weekName(g.k))}</b><span class="num">${esc(tpl(W.weekAvg, { value: `${f1(a)} ${unit}` }))}</span>${cTxt ? `<span class="num wkc ${R.dir(c)}">${esc(cTxt)}</span>` : ""}</div>${days}</div>`;
+                        return `<div class="wk" data-key="wk${g.k}" style="--n:${gi}"><div class="wkh"${VIEW.allW && gi === WEEKS_CAP ? ' tabindex="-1" data-f="wkmore"' : ""}><b>${esc(weekName(g.k))}</b><span class="num">${esc(tpl(W.weekAvg, { value: `${f1(a)} ${unit}` }))}</span>${cTxt ? `<span class="num wkc ${R.dir(c)}">${esc(cTxt)}</span>` : ""}</div>${days}</div>`;
                     })
                     .join("");
                 const moreBtn =
@@ -2740,10 +2797,14 @@
                                 : src.slice(0, CARD_ROWS_CAP);
                             const more = src.length - shown.length;
                             const rows = shown
-                                .map((e) => {
+                                .map((e, ri) => {
                                     const i = all.indexOf(e),
                                         pe = i > 0 ? all[i - 1] : null;
-                                    return `<div class="mle"><span>${esc(dLong(e.date))}</span><b class="num">${esc(f1(e.v))} <small>${esc(unit)}</small></b><span class="mld num">${esc(pe ? arrow(e.v - pe.v, unit) : W.measFirstRow)}</span></div>`;
+                                    const fk =
+                                        VIEW.allM && ri === CARD_ROWS_CAP
+                                            ? ' tabindex="-1" data-f="mrmore"'
+                                            : "";
+                                    return `<div class="mle"${fk}><span>${esc(dLong(e.date))}</span><b class="num">${esc(f1(e.v))} <small>${esc(unit)}</small></b><span class="mld num">${esc(pe ? arrow(e.v - pe.v, unit) : W.measFirstRow)}</span></div>`;
                                 })
                                 .join("");
                             const head = stale
@@ -2849,6 +2910,17 @@
                     ).find((x) => x.offsetParent !== null);
                     if (el) el.focus({ preventScroll: true });
                 }
+                resetScrollbar();
+            }
+
+            function focusKey(k) {
+                const host = document.getElementById("wt");
+                const el = host
+                    ? Array.from(host.querySelectorAll(`[data-f="${k}"]`)).find(
+                          (x) => x.offsetParent !== null,
+                      )
+                    : null;
+                if (el) el.focus({ preventScroll: true });
             }
 
             function reduced() {
@@ -2987,9 +3059,12 @@
                     });
                     return;
                 }
+                // The button disappears with the repaint, so focus moves to
+                // the first row it revealed instead of falling to <body>.
                 if (a === "wmore") {
                     VIEW.allW = true;
                     paint();
+                    focusKey("wkmore");
                     return;
                 }
                 if (a === "day") {
@@ -3012,24 +3087,39 @@
                 if (a === "mmore") {
                     VIEW.allM = true;
                     paint();
+                    focusKey("mrmore");
                 }
             }
 
-            // Chrome can keep the classic scrollbar it drew while the host's
-            // iframe was still short (130px) after the host grows the frame
-            // to the reported height. Toggling overflow once per resize makes
-            // it recompute; a host that caps the height still scrolls.
-            // (Guarded: the landing page's static renderer has no listeners.)
+            // Chrome can keep a classic scrollbar it drew while the document
+            // briefly overflowed the iframe — the host's 130px starting frame,
+            // or an in-widget repaint that is taller for a frame before the
+            // host catches up with size-changed — even once nothing
+            // overflows. Toggling overflow makes it recompute; a host that
+            // caps the height still scrolls. Run after every resize and
+            // every repaint. (Guarded: the landing page's static renderer
+            // has no rAF or listeners.)
+            function resetScrollbar() {
+                if (typeof requestAnimationFrame !== "function") return;
+                requestAnimationFrame(() => {
+                    const de = document.documentElement;
+                    if (!de || !de.style) return;
+                    de.style.overflow = "hidden";
+                    void de.offsetHeight;
+                    requestAnimationFrame(() => (de.style.overflow = ""));
+                });
+            }
+            // Entrance animations (translateY rises, the reel) can overflow
+            // the frame mid-flight, so once a burst of them has ended, reset
+            // again.
+            let animEndTimer = 0;
             if (typeof window.addEventListener === "function")
-                window.addEventListener("resize", () =>
-                    requestAnimationFrame(() => {
-                        const de = document.documentElement;
-                        if (!de || !de.style) return;
-                        de.style.overflow = "hidden";
-                        void de.offsetHeight;
-                        requestAnimationFrame(() => (de.style.overflow = ""));
-                    }),
-                );
+                window.addEventListener("resize", resetScrollbar);
+            if (typeof document.addEventListener === "function")
+                document.addEventListener("animationend", () => {
+                    clearTimeout(animEndTimer);
+                    animEndTimer = setTimeout(resetScrollbar, 120);
+                });
 
             // Delegated on #root, which survives every repaint of #wt.
             document.getElementById("root").addEventListener("click", (e) => {
@@ -3063,6 +3153,7 @@
                 document.getElementById("root").innerHTML =
                     `<div id="wt">${markup()}</div>`;
                 FRESH = new Set();
+                resetScrollbar();
             }
 
             // ---- Standalone preview sample (no host) ----

@@ -67,7 +67,10 @@ export interface WeightRangeCopy {
     label: string;
     /** Pill aria-label, e.g. "Show last 30 days". */
     aria: string;
-    /** After "in": "No weigh-ins in the last 30 days". */
+    /** After "in": "No weigh-ins in the last 30 days". A locale whose
+     * preposition changes with the range ("in den letzten 30 Tagen", "im
+     * letzten Jahr") carries it here and leaves it out of the templates that
+     * use `word` (emptyRange, emptyRangeLast, oneTitle). */
     word: string;
     /** Trailing phrase: "12 weigh-ins in 30 days". */
     inRange: string;

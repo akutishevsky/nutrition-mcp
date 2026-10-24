@@ -191,164 +191,181 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
     weightTrends: {
         loading: "Wczytuję trendy wagi…",
         empty: "W tym okresie nie ma jeszcze pomiarów wagi.",
-        eyebrowToday: "Weight · today", // i18n:pending
-        eyebrowLast: "Weight · last weigh-in {date}", // i18n:pending
-        titleFirst: "First weigh-in logged", // i18n:pending
-        titleFew: "A few weigh-ins so far", // i18n:pending
-        titleNoRate: "Not enough recent weigh-ins for a weekly rate", // i18n:pending
-        titleSteady: "Holding steady", // i18n:pending
-        titleDown: "Trending down", // i18n:pending
-        titleUp: "Trending up", // i18n:pending
-        titleGoalReached: "Goal reached", // i18n:pending
-        titleAway: "Drifting away from your goal", // i18n:pending
-        titleOnTrack: "On track for your goal", // i18n:pending
-        titleShortSteady: "Holding steady, short of your goal", // i18n:pending
-        rangeGroupAriaLabel: "Range", // i18n:pending
+        eyebrowToday: "Waga · dziś",
+        eyebrowLast: "Waga · ostatni pomiar {date}",
+        titleFirst: "Zapisano pierwszy pomiar",
+        titleFew: "Na razie tylko kilka pomiarów",
+        titleNoRate: "Za mało ostatnich pomiarów, by wyliczyć tempo tygodniowe",
+        titleSteady: "Bez zmian",
+        titleDown: "Trend spadkowy",
+        titleUp: "Trend wzrostowy",
+        titleGoalReached: "Cel osiągnięty",
+        titleAway: "Oddalasz się od celu",
+        titleOnTrack: "Zmierzasz do celu",
+        titleShortSteady: "Bez zmian, cel jeszcze nieosiągnięty",
+        rangeGroupAriaLabel: "Zakres",
         ranges: {
-            // i18n:pending
             "7": {
-                // i18n:pending
-                label: "7d", // i18n:pending
-                aria: "Show last 7 days", // i18n:pending
-                word: "the last 7 days", // i18n:pending
-                inRange: "in 7 days", // i18n:pending
-                heading: "last 7 days", // i18n:pending
-                chip: "7 d", // i18n:pending
-            }, // i18n:pending
+                label: "7 d",
+                aria: "Pokaż ostatnie 7 dni",
+                word: "z ostatnich 7 dni",
+                inRange: "w ciągu 7 dni",
+                heading: "ostatnie 7 dni",
+                chip: "7 d",
+            },
             "30": {
-                // i18n:pending
-                label: "30d", // i18n:pending
-                aria: "Show last 30 days", // i18n:pending
-                word: "the last 30 days", // i18n:pending
-                inRange: "in 30 days", // i18n:pending
-                heading: "last 30 days", // i18n:pending
-                chip: "30 d", // i18n:pending
-            }, // i18n:pending
+                label: "30 d",
+                aria: "Pokaż ostatnie 30 dni",
+                word: "z ostatnich 30 dni",
+                inRange: "w ciągu 30 dni",
+                heading: "ostatnie 30 dni",
+                chip: "30 d",
+            },
             "90": {
-                // i18n:pending
-                label: "90d", // i18n:pending
-                aria: "Show last 90 days", // i18n:pending
-                word: "the last 90 days", // i18n:pending
-                inRange: "in 90 days", // i18n:pending
-                heading: "last 90 days", // i18n:pending
-                chip: "90 d", // i18n:pending
-            }, // i18n:pending
+                label: "90 d",
+                aria: "Pokaż ostatnie 90 dni",
+                word: "z ostatnich 90 dni",
+                inRange: "w ciągu 90 dni",
+                heading: "ostatnie 90 dni",
+                chip: "90 d",
+            },
             "1y": {
-                // i18n:pending
-                label: "1y", // i18n:pending
-                aria: "Show last year", // i18n:pending
-                word: "the last year", // i18n:pending
-                inRange: "in a year", // i18n:pending
-                heading: "last year", // i18n:pending
-                chip: "1 y", // i18n:pending
-            }, // i18n:pending
+                label: "1 r",
+                aria: "Pokaż ostatni rok",
+                word: "z ostatniego roku",
+                inRange: "w ciągu roku",
+                heading: "ostatni rok",
+                chip: "1 r.",
+            },
             all: {
-                // i18n:pending
-                label: "All", // i18n:pending
-                aria: "Show all time", // i18n:pending
-                word: "all time", // i18n:pending
-                inRange: "overall", // i18n:pending
-                heading: "all time", // i18n:pending
-                chip: "All", // i18n:pending
-            }, // i18n:pending
-        }, // i18n:pending
-        chip: "{change} · {range}", // i18n:pending
-        perWeek: "{amount} per week", // i18n:pending
-        perWeekAvg: "{amount} per week on average", // i18n:pending
-        toGoal: "{value} to goal", // i18n:pending
-        weeksApprox: { one: "~{n} week", other: "~{n} weeks" }, // i18n:pending
-        yearsPlus: "2+ years", // i18n:pending
-        reachedOn: "reached on {date}", // i18n:pending
-        movingAway: "moving away from goal", // i18n:pending
-        tooFlat: "too flat to project a goal date", // i18n:pending
-        hintFew: "A trend line needs at least 4 weigh-ins in the range", // i18n:pending
-        hintNoRate: "The weekly rate needs 4 weigh-ins in the last 3 weeks", // i18n:pending
-        statPerWeek: "Per week", // i18n:pending
-        statGoalPace: "Goal at this pace", // i18n:pending
-        statGoalReached: "Goal reached", // i18n:pending
-        statToGoal: "To goal", // i18n:pending
-        statSince: "Since {date}", // i18n:pending
-        unitWeeks: { one: "week", other: "weeks" }, // i18n:pending
-        unitYears: "years", // i18n:pending
-        goalPill: "Goal {goal} · {left} to go", // i18n:pending
-        goalPillReached: "Goal {goal} ✓", // i18n:pending
-        goalBelow: "Goal {goal}  ↓ {left} below", // i18n:pending
-        goalAbove: "Goal {goal}  ↑ {left} above", // i18n:pending
-        today: "Today", // i18n:pending
-        yesterday: "Yesterday", // i18n:pending
-        whenTime: "{date}, {time}", // i18n:pending
-        scrubAvg: "{value} (avg of {n})", // i18n:pending
-        hitLabel: "{date}, {value}", // i18n:pending
-        hitLabelAvg: "{date}, {value}, average of {n}", // i18n:pending
+                label: "Wszystko",
+                aria: "Pokaż całą historię",
+                word: "w całej historii",
+                inRange: "łącznie",
+                heading: "cała historia",
+                chip: "Wszystko",
+            },
+        },
+        chip: "{change} · {range}",
+        perWeek: "{amount} tygodniowo",
+        perWeekAvg: "średnio {amount} tygodniowo",
+        toGoal: "{value} do celu",
+        weeksApprox: {
+            one: "~{n} tydzień",
+            few: "~{n} tygodnie",
+            many: "~{n} tygodni",
+            other: "~{n} tygodni",
+        },
+        yearsPlus: "2+ lata",
+        reachedOn: "osiągnięty {date}",
+        movingAway: "oddala się od celu",
+        tooFlat: "zbyt płasko, by przewidzieć datę",
+        hintFew: "Linia trendu wymaga co najmniej 4 pomiarów w zakresie",
+        hintNoRate:
+            "Tempo tygodniowe wymaga 4 pomiarów w ostatnich 3 tygodniach",
+        statPerWeek: "Tygodniowo",
+        statGoalPace: "Cel w tym tempie",
+        statGoalReached: "Cel osiągnięty",
+        statToGoal: "Do celu",
+        statSince: "Od {date}",
+        unitWeeks: {
+            one: "tydzień",
+            few: "tygodnie",
+            many: "tygodni",
+            other: "tygodni",
+        },
+        unitYears: "lata",
+        goalPill: "Cel {goal} · zostało {left}",
+        goalPillReached: "Cel {goal} ✓",
+        goalBelow: "Cel {goal}  ↓ {left} niżej",
+        goalAbove: "Cel {goal}  ↑ {left} wyżej",
+        today: "Dziś",
+        yesterday: "Wczoraj",
+        whenTime: "{date}, {time}",
+        scrubAvg: "{value} (średnia z {n})",
+        hitLabel: "{date}, {value}",
+        hitLabelAvg: "{date}, {value}, średnia z {n}",
         chartAriaLabel:
-            "Weight chart, latest {latest}{goal}{change}. Tap a day to read its value.", // i18n:pending
-        chartAriaGoal: ", goal {goal}", // i18n:pending
-        chartAriaChange: ", {change} {range}", // i18n:pending
-        close: "Close", // i18n:pending
-        oneTitleFirst: "Your trend starts here", // i18n:pending
-        oneTitle: "Only one weigh-in in {range}", // i18n:pending
-        oneFirst: "First weigh-in · {when} · {value}", // i18n:pending
-        oneLine: "{when} · {value}", // i18n:pending
-        oneHintFirst: "The chart starts with a second weigh-in", // i18n:pending
+            "Wykres wagi, ostatnio {latest}{goal}{change}. Dotknij dnia, aby odczytać wartość.",
+        chartAriaGoal: ", cel {goal}",
+        chartAriaChange: ", {change} {range}",
+        close: "Zamknij",
+        oneTitleFirst: "Tu zaczyna się Twój trend",
+        oneTitle: "Tylko jeden pomiar {range}",
+        oneFirst: "Pierwszy pomiar · {when} · {value}",
+        oneLine: "{when} · {value}",
+        oneHintFirst: "Wykres zacznie się od drugiego pomiaru",
         oneHintEarlier: {
-            one: "{n} earlier weigh-in day in longer ranges",
-            other: "{n} earlier weigh-in days in longer ranges",
-        }, // i18n:pending
-        emptyRange: "No weigh-ins in {range}.", // i18n:pending
-        emptyRangeLast: "No weigh-ins in {range}. The last one was on {date}.", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        detailsAria: "{action}: weigh-ins and measurements", // i18n:pending
-        detailsAriaWeighIns: "{action}: weigh-ins", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        sectionWeighIns: "Weigh-ins", // i18n:pending
-        sectionMeasurements: "Body measurements · {range}", // i18n:pending
+            one: "{n} wcześniejszy dzień z pomiarem w dłuższych zakresach",
+            few: "{n} wcześniejsze dni z pomiarem w dłuższych zakresach",
+            many: "{n} wcześniejszych dni z pomiarem w dłuższych zakresach",
+            other: "{n} wcześniejszych dni z pomiarem w dłuższych zakresach",
+        },
+        emptyRange: "Brak pomiarów {range}.",
+        emptyRangeLast: "Brak pomiarów {range}. Ostatni był {date}.",
+        showMore: "Pokaż więcej",
+        showLess: "Pokaż mniej",
+        detailsAria: "{action}: pomiary wagi i obwody",
+        detailsAriaWeighIns: "{action}: pomiary wagi",
+        collapseAll: "Zwiń wszystko",
+        sectionWeighIns: "Pomiary wagi",
+        sectionMeasurements: "Obwody ciała · {range}",
         accLabel: {
-            one: "{n} weigh-in {range}",
-            other: "{n} weigh-ins {range}",
-        }, // i18n:pending
-        accEmpty: "No weigh-ins {range}", // i18n:pending
-        accAvgRange: "avg {avg} · range {min}–{max}", // i18n:pending
-        loggedToday: "logged today", // i18n:pending
-        loggedYesterday: "logged yesterday", // i18n:pending
-        loggedOn: "logged on {date}", // i18n:pending
-        weekThis: "This week", // i18n:pending
-        weekLast: "Last week", // i18n:pending
-        weekAvg: "avg {value}", // i18n:pending
-        weekVsLast: "{change} vs last week", // i18n:pending
-        weekVsBefore: "{change} vs week before", // i18n:pending
+            one: "{n} pomiar {range}",
+            few: "{n} pomiary {range}",
+            many: "{n} pomiarów {range}",
+            other: "{n} pomiarów {range}",
+        },
+        accEmpty: "Brak pomiarów {range}",
+        accAvgRange: "średnio {avg} · zakres {min}–{max}",
+        loggedToday: "zapisany dziś",
+        loggedYesterday: "zapisany wczoraj",
+        loggedOn: "zapisany {date}",
+        weekThis: "Ten tydzień",
+        weekLast: "Poprzedni tydzień",
+        weekAvg: "średnio {value}",
+        weekVsLast: "{change} wobec poprzedniego tygodnia",
+        weekVsBefore: "{change} wobec tygodnia wcześniej",
         dayMulti: {
-            one: "{n} weigh-in · averaged",
-            other: "{n} weigh-ins · averaged",
-        }, // i18n:pending
+            one: "{n} pomiar · uśredniony",
+            few: "{n} pomiary · uśrednione",
+            many: "{n} pomiarów · uśrednione",
+            other: "{n} pomiarów · uśrednione",
+        },
         showEarlierWeeks: {
-            one: "Show {n} earlier week",
-            other: "Show {n} earlier weeks",
-        }, // i18n:pending
+            one: "Pokaż {n} wcześniejszy tydzień",
+            few: "Pokaż {n} wcześniejsze tygodnie",
+            many: "Pokaż {n} wcześniejszych tygodni",
+            other: "Pokaż {n} wcześniejszych tygodni",
+        },
         sites: {
-            // i18n:pending
-            waist: "Waist", // i18n:pending
-            hips: "Hips", // i18n:pending
-            neck: "Neck", // i18n:pending
-            chest: "Chest", // i18n:pending
-            shoulders: "Shoulders", // i18n:pending
-            upper_arm: "Upper arm", // i18n:pending
-            forearm: "Forearm", // i18n:pending
-            thigh: "Thigh", // i18n:pending
-            calf: "Calf", // i18n:pending
-        }, // i18n:pending
-        measSince: "{change} since {date}", // i18n:pending
-        changeDown: "↓ {delta}", // i18n:pending
-        changeUp: "↑ {delta}", // i18n:pending
-        changeFlat: "→ no change", // i18n:pending
-        measFirst: "first measurement · {date}", // i18n:pending
-        measFirstRow: "first", // i18n:pending
-        measStale: "not measured in this range · last on {date}", // i18n:pending
-        measEarlier: "Earlier measurements", // i18n:pending
-        measHeading: "{site} · {range}", // i18n:pending
-        showMoreN: { one: "Show {n} more", other: "Show {n} more" }, // i18n:pending
+            waist: "Talia",
+            hips: "Biodra",
+            neck: "Szyja",
+            chest: "Klatka piersiowa",
+            shoulders: "Barki",
+            upper_arm: "Ramię",
+            forearm: "Przedramię",
+            thigh: "Udo",
+            calf: "Łydka",
+        },
+        measSince: "{change} od {date}",
+        changeDown: "↓ {delta}",
+        changeUp: "↑ {delta}",
+        changeFlat: "→ bez zmian",
+        measFirst: "pierwszy pomiar · {date}",
+        measFirstRow: "pierwszy",
+        measStale: "brak pomiaru w tym zakresie · ostatni {date}",
+        measEarlier: "Wcześniejsze pomiary",
+        measHeading: "{site} · {range}",
+        showMoreN: {
+            one: "Pokaż jeszcze {n}",
+            few: "Pokaż jeszcze {n}",
+            many: "Pokaż jeszcze {n}",
+            other: "Pokaż jeszcze {n}",
+        },
         noMeasurements:
-            "No body measurements in the last year. Waist, hips and seven other sites can be tracked in centimetres or inches.", // i18n:pending
+            "Brak obwodów ciała z ostatniego roku. Talię, biodra i siedem innych miejsc można zapisywać w centymetrach lub calach.",
     },
     importMeals: {
         loading: "Przygotowuję import…",

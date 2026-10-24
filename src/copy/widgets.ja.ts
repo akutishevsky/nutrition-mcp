@@ -170,164 +170,166 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
     weightTrends: {
         loading: "体重の推移を読み込み中…",
         empty: "この期間の体重の記録はまだありません。",
-        eyebrowToday: "Weight · today", // i18n:pending
-        eyebrowLast: "Weight · last weigh-in {date}", // i18n:pending
-        titleFirst: "First weigh-in logged", // i18n:pending
-        titleFew: "A few weigh-ins so far", // i18n:pending
-        titleNoRate: "Not enough recent weigh-ins for a weekly rate", // i18n:pending
-        titleSteady: "Holding steady", // i18n:pending
-        titleDown: "Trending down", // i18n:pending
-        titleUp: "Trending up", // i18n:pending
-        titleGoalReached: "Goal reached", // i18n:pending
-        titleAway: "Drifting away from your goal", // i18n:pending
-        titleOnTrack: "On track for your goal", // i18n:pending
-        titleShortSteady: "Holding steady, short of your goal", // i18n:pending
-        rangeGroupAriaLabel: "Range", // i18n:pending
+        eyebrowToday: "体重 · 今日",
+        eyebrowLast: "体重 · 最終計測 {date}",
+        titleFirst: "初めての体重を記録しました",
+        titleFew: "まだ記録が少なめです",
+        titleNoRate: "週ペースを出すには最近の記録が足りません",
+        titleSteady: "横ばい",
+        titleDown: "減少傾向",
+        titleUp: "増加傾向",
+        titleGoalReached: "目標達成",
+        titleAway: "目標から離れています",
+        titleOnTrack: "目標に向けて順調です",
+        titleShortSteady: "横ばい、目標は未達成",
+        rangeGroupAriaLabel: "期間",
         ranges: {
-            // i18n:pending
             "7": {
-                // i18n:pending
-                label: "7d", // i18n:pending
-                aria: "Show last 7 days", // i18n:pending
-                word: "the last 7 days", // i18n:pending
-                inRange: "in 7 days", // i18n:pending
-                heading: "last 7 days", // i18n:pending
-                chip: "7 d", // i18n:pending
-            }, // i18n:pending
+                label: "7日",
+                aria: "過去7日間を表示",
+                word: "過去7日間",
+                inRange: "7日間",
+                heading: "過去7日間",
+                chip: "7日",
+            },
             "30": {
-                // i18n:pending
-                label: "30d", // i18n:pending
-                aria: "Show last 30 days", // i18n:pending
-                word: "the last 30 days", // i18n:pending
-                inRange: "in 30 days", // i18n:pending
-                heading: "last 30 days", // i18n:pending
-                chip: "30 d", // i18n:pending
-            }, // i18n:pending
+                label: "30日",
+                aria: "過去30日間を表示",
+                word: "過去30日間",
+                inRange: "30日間",
+                heading: "過去30日間",
+                chip: "30日",
+            },
             "90": {
-                // i18n:pending
-                label: "90d", // i18n:pending
-                aria: "Show last 90 days", // i18n:pending
-                word: "the last 90 days", // i18n:pending
-                inRange: "in 90 days", // i18n:pending
-                heading: "last 90 days", // i18n:pending
-                chip: "90 d", // i18n:pending
-            }, // i18n:pending
+                label: "90日",
+                aria: "過去90日間を表示",
+                word: "過去90日間",
+                inRange: "90日間",
+                heading: "過去90日間",
+                chip: "90日",
+            },
             "1y": {
-                // i18n:pending
-                label: "1y", // i18n:pending
-                aria: "Show last year", // i18n:pending
-                word: "the last year", // i18n:pending
-                inRange: "in a year", // i18n:pending
-                heading: "last year", // i18n:pending
-                chip: "1 y", // i18n:pending
-            }, // i18n:pending
+                label: "1年",
+                aria: "過去1年を表示",
+                word: "過去1年",
+                inRange: "1年間",
+                heading: "過去1年",
+                chip: "1年",
+            },
             all: {
-                // i18n:pending
-                label: "All", // i18n:pending
-                aria: "Show all time", // i18n:pending
-                word: "all time", // i18n:pending
-                inRange: "overall", // i18n:pending
-                heading: "all time", // i18n:pending
-                chip: "All", // i18n:pending
-            }, // i18n:pending
-        }, // i18n:pending
-        chip: "{change} · {range}", // i18n:pending
-        perWeek: "{amount} per week", // i18n:pending
-        perWeekAvg: "{amount} per week on average", // i18n:pending
-        toGoal: "{value} to goal", // i18n:pending
-        weeksApprox: { one: "~{n} week", other: "~{n} weeks" }, // i18n:pending
-        yearsPlus: "2+ years", // i18n:pending
-        reachedOn: "reached on {date}", // i18n:pending
-        movingAway: "moving away from goal", // i18n:pending
-        tooFlat: "too flat to project a goal date", // i18n:pending
-        hintFew: "A trend line needs at least 4 weigh-ins in the range", // i18n:pending
-        hintNoRate: "The weekly rate needs 4 weigh-ins in the last 3 weeks", // i18n:pending
-        statPerWeek: "Per week", // i18n:pending
-        statGoalPace: "Goal at this pace", // i18n:pending
-        statGoalReached: "Goal reached", // i18n:pending
-        statToGoal: "To goal", // i18n:pending
-        statSince: "Since {date}", // i18n:pending
-        unitWeeks: { one: "week", other: "weeks" }, // i18n:pending
-        unitYears: "years", // i18n:pending
-        goalPill: "Goal {goal} · {left} to go", // i18n:pending
-        goalPillReached: "Goal {goal} ✓", // i18n:pending
-        goalBelow: "Goal {goal}  ↓ {left} below", // i18n:pending
-        goalAbove: "Goal {goal}  ↑ {left} above", // i18n:pending
-        today: "Today", // i18n:pending
-        yesterday: "Yesterday", // i18n:pending
-        whenTime: "{date}, {time}", // i18n:pending
-        scrubAvg: "{value} (avg of {n})", // i18n:pending
-        hitLabel: "{date}, {value}", // i18n:pending
-        hitLabelAvg: "{date}, {value}, average of {n}", // i18n:pending
+                label: "全期間",
+                aria: "全期間を表示",
+                word: "全期間",
+                inRange: "全期間",
+                heading: "全期間",
+                chip: "全期間",
+            },
+        },
+        chip: "{change} · {range}",
+        perWeek: "週あたり{amount}",
+        perWeekAvg: "平均で週あたり{amount}",
+        toGoal: "目標まで{value}",
+        weeksApprox: {
+            one: "約{n}週",
+            other: "約{n}週",
+        },
+        yearsPlus: "2年以上",
+        reachedOn: "{date}に達成",
+        movingAway: "目標から離れています",
+        tooFlat: "変化が小さく達成日を予測できません",
+        hintFew: "傾向線には期間内に4件以上の記録が必要です",
+        hintNoRate: "週ペースには直近3週間に4件の記録が必要です",
+        statPerWeek: "週あたり",
+        statGoalPace: "このペースで目標まで",
+        statGoalReached: "目標達成",
+        statToGoal: "目標まで",
+        statSince: "{date}から",
+        unitWeeks: {
+            one: "週",
+            other: "週",
+        },
+        unitYears: "年",
+        goalPill: "目標 {goal} · あと{left}",
+        goalPillReached: "目標 {goal} ✓",
+        goalBelow: "目標 {goal}  ↓ {left}下",
+        goalAbove: "目標 {goal}  ↑ {left}上",
+        today: "今日",
+        yesterday: "昨日",
+        whenTime: "{date} {time}",
+        scrubAvg: "{value}（{n}件の平均）",
+        hitLabel: "{date}、{value}",
+        hitLabelAvg: "{date}、{value}、{n}件の平均",
         chartAriaLabel:
-            "Weight chart, latest {latest}{goal}{change}. Tap a day to read its value.", // i18n:pending
-        chartAriaGoal: ", goal {goal}", // i18n:pending
-        chartAriaChange: ", {change} {range}", // i18n:pending
-        close: "Close", // i18n:pending
-        oneTitleFirst: "Your trend starts here", // i18n:pending
-        oneTitle: "Only one weigh-in in {range}", // i18n:pending
-        oneFirst: "First weigh-in · {when} · {value}", // i18n:pending
-        oneLine: "{when} · {value}", // i18n:pending
-        oneHintFirst: "The chart starts with a second weigh-in", // i18n:pending
+            "体重グラフ、最新 {latest}{goal}{change}。日付をタップすると値が表示されます。",
+        chartAriaGoal: "、目標 {goal}",
+        chartAriaChange: "、{range}で{change}",
+        close: "閉じる",
+        oneTitleFirst: "ここから推移が始まります",
+        oneTitle: "{range}の記録は1件のみ",
+        oneFirst: "初回の記録 · {when} · {value}",
+        oneLine: "{when} · {value}",
+        oneHintFirst: "2回目の記録からグラフが表示されます",
         oneHintEarlier: {
-            one: "{n} earlier weigh-in day in longer ranges",
-            other: "{n} earlier weigh-in days in longer ranges",
-        }, // i18n:pending
-        emptyRange: "No weigh-ins in {range}.", // i18n:pending
-        emptyRangeLast: "No weigh-ins in {range}. The last one was on {date}.", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        detailsAria: "{action}: weigh-ins and measurements", // i18n:pending
-        detailsAriaWeighIns: "{action}: weigh-ins", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        sectionWeighIns: "Weigh-ins", // i18n:pending
-        sectionMeasurements: "Body measurements · {range}", // i18n:pending
+            one: "より長い期間に以前の記録日が{n}日あります",
+            other: "より長い期間に以前の記録日が{n}日あります",
+        },
+        emptyRange: "{range}の記録はありません。",
+        emptyRangeLast: "{range}の記録はありません。最後の記録は{date}です。",
+        showMore: "もっと見る",
+        showLess: "表示を減らす",
+        detailsAria: "{action}：体重記録と身体サイズ",
+        detailsAriaWeighIns: "{action}：体重記録",
+        collapseAll: "すべて折りたたむ",
+        sectionWeighIns: "体重記録",
+        sectionMeasurements: "身体サイズ · {range}",
         accLabel: {
-            one: "{n} weigh-in {range}",
-            other: "{n} weigh-ins {range}",
-        }, // i18n:pending
-        accEmpty: "No weigh-ins {range}", // i18n:pending
-        accAvgRange: "avg {avg} · range {min}–{max}", // i18n:pending
-        loggedToday: "logged today", // i18n:pending
-        loggedYesterday: "logged yesterday", // i18n:pending
-        loggedOn: "logged on {date}", // i18n:pending
-        weekThis: "This week", // i18n:pending
-        weekLast: "Last week", // i18n:pending
-        weekAvg: "avg {value}", // i18n:pending
-        weekVsLast: "{change} vs last week", // i18n:pending
-        weekVsBefore: "{change} vs week before", // i18n:pending
+            one: "{range}の記録 {n}件",
+            other: "{range}の記録 {n}件",
+        },
+        accEmpty: "{range}の記録なし",
+        accAvgRange: "平均 {avg} · 範囲 {min}–{max}",
+        loggedToday: "今日記録",
+        loggedYesterday: "昨日記録",
+        loggedOn: "{date}に記録",
+        weekThis: "今週",
+        weekLast: "先週",
+        weekAvg: "平均 {value}",
+        weekVsLast: "先週比 {change}",
+        weekVsBefore: "前週比 {change}",
         dayMulti: {
-            one: "{n} weigh-in · averaged",
-            other: "{n} weigh-ins · averaged",
-        }, // i18n:pending
+            one: "{n}件 · 平均",
+            other: "{n}件 · 平均",
+        },
         showEarlierWeeks: {
-            one: "Show {n} earlier week",
-            other: "Show {n} earlier weeks",
-        }, // i18n:pending
+            one: "以前の{n}週を表示",
+            other: "以前の{n}週を表示",
+        },
         sites: {
-            // i18n:pending
-            waist: "Waist", // i18n:pending
-            hips: "Hips", // i18n:pending
-            neck: "Neck", // i18n:pending
-            chest: "Chest", // i18n:pending
-            shoulders: "Shoulders", // i18n:pending
-            upper_arm: "Upper arm", // i18n:pending
-            forearm: "Forearm", // i18n:pending
-            thigh: "Thigh", // i18n:pending
-            calf: "Calf", // i18n:pending
-        }, // i18n:pending
-        measSince: "{change} since {date}", // i18n:pending
-        changeDown: "↓ {delta}", // i18n:pending
-        changeUp: "↑ {delta}", // i18n:pending
-        changeFlat: "→ no change", // i18n:pending
-        measFirst: "first measurement · {date}", // i18n:pending
-        measFirstRow: "first", // i18n:pending
-        measStale: "not measured in this range · last on {date}", // i18n:pending
-        measEarlier: "Earlier measurements", // i18n:pending
-        measHeading: "{site} · {range}", // i18n:pending
-        showMoreN: { one: "Show {n} more", other: "Show {n} more" }, // i18n:pending
+            waist: "ウエスト",
+            hips: "ヒップ",
+            neck: "首",
+            chest: "胸囲",
+            shoulders: "肩幅",
+            upper_arm: "上腕",
+            forearm: "前腕",
+            thigh: "太もも",
+            calf: "ふくらはぎ",
+        },
+        measSince: "{date}から{change}",
+        changeDown: "↓ {delta}",
+        changeUp: "↑ {delta}",
+        changeFlat: "→ 変化なし",
+        measFirst: "初回の計測 · {date}",
+        measFirstRow: "初回",
+        measStale: "この期間は未計測 · 最終 {date}",
+        measEarlier: "以前の計測",
+        measHeading: "{site} · {range}",
+        showMoreN: {
+            one: "さらに{n}件表示",
+            other: "さらに{n}件表示",
+        },
         noMeasurements:
-            "No body measurements in the last year. Waist, hips and seven other sites can be tracked in centimetres or inches.", // i18n:pending
+            "過去1年の身体サイズの記録はありません。ウエスト、ヒップなど9か所をセンチまたはインチで記録できます。",
     },
     importMeals: {
         loading: "インポートを準備中…",

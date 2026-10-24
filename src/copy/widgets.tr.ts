@@ -170,164 +170,167 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
     weightTrends: {
         loading: "Kilo trendin yükleniyor…",
         empty: "Bu aralıkta henüz kilo kaydı yok.",
-        eyebrowToday: "Weight · today", // i18n:pending
-        eyebrowLast: "Weight · last weigh-in {date}", // i18n:pending
-        titleFirst: "First weigh-in logged", // i18n:pending
-        titleFew: "A few weigh-ins so far", // i18n:pending
-        titleNoRate: "Not enough recent weigh-ins for a weekly rate", // i18n:pending
-        titleSteady: "Holding steady", // i18n:pending
-        titleDown: "Trending down", // i18n:pending
-        titleUp: "Trending up", // i18n:pending
-        titleGoalReached: "Goal reached", // i18n:pending
-        titleAway: "Drifting away from your goal", // i18n:pending
-        titleOnTrack: "On track for your goal", // i18n:pending
-        titleShortSteady: "Holding steady, short of your goal", // i18n:pending
-        rangeGroupAriaLabel: "Range", // i18n:pending
+        eyebrowToday: "Kilo · bugün",
+        eyebrowLast: "Kilo · son tartım {date}",
+        titleFirst: "İlk tartım kaydedildi",
+        titleFew: "Şimdilik birkaç tartım var",
+        titleNoRate:
+            "Haftalık hız için yeterli sayıda yakın tarihli tartım yok",
+        titleSteady: "Sabit",
+        titleDown: "Düşüş eğiliminde",
+        titleUp: "Artış eğiliminde",
+        titleGoalReached: "Hedefe ulaşıldı",
+        titleAway: "Hedefinden uzaklaşıyorsun",
+        titleOnTrack: "Hedefine doğru ilerliyorsun",
+        titleShortSteady: "Sabit, hedefe henüz ulaşılmadı",
+        rangeGroupAriaLabel: "Aralık",
         ranges: {
-            // i18n:pending
             "7": {
-                // i18n:pending
-                label: "7d", // i18n:pending
-                aria: "Show last 7 days", // i18n:pending
-                word: "the last 7 days", // i18n:pending
-                inRange: "in 7 days", // i18n:pending
-                heading: "last 7 days", // i18n:pending
-                chip: "7 d", // i18n:pending
-            }, // i18n:pending
+                label: "7 g",
+                aria: "Son 7 günü göster",
+                word: "Son 7 günde",
+                inRange: "7 günde",
+                heading: "son 7 gün",
+                chip: "7 g",
+            },
             "30": {
-                // i18n:pending
-                label: "30d", // i18n:pending
-                aria: "Show last 30 days", // i18n:pending
-                word: "the last 30 days", // i18n:pending
-                inRange: "in 30 days", // i18n:pending
-                heading: "last 30 days", // i18n:pending
-                chip: "30 d", // i18n:pending
-            }, // i18n:pending
+                label: "30 g",
+                aria: "Son 30 günü göster",
+                word: "Son 30 günde",
+                inRange: "30 günde",
+                heading: "son 30 gün",
+                chip: "30 g",
+            },
             "90": {
-                // i18n:pending
-                label: "90d", // i18n:pending
-                aria: "Show last 90 days", // i18n:pending
-                word: "the last 90 days", // i18n:pending
-                inRange: "in 90 days", // i18n:pending
-                heading: "last 90 days", // i18n:pending
-                chip: "90 d", // i18n:pending
-            }, // i18n:pending
+                label: "90 g",
+                aria: "Son 90 günü göster",
+                word: "Son 90 günde",
+                inRange: "90 günde",
+                heading: "son 90 gün",
+                chip: "90 g",
+            },
             "1y": {
-                // i18n:pending
-                label: "1y", // i18n:pending
-                aria: "Show last year", // i18n:pending
-                word: "the last year", // i18n:pending
-                inRange: "in a year", // i18n:pending
-                heading: "last year", // i18n:pending
-                chip: "1 y", // i18n:pending
-            }, // i18n:pending
+                label: "1 y",
+                aria: "Son bir yılı göster",
+                word: "Son bir yılda",
+                inRange: "bir yılda",
+                heading: "son bir yıl",
+                chip: "1 y",
+            },
             all: {
-                // i18n:pending
-                label: "All", // i18n:pending
-                aria: "Show all time", // i18n:pending
-                word: "all time", // i18n:pending
-                inRange: "overall", // i18n:pending
-                heading: "all time", // i18n:pending
-                chip: "All", // i18n:pending
-            }, // i18n:pending
-        }, // i18n:pending
-        chip: "{change} · {range}", // i18n:pending
-        perWeek: "{amount} per week", // i18n:pending
-        perWeekAvg: "{amount} per week on average", // i18n:pending
-        toGoal: "{value} to goal", // i18n:pending
-        weeksApprox: { one: "~{n} week", other: "~{n} weeks" }, // i18n:pending
-        yearsPlus: "2+ years", // i18n:pending
-        reachedOn: "reached on {date}", // i18n:pending
-        movingAway: "moving away from goal", // i18n:pending
-        tooFlat: "too flat to project a goal date", // i18n:pending
-        hintFew: "A trend line needs at least 4 weigh-ins in the range", // i18n:pending
-        hintNoRate: "The weekly rate needs 4 weigh-ins in the last 3 weeks", // i18n:pending
-        statPerWeek: "Per week", // i18n:pending
-        statGoalPace: "Goal at this pace", // i18n:pending
-        statGoalReached: "Goal reached", // i18n:pending
-        statToGoal: "To goal", // i18n:pending
-        statSince: "Since {date}", // i18n:pending
-        unitWeeks: { one: "week", other: "weeks" }, // i18n:pending
-        unitYears: "years", // i18n:pending
-        goalPill: "Goal {goal} · {left} to go", // i18n:pending
-        goalPillReached: "Goal {goal} ✓", // i18n:pending
-        goalBelow: "Goal {goal}  ↓ {left} below", // i18n:pending
-        goalAbove: "Goal {goal}  ↑ {left} above", // i18n:pending
-        today: "Today", // i18n:pending
-        yesterday: "Yesterday", // i18n:pending
-        whenTime: "{date}, {time}", // i18n:pending
-        scrubAvg: "{value} (avg of {n})", // i18n:pending
-        hitLabel: "{date}, {value}", // i18n:pending
-        hitLabelAvg: "{date}, {value}, average of {n}", // i18n:pending
+                label: "Tümü",
+                aria: "Tüm geçmişi göster",
+                word: "Tüm geçmişte",
+                inRange: "toplamda",
+                heading: "tüm geçmiş",
+                chip: "Tümü",
+            },
+        },
+        chip: "{change} · {range}",
+        perWeek: "haftada {amount}",
+        perWeekAvg: "ortalama haftada {amount}",
+        toGoal: "hedefe {value}",
+        weeksApprox: {
+            one: "~{n} hafta",
+            other: "~{n} hafta",
+        },
+        yearsPlus: "2+ yıl",
+        reachedOn: "{date} tarihinde ulaşıldı",
+        movingAway: "hedeften uzaklaşıyor",
+        tooFlat: "hedef tarihi tahmin etmek için fazla düz",
+        hintFew: "Eğilim çizgisi için aralıkta en az 4 tartım gerekir",
+        hintNoRate: "Haftalık hız için son 3 haftada 4 tartım gerekir",
+        statPerWeek: "Haftalık",
+        statGoalPace: "Bu hızla hedef",
+        statGoalReached: "Hedefe ulaşıldı",
+        statToGoal: "Hedefe kalan",
+        statSince: "{date} tarihinden beri",
+        unitWeeks: {
+            one: "hafta",
+            other: "hafta",
+        },
+        unitYears: "yıl",
+        goalPill: "Hedef {goal} · {left} kaldı",
+        goalPillReached: "Hedef {goal} ✓",
+        goalBelow: "Hedef {goal}  ↓ {left} aşağıda",
+        goalAbove: "Hedef {goal}  ↑ {left} yukarıda",
+        today: "Bugün",
+        yesterday: "Dün",
+        whenTime: "{date}, {time}",
+        scrubAvg: "{value} ({n} tartımın ortalaması)",
+        hitLabel: "{date}, {value}",
+        hitLabelAvg: "{date}, {value}, {n} tartımın ortalaması",
         chartAriaLabel:
-            "Weight chart, latest {latest}{goal}{change}. Tap a day to read its value.", // i18n:pending
-        chartAriaGoal: ", goal {goal}", // i18n:pending
-        chartAriaChange: ", {change} {range}", // i18n:pending
-        close: "Close", // i18n:pending
-        oneTitleFirst: "Your trend starts here", // i18n:pending
-        oneTitle: "Only one weigh-in in {range}", // i18n:pending
-        oneFirst: "First weigh-in · {when} · {value}", // i18n:pending
-        oneLine: "{when} · {value}", // i18n:pending
-        oneHintFirst: "The chart starts with a second weigh-in", // i18n:pending
+            "Kilo grafiği, son {latest}{goal}{change}. Değerini görmek için bir güne dokun.",
+        chartAriaGoal: ", hedef {goal}",
+        chartAriaChange: ", {range} {change}",
+        close: "Kapat",
+        oneTitleFirst: "Eğilimin burada başlıyor",
+        oneTitle: "{range} yalnızca bir tartım",
+        oneFirst: "İlk tartım · {when} · {value}",
+        oneLine: "{when} · {value}",
+        oneHintFirst: "Grafik ikinci tartımla başlar",
         oneHintEarlier: {
-            one: "{n} earlier weigh-in day in longer ranges",
-            other: "{n} earlier weigh-in days in longer ranges",
-        }, // i18n:pending
-        emptyRange: "No weigh-ins in {range}.", // i18n:pending
-        emptyRangeLast: "No weigh-ins in {range}. The last one was on {date}.", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        detailsAria: "{action}: weigh-ins and measurements", // i18n:pending
-        detailsAriaWeighIns: "{action}: weigh-ins", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        sectionWeighIns: "Weigh-ins", // i18n:pending
-        sectionMeasurements: "Body measurements · {range}", // i18n:pending
+            one: "Daha uzun aralıklarda {n} önceki tartım günü var",
+            other: "Daha uzun aralıklarda {n} önceki tartım günü var",
+        },
+        emptyRange: "{range} tartım yok.",
+        emptyRangeLast: "{range} tartım yok. Sonuncusu {date} tarihindeydi.",
+        showMore: "Daha fazla göster",
+        showLess: "Daha az göster",
+        detailsAria: "{action}: tartımlar ve ölçüler",
+        detailsAriaWeighIns: "{action}: tartımlar",
+        collapseAll: "Tümünü daralt",
+        sectionWeighIns: "Tartımlar",
+        sectionMeasurements: "Vücut ölçüleri · {range}",
         accLabel: {
-            one: "{n} weigh-in {range}",
-            other: "{n} weigh-ins {range}",
-        }, // i18n:pending
-        accEmpty: "No weigh-ins {range}", // i18n:pending
-        accAvgRange: "avg {avg} · range {min}–{max}", // i18n:pending
-        loggedToday: "logged today", // i18n:pending
-        loggedYesterday: "logged yesterday", // i18n:pending
-        loggedOn: "logged on {date}", // i18n:pending
-        weekThis: "This week", // i18n:pending
-        weekLast: "Last week", // i18n:pending
-        weekAvg: "avg {value}", // i18n:pending
-        weekVsLast: "{change} vs last week", // i18n:pending
-        weekVsBefore: "{change} vs week before", // i18n:pending
+            one: "{range} {n} tartım",
+            other: "{range} {n} tartım",
+        },
+        accEmpty: "{range} tartım yok",
+        accAvgRange: "ort. {avg} · aralık {min}–{max}",
+        loggedToday: "bugün kaydedildi",
+        loggedYesterday: "dün kaydedildi",
+        loggedOn: "{date} tarihinde kaydedildi",
+        weekThis: "Bu hafta",
+        weekLast: "Geçen hafta",
+        weekAvg: "ort. {value}",
+        weekVsLast: "geçen haftaya göre {change}",
+        weekVsBefore: "önceki haftaya göre {change}",
         dayMulti: {
-            one: "{n} weigh-in · averaged",
-            other: "{n} weigh-ins · averaged",
-        }, // i18n:pending
+            one: "{n} tartım · ortalama",
+            other: "{n} tartım · ortalama",
+        },
         showEarlierWeeks: {
-            one: "Show {n} earlier week",
-            other: "Show {n} earlier weeks",
-        }, // i18n:pending
+            one: "{n} önceki haftayı göster",
+            other: "{n} önceki haftayı göster",
+        },
         sites: {
-            // i18n:pending
-            waist: "Waist", // i18n:pending
-            hips: "Hips", // i18n:pending
-            neck: "Neck", // i18n:pending
-            chest: "Chest", // i18n:pending
-            shoulders: "Shoulders", // i18n:pending
-            upper_arm: "Upper arm", // i18n:pending
-            forearm: "Forearm", // i18n:pending
-            thigh: "Thigh", // i18n:pending
-            calf: "Calf", // i18n:pending
-        }, // i18n:pending
-        measSince: "{change} since {date}", // i18n:pending
-        changeDown: "↓ {delta}", // i18n:pending
-        changeUp: "↑ {delta}", // i18n:pending
-        changeFlat: "→ no change", // i18n:pending
-        measFirst: "first measurement · {date}", // i18n:pending
-        measFirstRow: "first", // i18n:pending
-        measStale: "not measured in this range · last on {date}", // i18n:pending
-        measEarlier: "Earlier measurements", // i18n:pending
-        measHeading: "{site} · {range}", // i18n:pending
-        showMoreN: { one: "Show {n} more", other: "Show {n} more" }, // i18n:pending
+            waist: "Bel",
+            hips: "Kalça",
+            neck: "Boyun",
+            chest: "Göğüs",
+            shoulders: "Omuzlar",
+            upper_arm: "Üst kol",
+            forearm: "Ön kol",
+            thigh: "Uyluk",
+            calf: "Baldır",
+        },
+        measSince: "{date} tarihinden beri {change}",
+        changeDown: "↓ {delta}",
+        changeUp: "↑ {delta}",
+        changeFlat: "→ değişiklik yok",
+        measFirst: "ilk ölçüm · {date}",
+        measFirstRow: "ilk",
+        measStale: "bu aralıkta ölçülmedi · son {date}",
+        measEarlier: "Önceki ölçümler",
+        measHeading: "{site} · {range}",
+        showMoreN: {
+            one: "{n} tane daha göster",
+            other: "{n} tane daha göster",
+        },
         noMeasurements:
-            "No body measurements in the last year. Waist, hips and seven other sites can be tracked in centimetres or inches.", // i18n:pending
+            "Son bir yılda vücut ölçüsü yok. Bel, kalça ve yedi bölge daha santimetre veya inç olarak takip edilebilir.",
     },
     importMeals: {
         loading: "İçe aktarma hazırlanıyor…",

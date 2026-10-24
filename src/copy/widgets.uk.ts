@@ -190,164 +190,181 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
     weightTrends: {
         loading: "Завантаження динаміки ваги…",
         empty: "За цей період ваги ще не записано.",
-        eyebrowToday: "Weight · today", // i18n:pending
-        eyebrowLast: "Weight · last weigh-in {date}", // i18n:pending
-        titleFirst: "First weigh-in logged", // i18n:pending
-        titleFew: "A few weigh-ins so far", // i18n:pending
-        titleNoRate: "Not enough recent weigh-ins for a weekly rate", // i18n:pending
-        titleSteady: "Holding steady", // i18n:pending
-        titleDown: "Trending down", // i18n:pending
-        titleUp: "Trending up", // i18n:pending
-        titleGoalReached: "Goal reached", // i18n:pending
-        titleAway: "Drifting away from your goal", // i18n:pending
-        titleOnTrack: "On track for your goal", // i18n:pending
-        titleShortSteady: "Holding steady, short of your goal", // i18n:pending
-        rangeGroupAriaLabel: "Range", // i18n:pending
+        eyebrowToday: "Вага · сьогодні",
+        eyebrowLast: "Вага · останнє зважування {date}",
+        titleFirst: "Перше зважування записано",
+        titleFew: "Поки що лише кілька зважувань",
+        titleNoRate: "Замало недавніх зважувань для тижневого темпу",
+        titleSteady: "Без змін",
+        titleDown: "Тенденція до зниження",
+        titleUp: "Тенденція до зростання",
+        titleGoalReached: "Мету досягнуто",
+        titleAway: "Ти віддаляєшся від мети",
+        titleOnTrack: "На шляху до мети",
+        titleShortSteady: "Без змін, мету ще не досягнуто",
+        rangeGroupAriaLabel: "Період",
         ranges: {
-            // i18n:pending
             "7": {
-                // i18n:pending
-                label: "7d", // i18n:pending
-                aria: "Show last 7 days", // i18n:pending
-                word: "the last 7 days", // i18n:pending
-                inRange: "in 7 days", // i18n:pending
-                heading: "last 7 days", // i18n:pending
-                chip: "7 d", // i18n:pending
-            }, // i18n:pending
+                label: "7 д",
+                aria: "Показати останні 7 днів",
+                word: "за останні 7 днів",
+                inRange: "за 7 днів",
+                heading: "останні 7 днів",
+                chip: "7 д",
+            },
             "30": {
-                // i18n:pending
-                label: "30d", // i18n:pending
-                aria: "Show last 30 days", // i18n:pending
-                word: "the last 30 days", // i18n:pending
-                inRange: "in 30 days", // i18n:pending
-                heading: "last 30 days", // i18n:pending
-                chip: "30 d", // i18n:pending
-            }, // i18n:pending
+                label: "30 д",
+                aria: "Показати останні 30 днів",
+                word: "за останні 30 днів",
+                inRange: "за 30 днів",
+                heading: "останні 30 днів",
+                chip: "30 д",
+            },
             "90": {
-                // i18n:pending
-                label: "90d", // i18n:pending
-                aria: "Show last 90 days", // i18n:pending
-                word: "the last 90 days", // i18n:pending
-                inRange: "in 90 days", // i18n:pending
-                heading: "last 90 days", // i18n:pending
-                chip: "90 d", // i18n:pending
-            }, // i18n:pending
+                label: "90 д",
+                aria: "Показати останні 90 днів",
+                word: "за останні 90 днів",
+                inRange: "за 90 днів",
+                heading: "останні 90 днів",
+                chip: "90 д",
+            },
             "1y": {
-                // i18n:pending
-                label: "1y", // i18n:pending
-                aria: "Show last year", // i18n:pending
-                word: "the last year", // i18n:pending
-                inRange: "in a year", // i18n:pending
-                heading: "last year", // i18n:pending
-                chip: "1 y", // i18n:pending
-            }, // i18n:pending
+                label: "1 р",
+                aria: "Показати останній рік",
+                word: "за останній рік",
+                inRange: "за рік",
+                heading: "останній рік",
+                chip: "1 р",
+            },
             all: {
-                // i18n:pending
-                label: "All", // i18n:pending
-                aria: "Show all time", // i18n:pending
-                word: "all time", // i18n:pending
-                inRange: "overall", // i18n:pending
-                heading: "all time", // i18n:pending
-                chip: "All", // i18n:pending
-            }, // i18n:pending
-        }, // i18n:pending
-        chip: "{change} · {range}", // i18n:pending
-        perWeek: "{amount} per week", // i18n:pending
-        perWeekAvg: "{amount} per week on average", // i18n:pending
-        toGoal: "{value} to goal", // i18n:pending
-        weeksApprox: { one: "~{n} week", other: "~{n} weeks" }, // i18n:pending
-        yearsPlus: "2+ years", // i18n:pending
-        reachedOn: "reached on {date}", // i18n:pending
-        movingAway: "moving away from goal", // i18n:pending
-        tooFlat: "too flat to project a goal date", // i18n:pending
-        hintFew: "A trend line needs at least 4 weigh-ins in the range", // i18n:pending
-        hintNoRate: "The weekly rate needs 4 weigh-ins in the last 3 weeks", // i18n:pending
-        statPerWeek: "Per week", // i18n:pending
-        statGoalPace: "Goal at this pace", // i18n:pending
-        statGoalReached: "Goal reached", // i18n:pending
-        statToGoal: "To goal", // i18n:pending
-        statSince: "Since {date}", // i18n:pending
-        unitWeeks: { one: "week", other: "weeks" }, // i18n:pending
-        unitYears: "years", // i18n:pending
-        goalPill: "Goal {goal} · {left} to go", // i18n:pending
-        goalPillReached: "Goal {goal} ✓", // i18n:pending
-        goalBelow: "Goal {goal}  ↓ {left} below", // i18n:pending
-        goalAbove: "Goal {goal}  ↑ {left} above", // i18n:pending
-        today: "Today", // i18n:pending
-        yesterday: "Yesterday", // i18n:pending
-        whenTime: "{date}, {time}", // i18n:pending
-        scrubAvg: "{value} (avg of {n})", // i18n:pending
-        hitLabel: "{date}, {value}", // i18n:pending
-        hitLabelAvg: "{date}, {value}, average of {n}", // i18n:pending
+                label: "Усе",
+                aria: "Показати всю історію",
+                word: "за весь час",
+                inRange: "загалом",
+                heading: "уся історія",
+                chip: "Усе",
+            },
+        },
+        chip: "{change} · {range}",
+        perWeek: "{amount} на тиждень",
+        perWeekAvg: "у середньому {amount} на тиждень",
+        toGoal: "{value} до мети",
+        weeksApprox: {
+            one: "~{n} тиждень",
+            few: "~{n} тижні",
+            many: "~{n} тижнів",
+            other: "~{n} тижнів",
+        },
+        yearsPlus: "2+ роки",
+        reachedOn: "досягнуто {date}",
+        movingAway: "віддаляється від мети",
+        tooFlat: "надто рівно, щоб оцінити дату",
+        hintFew: "Для лінії тренду потрібно щонайменше 4 зважування за період",
+        hintNoRate:
+            "Для тижневого темпу потрібно 4 зважування за останні 3 тижні",
+        statPerWeek: "За тиждень",
+        statGoalPace: "Мета в цьому темпі",
+        statGoalReached: "Мету досягнуто",
+        statToGoal: "До мети",
+        statSince: "Від {date}",
+        unitWeeks: {
+            one: "тиждень",
+            few: "тижні",
+            many: "тижнів",
+            other: "тижнів",
+        },
+        unitYears: "роки",
+        goalPill: "Мета {goal} · ще {left}",
+        goalPillReached: "Мета {goal} ✓",
+        goalBelow: "Мета {goal}  ↓ на {left} нижче",
+        goalAbove: "Мета {goal}  ↑ на {left} вище",
+        today: "Сьогодні",
+        yesterday: "Учора",
+        whenTime: "{date}, {time}",
+        scrubAvg: "{value} (середнє з {n})",
+        hitLabel: "{date}, {value}",
+        hitLabelAvg: "{date}, {value}, середнє з {n}",
         chartAriaLabel:
-            "Weight chart, latest {latest}{goal}{change}. Tap a day to read its value.", // i18n:pending
-        chartAriaGoal: ", goal {goal}", // i18n:pending
-        chartAriaChange: ", {change} {range}", // i18n:pending
-        close: "Close", // i18n:pending
-        oneTitleFirst: "Your trend starts here", // i18n:pending
-        oneTitle: "Only one weigh-in in {range}", // i18n:pending
-        oneFirst: "First weigh-in · {when} · {value}", // i18n:pending
-        oneLine: "{when} · {value}", // i18n:pending
-        oneHintFirst: "The chart starts with a second weigh-in", // i18n:pending
+            "Графік ваги, остання {latest}{goal}{change}. Торкнися дня, щоб побачити значення.",
+        chartAriaGoal: ", мета {goal}",
+        chartAriaChange: ", {change} {range}",
+        close: "Закрити",
+        oneTitleFirst: "Твій тренд починається тут",
+        oneTitle: "Лише одне зважування {range}",
+        oneFirst: "Перше зважування · {when} · {value}",
+        oneLine: "{when} · {value}",
+        oneHintFirst: "Графік почнеться з другого зважування",
         oneHintEarlier: {
-            one: "{n} earlier weigh-in day in longer ranges",
-            other: "{n} earlier weigh-in days in longer ranges",
-        }, // i18n:pending
-        emptyRange: "No weigh-ins in {range}.", // i18n:pending
-        emptyRangeLast: "No weigh-ins in {range}. The last one was on {date}.", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        detailsAria: "{action}: weigh-ins and measurements", // i18n:pending
-        detailsAriaWeighIns: "{action}: weigh-ins", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        sectionWeighIns: "Weigh-ins", // i18n:pending
-        sectionMeasurements: "Body measurements · {range}", // i18n:pending
+            one: "{n} раніший день зважування в довших періодах",
+            few: "{n} раніші дні зважування в довших періодах",
+            many: "{n} раніших днів зважування в довших періодах",
+            other: "{n} раніших днів зважування в довших періодах",
+        },
+        emptyRange: "Немає зважувань {range}.",
+        emptyRangeLast: "Немає зважувань {range}. Останнє було {date}.",
+        showMore: "Показати більше",
+        showLess: "Показати менше",
+        detailsAria: "{action}: зважування й обміри",
+        detailsAriaWeighIns: "{action}: зважування",
+        collapseAll: "Згорнути все",
+        sectionWeighIns: "Зважування",
+        sectionMeasurements: "Обміри тіла · {range}",
         accLabel: {
-            one: "{n} weigh-in {range}",
-            other: "{n} weigh-ins {range}",
-        }, // i18n:pending
-        accEmpty: "No weigh-ins {range}", // i18n:pending
-        accAvgRange: "avg {avg} · range {min}–{max}", // i18n:pending
-        loggedToday: "logged today", // i18n:pending
-        loggedYesterday: "logged yesterday", // i18n:pending
-        loggedOn: "logged on {date}", // i18n:pending
-        weekThis: "This week", // i18n:pending
-        weekLast: "Last week", // i18n:pending
-        weekAvg: "avg {value}", // i18n:pending
-        weekVsLast: "{change} vs last week", // i18n:pending
-        weekVsBefore: "{change} vs week before", // i18n:pending
+            one: "{n} зважування {range}",
+            few: "{n} зважування {range}",
+            many: "{n} зважувань {range}",
+            other: "{n} зважувань {range}",
+        },
+        accEmpty: "Немає зважувань {range}",
+        accAvgRange: "середнє {avg} · діапазон {min}–{max}",
+        loggedToday: "записано сьогодні",
+        loggedYesterday: "записано вчора",
+        loggedOn: "записано {date}",
+        weekThis: "Цей тиждень",
+        weekLast: "Минулий тиждень",
+        weekAvg: "середнє {value}",
+        weekVsLast: "{change} порівняно з минулим тижнем",
+        weekVsBefore: "{change} порівняно з тижнем раніше",
         dayMulti: {
-            one: "{n} weigh-in · averaged",
-            other: "{n} weigh-ins · averaged",
-        }, // i18n:pending
+            one: "{n} зважування · усереднено",
+            few: "{n} зважування · усереднено",
+            many: "{n} зважувань · усереднено",
+            other: "{n} зважувань · усереднено",
+        },
         showEarlierWeeks: {
-            one: "Show {n} earlier week",
-            other: "Show {n} earlier weeks",
-        }, // i18n:pending
+            one: "Показати {n} раніший тиждень",
+            few: "Показати {n} раніші тижні",
+            many: "Показати {n} раніших тижнів",
+            other: "Показати {n} раніших тижнів",
+        },
         sites: {
-            // i18n:pending
-            waist: "Waist", // i18n:pending
-            hips: "Hips", // i18n:pending
-            neck: "Neck", // i18n:pending
-            chest: "Chest", // i18n:pending
-            shoulders: "Shoulders", // i18n:pending
-            upper_arm: "Upper arm", // i18n:pending
-            forearm: "Forearm", // i18n:pending
-            thigh: "Thigh", // i18n:pending
-            calf: "Calf", // i18n:pending
-        }, // i18n:pending
-        measSince: "{change} since {date}", // i18n:pending
-        changeDown: "↓ {delta}", // i18n:pending
-        changeUp: "↑ {delta}", // i18n:pending
-        changeFlat: "→ no change", // i18n:pending
-        measFirst: "first measurement · {date}", // i18n:pending
-        measFirstRow: "first", // i18n:pending
-        measStale: "not measured in this range · last on {date}", // i18n:pending
-        measEarlier: "Earlier measurements", // i18n:pending
-        measHeading: "{site} · {range}", // i18n:pending
-        showMoreN: { one: "Show {n} more", other: "Show {n} more" }, // i18n:pending
+            waist: "Талія",
+            hips: "Стегна",
+            neck: "Шия",
+            chest: "Груди",
+            shoulders: "Плечі",
+            upper_arm: "Плече",
+            forearm: "Передпліччя",
+            thigh: "Стегно",
+            calf: "Литка",
+        },
+        measSince: "{change} від {date}",
+        changeDown: "↓ {delta}",
+        changeUp: "↑ {delta}",
+        changeFlat: "→ без змін",
+        measFirst: "перший обмір · {date}",
+        measFirstRow: "перший",
+        measStale: "у цьому періоді не вимірювали · востаннє {date}",
+        measEarlier: "Попередні обміри",
+        measHeading: "{site} · {range}",
+        showMoreN: {
+            one: "Показати ще {n}",
+            few: "Показати ще {n}",
+            many: "Показати ще {n}",
+            other: "Показати ще {n}",
+        },
         noMeasurements:
-            "No body measurements in the last year. Waist, hips and seven other sites can be tracked in centimetres or inches.", // i18n:pending
+            "Немає обмірів тіла за останній рік. Талію, стегна й ще сім ділянок можна відстежувати в сантиметрах або дюймах.",
     },
     importMeals: {
         loading: "Підготовка імпорту…",

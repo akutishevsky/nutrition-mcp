@@ -8303,9 +8303,6 @@ describe("get_weight_trends", () => {
         });
     });
 
-    // The widget cannot import the key, so it carries the literal; a rename
-    // on the server would otherwise pass every server test while every host
-    // silently fell back to the raw 7/14/30-day chart.
     test("the per-reading list and the measurements ride in _meta, local and in display units", async () => {
         db.profile = {
             ...PROFILE_BASE,
@@ -8436,6 +8433,9 @@ describe("get_weight_trends", () => {
         expect(html).toContain(JSON.stringify(BODY_MEASUREMENTS_META_KEY));
     });
 
+    // The widget cannot import the key, so it carries the literal; a rename
+    // on the server would otherwise pass every server test while every host
+    // silently fell back to the raw 7/14/30-day chart.
     test("the weight-trends widget reads _meta under WEIGHT_SERIES_META_KEY", async () => {
         expect(WEIGHT_SERIES_META_KEY).toBe("nutrition-mcp.com/weight-series");
         const html = await getWidgetHtml("weight-trends");
