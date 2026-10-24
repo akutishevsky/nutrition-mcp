@@ -578,10 +578,13 @@ root.innerHTML = `
 ```
 
 `calLabel` exists because it is the one caption that genuinely differs between
-widgets, and in two of them it names the **denominator**: `nutrition-summary` says
-"Daily avg · logged days", `trends` says "14-day avg · all days". Same macros,
-different number (issue #70) — that label is the only place the difference is
-stated on screen, so keep it explicit.
+widgets, and in `nutrition-summary` it names the **denominator**: "Daily avg ·
+logged days" (issue #70). `trends` no longer uses this strip: its day view
+averages over the logged (or recorded) days and states the denominator itself, as
+"12 of 14 days logged" on mobile and the Days logged stat on desktop (see §11).
+`get_trends`' own text still divides calories, protein, carbs, fat and water by
+every calendar day and says so ("calendar-day average; N of M days logged"). Keep
+every denominator on screen.
 
 ### Layout is by `role`, never by a key list
 
@@ -1381,8 +1384,9 @@ renders one granularity; the gallery calls it directly.
 
 - **Denominator.** Every figure is an average **per logged day** (a day with at
   least one meal; water alone does not count), and the list opens with that
-  caption (`T.trends.perLoggedDay`). The day view keeps its own "all days" label.
-  Both denominators are named on screen; keep it that way.
+  caption (`T.trends.perLoggedDay`). The day view averages over logged (or
+  recorded) days too and names its denominator as "N of M days logged" (mobile)
+  or the Days logged stat (desktop). Keep both on screen.
 - **Row.** Line 1: the period label (`Intl.DateTimeFormat` in the widget locale;
   weeks via `formatRange`, with the year on both ends when the week crosses one;
   quarters through `T.trends.quarter`), a `.pchip` on the still-running period, and

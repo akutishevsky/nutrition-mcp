@@ -196,14 +196,14 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
             alcohol: "alcohol", // i18n:pending
         },
         pill: "{n}d", // i18n:pending
-        pillAria: "Show the last {n} days", // i18n:pending
+        pillAria: "Show {n} days", // i18n:pending
         metricsAria: "Choose a nutrient", // i18n:pending
         scrollLeft: "Scroll left", // i18n:pending
         scrollRight: "Scroll right", // i18n:pending
         avgWord: "avg", // i18n:pending
         perDay: "{unit}/day", // i18n:pending
         chartTitle: "{metric} per day", // i18n:pending
-        chartAria: "{metric} per day over the last {n} days", // i18n:pending
+        chartAria: "{metric} per day over {n} days", // i18n:pending
         loggedOf: "{a} of {n}", // i18n:pending
         daysLoggedWord: "days logged", // i18n:pending
         daysRecordedWord: "days recorded", // i18n:pending
@@ -254,7 +254,7 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
             other: "days", // i18n:pending
         },
         showAllDays: "Show all {n} days", // i18n:pending
-        emptyTitle: "No meals logged in the last 30 days", // i18n:pending
+        emptyTitle: "No meals logged in this period", // i18n:pending
         emptyBody: "Your trend appears here once meals are logged.", // i18n:pending
         drinkUnit: {
             us: "drinks", // i18n:pending

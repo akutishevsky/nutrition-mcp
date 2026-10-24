@@ -2463,10 +2463,11 @@
                 const chev = (dir) =>
                     `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round"><path d="${dir < 0 ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"}"></path></svg>`;
                 const hero = heroHtml(hm, W);
+                const swS = STATE.swS || "start";
                 const open = L >= 1;
                 const html = `
           <div class="hrow"><button type="button" class="reset gtop" data-act="toggle" data-fid="gtop" aria-expanded="${open}"><span class="eyb2">${esc(eyebrow)}<span class="nw">${esc(span)}</span></span><span class="t">${esc(title)}</span></button><div class="rseg" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${pills}</div></div>
-          <div class="mswW" data-s="${STATE.swS || "start"}"><button type="button" class="reset msa l" data-act="swl" aria-label="${esc(T.trends.scrollLeft)}">${chev(-1)}</button><div class="msw" role="group" aria-label="${esc(T.trends.metricsAria)}">${chips}</div><button type="button" class="reset msa r" data-act="swr" aria-label="${esc(T.trends.scrollRight)}">${chev(1)}</button></div>
+          <div class="mswW" data-s="${swS}"><button type="button" class="reset msa l" data-act="swl" aria-label="${esc(T.trends.scrollLeft)}"${arrowOff(swS, "l") ? ARROW_OFF : ""}>${chev(-1)}</button><div class="msw" role="group" aria-label="${esc(T.trends.metricsAria)}">${chips}</div><button type="button" class="reset msa r" data-act="swr" aria-label="${esc(T.trends.scrollRight)}"${arrowOff(swS, "r") ? ARROW_OFF : ""}>${chev(1)}</button></div>
           ${hero.top}
           ${chartOf(hm, W, "hero", selDay(W))}
           ${hero.delta}
@@ -2559,6 +2560,13 @@
                 measureStrip();
             }
 
+            // Whether a strip arrow is hidden in a scroll state (matches the
+            // .mswW[data-s] rules in the CSS).
+            const arrowOff = (s, side) =>
+                s === "none" ||
+                (s === "start" && side === "l") ||
+                (s === "end" && side === "r");
+            const ARROW_OFF = ' tabindex="-1" aria-hidden="true"';
             // Which ends of the chip strip have more chips (start | mid |
             // end | none) — drives the fade mask and the arrows.
             function measureStrip() {
@@ -2578,6 +2586,25 @@
                             : "mid";
                 STATE.swS = s;
                 wrap.dataset.s = s;
+                // A hidden arrow leaves the tab order and the a11y tree too,
+                // not just the screen.
+                for (const side of ["l", "r"]) {
+                    const b = wrap.querySelector(".msa." + side);
+                    if (!b) continue;
+                    if (arrowOff(s, side)) {
+                        // Focus never stays on an arrow that just vanished:
+                        // it moves to the selected chip.
+                        if (document.activeElement === b) {
+                            const on = el.querySelector(".mchip.on");
+                            if (on) on.focus({ preventScroll: true });
+                        }
+                        b.setAttribute("tabindex", "-1");
+                        b.setAttribute("aria-hidden", "true");
+                    } else {
+                        b.removeAttribute("tabindex");
+                        b.removeAttribute("aria-hidden");
+                    }
+                }
             }
 
             const desktop = () => {

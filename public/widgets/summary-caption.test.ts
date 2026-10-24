@@ -1,9 +1,10 @@
 // Behaviour test for the nutrition-summary widget's loggedDaysCaption() —
 // issue #70. The hero rings on this dashboard average over the days that carry
-// a log, while the get_trends rings average over every calendar day in the
-// window, so the same 15-of-30-days month legitimately reads 2000 kcal here and
-// 1000 kcal there. The caption is half of how a reader tells them apart, which
-// makes its exact wording load-bearing rather than cosmetic.
+// a log, while get_trends' text averages calories and macros over every
+// calendar day in the window, so the same 15-of-30-days month legitimately
+// reads 2000 kcal here and 1000 kcal there. The caption is half of how a reader
+// tells them apart, which makes its exact wording load-bearing rather than
+// cosmetic.
 //
 // The other half is that `days_in_range` is OPTIONAL: a host replaying a tool
 // result recorded before the field existed must render byte-identically to
