@@ -20,7 +20,7 @@ async function freshImportWidget() {
     if (boot === -1) throw new Error("import-meals bootstrap not found");
     const factory = new Function(
         `${script.slice(0, boot)}
-         return { S, buildRows, autoMap };`,
+         return { S, buildRows, autoMap, previewStep };`,
     );
     return factory() as {
         S: {
@@ -32,6 +32,7 @@ async function freshImportWidget() {
         };
         buildRows: () => void;
         autoMap: () => void;
+        previewStep: () => string;
     };
 }
 
@@ -72,6 +73,32 @@ test("MyFitnessPal's bare Sodium (milligrams) maps to sodium_mg", async () => {
     );
     w.autoMap();
     expect(w.S.mapping.sodium_mg).toBe(4);
+});
+
+test("the preview shows a sodium column, in mg, only when the file carries one", async () => {
+    const w = await freshImportWidget();
+    w.S.table = tableFrom(
+        ["Day", "Food Name", "Energy (kcal)", "Sodium (mg)"],
+        [["2026-01-15", "Ramen", "520", "1820"]],
+    );
+    w.autoMap();
+    w.S.dateFormat = "iso";
+    w.S.energyUnit = "kcal";
+    w.buildRows();
+    const html = w.previewStep();
+    expect(html).toContain('title="Sodium">Na mg</th>');
+    expect(html).toContain('<td class="num">1820</td>');
+
+    const bare = await freshImportWidget();
+    bare.S.table = tableFrom(
+        ["Day", "Food Name", "Energy (kcal)"],
+        [["2026-01-15", "Oatmeal", "300"]],
+    );
+    bare.autoMap();
+    bare.S.dateFormat = "iso";
+    bare.S.energyUnit = "kcal";
+    bare.buildRows();
+    expect(bare.previewStep()).not.toContain('title="Sodium"');
 });
 
 test("a salt column or a grams-headed sodium column is never mapped to sodium_mg", async () => {

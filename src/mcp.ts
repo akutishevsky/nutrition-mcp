@@ -2340,6 +2340,10 @@ function perServingLine(t: NutrientValues, alcohol: AlcoholDisplay): string {
         t.protein_g !== null ? `P ${t.protein_g} g` : null,
         t.carbs_g !== null ? `C ${t.carbs_g} g` : null,
         t.fat_g !== null ? `F ${t.fat_g} g` : null,
+        t.saturated_fat_g != null
+            ? `saturated fat ${t.saturated_fat_g} g`
+            : null,
+        t.trans_fat_g != null ? `trans fat ${t.trans_fat_g} g` : null,
         t.fiber_g !== null ? `fiber ${t.fiber_g} g` : null,
         // Added sugar rides on the sugar figure, as in every listing, so the
         // two never read as separate amounts.
@@ -2348,6 +2352,7 @@ function perServingLine(t: NutrientValues, alcohol: AlcoholDisplay): string {
             ? `alcohol ${formatAlcohol(t.alcohol_g, alcohol)}`
             : null,
         t.caffeine_mg !== null ? `caffeine ${formatMg(t.caffeine_mg)}` : null,
+        t.sodium_mg != null ? `sodium ${formatMg(t.sodium_mg)}` : null,
     ].filter((x): x is string => x !== null);
     return parts.length > 0
         ? `Per serving: ${parts.join(" · ")}`

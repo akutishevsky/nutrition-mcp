@@ -157,7 +157,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Apre in chat un importatore per portare il tuo storico da un'altra app: scegli il CSV esportato da MyFitnessPal, Cronometer, Lose It!, MacroFactor o un'altra app di monitoraggio, abbina le colonne a calorie, macro, fibre, zuccheri totali e aggiunti e caffeina (più l'alcol, se hai attivato il monitoraggio dell'alcol) e controlla cosa verrà aggiunto prima di confermare. Il file viene letto direttamente nel tuo browser, non si salva nulla finché non approvi l'anteprima e reimportare lo stesso file non crea duplicati.",
+                "Apre in chat un importatore per portare il tuo storico da un'altra app: scegli il CSV esportato da MyFitnessPal, Cronometer, Lose It!, MacroFactor o un'altra app di monitoraggio, abbina le colonne a calorie, macro, fibre, zuccheri totali e aggiunti, caffeina e sodio (più l'alcol, se hai attivato il monitoraggio dell'alcol) e controlla cosa verrà aggiunto prima di confermare. Il file viene letto direttamente nel tuo browser, non si salva nulla finché non approvi l'anteprima e reimportare lo stesso file non crea duplicati.",
             params: {},
             example: "Importa lo storico dei miei pasti da MyFitnessPal",
         },
@@ -533,7 +533,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Mostra i tuoi obiettivi giornalieri attuali di calorie e macro, l'eventuale obiettivo di fibre e i limiti di zuccheri o caffeina e, se monitori l'alcol, il tuo limite di alcol.",
+                "Mostra i tuoi obiettivi giornalieri attuali di calorie e macro, l'eventuale obiettivo di fibre e i limiti di zuccheri, caffeina o sodio e, se monitori l'alcol, il tuo limite di alcol.",
             params: {},
             example: "Quali sono i miei obiettivi giornalieri?",
         },

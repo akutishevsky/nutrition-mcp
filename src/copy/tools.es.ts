@@ -153,7 +153,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Abre en el chat un importador para traer tu historial desde otra app: elige el CSV que exportaste de MyFitnessPal, Cronometer, Lose It!, MacroFactor u otra app de seguimiento, asigna sus columnas a calorías, macros, fibra, azúcar total y añadido, y cafeína (y también alcohol, si activaste su seguimiento) y revisa lo que se añadirá antes de confirmar. El archivo se lee en tu navegador, no se guarda nada hasta que apruebas la vista previa y, si vuelves a importar el mismo archivo, no se crean duplicados.",
+                "Abre en el chat un importador para traer tu historial desde otra app: elige el CSV que exportaste de MyFitnessPal, Cronometer, Lose It!, MacroFactor u otra app de seguimiento, asigna sus columnas a calorías, macros, fibra, azúcar total y añadido, cafeína y sodio (y también alcohol, si activaste su seguimiento) y revisa lo que se añadirá antes de confirmar. El archivo se lee en tu navegador, no se guarda nada hasta que apruebas la vista previa y, si vuelves a importar el mismo archivo, no se crean duplicados.",
             params: {},
             example: "Importa mi historial de comidas de MyFitnessPal",
         },
@@ -526,7 +526,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Consulta tus objetivos diarios actuales de calorías y macros, tu objetivo de fibra y tu límite de azúcar o cafeína si los tienes y, si registras el alcohol, tu límite de alcohol.",
+                "Consulta tus objetivos diarios actuales de calorías y macros, tu objetivo de fibra y tu límite de azúcar, cafeína o sodio si los tienes y, si registras el alcohol, tu límite de alcohol.",
             params: {},
             example: "¿Cuáles son mis objetivos diarios?",
         },

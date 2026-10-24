@@ -907,7 +907,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Open an importer in the chat to bring your history over from another app — pick the CSV you exported from MyFitnessPal, Cronometer, Lose It!, MacroFactor or another tracker, match its columns to calories, macros, fiber, total and added sugar and caffeine — plus alcohol if you've turned alcohol tracking on — and review what will be added before you confirm. The file is read in your browser, nothing is saved until you approve the preview, and importing the same file again won't create duplicates.",
+                "Open an importer in the chat to bring your history over from another app — pick the CSV you exported from MyFitnessPal, Cronometer, Lose It!, MacroFactor or another tracker, match its columns to calories, macros, fiber, total and added sugar, caffeine and sodium — plus alcohol if you've turned alcohol tracking on — and review what will be added before you confirm. The file is read in your browser, nothing is saved until you approve the preview, and importing the same file again won't create duplicates.",
             params: {},
             example: "Import my meal history from MyFitnessPal",
         },
@@ -1272,7 +1272,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "See your current daily calorie and macro targets, any fiber target and sugar or caffeine limit, and — if you track alcohol — your alcohol limit.",
+                "See your current daily calorie and macro targets, any fiber target and sugar, caffeine or sodium limit, and — if you track alcohol — your alcohol limit.",
             params: {},
             example: "What are my daily targets?",
         },

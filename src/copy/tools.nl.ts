@@ -147,7 +147,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Open een importvenster in de chat om je geschiedenis uit een andere app over te zetten. Kies de CSV die je uit MyFitnessPal, Cronometer, Lose It!, MacroFactor of een andere tracker hebt geëxporteerd, koppel de kolommen aan calorieën, macro's, vezels, totale en toegevoegde suiker en cafeïne (plus alcohol als je alcoholregistratie hebt aangezet) en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je het voorbeeld goedkeurt, en hetzelfde bestand opnieuw importeren levert geen dubbele registraties op.",
+                "Open een importvenster in de chat om je geschiedenis uit een andere app over te zetten. Kies de CSV die je uit MyFitnessPal, Cronometer, Lose It!, MacroFactor of een andere tracker hebt geëxporteerd, koppel de kolommen aan calorieën, macro's, vezels, totale en toegevoegde suiker, cafeïne en natrium (plus alcohol als je alcoholregistratie hebt aangezet) en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je het voorbeeld goedkeurt, en hetzelfde bestand opnieuw importeren levert geen dubbele registraties op.",
             params: {},
             example: "Importeer mijn maaltijdgeschiedenis uit MyFitnessPal",
         },
@@ -522,7 +522,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Bekijk je huidige dagelijkse doelen voor calorieën en macro's, een eventueel vezeldoel, eventuele limieten voor suiker of cafeïne en, als je alcohol bijhoudt, je alcohollimiet.",
+                "Bekijk je huidige dagelijkse doelen voor calorieën en macro's, een eventueel vezeldoel, eventuele limieten voor suiker, cafeïne of natrium en, als je alcohol bijhoudt, je alcohollimiet.",
             params: {},
             example: "Wat zijn mijn dagdoelen?",
         },

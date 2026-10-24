@@ -148,7 +148,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Öffne im Chat einen Importer, um deinen Verlauf aus einer anderen App zu übernehmen: Wähl die CSV, die du aus MyFitnessPal, Cronometer, Lose It!, MacroFactor oder einem anderen Tracker exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Gesamt- und zugesetztem Zucker und Koffein zu – plus Alkohol, falls du die Alkohol-Erfassung eingeschaltet hast – und prüf in der Vorschau, was dazukommt, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, gespeichert wird erst, wenn du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
+                "Öffne im Chat einen Importer, um deinen Verlauf aus einer anderen App zu übernehmen: Wähl die CSV, die du aus MyFitnessPal, Cronometer, Lose It!, MacroFactor oder einem anderen Tracker exportiert hast, ordne ihre Spalten Kalorien, Makros, Ballaststoffen, Gesamt- und zugesetztem Zucker, Koffein und Natrium zu – plus Alkohol, falls du die Alkohol-Erfassung eingeschaltet hast – und prüf in der Vorschau, was dazukommt, bevor du bestätigst. Die Datei wird in deinem Browser gelesen, gespeichert wird erst, wenn du die Vorschau bestätigst, und ein erneuter Import derselben Datei erzeugt keine Duplikate.",
             params: {},
             example: "Importier meinen Mahlzeiten-Verlauf aus MyFitnessPal",
         },
@@ -530,7 +530,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Sieh dir deine aktuellen Tagesziele für Kalorien und Makros an, ein eventuelles Ballaststoffziel, Zucker- oder Koffein-Limit und – falls du Alkohol erfasst – dein Alkohol-Limit.",
+                "Sieh dir deine aktuellen Tagesziele für Kalorien und Makros an, ein eventuelles Ballaststoffziel, Zucker-, Koffein- oder Natrium-Limit und – falls du Alkohol erfasst – dein Alkohol-Limit.",
             params: {},
             example: "Was sind meine Tagesziele?",
         },

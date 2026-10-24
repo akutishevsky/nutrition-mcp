@@ -143,7 +143,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Otwórz w czacie importer, który przeniesie Twoją historię z innej aplikacji — wybierz plik CSV wyeksportowany z MyFitnessPal, Cronometer, Lose It!, MacroFactor lub innego licznika kalorii, dopasuj jego kolumny do kalorii, makroskładników, błonnika, cukrów ogółem i dodanych oraz kofeiny (a także alkoholu, jeśli masz włączone jego śledzenie) i przed potwierdzeniem sprawdź, co zostanie dodane. Plik jest odczytywany w Twojej przeglądarce, nic nie zostaje zapisane, dopóki nie zaakceptujesz podglądu, a ponowny import tego samego pliku nie tworzy duplikatów.",
+                "Otwórz w czacie importer, który przeniesie Twoją historię z innej aplikacji — wybierz plik CSV wyeksportowany z MyFitnessPal, Cronometer, Lose It!, MacroFactor lub innego licznika kalorii, dopasuj jego kolumny do kalorii, makroskładników, błonnika, cukrów ogółem i dodanych, kofeiny oraz sodu (a także alkoholu, jeśli masz włączone jego śledzenie) i przed potwierdzeniem sprawdź, co zostanie dodane. Plik jest odczytywany w Twojej przeglądarce, nic nie zostaje zapisane, dopóki nie zaakceptujesz podglądu, a ponowny import tego samego pliku nie tworzy duplikatów.",
             params: {},
             example: "Zaimportuj moją historię posiłków z MyFitnessPal",
         },
@@ -513,7 +513,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Zobacz aktualne dzienne cele kalorii i makroskładników, ewentualny cel błonnika, limit cukru lub kofeiny oraz — jeśli śledzisz alkohol — limit alkoholu.",
+                "Zobacz aktualne dzienne cele kalorii i makroskładników, ewentualny cel błonnika, limit cukru, kofeiny lub sodu oraz — jeśli śledzisz alkohol — limit alkoholu.",
             params: {},
             example: "Jakie mam dzienne cele?",
         },

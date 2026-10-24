@@ -148,7 +148,7 @@ export const TOOLS_TR: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Geçmişini başka bir uygulamadan taşımak için sohbette bir içe aktarıcı aç: MyFitnessPal, Cronometer, Lose It!, MacroFactor ya da başka bir takip uygulamasından aldığın CSV dosyasını seç, kolonlarını kaloriye, makrolara, life, toplam ve ilave şekere ve kafeine — alkol takibini açtıysan alkole de — eşle ve onaylamadan önce nelerin ekleneceğini gözden geçir. Dosya tarayıcında okunur, önizlemeyi onaylamadan hiçbir şey kaydedilmez ve aynı dosyayı tekrar aktarmak kopya oluşturmaz.",
+                "Geçmişini başka bir uygulamadan taşımak için sohbette bir içe aktarıcı aç: MyFitnessPal, Cronometer, Lose It!, MacroFactor ya da başka bir takip uygulamasından aldığın CSV dosyasını seç, kolonlarını kaloriye, makrolara, life, toplam ve ilave şekere, kafeine ve sodyuma — alkol takibini açtıysan alkole de — eşle ve onaylamadan önce nelerin ekleneceğini gözden geçir. Dosya tarayıcında okunur, önizlemeyi onaylamadan hiçbir şey kaydedilmez ve aynı dosyayı tekrar aktarmak kopya oluşturmaz.",
             params: {},
             example: "Yemek geçmişimi MyFitnessPal uygulamasından içe aktar",
         },
@@ -521,7 +521,7 @@ export const TOOLS_TR: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Güncel günlük kalori ve makro hedeflerini, varsa lif hedefini ve şeker ya da kafein sınırını, alkol takibi yapıyorsan alkol sınırını da gör.",
+                "Güncel günlük kalori ve makro hedeflerini, varsa lif hedefini ve şeker, kafein ya da sodyum sınırını, alkol takibi yapıyorsan alkol sınırını da gör.",
             params: {},
             example: "Günlük hedeflerim neler?",
         },

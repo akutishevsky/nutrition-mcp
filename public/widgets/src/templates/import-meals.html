@@ -598,12 +598,13 @@
             }
 
             // A preview-table nutrient header: the short translated
-            // abbreviation, with the full label as its tooltip. Caffeine is
-            // the one column in milligrams, so its header names the unit.
+            // abbreviation, with the full label as its tooltip. Caffeine and
+            // sodium are the columns in milligrams, so their headers name the
+            // unit.
             function nutrientTh(key) {
                 const abbr =
                     T.importMeals.tableAbbr[key] +
-                    (key === "caffeine_mg" ? " " + T.macros.units.mg : "");
+                    (key.endsWith("_mg") ? " " + T.macros.units.mg : "");
                 return (
                     '<th class="num" title="' +
                     esc(T.macros.labels[key]) +
@@ -1416,15 +1417,15 @@
                     CFG.max_rows_per_call,
                 );
                 const chunks = previewChunks.length;
-                // Saturated and trans fat, fiber, sugar, added sugar, alcohol and
-                // caffeine are missing from most exports, so their columns appear only when this
+                // Saturated and trans fat, fiber, sugar, added sugar, alcohol,
+                // caffeine and sodium are missing from most exports, so their columns appear only when this
                 // file actually carries them — five columns of "—" would push the macros that
                 // do have values off the visible width for no information.
                 // Alcohol additionally never appears with tracking off: the
                 // rows carry none by then, but the column is filtered by the
                 // opt-in as well as by the data, so a stray value could not
-                // put ethanol on screen. Caffeine has no such gate; it is
-                // filtered by the data alone.
+                // put ethanol on screen. Caffeine and sodium have no such
+                // gate; they are filtered by the data alone.
                 const extra = [
                     ["saturated_fat_g"],
                     ["trans_fat_g"],
@@ -1433,6 +1434,7 @@
                     ["added_sugar_g"],
                     ["alcohol_g", true],
                     ["caffeine_mg"],
+                    ["sodium_mg"],
                 ].filter(
                     (c) =>
                         (!c[1] || alcoholTracked()) &&

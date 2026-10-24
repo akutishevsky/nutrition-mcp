@@ -159,7 +159,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Ouvre un outil d'import dans le chat pour récupérer ton historique depuis une autre app : choisis le CSV exporté depuis MyFitnessPal, Cronometer, Lose It!, MacroFactor ou une autre app de suivi, associe ses colonnes aux calories, aux macros, aux fibres, aux sucres totaux et ajoutés et à la caféine (plus l'alcool si tu as activé son suivi), puis vérifie ce qui sera ajouté avant de confirmer. Le fichier est lu dans ton navigateur, rien n'est enregistré tant que tu n'as pas validé l'aperçu, et réimporter le même fichier ne crée pas de doublons.",
+                "Ouvre un outil d'import dans le chat pour récupérer ton historique depuis une autre app : choisis le CSV exporté depuis MyFitnessPal, Cronometer, Lose It!, MacroFactor ou une autre app de suivi, associe ses colonnes aux calories, aux macros, aux fibres, aux sucres totaux et ajoutés, à la caféine et au sodium (plus l'alcool si tu as activé son suivi), puis vérifie ce qui sera ajouté avant de confirmer. Le fichier est lu dans ton navigateur, rien n'est enregistré tant que tu n'as pas validé l'aperçu, et réimporter le même fichier ne crée pas de doublons.",
             params: {},
             example: "Importe mon historique de repas depuis MyFitnessPal",
         },
@@ -536,7 +536,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Affiche tes objectifs quotidiens actuels de calories et de macros, ton éventuel objectif de fibres, tes éventuelles limites de sucres ou de caféine et, si tu suis l'alcool, ta limite d'alcool.",
+                "Affiche tes objectifs quotidiens actuels de calories et de macros, ton éventuel objectif de fibres, tes éventuelles limites de sucres, de caféine ou de sodium et, si tu suis l'alcool, ta limite d'alcool.",
             params: {},
             example: "Quels sont mes objectifs quotidiens ?",
         },
