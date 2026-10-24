@@ -11,8 +11,9 @@ import type { Meal } from "./supabase.js";
  * in the result's `_meta` rather than structuredContent because output schemas
  * are frozen once deployed.
  *
- * The meal-logged and nutrition-summary widgets read it for their sodium row;
- * the macro strip the other widgets draw has no sodium cell yet.
+ * The meal-logged, nutrition-summary and goal-progress widgets read it (their
+ * sodium row / sodium goal row); the macro strip the other widgets draw has no
+ * sodium cell yet (see "Sodium" in CLAUDE.md).
  */
 
 /** Rounded to one decimal, as every milligram figure on a breakdown row is, or

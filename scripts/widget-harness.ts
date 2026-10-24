@@ -23,8 +23,9 @@
 //                       and every macro strip loses its added-sugar cell and
 //                       its ingredient expanders — exactly the strip from
 //                       before those fields existed)
-//   ?meals=0            goal-progress: no per-meal rows, so the strip takes its
-//                       static path (no tile is a button, no hint)
+//   ?gp=over            goal-progress: a scenario from
+//                       scripts/goal-progress-fixtures.ts (typical, long, over,
+//                       past, sparse, small, weight, empty, nogoals, nohistory)
 //   ?sample=sparse      weight-trends: a 3-weigh-in user instead of 3 years of
 //                       history (the degraded states: no rate chip, no 1y/All)
 //   ?days=90            weight-trends: the tool's `days` argument, which picks
@@ -94,6 +95,7 @@ import {
 } from "../src/provenance.js";
 import { runImport } from "../src/import.js";
 import { mealLoggedScenario, summaryScenario } from "./harness-day-view.js";
+import { goalProgressFixture } from "./goal-progress-fixtures.js";
 import { buildDailyBuckets } from "../src/insights.js";
 import {
     buildPeriodAveragesMeta,
@@ -452,7 +454,7 @@ function indexPage(): string {
      <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>,
      <code>?noMeta=1</code>, <code>?theme=dark</code>, <code>?locale=pl</code>,
      <code>?addedSugar=unrecorded</code>, <code>?addedSugar=zero</code>;
-     goal-progress takes <code>?meals=0</code> (the static strip);
+     goal-progress takes <code>?gp=typical|long|over|past|sparse|small|weight|empty|nogoals|nohistory</code>;
      weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
      <code>?unit=lb</code>, <code>?target=0</code>; trends takes
      <code>?groupBy=week</code> and <code>?goals=0</code>; meal-logged and
@@ -1394,6 +1396,19 @@ function hostPage(widget: string, params: URLSearchParams): string {
             RESULTS[widget] = sc.result;
             METAS[widget] = sc.meta;
         }
+    }
+
+    // goal-progress: the redesign's scenarios (?gp=typical|long|over|past|
+    // sparse|small|weight|empty|nogoals|nohistory), built with the server's own
+    // `_meta` builders in scripts/goal-progress-fixtures.ts. They replace the
+    // strip-era fixture above; ?noMeta=1 and ?drinkUnit=uk still apply.
+    if (widget === "goal-progress") {
+        const gp = goalProgressFixture(
+            params.get("gp") ?? "typical",
+            drinkUnit ?? "us",
+        );
+        RESULTS["goal-progress"] = gp.result;
+        METAS["goal-progress"] = gp.meta;
     }
 
     // Probe and gallery paint their own UI; anything non-null will do.

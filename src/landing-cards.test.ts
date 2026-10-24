@@ -18,9 +18,9 @@ import { NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
 // trans parts, or a card that drops the fat cell, would read wrong on the
 // landing page without any error.
 
-/** The cards whose macro strip shows saturated fat (the day-of-meals widgets
- * that still draw the strip). */
-const STRIP_CARDS: DemoCardId[] = ["goals-progress", "review-week"];
+/** The cards whose macro strip shows saturated fat (the widgets that still
+ * draw the strip). */
+const STRIP_CARDS: DemoCardId[] = ["review-week"];
 
 /** The cards drawn by meal-logged and nutrition-summary, whose 2026-10
  * redesign shows a calorie half-gauge collapsed (the nutrient rows, saturated
@@ -35,6 +35,15 @@ const DAY_VIEW_CARDS: DemoCardId[] = [
     "track-drinks",
     "usda-food",
 ];
+
+// The goals card is the goal-progress widget, which no longer draws the macro
+// strip: it shows status counters and the rest-of-today card instead.
+test("the goals card shows the status counters and the rest-of-today card", () => {
+    const html = renderCard("goals-progress", "en");
+    expect(html).toContain('aria-label="Goals by status"');
+    expect(html).toContain("For the rest of today");
+    expect(html).not.toContain('class="strip');
+});
 
 const DAY_MEALS = [
     { description: "Breakfast", type: "breakfast" },
