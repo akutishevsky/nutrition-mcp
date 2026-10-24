@@ -57,6 +57,13 @@
 //                       null value that gets no tag, and an alcohol tag that
 //                       meal-logged (tracking off) drops. Ignored with
 //                       ?addedSugar= edge rows, which have no ingredients.
+//   ?scenario=typical   meal-logged / nutrition-summary: one of the redesign
+//                       artboards' scenarios (scripts/harness-day-view.ts),
+//                       with sodium, meal times, ingredients and sources in
+//                       _meta. meal-logged: typical, long-names, over-goal,
+//                       tiny, edited-past, sparse, busy, no-goals, no-limits;
+//                       summary: today, past-over, long-names, sparse,
+//                       nothing, no-goals, week, month-over
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
 
@@ -85,6 +92,7 @@ import {
     type SourceDetail,
 } from "../src/provenance.js";
 import { runImport } from "../src/import.js";
+import { mealLoggedScenario, summaryScenario } from "./harness-day-view.js";
 import { buildDailyBuckets } from "../src/insights.js";
 import {
     buildPeriodAveragesMeta,
@@ -446,7 +454,8 @@ function indexPage(): string {
      goal-progress takes <code>?meals=0</code> (the static strip);
      weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
      <code>?unit=lb</code>, <code>?target=0</code>; trends takes
-     <code>?groupBy=week</code> and <code>?goals=0</code>.</p>
+     <code>?groupBy=week</code> and <code>?goals=0</code>; meal-logged and
+     nutrition-summary take <code>?scenario=</code> (see harness-day-view.ts).</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -1367,6 +1376,23 @@ function hostPage(widget: string, params: URLSearchParams): string {
             withSources("goal-progress", sourcesOf(dayMeals, true));
         }
         withSources("meal-logged", sourcesOf(dayMeals, false));
+    }
+
+    // ?scenario= swaps meal-logged / nutrition-summary onto the redesign
+    // artboards' scenarios (scripts/harness-day-view.ts), built with the
+    // server's own `_meta` builders, sodium and meal times included.
+    const scenario = params.get("scenario");
+    if (scenario) {
+        const sc =
+            widget === "meal-logged"
+                ? mealLoggedScenario(scenario)
+                : widget === "nutrition-summary"
+                  ? summaryScenario(scenario)
+                  : null;
+        if (sc) {
+            RESULTS[widget] = sc.result;
+            METAS[widget] = sc.meta;
+        }
     }
 
     // Probe and gallery paint their own UI; anything non-null will do.
