@@ -421,14 +421,7 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
     },
     trends: {
         loading: "Cargando tus tendencias…",
-        title: "Tendencias",
-        empty: "Aún no hay comidas ni agua registradas en este periodo.",
-        avgUnder: "por debajo",
-        loggedOfTotal: "{logged}/{total} días registrados",
-        caloriesOverRange: "Calorías por día en los últimos {range} días",
         windowAriaLabel: "Periodo de la tendencia",
-        rangeDaysAriaLabel: "{n} días",
-        avgAllDays: "media de {range} días · todos los días",
         segWeek: "Sem.",
         segMonth: "Mes",
         segQuarter: "Trim.",
@@ -456,6 +449,108 @@ export const WIDGET_STRINGS_ES: WidgetStrings = {
         targetsAssumed: "objetivos anteriores al {date} sin registrar",
         noTargets: "Sin objetivos: solo medias.",
         quarter: "T{q} {year}",
+        today: "Today", // i18n:pending
+        daySoFar: "{day} (so far)", // i18n:pending
+        soFar: "so far", // i18n:pending
+        lastNDays: "Last {n} days", // i18n:pending
+        nDays: "{n} days", // i18n:pending
+        titleMetric: "{n}-day {metric} trend", // i18n:pending
+        metricLabel: {
+            calories: "Calories", // i18n:pending
+            protein: "Protein", // i18n:pending
+            carbs: "Carbs", // i18n:pending
+            fat: "Fat", // i18n:pending
+            fiber: "Fiber", // i18n:pending
+            sugar: "Sugar", // i18n:pending
+            addedSugar: "Added sugar", // i18n:pending
+            saturated: "Saturated fat", // i18n:pending
+            trans: "Trans fat", // i18n:pending
+            sodium: "Sodium", // i18n:pending
+            caffeine: "Caffeine", // i18n:pending
+            water: "Water", // i18n:pending
+            alcohol: "Alcohol", // i18n:pending
+        },
+        metricInTitle: {
+            calories: "calorie", // i18n:pending
+            protein: "protein", // i18n:pending
+            carbs: "carb", // i18n:pending
+            fat: "fat", // i18n:pending
+            fiber: "fiber", // i18n:pending
+            sugar: "sugar", // i18n:pending
+            addedSugar: "added sugar", // i18n:pending
+            saturated: "saturated fat", // i18n:pending
+            trans: "trans fat", // i18n:pending
+            sodium: "sodium", // i18n:pending
+            caffeine: "caffeine", // i18n:pending
+            water: "water", // i18n:pending
+            alcohol: "alcohol", // i18n:pending
+        },
+        pill: "{n}d", // i18n:pending
+        pillAria: "Show {n} days", // i18n:pending
+        metricsAria: "Choose a nutrient", // i18n:pending
+        scrollLeft: "Scroll left", // i18n:pending
+        scrollRight: "Scroll right", // i18n:pending
+        avgWord: "avg", // i18n:pending
+        perDay: "{unit}/day", // i18n:pending
+        chartTitle: "{metric} per day", // i18n:pending
+        chartAria: "{metric} per day over {n} days", // i18n:pending
+        loggedOf: "{a} of {n}", // i18n:pending
+        daysLoggedWord: "days logged", // i18n:pending
+        daysRecordedWord: "days recorded", // i18n:pending
+        belowGoal: "below goal", // i18n:pending
+        overGoal: "over goal", // i18n:pending
+        underLimit: "under limit", // i18n:pending
+        overLimit: "over limit", // i18n:pending
+        noGoalSet: "no goal set", // i18n:pending
+        heroGoal: "Goal {goal} · {pct} reached", // i18n:pending
+        heroGoalOver: "Goal {goal} · {pct} of goal", // i18n:pending
+        heroLimit: "Limit {goal} · {pct} used", // i18n:pending
+        heroNoGoal: "No goal set", // i18n:pending
+        todayNote: "Today is still in progress, so it isn’t averaged yet.", // i18n:pending
+        showMore: "Show more", // i18n:pending
+        showLess: "Show less", // i18n:pending
+        collapseAll: "Collapse all", // i18n:pending
+        notRecorded: "not recorded", // i18n:pending
+        pctOfGoal: "{pct} of goal", // i18n:pending
+        pctOfLimit: "{pct} of limit", // i18n:pending
+        amountOverGoal: "{amount} over goal", // i18n:pending
+        amountOverLimit: "{amount} over limit", // i18n:pending
+        onTargetPct: "on target · {pct}", // i18n:pending
+        steady: "steady", // i18n:pending
+        noGoal: "no goal", // i18n:pending
+        notRecordedInRange:
+            "{metric} wasn’t recorded on any day in this range.", // i18n:pending
+        chipHigh: "High {value} {day}", // i18n:pending
+        chipLow: "Low {value} {day}", // i18n:pending
+        chipOnTarget: {
+            one: "{value} day on target", // i18n:pending
+            other: "{value} days on target", // i18n:pending
+        },
+        chipOverLimit: {
+            one: "{value} day over limit", // i18n:pending
+            other: "{value} days over limit", // i18n:pending
+        },
+        statDaysLogged: "Days logged", // i18n:pending
+        statDaysRecorded: "Days recorded", // i18n:pending
+        statOnTarget: "On target", // i18n:pending
+        statDaysOverLimit: "Days over limit", // i18n:pending
+        statBelowGoal: "Below goal", // i18n:pending
+        statOverGoal: "Over goal", // i18n:pending
+        statUnderLimit: "Under limit", // i18n:pending
+        statOverLimit: "Over limit", // i18n:pending
+        statNoGoal: "No goal set", // i18n:pending
+        daysUnit: {
+            one: "day", // i18n:pending
+            other: "days", // i18n:pending
+        },
+        showAllDays: "Show all {n} days", // i18n:pending
+        emptyTitle: "No meals logged in this period", // i18n:pending
+        emptyBody: "Your trend appears here once meals are logged.", // i18n:pending
+        drinkUnit: {
+            us: "drinks", // i18n:pending
+            uk: "units", // i18n:pending
+        },
+        dayAria: "{day}, {value}", // i18n:pending
     },
     weightTrends: {
         loading: "Cargando la evolución de tu peso…",

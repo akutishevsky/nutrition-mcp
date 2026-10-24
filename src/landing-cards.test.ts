@@ -18,10 +18,6 @@ import { NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
 // trans parts, or a card that drops the fat cell, would read wrong on the
 // landing page without any error.
 
-/** The cards whose macro strip shows saturated fat (the widgets that still
- * draw the strip). */
-const STRIP_CARDS: DemoCardId[] = ["review-week"];
-
 /** The cards drawn by meal-logged and nutrition-summary, whose 2026-10
  * redesign shows a calorie half-gauge collapsed (the nutrient rows, saturated
  * fat among them, open on tap, which a still card has no way to do). */
@@ -51,14 +47,6 @@ const DAY_MEALS = [
     { description: "Snack", type: "snack" },
 ];
 
-test("every strip card shows the saturated-fat cell and its limit", () => {
-    for (const id of STRIP_CARDS) {
-        const html = renderCard(id, "en", "Meal", DAY_MEALS);
-        expect(html, `${id} omits saturated fat`).toContain("Saturated fat");
-        expect(html, `${id} omits the 20 g limit`).toContain("limit 20 g");
-    }
-});
-
 test("every day-view card draws the calorie gauge with real figures", () => {
     for (const id of DAY_VIEW_CARDS) {
         const html = renderCard(id, "en", "Meal", DAY_MEALS);
@@ -66,6 +54,14 @@ test("every day-view card draws the calorie gauge with real figures", () => {
         expect(html, `${id} has no kcal figure`).toMatch(/of [\d,]+ kcal/);
         expect(html, id).not.toMatch(/undefined|NaN/);
     }
+});
+
+// review-week is the trends widget, which no longer draws the macro strip:
+// it offers saturated fat as one of its nutrient chips instead.
+test("the review-week card offers saturated fat among its nutrients", () => {
+    const html = renderCard("review-week", "en", "Meal", DAY_MEALS);
+    expect(html).toContain("Saturated fat");
+    expect(html).toContain("14-day calorie trend");
 });
 
 test("fat covers saturated and trans fat in every demo meal and day", () => {

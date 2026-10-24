@@ -578,10 +578,13 @@ root.innerHTML = `
 ```
 
 `calLabel` exists because it is the one caption that genuinely differs between
-widgets, and in two of them it names the **denominator**: `nutrition-summary` says
-"Daily avg · logged days", `trends` says "14-day avg · all days". Same macros,
-different number (issue #70) — that label is the only place the difference is
-stated on screen, so keep it explicit.
+widgets, and in `nutrition-summary` it names the **denominator**: "Daily avg ·
+logged days" (issue #70). `trends` no longer uses this strip: its day view
+averages over the logged (or recorded) days and states the denominator itself, as
+"12 of 14 days logged" on mobile and the Days logged stat on desktop (see §11).
+`get_trends`' own text still divides calories, protein, carbs, fat and water by
+every calendar day and says so ("calendar-day average; N of M days logged"). Keep
+every denominator on screen.
 
 ### Layout is by `role`, never by a key list
 
@@ -1381,8 +1384,9 @@ renders one granularity; the gallery calls it directly.
 
 - **Denominator.** Every figure is an average **per logged day** (a day with at
   least one meal; water alone does not count), and the list opens with that
-  caption (`T.trends.perLoggedDay`). The day view keeps its own "all days" label.
-  Both denominators are named on screen; keep it that way.
+  caption (`T.trends.perLoggedDay`). The day view averages over logged (or
+  recorded) days too and names its denominator as "N of M days logged" (mobile)
+  or the Days logged stat (desktop). Keep both on screen.
 - **Row.** Line 1: the period label (`Intl.DateTimeFormat` in the widget locale;
   weeks via `formatRange`, with the year on both ends when the week crosses one;
   quarters through `T.trends.quarter`), a `.pchip` on the still-running period, and
@@ -1462,3 +1466,31 @@ widget reports its own height (see CLAUDE.md → handshake). A fixed-tall test i
 hides clipping entirely — that is exactly how a clipped widget shipped once. Every
 widget must send `size-changed` and re-send it via a `ResizeObserver`, which is also
 what makes an opened breakdown grow the frame instead of being cut off.
+
+## 11. Trends (2026-10 redesign)
+
+`templates/trends.html` no longer draws the macro strip. It is one borderless
+card (`.gcard`) built from the W3-Trends artboards: a title beside 7d / 14d /
+30d pills (`.rseg` / `.rpill`), a scrolling nutrient chip strip (`.mswW` /
+`.msw` / `.mchip`, arrows `.msa` shown only when there is more to scroll), an
+odometer average (`.hnum`, reels `.rl` / `.rs`), a bar chart (`.ch.hero`), and
+behind "Show more" one card per nutrient (`.acc`: mini gauge `.mg`, sparkline
+`.spk`; open: `.ch.nut`, stat chips `.nstat`, day list `.mls` / `.mlg`).
+
+- **One tint variable.** `--mc` is the selected nutrient's token (calories use
+  `--gauge-fill`); `--mcs` / `--mci` / `--mch` mix it toward `--text`, tints mix
+  it toward `--panel`, so the same rules serve both themes with no theme block
+  of their own. Checked at 4.5:1 for every nutrient's selected chip and pill in
+  both themes.
+- **Width, not a constant.** From 640px (the iframe's own width) the hero splits
+  into the average and three stats (`.gstats`, replacing the mobile `.gdelta`
+  line) and the cards sit in a six-column grid (`.half` widens the trailing
+  ones so no row has an orphan).
+- **Repaints are calm.** A tap rebuilds the card's markup, so after the first
+  paint `.gcard.calm` switches the entrance motion off; only what the tap
+  brings in moves (`.f-regrow`, `.f-rows`, `.f-body`, `.f-itl`). Reduced
+  motion turns every animation and transition off and the odometer paints its
+  final value.
+- **Unrecorded is a dot.** A day with no value is a 6px dot in the charts, a
+  3px stub in the sparkline and "not recorded" / "nothing logged" in text,
+  never a zero bar.

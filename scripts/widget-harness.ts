@@ -32,9 +32,13 @@
 //                       structuredContent.default_range (7/14/30/90/365, else 30)
 //   ?unit=lb            weight-trends: display unit (default kg)
 //   ?target=0           weight-trends: no target weight set
-//   ?groupBy=week       trends: the `group_by` the period view opens on
-//                       (week/month/quarter/year, default month); ?noMeta=1
-//                       shows the plain 7/14/30 day view, as without group_by
+//   ?trends=typical     trends: a redesign scenario (typical, over, long (de),
+//                       past, sparse, tiny, empty, nogoals), built with the
+//                       real _meta builders (scripts/trends-scenarios.ts);
+//                       ?drinkUnit=off turns alcohol tracking off
+//   ?groupBy=week       trends: the period fixture instead, opening on that
+//                       `group_by` (week/month/quarter/year); ?noMeta=1
+//                       shows its plain 7/14/30 day view, as without group_by
 //   ?goals=0            trends: no goals history at all (averages only)
 //   ?locale=pl          structuredContent.locale (and hostContext.locale)
 //   ?addedSugar=unrecorded  a 29 g added-sugar limit and NO recorded figure:
@@ -96,6 +100,11 @@ import {
 import { runImport } from "../src/import.js";
 import { mealLoggedScenario, summaryScenario } from "./harness-day-view.js";
 import { goalProgressFixture } from "./goal-progress-fixtures.js";
+import {
+    TRENDS_SCENARIOS,
+    trendsScenario,
+    type TrendsScenario,
+} from "./trends-scenarios.js";
 import { buildDailyBuckets } from "../src/insights.js";
 import {
     buildPeriodAveragesMeta,
@@ -457,8 +466,10 @@ function indexPage(): string {
      goal-progress takes <code>?gp=typical|long|over|past|sparse|small|weight|empty|nogoals|nohistory</code>;
      weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
      <code>?unit=lb</code>, <code>?target=0</code>; trends takes
-     <code>?groupBy=week</code> and <code>?goals=0</code>; meal-logged and
-     nutrition-summary take <code>?scenario=</code> (see harness-day-view.ts).</p>
+     <code>?trends=typical|over|long|past|sparse|tiny|empty|nogoals</code>,
+     or <code>?groupBy=week</code> and <code>?goals=0</code> for the period
+     view; meal-logged and nutrition-summary take <code>?scenario=</code>
+     (see harness-day-view.ts).</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -974,7 +985,23 @@ function hostPage(widget: string, params: URLSearchParams): string {
 
     // Per-widget CallToolResult `_meta`, delivered beside structuredContent.
     const weight = weightTrendsFixture(params);
-    const trends = trendsFixture(params, macroDrinkUnit);
+    // trends: the period fixture when ?groupBy= is given, else one of the
+    // redesign's scenarios (?trends=typical|over|long|past|sparse|tiny|empty|
+    // nogoals, default typical). ?drinkUnit=off turns alcohol tracking off.
+    const trendsName = params.get("trends") as TrendsScenario | null;
+    const trends = params.has("groupBy")
+        ? trendsFixture(params, macroDrinkUnit)
+        : (() => {
+              const t = trendsScenario(
+                  trendsName && TRENDS_SCENARIOS.includes(trendsName)
+                      ? trendsName
+                      : "typical",
+                  params.get("drinkUnit") === "off" ? null : macroDrinkUnit,
+              );
+              const loc = params.get("locale");
+              if (loc) t.result.locale = loc;
+              return t;
+          })();
     const METAS: Record<string, unknown> = {
         "nutrition-summary": {
             ...summaryMeta,

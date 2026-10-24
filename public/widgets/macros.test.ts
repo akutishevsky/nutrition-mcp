@@ -1541,19 +1541,27 @@ test("nutrition-summary passes the added-sugar extra rows to the strip", async (
 });
 
 // Every template that draws the strip reads the key itself (a widget cannot
-// import src/widgets.ts), so each must spell it exactly.
+// import src/widgets.ts), so each must spell it exactly. trends no longer
+// draws the strip (its own nutrient cards read the series directly); its
+// literal is checked below and in src/mcp.test.ts.
 test("every macro template reads the added-sugar `_meta` key", async () => {
     for (const t of [
         "nutrition-summary",
         "goal-progress",
         "meal-logged",
-        "trends",
         "component-gallery",
     ]) {
         const html = await Bun.file(`${SRC}/templates/${t}.html`).text();
         expect(html, t).toContain('"nutrition-mcp.com/added-sugar"');
         expect(html, t).toContain("withAddedSugar(");
     }
+});
+
+test("trends reads the added-sugar, saturated-fat and sodium series itself", async () => {
+    const html = await Bun.file(`${SRC}/templates/trends.html`).text();
+    expect(html).toContain('"nutrition-mcp.com/added-sugar"');
+    expect(html).toContain('"nutrition-mcp.com/saturated-fat"');
+    expect(html).toContain('"nutrition-mcp.com/sodium"');
 });
 
 test("--added-sugar is defined in every token block", async () => {
