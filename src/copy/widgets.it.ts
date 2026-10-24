@@ -276,16 +276,6 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         previewButton: "Mostra anteprima",
         chooseAnotherButton: "Scegli un altro file",
         previewHeading: "Anteprima",
-        mealsToImport: {
-            one: "{n} pasto da importare",
-            other: "{n} pasti da importare",
-        },
-        kcalTotal: "{kcal} kcal in totale",
-        rowsSkipped: {
-            one: "{n} riga saltata",
-            other: "{n} righe saltate",
-        },
-        batchCount: { one: "{n} lotto", other: "{n} lotti" },
         datesReadAs: "Date lette come {format}; energia {conversion}.",
         energyConvertedNote: "convertita da kJ a kcal",
         energyReadAsKcal: "letta come kcal",
@@ -367,5 +357,80 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         noDataRows: "Nessuna riga di dati trovata in quel file.",
         emailNotice:
             "Qualcosa non funziona? Scrivi a {email} e includi le righe qui sotto: contengono tutto ciò che serve per capire il problema.",
+        eyebrow: "Import meals", // i18n:pending
+        eyebrowWithFile: "Import meals · {file}", // i18n:pending
+        stepsLabel: "Import steps", // i18n:pending
+        stepAriaDone: "Step {i} of 4: {name}, completed", // i18n:pending
+        stepAriaCurrent: "Step {i} of 4: {name}, current", // i18n:pending
+        stepAriaUpcoming: "Step {i} of 4: {name}", // i18n:pending
+        browseFiles: "Browse files", // i18n:pending
+        dropAccept: ".csv or tab-separated text", // i18n:pending
+        dropAria: "Choose a CSV file, or drag it here", // i18n:pending
+        privacyNote:
+            "The file is read here, in this panel. Its rows never pass through the chat — the assistant only gets a one-line summary when the import finishes.", // i18n:pending
+        binaryFile:
+            "Could not read that file: this looks like a binary file (an Excel workbook?), not CSV text. Export it as CSV and try again.", // i18n:pending
+        columnsHeading: "Columns", // i18n:pending
+        fieldsMatched: {
+            one: "{n} of {total} field matched",
+            other: "{n} of {total} fields matched",
+        }, // i18n:pending
+        tableFieldHead: "Field", // i18n:pending
+        tableColumnHead: "Column in your file", // i18n:pending
+        tableRow1Head: "Row 1 value", // i18n:pending
+        badgeNew: "new", // i18n:pending
+        colNumber: "Col {n}", // i18n:pending
+        colNumberAuto: "Col {n} · auto", // i18n:pending
+        colNumberManual: "Col {n} · set by you", // i18n:pending
+        row1Empty: "row 1 empty", // i18n:pending
+        alsoUsed: "also {field}", // i18n:pending
+        sameColumn: "Same column as {fields}", // i18n:pending
+        columnForAria: "Column for {field}", // i18n:pending
+        mapRowAria: "{field}{required}: {column}{sample}", // i18n:pending
+        requiredAria: ", required", // i18n:pending
+        columnAria: "column {n}, {name}", // i18n:pending
+        notInFileAria: "not in this file", // i18n:pending
+        sampleAria: ", {sample}", // i18n:pending
+        howRead: "How values are read", // i18n:pending
+        appExport: "{app} export", // i18n:pending
+        tileMeals: { one: "meal to import", other: "meals to import" }, // i18n:pending
+        tileKcal: "kcal total", // i18n:pending
+        tileSkipped: { one: "row skipped", other: "rows skipped" }, // i18n:pending
+        tileBatches: { one: "batch", other: "batches" }, // i18n:pending
+        rowsHeading: "Rows", // i18n:pending
+        scrollLeft: "Scroll table left", // i18n:pending
+        scrollRight: "Scroll table right", // i18n:pending
+        previewRegionAria: "Preview of the rows to import", // i18n:pending
+        expandAllDays: "Expand all days", // i18n:pending
+        collapseAllDays: "Collapse all days", // i18n:pending
+        dayRows: { one: "{n} row", other: "{n} rows" }, // i18n:pending
+        dayRowsKcal: {
+            one: "{n} row · {kcal} kcal",
+            other: "{n} rows · {kcal} kcal",
+        }, // i18n:pending
+        noTimeShort: "no time", // i18n:pending
+        lineN: "Line {n}", // i18n:pending
+        rowCardAria: "Line {line}, {when}, {meal}, {food}, {kcal}", // i18n:pending
+        noMealAria: "no meal", // i18n:pending
+        noKcalAria: "no calories", // i18n:pending
+        noRowsToImport: "No rows to import with the current mapping.", // i18n:pending
+        importOff:
+            "Import is off: this host does not let this view write to your log. Ask Claude to import the file instead.", // i18n:pending
+        backBusy: "Back is unavailable while batches are being sent.", // i18n:pending
+        progressAria: "Import progress, batches", // i18n:pending
+        failedRowsAria: "Rows that failed", // i18n:pending
+        toldOnly: "The assistant was told only: {summary}", // i18n:pending
+        liveStep: "Step {i} of 4, {name}.", // i18n:pending
+        liveMapped: "{field}: {column}", // i18n:pending
+        liveImporting: {
+            one: "Importing. {n} batch.",
+            other: "Importing. {n} batches.",
+        }, // i18n:pending
+        liveDone: {
+            one: "Import complete. {n} meal imported.",
+            other: "Import complete. {n} meals imported.",
+        }, // i18n:pending
+        liveNoWrite: "Preflight check failed. Nothing was written.", // i18n:pending
+        liveFileError: "Could not use that file.", // i18n:pending
     },
 };

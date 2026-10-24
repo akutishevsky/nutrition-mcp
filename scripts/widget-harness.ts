@@ -17,6 +17,11 @@
 //   ?maxHeight=600      impose hostContext.containerDimensions.maxHeight
 //   ?fail=1             answer tools/call with a JSON-RPC error
 //   ?drinkUnit=us       alcohol tracking ON for import-meals (default: off/null)
+//   ?csv=clean          import-meals: open on that export as if the user had
+//                       dropped it (scripts/import-fixtures.ts): clean,
+//                       attention, kj, nocalories, long, single, large, errors,
+//                       dryfail, own, alcohol (with ?drinkUnit=us), xlsx, empty
+//   ?tz=0               import-meals: the user never set a timezone
 //   ?noMeta=1           deliver the tool result WITHOUT its _meta, as a host that
 //                       drops it would (nutrition-summary then shows "N or more",
 //                       weight-trends falls back to its legacy 7/14/30 chart,
@@ -61,6 +66,7 @@
 // Nothing here is served by the production app; scripts/ is dev-only.
 
 import { addedSugarExtra, buildAddedSugarMeta } from "../src/added-sugar.js";
+import { IMPORT_FIXTURE_NAMES, importFixture } from "./import-fixtures.js";
 import { buildMealItemsMeta, type MealItemValues } from "../src/meal-items.js";
 import {
     buildSaturatedFatMeta,
@@ -446,7 +452,8 @@ function indexPage(): string {
      goal-progress takes <code>?meals=0</code> (the static strip);
      weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
      <code>?unit=lb</code>, <code>?target=0</code>; trends takes
-     <code>?groupBy=week</code> and <code>?goals=0</code>.</p>
+     <code>?groupBy=week</code> and <code>?goals=0</code>; import-meals takes
+     <code>?csv=</code>${IMPORT_FIXTURE_NAMES.join(", ")} and <code>?tz=0</code>.</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -1197,7 +1204,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
         // exercised here — which is exactly how the leak shipped.
         "import-meals": {
             tz: "Europe/Kyiv",
-            tz_configured: true,
+            tz_configured: params.get("tz") !== "0",
             today: "2026-07-15",
             max_rows_per_call: 50,
             import_tool_name: "bulk_import_meals",
@@ -1209,6 +1216,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
             ],
             widgets_enabled: true,
             drink_unit: drinkUnit,
+            locale: locale ?? "en",
         },
         "weight-trends": weight.result,
     };
@@ -1390,7 +1398,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
 <body>
   <strong>${widget}</strong>
   <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""}${noMeta ? " noMeta=1" : ""}${staticGoalProgress ? " meals=0" : ""} theme=${theme}${locale ? " locale=" + locale : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"}</span>
-  <div style="margin-top:8px"><iframe id="frame" sandbox="allow-scripts" src="/widget/${encodeURIComponent(widget)}"></iframe></div>
+  <div style="margin-top:8px"><iframe id="frame" sandbox="allow-scripts" src="/widget/${encodeURIComponent(widget)}${widget === "import-meals" && params.get("csv") ? "?csv=" + encodeURIComponent(params.get("csv")!) : ""}"></iframe></div>
   <div style="margin-top:8px">
     <button onclick="hostRequest(1)">host req id=1</button>
     <button onclick="hostRequest(2)">host req id=2</button>
@@ -1605,9 +1613,37 @@ Bun.serve({
             if (!KEYS.includes(key)) {
                 return new Response(`unknown widget: ${key}`, { status: 404 });
             }
+            // ?csv=<fixture>: hand the importer an export file as if the user
+            // had dropped it, once the host has delivered its config. The
+            // script is appended here, in the harness only; the served
+            // widget is unchanged.
+            let html = await getWidgetHtml(key);
+            const fixture =
+                key === "import-meals"
+                    ? importFixture(url.searchParams.get("csv") ?? "")
+                    : null;
+            if (fixture) {
+                html = html.replace(
+                    /<\/body>/,
+                    `<script>
+(function () {
+  const bin = atob(${JSON.stringify(fixture.base64)});
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const file = new File([bytes], ${JSON.stringify(fixture.name)});
+  const t = setInterval(() => {
+    if (API && CFG.import_tool_name && document.querySelector(".drop")) {
+      clearInterval(t);
+      loadFile(file);
+    }
+  }, 50);
+})();
+</script></body>`,
+                );
+            }
             // Same CSP the MCP Apps sandbox applies, so a widget that reaches
             // for the network here fails here too.
-            return new Response(await getWidgetHtml(key), {
+            return new Response(html, {
                 headers: {
                     "content-type": "text/html; charset=utf-8",
                     "content-security-policy":

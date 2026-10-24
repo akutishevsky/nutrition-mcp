@@ -86,8 +86,10 @@ test("the preview shows a sodium column, in mg, only when the file carries one",
     w.S.energyUnit = "kcal";
     w.buildRows();
     const html = w.previewStep();
-    expect(html).toContain('title="Sodium">Na mg</th>');
-    expect(html).toContain('<td class="num">1820</td>');
+    expect(html).toContain('title="Sodium">Na mg</span>');
+    // In the preview table and on the phone's row card, grouped per locale.
+    expect(html).toContain('role="cell">1,820</span>');
+    expect(html).toContain("<i>Na</i> 1,820\u2009mg");
 
     const bare = await freshImportWidget();
     bare.S.table = tableFrom(

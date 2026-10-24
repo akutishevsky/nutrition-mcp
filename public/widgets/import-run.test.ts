@@ -146,7 +146,7 @@ test("a failed dry run surfaces the server's reason in chunkErrors, not silently
     // still on (S.step never advances to "done" on this path).
     const html = w.previewStep();
     expect(html).toContain("A single call must carry 1 to 50 rows");
-    expect(html).toContain("notice-error");
+    expect(html).toContain('class="nt bad"');
 });
 
 test("a failed dry run stops before writing anything for real", async () => {

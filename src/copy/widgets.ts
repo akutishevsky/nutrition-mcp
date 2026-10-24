@@ -492,12 +492,6 @@ export interface WidgetStrings {
         previewButton: string;
         chooseAnotherButton: string;
         previewHeading: string;
-        mealsToImport: PluralForms;
-        /** Template. Placeholder: {kcal}. */
-        kcalTotal: string;
-        /** Placeholder: {n}. */
-        rowsSkipped: PluralForms;
-        batchCount: PluralForms;
         /** Template. Placeholders: {format}, {conversion}. */
         datesReadAs: string;
         energyConvertedNote: string;
@@ -567,6 +561,123 @@ export interface WidgetStrings {
         noDataRows: string;
         /** Template. Placeholder: {email}. */
         emailNotice: string;
+        /** Eyebrow line above the stepper. */
+        eyebrow: string;
+        /** Eyebrow once a file is loaded. Placeholder: {file}. */
+        eyebrowWithFile: string;
+        /** aria-label of the stepper list. */
+        stepsLabel: string;
+        /** Visually hidden step text. Placeholders: {i}, {name}. */
+        stepAriaDone: string;
+        /** Placeholders: {i}, {name}. */
+        stepAriaCurrent: string;
+        /** Placeholders: {i}, {name}. */
+        stepAriaUpcoming: string;
+        /** The green pill inside the drop zone. */
+        browseFiles: string;
+        /** Accepted file types, under the pill. */
+        dropAccept: string;
+        /** aria-label of the drop zone button. */
+        dropAria: string;
+        /** Privacy line under the drop zone. Names no host: the widget cannot reliably know which assistant it is in. */
+        privacyNote: string;
+        /** A spreadsheet or other binary file was chosen instead of CSV text. */
+        binaryFile: string;
+        /** Section label over the field rows. */
+        columnsHeading: string;
+        /** Chosen by {total}. Placeholders: {n}, {total}. */
+        fieldsMatched: PluralForms;
+        /** Desktop map header: the field column. */
+        tableFieldHead: string;
+        /** Desktop map header: the file column. */
+        tableColumnHead: string;
+        /** Desktop map header: first-row sample. */
+        tableRow1Head: string;
+        /** Badge on a newly supported field (sodium). */
+        badgeNew: string;
+        /** Placeholder: {n}. */
+        colNumber: string;
+        /** Column picked automatically. Placeholder: {n}. */
+        colNumberAuto: string;
+        /** Column the user picked. Placeholder: {n}. */
+        colNumberManual: string;
+        /** Option sample when the first row's cell is blank. */
+        row1Empty: string;
+        /** Tag on a column another field already uses. Placeholder: {field}. */
+        alsoUsed: string;
+        /** Warning under a row whose column feeds other fields too. Placeholder: {fields}. */
+        sameColumn: string;
+        /** aria-label of a row's column list. Placeholder: {field}. */
+        columnForAria: string;
+        /** aria-label of a field row. Placeholders: {field}, {required}, {column}, {sample} (filled from the strings below). */
+        mapRowAria: string;
+        /** Fills {required} in mapRowAria. */
+        requiredAria: string;
+        /** Fills {column} in mapRowAria. Placeholders: {n}, {name}. */
+        columnAria: string;
+        /** Fills {column} in mapRowAria, and liveMapped, when unmapped. */
+        notInFileAria: string;
+        /** Fills {sample} in mapRowAria. Placeholder: {sample} (already sampleValue). */
+        sampleAria: string;
+        /** Desktop sidebar heading (and its aria-label). */
+        howRead: string;
+        /** Chip naming the detected app. Placeholder: {app} (a brand name, never inflected). */
+        appExport: string;
+        /** Preview tile label under the meal count (the number is drawn separately). */
+        tileMeals: PluralForms;
+        /** Preview tile label under the kcal total. */
+        tileKcal: string;
+        /** Preview tile label under the skipped-row count. */
+        tileSkipped: PluralForms;
+        /** Preview tile label under the batch count. */
+        tileBatches: PluralForms;
+        /** Section label over the preview rows. */
+        rowsHeading: string;
+        /** aria-label. */
+        scrollLeft: string;
+        /** aria-label. */
+        scrollRight: string;
+        /** aria-label of the scrolling preview table. */
+        previewRegionAria: string;
+        expandAllDays: string;
+        collapseAllDays: string;
+        /** Day group summary. Placeholder: {n}. */
+        dayRows: PluralForms;
+        /** Day group summary with energy. Placeholders: {n}, {kcal}. */
+        dayRowsKcal: PluralForms;
+        /** A preview row with a date but no time. */
+        noTimeShort: string;
+        /** Source line of a preview row. Placeholder: {n}. */
+        lineN: string;
+        /** Screen-reader line for a phone preview row. Placeholders: {line}, {when}, {meal}, {food}, {kcal}. */
+        rowCardAria: string;
+        /** Fills {meal} in rowCardAria. */
+        noMealAria: string;
+        /** Fills {kcal} in rowCardAria. */
+        noKcalAria: string;
+        noRowsToImport: string;
+        /** Why the import button is off. */
+        importOff: string;
+        /** Why Back is off during an import. */
+        backBusy: string;
+        /** aria-label of the progress bar. */
+        progressAria: string;
+        /** aria-label of the failed-rows table. */
+        failedRowsAria: string;
+        /** Under the result: the exact model-facing summary (English, quoted). Placeholder: {summary}. */
+        toldOnly: string;
+        /** Live announcement. Placeholders: {i}, {name}. */
+        liveStep: string;
+        /** Live announcement. Placeholders: {field}, {column}. */
+        liveMapped: string;
+        /** Live announcement. Placeholder: {n}. */
+        liveImporting: PluralForms;
+        /** Live announcement. Placeholder: {n}. */
+        liveDone: PluralForms;
+        /** Live announcement. */
+        liveNoWrite: string;
+        /** Live announcement. */
+        liveFileError: string;
     };
 }
 
@@ -843,16 +954,6 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         previewButton: "Preview import",
         chooseAnotherButton: "Choose another file",
         previewHeading: "Preview",
-        mealsToImport: {
-            one: "{n} meal to import",
-            other: "{n} meals to import",
-        },
-        kcalTotal: "{kcal} kcal total",
-        rowsSkipped: {
-            one: "{n} row skipped",
-            other: "{n} rows skipped",
-        },
-        batchCount: { one: "{n} batch", other: "{n} batches" },
         datesReadAs: "Dates read as {format}; energy {conversion}.",
         energyConvertedNote: "converted from kJ to kcal",
         energyReadAsKcal: "read as kcal",
@@ -934,6 +1035,81 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         noDataRows: "No data rows found in that file.",
         emailNotice:
             "Not working as expected? Email {email} and include the lines below — that is everything needed to diagnose it.",
+        eyebrow: "Import meals",
+        eyebrowWithFile: "Import meals · {file}",
+        stepsLabel: "Import steps",
+        stepAriaDone: "Step {i} of 4: {name}, completed",
+        stepAriaCurrent: "Step {i} of 4: {name}, current",
+        stepAriaUpcoming: "Step {i} of 4: {name}",
+        browseFiles: "Browse files",
+        dropAccept: ".csv or tab-separated text",
+        dropAria: "Choose a CSV file, or drag it here",
+        privacyNote:
+            "The file is read here, in this panel. Its rows never pass through the chat — the assistant only gets a one-line summary when the import finishes.",
+        binaryFile:
+            "Could not read that file: this looks like a binary file (an Excel workbook?), not CSV text. Export it as CSV and try again.",
+        columnsHeading: "Columns",
+        fieldsMatched: {
+            one: "{n} of {total} field matched",
+            other: "{n} of {total} fields matched",
+        },
+        tableFieldHead: "Field",
+        tableColumnHead: "Column in your file",
+        tableRow1Head: "Row 1 value",
+        badgeNew: "new",
+        colNumber: "Col {n}",
+        colNumberAuto: "Col {n} · auto",
+        colNumberManual: "Col {n} · set by you",
+        row1Empty: "row 1 empty",
+        alsoUsed: "also {field}",
+        sameColumn: "Same column as {fields}",
+        columnForAria: "Column for {field}",
+        mapRowAria: "{field}{required}: {column}{sample}",
+        requiredAria: ", required",
+        columnAria: "column {n}, {name}",
+        notInFileAria: "not in this file",
+        sampleAria: ", {sample}",
+        howRead: "How values are read",
+        appExport: "{app} export",
+        tileMeals: { one: "meal to import", other: "meals to import" },
+        tileKcal: "kcal total",
+        tileSkipped: { one: "row skipped", other: "rows skipped" },
+        tileBatches: { one: "batch", other: "batches" },
+        rowsHeading: "Rows",
+        scrollLeft: "Scroll table left",
+        scrollRight: "Scroll table right",
+        previewRegionAria: "Preview of the rows to import",
+        expandAllDays: "Expand all days",
+        collapseAllDays: "Collapse all days",
+        dayRows: { one: "{n} row", other: "{n} rows" },
+        dayRowsKcal: {
+            one: "{n} row · {kcal} kcal",
+            other: "{n} rows · {kcal} kcal",
+        },
+        noTimeShort: "no time",
+        lineN: "Line {n}",
+        rowCardAria: "Line {line}, {when}, {meal}, {food}, {kcal}",
+        noMealAria: "no meal",
+        noKcalAria: "no calories",
+        noRowsToImport: "No rows to import with the current mapping.",
+        importOff:
+            "Import is off: this host does not let this view write to your log. Ask Claude to import the file instead.",
+        backBusy: "Back is unavailable while batches are being sent.",
+        progressAria: "Import progress, batches",
+        failedRowsAria: "Rows that failed",
+        toldOnly: "The assistant was told only: {summary}",
+        liveStep: "Step {i} of 4, {name}.",
+        liveMapped: "{field}: {column}",
+        liveImporting: {
+            one: "Importing. {n} batch.",
+            other: "Importing. {n} batches.",
+        },
+        liveDone: {
+            one: "Import complete. {n} meal imported.",
+            other: "Import complete. {n} meals imported.",
+        },
+        liveNoWrite: "Preflight check failed. Nothing was written.",
+        liveFileError: "Could not use that file.",
     },
 };
 
