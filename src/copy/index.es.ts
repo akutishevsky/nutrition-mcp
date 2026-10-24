@@ -24,7 +24,7 @@ export const INDEX_ES: IndexDoc = {
 
     featureList: [
         "Registro de comidas en lenguaje natural, con calorías, macros, fibra, azúcar y azúcar añadido",
-        "Seguimiento de grasas saturadas y trans, con límite opcional de grasa saturada",
+        "Seguimiento de grasas saturadas y trans y de sodio, con límites opcionales de grasa saturada y sodio",
         "Valores de USDA FoodData Central para alimentos genéricos; si no, estimaciones",
         "Búsqueda por código de barras para productos envasados con Open Food Facts",
         "Cada valor de nutriente con la indicación de su origen",
@@ -426,7 +426,7 @@ export const INDEX_ES: IndexDoc = {
                 id: "goals-progress",
                 title: "Fija objetivos y revisa tu día",
                 description:
-                    "Define objetivos por alcanzar, como las calorías y la proteína, y límites que no superar para el azúcar añadido, las grasas saturadas, el azúcar total, el alcohol y la cafeína; solo cambia lo que mencionas. Luego pregunta por cualquier día y verás lo que te falta para cada objetivo y cómo vas frente a cada límite.",
+                    "Define objetivos por alcanzar, como las calorías y la proteína, y límites que no superar para el azúcar añadido, las grasas saturadas, el sodio, el azúcar total, el alcohol y la cafeína; solo cambia lo que mencionas. Luego pregunta por cualquier día y verás lo que te falta para cada objetivo y cómo vas frente a cada límite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Guarda objetivos de calorías y proteína y un límite de cafeína de 400 mg",
@@ -748,7 +748,7 @@ export const INDEX_ES: IndexDoc = {
         cards: [
             {
                 title: "Comidas en lenguaje natural",
-                body: "Describe lo que comiste: para los alimentos genéricos se usan valores de USDA FoodData Central cuando existen, y tu IA estima el resto: calorías, proteína, carbohidratos, grasa, grasas saturadas y trans, fibra, azúcar total, azúcar añadido y cafeína en miligramos. Se registra y cada valor muestra su origen.",
+                body: "Describe lo que comiste: para los alimentos genéricos se usan valores de USDA FoodData Central cuando existen, y tu IA estima el resto: calorías, proteína, carbohidratos, grasa, grasas saturadas y trans, fibra, azúcar total, azúcar añadido, sodio y cafeína en miligramos. Se registra y cada valor muestra su origen.",
             },
             {
                 title: "Escanea un código de barras",
@@ -756,7 +756,7 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 title: "Objetivos y progreso",
-                body: "Fija objetivos diarios de calorías, macros, fibra y agua, además de límites de azúcar añadido, grasa saturada, azúcar total, cafeína y alcohol que no quieres superar, y consulta tu progreso en directo.",
+                body: "Fija objetivos diarios de calorías, macros, fibra y agua, además de límites de azúcar añadido, grasa saturada, sodio, azúcar total, cafeína y alcohol que no quieres superar, y consulta tu progreso en directo.",
             },
             {
                 title: "Resúmenes y tendencias",
@@ -869,7 +869,7 @@ export const INDEX_ES: IndexDoc = {
         {
             question: "¿Qué es Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP es un servidor MCP (Model Context Protocol) gratuito y de código abierto que convierte Claude, ChatGPT u otro cliente MCP en un contador de calorías y macros. En lugar de buscar cada alimento tú mismo, le cuentas a tu IA lo que comiste y ella registra en tu diario de alimentación las calorías, los macros, la fibra, el azúcar, el azúcar añadido, las grasas saturadas y trans y la cafeína.",
+                "Nutrition MCP es un servidor MCP (Model Context Protocol) gratuito y de código abierto que convierte Claude, ChatGPT u otro cliente MCP en un contador de calorías y macros. En lugar de buscar cada alimento tú mismo, le cuentas a tu IA lo que comiste y ella registra en tu diario de alimentación las calorías, los macros, la fibra, el azúcar, el azúcar añadido, las grasas saturadas y trans, el sodio y la cafeína.",
         },
         {
             question: "¿Qué es el Model Context Protocol (MCP)?",
@@ -912,7 +912,7 @@ export const INDEX_ES: IndexDoc = {
         {
             question: "¿Qué puedo registrar?",
             visibleHtml:
-                "Calorías, proteína, carbohidratos, grasa, grasas saturadas y trans, fibra, azúcar total, azúcar añadido y agua en cada registro: descritos con tus palabras, buscados como alimento genérico en USDA FoodData Central o tomados de un código de barras mediante Open Food Facts. Una comida se puede registrar ingrediente por ingrediente, cada uno con su propia cantidad y nutrientes, y una comida que comes a menudo se puede guardar como comida guardada y registrar de nuevo por su nombre. La cafeína también se registra, en miligramos, la unidad que usa cada etiqueta, y no aporta calorías. El alcohol se puede registrar en gramos de etanol puro; se muestra cuando activas su registro. También puedes registrar tu peso en kg o lb y seguir las tendencias hacia un peso objetivo. Las medidas corporales (cintura, cadera, cuello, pecho, hombros, brazo, antebrazo, muslo y pantorrilla) se pueden registrar en cm o pulgadas. Consulta resúmenes diarios, busca comidas por rango de fechas, edita o borra registros pasados, define objetivos y sigue las tendencias a lo largo del tiempo.",
+                "Calorías, proteína, carbohidratos, grasa, grasas saturadas y trans, fibra, azúcar total, azúcar añadido, sodio y agua en cada registro: descritos con tus palabras, buscados como alimento genérico en USDA FoodData Central o tomados de un código de barras mediante Open Food Facts. Una comida se puede registrar ingrediente por ingrediente, cada uno con su propia cantidad y nutrientes, y una comida que comes a menudo se puede guardar como comida guardada y registrar de nuevo por su nombre. La cafeína también se registra, en miligramos, la unidad que usa cada etiqueta, y no aporta calorías. El alcohol se puede registrar en gramos de etanol puro; se muestra cuando activas su registro. También puedes registrar tu peso en kg o lb y seguir las tendencias hacia un peso objetivo. Las medidas corporales (cintura, cadera, cuello, pecho, hombros, brazo, antebrazo, muslo y pantorrilla) se pueden registrar en cm o pulgadas. Consulta resúmenes diarios, busca comidas por rango de fechas, edita o borra registros pasados, define objetivos y sigue las tendencias a lo largo del tiempo.",
         },
         {
             question:

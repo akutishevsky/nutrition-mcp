@@ -23,6 +23,7 @@ const NUTRIENTS: ReadonlyArray<{
     { key: "added_sugar_g", label: "added sugar", unit: "g" },
     { key: "alcohol_g", label: "alcohol", unit: "g" },
     { key: "caffeine_mg", label: "caffeine", unit: "mg" },
+    { key: "sodium_mg", label: "sodium", unit: "mg" },
 ];
 
 /** Three decimals at most, so a scaled 2-decimal value prints as itself and a

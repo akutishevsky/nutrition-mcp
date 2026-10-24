@@ -1430,6 +1430,7 @@ describe("goals history", () => {
             daily_added_sugar_g: null,
             daily_alcohol_g: null,
             daily_caffeine_mg: null,
+            daily_sodium_mg: null,
             daily_water_ml: null,
             target_weight_g: null,
         });

@@ -67,6 +67,8 @@ export const USDA_NUTRIENT_NUMBERS: readonly string[] = [
     "958",
     "606",
     "605",
+    // Sodium, Na (nutrient id 1093), in mg like the meal field.
+    "307",
 ];
 
 /** Which FoodData Central number feeds each meal nutrient. Calories take the
@@ -84,6 +86,7 @@ const NUTRIENT_SOURCES: ReadonlyArray<[MealNutrientKey, readonly string[]]> = [
     ["added_sugar_g", ["539"]],
     ["alcohol_g", ["221"]],
     ["caffeine_mg", ["262"]],
+    ["sodium_mg", ["307"]],
 ];
 
 export const USDA_NOT_CONFIGURED_TEXT =

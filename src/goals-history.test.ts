@@ -271,8 +271,11 @@ test("the added-sugar migration adds the columns the code writes", async () => {
         );
     }
     // Every goal column the history table did not start with comes from one of
-    // the migrations that followed it (added sugar, saturated fat).
-    const later = sql + (await read("20261010150000_saturated_trans_fat.sql"));
+    // the migrations that followed it (added sugar, saturated fat, sodium).
+    const later =
+        sql +
+        (await read("20261010150000_saturated_trans_fat.sql")) +
+        (await read("20261024120000_sodium.sql"));
     const added = GOAL_COLUMNS.filter(
         (c) => !new RegExp(`\\b${c}\\b`).test(history),
     );

@@ -86,7 +86,7 @@ export const TOOLS_DE: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus gesättigten Fettsäuren und Transfetten, Ballaststoffen, Gesamt- und zugesetztem Zucker, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen. Du kannst auch die Zutaten einzeln angeben – dann ergibt die Summe der Zutaten die Gesamtwerte.",
+                "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus gesättigten Fettsäuren und Transfetten, Ballaststoffen, Gesamt- und zugesetztem Zucker, Natrium, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen. Du kannst auch die Zutaten einzeln angeben – dann ergibt die Summe der Zutaten die Gesamtwerte.",
             params: {
                 description: "Was gegessen wurde",
                 meal_type: "Frühstück, Mittagessen, Abendessen oder Snack",
@@ -108,6 +108,8 @@ export const TOOLS_DE: ToolsDoc = {
                     "Gramm <b>reinen Alkohols</b>, nicht die Menge des Getränks und nicht sein Alkoholgehalt in Prozent – die KI errechnet den Wert aus Menge und Stärke (ein 330-ml-Bier mit 5 % sind 13 g)",
                 caffeine_mg:
                     "Koffein in <b>Milligramm</b>, nicht Gramm – das einzige Feld hier, das nicht in Gramm angegeben wird, weil jedes Etikett und jede Empfehlung Koffein so angibt (ein Filterkaffee hat etwa 95 mg, ein Espresso 63 mg, eine Dose Cola 34 mg). Koffein liefert keine Kalorien. Anders als Ballaststoffe und Zucker wird es nur bei Dingen gesendet, die tatsächlich Koffein enthalten – eine erfasste 0 würde in deinem Dashboard eine Koffein-Zeile für einen Nährstoff anzeigen, den du gar nicht zu dir nimmst",
+                sodium_mg:
+                    "Optional. <b>Natrium</b> in Milligramm – Natrium, nicht Salz (1 g Salz enthält etwa 400 mg Natrium). Ein leeres Feld wird als nicht gemessen gespeichert und lässt den Tag aus deinem Natrium-Durchschnitt und -Limit heraus; 0 ist der richtige Wert für ein Lebensmittel ohne Natrium.",
                 logged_at:
                     "Wann du es gegessen hast, falls nicht gerade eben – so lässt sich etwas nachträglich erfassen",
                 notes: "Zusätzliche Notizen",
@@ -154,7 +156,7 @@ export const TOOLS_DE: ToolsDoc = {
             description:
                 "Füge viele vergangene Mahlzeiten auf einmal hinzu – bis zu 50 pro Aufruf –, statt sie einzeln zu erfassen. Der Importer oben speichert über dieses Werkzeug, und die KI kann es auch direkt für Mahlzeitendaten nutzen, die du in den Chat eingefügt hast. Jede Zeile wird vorab geprüft, und was nicht passt, wird Zeile für Zeile gemeldet. Dieselben Zeilen erneut zu senden ist daher sicher und verdoppelt nichts, was schon erfasst ist – solange sich deine Zeitzone zwischendurch nicht geändert hat.",
             params: {
-                meals: "Die zu importierenden Zeilen in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann Uhrzeit, Mahlzeitentyp, Beschreibung, Notizen und dieselben Werte wie eine erfasste Mahlzeit enthalten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>added_sugar_g</code> (zugesetzter Zucker, Teil des Gesamtzuckers), <code>alcohol_g</code> (Gramm reinen Alkohols) und <code>caffeine_mg</code> (Milligramm, nicht Gramm)",
+                meals: "Die zu importierenden Zeilen in der Reihenfolge der Quelldatei (1–50 pro Aufruf). Jede Zeile kann Uhrzeit, Mahlzeitentyp, Beschreibung, Notizen und dieselben Werte wie eine erfasste Mahlzeit enthalten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (Gesamtzucker), <code>added_sugar_g</code> (zugesetzter Zucker, Teil des Gesamtzuckers), <code>alcohol_g</code> (Gramm reinen Alkohols), <code>caffeine_mg</code> (Milligramm, nicht Gramm) und <code>sodium_mg</code> (Milligramm Natrium, nicht Salz)",
                 expected_row_count:
                     "Wie viele Zeilen dieser Aufruf enthält, gezählt in der Quelldatei, damit eine verlorene Zeile auffällt",
                 expected_total_kcal:
@@ -170,7 +172,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Ändere eine bereits erfasste Mahlzeit – Beschreibung, beliebige Makros, Ballaststoffe, Gesamt- oder zugesetzter Zucker, Alkohol oder Koffein, Uhrzeit oder Notizen. Darüber werden auch Lücken nachgetragen: Wurde eine Mahlzeit ohne Ballaststoffe, Zucker oder zugesetzten Zucker erfasst, weist der Server darauf hin, und die KI trägt die Werte hier nach, sobald du zustimmst. Bei einer Mahlzeit, die mit Zutaten erfasst wurde, ändern sich die Gesamtwerte über ihre Zutatenliste.",
+                "Ändere eine bereits erfasste Mahlzeit – Beschreibung, beliebige Makros, Ballaststoffe, Gesamt- oder zugesetzter Zucker, Natrium, Alkohol oder Koffein, Uhrzeit oder Notizen. Darüber werden auch Lücken nachgetragen: Wurde eine Mahlzeit ohne Ballaststoffe, Zucker oder zugesetzten Zucker erfasst, weist der Server darauf hin, und die KI trägt die Werte hier nach, sobald du zustimmst. Bei einer Mahlzeit, die mit Zutaten erfasst wurde, ändern sich die Gesamtwerte über ihre Zutatenliste.",
             params: {
                 id: "UUID der zu ändernden Mahlzeit",
                 description: "",
@@ -189,6 +191,7 @@ export const TOOLS_DE: ToolsDoc = {
                 alcohol_g:
                     "Gramm reinen Alkohols, nicht die Menge des Getränks",
                 caffeine_mg: "Milligramm, nicht Gramm",
+                sodium_mg: "Milligramm Natrium, nicht Salz",
                 logged_at: "",
                 notes: "",
                 items: "Die vollständige Zutatenliste, die die bisherige ersetzt. Die Gesamtwerte der Mahlzeit werden zur Summe dieser Liste, daher können die Gesamtwert-Felder nicht zusammen damit gesendet werden",
@@ -232,6 +235,7 @@ export const TOOLS_DE: ToolsDoc = {
                 alcohol_g:
                     "Gramm reinen Alkohols für eine Portion, nicht die Menge des Getränks",
                 caffeine_mg: "Milligramm Koffein für eine Portion, nicht Gramm",
+                sodium_mg: "Milligramm Natrium für eine Portion, nicht Salz",
             },
             example: "Speicher das als mein übliches Frühstück",
         },
@@ -283,6 +287,7 @@ export const TOOLS_DE: ToolsDoc = {
                 alcohol_g:
                     "Gramm reinen Alkohols für eine Portion, nicht die Menge des Getränks",
                 caffeine_mg: "Milligramm Koffein für eine Portion, nicht Gramm",
+                sodium_mg: "Milligramm Natrium für eine Portion, nicht Salz",
             },
             example:
                 "Mein übliches Frühstück hat jetzt 350 Kalorien pro Portion – aktualisier es",
@@ -493,7 +498,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Leg deine täglichen Ziele für Kalorien, Makros, gesättigte Fettsäuren, Ballaststoffe, Zucker, zugesetzten Zucker, Alkohol, Koffein und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; gesättigte Fettsäuren, Gesamtzucker, zugesetzter Zucker, Alkohol und Koffein sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
+                "Leg deine täglichen Ziele für Kalorien, Makros, gesättigte Fettsäuren, Ballaststoffe, Zucker, zugesetzten Zucker, Alkohol, Koffein, Natrium und Wasser fest, dazu optional ein Zielgewicht. Kalorien, Protein, Kohlenhydrate, Fett, Ballaststoffe und Wasser sind Ziele, die du erreichen willst; gesättigte Fettsäuren, Gesamtzucker, zugesetzter Zucker, Alkohol, Koffein und Natrium sind Limits, unter denen du bleiben willst – entsprechend wird auch der Fortschritt formuliert. Geändert werden nur die Felder, die du nennst; alles andere bleibt, wie es ist.",
             params: {
                 daily_calories:
                     "Tägliches Kalorienziel (kcal). Zum Löschen „null“ angeben.",
@@ -515,6 +520,8 @@ export const TOOLS_DE: ToolsDoc = {
                     "Tägliches Alkohol-Limit in Gramm <b>reinen Alkohols</b>, ein Maximum, unter dem du bleiben willst. Ein US-Standard-Drink entspricht 14 g, eine UK-Einheit 7,9 g. Zum Löschen „null“ angeben.",
                 daily_caffeine_mg:
                     "Tägliches Koffein-Limit in <b>Milligramm</b>, ein Maximum, unter dem du bleiben willst. EFSA und FDA setzen die Obergrenze für gesunde Erwachsene bei 400 mg pro Tag an (etwa vier Tassen Filterkaffee); in der Schwangerschaft nennt die EFSA 200 mg. 0 ist ein echtes Limit und bedeutet: gar kein Koffein. Zum Löschen „null“ angeben.",
+                daily_sodium_mg:
+                    "Tägliches Natrium-Limit in <b>Milligramm</b>, ein Maximum, unter dem du bleiben willst – Natrium, nicht Salz. Die WHO nennt für Erwachsene weniger als 2.000 mg pro Tag, die US-Ernährungsrichtlinien weniger als 2.300 mg. 0 ist ein echtes Limit und bedeutet: gar kein Natrium. Zum Löschen „null“ angeben.",
                 daily_water_ml: "",
                 target_weight: "",
             },

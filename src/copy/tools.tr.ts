@@ -86,7 +86,7 @@ export const TOOLS_TR: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Ne yediğini kalori ve makrolarla kaydet; sayılar varsa doymuş ve trans yağ, lif, toplam ve ilave şeker, alkol ve kafeinle birlikte. Günlük dille anlatman yeterli: yapay zekâ sayıları tahmin eder, porsiyon belirsizse sorar ve önce bir barkoddan ya da internetten etiket bilgisi çekebilir. Malzemeleri de tek tek verebilirsin; o zaman toplamlar bu malzemelerin toplamı olur.",
+                "Ne yediğini kalori ve makrolarla kaydet; sayılar varsa doymuş ve trans yağ, lif, toplam ve ilave şeker, sodyum, alkol ve kafeinle birlikte. Günlük dille anlatman yeterli: yapay zekâ sayıları tahmin eder, porsiyon belirsizse sorar ve önce bir barkoddan ya da internetten etiket bilgisi çekebilir. Malzemeleri de tek tek verebilirsin; o zaman toplamlar bu malzemelerin toplamı olur.",
             params: {
                 description: "Ne yenildi",
                 meal_type: "kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün",
@@ -108,6 +108,8 @@ export const TOOLS_TR: ToolsDoc = {
                     "<b>Saf etanol</b> gramı; içeceğin hacmi ya da alkol derecesi değil. Yapay zekâ bunu kadeh ölçüsü ve sertlikten hesaplar (330 ml %5 bira 13 g eder)",
                 caffeine_mg:
                     "Kafein, <b>miligram</b> cinsinden, gram değil: buradaki gram olmayan tek alan, çünkü her etiket ve kılavuz böyle belirtir (bir filtre kahve yaklaşık 95 mg, bir espresso 63 mg, bir kutu kola 34 mg). Kafein kalori eklemez. Lif ve şekerden farklı olarak yalnızca gerçekten kafein içeren şeyler için gönderilir; kaydedilmiş bir 0, hiç tüketmediğin bir besin için paneline kafein satırı ekler",
+                sodium_mg:
+                    "İsteğe bağlı. Miligram cinsinden <b>sodyum</b> — tuz değil, sodyum (1 g tuzda yaklaşık 400 mg sodyum bulunur). Boş bırakılan değer ölçülmemiş olarak kaydedilir ve o günü sodyum ortalamanın ve sınırının dışında bırakır; 0, sodyum içermeyen bir gıda için doğru değerdir.",
                 logged_at:
                     "Şimdi değilse, ne zaman yediğin: sonradan kaydetmeni sağlar",
                 notes: "Ek notlar",
@@ -154,7 +156,7 @@ export const TOOLS_TR: ToolsDoc = {
             description:
                 "Geçmiş yemekleri tek tek kaydetmek yerine toplu olarak ekle: bir seferde en fazla 50 tane. Yukarıdaki içe aktarıcı da bunun üzerinden yazar ve yapay zekâ, sohbete yapıştırdığın yemek verileri için bu aracı doğrudan kullanabilir. Her satır önce denetlenir ve uymayan her şey satır satır bildirilir; böylece aynı satırları tekrar göndermek güvenlidir ve saat dilimin bu arada değişmediği sürece hâlihazırda kayıtlı olanı kopyalamaz.",
             params: {
-                meals: "İçe aktarılacak satırlar, kaynak dosyadaki sırayla (çağrı başına 1–50). Her satır bir saat, yemek türü, açıklama, notlar ve kayıtlı bir yemekle aynı sayıları taşıyabilir: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (toplam şeker), <code>added_sugar_g</code> (ilave şeker, toplamın bir parçası), <code>alcohol_g</code> (saf etanol gramı) ve <code>caffeine_mg</code> (miligram, gram değil)",
+                meals: "İçe aktarılacak satırlar, kaynak dosyadaki sırayla (çağrı başına 1–50). Her satır bir saat, yemek türü, açıklama, notlar ve kayıtlı bir yemekle aynı sayıları taşıyabilir: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (toplam şeker), <code>added_sugar_g</code> (ilave şeker, toplamın bir parçası), <code>alcohol_g</code> (saf etanol gramı), <code>caffeine_mg</code> (miligram, gram değil) ve <code>sodium_mg</code> (miligram cinsinden sodyum, tuz değil)",
                 expected_row_count:
                     "Bu çağrının kaç satır taşıdığı, kaynak dosyadan sayılmış hâliyle; böylece düşen bir satır yakalanır",
                 expected_total_kcal:
@@ -169,7 +171,7 @@ export const TOOLS_TR: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Kaydettiğin bir yemeğin ayrıntılarını değiştir: açıklamasını, herhangi bir makroyu, lifi, toplam ya da ilave şekeri, alkolü ya da kafeini, saatini ya da notlarını. Eksikler de burada tamamlanır: bir yemek lifi, şekeri ya da ilave şekeri olmadan girildiyse sunucu bunu söyler ve sen kabul edince yapay zekâ buradan doldurur. Malzemeyle kaydedilmiş bir yemekte toplamlar malzeme listesi üzerinden değişir.",
+                "Kaydettiğin bir yemeğin ayrıntılarını değiştir: açıklamasını, herhangi bir makroyu, lifi, toplam ya da ilave şekeri, sodyumu, alkolü ya da kafeini, saatini ya da notlarını. Eksikler de burada tamamlanır: bir yemek lifi, şekeri ya da ilave şekeri olmadan girildiyse sunucu bunu söyler ve sen kabul edince yapay zekâ buradan doldurur. Malzemeyle kaydedilmiş bir yemekte toplamlar malzeme listesi üzerinden değişir.",
             params: {
                 id: "Güncellenecek yemeğin UUID değeri",
                 description: "",
@@ -187,6 +189,7 @@ export const TOOLS_TR: ToolsDoc = {
                     "Yalnızca ilave şeker; toplam şekerden asla fazla olamaz. <code>sugar_g</code> ile birlikte gider: ilave şekeri kayıtlı olmayan bir yemekte toplam şekeri değiştirmek, bu alan olmadan kaydedilmeyebilir",
                 alcohol_g: "Saf etanol gramı, içeceğin hacmi değil",
                 caffeine_mg: "Miligram, gram değil",
+                sodium_mg: "Miligram cinsinden sodyum, tuz değil",
                 logged_at: "",
                 notes: "",
                 items: "Tam malzeme listesi; mevcut listenin yerini alır. Yemeğin toplamları bu listenin toplamı olur, bu yüzden toplam alanları bununla birlikte gönderilemez",
@@ -227,6 +230,8 @@ export const TOOLS_TR: ToolsDoc = {
                     "Bir porsiyon için saf etanol gramı, içeceğin hacmi değil",
                 caffeine_mg:
                     "Bir porsiyon için miligram cinsinden kafein, gram değil",
+                sodium_mg:
+                    "Bir porsiyon için miligram cinsinden sodyum, tuz değil",
             },
             example: "Bunu her zamanki kahvaltım olarak kaydet",
         },
@@ -279,6 +284,8 @@ export const TOOLS_TR: ToolsDoc = {
                     "Bir porsiyon için saf etanol gramı, içeceğin hacmi değil",
                 caffeine_mg:
                     "Bir porsiyon için miligram cinsinden kafein, gram değil",
+                sodium_mg:
+                    "Bir porsiyon için miligram cinsinden sodyum, tuz değil",
             },
             example:
                 "Her zamanki kahvaltımın porsiyonu artık 350 kalori — güncelle",
@@ -483,7 +490,7 @@ export const TOOLS_TR: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Günlük kalori, makro, doymuş yağ, lif, şeker, ilave şeker, alkol, kafein ve su hedeflerini, istersen bir de hedef vücut ağırlığını belirle. Kalori, protein, karbonhidrat, yağ, lif ve su ulaşılacak hedeflerdir; doymuş yağ, toplam şeker, ilave şeker, alkol ve kafein ise altında kalınacak sınırlardır ve ilerleme buna göre ifade edilir. Yalnızca adını verdiğin alanlar güncellenir, kalanlar olduğu gibi durur.",
+                "Günlük kalori, makro, doymuş yağ, lif, şeker, ilave şeker, alkol, kafein, sodyum ve su hedeflerini, istersen bir de hedef vücut ağırlığını belirle. Kalori, protein, karbonhidrat, yağ, lif ve su ulaşılacak hedeflerdir; doymuş yağ, toplam şeker, ilave şeker, alkol, kafein ve sodyum ise altında kalınacak sınırlardır ve ilerleme buna göre ifade edilir. Yalnızca adını verdiğin alanlar güncellenir, kalanlar olduğu gibi durur.",
             params: {
                 daily_calories:
                     "Günlük kalori hedefi (kcal). Temizlemek için null.",
@@ -504,6 +511,8 @@ export const TOOLS_TR: ToolsDoc = {
                     "Günlük alkol sınırı, <b>saf etanol</b> gramı cinsinden, altında kalınacak bir üst sınır. Bir ABD standart içkisi 14 g, bir Birleşik Krallık birimi 7.9 g eder. Temizlemek için null.",
                 daily_caffeine_mg:
                     "Günlük kafein sınırı, <b>miligram</b> cinsinden, altında kalınacak bir üst sınır. EFSA ve FDA sağlıklı yetişkinler için üst sınırı günde 400 mg olarak veriyor (kabaca dört filtre kahve); gebelik için EFSA tarafından verilen değer 200 mg. 0 gerçek bir sınırdır ve hiç olmaması anlamına gelir. Temizlemek için null.",
+                daily_sodium_mg:
+                    "Günlük sodyum sınırı, <b>miligram</b> cinsinden, altında kalınacak bir üst sınır — tuz değil, sodyum. DSÖ yetişkinler için günde 2000 mg'ın altını, ABD Beslenme Rehberi 2300 mg'ın altını öneriyor. 0 gerçek bir sınırdır ve hiç olmaması anlamına gelir. Temizlemek için null.",
                 daily_water_ml: "",
                 target_weight: "",
             },

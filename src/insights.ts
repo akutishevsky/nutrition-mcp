@@ -31,6 +31,9 @@ export interface DailyBucket {
     added_sugar_g: number;
     alcohol_g: number;
     caffeine_mg: number;
+    /** Milligrams, like caffeine. Summed with `?? 0`; whether the day recorded
+     * it is dayCarries(meals, "sodium_mg"). */
+    sodium_mg: number;
     mealTypes: Set<string>;
 }
 
@@ -100,6 +103,7 @@ export function buildDailyBuckets(
             added_sugar_g: 0,
             alcohol_g: 0,
             caffeine_mg: 0,
+            sodium_mg: 0,
             mealTypes: new Set(),
         });
     }
@@ -120,6 +124,7 @@ export function buildDailyBuckets(
         b.added_sugar_g += m.added_sugar_g ?? 0;
         b.alcohol_g += m.alcohol_g ?? 0;
         b.caffeine_mg += m.caffeine_mg ?? 0;
+        b.sodium_mg += m.sodium_mg ?? 0;
         if (m.meal_type) b.mealTypes.add(m.meal_type);
     }
 
@@ -148,7 +153,8 @@ export type PartialNutrient =
     | "sugar_g"
     | "added_sugar_g"
     | "alcohol_g"
-    | "caffeine_mg";
+    | "caffeine_mg"
+    | "sodium_mg";
 
 /** THE RULE, shared with mcp.ts: a day carries a nutrient when at least one of
  * that day's meals has a non-null value for it. Only carrying days count toward
@@ -162,7 +168,7 @@ export function dayCarries(meals: Meal[], nutrient: PartialNutrient): boolean {
  * The "not recorded" figure when a ceiling is set and the day (or window) holds
  * no recorded value for that nutrient — "not recorded on this day (limit 29g)".
  * One wording for every model-facing place that reports a limited partial
- * nutrient against its limit (added sugar and saturated fat, in formatProgress
+ * nutrient against its limit (added sugar, saturated fat and sodium, in formatProgress
  * and the summary average in mcp.ts, computeTrends and computeWeeklyDigest
  * here), so a model reading two of them never sees two phrasings of the same
  * fact. It exists because dropping the line let a model read total sugar
@@ -171,13 +177,19 @@ export function dayCarries(meals: Meal[], nutrient: PartialNutrient): boolean {
  * wording names no nutrient: the caller's label does that. Describes only — it
  * states the gap, never what to do about it. Callers gate it on an active
  * ceiling (0 is a real one).
+ *
+ * `unit` is "g" (the default, a tenth of a gram) or " mg" for sodium, whose
+ * limit is shown in whole milligrams like every other milligram figure the
+ * model reads ("limit 2300 mg").
  */
 export function limitNotRecorded(
     scope: "day" | "period",
     limit: number,
+    unit: "g" | " mg" = "g",
 ): string {
     const where = scope === "day" ? "on this day" : "in this period";
-    return `not recorded ${where} (limit ${round(limit)}g)`;
+    const shown = unit === " mg" ? round(limit, 0) : round(limit);
+    return `not recorded ${where} (limit ${shown}${unit})`;
 }
 
 /** Mean of a nutrient over only the days that carry it, given one Meal[] per
@@ -598,6 +610,26 @@ export function computeTrends(
             ),
         );
     }
+    // Sodium is milligrams with a daily ceiling, optional on every meal like
+    // saturated fat, and follows the same pattern: a window with no recorded
+    // value drops the block unless a limit is set, which says "not recorded".
+    // Whole milligrams (decimals 0), like caffeine. Not suppressed on an
+    // all-zero series: a recorded 0 mg is a real figure against a limit.
+    const sodiumLimit = goals?.daily_sodium_mg ?? null;
+    const sodiumStat = formatStatLine(
+        "Sodium",
+        " mg",
+        coveredSeries(buckets, "sodium_mg"),
+        sodiumLimit,
+        "ceiling",
+        0,
+    );
+    push(
+        sodiumStat ??
+            (targetApplies(sodiumLimit, "ceiling")
+                ? `Sodium: ${limitNotRecorded("period", sodiumLimit!, " mg")}`
+                : null),
+    );
     push(
         formatStatLine(
             "Water",
@@ -918,11 +950,13 @@ export function computeWeeklyDigest(
     const trans = covered("trans_fat_g");
     const alcohol = covered("alcohol_g");
     const caffeine = covered("caffeine_mg");
+    const sodium = covered("sodium_mg");
     // Whole milligrams, like every other caffeine figure the model reads (see
     // formatMg in mcp.ts and the trends line's `decimals` argument). Rounded
     // here rather than at the call site so the suppression below is keyed on
     // the figure that would actually be printed.
     const caffeineAvg = caffeine.avg != null ? Math.round(caffeine.avg) : null;
+    const sodiumAvg = sodium.avg != null ? Math.round(sodium.avg) : null;
     const avgWater = round(mean(buckets.map((b) => b.waterMl)));
     const totalMeals = buckets.reduce((s, b) => s + b.meals.length, 0);
 
@@ -1086,6 +1120,27 @@ export function computeWeeklyDigest(
                 "limit",
                 caffeine.days,
             ),
+        );
+    }
+    // Sodium carries a ceiling like saturated fat, so a week with none recorded
+    // says so rather than vanishing. Whole milligrams, figure and limit, like
+    // caffeine; not suppressed on 0 (a recorded 0 mg is real).
+    if (sodiumAvg != null) {
+        lines.push(
+            line(
+                "Sodium",
+                sodiumAvg,
+                " mg",
+                goals?.daily_sodium_mg != null
+                    ? Math.round(goals.daily_sodium_mg)
+                    : null,
+                "limit",
+                sodium.days,
+            ),
+        );
+    } else if (targetApplies(goals?.daily_sodium_mg ?? null, "ceiling")) {
+        lines.push(
+            `  Sodium: ${limitNotRecorded("period", goals!.daily_sodium_mg!, " mg")}`,
         );
     }
     lines.push(line("Water", avgWater, " ml", goals?.daily_water_ml ?? null));

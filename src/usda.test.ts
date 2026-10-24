@@ -182,7 +182,7 @@ describe("nutrient mapping", () => {
 
     test("an empty row list maps every key to null", () => {
         const m = mapNutrients([]);
-        expect(Object.keys(m)).toHaveLength(11);
+        expect(Object.keys(m)).toHaveLength(12);
         expect(Object.values(m).every((v) => v === null)).toBe(true);
     });
 
@@ -207,8 +207,8 @@ describe("nutrient mapping", () => {
         ).toBeNull();
     });
 
-    test("the requested numbers are the thirteen the mapping reads", () => {
-        expect(USDA_NUTRIENT_NUMBERS).toHaveLength(13);
+    test("the requested numbers are the fourteen the mapping reads", () => {
+        expect(USDA_NUTRIENT_NUMBERS).toHaveLength(14);
         expect(new Set(USDA_NUTRIENT_NUMBERS)).toEqual(
             new Set([
                 "208",
@@ -224,8 +224,15 @@ describe("nutrient mapping", () => {
                 "958",
                 "606",
                 "605",
+                "307",
             ]),
         );
+    });
+
+    test("sodium (nutrient number 307, mg) maps to sodium_mg", () => {
+        const out = mapNutrients([{ nutrientNumber: "307", value: 410 }]);
+        expect(out.sodium_mg).toBe(410);
+        expect(mapNutrients([]).sodium_mg).toBeNull();
     });
 });
 
@@ -971,7 +978,7 @@ test("usdaRecordFromPayload keeps only the meal nutrient keys of per100g", () =>
             calories: 400,
             protein_g: 8,
             vitamin_c_mg: 3,
-            sodium_mg: 200,
+            potassium_mg: 200,
             fat_g: -1,
         },
         portions: [],

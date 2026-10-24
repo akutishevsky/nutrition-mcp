@@ -136,6 +136,15 @@ export const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
 export const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
 
 /**
+ * `_meta` key for sodium, on the same tools as SATURATED_FAT_META_KEY:
+ * `{ v: 1, goal, days, meals, contributors?, extra? }` built by buildSodiumMeta
+ * (src/sodium.ts), milligrams. Same reason for `_meta`: output schemas are
+ * frozen. No widget reads it yet; a widget that draws the sodium limit repeats
+ * this literal.
+ */
+export const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
+
+/**
  * Where log_meal, update_meal, log_saved_meal, get_goal_progress and
  * get_nutrition_summary put the ingredients behind their breakdown rows (the
  * MealItemsMeta built by buildMealItemsMeta in src/meal-items.ts): the

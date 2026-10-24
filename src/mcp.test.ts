@@ -40,6 +40,7 @@ import {
     PERIOD_AVERAGES_META_KEY,
     ADDED_SUGAR_META_KEY,
     SATURATED_FAT_META_KEY,
+    SODIUM_META_KEY,
     MEAL_ITEMS_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
@@ -47,6 +48,7 @@ import {
     MAX_MACRO_G,
     MAX_ALCOHOL_G,
     MAX_CAFFEINE_MG,
+    MAX_SODIUM_MG,
     MAX_GOAL_G,
     MAX_GOAL_MG,
     gateAlcohol,
@@ -361,6 +363,7 @@ describe("nutrientPresence", () => {
             added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: false,
+            sodium_mg: false,
         });
     });
 
@@ -373,6 +376,7 @@ describe("nutrientPresence", () => {
             added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: false,
+            sodium_mg: false,
         });
         expect(nutrientPresence([])).toEqual({
             saturated_fat_g: false,
@@ -382,6 +386,7 @@ describe("nutrientPresence", () => {
             added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: false,
+            sodium_mg: false,
         });
     });
 
@@ -404,6 +409,7 @@ describe("nutrientPresence", () => {
             added_sugar_g: false,
             alcohol_g: false,
             caffeine_mg: true,
+            sodium_mg: false,
         });
         expect(
             nutrientPresence([meal({ ...blank, caffeine_mg: 0 })]).caffeine_mg,
@@ -883,6 +889,7 @@ describe("gateAlcohol", () => {
         added_sugar_g: 0,
         alcohol_g: 14,
         caffeine_mg: 95,
+        sodium_mg: 0,
         mealTypes: new Set(["dinner"]),
     }));
 
@@ -1475,6 +1482,7 @@ describe("trendsDayPayloadOf", () => {
         ),
         alcohol_g: mealsForDay.reduce((s, m) => s + (m.alcohol_g ?? 0), 0),
         caffeine_mg: mealsForDay.reduce((s, m) => s + (m.caffeine_mg ?? 0), 0),
+        sodium_mg: mealsForDay.reduce((s, m) => s + (m.sodium_mg ?? 0), 0),
         mealTypes: new Set(["dinner"]),
     });
 
@@ -10168,6 +10176,7 @@ describe("meal items ride in _meta on every breakdown widget tool", () => {
         added_sugar_g: NUTRIENT,
         alcohol_g: NUTRIENT,
         caffeine_mg: NUTRIENT,
+        sodium_mg: NUTRIENT,
     });
     const MEAL_ITEMS_META = z.strictObject({
         v: z.literal(1),
@@ -10549,6 +10558,311 @@ describe("saturated fat rides in _meta on every widget tool", () => {
                 expect(trends.meta.goal).toBe(20);
                 expect(trends.meta.days?.[DAY]).toBe(9);
             });
+        });
+    });
+});
+
+// Sodium rides in _meta beside saturated fat (SODIUM_META_KEY, built by
+// buildSodiumMeta in src/sodium.ts), on every tool that carries the
+// saturated-fat payload. Output schemas are frozen, so the figure is asserted
+// absent from structuredContent here; the frozen pin is the "output schemas"
+// test above. No widget reads the key yet (the widgets are being redesigned),
+// so there is no assembled-template literal check for it.
+describe("sodium rides in _meta on every widget tool", () => {
+    const SODIUM_META = z.strictObject({
+        v: z.literal(1),
+        goal: z.number().nullable(),
+        days: z.record(z.string(), z.number().nullable()).optional(),
+        meals: z.record(z.string(), z.number().nullable()).optional(),
+        contributors: z.number().optional(),
+        extra: z
+            .array(
+                z.strictObject({
+                    description: z.string(),
+                    meal_type: z.string().nullable(),
+                    date: z.string().nullable(),
+                    sodium_mg: z.number(),
+                }),
+            )
+            .optional(),
+    });
+    const DAY = "2026-07-26";
+
+    async function call(
+        client: Client,
+        name: string,
+        args: Record<string, unknown>,
+    ) {
+        const r = (await client.callTool({
+            name,
+            arguments: args,
+        })) as unknown as ToolResult;
+        expect(r.isError).toBeFalsy();
+        expect(r.structuredContent).toBeDefined();
+        // Nothing sodium touches may leak into structuredContent.
+        expect(JSON.stringify(r.structuredContent)).not.toContain("sodium");
+        const meta = SODIUM_META.parse(r._meta?.[SODIUM_META_KEY]);
+        return { r, meta };
+    }
+
+    describe.each(ERAS)("%p", (mode) => {
+        test("log_meal: the sodium goal, the day and the shown meal", async () => {
+            db.goals = goals({ daily_sodium_mg: 2300 });
+            await withHttpClient("u1", mode, async (client) => {
+                const { r, meta } = await call(client, "log_meal", {
+                    description: "Ramen",
+                    meal_type: "dinner",
+                    calories: 600,
+                    sodium_mg: 1820,
+                    logged_at: `${DAY}T18:00:00Z`,
+                });
+                expect(meta.goal).toBe(2300);
+                expect(meta.days).toEqual({ [DAY]: 1820 });
+                expect(meta.meals).toEqual({ [MEAL_ID]: 1820 });
+                const text = (r.content as { text: string }[])[0]!.text;
+                expect(text).toContain("Sodium: 1820 mg");
+                expect(text).toContain(
+                    "Sodium: 1820 / 2300 mg limit (79%, under)",
+                );
+            });
+        });
+
+        test("log_meal: no goal and no sodium is goal null, not a zero", async () => {
+            db.goals = goals({ daily_sodium_mg: null });
+            await withHttpClient("u1", mode, async (client) => {
+                const { meta } = await call(client, "log_meal", {
+                    description: "Rice",
+                    meal_type: "dinner",
+                    calories: 200,
+                    logged_at: `${DAY}T18:00:00Z`,
+                });
+                expect(meta.goal).toBeNull();
+                expect(meta.days).toEqual({ [DAY]: null });
+                expect(meta.meals).toEqual({ [MEAL_ID]: null });
+            });
+        });
+
+        test("update_meal: the same payload as log_meal", async () => {
+            db.goals = goals({ daily_sodium_mg: 1500 });
+            db.meals = [
+                meal({ logged_at: `${DAY}T18:00:00Z`, sodium_mg: null }),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const { meta } = await call(client, "update_meal", {
+                    id: MEAL_ID,
+                    sodium_mg: 640,
+                    logged_at: `${DAY}T18:00:00Z`,
+                });
+                expect(meta.goal).toBe(1500);
+                expect(meta.days).toEqual({ [DAY]: 640 });
+            });
+        });
+
+        test("get_goal_progress, get_nutrition_summary and get_trends carry it", async () => {
+            db.goals = goals({ daily_sodium_mg: 2300 });
+            db.meals = [
+                meal({ logged_at: `${DAY}T12:00:00Z`, sodium_mg: 900 }),
+            ];
+            await withHttpClient("u1", mode, async (client) => {
+                const progress = await call(client, "get_goal_progress", {
+                    date: DAY,
+                });
+                expect(progress.meta.goal).toBe(2300);
+                expect(progress.meta.days).toEqual({ [DAY]: 900 });
+
+                const summary = await call(client, "get_nutrition_summary", {
+                    start_date: DAY,
+                    end_date: DAY,
+                });
+                expect(summary.meta.goal).toBe(2300);
+                expect(summary.meta.days?.[DAY]).toBe(900);
+                expect(summary.meta.contributors).toBe(1);
+                expect(summary.meta.extra).toEqual([]);
+
+                const trends = await call(client, "get_trends", {
+                    end_date: DAY,
+                });
+                expect(trends.meta.goal).toBe(2300);
+                expect(trends.meta.days?.[DAY]).toBe(900);
+            });
+        });
+    });
+});
+
+describe("sodium in the model-facing text", () => {
+    test("formatProgress: whole mg against the limit, and stated when not recorded", () => {
+        const salty = meal({ sodium_mg: 2600.4 });
+        const over = formatProgress(
+            sumMeals([salty]),
+            goals({ daily_sodium_mg: 2300 }),
+            "us",
+            nutrientPresence([salty]),
+        );
+        expect(over).toContain(
+            "Sodium: 2600 / 2300 mg limit (113%, 300 mg over)",
+        );
+
+        const none = meal({ sodium_mg: null });
+        expect(
+            formatProgress(
+                sumMeals([none]),
+                goals({ daily_sodium_mg: 2300 }),
+                "us",
+                nutrientPresence([none]),
+            ),
+        ).toContain("Sodium: not recorded on this day (limit 2300 mg)");
+        // No limit and nothing recorded: no line, never a made-up 0.
+        expect(
+            formatProgress(
+                sumMeals([none]),
+                goals({ daily_sodium_mg: null }),
+                "us",
+                nutrientPresence([none]),
+            ),
+        ).not.toContain("Sodium");
+        // 0 is a real limit.
+        expect(
+            formatProgress(
+                sumMeals([none]),
+                goals({ daily_sodium_mg: 0 }),
+                "us",
+                nutrientPresence([none]),
+            ),
+        ).toContain("Sodium: not recorded on this day (limit 0 mg)");
+    });
+
+    test("formatGoals names the sodium limit in mg", () => {
+        expect(
+            formatGoals(goals({ daily_sodium_mg: 2300 }), "kg", "us"),
+        ).toContain("- Sodium (max): 2300 mg");
+    });
+
+    test("ceilingAverageLine takes a mg unit for sodium", () => {
+        expect(ceilingAverageLine("Sodium", 1800, 2, 3, 2300, " mg")).toBe(
+            "\n\nSodium, daily average: 1800 / 2300 mg limit (78%, under)",
+        );
+        expect(ceilingAverageLine("Sodium", 0, 0, 3, 2300, " mg")).toBe(
+            "\n\nSodium, daily average: not recorded in this period (limit 2300 mg)",
+        );
+        expect(ceilingAverageLine("Sodium", 0, 0, 3, null, " mg")).toBe("");
+    });
+
+    test("the sodium field descriptions describe without directing", async () => {
+        const server = new McpServer(
+            { name: "nutrition-mcp-test", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", true, null);
+        const [clientTransport, serverTransport] =
+            InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "test-client", version: "0.0.0" });
+        await Promise.all([
+            server.connect(serverTransport),
+            client.connect(clientTransport),
+        ]);
+        const { tools } = await client.listTools();
+        const logMeal = tools.find((t) => t.name === "log_meal")!;
+        const props = (
+            logMeal.inputSchema as {
+                properties: Record<string, { description?: string }>;
+            }
+        ).properties;
+        expect(props.sodium_mg?.description).toContain("not salt");
+        const goalsTool = tools.find((t) => t.name === "set_nutrition_goals")!;
+        const gProps = (
+            goalsTool.inputSchema as {
+                properties: Record<string, { description?: string }>;
+            }
+        ).properties;
+        expect(gProps.daily_sodium_mg?.description).toContain("MILLIGRAMS");
+        for (const d of [
+            props.sodium_mg!.description!,
+            gProps.daily_sodium_mg!.description!,
+        ])
+            expect(d).not.toMatch(/\b(you should|ask the user|offer)\b/i);
+        await client.close();
+    });
+});
+
+describe("sodium on the write tools", () => {
+    test("log_meal stores sodium_mg and bounds it at MAX_SODIUM_MG", async () => {
+        expect(MAX_SODIUM_MG).toBe(20_000);
+        await withTools(null, async (call) => {
+            const ok = await call("log_meal", {
+                description: "Soup",
+                meal_type: "lunch",
+                calories: 180,
+                sodium_mg: 890,
+            });
+            expect(ok.isError).toBeFalsy();
+            expect(db.inserted.at(-1)!.sodium_mg).toBe(890);
+            const before = db.inserted.length;
+            const over = await call("log_meal", {
+                description: "Soup",
+                meal_type: "lunch",
+                calories: 180,
+                sodium_mg: MAX_SODIUM_MG + 1,
+            });
+            expect(over.isError).toBe(true);
+            expect(db.inserted).toHaveLength(before);
+        });
+    });
+
+    test("an itemized log_meal with sodium on some items is refused, nothing saved", async () => {
+        await withTools(null, async (call) => {
+            const before = db.inserted.length;
+            const r = await call("log_meal", {
+                description: "Burger",
+                meal_type: "lunch",
+                items: [
+                    {
+                        name: "Bun",
+                        calories: 200,
+                        protein_g: 6,
+                        carbs_g: 38,
+                        fat_g: 3,
+                        sodium_mg: 380,
+                    },
+                    {
+                        name: "Patty",
+                        calories: 300,
+                        protein_g: 25,
+                        carbs_g: 0,
+                        fat_g: 22,
+                    },
+                ],
+            });
+            expect(r.isError).toBe(true);
+            expect(db.inserted).toHaveLength(before);
+        });
+    });
+
+    test("set_nutrition_goals writes daily_sodium_mg; 0 is kept; MAX_GOAL_MG bounds it", async () => {
+        await withTools(null, async (call) => {
+            expect(
+                (await call("set_nutrition_goals", { daily_sodium_mg: 2300 }))
+                    .isError,
+            ).toBeFalsy();
+            expect(db.goals?.daily_sodium_mg).toBe(2300);
+            expect(
+                (await call("set_nutrition_goals", { daily_sodium_mg: 0 }))
+                    .isError,
+            ).toBeFalsy();
+            expect(db.goals?.daily_sodium_mg).toBe(0);
+            // Leaving it out keeps the stored value.
+            await call("set_nutrition_goals", { daily_calories: 2100 });
+            expect(db.goals?.daily_sodium_mg).toBe(0);
+            expect(
+                (
+                    await call("set_nutrition_goals", {
+                        daily_sodium_mg: MAX_GOAL_MG + 1,
+                    })
+                ).isError,
+            ).toBe(true);
+            expect(
+                (await call("set_nutrition_goals", { daily_sodium_mg: -1 }))
+                    .isError,
+            ).toBe(true);
         });
     });
 });
@@ -11667,7 +11981,7 @@ describe("USDA tools: get_food_macros", () => {
             );
             expect(lines[3]).toMatch(/^For 150 g: calories 134 kcal · /);
             expect(lines[4]).toBe(
-                "Not in this record (not zero): added sugar.",
+                "Not in this record (not zero): added sugar, sodium.",
             );
             expect(lines[5]).toBe(
                 'Portions: 100 g · 1 NLEA serving (126 g) · 1 cup, mashed (225 g) · 1 cup, sliced (150 g) · 1 extra large (9" or longer) (152 g) · 1 extra small (less than 6" long) (81 g) · 1 large (8" to 8-7/8" long) (136 g) · 1 medium (7" to 7-7/8" long) (118 g) · 1 small (6" to 6-7/8" long) (101 g)',
@@ -11682,7 +11996,7 @@ describe("USDA tools: get_food_macros", () => {
         expect(detail.pathname).toBe("/fdc/v1/food/173944");
         expect(detail.searchParams.get("format")).toBe("full");
         expect(detail.searchParams.get("nutrients")!.split(",").sort()).toEqual(
-            "208,203,204,205,606,605,291,269,539,221,262,957,958"
+            "208,203,204,205,606,605,291,269,539,221,262,957,958,307"
                 .split(",")
                 .sort(),
         );
@@ -11709,7 +12023,7 @@ describe("USDA tools: get_food_macros", () => {
                 "Scaled values and a food_ref come with amount_g.",
             );
             expect(text).toContain(
-                "Not in this record (not zero): saturated fat, trans fat, sugar, added sugar, alcohol, caffeine.",
+                "Not in this record (not zero): saturated fat, trans fat, sugar, added sugar, alcohol, caffeine, sodium.",
             );
             expect(text).toContain("Per 100 g: calories 85 kcal");
         });

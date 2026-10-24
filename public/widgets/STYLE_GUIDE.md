@@ -68,33 +68,77 @@ hex. Four blocks are required: `:root` is the light default, the media query is 
 system-dark fallback, and the two `[data-theme]` selectors let the host's explicit
 theme win in **both** directions (a light host inside a dark OS, and vice-versa).
 
+`shared/tokens.css` is the source of truth; this section lists what each token is
+for. **2026-10: the widget redesign's palette was adopted.** What changed:
+
+- Every series colour took the design's value except `--fiber`, `--saturated`,
+  `--alcohol`, `--caffeine` and `--water`, which already matched. `--trans` is now
+  `#64748b` in light.
+- Neutrals take the design's values under the existing names: `--text` is the
+  design's `--ink`, `--text-dim` its `--sub`, `--bg` and `--panel` its `--page`
+  (white / `#141414`: the design draws no card on a contrasting page), and
+  `--panel-border` its `--ln`. `--track` is the design's neutral track.
+- `--accent` stays the **brand green** (the design's `--brand`, now `#3f7a52` /
+  `#6cc08c`). The design's blue `--accent` (focus rings, "to go") is `--focus`
+  here, so nothing that reads `var(--accent)` turns blue.
+- `--over` is `#c4381f` / `#ff6b52`; `--warn` is the design's "near" amber,
+  `#b86e00` / `#f0a640`.
+- New tokens: `--sodium`, `--weight`, `--text-mute`, `--surface-soft`,
+  `--surface-inset`, `--focus`, the status pairs `--status-{over,near,togo,ok,nr}`
+  (mark colour) with `--status-…-ink` (text colour), the calorie gauge's
+  `--gauge-{track,fill,ink,cap}` and `--gauge-over-{track,fill,ink}`, and the
+  show-more pill's `--pill-bg` / `--pill-bg-hover`.
+
+Design variable → token (values live only in `tokens.css`):
+
+| Design                | Token                                 | Light / dark                                                          |
+| --------------------- | ------------------------------------- | --------------------------------------------------------------------- |
+| `--page`              | `--bg`, `--panel`                     | `#ffffff` / `#141414`                                                 |
+| `--ink`               | `--text`                              | `#1c2333` / `#f1f2f4`                                                 |
+| `--sub`               | `--text-dim`                          | `#5b616d` / `#a4aab4`                                                 |
+| `--mute`              | `--text-mute`                         | `#646b77` / `#8a909a`                                                 |
+| `--ln`                | `--panel-border`                      | `#e7e9ed` / `#2c2e33`                                                 |
+| `--soft`              | `--surface-soft`                      | `#f5f6f8` / `#1c1d21`                                                 |
+| `--inset`             | `--surface-inset`                     | `#ffffff` / `#111214`                                                 |
+| `--track`             | `--track`                             | `#eceef1` / `#2a2b31`                                                 |
+| `--brand`             | `--accent`                            | `#3f7a52` / `#6cc08c`                                                 |
+| `--accent`            | `--focus`                             | `#2d6fd6` / `#8ab0ff`                                                 |
+| `--over`              | `--over`                              | `#c4381f` / `#ff6b52`                                                 |
+| `.s-over` sc / si     | `--status-over` / `--status-over-ink` | `#d63b2a`, `#be3525` / `#ff8f7c` both                                 |
+| `.s-near` sc / si     | `--status-near` / `--status-near-ink` | `#b86e00`, `#995b00` / `#f0a640` both                                 |
+| `.s-togo` sc / si     | `--status-togo` / `--status-togo-ink` | `#2d6fd6`, `#2965c3` / `#8ab0ff` both                                 |
+| `.s-ok` sc / si       | `--status-ok` / `--status-ok-ink`     | `#17804a`, `#157745` / `#3ccf7a` both                                 |
+| `.s-nr` sc / si       | `--status-nr` / `--status-nr-ink`     | `#80868f`, `#646b77` / `#80868f`, `#9aa0a9`                           |
+| `--g-trk/str/ink/cap` | `--gauge-track/fill/ink/cap`          | `#e2f4e8 #1d9751 #17804a #ffffff` / `#16301f #3ccf7a #7be3a3 #0f1411` |
+| `--o-trk/str/ink`     | `--gauge-over-track/fill/ink`         | `#fbe3de #d63b2a #be3525` / `#3a1a16 #ff6b52 #ff8f7c`                 |
+| `--btn` / `--btnh`    | `--pill-bg` / `--pill-bg-hover`       | `#e2f4e8 #cdebd7` / `#1b3526 #22432f`                                 |
+| metric `--<key>`      | the same name (table below)           |                                                                       |
+
 ```css
 :root {
-    /* Light theme (default). */
-    --text: #1d1d1f;
-    --text-dim: #6e6e73;
-    --bg: #f5f5f7;
-    --panel: #ffffff;
-    --panel-border: #e6e6ea;
-    --track: #e6e6ea; /* unfilled gauge/bar/axis grey */
-    --accent: #4a7c59; /* brand green */
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 22px rgba(0, 0, 0, 0.05);
+    /* Neutrals */
+    --text; --text-dim; --text-mute;
+    --bg; --panel; --panel-border; --surface-soft; --surface-inset; --track;
+    --accent; /* brand green */
+    --focus; /* focus ring, "to go" blue */
+    --shadow;
 
-    /* Data-series palette (see the table below). */
-    --calories: #ff9f0a;
-    --protein: #8b5cf6;
-    --carbs: #10b981;
-    --fiber: #0d9488;
-    --sugar: #65a30d;
-    --added-sugar: #858a0b;
-    --saturated: #c2410c;
-    --trans: #475569;
-    --fat: #f43f7e;
-    --alcohol: #a21caf;
-    --caffeine: #8b5e34;
-    --water: #0ea5e9;
-    --over: #d0452b; /* "past goal" flag colour */
-    --warn: #b26a00; /* "worth a look" flag colour */
+    /* Data series (table below) */
+    --calories; --protein; --carbs; --fiber; --sugar; --added-sugar;
+    --saturated; --trans; --sodium; --fat; --alcohol; --caffeine; --water;
+    --weight;
+    --over; /* "past goal" flag colour */
+    --warn; /* "worth a look" / "near the limit" flag colour */
+
+    /* Status: a mark colour and a text ink per state */
+    --status-over; --status-over-ink; --status-near; --status-near-ink;
+    --status-togo; --status-togo-ink; --status-ok; --status-ok-ink;
+    --status-nr; --status-nr-ink;
+
+    /* Calorie gauge and the show-more pill */
+    --gauge-track; --gauge-fill; --gauge-ink; --gauge-cap;
+    --gauge-over-track; --gauge-over-fill; --gauge-over-ink;
+    --pill-bg; --pill-bg-hover;
 
     /* Not a custom property, but it belongs with the theme: native controls
        (select, input, scrollbars) ignore every token without it and render
@@ -104,62 +148,37 @@ theme win in **both** directions (a light host inside a dark OS, and vice-versa)
     --radius: 18px;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --text: #f5f5f7;
-        --text-dim: #98989d;
-        --bg: #000000;
-        --panel: #1c1c1e;
-        --panel-border: #2c2c2e;
-        --track: #2c2c2e;
-        --accent: #6ab98a;
-        --shadow: none;
-        --calories: #ffab2e;
-        --protein: #a78bfa;
-        --carbs: #34d399;
-        --fiber: #14b8a6;
-        --sugar: #a3e635;
-        --added-sugar: #d4d03a;
-        --saturated: #fb923c;
-        --trans: #94a3b8;
-        --fat: #fb7199;
-        --alcohol: #e879f9;
-        --caffeine: #c69a6d;
-        --water: #38bdf8;
-        --over: #ff6b52;
-        --warn: #e0a030;
-        color-scheme: dark;
-    }
-}
-
-/* Explicit host theme wins over the media query in both directions. The two
-   [data-theme] blocks in tokens.css repeat the two value sets above verbatim —
-   `:root[data-theme="light"]` the light one, `:root[data-theme="dark"]` the dark
-   one. A token added to one block must be added to all four. */
+/* The same names again in the prefers-color-scheme dark media query and in
+   :root[data-theme="light"] / :root[data-theme="dark"]. A token added to one
+   block must be added to all four (public/widgets/macros.test.ts checks the
+   redesign tokens). */
 ```
 
 ### Data-series palette
 
 Each series keeps a distinct hue, tuned per theme (dark values are lightened for
-contrast on black). `--over` and `--warn` are **status flags**, not series colours —
-never repaint a whole series with one (see the over-goal convention in §4 and §4a).
+contrast on a dark page). `--over` and `--warn` are **status flags**, not series
+colours — never repaint a whole series with one (see the over-goal convention in §4
+and §4a).
 
 | Token           | Light     | Dark      |
 | --------------- | --------- | --------- |
-| `--calories`    | `#ff9f0a` | `#ffab2e` |
-| `--protein`     | `#8b5cf6` | `#a78bfa` |
-| `--carbs`       | `#10b981` | `#34d399` |
+| `--calories`    | `#ef8a00` | `#ffad33` |
+| `--protein`     | `#7c5cf0` | `#a68cff` |
+| `--carbs`       | `#0f9e74` | `#3fd3a0` |
 | `--fiber`       | `#0d9488` | `#14b8a6` |
-| `--sugar`       | `#65a30d` | `#a3e635` |
-| `--added-sugar` | `#858a0b` | `#d4d03a` |
+| `--sugar`       | `#5f9a0c` | `#a3e635` |
+| `--added-sugar` | `#7d820a` | `#d4d03a` |
 | `--saturated`   | `#c2410c` | `#fb923c` |
-| `--trans`       | `#475569` | `#94a3b8` |
-| `--fat`         | `#f43f7e` | `#fb7199` |
+| `--trans`       | `#64748b` | `#94a3b8` |
+| `--sodium`      | `#5f7187` | `#a3b5ca` |
+| `--fat`         | `#e8467c` | `#ff7aa2` |
 | `--alcohol`     | `#a21caf` | `#e879f9` |
 | `--caffeine`    | `#8b5e34` | `#c69a6d` |
 | `--water`       | `#0ea5e9` | `#38bdf8` |
-| `--over`        | `#d0452b` | `#ff6b52` |
-| `--warn`        | `#b26a00` | `#e0a030` |
+| `--weight`      | `#2f7fd1` | `#6aaef5` |
+| `--over`        | `#c4381f` | `#ff6b52` |
+| `--warn`        | `#b86e00` | `#f0a640` |
 
 `--fiber` and `--sugar` are deliberately inside the carbs green family (a deeper
 teal and a lime), because fiber and sugar are _parts of_ carbs. They used to sit
@@ -179,9 +198,15 @@ emerald, the other side of lime) and short of `--calories` / `--warn` (amber,
 ≈ 35°). In light it is darker than `--sugar`; in dark it is the yellower of the
 two. Check both themes in the component gallery, which shows the sugars row.
 
+`--sodium` is a slate blue-grey, the design's choice. It sits close to `--trans` in
+light (both are cool greys), which is acceptable only because the two never share a
+cell; a widget that puts them side by side should label them, not rely on hue.
+`--weight` is a mid blue for the weight line, clear of `--water` (sky) by depth.
+
 `--warn` is the amber counterpart to `--over`, for "worth a look" rather than
 "wrong" (a row logged at local noon because the source had no time). It is used by
-the import widget's notices and pills, not by the strip.
+the import widget's notices and pills, not by the strip. It equals
+`--status-near`, the design's "near the limit" mark.
 
 ## 2. Base reset, typography, layout
 
@@ -983,9 +1008,10 @@ instruction has been followed, the answer is on screen, and leaving it there is 
 row of noise above the thing the user asked for. A strip with no meals emits no hint
 at all, because nothing on it discloses anything — `macros.test.ts` pins both halves.
 
-### Contrast: `--text-dim` has ~0.5 of headroom over AA and no more
+### Contrast: never dim `--text-dim` further
 
-It is 5.07:1 on `--panel` in light and 5.93:1 in dark, so anything that dims it
+It is 6.22:1 on `--panel` in light and 7.88:1 in dark (the 2026-10 palette; it was
+5.07:1 and 5.93:1 before), so anything that dims it
 further — an `opacity`, or a tinted surface underneath — drops small text under the
 4.5:1 floor. That is the entire reason `.mtile.open` / `.cal.open` switch their own
 captions (`.mkey`, `.mcap`, `.msub`, `.cal-lab`, `.cal-left`, `.cal-goal`) to

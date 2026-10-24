@@ -14,6 +14,7 @@ import {
     runImport,
     MAX_ROWS_PER_CALL,
     MAX_CAFFEINE_MG,
+    MAX_SODIUM_MG,
     type ImportRow,
     type ImportDeps,
 } from "./import.js";
@@ -2124,4 +2125,73 @@ test("a big own-export import reads each distinct record once, however many rows
     expect(result.summary.created).toBe(5);
     expect(inserted).toHaveLength(5);
     expect(looked).toEqual(["usda:171477"]);
+});
+
+test("sodium imports as milligrams, and stays unrecorded when the file lacks it", async () => {
+    const { deps, inserted } = makeStore();
+    const result = await runImport(
+        args([
+            row({ source_line: 2, description: "Ramen", sodium_mg: 1820 }),
+            row({ source_line: 3, description: "Apple" }),
+            row({ source_line: 4, description: "Water", sodium_mg: 0 }),
+        ]),
+        deps,
+    );
+    expect(result.summary.created).toBe(3);
+    const [salty, without, zero] = inserted;
+    expect(salty!.sodium_mg).toBe(1820);
+    // Absent, not 0: a row that never named the column records no value.
+    expect("sodium_mg" in without!).toBe(false);
+    // A recorded 0 is data.
+    expect(zero!.sodium_mg).toBe(0);
+});
+
+test("sodium is bounded in the handler at MAX_SODIUM_MG, and its unit is mg", () => {
+    const check = (over: Partial<ImportRow>) =>
+        validateRow(
+            row({ source_line: 2, ...over }),
+            0,
+            { tz: TZ, nowMs: NOW },
+            undefined,
+        );
+    const negative = check({ sodium_mg: -1 });
+    expect(negative.ok).toBe(false);
+    if (!negative.ok) expect(negative.error.field).toBe("sodium_mg");
+    const huge = check({ sodium_mg: MAX_SODIUM_MG + 1 });
+    expect(huge.ok).toBe(false);
+    if (!huge.ok) {
+        expect(huge.error.field).toBe("sodium_mg");
+        expect(huge.error.message).toContain("mg");
+        expect(huge.error.message).not.toMatch(/\d g\b/);
+    }
+    expect(check({ sodium_mg: 0 }).ok).toBe(true);
+    expect(check({ sodium_mg: MAX_SODIUM_MG }).ok).toBe(true);
+});
+
+test("sodium is EXCLUDED from the content digest, so a replay still dedupes", async () => {
+    const keyFor = (over: Partial<ImportRow>) => {
+        const v = validateRow(
+            row({ source_line: 2, description: "Ramen", ...over }),
+            0,
+            { tz: TZ, nowMs: NOW },
+            undefined,
+        );
+        if (!v.ok) throw new Error("fixture should validate");
+        const resolved = [v.resolved];
+        assignIdempotencyKeys("user-1", resolved);
+        return resolved[0]!.input.idempotency_key!;
+    };
+    expect(keyFor({ sodium_mg: 1820 })).toBe(keyFor({}));
+
+    const { deps, inserted } = makeStore();
+    await runImport(
+        args([row({ source_line: 2, description: "Ramen" })]),
+        deps,
+    );
+    const second = await runImport(
+        args([row({ source_line: 2, description: "Ramen", sodium_mg: 1820 })]),
+        deps,
+    );
+    expect(second.summary.deduplicated).toBe(1);
+    expect(inserted).toHaveLength(1);
 });

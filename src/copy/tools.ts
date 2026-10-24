@@ -156,6 +156,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "added_sugar_g", required: false },
             { name: "alcohol_g", required: false },
             { name: "caffeine_mg", required: false },
+            { name: "sodium_mg", required: false },
             { name: "logged_at", required: false },
             { name: "notes", required: false },
             { name: "items", required: false },
@@ -225,6 +226,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "added_sugar_g", required: false },
             { name: "alcohol_g", required: false },
             { name: "caffeine_mg", required: false },
+            { name: "sodium_mg", required: false },
             { name: "logged_at", required: false },
             { name: "notes", required: false },
             { name: "items", required: false },
@@ -259,6 +261,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "added_sugar_g", required: false },
             { name: "alcohol_g", required: false },
             { name: "caffeine_mg", required: false },
+            { name: "sodium_mg", required: false },
         ],
         hasPhotoHint: false,
     },
@@ -300,6 +303,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "added_sugar_g", required: false },
             { name: "alcohol_g", required: false },
             { name: "caffeine_mg", required: false },
+            { name: "sodium_mg", required: false },
         ],
         hasPhotoHint: false,
     },
@@ -521,6 +525,7 @@ export const TOOLS: ToolIdentity[] = [
             { name: "daily_added_sugar_g", required: false },
             { name: "daily_alcohol_g", required: false },
             { name: "daily_caffeine_mg", required: false },
+            { name: "daily_sodium_mg", required: false },
             { name: "daily_water_ml", required: false },
             { name: "target_weight", required: false },
         ],
@@ -841,7 +846,7 @@ const TOOLS_EN: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log what you ate with calories and macros — plus saturated and trans fat, fiber, total and added sugar, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first. It can also take the ingredients one by one, and then the totals are the sum of those ingredients.",
+                "Log what you ate with calories and macros — plus saturated and trans fat, fiber, total and added sugar, sodium, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first. It can also take the ingredients one by one, and then the totals are the sum of those ingredients.",
             params: {
                 description: "What was eaten",
                 meal_type: "breakfast, lunch, dinner or snack",
@@ -863,6 +868,8 @@ const TOOLS_EN: ToolsDoc = {
                     "Grams of <b>pure ethanol</b>, not the volume of the drink and not its ABV — the AI works it out from the pour size and strength (a 330 ml 5% beer is 13 g)",
                 caffeine_mg:
                     "Caffeine in <b>milligrams</b>, not grams — the one field here that isn't in grams, because that is how every label and guideline states it (a brewed coffee is about 95 mg, an espresso 63 mg, a can of cola 34 mg). Caffeine adds no calories. Unlike fiber and sugar it is only sent for things that actually contain caffeine — a recorded 0 would put a caffeine row on your dashboard for a nutrient you never consume",
+                sodium_mg:
+                    "Optional. <b>Sodium</b> in milligrams — sodium, not salt (1 g of salt holds about 400 mg of sodium). A blank is stored as not measured and leaves that day out of your sodium average and limit; 0 is the right value for a food with none.",
                 logged_at:
                     "When you ate it, if not now — lets you log something after the fact",
                 notes: "Additional notes",
@@ -908,7 +915,7 @@ const TOOLS_EN: ToolsDoc = {
             description:
                 "Add a batch of past meals in one go — up to 50 at a time — instead of logging them one by one. The importer above writes through this, and the AI can use it directly for meal data you've pasted into the chat. Every row is checked first and anything that doesn't fit is reported row by row, so re-sending the same rows is safe and won't duplicate what's already logged, as long as your timezone hasn't changed in between.",
             params: {
-                meals: "The rows to import, in source-file order (1–50 per call). Each row can carry a time, meal type, description, notes and the same numbers as a logged meal: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (total sugars), <code>added_sugar_g</code> (added sugars, part of the total), <code>alcohol_g</code> (grams of pure ethanol) and <code>caffeine_mg</code> (milligrams, not grams)",
+                meals: "The rows to import, in source-file order (1–50 per call). Each row can carry a time, meal type, description, notes and the same numbers as a logged meal: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (total sugars), <code>added_sugar_g</code> (added sugars, part of the total), <code>alcohol_g</code> (grams of pure ethanol), <code>caffeine_mg</code> (milligrams, not grams) and <code>sodium_mg</code> (milligrams of sodium, not salt)",
                 expected_row_count:
                     "How many rows this call carries, counted from the source file, so a dropped row gets caught",
                 expected_total_kcal:
@@ -923,7 +930,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Change the details of a meal you already logged — its description, any macro, fiber, total or added sugar, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber, sugar or added sugar, the server says so and the AI fills it in here once you agree. On a meal logged with ingredients, the totals change through its ingredient list.",
+                "Change the details of a meal you already logged — its description, any macro, fiber, total or added sugar, sodium, alcohol or caffeine, the time, or notes. Also how a gap gets backfilled: if a meal went in without its fiber, sugar or added sugar, the server says so and the AI fills it in here once you agree. On a meal logged with ingredients, the totals change through its ingredient list.",
             params: {
                 id: "UUID of the meal to update",
                 description: "",
@@ -941,6 +948,7 @@ const TOOLS_EN: ToolsDoc = {
                     "Added sugars only, never more than total sugars. It accompanies <code>sugar_g</code>: a change to total sugars on a meal with no added sugars recorded may not be saved without it",
                 alcohol_g: "Grams of pure ethanol, not the volume of the drink",
                 caffeine_mg: "Milligrams, not grams",
+                sodium_mg: "Milligrams of sodium, not salt",
                 logged_at: "",
                 notes: "",
                 items: "The full ingredient list, replacing the existing one. The meal's totals become the sum of this list, so the totals fields can't be sent with it",
@@ -981,6 +989,7 @@ const TOOLS_EN: ToolsDoc = {
                     "Grams of pure ethanol for one serving, not the volume of the drink",
                 caffeine_mg:
                     "Milligrams of caffeine for one serving, not grams",
+                sodium_mg: "Milligrams of sodium for one serving, not salt",
             },
             example: "Save this as my usual breakfast",
         },
@@ -1033,6 +1042,7 @@ const TOOLS_EN: ToolsDoc = {
                     "Grams of pure ethanol for one serving, not the volume of the drink",
                 caffeine_mg:
                     "Milligrams of caffeine for one serving, not grams",
+                sodium_mg: "Milligrams of sodium for one serving, not salt",
             },
             example:
                 "My usual breakfast now has 350 calories per serving — update it",
@@ -1234,7 +1244,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Set your daily calorie, macro, saturated fat, fiber, sugar, added sugar, alcohol, caffeine and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; saturated fat, total sugar, added sugar, alcohol and caffeine are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
+                "Set your daily calorie, macro, saturated fat, fiber, sugar, added sugar, alcohol, caffeine, sodium and water goals, plus an optional target body weight. Calories, protein, carbs, fat, fiber and water are targets to reach; saturated fat, total sugar, added sugar, alcohol, caffeine and sodium are limits to stay under, and progress is worded accordingly. Update only the fields you name; the rest stay put.",
             params: {
                 daily_calories: "Daily calorie target (kcal). Null to clear.",
                 daily_protein_g: "Daily protein target (grams). Null to clear.",
@@ -1252,6 +1262,8 @@ const TOOLS_EN: ToolsDoc = {
                     "Daily alcohol limit in grams of <b>pure ethanol</b>, a maximum to stay under. One US standard drink is 14 g, one UK unit 7.9 g. Null to clear.",
                 daily_caffeine_mg:
                     "Daily caffeine limit in <b>milligrams</b>, a maximum to stay under. EFSA and the FDA put the ceiling for healthy adults at 400 mg a day (roughly four brewed coffees); EFSA's figure for pregnancy is 200 mg. 0 is a real limit meaning none at all. Null to clear.",
+                daily_sodium_mg:
+                    "Daily sodium limit in <b>milligrams</b>, a maximum to stay under — sodium, not salt. The WHO figure for adults is under 2,000 mg a day; the US Dietary Guidelines say under 2,300 mg. 0 is a real limit meaning none at all. Null to clear.",
                 daily_water_ml: "",
                 target_weight: "",
             },

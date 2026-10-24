@@ -1563,6 +1563,45 @@ test("--added-sugar is defined in every token block", async () => {
     );
 });
 
+// The redesign palette (2026-10) added these; CLAUDE.md's rule is that a colour
+// is set in every theme block, so each must appear as often as --sugar does
+// (four blocks: :root, the dark media query and both [data-theme] overrides).
+test("every redesign token is defined in every token block", async () => {
+    const css = await Bun.file(`${SRC}/shared/tokens.css`).text();
+    const blocks = css.match(/--sugar:/g)?.length;
+    expect(blocks).toBe(4);
+    for (const token of [
+        "--sodium",
+        "--weight",
+        "--focus",
+        "--text-mute",
+        "--surface-soft",
+        "--surface-inset",
+        "--status-over",
+        "--status-over-ink",
+        "--status-near",
+        "--status-near-ink",
+        "--status-togo",
+        "--status-togo-ink",
+        "--status-ok",
+        "--status-ok-ink",
+        "--status-nr",
+        "--status-nr-ink",
+        "--gauge-track",
+        "--gauge-fill",
+        "--gauge-ink",
+        "--gauge-cap",
+        "--gauge-over-track",
+        "--gauge-over-fill",
+        "--gauge-over-ink",
+        "--pill-bg",
+        "--pill-bg-hover",
+    ])
+        expect(css.match(new RegExp(`${token}:`, "g"))?.length, token).toBe(
+            blocks,
+        );
+});
+
 // The payload is millilitres because that is what a glass is logged in; a
 // day's intake is read in litres.
 test("water reads in litres, and an untracked day has no line at all", () => {

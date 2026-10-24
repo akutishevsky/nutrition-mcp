@@ -32,7 +32,7 @@ export const INDEX_IT: IndexDoc = {
 
     featureList: [
         "Pasti registrati con parole semplici, con calorie, macronutrienti, fibre, zuccheri e zuccheri aggiunti",
-        "Monitoraggio di grassi saturi e trans, con limite facoltativo per i grassi saturi",
+        "Monitoraggio di grassi saturi e trans e del sodio, con limiti facoltativi per grassi saturi e sodio",
         "Valori USDA FoodData Central per gli alimenti generici, stime per il resto",
         "Ricerca tramite codice a barre per i prodotti confezionati con Open Food Facts",
         "Ogni valore nutrizionale con l’indicazione della sua fonte",
@@ -435,7 +435,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "goals-progress",
                 title: "Fissa obiettivi, fai il punto",
                 description:
-                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri aggiunti, grassi saturi, zuccheri totali, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
+                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri aggiunti, grassi saturi, sodio, zuccheri totali, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Salva gli obiettivi di calorie e proteine e un limite di caffeina di 400 mg",
@@ -761,7 +761,7 @@ export const INDEX_IT: IndexDoc = {
         cards: [
             {
                 title: "Pasti a parole tue",
-                body: "Descrivi cosa hai mangiato: per gli alimenti generici si usano i valori di USDA FoodData Central quando disponibili, e la tua IA stima il resto: calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti e caffeina in milligrammi. Il pasto viene registrato e ogni valore mostra la sua fonte.",
+                body: "Descrivi cosa hai mangiato: per gli alimenti generici si usano i valori di USDA FoodData Central quando disponibili, e la tua IA stima il resto: calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti, sodio e caffeina in milligrammi. Il pasto viene registrato e ogni valore mostra la sua fonte.",
             },
             {
                 title: "Scansiona un codice a barre",
@@ -769,7 +769,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Obiettivi e progressi",
-                body: "Imposta obiettivi giornalieri di calorie, macronutrienti, fibre e acqua, più i limiti di zuccheri aggiunti, grassi saturi, zuccheri totali, caffeina e alcol da non superare, e controlla i progressi in tempo reale.",
+                body: "Imposta obiettivi giornalieri di calorie, macronutrienti, fibre e acqua, più i limiti di zuccheri aggiunti, grassi saturi, sodio, zuccheri totali, caffeina e alcol da non superare, e controlla i progressi in tempo reale.",
             },
             {
                 title: "Riepiloghi e andamenti",
@@ -876,7 +876,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cos'è Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP è un server MCP (Model Context Protocol) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contatore di calorie e macronutrienti. Invece di cercare ogni alimento da solo, dici alla tua IA cosa hai mangiato, ed essa registra nel tuo diario alimentare calorie, macronutrienti, fibre, zuccheri, zuccheri aggiunti, grassi saturi e trans e caffeina.",
+                "Nutrition MCP è un server MCP (Model Context Protocol) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contatore di calorie e macronutrienti. Invece di cercare ogni alimento da solo, dici alla tua IA cosa hai mangiato, ed essa registra nel tuo diario alimentare calorie, macronutrienti, fibre, zuccheri, zuccheri aggiunti, grassi saturi e trans, sodio e caffeina.",
         },
         {
             question: "Cos'è il Model Context Protocol (MCP)?",
@@ -913,7 +913,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cosa posso monitorare?",
             visibleHtml:
-                "Calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti e acqua per ogni voce: descritti con parole semplici, cercati come alimento generico in USDA FoodData Central oppure ricavati da un codice a barre tramite Open Food Facts. Un pasto si può registrare ingrediente per ingrediente, ciascuno con la sua quantità e i suoi nutrienti, e un pasto che mangi spesso si può salvare come pasto salvato e registrare di nuovo con il suo nome. Anche la caffeina viene registrata, in milligrammi, l’unità usata su ogni etichetta, e non apporta calorie. Anche l’alcol si può registrare, in grammi di etanolo puro; viene mostrato quando attivi il suo tracciamento. Puoi inoltre registrare il peso corporeo in kg o lb e seguire le tendenze verso un peso obiettivo. Le misure corporee (vita, fianchi, collo, petto, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Consulta i riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui le tendenze nel tempo.",
+                "Calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti, sodio e acqua per ogni voce: descritti con parole semplici, cercati come alimento generico in USDA FoodData Central oppure ricavati da un codice a barre tramite Open Food Facts. Un pasto si può registrare ingrediente per ingrediente, ciascuno con la sua quantità e i suoi nutrienti, e un pasto che mangi spesso si può salvare come pasto salvato e registrare di nuovo con il suo nome. Anche la caffeina viene registrata, in milligrammi, l’unità usata su ogni etichetta, e non apporta calorie. Anche l’alcol si può registrare, in grammi di etanolo puro; viene mostrato quando attivi il suo tracciamento. Puoi inoltre registrare il peso corporeo in kg o lb e seguire le tendenze verso un peso obiettivo. Le misure corporee (vita, fianchi, collo, petto, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Consulta i riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui le tendenze nel tempo.",
         },
         {
             question:

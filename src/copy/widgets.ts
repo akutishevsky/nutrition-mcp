@@ -72,6 +72,7 @@ export interface WidgetStrings {
             trans_fat_g: string;
             alcohol_g: string;
             caffeine_mg: string;
+            sodium_mg: string;
             fiber_g: string;
             water_ml: string;
         };
@@ -437,6 +438,7 @@ export interface WidgetStrings {
             trans_fat_g: string;
             alcohol_g: string;
             caffeine_mg: string;
+            sodium_mg: string;
             notes: string;
             time: string;
             deleted: string;
@@ -525,6 +527,7 @@ export interface WidgetStrings {
             trans_fat_g: string;
             alcohol_g: string;
             caffeine_mg: string;
+            sodium_mg: string;
         };
         tableLine: string;
         tableWhen: string;
@@ -580,6 +583,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             added_sugar_g: "Added sugar",
             alcohol_g: "Alcohol",
             caffeine_mg: "Caffeine",
+            sodium_mg: "Sodium",
             fiber_g: "Fiber",
             water_ml: "Water",
         },
@@ -784,6 +788,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             added_sugar_g: "Added sugar (g)",
             alcohol_g: "Alcohol (g)",
             caffeine_mg: "Caffeine (mg)",
+            sodium_mg: "Sodium (mg)",
             notes: "Notes",
             time: "Time (separate column)",
             deleted: "Deleted flag",
@@ -877,6 +882,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             trans_fat_g: "Trans",
             alcohol_g: "Alc",
             caffeine_mg: "Caf",
+            sodium_mg: "Na",
         },
         tableLine: "Line",
         tableWhen: "When",

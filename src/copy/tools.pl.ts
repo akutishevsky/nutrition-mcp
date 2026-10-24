@@ -81,7 +81,7 @@ export const TOOLS_PL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z tłuszczami nasyconymi i trans, błonnikiem, cukrami ogółem i dodanymi, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu. Może też przyjąć składniki jeden po drugim — wtedy wartości posiłku są sumą tych składników.",
+                "Zapisuj posiłki z kaloriami i makroskładnikami — a także z tłuszczami nasyconymi i trans, błonnikiem, cukrami ogółem i dodanymi, sodem, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu. Może też przyjąć składniki jeden po drugim — wtedy wartości posiłku są sumą tych składników.",
             params: {
                 description: "Co zostało zjedzone",
                 meal_type: "śniadanie, obiad, kolacja lub przekąska",
@@ -103,6 +103,8 @@ export const TOOLS_PL: ToolsDoc = {
                     "Gramy <b>czystego etanolu</b>, a nie objętość napoju ani jego zawartość alkoholu w procentach — AI wylicza je z ilości i mocy napoju (330 ml piwa 5% to 13 g)",
                 caffeine_mg:
                     "Kofeina w <b>miligramach</b>, nie w gramach — to jedyne pole, które nie jest podawane w gramach, bo tak podają ją wszystkie etykiety i zalecenia (kawa parzona to ok. 95 mg, espresso 63 mg, puszka coli 34 mg). Kofeina nie dodaje kalorii. W przeciwieństwie do błonnika i cukru jest wysyłana tylko dla produktów, które faktycznie zawierają kofeinę — zapisane 0 dodałoby do panelu wiersz kofeiny, choć wcale jej nie spożywasz",
+                sodium_mg:
+                    "Opcjonalnie. <b>Sód</b> w miligramach — sód, nie sól (1 g soli zawiera około 400 mg sodu). Pusta wartość jest zapisywana jako niezmierzona i wyłącza dzień ze średniej oraz limitu sodu; 0 to prawidłowa wartość dla produktu, który go nie zawiera.",
                 logged_at:
                     "Kiedy posiłek został zjedzony, jeśli nie teraz — pozwala dopisać coś później",
                 notes: "Dodatkowe notatki",
@@ -149,7 +151,7 @@ export const TOOLS_PL: ToolsDoc = {
             description:
                 "Dodaj za jednym razem do 50 wcześniejszych posiłków, zamiast zapisywać je po kolei. Korzysta z tego narzędzia opisany wyżej importer, a AI może go użyć bezpośrednio do danych posiłków wklejonych do czatu. Każdy wiersz jest najpierw sprawdzany, a wszystko, co nie pasuje, zostaje zgłoszone osobno dla każdego wiersza, więc ponowne wysłanie tych samych wierszy jest bezpieczne i nie zduplikuje już zapisanych posiłków — o ile w międzyczasie nie zmieniła się Twoja strefa czasowa.",
             params: {
-                meals: "Wiersze do zaimportowania, w kolejności z pliku źródłowego (1–50 na wywołanie). Każdy wiersz może zawierać czas, typ posiłku, opis, notatki i te same wartości co zapisany posiłek: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (cukry ogółem), <code>added_sugar_g</code> (cukry dodane, część cukrów ogółem), <code>alcohol_g</code> (gramy czystego etanolu) i <code>caffeine_mg</code> (miligramy, nie gramy)",
+                meals: "Wiersze do zaimportowania, w kolejności z pliku źródłowego (1–50 na wywołanie). Każdy wiersz może zawierać czas, typ posiłku, opis, notatki i te same wartości co zapisany posiłek: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (cukry ogółem), <code>added_sugar_g</code> (cukry dodane, część cukrów ogółem), <code>alcohol_g</code> (gramy czystego etanolu), <code>caffeine_mg</code> (miligramy, nie gramy) i <code>sodium_mg</code> (miligramy sodu, nie soli)",
                 expected_row_count:
                     "Liczba wierszy w tym wywołaniu, policzona w pliku źródłowym, żeby wychwycić pominięty wiersz",
                 expected_total_kcal:
@@ -164,7 +166,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Zmień szczegóły zapisanego już posiłku — opis, dowolny makroskładnik, błonnik, cukry ogółem lub dodane, alkohol lub kofeinę, godzinę albo notatki. W ten sposób uzupełnia się też luki: jeśli posiłek trafił do dziennika bez błonnika, cukru lub cukrów dodanych, serwer to zgłasza, a AI uzupełnia brakujące dane tutaj, gdy się zgodzisz. Przy posiłku zapisanym ze składnikami wartości zmieniają się przez jego listę składników.",
+                "Zmień szczegóły zapisanego już posiłku — opis, dowolny makroskładnik, błonnik, cukry ogółem lub dodane, sód, alkohol lub kofeinę, godzinę albo notatki. W ten sposób uzupełnia się też luki: jeśli posiłek trafił do dziennika bez błonnika, cukru lub cukrów dodanych, serwer to zgłasza, a AI uzupełnia brakujące dane tutaj, gdy się zgodzisz. Przy posiłku zapisanym ze składnikami wartości zmieniają się przez jego listę składników.",
             params: {
                 id: "UUID posiłku do zaktualizowania",
                 description: "",
@@ -182,6 +184,7 @@ export const TOOLS_PL: ToolsDoc = {
                     "Tylko cukry dodane, nigdy więcej niż cukry ogółem. Towarzyszy polu <code>sugar_g</code>: zmiana cukrów ogółem w posiłku bez zapisanych cukrów dodanych może nie zostać zapisana bez tej wartości",
                 alcohol_g: "Gramy czystego etanolu, nie objętość napoju",
                 caffeine_mg: "Miligramy, nie gramy",
+                sodium_mg: "Miligramy sodu, nie soli",
                 logged_at: "",
                 notes: "",
                 items: "Pełna lista składników, zastępująca dotychczasową. Wartości posiłku stają się sumą tej listy, więc pól z wartościami nie można wysłać razem z nią",
@@ -221,6 +224,7 @@ export const TOOLS_PL: ToolsDoc = {
                 alcohol_g:
                     "Gramy czystego etanolu w jednej porcji, nie objętość napoju",
                 caffeine_mg: "Miligramy kofeiny w jednej porcji, nie gramy",
+                sodium_mg: "Miligramy sodu w jednej porcji, nie soli",
             },
             example: "Zapisz to jako moje zwykłe śniadanie",
         },
@@ -272,6 +276,7 @@ export const TOOLS_PL: ToolsDoc = {
                 alcohol_g:
                     "Gramy czystego etanolu w jednej porcji, nie objętość napoju",
                 caffeine_mg: "Miligramy kofeiny w jednej porcji, nie gramy",
+                sodium_mg: "Miligramy sodu w jednej porcji, nie soli",
             },
             example:
                 "Moje zwykłe śniadanie ma teraz 350 kalorii na porcję — zaktualizuj je",
@@ -477,7 +482,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Ustaw dzienne cele dla kalorii, makroskładników, tłuszczów nasyconych, błonnika, cukru, cukrów dodanych, alkoholu, kofeiny i wody, a także opcjonalną wagę docelową. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; tłuszcze nasycone, cukry ogółem, cukry dodane, alkohol i kofeina to limity, których nie należy przekraczać — i tak też opisywany jest postęp. Zmieniają się tylko pola, które wskażesz; reszta pozostaje bez zmian.",
+                "Ustaw dzienne cele dla kalorii, makroskładników, tłuszczów nasyconych, błonnika, cukru, cukrów dodanych, alkoholu, kofeiny, sodu i wody, a także opcjonalną wagę docelową. Kalorie, białko, węglowodany, tłuszcz, błonnik i woda to cele do osiągnięcia; tłuszcze nasycone, cukry ogółem, cukry dodane, alkohol, kofeina i sód to limity, których nie należy przekraczać — i tak też opisywany jest postęp. Zmieniają się tylko pola, które wskażesz; reszta pozostaje bez zmian.",
             params: {
                 daily_calories: "Dzienny cel kalorii (kcal). Null usuwa cel.",
                 daily_protein_g:
@@ -498,6 +503,8 @@ export const TOOLS_PL: ToolsDoc = {
                     "Dzienny limit alkoholu w gramach <b>czystego etanolu</b> — maksimum, którego nie należy przekraczać. Jedna amerykańska porcja standardowa to 14 g, jedna jednostka brytyjska 7,9 g. Null usuwa limit.",
                 daily_caffeine_mg:
                     "Dzienny limit kofeiny w <b>miligramach</b> — maksimum, którego nie należy przekraczać. EFSA i FDA przyjmują 400 mg dziennie jako górną granicę dla zdrowych dorosłych (mniej więcej cztery kawy parzone); według EFSA w ciąży jest to 200 mg. 0 też jest limitem i oznacza całkowity brak kofeiny. Null usuwa limit.",
+                daily_sodium_mg:
+                    "Dzienny limit sodu w <b>miligramach</b> — maksimum, którego nie należy przekraczać; chodzi o sód, nie o sól. WHO zaleca dorosłym mniej niż 2000 mg dziennie, a amerykańskie wytyczne żywieniowe mniej niż 2300 mg. 0 też jest limitem i oznacza całkowity brak sodu. Null usuwa limit.",
                 daily_water_ml: "",
                 target_weight: "",
             },

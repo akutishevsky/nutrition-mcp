@@ -421,7 +421,7 @@ const INDEX_EN: IndexDoc = {
 
     featureList: [
         "Log meals in plain language, with calories, macros, fiber, sugar and added sugar",
-        "Saturated and trans fat tracking, with an optional saturated fat limit",
+        "Saturated fat, trans fat and sodium tracking, with optional saturated fat and sodium limits",
         "USDA FoodData Central values for generic foods, estimates otherwise",
         "Barcode lookup for packaged foods through Open Food Facts",
         "Every nutrient value tagged with where it came from",
@@ -821,7 +821,7 @@ const INDEX_EN: IndexDoc = {
                 id: "goals-progress",
                 title: "Set goals, check in",
                 description:
-                    "Set targets to reach, like calories and protein, and limits to stay under for added sugar, saturated fat, total sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see what's left to reach each target and where you stand against each limit.",
+                    "Set targets to reach, like calories and protein, and limits to stay under for added sugar, saturated fat, sodium, total sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see what's left to reach each target and where you stand against each limit.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Saves calorie and protein targets and a 400 mg caffeine limit",
@@ -1145,7 +1145,7 @@ const INDEX_EN: IndexDoc = {
         cards: [
             {
                 title: "Meals in plain language",
-                body: "Describe what you ate — generic foods get USDA FoodData Central values when available, and your AI estimates the rest: calories, protein, carbs, fat, saturated and trans fat, fiber, total sugar, added sugar, and caffeine in milligrams. It logs the meal and tags each value with its source.",
+                body: "Describe what you ate — generic foods get USDA FoodData Central values when available, and your AI estimates the rest: calories, protein, carbs, fat, saturated and trans fat, fiber, total sugar, added sugar, and sodium and caffeine in milligrams. It logs the meal and tags each value with its source.",
             },
             {
                 title: "Scan a barcode",
@@ -1153,7 +1153,7 @@ const INDEX_EN: IndexDoc = {
             },
             {
                 title: "Goals & progress",
-                body: "Set daily calorie, macro, fiber, and water targets — plus added sugar, saturated fat, total sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
+                body: "Set daily calorie, macro, fiber, and water targets — plus added sugar, saturated fat, sodium, total sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
             },
             {
                 title: "Summaries & trends",
@@ -1260,7 +1260,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is a free, open-source Model Context Protocol (MCP) server that turns Claude, ChatGPT or another MCP client into a calorie and macro tracker. Instead of looking up each item yourself, you tell your AI what you ate and it logs the calories, macros, fiber, sugar, added sugar, saturated and trans fat and caffeine to your own food diary.",
+                "Nutrition MCP is a free, open-source Model Context Protocol (MCP) server that turns Claude, ChatGPT or another MCP client into a calorie and macro tracker. Instead of looking up each item yourself, you tell your AI what you ate and it logs the calories, macros, fiber, sugar, added sugar, saturated and trans fat, sodium and caffeine to your own food diary.",
         },
         {
             question: "What is the Model Context Protocol (MCP)?",
@@ -1302,7 +1302,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What can I track?",
             visibleHtml:
-                "Calories, protein, carbohydrates, fat, saturated and trans fat, fiber, total sugar, added sugar, and water for every entry — described in plain language, looked up as a generic food in USDA FoodData Central, or pulled from a product barcode via Open Food Facts. A meal can be logged ingredient by ingredient, each with its own amount and nutrients, and a meal you eat often can be kept as a saved meal and logged again by its name. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+                "Calories, protein, carbohydrates, fat, saturated and trans fat, fiber, total sugar, added sugar, sodium, and water for every entry — described in plain language, looked up as a generic food in USDA FoodData Central, or pulled from a product barcode via Open Food Facts. A meal can be logged ingredient by ingredient, each with its own amount and nutrients, and a meal you eat often can be kept as a saved meal and logged again by its name. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
         },
         {
             question: "Can I save meals I eat often, or my own recipes?",

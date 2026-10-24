@@ -33,7 +33,7 @@ test.each(KEYS)("%s assembles into a self-contained widget", async (key) => {
     expect((html.match(/initWidget\(\{/g) ?? []).length).toBe(1);
 
     // Shared design tokens got inlined.
-    expect(html).toContain("--accent: #4a7c59");
+    expect(html).toContain("--accent: #3f7a52");
 
     // The inlined <script> is syntactically valid JS.
     const script = html.slice(

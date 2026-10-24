@@ -264,6 +264,9 @@
                 // always; it is the read side that stays quiet until there is
                 // caffeine to talk about.
                 { key: "caffeine_mg" },
+                // Milligrams of sodium (not salt). Optional, never a gate: a
+                // file without it imports with sodium not recorded.
+                { key: "sodium_mg" },
                 { key: "notes" },
                 { key: "time" },
                 { key: "deleted" },
@@ -449,6 +452,25 @@
                     "caffeina_mg",
                     "cafeine",
                     "cafeine_mg",
+                ],
+                // MILLIGRAMS of SODIUM. Cronometer writes "Sodium (mg)"
+                // (normalized "sodium_mg") and MyFitnessPal a bare "Sodium",
+                // which is milligrams too. Salt is a different figure (about
+                // 2.5x sodium by weight), so no salt/salz/sel spelling is here,
+                // and no *_g spelling either: matching is exact per normalized
+                // header, so "Sodium (g)" cannot land here by accident. The
+                // Polish "Sód" folds to "sod".
+                sodium_mg: [
+                    "sodium_mg",
+                    "sodium",
+                    "natrium",
+                    "natrium_mg",
+                    "sodio",
+                    "sodio_mg",
+                    "sod",
+                    "sod_mg",
+                    "sodyum",
+                    "sodyum_mg",
                 ],
                 notes: ["note", "notes", "comment", "kommentar"],
                 deleted: ["deleted"],
@@ -897,6 +919,9 @@
                         // opt-in, so the only thing that keeps it out of a row
                         // is the file not having the column.
                         caffeine_mg: num(r, m.caffeine_mg),
+                        // Milligrams in every export that carries it, as the
+                        // server stores it: no conversion.
+                        sodium_mg: num(r, m.sodium_mg),
                         notes: cell(r, m.notes),
                         // Passed through untouched. The server decides whether
                         // it names one of this user's meals; the widget must

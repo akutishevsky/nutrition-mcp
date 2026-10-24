@@ -1,30 +1,66 @@
+/*
+ * Design tokens, one set per theme. Every value here is set in all four blocks
+ * (:root, the prefers-color-scheme dark media query, and the two explicit
+ * [data-theme] overrides), so a new token must be added to each of them.
+ *
+ * Palette: the widget redesign's (2026-10). Neutrals map onto the existing
+ * names (--text is the design's --ink, --text-dim its --sub, --bg/--panel its
+ * --page, --panel-border its --ln); --accent stays the brand green (the
+ * design's --brand), and the design's blue --accent is --focus here. See
+ * STYLE_GUIDE.md "Tokens" for the full mapping.
+ */
 :root {
-    /* Light theme (default). Dark overridden below.
-                   Apple-like neutral grays/whites with the brand green
-                   accent, matching the landing page's clean section. */
-    --text: #1d1d1f;
-    --text-dim: #6e6e73;
-    --bg: #f5f5f7;
+    /* Light theme (default). Dark overridden below. */
+    --text: #1c2333;
+    --text-dim: #5b616d;
+    --text-mute: #646b77;
+    --bg: #ffffff;
     --panel: #ffffff;
-    --panel-border: #e6e6ea;
-    --track: #e6e6ea;
-    --accent: #4a7c59;
+    --panel-border: #e7e9ed;
+    --surface-soft: #f5f6f8;
+    --surface-inset: #ffffff;
+    --track: #eceef1;
+    --accent: #3f7a52;
+    --focus: #2d6fd6;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 22px rgba(0, 0, 0, 0.05);
 
-    --calories: #ff9f0a;
-    --protein: #8b5cf6;
-    --carbs: #10b981;
+    --calories: #ef8a00;
+    --protein: #7c5cf0;
+    --carbs: #0f9e74;
     --fiber: #0d9488;
-    --sugar: #65a30d;
-    --added-sugar: #858a0b;
+    --sugar: #5f9a0c;
+    --added-sugar: #7d820a;
     --saturated: #c2410c;
-    --trans: #475569;
-    --fat: #f43f7e;
+    --trans: #64748b;
+    --sodium: #5f7187;
+    --fat: #e8467c;
     --alcohol: #a21caf;
     --caffeine: #8b5e34;
     --water: #0ea5e9;
-    --over: #d0452b;
-    --warn: #b26a00;
+    --weight: #2f7fd1;
+    --over: #c4381f;
+    --warn: #b86e00;
+
+    --status-over: #d63b2a;
+    --status-over-ink: #be3525;
+    --status-near: #b86e00;
+    --status-near-ink: #995b00;
+    --status-togo: #2d6fd6;
+    --status-togo-ink: #2965c3;
+    --status-ok: #17804a;
+    --status-ok-ink: #157745;
+    --status-nr: #80868f;
+    --status-nr-ink: #646b77;
+
+    --gauge-track: #e2f4e8;
+    --gauge-fill: #1d9751;
+    --gauge-ink: #17804a;
+    --gauge-cap: #ffffff;
+    --gauge-over-track: #fbe3de;
+    --gauge-over-fill: #d63b2a;
+    --gauge-over-ink: #be3525;
+    --pill-bg: #e2f4e8;
+    --pill-bg-hover: #cdebd7;
 
     /* Native controls (select, input, scrollbars) follow the theme only when
        color-scheme is declared; without it a dark widget renders light OS
@@ -36,80 +72,164 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --text: #f5f5f7;
-        --text-dim: #98989d;
-        --bg: #000000;
-        --panel: #1c1c1e;
-        --panel-border: #2c2c2e;
-        --track: #2c2c2e;
-        --accent: #6ab98a;
+        --text: #f1f2f4;
+        --text-dim: #a4aab4;
+        --text-mute: #8a909a;
+        --bg: #141414;
+        --panel: #141414;
+        --panel-border: #2c2e33;
+        --surface-soft: #1c1d21;
+        --surface-inset: #111214;
+        --track: #2a2b31;
+        --accent: #6cc08c;
+        --focus: #8ab0ff;
         --shadow: none;
-        --calories: #ffab2e;
-        --protein: #a78bfa;
-        --carbs: #34d399;
+
+        --calories: #ffad33;
+        --protein: #a68cff;
+        --carbs: #3fd3a0;
         --fiber: #14b8a6;
         --sugar: #a3e635;
         --added-sugar: #d4d03a;
         --saturated: #fb923c;
         --trans: #94a3b8;
-        --fat: #fb7199;
+        --sodium: #a3b5ca;
+        --fat: #ff7aa2;
         --alcohol: #e879f9;
         --caffeine: #c69a6d;
         --water: #38bdf8;
+        --weight: #6aaef5;
         --over: #ff6b52;
-        --warn: #e0a030;
+        --warn: #f0a640;
+
+        --status-over: #ff8f7c;
+        --status-over-ink: #ff8f7c;
+        --status-near: #f0a640;
+        --status-near-ink: #f0a640;
+        --status-togo: #8ab0ff;
+        --status-togo-ink: #8ab0ff;
+        --status-ok: #3ccf7a;
+        --status-ok-ink: #3ccf7a;
+        --status-nr: #80868f;
+        --status-nr-ink: #9aa0a9;
+
+        --gauge-track: #16301f;
+        --gauge-fill: #3ccf7a;
+        --gauge-ink: #7be3a3;
+        --gauge-cap: #0f1411;
+        --gauge-over-track: #3a1a16;
+        --gauge-over-fill: #ff6b52;
+        --gauge-over-ink: #ff8f7c;
+        --pill-bg: #1b3526;
+        --pill-bg-hover: #22432f;
         color-scheme: dark;
     }
 }
 
 /* Explicit host override wins over the media query in both directions. */
 :root[data-theme="light"] {
-    --text: #1d1d1f;
-    --text-dim: #6e6e73;
-    --bg: #f5f5f7;
+    --text: #1c2333;
+    --text-dim: #5b616d;
+    --text-mute: #646b77;
+    --bg: #ffffff;
     --panel: #ffffff;
-    --panel-border: #e6e6ea;
-    --track: #e6e6ea;
-    --accent: #4a7c59;
+    --panel-border: #e7e9ed;
+    --surface-soft: #f5f6f8;
+    --surface-inset: #ffffff;
+    --track: #eceef1;
+    --accent: #3f7a52;
+    --focus: #2d6fd6;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 22px rgba(0, 0, 0, 0.05);
-    --calories: #ff9f0a;
-    --protein: #8b5cf6;
-    --carbs: #10b981;
+
+    --calories: #ef8a00;
+    --protein: #7c5cf0;
+    --carbs: #0f9e74;
     --fiber: #0d9488;
-    --sugar: #65a30d;
-    --added-sugar: #858a0b;
+    --sugar: #5f9a0c;
+    --added-sugar: #7d820a;
     --saturated: #c2410c;
-    --trans: #475569;
-    --fat: #f43f7e;
+    --trans: #64748b;
+    --sodium: #5f7187;
+    --fat: #e8467c;
     --alcohol: #a21caf;
     --caffeine: #8b5e34;
     --water: #0ea5e9;
-    --over: #d0452b;
-    --warn: #b26a00;
+    --weight: #2f7fd1;
+    --over: #c4381f;
+    --warn: #b86e00;
+
+    --status-over: #d63b2a;
+    --status-over-ink: #be3525;
+    --status-near: #b86e00;
+    --status-near-ink: #995b00;
+    --status-togo: #2d6fd6;
+    --status-togo-ink: #2965c3;
+    --status-ok: #17804a;
+    --status-ok-ink: #157745;
+    --status-nr: #80868f;
+    --status-nr-ink: #646b77;
+
+    --gauge-track: #e2f4e8;
+    --gauge-fill: #1d9751;
+    --gauge-ink: #17804a;
+    --gauge-cap: #ffffff;
+    --gauge-over-track: #fbe3de;
+    --gauge-over-fill: #d63b2a;
+    --gauge-over-ink: #be3525;
+    --pill-bg: #e2f4e8;
+    --pill-bg-hover: #cdebd7;
     color-scheme: light;
 }
 :root[data-theme="dark"] {
-    --text: #f5f5f7;
-    --text-dim: #98989d;
-    --bg: #000000;
-    --panel: #1c1c1e;
-    --panel-border: #2c2c2e;
-    --track: #2c2c2e;
-    --accent: #6ab98a;
+    --text: #f1f2f4;
+    --text-dim: #a4aab4;
+    --text-mute: #8a909a;
+    --bg: #141414;
+    --panel: #141414;
+    --panel-border: #2c2e33;
+    --surface-soft: #1c1d21;
+    --surface-inset: #111214;
+    --track: #2a2b31;
+    --accent: #6cc08c;
+    --focus: #8ab0ff;
     --shadow: none;
-    --calories: #ffab2e;
-    --protein: #a78bfa;
-    --carbs: #34d399;
+
+    --calories: #ffad33;
+    --protein: #a68cff;
+    --carbs: #3fd3a0;
     --fiber: #14b8a6;
     --sugar: #a3e635;
     --added-sugar: #d4d03a;
     --saturated: #fb923c;
     --trans: #94a3b8;
-    --fat: #fb7199;
+    --sodium: #a3b5ca;
+    --fat: #ff7aa2;
     --alcohol: #e879f9;
     --caffeine: #c69a6d;
     --water: #38bdf8;
+    --weight: #6aaef5;
     --over: #ff6b52;
-    --warn: #e0a030;
+    --warn: #f0a640;
+
+    --status-over: #ff8f7c;
+    --status-over-ink: #ff8f7c;
+    --status-near: #f0a640;
+    --status-near-ink: #f0a640;
+    --status-togo: #8ab0ff;
+    --status-togo-ink: #8ab0ff;
+    --status-ok: #3ccf7a;
+    --status-ok-ink: #3ccf7a;
+    --status-nr: #80868f;
+    --status-nr-ink: #9aa0a9;
+
+    --gauge-track: #16301f;
+    --gauge-fill: #3ccf7a;
+    --gauge-ink: #7be3a3;
+    --gauge-cap: #0f1411;
+    --gauge-over-track: #3a1a16;
+    --gauge-over-fill: #ff6b52;
+    --gauge-over-ink: #ff8f7c;
+    --pill-bg: #1b3526;
+    --pill-bg-hover: #22432f;
     color-scheme: dark;
 }

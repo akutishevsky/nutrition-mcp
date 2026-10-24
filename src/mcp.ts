@@ -145,6 +145,7 @@ import {
     MAX_MACRO_G,
     MAX_ALCOHOL_G,
     MAX_CAFFEINE_MG,
+    MAX_SODIUM_MG,
     type BulkImportArgs,
 } from "./import.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
@@ -203,6 +204,7 @@ import {
     PERIOD_AVERAGES_META_KEY,
     ADDED_SUGAR_META_KEY,
     SATURATED_FAT_META_KEY,
+    SODIUM_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_ITEMS_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
@@ -231,6 +233,7 @@ import {
     transFatExtra,
     saturatedAboveFatNote,
 } from "./saturated-fat.js";
+import { buildSodiumMeta, sodiumExtra } from "./sodium.js";
 import {
     GRANULARITIES,
     buildPeriodAveragesMeta,
@@ -284,8 +287,9 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // zero, it excludes the entire DAY from that nutrient's averages and goal lines
 // (dayCarries in insights.ts), so one forgotten fiber figure silently deletes a
 // day from the user's fiber trend rather than making it slightly wrong.
-const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar, saturated fat, trans fat and caffeine are tracked alongside the headline macros.
+const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar, saturated fat, trans fat, sodium and caffeine are tracked alongside the headline macros.
 - saturated_fat_g and trans_fat_g are optional on every meal. saturated_fat_g is part of fat_g, never more than it; trans_fat_g is a separate fat type, stored as given and not checked against fat_g. A missing value is stored as "not measured" and leaves that day out of the saturated-fat average and limit; trans fat has no limit and is shown only where it was recorded. A figure comes from a nutrition label, the product's published nutrition or an estimate; 0 is the correct value for a food with none. On an itemized meal saturated_fat_g is all-or-none across the items, like fiber_g's sugar pair: a list that gives it on some items and not others is refused with nothing saved. trans_fat_g may be given on some items and not others; the meal's trans fat is the sum of the items that carry it.
+- sodium_mg is optional on every meal: sodium in milligrams, not salt (1 g of salt holds about 400 mg of sodium). A missing value is stored as "not measured" and leaves that day out of the sodium average and limit. A figure comes from a nutrition label, the product's published nutrition or an estimate; 0 is the correct value for a food with none. On an itemized meal sodium_mg is all-or-none across the items, like saturated_fat_g: a list that gives it on some items and not others is refused with nothing saved.
 - fiber_g and sugar_g are read on every meal, like protein, carbs and fat. A missing value is stored as "not measured", not as zero, and leaves that whole day out of the user's fiber and sugar averages, goal lines and charts; an estimate keeps the day in. In order of accuracy, a figure comes from a nutrition label, a barcode lookup, the chain's or product's published per-item nutrition, or an estimate from the ingredients and the portion — an exact figure is no more required here than it is for protein. 0 is the correct value for food that has none (a steak, eggs, oil, black coffee).
 - added_sugar_g is read on every meal too, like sugar_g: the part of sugar_g added during processing or preparation, never more than sugar_g. It accompanies sugar_g: a call that gives sugar_g without added_sugar_g may be refused, with nothing saved. It is a classification more than a measurement — whole fruit, vegetables, plain milk, meat and rice are 0, and a soft drink's sugar is all added. A missing value is stored as "not recorded" and leaves that day out of the added-sugar average and limit.
 - caffeine_mg applies only to caffeine sources: coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. A label or a chain's published nutrition gives the figure where available; the field description lists typical amounts otherwise. For anything that is not a caffeine source the field is left out: an explicit 0 means "measured, and it was none", and it shows a caffeine row to a user who never consumes any.`;
@@ -361,13 +365,19 @@ Importing history from another app (MyFitnessPal, Cronometer, Lose It!, MacroFac
 // the same figure is accepted whichever way a meal arrives. They were briefly
 // duplicated with a test that grepped the other file to catch drift; sharing
 // one declaration removes the drift instead of detecting it.
-export { MAX_CALORIES, MAX_MACRO_G, MAX_ALCOHOL_G, MAX_CAFFEINE_MG };
+export {
+    MAX_CALORIES,
+    MAX_MACRO_G,
+    MAX_ALCOHOL_G,
+    MAX_CAFFEINE_MG,
+    MAX_SODIUM_MG,
+};
 // nutrition_goals stores every gram target as numeric(6,2), so anything from
 // 10000 up is a Postgres "numeric field overflow" rather than a saved goal.
 export const MAX_GOAL_G = 9_999.99;
-// daily_caffeine_mg is the one goal column that is numeric(7,2) — milligram
-// figures run three orders larger than the gram targets, so it gets its own
-// ceiling for the same overflow reason.
+// daily_caffeine_mg and daily_sodium_mg are the goal columns that are
+// numeric(7,2) — milligram figures run three orders larger than the gram
+// targets, so they get their own ceiling for the same overflow reason.
 export const MAX_GOAL_MG = 99_999.99;
 
 interface DailyTotals {
@@ -390,6 +400,9 @@ interface DailyTotals {
     // unit differs from its siblings. It carries no energy, so it never enters
     // a kcal derivation.
     caffeine_mg: number;
+    // Milligrams like caffeine; text only, like added_sugar_g (the widgets get
+    // it from SODIUM_META_KEY).
+    sodium_mg: number;
     water_ml: number;
 }
 
@@ -406,6 +419,7 @@ function emptyTotals(): DailyTotals {
         added_sugar_g: 0,
         alcohol_g: 0,
         caffeine_mg: 0,
+        sodium_mg: 0,
         water_ml: 0,
     };
 }
@@ -429,6 +443,7 @@ export function sumMeals(meals: Meal[]): DailyTotals {
         totals.added_sugar_g += m.added_sugar_g ?? 0;
         totals.alcohol_g += m.alcohol_g ?? 0;
         totals.caffeine_mg += m.caffeine_mg ?? 0;
+        totals.sodium_mg += m.sodium_mg ?? 0;
     }
     return totals;
 }
@@ -453,6 +468,7 @@ export interface NutrientPresence {
     added_sugar_g: boolean;
     alcohol_g: boolean;
     caffeine_mg: boolean;
+    sodium_mg: boolean;
 }
 
 export function nutrientPresence(meals: Meal[]): NutrientPresence {
@@ -464,6 +480,7 @@ export function nutrientPresence(meals: Meal[]): NutrientPresence {
         added_sugar_g: dayCarries(meals, "added_sugar_g"),
         alcohol_g: dayCarries(meals, "alcohol_g"),
         caffeine_mg: dayCarries(meals, "caffeine_mg"),
+        sodium_mg: dayCarries(meals, "sodium_mg"),
     };
 }
 
@@ -499,6 +516,7 @@ export function rangeAverages(
         added_sugar_g: number;
         alcohol_g: number;
         caffeine_mg: number;
+        sodium_mg: number;
     };
 } {
     const sum = emptyTotals();
@@ -517,6 +535,7 @@ export function rangeAverages(
     const saturated = coveredDailyAverage(mealsByDay, "saturated_fat_g");
     const alcohol = coveredDailyAverage(mealsByDay, "alcohol_g");
     const caffeine = coveredDailyAverage(mealsByDay, "caffeine_mg");
+    const sodium = coveredDailyAverage(mealsByDay, "sodium_mg");
     const n = perDay.length || 1;
     return {
         averages: {
@@ -530,6 +549,7 @@ export function rangeAverages(
             added_sugar_g: addedSugar.avg ?? 0,
             alcohol_g: alcohol.avg ?? 0,
             caffeine_mg: caffeine.avg ?? 0,
+            sodium_mg: sodium.avg ?? 0,
             water_ml: Math.round(sum.water_ml / n),
         },
         recordedDays: {
@@ -539,12 +559,14 @@ export function rangeAverages(
             saturated_fat_g: saturated.days,
             alcohol_g: alcohol.days,
             caffeine_mg: caffeine.days,
+            sodium_mg: sodium.days,
         },
     };
 }
 
 // The summary's daily-average line for a limited partial nutrient (added sugar,
-// saturated fat): the same rule for both, so only the label differs. Text,
+// saturated fat, sodium): the same rule for each, so only the label and unit
+// differ. Text,
 // because no structuredContent shape may carry it (the summary's `averages`
 // schema is frozen). Covered days only, like sugar (rangeAverages), against the
 // limit when one is set. Empty for a single day, whose section already prints
@@ -556,18 +578,19 @@ export function ceilingAverageLine(
     recordedDays: number,
     loggedDays: number,
     limit: number | null,
+    unit: "g" | " mg" = "g",
 ): string {
     if (loggedDays < 2) return "";
     if (recordedDays === 0) {
         // With a limit set, the gap is stated rather than dropped (see
         // limitNotRecorded); without one there is nothing to report.
         return hasActiveTarget(limit, "ceiling")
-            ? `\n\n${label}, daily average: ${limitNotRecorded("period", limit)}`
+            ? `\n\n${label}, daily average: ${limitNotRecorded("period", limit, unit)}`
             : "";
     }
     return `\n\n${formatGoalLine(
         `${label}, daily average`,
-        "g",
+        unit,
         average,
         limit,
         "ceiling",
@@ -703,7 +726,7 @@ export { WEIGHT_SERIES_META_KEY };
 export { PERIOD_AVERAGES_META_KEY };
 // And for the added-sugar figures (AddedSugarMeta) that five tools carry
 // beside their frozen structuredContent.
-export { ADDED_SUGAR_META_KEY, SATURATED_FAT_META_KEY };
+export { ADDED_SUGAR_META_KEY, SATURATED_FAT_META_KEY, SODIUM_META_KEY };
 // And for the ingredients behind the breakdown rows (MealItemsMeta, built in
 // src/meal-items.ts), present only when some row has items.
 export { MEAL_ITEMS_META_KEY };
@@ -883,9 +906,10 @@ export function goalsPayloadOf(
  *  has to answer the question; a caller that forgets it gets null, which is the
  *  safe answer (a hidden stat line) rather than an invented zero. */
 export function totalsPayloadOf(
-    // Trans fat is optional here: no payload built from these totals emits it.
-    totals: Omit<DailyTotals, "trans_fat_g"> &
-        Partial<Pick<DailyTotals, "trans_fat_g">>,
+    // Trans fat and sodium are optional here: no payload built from these
+    // totals emits them.
+    totals: Omit<DailyTotals, "trans_fat_g" | "sodium_mg"> &
+        Partial<Pick<DailyTotals, "trans_fat_g" | "sodium_mg">>,
     alcohol: AlcoholDisplay,
     caffeineRecorded: boolean,
 ) {
@@ -1036,11 +1060,17 @@ const IMPORT_ROW_SCHEMA = z.object({
         .describe(
             "Caffeine in MILLIGRAMS, not grams. Every export, label and guideline states caffeine in mg (a brewed coffee is about 95 mg, i.e. 0.095 g), so map an mg column straight across — and multiply by 1000 first if the source header says grams, or the whole history imports a thousand times too small. Omit when the source has no caffeine column.",
         ),
+    sodium_mg: z.coerce
+        .number()
+        .optional()
+        .describe(
+            "Sodium in MILLIGRAMS — sodium, not salt. Cronometer's 'Sodium (mg)' and MyFitnessPal's 'Sodium' columns are both mg and map straight across. A column of salt in grams is a different figure (sodium mg = salt g x 400). Omit when the source has no sodium column; a missing value is not measured, not zero.",
+        ),
     notes: z
         .string()
         .optional()
         .describe(
-            "Anything from the source worth keeping that has no column here (micronutrients, the original row text).",
+            "Anything from the source worth keeping that has no column here (other micronutrients, the original row text).",
         ),
     client_row_id: z
         .string()
@@ -1277,6 +1307,11 @@ async function buildMealProgress(
             days: { [mealDate]: meals },
             meals,
         }),
+        [SODIUM_META_KEY]: buildSodiumMeta({
+            goal: goals?.daily_sodium_mg,
+            days: { [mealDate]: meals },
+            meals,
+        }),
         ...(await mealItemsMetaEntry(userId, meals, alcohol)),
     };
 
@@ -1382,6 +1417,7 @@ const ALL_RECORDED: NutrientPresence = {
     added_sugar_g: true,
     alcohol_g: true,
     caffeine_mg: true,
+    sodium_mg: true,
 };
 
 // `present` says which of the post-launch nutrients these meals actually carry,
@@ -1499,6 +1535,22 @@ export function formatProgress(
             "ceiling",
         ),
     );
+    // Sodium: a ceiling, gated on presence like saturated fat, with the shared
+    // not-recorded wording when a limit is set and the day recorded none. Whole
+    // milligrams, like caffeine above.
+    lines.push(
+        present.sodium_mg
+            ? formatGoalLine(
+                  "Sodium",
+                  " mg",
+                  Math.round(totals.sodium_mg),
+                  goals?.daily_sodium_mg ?? null,
+                  "ceiling",
+              )
+            : hasActiveTarget(goals?.daily_sodium_mg, "ceiling")
+              ? `Sodium: ${limitNotRecorded("day", goals.daily_sodium_mg, " mg")}`
+              : null,
+    );
     lines.push(
         formatGoalLine(
             "Water",
@@ -1555,6 +1607,9 @@ export function formatGoals(
     // list of targets the user could set.
     parts.push(
         `- Caffeine (max): ${ceiling(goals.daily_caffeine_mg, formatMg)}`,
+    );
+    parts.push(
+        `- Sodium (max): ${ceiling(goals.daily_sodium_mg ?? null, formatMg)}`,
     );
     parts.push(`- Water: ${floor(goals.daily_water_ml, (n) => `${n} ml`)}`);
     parts.push(
@@ -1945,6 +2000,14 @@ const MEAL_ITEM_INPUT = z.object({
         .optional()
         .describe(
             "Caffeine of this item in milligrams, as log_meal's caffeine_mg.",
+        ),
+    sodium_mg: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_SODIUM_MG)
+        .optional()
+        .describe(
+            "Sodium of this item in milligrams, as log_meal's sodium_mg. Give it on every item or on none.",
         ),
     food_ref: FOOD_REF_INPUT.optional().describe(
         `${FOOD_REF_DESCRIPTION} Give it on the item it describes.`,
@@ -2890,6 +2953,14 @@ export function registerTools(
                     .describe(
                         "Caffeine in MILLIGRAMS (mg) — this field is the one that is not in grams, and a value under 1 almost certainly means grams were sent by mistake. Typical amounts: a 240 ml brewed coffee 95 mg, a single espresso 63 mg, instant coffee 62 mg, black tea 47 mg, green tea 28 mg, a 355 ml cola 34 mg, a 250 ml energy drink 80 mg, decaf 2 mg. Scale them to what was actually drunk (a double espresso is 126 mg), and for a branded drink prefer the figure on the label or the chain's published nutrition. Caffeine adds no calories, so it never changes the kcal figure. Unlike fiber_g, sugar_g and added_sugar_g, this field is conditional, so decide it on every entry rather than skipping it by default: if the item is a caffeine source at all — coffee including decaf, tea, matcha, yerba mate, cola and other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets — send a figure, from the label or published nutrition where available and otherwise from the amounts above. Omit the field for anything that is not a caffeine source rather than sending 0 — a 0 records 'measured, and it was none', and one on a sandwich puts a caffeine row on the dashboard of a user who never drinks any.",
                     ),
+                sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_SODIUM_MG)
+                    .optional()
+                    .describe(
+                        "Sodium in MILLIGRAMS: sodium, not salt (1 g of salt holds about 400 mg of sodium; a label giving salt in grams converts as salt g x 400). Optional, with a daily limit set in set_nutrition_goals. On an itemized meal it is all-or-none across the items: a list that gives it on some items and not others is refused. A missing value is stored as not measured and leaves that day out of the sodium average and limit. 0 is the correct value for a food with none.",
+                    ),
                 logged_at: z
                     .string()
                     .optional()
@@ -3313,7 +3384,7 @@ export function registerTools(
         {
             title: "Look Up Barcode",
             description:
-                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures are transcribed from the product's own label by the Open Food Facts community. This server does not verify them, and they can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or they can be read from a photo of the package: the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which log_meal accepts once scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is); they are omitted, not \"n/a\", when no value has been computed for that product. A fiber, sugar, added-sugar or saturated-fat figure shown as n/a is missing data, not a zero: any value passed for it later is an estimate. A saturated-fat or trans-fat figure shown as n/a is left out rather than sent as 0. Open Food Facts carries no caffeine, so caffeine_mg for a coffee, tea, cola, energy drink or other caffeinated product comes from the label where available, otherwise from typical amounts. When no product is found, the result says so; the product description, or a label the user shares, can supply the figures instead.",
+                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures are transcribed from the product's own label by the Open Food Facts community. This server does not verify them, and they can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or they can be read from a photo of the package: the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which log_meal accepts once scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is); they are omitted, not \"n/a\", when no value has been computed for that product. A fiber, sugar, added-sugar or saturated-fat figure shown as n/a is missing data, not a zero: any value passed for it later is an estimate. A saturated-fat, trans-fat or sodium figure shown as n/a is left out rather than sent as 0. Sodium is shown in milligrams of sodium, not salt. Open Food Facts carries no caffeine, so caffeine_mg for a coffee, tea, cola, energy drink or other caffeinated product comes from the label where available, otherwise from typical amounts. When no product is found, the result says so; the product description, or a label the user shares, can supply the figures instead.",
             annotations: {
                 title: "Look Up Barcode",
                 readOnlyHint: true,
@@ -4143,6 +4214,11 @@ export function registerTools(
                                         meals: [],
                                     },
                                 ),
+                                [SODIUM_META_KEY]: buildSodiumMeta({
+                                    goal: goals?.daily_sodium_mg,
+                                    days: {},
+                                    meals: [],
+                                }),
                             },
                         };
                     }
@@ -4246,6 +4322,10 @@ export function registerTools(
                         recordedDays.caffeine_mg < days.length
                             ? `caffeine ${recordedDays.caffeine_mg}`
                             : null,
+                        recordedDays.sodium_mg > 0 &&
+                        recordedDays.sodium_mg < days.length
+                            ? `sodium ${recordedDays.sodium_mg}`
+                            : null,
                     ].filter((s): s is string => s !== null);
                     const coverageNote = partial.length
                         ? `\n\n(Averaged over the days that record each figure, not all ${days.length}: ${partial.join(", ")}.)`
@@ -4281,6 +4361,15 @@ export function registerTools(
                             recordedDays.saturated_fat_g,
                             days.length,
                             goals?.daily_saturated_fat_g ?? null,
+                        ) +
+                        // Whole milligrams, like every mg figure in the text.
+                        ceilingAverageLine(
+                            "Sodium",
+                            Math.round(rawAverages.sodium_mg),
+                            recordedDays.sodium_mg,
+                            days.length,
+                            goals?.daily_sodium_mg ?? null,
+                            " mg",
                         ) +
                         coverageNote +
                         loggedDayAverageNote(days.length, daysInRange) +
@@ -4350,6 +4439,19 @@ export function registerTools(
                                     MEAL_BREAKDOWN_TOP_N,
                                 ),
                                 transExtra: transFatExtra(
+                                    meals,
+                                    rows,
+                                    breakdown.kept,
+                                    MEAL_BREAKDOWN_TOP_N,
+                                ),
+                            }),
+                            // Same arrangement as saturated fat.
+                            [SODIUM_META_KEY]: buildSodiumMeta({
+                                goal: goals?.daily_sodium_mg,
+                                days: Object.fromEntries(byDate),
+                                meals: keptMeals,
+                                contributorsOf: meals,
+                                extra: sodiumExtra(
                                     meals,
                                     rows,
                                     breakdown.kept,
@@ -4467,6 +4569,15 @@ export function registerTools(
                     .describe(
                         "Daily caffeine limit in MILLIGRAMS, treated as a maximum to stay under. Reference points to offer when the user has no figure in mind: the EFSA and FDA ceiling for healthy adults is 400 mg/day and 200 mg in pregnancy, and a 240 ml brewed coffee is about 95 mg — so 400 mg is roughly four cups. 0 is a real limit meaning none at all, not 'unset'. Null to clear.",
                     ),
+                daily_sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_GOAL_MG)
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Daily sodium limit in MILLIGRAMS (sodium, not salt), a maximum to stay under. For reference, the WHO figure for adults is under 2000 mg/day and the US Dietary Guidelines figure is under 2300 mg/day. 0 is a real limit, not 'unset'. Null to clear.",
+                    ),
                 daily_water_ml: z.coerce
                     .number()
                     .nullable()
@@ -4557,6 +4668,10 @@ export function registerTools(
                             args.daily_caffeine_mg === undefined
                                 ? (existing?.daily_caffeine_mg ?? null)
                                 : args.daily_caffeine_mg,
+                        daily_sodium_mg:
+                            args.daily_sodium_mg === undefined
+                                ? (existing?.daily_sodium_mg ?? null)
+                                : args.daily_sodium_mg,
                         daily_water_ml:
                             args.daily_water_ml === undefined
                                 ? (existing?.daily_water_ml ?? null)
@@ -4779,6 +4894,11 @@ export function registerTools(
                                 days: { [targetDate]: meals },
                                 meals,
                             }),
+                            [SODIUM_META_KEY]: buildSodiumMeta({
+                                goal: goals?.daily_sodium_mg,
+                                days: { [targetDate]: meals },
+                                meals,
+                            }),
                             ...(await mealItemsMetaEntry(
                                 userId,
                                 meals,
@@ -4942,6 +5062,14 @@ export function registerTools(
                     .optional()
                     .describe(
                         "Caffeine in MILLIGRAMS, not grams (a 240 ml brewed coffee is 95 mg, a single espresso 63 mg, black tea 47 mg, a 250 ml energy drink 80 mg). Adds no calories. Pass it only for a meal that is genuinely a caffeine source; a 0 here records 'measured, and it was none' and starts showing the user a caffeine row.",
+                    ),
+                sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_SODIUM_MG)
+                    .optional()
+                    .describe(
+                        "Sodium in MILLIGRAMS: sodium, not salt (1 g of salt holds about 400 mg of sodium; a label giving salt in grams converts as salt g x 400). Optional, with a daily limit set in set_nutrition_goals. On an itemized meal it is all-or-none across the items: a list that gives it on some items and not others is refused. A missing value is stored as not measured and leaves that day out of the sodium average and limit. 0 is the correct value for a food with none.",
                     ),
                 logged_at: z
                     .string()
@@ -5227,6 +5355,14 @@ export function registerTools(
                     .optional()
                     .describe(
                         "Caffeine per serving, in milligrams, as log_meal's caffeine_mg.",
+                    ),
+                sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_SODIUM_MG)
+                    .optional()
+                    .describe(
+                        "Sodium per serving, in milligrams (sodium, not salt), as log_meal's sodium_mg. Optional; not measured when not sent.",
                     ),
             }),
         },
@@ -5801,6 +5937,14 @@ export function registerTools(
                     .max(MAX_CAFFEINE_MG)
                     .optional()
                     .describe("Caffeine per serving, in milligrams."),
+                sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_SODIUM_MG)
+                    .optional()
+                    .describe(
+                        "Sodium per serving, in milligrams (sodium, not salt). Optional; not measured when not sent.",
+                    ),
             }),
         },
         async ({
@@ -7570,6 +7714,10 @@ export function registerTools(
                             }),
                             [SATURATED_FAT_META_KEY]: buildSaturatedFatMeta({
                                 goal: goals?.daily_saturated_fat_g,
+                                days: seriesMeals,
+                            }),
+                            [SODIUM_META_KEY]: buildSodiumMeta({
+                                goal: goals?.daily_sodium_mg,
                                 days: seriesMeals,
                             }),
                         },
