@@ -1857,7 +1857,7 @@ test("a milligram caffeine column auto-maps, with no opt-in to satisfy", () => {
         expect(html).toContain('data-field="caffeine_mg"');
         expect(importWidget.S.mapping.caffeine_mg).toBe(3);
         expect(html).toContain(
-            '<div class="map-src">Caffeine (mg)</div><div class="map-sample">e.g. 185</div>',
+            '<span class="ml"><span>Caffeine (mg)</span></span><span class="ms only-m">e.g. 185</span>',
         );
         expect(html).not.toContain("is in grams");
     }

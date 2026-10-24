@@ -23,6 +23,16 @@
   which rows go in which server call was untested inline JS once and had a real
   bug (issue #65).
 
+  Layout (the 2026-10 redesign, artboards W5-Import-M / W5-Import-D): a stepper,
+  a title and one pane per step, then an action bar that bleeds to the widget's
+  edges. Phone and desktop differ in two places only — the map step gets a
+  sticky "how values are read" sidebar and the preview a scrolling table at
+  640px and wider, where a phone gets the date and energy controls inline under
+  their own rows and the preview as collapsible days. The breakpoint is a width
+  media query, i.e. the iframe's OWN width (and a container query on the
+  landing page, where scripts/widget-static.ts rewrites it), never a JS
+  constant. Both layouts are in the markup; CSS shows one.
+
   Degrades on purpose:
     - api.canCallTools false  -> tells the user to ask Claude to import instead
     - host never answers      -> per-call timeout, reported, retry offered
@@ -39,74 +49,1630 @@
 
             /*@include shared/base.css@*/
 
-            /*@include shared/form.css@*/
-
-            /*@include shared/table.css@*/
-
+            /* ---- the import palette ------------------------------------
+               Every colour here is a shared token or a mix of tokens, so
+               light, dark and the host's explicit data-theme all follow
+               tokens.css. Short local names keep the rules below readable;
+               the design's variable each one stands for is in brackets. */
             .imp {
+                --g: var(--status-ok); /* [--g] action green */
+                --on-g: var(--gauge-cap); /* text on --g: white / near-black */
+                --gh: color-mix(in srgb, var(--status-ok) 84%, var(--text));
+                --gink: color-mix(in srgb, var(--gauge-ink) 80%, var(--text));
+                --gpale: var(--pill-bg);
+                --gpale2: var(--pill-bg-hover);
+                --ink: var(--text);
+                --sub: var(--text-dim);
+                --mute: var(--text-mute);
+                --line: var(--panel-border);
+                --page: var(--bg);
+                --soft: var(--surface-soft); /* [--panel] inset surfaces */
+                --tint: var(--track);
+                --fieldb: var(--status-nr);
+                --ring: var(--focus);
+                --warnbg: color-mix(in srgb, var(--status-near) 13%, var(--bg));
+                --warnink: color-mix(
+                    in srgb,
+                    var(--status-near-ink) 70%,
+                    var(--text)
+                );
+                --warnline: color-mix(
+                    in srgb,
+                    var(--status-near) 55%,
+                    var(--bg)
+                );
+                --badbg: color-mix(in srgb, var(--status-over) 11%, var(--bg));
+                --badink: color-mix(
+                    in srgb,
+                    var(--status-over-ink) 72%,
+                    var(--text)
+                );
+                --badline: color-mix(
+                    in srgb,
+                    var(--status-over) 45%,
+                    var(--bg)
+                );
+                --tagink: color-mix(in srgb, var(--sodium) 72%, var(--text));
+                --tagbg: color-mix(in srgb, var(--sodium) 16%, var(--bg));
+
                 padding: 14px;
-                display: grid;
-                /* minmax(0,1fr): an auto column would be sized by the nowrap
-                   preview table and drag every sibling card wide. */
-                grid-template-columns: minmax(0, 1fr);
-                gap: 14px;
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                color: var(--ink);
             }
-            .imp section {
-                padding: 14px;
+            .imp .num {
+                font-variant-numeric: tabular-nums;
             }
-            .imp h3 {
-                margin: 0 0 10px;
-                font-size: 11.5px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.06em;
-                color: var(--accent);
+            .imp button {
+                font: inherit;
+                color: inherit;
             }
-            .map-grid {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-                gap: 8px 12px;
-                align-items: center;
+            .imp :where(button.reset) {
+                all: unset;
+                box-sizing: border-box;
+                cursor: pointer;
+                text-align: left;
             }
-            .map-src {
+            .imp button.reset:focus-visible,
+            .imp .inp:focus-visible,
+            .imp .tscroll:focus-visible,
+            .imp .etbl:focus-visible,
+            .imp .ptitle:focus-visible,
+            .imp .errs:focus-visible {
+                outline: 2.5px solid var(--ring);
+                outline-offset: 2px;
+                border-radius: 12px;
+            }
+            .vh {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
+                white-space: nowrap;
+            }
+            /* One layout or the other: below 640px only the .only-m half
+               shows, at 640px and wider only the .only-d half. */
+            @media (max-width: 639.98px) {
+                /* !important: these must beat each block's own display. */
+                .imp .only-d {
+                    display: none !important;
+                }
+            }
+
+            /* ---- header + stepper ---- */
+            .imp .eyb2 {
+                display: block;
                 font-size: 12.5px;
                 font-weight: 600;
+                color: var(--sub);
+                letter-spacing: 0.01em;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+                min-height: 1.45em;
+            }
+            .imp .stp {
+                list-style: none;
+                margin: 12px 0 0;
+                padding: 0;
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                position: relative;
+            }
+            .imp .st {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+                min-width: 0;
+            }
+            .imp .st:not(:last-child):after {
+                content: "";
+                position: absolute;
+                top: 13px;
+                left: calc(50% + 17px);
+                right: calc(-50% + 17px);
+                height: 3px;
+                border-radius: 2px;
+                background: var(--line);
+            }
+            .imp .st.done:not(:last-child):after {
+                background: var(--g);
+            }
+            .imp .sd {
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                background: var(--page);
+                box-shadow: inset 0 0 0 2px var(--fieldb);
+                font-size: 13px;
+                font-weight: 800;
+                color: var(--sub);
+                transition:
+                    background-color 0.3s,
+                    box-shadow 0.3s;
+            }
+            .imp .sd .ck {
+                display: none;
+            }
+            .imp .st.cur .sd {
+                background: var(--g);
+                box-shadow: 0 0 0 4px var(--gpale);
+                color: var(--on-g);
+            }
+            .imp .st.done .sd {
+                background: var(--gpale);
+                box-shadow: inset 0 0 0 2px var(--g);
+                color: var(--gink);
+            }
+            .imp .st.done .sn {
+                display: none;
+            }
+            .imp .st.done .ck {
+                display: block;
+            }
+            /* Entrance motion plays only when something mounts (a step
+               change, a list opening, a day expanding), never on the
+               repaint every click causes: render() marks the mounting
+               element with .pop / .enter. */
+            .imp .st.done.pop .ck {
+                animation: imp-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            }
+            .imp .st.run .sd {
+                box-shadow:
+                    inset 0 0 0 2px var(--g),
+                    0 0 0 4px var(--gpale);
+                color: var(--gink);
+            }
+            .imp .sl {
+                font-size: 12px;
+                font-weight: 650;
+                color: var(--sub);
+                text-align: center;
+                line-height: 1.2;
+                max-width: 100%;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
-            .map-sample {
-                font-size: 11px;
-                color: var(--text-dim);
-                font-family: ui-monospace, Menlo, monospace;
+            .imp .st.cur .sl {
+                color: var(--ink);
+                font-weight: 800;
             }
-            .stat-row {
+            .imp .st.done .sl {
+                color: var(--gink);
+            }
+            .imp .ptitle {
+                margin: 16px 0 0;
+                font-size: 17px;
+                font-weight: 650;
+                letter-spacing: -0.015em;
+                line-height: 1.3;
+                color: var(--ink);
+                outline: none;
+            }
+            .imp .pane {
                 display: flex;
-                gap: 16px;
-                flex-wrap: wrap;
-                font-size: 12.5px;
-                margin-bottom: 10px;
+                flex-direction: column;
+                gap: 12px;
+                margin-top: 12px;
+                min-width: 0;
             }
-            .stat-row b {
-                font-variant-numeric: tabular-nums;
+            .imp.enter .pane {
+                animation: imp-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
             }
-            .diag {
+
+            /* ---- notices ---- */
+            .imp .nts {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .imp .nt {
+                display: grid;
+                grid-template-columns: 22px minmax(0, 1fr);
+                gap: 9px;
+                align-items: start;
+                font-size: 13px;
+                line-height: 1.45;
+                color: var(--ink);
+                padding: 10px 12px;
+                border-radius: 14px;
+                background: var(--tint);
+            }
+            .imp .nt > i {
+                font-style: normal;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 22px;
+                height: 22px;
+                border-radius: 11px;
+                font-size: 12px;
+                font-weight: 800;
+                background: color-mix(in srgb, var(--text) 13%, var(--bg));
+                color: var(--ink);
+            }
+            .imp .nt > span {
+                min-width: 0;
+                overflow-wrap: anywhere;
+            }
+            .imp .nt.warn {
+                background: var(--warnbg);
+                color: var(--warnink);
+            }
+            .imp .nt.warn > i {
+                background: color-mix(
+                    in srgb,
+                    var(--status-near) 32%,
+                    var(--bg)
+                );
+                color: var(--warnink);
+            }
+            .imp .nt.bad {
+                background: var(--badbg);
+                color: var(--badink);
+            }
+            .imp .nt.bad > i {
+                background: color-mix(
+                    in srgb,
+                    var(--status-over) 28%,
+                    var(--bg)
+                );
+                color: var(--badink);
+            }
+            .imp .nt b {
+                font-weight: 750;
+                color: inherit;
+            }
+            .imp .diag {
                 display: block;
                 margin-top: 8px;
-                padding: 7px 9px;
-                border-radius: 8px;
-                background: var(--track);
+                padding: 8px 10px;
+                border-radius: 10px;
+                background: var(--page);
+                box-shadow: inset 0 0 0 1px var(--line);
                 font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-                font-size: 10.5px;
-                line-height: 1.5;
+                font-size: 11px;
+                line-height: 1.55;
                 white-space: pre-wrap;
                 user-select: all;
+                color: var(--sub);
+                overflow-wrap: anywhere;
+            }
+            .imp .errs {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                outline: none;
+            }
+
+            /* ---- file step ---- */
+            .imp .drop {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                width: 100%;
+                padding: 26px 16px 22px;
+                border-radius: 20px;
+                border: 2px dashed var(--fieldb);
+                background: var(--soft);
+                text-align: center;
+                transition:
+                    border-color 0.25s,
+                    background-color 0.25s,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .imp .drop:hover,
+            .imp .drop.over {
+                border-color: var(--g);
+                background: color-mix(in oklab, var(--gpale) 70%, var(--page));
+            }
+            .imp .drop.over {
+                transform: scale(1.01);
+            }
+            .imp .drop:active {
+                transform: scale(0.985);
+            }
+            .imp .dic {
+                width: 46px;
+                height: 54px;
+                margin-bottom: 8px;
+                display: block;
+            }
+            .imp .doc-page {
+                fill: var(--page);
+                stroke: var(--g);
+                stroke-width: 2.5;
+            }
+            .imp .doc-fold {
+                fill: none;
+                stroke: var(--g);
+                stroke-width: 2.5;
+            }
+            .imp .doc-bar {
+                fill: var(--g);
+            }
+            .imp .doc-lines {
+                stroke: var(--page);
+                stroke-width: 2;
+                stroke-linecap: round;
+            }
+            .imp .ico {
+                fill: none;
+                stroke: currentColor;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+                flex: none;
+            }
+            .imp .dt {
+                font-size: 16px;
+                font-weight: 800;
+                color: var(--ink);
+            }
+            .imp .dor {
+                font-size: 13.5px;
+                color: var(--sub);
+            }
+            .imp .dpill {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                height: 36px;
+                padding: 0 18px;
+                margin-top: 12px;
+                border-radius: 18px;
+                background: var(--g);
+                color: var(--on-g);
+                font-size: 14px;
+                font-weight: 800;
+            }
+            .imp .drop:hover .dpill {
+                background: var(--gh);
+            }
+            .imp .dacc {
+                font-size: 11.5px;
+                color: var(--mute);
+                margin-top: 8px;
+            }
+            .imp .hint2 {
+                margin: 0;
+                font-size: 13px;
+                line-height: 1.45;
+                color: var(--sub);
+            }
+            .imp .priv {
+                display: flex;
+                gap: 8px;
+                align-items: flex-start;
+                font-size: 12.5px;
+                line-height: 1.45;
+                color: var(--sub);
+                padding-top: 10px;
+                border-top: 1px solid var(--line);
+            }
+            .imp .priv svg {
+                margin-top: 1px;
+            }
+            .imp .loadg {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+                padding: 34px 0 30px;
+                font-size: 14px;
                 color: var(--text-dim);
+            }
+            .imp .loadg .big {
+                font-size: 34px;
+                animation: imp-pulse 1.6s ease-in-out infinite;
+            }
+
+            /* ---- map step ---- */
+            .imp .fsum {
+                display: grid;
+                grid-template-columns: 36px minmax(0, 1fr);
+                gap: 10px;
+                align-items: center;
+                padding: 10px 12px;
+                border-radius: 16px;
+                background: var(--soft);
+            }
+            .imp .fsum .dic {
+                width: 32px;
+                height: 38px;
+                margin: 0;
+            }
+            .imp .fsb {
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+            }
+            .imp .fn {
+                font-size: 14px;
+                font-weight: 750;
+                color: var(--ink);
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .imp .fmeta {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 4px 10px;
+                font-size: 12.5px;
+                color: var(--sub);
+            }
+            .imp .fmeta b {
+                color: var(--ink);
+                font-weight: 750;
+            }
+            .imp .dlm {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 18px;
+                height: 18px;
+                padding: 0 4px;
+                margin-left: 2px;
+                border-radius: 5px;
+                background: var(--tint);
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-size: 12px;
+                vertical-align: 1px;
+            }
+            .imp .appb {
+                display: inline-flex;
+                align-items: center;
+                height: 20px;
+                padding: 0 8px;
+                border-radius: 10px;
+                background: var(--gpale);
+                color: var(--gink);
+                font-size: 11.5px;
+                font-weight: 800;
+            }
+            .imp .mhd {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 10px;
+                margin-top: 8px;
+            }
+            .imp .sec-t {
+                font-size: 11.5px;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--sub);
+            }
+            .imp .mcount {
+                font-size: 12.5px;
+                color: var(--sub);
+            }
+            .imp .mleft {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                min-width: 0;
+            }
+            .imp .mlist {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                margin-top: 6px;
+            }
+            .imp .mrow {
+                border-radius: 14px;
+                background: var(--soft);
+                box-shadow: inset 0 0 0 1.5px transparent;
+                transition:
+                    box-shadow 0.25s,
+                    background-color 0.25s;
+            }
+            .imp .mrow.on {
+                background: color-mix(in oklab, var(--gpale) 55%, var(--page));
+            }
+            .imp .mrow.open {
+                box-shadow: inset 0 0 0 2px var(--g);
+            }
+            .imp .mrow.need {
+                background: var(--badbg);
+                box-shadow: inset 0 0 0 1.5px var(--badline);
+            }
+            .imp .mbtn {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) 14px;
+                gap: 10px;
+                align-items: center;
+                width: 100%;
+                min-height: 50px;
+                padding: 8px 12px;
+                border-radius: 14px;
+            }
+            .imp .mlab {
+                display: flex;
+                flex-direction: column;
+                gap: 1px;
+                min-width: 0;
+            }
+            .imp .ml {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 4px 6px;
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--ink);
+                line-height: 1.25;
+            }
+            .imp .req {
+                font-style: normal;
+                color: var(--over);
+                font-weight: 800;
+            }
+            .imp .newt {
+                display: inline-flex;
+                align-items: center;
+                height: 16px;
+                padding: 0 6px;
+                border-radius: 8px;
+                background: var(--tagbg);
+                color: var(--tagink);
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+            }
+            .imp .ms {
+                font-size: 11.5px;
+                color: var(--sub);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-variant-numeric: tabular-nums;
+            }
+            .imp .mcol {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                min-width: 0;
+                text-align: right;
+            }
+            .imp .cno {
+                font-size: 10.5px;
+                font-weight: 800;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                color: var(--sub);
+            }
+            .imp .ctx {
+                max-width: 100%;
+                font-size: 13.5px;
+                font-weight: 700;
+                color: var(--ink);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .imp .mrow.off .ctx {
+                font-weight: 500;
+                color: var(--mute);
+            }
+            .imp .mrow.need .ctx {
+                color: var(--badink);
+                font-weight: 700;
+            }
+            .imp .mval {
+                font-size: 12.5px;
+                color: var(--sub);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .imp .mchev {
+                color: var(--sub);
+                transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .imp .mrow.open .mchev {
+                transform: rotate(180deg);
+            }
+            .imp .mwarn {
+                margin: -2px 12px 8px;
+                font-size: 12px;
+                color: var(--warnink);
+                font-weight: 600;
+            }
+            .imp .opts {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                margin: 0 6px 6px;
+                padding: 4px;
+                border-radius: 12px;
+                background: var(--page);
+                box-shadow: inset 0 0 0 1px var(--line);
+                max-height: 332px;
+                overflow: auto;
+            }
+            .imp .opts.enter {
+                animation: imp-drop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .imp .opt {
+                display: grid;
+                grid-template-columns: 18px minmax(0, 1fr) auto;
+                gap: 2px 10px;
+                align-items: center;
+                width: 100%;
+                padding: 8px 10px;
+                border-radius: 9px;
+                transition: background-color 0.15s;
+            }
+            .imp .opt:hover {
+                background: var(--tint);
+            }
+            .imp .orad {
+                grid-row: 1 / span 2;
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                box-shadow: inset 0 0 0 2px var(--fieldb);
+            }
+            .imp .opt.none .orad {
+                grid-row: auto;
+            }
+            .imp .opt.on {
+                background: var(--gpale);
+            }
+            .imp .opt.on .orad {
+                box-shadow: inset 0 0 0 5px var(--g);
+            }
+            .imp .otx {
+                display: flex;
+                align-items: baseline;
+                gap: 6px;
+                min-width: 0;
+            }
+            .imp .ono {
+                flex: none;
+                font-size: 10.5px;
+                font-weight: 800;
+                color: var(--sub);
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+            }
+            .imp .onm {
+                font-size: 13.5px;
+                font-weight: 650;
+                color: var(--ink);
+                overflow-wrap: anywhere;
+            }
+            .imp .opt.none .onm {
+                color: var(--sub);
+                font-weight: 600;
+            }
+            .imp .osm {
+                grid-column: 2 / 4;
+                font-size: 11.5px;
+                color: var(--sub);
+                font-variant-numeric: tabular-nums;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .imp .ous {
+                grid-column: 2 / 4;
+                justify-self: start;
+                font-size: 10.5px;
+                font-weight: 700;
+                color: var(--warnink);
+                background: var(--warnbg);
+                padding: 1px 6px;
+                border-radius: 7px;
+                white-space: nowrap;
+            }
+            .imp .fmt {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                margin: 0 6px 6px;
+                padding: 10px;
+                border-radius: 12px;
+                background: var(--page);
+                box-shadow: inset 0 0 0 1px var(--line);
+            }
+            .imp .fmt.amb {
+                box-shadow: inset 0 0 0 1.5px var(--warnline);
+            }
+            .imp .fmt .nt {
+                margin-bottom: 4px;
+            }
+            .imp .fl {
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--sub);
+            }
+            .imp .seg {
+                display: flex;
+                gap: 3px;
+                padding: 3px;
+                border-radius: 13px;
+                background: var(--soft);
+                box-shadow: inset 0 0 0 1.5px var(--fieldb);
+            }
+            .imp .sgb {
+                flex: 1 1 0;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 1px;
+                min-height: 38px;
+                padding: 4px 2px;
+                border-radius: 10px;
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--ink);
+                text-align: center;
+                transition:
+                    background-color 0.2s,
+                    color 0.2s;
+            }
+            .imp .sgb small {
+                font-size: 10.5px;
+                font-weight: 600;
+                color: var(--sub);
+                font-variant-numeric: tabular-nums;
+            }
+            .imp .sgb > span {
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .imp .sgb:hover {
+                background: var(--tint);
+            }
+            .imp .sgb.on {
+                background: var(--g);
+                color: var(--on-g);
+            }
+            .imp .sgb.on small {
+                color: var(--on-g);
+                opacity: 0.88;
+            }
+            .imp .seg.v {
+                flex-direction: column;
+            }
+            .imp .seg.v .sgb {
+                flex-direction: row;
+                justify-content: space-between;
+                padding: 0 12px;
+                min-height: 36px;
+                font-size: 13px;
+            }
+            .imp .seg.v .sgb small {
+                font-size: 11.5px;
+            }
+            .imp .hint {
+                font-size: 12.5px;
+                line-height: 1.4;
+                color: var(--sub);
+                font-variant-numeric: tabular-nums;
+                overflow-wrap: anywhere;
+            }
+            .imp .hint.ok {
+                color: var(--ink);
+            }
+            .imp .hint.ok:before {
+                content: "✓ ";
+                color: var(--gink);
+                font-weight: 800;
+            }
+            .imp .hint.bad {
+                color: var(--badink);
+                font-weight: 600;
+            }
+            .imp .fld {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                min-width: 0;
+            }
+            .imp .inp {
+                box-sizing: border-box;
+                width: 100%;
+                height: 40px;
+                padding: 0 12px;
+                border-radius: 12px;
+                border: 1.5px solid var(--fieldb);
+                background: var(--soft);
+                font: inherit;
+                font-size: 14.5px;
+                color: var(--ink);
+                outline: none;
+                transition:
+                    border-color 0.2s,
+                    box-shadow 0.2s;
+            }
+            .imp .inp:focus {
+                border-color: var(--ring);
+                box-shadow: 0 0 0 4px var(--gpale);
+            }
+            .imp .inp::placeholder {
+                color: var(--mute);
+            }
+
+            /* ---- preview step ---- */
+            .imp .tiles {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+            }
+            .imp .tile.span {
+                grid-column: 1 / -1;
+            }
+            .imp .tile {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                padding: 10px 12px;
+                border-radius: 16px;
+                background: var(--soft);
+                min-width: 0;
+            }
+            .imp .tile b {
+                font-size: 22px;
+                font-weight: 800;
+                letter-spacing: -0.02em;
+                color: var(--ink);
+                line-height: 1.1;
+            }
+            .imp .tile span {
+                font-size: 12.5px;
+                font-weight: 600;
+                color: var(--sub);
+            }
+            .imp .tile.main {
+                background: var(--gpale);
+            }
+            .imp .tile.main b,
+            .imp .tile.main span {
+                color: var(--gink);
+            }
+            .imp .tile.warn {
+                background: var(--warnbg);
+            }
+            .imp .tile.warn b,
+            .imp .tile.warn span {
+                color: var(--warnink);
+            }
+            .imp .readas {
+                display: flex;
+                gap: 8px;
+                align-items: flex-start;
+                font-size: 13px;
+                line-height: 1.4;
+                color: var(--sub);
+            }
+            .imp .readas svg {
+                margin-top: 1px;
+            }
+            .imp .dtools,
+            .imp .tnav {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                margin-top: 8px;
+            }
+            .imp .lnk {
+                display: inline-flex;
+                align-items: center;
+                min-height: 36px;
+                font-size: 13px;
+                font-weight: 750;
+                color: var(--gink);
+                padding: 0 6px;
+                margin-right: -6px;
+                border-radius: 8px;
+            }
+            .imp .lnk:hover {
+                text-decoration: underline;
+            }
+            .imp .dgs-wrap {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .imp .dg {
+                border-radius: 16px;
+                background: var(--soft);
+                overflow: hidden;
+            }
+            .imp .dgh {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto 14px;
+                gap: 10px;
+                align-items: center;
+                width: 100%;
+                padding: 11px 12px;
+                border-radius: 16px;
+            }
+            .imp .dgl {
+                font-size: 14px;
+                font-weight: 750;
+                color: var(--ink);
+            }
+            .imp .dgs {
+                font-size: 12.5px;
+                color: var(--sub);
+                white-space: nowrap;
+            }
+            .imp .dgh svg {
+                color: var(--sub);
+                transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .imp .dg.open .dgh svg {
+                transform: rotate(180deg);
+            }
+            .imp .rlist {
+                list-style: none;
+                margin: 0;
+                padding: 0 6px 6px;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .imp .dgcut {
+                margin: 0;
+                padding: 0 16px 10px;
+                font-size: 12px;
+                color: var(--sub);
+            }
+            .imp .rc {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                padding: 9px 10px;
+                border-radius: 11px;
+                background: var(--page);
+            }
+            .imp.enter .rc,
+            .imp .dg.enter .rc {
+                animation: imp-fade 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .imp .rc1 {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 12px;
+                color: var(--sub);
+            }
+            .imp .rtime {
+                font-weight: 800;
+                color: var(--ink);
+                font-variant-numeric: tabular-nums;
+            }
+            .imp .rtime.none {
+                font-weight: 600;
+                font-style: italic;
+                color: var(--warnink);
+            }
+            .imp .rmeal {
+                display: inline-flex;
+                align-items: center;
+                height: 18px;
+                padding: 0 7px;
+                border-radius: 9px;
+                background: var(--tint);
+                font-weight: 700;
+                color: var(--ink);
+                font-size: 11.5px;
+            }
+            .imp .rline {
+                margin-left: auto;
+                font-variant-numeric: tabular-nums;
+            }
+            .imp .food {
+                font-size: 14px;
+                font-weight: 650;
+                line-height: 1.35;
+                color: var(--ink);
+                overflow-wrap: anywhere;
+            }
+            .imp .food.anon {
+                font-style: italic;
+                font-weight: 500;
+                color: var(--sub);
+            }
+            .imp .rc3 {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px 10px;
+                font-size: 12px;
+                color: var(--sub);
+                font-variant-numeric: tabular-nums;
+            }
+            .imp .rk b {
+                font-size: 13px;
+                color: var(--ink);
+                font-weight: 800;
+            }
+            .imp .rk.miss b,
+            .imp .mc.miss {
+                color: var(--mute);
+            }
+            .imp .mc i {
+                font-style: normal;
+                font-weight: 700;
+                color: var(--sub);
+            }
+            .imp .tmore {
+                font-size: 12.5px;
+                color: var(--sub);
+                text-align: center;
+                padding: 4px 0 2px;
+            }
+            .imp .imp-empty {
+                padding: 18px;
+                border-radius: 16px;
+                background: var(--soft);
+                font-size: 13.5px;
+                color: var(--sub);
+                text-align: center;
+            }
+            /* desktop preview table */
+            .imp .tscroll {
+                overflow: auto;
+                max-height: 440px;
+                border-radius: 14px;
+                box-shadow: inset 0 0 0 1px var(--line);
+                outline: none;
+            }
+            .imp .tbl {
+                display: flex;
+                flex-direction: column;
+                font-size: 13px;
+                color: var(--ink);
+            }
+            .imp .thr,
+            .imp .tr {
+                display: grid;
+                align-items: center;
+            }
+            .imp .thr {
+                position: sticky;
+                top: 0;
+                z-index: 2;
+                background: var(--soft);
+                box-shadow: 0 1px 0 var(--line);
+            }
+            .imp .th {
+                padding: 9px 8px;
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                color: var(--sub);
+                white-space: nowrap;
+            }
+            .imp .th.num,
+            .imp .td.num {
+                text-align: right;
+            }
+            .imp .th.new {
+                color: var(--tagink);
+            }
+            .imp .tr {
+                border-top: 1px solid var(--line);
+            }
+            .imp .tr.z {
+                background: color-mix(in oklab, var(--soft) 60%, var(--page));
+            }
+            .imp .td {
+                padding: 7px 8px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-variant-numeric: tabular-nums;
+                min-width: 0;
+            }
+            .imp .td.dim,
+            .imp .td.miss {
+                color: var(--mute);
+            }
+            .imp .td.kc {
+                font-weight: 750;
+            }
+            .imp .td.food {
+                white-space: normal;
+                overflow-wrap: anywhere;
+                font-size: 13px;
+                font-weight: 600;
+            }
+            .imp .td.food.anon {
+                font-weight: 500;
+                font-style: italic;
+                color: var(--sub);
+            }
+            .imp .sb {
+                display: flex;
+                gap: 6px;
+            }
+            .imp .sbtn2 {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 36px;
+                height: 36px;
+                border-radius: 18px;
+                background: var(--tint);
+                color: var(--ink);
+            }
+            .imp .sbtn2:hover {
+                background: var(--gpale);
+            }
+
+            /* ---- done step ---- */
+            .imp .sum {
+                display: grid;
+                grid-template-columns: 40px minmax(0, 1fr);
+                gap: 12px;
+                align-items: center;
+                padding: 14px;
+                border-radius: 18px;
+                background: var(--gpale);
+                color: var(--gink);
+                font-size: 15px;
+                line-height: 1.4;
+            }
+            .imp .sum .sic {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                border-radius: 20px;
+                background: var(--g);
+                color: var(--on-g);
+                font-size: 20px;
+                font-weight: 800;
+            }
+            .imp.enter .sum .sic {
+                animation: imp-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s
+                    both;
+            }
+            .imp .sum b {
+                font-size: 17px;
+                font-weight: 800;
+            }
+            .imp .sum.warn {
+                background: var(--warnbg);
+                color: var(--warnink);
+            }
+            .imp .sum.warn .sic {
+                background: var(--status-near);
+            }
+            .imp .etbl {
+                max-height: 160px;
+                overflow: auto;
+                border-radius: 14px;
+                box-shadow: inset 0 0 0 1px var(--line);
+                outline: none;
+            }
+            .imp .etr {
+                display: grid;
+                grid-template-columns: 56px minmax(0, 1fr);
+                font-size: 13px;
+                border-top: 1px solid var(--line);
+            }
+            .imp .etr.h {
+                border-top: none;
+                position: sticky;
+                top: 0;
+                background: var(--soft);
+            }
+            .imp .etr span {
+                padding: 7px 10px;
+                overflow-wrap: anywhere;
+                color: var(--badink);
+            }
+            .imp .etr span:first-child {
+                color: var(--mute);
+                font-variant-numeric: tabular-nums;
+            }
+            .imp .etr.h span {
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                color: var(--sub);
+            }
+            .imp .ctxl {
+                margin: 0;
+                font-size: 12px;
+                line-height: 1.45;
+                color: var(--sub);
+                padding-top: 10px;
+                border-top: 1px solid var(--line);
+                overflow-wrap: anywhere;
+            }
+            .imp .ctxl q {
+                color: var(--ink);
+            }
+
+            /* ---- action bar ---- */
+            .imp .abar {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                /* Bleeds to the widget edges: the negative margins are .imp's
+                   own 14px padding. */
+                margin: 16px -14px -14px;
+                padding: 12px 14px 14px;
+                background: var(--page);
+                border-top: 1px solid var(--line);
+                box-shadow: 0 -10px 20px -18px
+                    color-mix(in srgb, var(--text) 35%, transparent);
+            }
+            .imp .abtns {
+                display: flex;
+                flex-direction: column-reverse;
+                gap: 8px;
+                align-items: stretch;
+            }
+            .imp .abtns > .sec,
+            .imp .abtns > .prim {
+                width: 100%;
+            }
+            .imp .why {
+                margin: 0;
+                font-size: 12.5px;
+                line-height: 1.4;
+                color: var(--sub);
+            }
+            .imp .prim {
+                flex: 1 1 auto;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                min-height: 44px;
+                padding: 0 20px;
+                border-radius: 22px;
+                background: var(--g);
+                color: var(--on-g);
+                font-size: 15px;
+                font-weight: 800;
+                text-align: center;
+                transition:
+                    background-color 0.25s,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .imp .prim:hover {
+                background: var(--gh);
+            }
+            .imp .prim:active {
+                transform: scale(0.96);
+            }
+            .imp .prim.soft {
+                background: var(--gpale);
+                color: var(--ink);
+            }
+            .imp .prim.soft:hover {
+                background: var(--gpale2);
+            }
+            .imp .prim.dis {
+                cursor: not-allowed;
+                background: transparent;
+                color: var(--sub);
+                outline: 1.5px dashed var(--fieldb);
+                outline-offset: -1.5px;
+                transform: none;
+            }
+            .imp .prim.dis.busy {
+                background: var(--gpale);
+                color: var(--gink);
+                cursor: progress;
+                outline: none;
+            }
+            .imp .sec {
+                flex: none;
+                white-space: nowrap;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 44px;
+                padding: 0 16px;
+                border-radius: 22px;
+                background: var(--tint);
+                color: var(--ink);
+                font-size: 14px;
+                font-weight: 750;
+                text-align: center;
+                transition: background-color 0.25s;
+            }
+            .imp .sec:hover {
+                background: color-mix(in srgb, var(--track) 80%, var(--text));
+            }
+            .imp .sec.dis {
+                cursor: not-allowed;
+                color: var(--sub);
+            }
+            .imp .sec.dis:hover {
+                background: var(--tint);
+            }
+            .imp .spin {
+                width: 14px;
+                height: 14px;
+                flex: none;
+                box-sizing: border-box;
+                border-radius: 50%;
+                border: 2.5px solid currentColor;
+                border-right-color: transparent;
+                animation: imp-spin 0.8s linear infinite;
+            }
+            .imp .prog {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            .imp .pbar {
+                height: 12px;
+                border-radius: 6px;
+                background: var(--gpale);
+                box-shadow: 0 0 0 4px
+                    color-mix(in oklab, var(--gpale) 45%, transparent);
+                overflow: hidden;
+            }
+            .imp .pbar span {
+                display: block;
+                height: 100%;
+                border-radius: 6px;
+                background: var(--g);
+                transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .imp .ptxt {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 13px;
+                font-weight: 650;
+                color: var(--ink);
+            }
+            .imp .ptxt .spin {
+                color: var(--g);
+            }
+
+            @keyframes imp-rise {
+                0% {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                }
+            }
+            @keyframes imp-fade {
+                0% {
+                    opacity: 0;
+                }
+                100% {
+                    opacity: 1;
+                }
+            }
+            @keyframes imp-drop {
+                0% {
+                    opacity: 0;
+                    transform: translateY(-6px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                }
+            }
+            @keyframes imp-pop {
+                0% {
+                    transform: scale(0.3);
+                    opacity: 0;
+                }
+                70% {
+                    transform: scale(1.12);
+                    opacity: 1;
+                }
+                100% {
+                    transform: none;
+                }
+            }
+            @keyframes imp-pulse {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.55;
+                }
+            }
+            @keyframes imp-spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            /* ---- desktop: the iframe is 640px or wider ---- */
+            @media (min-width: 640px) {
+                .imp .only-m {
+                    display: none !important;
+                }
+                .imp .stp {
+                    max-width: 620px;
+                }
+                .imp .ptitle {
+                    font-size: 21px;
+                }
+                .imp .tiles {
+                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                }
+                .imp .tiles .tile.span {
+                    grid-column: auto;
+                }
+                .imp .drop {
+                    padding: 34px 16px 30px;
+                }
+                .imp .pane > .hint2,
+                .imp .pane > .priv {
+                    max-width: 640px;
+                }
+                .imp .mgrid {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) 300px;
+                    gap: 18px;
+                    align-items: start;
+                }
+                .imp .mleft {
+                    padding-top: 4px;
+                }
+                .imp .mleft .mhd {
+                    margin-top: 0;
+                }
+                .imp .mside {
+                    position: sticky;
+                    top: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    padding: 12px;
+                    border-radius: 18px;
+                    background: var(--soft);
+                }
+                .imp .mside .fmt {
+                    margin: 0;
+                }
+                .imp .mth {
+                    display: grid;
+                    grid-template-columns:
+                        minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr)
+                        14px;
+                    gap: 12px;
+                    padding: 0 12px;
+                    font-size: 11px;
+                    font-weight: 700;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: var(--sub);
+                }
+                .imp .mbtn {
+                    grid-template-columns:
+                        minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr)
+                        14px;
+                    gap: 12px;
+                    min-height: 44px;
+                }
+                .imp .mbtn:hover {
+                    background: color-mix(
+                        in oklab,
+                        var(--tint) 60%,
+                        transparent
+                    );
+                }
+                .imp .mcol {
+                    align-items: flex-start;
+                    text-align: left;
+                }
+                .imp .opts {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    max-height: 300px;
+                }
+                .imp .opt.none {
+                    grid-column: 1 / -1;
+                }
+                .imp .abar {
+                    flex-direction: row;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    justify-content: flex-end;
+                }
+                .imp .abar .prog {
+                    flex: 1 1 100%;
+                }
+                .imp .abar .why {
+                    flex: 1 1 260px;
+                }
+                .imp .abtns {
+                    flex: none;
+                    margin-left: auto;
+                    flex-direction: row;
+                    align-items: center;
+                }
+                .imp .abtns > .sec,
+                .imp .abtns > .prim {
+                    width: auto;
+                }
+                .imp .prim {
+                    flex: none;
+                    min-width: 200px;
+                }
+            }
+
+            /* The design's entrance, pop and pulse motion, the chevron and
+               button overshoot, the bar sweep: all off. The spinner keeps
+               turning (it is the only sign of life during a long import),
+               three times slower. */
+            @media (prefers-reduced-motion: reduce) {
+                .imp.enter .pane,
+                .imp.enter .rc,
+                .imp .dg.enter .rc,
+                .imp .opts.enter,
+                .imp .st.done.pop .ck,
+                .imp.enter .sum .sic,
+                .imp .loadg .big {
+                    animation: none;
+                }
+                .imp .spin {
+                    animation-duration: 2.4s;
+                }
+                .imp .sd,
+                .imp .mrow,
+                .imp .mchev,
+                .imp .dgh svg,
+                .imp .pbar span,
+                .imp .drop,
+                .imp .prim,
+                .imp .sec,
+                .imp .sgb,
+                .imp .opt {
+                    transition: none;
+                }
+                .imp .drop.over,
+                .imp .drop:active,
+                .imp .prim:active {
+                    transform: none;
+                }
             }
         </style>
     </head>
     <body>
         <div id="root"></div>
+        <!-- Outside #root on purpose: render() replaces #root wholesale, and a
+             live region rebuilt on every paint is not reliably announced. -->
+        <div id="imp-live" class="vh" aria-live="polite"></div>
         <script>
             /*@i18n@*/
             /*@include shared/i18n.js@*/
@@ -226,13 +1792,13 @@
                     );
                 }
                 return (
-                    '<div class="notice"><span>✉</span><span>' +
-                    tpl(T.importMeals.emailNotice, {
+                    '<div class="nt mail" role="note"><i aria-hidden="true">✉</i><span>' +
+                    tpl(esc(T.importMeals.emailNotice), {
                         email: "<b>" + esc(SUPPORT_EMAIL) + "</b>",
                     }) +
-                    '<span class="diag">' +
+                    '<code class="diag">' +
                     esc(lines.join("\n")) +
-                    "</span></span></div>"
+                    "</code></span></div>"
                 );
             }
 
@@ -266,7 +1832,9 @@
                 { key: "caffeine_mg" },
                 // Milligrams of sodium (not salt). Optional, never a gate: a
                 // file without it imports with sodium not recorded.
-                { key: "sodium_mg" },
+                // isNew: the map step badges it, since sodium is the newly
+                // tracked nutrient and most users will not expect the row.
+                { key: "sodium_mg", isNew: true },
                 { key: "notes" },
                 { key: "time" },
                 { key: "deleted" },
@@ -577,6 +2145,13 @@
                 busy: false,
                 progress: null, // { done, total, label }
                 result: null, // aggregate of every chunk
+                // ---- view state (the redesign) ----
+                autoMapping: {}, // what autoMap() picked, for "auto" vs "set by you"
+                open: null, // field key whose column list is open, one at a time
+                dayOpen: {}, // preview day groups the user toggled, by ISO date
+                over: false, // a file is being dragged over the drop zone
+                modelSummary: "", // the exact text handed to updateModelContext
+                focus: null, // selector to focus after the next render()
             };
 
             function esc(s) {
@@ -601,50 +2176,101 @@
             // abbreviation, with the full label as its tooltip. Caffeine and
             // sodium are the columns in milligrams, so their headers name the
             // unit.
-            function nutrientTh(key) {
-                const abbr =
-                    T.importMeals.tableAbbr[key] +
-                    (key.endsWith("_mg") ? " " + T.macros.units.mg : "");
+            function nutrientAbbr(key) {
+                if (key === "calories") return T.macros.units.kcal;
                 return (
-                    '<th class="num" title="' +
+                    T.importMeals.tableAbbr[key] +
+                    (key.endsWith("_mg") ? " " + T.macros.units.mg : "")
+                );
+            }
+            // Sodium is the newly tracked nutrient, so its header carries the
+            // same quiet slate tint as the map step's "new" badge.
+            function nutrientTh(key) {
+                return (
+                    '<span class="th num' +
+                    (key === "sodium_mg" ? " new" : "") +
+                    '" role="columnheader" title="' +
                     esc(T.macros.labels[key]) +
                     '">' +
-                    esc(abbr) +
-                    "</th>"
+                    esc(nutrientAbbr(key)) +
+                    "</span>"
                 );
             }
 
             // ---- step 1: file ------------------------------------------------
+            // A spreadsheet saved as .xlsx (a ZIP), or any file with NUL
+            // bytes in its head, is not text. parseCsv would still "parse" it
+            // into a column or two of mojibake, which then reads as a mapping
+            // problem; naming the actual cause up front is the useful answer.
+            function looksBinary(buf) {
+                if (
+                    buf.length >= 4 &&
+                    buf[0] === 0x50 &&
+                    buf[1] === 0x4b &&
+                    buf[2] === 0x03 &&
+                    buf[3] === 0x04
+                )
+                    return true;
+                // Old .xls (OLE2 compound file).
+                if (buf.length >= 4 && buf[0] === 0xd0 && buf[1] === 0xcf)
+                    return true;
+                // UTF-16 text legitimately carries NULs, and decodeBytes
+                // handles it when it has a BOM; only BOM-less heads are judged.
+                const bom16 =
+                    buf.length >= 2 &&
+                    ((buf[0] === 0xff && buf[1] === 0xfe) ||
+                        (buf[0] === 0xfe && buf[1] === 0xff));
+                if (bom16) return false;
+                const n = Math.min(buf.length, 1024);
+                for (let i = 0; i < n; i++) if (buf[i] === 0) return true;
+                return false;
+            }
+            function fileError(message) {
+                S.errors = [message];
+                S.over = false;
+                S.focus = ".errs";
+                announce(T.importMeals.liveFileError);
+                render();
+            }
             async function loadFile(file) {
                 S.fileName = file.name;
+                let buf;
                 try {
-                    const buf = new Uint8Array(await file.arrayBuffer());
+                    buf = new Uint8Array(await file.arrayBuffer());
+                    if (looksBinary(buf)) {
+                        fileError(T.importMeals.binaryFile);
+                        return;
+                    }
                     S.table = parseCsv(buf);
                 } catch (e) {
-                    S.errors = [
+                    fileError(
                         tpl(T.importMeals.couldNotReadFile, {
                             msg: e.message,
                         }),
-                    ];
-                    render();
+                    );
                     return;
                 }
                 if (!S.table.rows.length) {
-                    S.errors = [
+                    fileError(
                         T.importMeals.noDataRows +
                             (S.table.warnings[0]
                                 ? " " + S.table.warnings[0]
                                 : ""),
-                    ];
-                    render();
+                    );
                     return;
                 }
                 S.errors = [];
+                S.over = false;
+                S.open = null;
                 autoMap();
                 guessSourceApp();
                 resniffDateFormat();
                 resniffEnergyUnit();
                 S.step = "map";
+                // The first row is where the work is; the title is one
+                // Tab away above it.
+                S.focus = ".mbtn";
+                announce(stepAnnouncement());
                 render();
             }
 
@@ -663,6 +2289,7 @@
                 }
                 if (S.mapping.added_sugar_g === -1)
                     S.mapping.added_sugar_g = addedSugarColumn();
+                S.autoMapping = Object.assign({}, S.mapping);
             }
             // A MyFitnessPal export has a Meal column but no food name; knowing
             // which app it came from lets the server label those rows.
@@ -699,12 +2326,6 @@
                     ["iso", `${T.importMeals.dateFormatYmd} (2026-07-18)`],
                     ["dmy", `${T.importMeals.dateFormatDmy} (18/07/2026)`],
                     ["mdy", `${T.importMeals.dateFormatMdy} (07/18/2026)`],
-                ];
-            }
-            function energyUnitOptions() {
-                return [
-                    ["kcal", `${T.importMeals.energyUnitKcal} (kcal)`],
-                    ["kj", `${T.importMeals.energyUnitKj} (kJ)`],
                 ];
             }
 
@@ -968,6 +2589,12 @@
                 };
                 const { chunks } = chunkRows(S.rows, CFG.max_rows_per_call);
                 S.progress = { done: 0, total: chunks.length, label: "" };
+                S.modelSummary = "";
+                announce(
+                    plural(T.importMeals.liveImporting, chunks.length, {
+                        n: fmtCount(chunks.length),
+                    }),
+                );
                 render();
 
                 for (let i = 0; i < chunks.length; i++) {
@@ -1032,6 +2659,8 @@
                                 );
                                 S.busy = false;
                                 S.progress = null;
+                                S.focus = ".errs";
+                                announce(T.importMeals.liveNoWrite);
                                 render();
                                 return;
                             }
@@ -1061,27 +2690,43 @@
                 S.busy = false;
                 S.progress = null;
                 S.step = "done";
-                render();
+                S.focus = ".ptitle";
+                announce(
+                    plural(T.importMeals.liveDone, S.result.created, {
+                        n: fmtCount(S.result.created),
+                    }),
+                );
 
                 // Tell the model what happened — a summary only, never rows.
-                if (API.updateModelContext) {
-                    const r = S.result;
-                    API.updateModelContext(
-                        "Bulk meal import finished: " +
-                            r.created +
-                            " meals imported, " +
-                            r.deduplicated +
-                            " already logged, " +
-                            r.failed +
-                            " failed" +
-                            (S.skipped
-                                ? ", " + S.skipped + " rows skipped"
-                                : "") +
-                            ". Source: " +
-                            (S.fileName || "pasted data") +
-                            ".",
+                // Kept on S too: the done step shows the user this exact
+                // sentence, so they can see that nothing more left the panel.
+                // English on purpose, like every tool's model-facing text.
+                const r = S.result;
+                const summary =
+                    "Bulk meal import finished: " +
+                    r.created +
+                    " meals imported, " +
+                    r.deduplicated +
+                    " already logged, " +
+                    r.failed +
+                    " failed" +
+                    (S.skipped ? ", " + S.skipped + " rows skipped" : "") +
+                    ". Source: " +
+                    (S.fileName || "pasted data") +
+                    ".";
+                render();
+                // The done step quotes the summary as what the assistant was
+                // told, so show it only once the host accepted it: the
+                // bridge resolves false when the request fails or times out
+                // (a host without ui/update-model-context, say).
+                if (API.updateModelContext)
+                    Promise.resolve(API.updateModelContext(summary)).then(
+                        (ok) => {
+                            if (ok === false || S.result !== r) return;
+                            S.modelSummary = summary;
+                            if (S.step === "done") render();
+                        },
                     );
-                }
             }
 
             function collect(sc) {
@@ -1125,285 +2770,1122 @@
             }
 
             // ---- rendering ---------------------------------------------------
-            function steps() {
+            //
+            // Every string below comes from T.importMeals (or T.macros for
+            // nutrient names and units); numbers go through Intl.NumberFormat
+            // in the widget's locale. The only literals left are brand names,
+            // the date-format examples (numbers, the same in every language)
+            // and glue punctuation between already-translated pieces.
+
+            // Polite live region outside #root (see the markup). Setting the
+            // same text twice is not re-announced, so clear it first.
+            function announce(text) {
+                const el =
+                    typeof document !== "undefined" &&
+                    document.getElementById("imp-live");
+                if (!el) return;
+                el.textContent = "";
+                setTimeout(() => {
+                    el.textContent = text;
+                }, 30);
+            }
+            function stepAnnouncement() {
                 const order = ["file", "map", "preview", "done"];
-                const names = [
+                const i = order.indexOf(S.step);
+                return tpl(T.importMeals.liveStep, {
+                    i: i + 1,
+                    name: stepNames()[i],
+                });
+            }
+
+            const NUMBER_FORMATS = {};
+            function numberFormat(maxDigits) {
+                const key = WIDGET_LOCALE + ":" + maxDigits;
+                if (!NUMBER_FORMATS[key]) {
+                    try {
+                        NUMBER_FORMATS[key] = new Intl.NumberFormat(
+                            WIDGET_LOCALE,
+                            { maximumFractionDigits: maxDigits },
+                        );
+                    } catch (_) {
+                        NUMBER_FORMATS[key] = { format: (v) => String(v) };
+                    }
+                }
+                return NUMBER_FORMATS[key];
+            }
+            // A count (rows, meals, batches): whole numbers, grouped.
+            function fmtCount(n) {
+                return numberFormat(0).format(n);
+            }
+            // A nutrient value as read from the file, or "—" when the row has
+            // none (absent, never a fabricated 0).
+            function fmtVal(v) {
+                return v === undefined || v === null
+                    ? "—"
+                    : numberFormat(2).format(v);
+            }
+
+            const ICON = {
+                chev: '<svg class="ico" width="14" height="14" viewBox="0 0 24 24" stroke-width="2.6" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+                left: '<svg class="ico" width="14" height="14" viewBox="0 0 24 24" stroke-width="2.6" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>',
+                right: '<svg class="ico" width="14" height="14" viewBox="0 0 24 24" stroke-width="2.6" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>',
+                check: '<svg class="ico ck" width="14" height="14" viewBox="0 0 24 24" stroke-width="3.2" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+                lock: '<svg class="ico" width="14" height="14" viewBox="0 0 24 24" stroke-width="2.2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+                info: '<svg class="ico" width="15" height="15" viewBox="0 0 24 24" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>',
+            };
+            // The CSV document: a page with a folded corner and a green
+            // label. Drawn from theme tokens, so it follows light and dark.
+            function docIcon() {
+                return (
+                    '<svg class="dic" viewBox="0 0 46 54" aria-hidden="true">' +
+                    '<path class="doc-page" d="M6 2h24l14 14v32a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z"/>' +
+                    '<path class="doc-fold" d="M30 2v10a4 4 0 0 0 4 4h10"/>' +
+                    '<rect class="doc-bar" x="9" y="27" width="28" height="15" rx="3"/>' +
+                    '<path class="doc-lines" d="M14 31.5h18M14 37.5h12"/>' +
+                    "</svg>"
+                );
+            }
+
+            // One notice. kind: info | warn | bad | mail. `html` is already
+            // escaped by the caller.
+            function nt(kind, html, role) {
+                const ic = { info: "i", warn: "!", bad: "✕", mail: "✉" }[kind];
+                return (
+                    '<div class="nt ' +
+                    kind +
+                    '" role="' +
+                    (role || (kind === "bad" ? "alert" : "note")) +
+                    '"><i aria-hidden="true">' +
+                    ic +
+                    "</i><span>" +
+                    html +
+                    "</span></div>"
+                );
+            }
+            function notices(list) {
+                return list.length
+                    ? '<div class="nts">' + list.join("") + "</div>"
+                    : "";
+            }
+
+            function stepNames() {
+                return [
                     T.importMeals.stepFile,
                     T.importMeals.stepMap,
                     T.importMeals.stepPreview,
                     T.importMeals.stepImport,
                 ];
+            }
+            function header() {
+                const order = ["file", "map", "preview", "done"];
                 const at = order.indexOf(S.step);
+                const names = stepNames();
+                const steps = names
+                    .map((name, i) => {
+                        const cls =
+                            "st" +
+                            (i === at ? " cur" : i < at ? " done" : "") +
+                            (i < at && i >= PAINT.prevAt ? " pop" : "") +
+                            (i === 3 && S.busy ? " run" : "");
+                        const aria = tpl(
+                            i < at
+                                ? T.importMeals.stepAriaDone
+                                : i === at
+                                  ? T.importMeals.stepAriaCurrent
+                                  : T.importMeals.stepAriaUpcoming,
+                            { i: i + 1, name },
+                        );
+                        return (
+                            '<li class="' +
+                            cls +
+                            '"' +
+                            (i === at ? ' aria-current="step"' : "") +
+                            '><span class="sd" aria-hidden="true"><span class="sn">' +
+                            (i + 1) +
+                            "</span>" +
+                            ICON.check +
+                            '</span><span class="sl" aria-hidden="true">' +
+                            esc(name) +
+                            '</span><span class="vh">' +
+                            esc(aria) +
+                            "</span></li>"
+                        );
+                    })
+                    .join("");
+                const title = {
+                    file: T.importMeals.chooseExportHeading,
+                    map: T.importMeals.mapColumnsHeading,
+                    preview: T.importMeals.previewHeading,
+                    done: T.importMeals.importCompleteHeading,
+                }[S.step];
+                const eyebrow =
+                    S.fileName && S.step !== "file"
+                        ? tpl(T.importMeals.eyebrowWithFile, {
+                              file: S.fileName,
+                          })
+                        : T.importMeals.eyebrow;
                 return (
-                    '<div class="steps">' +
-                    order
+                    '<span class="eyb2">' +
+                    esc(eyebrow) +
+                    "</span>" +
+                    '<ol class="stp" aria-label="' +
+                    esc(T.importMeals.stepsLabel) +
+                    '">' +
+                    steps +
+                    "</ol>" +
+                    '<h2 class="ptitle" tabindex="-1">' +
+                    esc(title) +
+                    "</h2>"
+                );
+            }
+
+            // The action bar: secondary then primary. Disabled buttons stay
+            // focusable (aria-disabled), so the reason under them is
+            // reachable; the click handler ignores them.
+            function actionBar(o) {
+                const btn = (b, prim) => {
+                    if (!b) return "";
+                    const cls =
+                        "reset " +
+                        (prim
+                            ? "prim" +
+                              (b.soft ? " soft" : "") +
+                              (b.busy ? " busy" : "")
+                            : "sec") +
+                        (b.dis ? " dis" : "");
+                    return (
+                        '<button type="button" class="' +
+                        cls +
+                        '" id="' +
+                        b.id +
+                        '" data-act="' +
+                        b.id +
+                        '" data-k="' +
+                        b.id +
+                        '"' +
+                        (b.dis ? ' aria-disabled="true"' : "") +
+                        ">" +
+                        (b.busy
+                            ? '<span class="spin" aria-hidden="true"></span>'
+                            : "") +
+                        "<span>" +
+                        esc(b.txt) +
+                        "</span></button>"
+                    );
+                };
+                return (
+                    '<div class="abar">' +
+                    (o.prog || "") +
+                    (o.why ? '<p class="why">' + esc(o.why) + "</p>" : "") +
+                    '<div class="abtns">' +
+                    btn(o.sec, false) +
+                    btn(o.pri, true) +
+                    "</div></div>"
+                );
+            }
+
+            // ---- file step ----
+            function fileStep() {
+                const list = [];
+                if (API && !API.canCallTools) {
+                    list.push(nt("warn", esc(T.importMeals.noToolsWarning)));
+                    if (SUPPORT_EMAIL)
+                        list.push(
+                            nt(
+                                "mail",
+                                tpl(esc(T.importMeals.emailFallback), {
+                                    email: "<b>" + esc(SUPPORT_EMAIL) + "</b>",
+                                }),
+                            ),
+                        );
+                }
+                if (!CFG.tz_configured)
+                    list.push(nt("warn", esc(T.importMeals.tzWarning)));
+                const err = S.errors.length
+                    ? '<div class="errs" tabindex="-1">' +
+                      nt(
+                          "bad",
+                          (S.fileName
+                              ? "<b>" + esc(S.fileName) + "</b> · "
+                              : "") + esc(S.errors[0]),
+                      ) +
+                      "</div>"
+                    : "";
+                return (
+                    '<div class="pane">' +
+                    notices(list) +
+                    err +
+                    '<button type="button" class="reset drop' +
+                    (S.over ? " over" : "") +
+                    '" id="drop" data-act="choose" data-k="drop" aria-label="' +
+                    esc(T.importMeals.dropAria) +
+                    '">' +
+                    docIcon() +
+                    '<span class="dt">' +
+                    esc(T.importMeals.dropChoose) +
+                    '</span><span class="dor">' +
+                    esc(T.importMeals.dropOr) +
+                    '</span><span class="dpill">' +
+                    esc(T.importMeals.browseFiles) +
+                    '</span><span class="dacc">' +
+                    esc(T.importMeals.dropAccept) +
+                    "</span></button>" +
+                    // The real chooser, behind the button. Out of the tab order
+                    // and the accessibility tree: the button above is the one
+                    // control, and it forwards the click.
+                    '<input type="file" class="vh" id="file" tabindex="-1" aria-hidden="true" accept=".csv,.tsv,.txt,text/csv,text/plain,text/tab-separated-values" />' +
+                    '<p class="hint2">' +
+                    esc(T.importMeals.recognizedHint) +
+                    "</p>" +
+                    // The note describes the in-panel path. With no tool
+                    // access the user is sent to the chat instead, where the
+                    // rows do pass through the assistant, so it would mislead.
+                    (API && !API.canCallTools
+                        ? ""
+                        : '<div class="priv">' +
+                          ICON.lock +
+                          "<span>" +
+                          esc(T.importMeals.privacyNote) +
+                          "</span></div>") +
+                    "</div>"
+                );
+            }
+
+            // ---- map step ----
+
+            // Worked examples: the first real value from the user's own file, run
+            // through the very functions the import will use. Returns
+            // [escaped HTML, hint class].
+            function dateExample() {
+                if (!(S.mapping.logged_at >= 0))
+                    return [esc(T.importMeals.dateMapHint), "hint"];
+                const raw = columnCells("logged_at", 1)[0];
+                if (raw === undefined)
+                    return [esc(T.importMeals.dateNoneHint), "hint"];
+                const iso = toIsoDate(raw, S.dateFormat);
+                if (iso === null)
+                    return [
+                        esc(
+                            tpl(T.importMeals.dateUnreadable, {
+                                raw,
+                                format: dateFormatLabel(S.dateFormat),
+                            }),
+                        ),
+                        "hint bad",
+                    ];
+                const time = normalizeTime(timeInDateCell(raw));
+                return [
+                    esc(
+                        tpl(T.importMeals.dateConverted, {
+                            raw,
+                            result: iso + (time ? " " + time : ""),
+                        }),
+                    ),
+                    "hint ok",
+                ];
+            }
+            function energyExample() {
+                if (!(S.mapping.calories >= 0))
+                    return [esc(T.importMeals.energyMapHint), "hint"];
+                const v = columnNumbers("calories", 1)[0];
+                if (v === undefined)
+                    return [esc(T.importMeals.energyNoneHint), "hint"];
+                if (S.energyUnit === "kj")
+                    return [
+                        esc(
+                            tpl(T.importMeals.energyConverted, {
+                                v: fmtVal(v),
+                                kcal: fmtVal(toKcal(v, "kj")),
+                            }),
+                        ),
+                        "hint ok",
+                    ];
+                return [
+                    esc(
+                        tpl(T.importMeals.energyNoConversion, {
+                            v: fmtVal(v),
+                        }),
+                    ),
+                    "hint ok",
+                ];
+            }
+
+            // A segmented radio group. act: the data-act of its options.
+            function segGroup(act, label, options, selected, vertical) {
+                return (
+                    '<div class="seg' +
+                    (vertical ? " v" : "") +
+                    '" role="radiogroup" aria-label="' +
+                    esc(label) +
+                    '">' +
+                    options
                         .map(
-                            (k, i) =>
-                                '<span class="step ' +
-                                (i === at ? "active" : i < at ? "done" : "") +
-                                '"><span class="dot">' +
-                                (i + 1) +
-                                "</span>" +
-                                names[i] +
-                                "</span>" +
-                                (i < 3
-                                    ? '<span class="step-sep">→</span>'
-                                    : ""),
+                            (o) =>
+                                '<button type="button" class="reset sgb' +
+                                (o.v === selected ? " on" : "") +
+                                '" role="radio" aria-checked="' +
+                                (o.v === selected) +
+                                '" tabindex="' +
+                                (o.v === selected ? "0" : "-1") +
+                                '" data-act="' +
+                                act +
+                                '" data-v="' +
+                                o.v +
+                                '" data-k="' +
+                                act +
+                                ":" +
+                                o.v +
+                                '"><span>' +
+                                esc(o.label) +
+                                "</span><small>" +
+                                esc(o.ex) +
+                                "</small></button>",
                         )
                         .join("") +
                     "</div>"
                 );
             }
-
-            function fileStep() {
-                const noTools =
-                    API && !API.canCallTools
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(T.importMeals.noToolsWarning) +
-                          "</span></div>" +
-                          (SUPPORT_EMAIL
-                              ? '<div class="notice"><span>✉</span><span>' +
-                                tpl(T.importMeals.emailFallback, {
-                                    email: "<b>" + esc(SUPPORT_EMAIL) + "</b>",
-                                }) +
-                                "</span></div>"
-                              : "")
-                        : "";
-                const tzWarn = !CFG.tz_configured
-                    ? '<div class="notice notice-warn"><span>!</span><span>' +
-                      esc(T.importMeals.tzWarning) +
-                      "</span></div>"
-                    : "";
+            function dateFormatBlock() {
+                const [hint, cls] = dateExample();
+                // Undecidable, so it must not be dressed up as auto-detected:
+                // the box turns amber and says so until the user picks one.
                 return (
-                    '<section class="card"><h3>' +
-                    esc(T.importMeals.chooseExportHeading) +
-                    "</h3>" +
-                    noTools +
-                    tzWarn +
-                    (S.errors.length
-                        ? '<div class="notice notice-error"><span>✕</span><span>' +
-                          esc(S.errors[0]) +
-                          "</span></div>"
+                    '<div class="fmt' +
+                    (S.dateAmbiguous ? " amb" : "") +
+                    '">' +
+                    (S.dateAmbiguous
+                        ? nt("warn", esc(T.importMeals.dateAmbiguousWarning))
                         : "") +
-                    '<label class="drop" id="drop">' +
-                    '<span class="big">📄</span><strong>' +
-                    esc(T.importMeals.dropChoose) +
-                    "</strong><br />" +
-                    esc(T.importMeals.dropOr) +
-                    '<input type="file" class="drop-input" id="file" accept=".csv,text/csv,text/plain" />' +
-                    "</label>" +
-                    '<div class="hint" style="margin-top:8px">' +
-                    esc(T.importMeals.recognizedHint) +
-                    "</div>" +
-                    "</section>"
+                    '<span class="fl" aria-hidden="true">' +
+                    esc(T.importMeals.dateFormatLabel) +
+                    "</span>" +
+                    segGroup(
+                        "df",
+                        T.importMeals.dateFormatLabel,
+                        [
+                            {
+                                v: "iso",
+                                label: T.importMeals.dateFormatYmd,
+                                ex: "2026-07-18",
+                            },
+                            {
+                                v: "dmy",
+                                label: T.importMeals.dateFormatDmy,
+                                ex: "18/07/2026",
+                            },
+                            {
+                                v: "mdy",
+                                label: T.importMeals.dateFormatMdy,
+                                ex: "07/18/2026",
+                            },
+                        ],
+                        S.dateFormat,
+                        true,
+                    ) +
+                    '<span class="' +
+                    cls +
+                    '">' +
+                    hint +
+                    "</span></div>"
                 );
             }
-
-            // Worked examples: the first real value from the user's own file, run
-            // through the very functions the import will use. Returns escaped HTML.
-            function dateExampleHtml() {
-                if (!(S.mapping.logged_at >= 0))
-                    return esc(T.importMeals.dateMapHint);
-                const raw = columnCells("logged_at", 1)[0];
-                if (raw === undefined) return esc(T.importMeals.dateNoneHint);
-                const iso = toIsoDate(raw, S.dateFormat);
-                if (iso === null)
-                    return esc(
-                        tpl(T.importMeals.dateUnreadable, {
-                            raw,
-                            format: dateFormatLabel(S.dateFormat),
-                        }),
-                    );
-                const time = normalizeTime(timeInDateCell(raw));
-                return esc(
-                    tpl(T.importMeals.dateConverted, {
-                        raw,
-                        result: iso + (time ? " " + time : ""),
-                    }),
+            function energyBlock() {
+                const [hint, cls] = energyExample();
+                return (
+                    '<div class="fmt"><span class="fl" aria-hidden="true">' +
+                    esc(T.importMeals.energyUnitLabel) +
+                    "</span>" +
+                    segGroup(
+                        "eu",
+                        T.importMeals.energyUnitLabel,
+                        [
+                            {
+                                v: "kcal",
+                                label: T.importMeals.energyUnitKcal,
+                                ex: "kcal",
+                            },
+                            {
+                                v: "kj",
+                                label: T.importMeals.energyUnitKj,
+                                ex: "kJ",
+                            },
+                        ],
+                        S.energyUnit,
+                        false,
+                    ) +
+                    '<span class="' +
+                    cls +
+                    '">' +
+                    hint +
+                    "</span></div>"
                 );
             }
-            function energyExampleHtml() {
-                if (!(S.mapping.calories >= 0))
-                    return esc(T.importMeals.energyMapHint);
-                const v = columnNumbers("calories", 1)[0];
-                if (v === undefined) return esc(T.importMeals.energyNoneHint);
-                if (S.energyUnit === "kj")
-                    return esc(
-                        tpl(T.importMeals.energyConverted, {
-                            v,
-                            kcal: toKcal(v, "kj"),
-                        }),
-                    );
-                return esc(tpl(T.importMeals.energyNoConversion, { v }));
-            }
-
-            function formatFieldsHtml() {
-                const select = (id, options, sel) =>
-                    '<select class="select" id="' +
+            // `where` keeps the two copies' ids apart (one shows per layout).
+            function sourceAppBlock(where) {
+                const id = "srcapp-" + where;
+                return (
+                    '<div class="fld"><label class="fl" for="' +
                     id +
                     '">' +
-                    options
-                        .map(
-                            (o) =>
-                                '<option value="' +
-                                o[0] +
-                                '"' +
-                                (sel === o[0] ? " selected" : "") +
-                                ">" +
-                                esc(o[1]) +
-                                "</option>",
-                        )
-                        .join("") +
-                    "</select>";
+                    esc(T.importMeals.sourceAppLabel) +
+                    '</label><input class="inp" type="text" id="' +
+                    id +
+                    '" data-act="srcapp" data-k="' +
+                    id +
+                    '" value="' +
+                    esc(S.sourceApp) +
+                    '" placeholder="myfitnesspal" autocomplete="off" spellcheck="false" /><span class="hint">' +
+                    esc(T.importMeals.sourceAppHint) +
+                    "</span></div>"
+                );
+            }
+
+            const APP_NAMES = {
+                cronometer: "Cronometer",
+                myfitnesspal: "MyFitnessPal",
+                loseit: "Lose It!",
+                macrofactor: "MacroFactor",
+            };
+            function columnName(i) {
                 return (
-                    '<div style="margin-top:12px">' +
-                    // Undecidable, so it must not be dressed up as auto-detected.
-                    (S.dateAmbiguous
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(T.importMeals.dateAmbiguousWarning) +
-                          "</span></div>"
+                    S.table.headers[i] ||
+                    tpl(T.importMeals.columnFallback, { n: i + 1 })
+                );
+            }
+            function fieldLabel(key) {
+                return T.importMeals.fieldLabels[key];
+            }
+
+            function mapRow(f, used, row1) {
+                const k = f.key;
+                const sel = S.mapping[k];
+                const mapped = sel >= 0;
+                const open = S.open === k;
+                const sampleCell = mapped && row1 ? row1[sel] : "";
+                const hasSample = mapped && !isBlankCell(sampleCell);
+                const sample = hasSample
+                    ? tpl(T.importMeals.sampleValue, {
+                          sample: sampleCell.trim(),
+                      })
+                    : "";
+                const others = mapped
+                    ? (used[sel] || []).filter((x) => x !== k)
+                    : [];
+                const label = fieldLabel(k);
+                const cls =
+                    "mrow" +
+                    (mapped ? " on" : " off") +
+                    (open ? " open" : "") +
+                    (f.required && !mapped ? " need" : "");
+                const colNo = mapped
+                    ? tpl(
+                          sel === S.autoMapping[k]
+                              ? T.importMeals.colNumberAuto
+                              : T.importMeals.colNumberManual,
+                          { n: sel + 1 },
+                      )
+                    : "";
+                const aria = tpl(T.importMeals.mapRowAria, {
+                    field: label,
+                    required: f.required ? T.importMeals.requiredAria : "",
+                    column: mapped
+                        ? tpl(T.importMeals.columnAria, {
+                              n: sel + 1,
+                              name: columnName(sel),
+                          })
+                        : T.importMeals.notInFileAria,
+                    sample: hasSample
+                        ? tpl(T.importMeals.sampleAria, { sample })
+                        : "",
+                });
+                let opts = "";
+                if (open) {
+                    const choices = [-1].concat(
+                        S.table.headers.map((_, i) => i),
+                    );
+                    opts =
+                        '<div class="opts' +
+                        (PAINT.optsEnter ? " enter" : "") +
+                        '" role="radiogroup" id="opts-' +
+                        k +
+                        '" aria-label="' +
+                        esc(
+                            tpl(T.importMeals.columnForAria, { field: label }),
+                        ) +
+                        '">' +
+                        choices
+                            .map((i) => {
+                                const on = i === sel || (i === -1 && !mapped);
+                                const also =
+                                    i >= 0
+                                        ? (used[i] || []).filter((x) => x !== k)
+                                        : [];
+                                const cell = i >= 0 && row1 ? row1[i] : "";
+                                return (
+                                    '<button type="button" class="reset opt' +
+                                    (on ? " on" : "") +
+                                    (i < 0 ? " none" : "") +
+                                    '" role="radio" aria-checked="' +
+                                    on +
+                                    '" tabindex="' +
+                                    (on ? "0" : "-1") +
+                                    '" data-act="pick" data-field="' +
+                                    k +
+                                    '" data-col="' +
+                                    i +
+                                    '" data-k="opt:' +
+                                    k +
+                                    ":" +
+                                    i +
+                                    '"><span class="orad" aria-hidden="true"></span><span class="otx">' +
+                                    (i >= 0
+                                        ? '<span class="ono">' +
+                                          esc(
+                                              tpl(T.importMeals.colNumber, {
+                                                  n: i + 1,
+                                              }),
+                                          ) +
+                                          "</span>"
+                                        : "") +
+                                    '<span class="onm">' +
+                                    esc(
+                                        i < 0
+                                            ? T.importMeals.notInFile
+                                            : columnName(i),
+                                    ) +
+                                    "</span></span>" +
+                                    (also.length
+                                        ? '<span class="ous">' +
+                                          esc(
+                                              tpl(T.importMeals.alsoUsed, {
+                                                  field: fieldLabel(also[0]),
+                                              }),
+                                          ) +
+                                          "</span>"
+                                        : "") +
+                                    (i >= 0
+                                        ? '<span class="osm">' +
+                                          esc(
+                                              isBlankCell(cell)
+                                                  ? T.importMeals.row1Empty
+                                                  : tpl(
+                                                        T.importMeals
+                                                            .sampleValue,
+                                                        { sample: cell.trim() },
+                                                    ),
+                                          ) +
+                                          "</span>"
+                                        : "") +
+                                    "</button>"
+                                );
+                            })
+                            .join("") +
+                        "</div>";
+                }
+                return (
+                    '<div class="' +
+                    cls +
+                    '" role="listitem">' +
+                    '<button type="button" class="reset mbtn" data-act="toggle" data-field="' +
+                    k +
+                    '" data-k="row:' +
+                    k +
+                    '" aria-expanded="' +
+                    open +
+                    '"' +
+                    (open ? ' aria-controls="opts-' + k + '"' : "") +
+                    ' aria-label="' +
+                    esc(aria) +
+                    '"><span class="mlab"><span class="ml"><span>' +
+                    esc(label) +
+                    "</span>" +
+                    (f.required
+                        ? '<em class="req" aria-hidden="true">*</em>'
                         : "") +
-                    '<div class="field"><label class="label" for="dateFormat">' +
-                    esc(T.importMeals.dateFormatLabel) +
-                    "</label>" +
-                    select("dateFormat", dateFormatOptions(), S.dateFormat) +
-                    '<span class="hint">' +
-                    dateExampleHtml() +
-                    "</span></div>" +
-                    '<div class="field"><label class="label" for="energyUnit">' +
-                    esc(T.importMeals.energyUnitLabel) +
-                    "</label>" +
-                    select("energyUnit", energyUnitOptions(), S.energyUnit) +
-                    '<span class="hint">' +
-                    energyExampleHtml() +
-                    "</span></div>" +
+                    (f.isNew
+                        ? '<span class="newt">' +
+                          esc(T.importMeals.badgeNew) +
+                          "</span>"
+                        : "") +
+                    "</span>" +
+                    (hasSample
+                        ? '<span class="ms only-m">' + esc(sample) + "</span>"
+                        : "") +
+                    '</span><span class="mcol">' +
+                    (mapped
+                        ? '<span class="cno">' + esc(colNo) + "</span>"
+                        : "") +
+                    '<span class="ctx">' +
+                    esc(mapped ? columnName(sel) : T.importMeals.notInFile) +
+                    "</span></span>" +
+                    '<span class="mval num only-d">' +
+                    esc(hasSample ? sampleCell.trim() : "") +
+                    "</span>" +
+                    '<span class="mchev">' +
+                    ICON.chev +
+                    "</span></button>" +
+                    (others.length
+                        ? '<div class="mwarn">' +
+                          esc(
+                              tpl(T.importMeals.sameColumn, {
+                                  fields: others.map(fieldLabel).join(", "),
+                              }),
+                          ) +
+                          "</div>"
+                        : "") +
+                    opts +
+                    // On a phone the two read settings sit right under the
+                    // column they apply to; on desktop they are in the sidebar.
+                    (k === "logged_at"
+                        ? '<div class="only-m">' + dateFormatBlock() + "</div>"
+                        : "") +
+                    (k === "calories"
+                        ? '<div class="only-m">' + energyBlock() + "</div>"
+                        : "") +
                     "</div>"
                 );
             }
 
             function mapStep() {
                 const t = S.table;
-                const opts = (sel) =>
-                    '<option value="-1"' +
-                    (sel === -1 ? " selected" : "") +
-                    ">" +
-                    esc(T.importMeals.notInFile) +
-                    "</option>" +
-                    t.headers
-                        .map(
-                            (h, i) =>
-                                '<option value="' +
-                                i +
-                                '"' +
-                                (sel === i ? " selected" : "") +
-                                ">" +
-                                esc(
-                                    h ||
-                                        tpl(T.importMeals.columnFallback, {
-                                            n: i + 1,
-                                        }),
-                                ) +
-                                "</option>",
-                        )
-                        .join("");
+                const fields = mappableFields();
+                const row1 = t.rows[0] || [];
+                const used = {};
+                for (const f of fields) {
+                    const i = S.mapping[f.key];
+                    if (i >= 0) (used[i] = used[i] || []).push(f.key);
+                }
+                const mappedN = fields.filter(
+                    (f) => S.mapping[f.key] >= 0,
+                ).length;
+                const list = t.warnings.map((w) => nt("warn", esc(w)));
+                if (
+                    S.mapping.caffeine_mg === -1 &&
+                    caffeineGramsColumns().length
+                )
+                    list.push(
+                        nt(
+                            "info",
+                            esc(
+                                tpl(T.importMeals.caffeineGramsNotice, {
+                                    column: caffeineGramsColumns()[0],
+                                }),
+                            ),
+                        ),
+                    );
+                if (!alcoholTracked() && alcoholColumn())
+                    list.push(
+                        nt(
+                            "info",
+                            esc(
+                                tpl(T.importMeals.alcoholNotice, {
+                                    column: alcoholColumn(),
+                                }),
+                            ),
+                        ),
+                    );
+                const app = S.sourceApp
+                    ? tpl(T.importMeals.appExport, {
+                          app: APP_NAMES[S.sourceApp] || S.sourceApp,
+                      })
+                    : "";
                 return (
-                    '<section class="card"><h3>' +
-                    esc(T.importMeals.mapColumnsHeading) +
-                    "</h3>" +
-                    '<div class="stat-row"><span>' +
-                    boldCount(plural(T.importMeals.rowsCount, t.rows.length)) +
+                    '<div class="pane">' +
+                    '<div class="fsum">' +
+                    docIcon() +
+                    '<div class="fsb"><b class="fn" title="' +
+                    esc(S.fileName) +
+                    '">' +
+                    esc(S.fileName) +
+                    '</b><span class="fmeta">' +
+                    (app ? '<span class="appb">' + esc(app) + "</span>" : "") +
+                    "<span>" +
+                    boldCount(
+                        plural(T.importMeals.rowsCount, t.rows.length, {
+                            n: fmtCount(t.rows.length),
+                        }),
+                    ) +
                     "</span><span>" +
                     boldCount(
-                        plural(T.importMeals.columnsCount, t.headers.length),
+                        plural(T.importMeals.columnsCount, t.headers.length, {
+                            n: fmtCount(t.headers.length),
+                        }),
                     ) +
                     "</span><span>" +
                     esc(t.encoding) +
                     ", " +
                     esc(T.importMeals.delimiterLabel) +
-                    " <b>" +
+                    ' <b class="dlm">' +
                     esc(
                         t.delimiter === "\t"
                             ? T.importMeals.tabLabel
                             : t.delimiter,
                     ) +
-                    "</b></span></div>" +
-                    (t.warnings.length
-                        ? t.warnings
-                              .map(
-                                  (w) =>
-                                      '<div class="notice notice-warn"><span>!</span><span>' +
-                                      esc(w) +
-                                      "</span></div>",
-                              )
-                              .join("")
-                        : "") +
-                    (S.mapping.caffeine_mg === -1 &&
-                    caffeineGramsColumns().length
-                        ? '<div class="notice"><span>i</span><span>' +
-                          esc(
-                              tpl(T.importMeals.caffeineGramsNotice, {
-                                  column: caffeineGramsColumns()[0],
-                              }),
-                          ) +
-                          "</span></div>"
-                        : "") +
-                    (!alcoholTracked() && alcoholColumn()
-                        ? '<div class="notice"><span>i</span><span>' +
-                          esc(
-                              tpl(T.importMeals.alcoholNotice, {
-                                  column: alcoholColumn(),
-                              }),
-                          ) +
-                          "</span></div>"
-                        : "") +
-                    '<div class="map-grid">' +
-                    mappableFields()
-                        .map((f) => {
-                            const sel = S.mapping[f.key];
-                            const sample =
-                                sel >= 0 && t.rows[0] ? t.rows[0][sel] : "";
-                            return (
-                                '<div><div class="map-src">' +
-                                esc(T.importMeals.fieldLabels[f.key]) +
-                                (f.required
-                                    ? ' <span style="color:var(--over)">*</span>'
-                                    : "") +
-                                '</div><div class="map-sample">' +
-                                esc(
-                                    sample
-                                        ? tpl(T.importMeals.sampleValue, {
-                                              sample,
-                                          })
-                                        : "",
-                                ) +
-                                "</div></div>" +
-                                '<select class="select map-sel" data-field="' +
-                                f.key +
-                                '">' +
-                                opts(sel) +
-                                "</select>"
-                            );
-                        })
-                        .join("") +
-                    "</div>" +
-                    formatFieldsHtml() +
-                    '<div class="field"><label class="label">' +
-                    esc(T.importMeals.sourceAppLabel) +
-                    "</label>" +
-                    '<input class="input" id="srcapp" value="' +
-                    esc(S.sourceApp) +
-                    '" placeholder="myfitnesspal" />' +
-                    '<span class="hint">' +
-                    esc(T.importMeals.sourceAppHint) +
+                    "</b></span></span></div></div>" +
+                    notices(list) +
+                    '<div class="mgrid"><div class="mleft">' +
+                    '<div class="mhd"><span class="sec-t">' +
+                    esc(T.importMeals.columnsHeading) +
+                    '</span><span class="mcount">' +
+                    esc(
+                        plural(T.importMeals.fieldsMatched, fields.length, {
+                            n: fmtCount(mappedN),
+                            total: fmtCount(fields.length),
+                        }),
+                    ) +
                     "</span></div>" +
-                    '<div class="actions"><button class="btn btn-primary" id="toPreview">' +
-                    esc(T.importMeals.previewButton) +
-                    "</button>" +
-                    '<button class="btn" id="backToFile">' +
-                    esc(T.importMeals.chooseAnotherButton) +
-                    "</button></div>" +
-                    "</section>"
+                    '<div class="mth only-d" aria-hidden="true"><span>' +
+                    esc(T.importMeals.tableFieldHead) +
+                    "</span><span>" +
+                    esc(T.importMeals.tableColumnHead) +
+                    "</span><span>" +
+                    esc(T.importMeals.tableRow1Head) +
+                    "</span><span></span></div>" +
+                    '<div class="mlist" role="list">' +
+                    fields.map((f) => mapRow(f, used, row1)).join("") +
+                    "</div>" +
+                    '<div class="only-m">' +
+                    sourceAppBlock("m") +
+                    "</div>" +
+                    "</div>" +
+                    '<aside class="mside only-d" aria-label="' +
+                    esc(T.importMeals.howRead) +
+                    '"><span class="sec-t" aria-hidden="true">' +
+                    esc(T.importMeals.howRead) +
+                    "</span>" +
+                    dateFormatBlock() +
+                    energyBlock() +
+                    '<div class="fmt">' +
+                    sourceAppBlock("d") +
+                    "</div></aside></div>" +
+                    actionBar({
+                        sec: {
+                            id: "backToFile",
+                            txt: T.importMeals.chooseAnotherButton,
+                        },
+                        pri: {
+                            id: "toPreview",
+                            txt: T.importMeals.previewButton,
+                        },
+                    }) +
+                    "</div>"
                 );
+            }
+
+            // ---- preview step ----
+
+            // Saturated and trans fat, fiber, sugar, added sugar, sodium,
+            // alcohol and caffeine are missing from most exports, so their
+            // columns appear only when this file actually carries them — five
+            // columns of "—" would push the macros that do have values off the
+            // visible width for no information. Alcohol additionally never
+            // appears with tracking off: the rows carry none by then, but the
+            // column is filtered by the opt-in as well as by the data, so a
+            // stray value could not put ethanol on screen. Caffeine and sodium
+            // have no such gate; they are filtered by the data alone.
+            function previewColumns() {
+                const extra = [
+                    ["saturated_fat_g"],
+                    ["trans_fat_g"],
+                    ["fiber_g"],
+                    ["sugar_g"],
+                    ["added_sugar_g"],
+                    ["sodium_mg"],
+                    ["alcohol_g", true],
+                    ["caffeine_mg"],
+                ].filter(
+                    (c) =>
+                        (!c[1] || alcoholTracked()) &&
+                        S.rows.some((r) => r[c[0]] !== undefined),
+                );
+                return ["calories", "protein_g", "carbs_g", "fat_g"].concat(
+                    extra.map((c) => c[0]),
+                );
+            }
+
+            // A calendar date, e.g. "Wed 1 Oct", in the widget's language.
+            // UTC on purpose: the value is a date, not an instant, so no
+            // zone may shift it.
+            function dayLabel(iso) {
+                try {
+                    return new Intl.DateTimeFormat(WIDGET_LOCALE, {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        timeZone: "UTC",
+                    }).format(new Date(iso + "T12:00:00Z"));
+                } catch (_) {
+                    return iso;
+                }
+            }
+
+            function previewTable(shown, cols) {
+                const widths =
+                    "grid-template-columns:44px 146px 82px minmax(220px,1fr) repeat(" +
+                    cols.length +
+                    ",54px)";
+                const minW = 44 + 146 + 82 + 220 + cols.length * 54 + 40;
+                return (
+                    '<div class="tscroll" id="tscroll" role="region" tabindex="0" aria-label="' +
+                    esc(T.importMeals.previewRegionAria) +
+                    '"><div class="tbl" role="table" style="min-width:' +
+                    minW +
+                    'px"><div class="thr" role="row" style="' +
+                    widths +
+                    '"><span class="th" role="columnheader">' +
+                    esc(T.importMeals.tableLine) +
+                    '</span><span class="th" role="columnheader">' +
+                    esc(T.importMeals.tableWhen) +
+                    '</span><span class="th" role="columnheader">' +
+                    esc(T.importMeals.tableMeal) +
+                    '</span><span class="th" role="columnheader">' +
+                    esc(T.importMeals.tableFood) +
+                    "</span>" +
+                    cols.map(nutrientTh).join("") +
+                    "</div>" +
+                    shown
+                        .map(
+                            (r, z) =>
+                                '<div class="tr' +
+                                (z % 2 ? " z" : "") +
+                                '" role="row" style="' +
+                                widths +
+                                '"><span class="td dim num" role="cell">' +
+                                r.source_line +
+                                '</span><span class="td" role="cell">' +
+                                esc(r.logged_at) +
+                                '</span><span class="td" role="cell">' +
+                                esc(r.meal_type || "—") +
+                                '</span><span class="td food' +
+                                (r.description ? "" : " anon") +
+                                '" role="cell">' +
+                                esc(
+                                    r.description ||
+                                        T.importMeals.noNameFallback,
+                                ) +
+                                "</span>" +
+                                cols
+                                    .map(
+                                        (c) =>
+                                            '<span class="td num' +
+                                            (r[c] === undefined
+                                                ? " miss"
+                                                : "") +
+                                            (c === "calories" ? " kc" : "") +
+                                            '" role="cell">' +
+                                            esc(fmtVal(r[c])) +
+                                            "</span>",
+                                    )
+                                    .join("") +
+                                "</div>",
+                        )
+                        .join("") +
+                    "</div></div>"
+                );
+            }
+
+            // Phone preview: the same rows, grouped by calendar date. The first
+            // two days start open; the user's own toggles win after that.
+            // One group per date, in order of first appearance, so an
+            // unsorted export still shows each date once. A day's row count
+            // and energy come from every row in the file, not just the shown
+            // ones, so a day the row limit cuts still states its real total.
+            function dayGroups(shown, all) {
+                const byIso = new Map();
+                for (const r of shown) {
+                    const iso = String(r.logged_at).slice(0, 10);
+                    let g = byIso.get(iso);
+                    if (!g) {
+                        g = { iso, rows: [], count: 0, kcal: 0 };
+                        byIso.set(iso, g);
+                    }
+                    g.rows.push(r);
+                }
+                for (const r of all) {
+                    const g = byIso.get(String(r.logged_at).slice(0, 10));
+                    if (!g) continue;
+                    g.count++;
+                    g.kcal += r.calories ?? 0;
+                }
+                return [...byIso.values()];
+            }
+
+            function previewDays(shown, cols) {
+                const groups = dayGroups(shown, S.rows);
+                const isOpen = (g, gi) =>
+                    S.dayOpen[g.iso] != null ? S.dayOpen[g.iso] : gi < 2;
+                const allOpen = groups.every(isOpen);
+                const prevDays = PAINT.prevDays;
+                const kcalUnit = T.macros.units.kcal;
+                const body = groups
+                    .map((g, gi) => {
+                        const open = isOpen(g, gi);
+                        PAINT.days[g.iso] = open;
+                        // Rows fade in only when their day opens, not on
+                        // every repaint.
+                        const enterDay =
+                            open && !!prevDays && prevDays[g.iso] === false;
+                        const kc = Math.round(g.kcal);
+                        const sub = kc
+                            ? plural(T.importMeals.dayRowsKcal, g.count, {
+                                  n: fmtCount(g.count),
+                                  kcal: fmtCount(kc),
+                              })
+                            : plural(T.importMeals.dayRows, g.count, {
+                                  n: fmtCount(g.count),
+                              });
+                        // The row limit cut this day: say how many of its
+                        // rows the list shows.
+                        const cut =
+                            open && g.rows.length < g.count
+                                ? '<p class="dgcut">' +
+                                  esc(
+                                      tpl(T.importMeals.showingRows, {
+                                          shown: fmtCount(g.rows.length),
+                                          total: fmtCount(g.count),
+                                      }),
+                                  ) +
+                                  "</p>"
+                                : "";
+                        const items = open
+                            ? '<ul class="rlist" id="day-' +
+                              g.iso +
+                              '">' +
+                              g.rows
+                                  .map((r) => {
+                                      const time = String(r.logged_at).slice(
+                                          11,
+                                      );
+                                      const aria = tpl(
+                                          T.importMeals.rowCardAria,
+                                          {
+                                              line: r.source_line,
+                                              when: r.logged_at,
+                                              meal:
+                                                  r.meal_type ||
+                                                  T.importMeals.noMealAria,
+                                              food:
+                                                  r.description ||
+                                                  T.importMeals.noNameFallback,
+                                              kcal:
+                                                  r.calories === undefined
+                                                      ? T.importMeals.noKcalAria
+                                                      : fmtVal(r.calories) +
+                                                        " " +
+                                                        kcalUnit,
+                                          },
+                                      );
+                                      return (
+                                          '<li class="rc"><span class="vh">' +
+                                          esc(aria) +
+                                          '</span><div class="rc1" aria-hidden="true"><span class="rtime' +
+                                          (time ? "" : " none") +
+                                          '">' +
+                                          esc(
+                                              time || T.importMeals.noTimeShort,
+                                          ) +
+                                          "</span>" +
+                                          (r.meal_type
+                                              ? '<span class="rmeal">' +
+                                                esc(r.meal_type) +
+                                                "</span>"
+                                              : "") +
+                                          '<span class="rline">' +
+                                          esc(
+                                              tpl(T.importMeals.lineN, {
+                                                  n: r.source_line,
+                                              }),
+                                          ) +
+                                          '</span></div><div class="food' +
+                                          (r.description ? "" : " anon") +
+                                          '" aria-hidden="true">' +
+                                          esc(
+                                              r.description ||
+                                                  T.importMeals.noNameFallback,
+                                          ) +
+                                          '</div><div class="rc3" aria-hidden="true"><span class="rk' +
+                                          (r.calories === undefined
+                                              ? " miss"
+                                              : "") +
+                                          '"><b>' +
+                                          esc(fmtVal(r.calories)) +
+                                          "</b> " +
+                                          esc(kcalUnit) +
+                                          "</span>" +
+                                          cols
+                                              .slice(1)
+                                              .map(
+                                                  (c) =>
+                                                      '<span class="mc' +
+                                                      (r[c] === undefined
+                                                          ? " miss"
+                                                          : "") +
+                                                      '"><i>' +
+                                                      esc(
+                                                          T.importMeals
+                                                              .tableAbbr[c],
+                                                      ) +
+                                                      "</i> " +
+                                                      esc(fmtVal(r[c])) +
+                                                      (c.endsWith("_mg") &&
+                                                      r[c] !== undefined
+                                                          ? "\u2009" +
+                                                            esc(
+                                                                T.macros.units
+                                                                    .mg,
+                                                            )
+                                                          : "") +
+                                                      "</span>",
+                                              )
+                                              .join("") +
+                                          "</div></li>"
+                                      );
+                                  })
+                                  .join("") +
+                              "</ul>"
+                            : "";
+                        return (
+                            '<div class="dg' +
+                            (open ? " open" : "") +
+                            (enterDay ? " enter" : "") +
+                            '"><button type="button" class="reset dgh" data-act="day" data-v="' +
+                            g.iso +
+                            '" data-k="day:' +
+                            g.iso +
+                            '" aria-expanded="' +
+                            open +
+                            '"' +
+                            (open ? ' aria-controls="day-' + g.iso + '"' : "") +
+                            '><span class="dgl">' +
+                            esc(dayLabel(g.iso)) +
+                            '</span><span class="dgs num">' +
+                            esc(sub) +
+                            "</span>" +
+                            ICON.chev +
+                            "</button>" +
+                            items +
+                            cut +
+                            "</div>"
+                        );
+                    })
+                    .join("");
+                return {
+                    tools:
+                        '<div class="dtools only-m"><span class="sec-t">' +
+                        esc(T.importMeals.rowsHeading) +
+                        "</span>" +
+                        (groups.length > 2
+                            ? '<button type="button" class="reset lnk" data-act="allDays" data-k="allDays">' +
+                              esc(
+                                  allOpen
+                                      ? T.importMeals.collapseAllDays
+                                      : T.importMeals.expandAllDays,
+                              ) +
+                              "</button>"
+                            : "") +
+                        "</div>",
+                    body: '<div class="dgs-wrap only-m">' + body + "</div>",
+                };
             }
 
             function previewStep() {
@@ -1417,57 +3899,192 @@
                     CFG.max_rows_per_call,
                 );
                 const chunks = previewChunks.length;
-                // Saturated and trans fat, fiber, sugar, added sugar, alcohol,
-                // caffeine and sodium are missing from most exports, so their columns appear only when this
-                // file actually carries them — five columns of "—" would push the macros that
-                // do have values off the visible width for no information.
-                // Alcohol additionally never appears with tracking off: the
-                // rows carry none by then, but the column is filtered by the
-                // opt-in as well as by the data, so a stray value could not
-                // put ethanol on screen. Caffeine and sodium have no such
-                // gate; they are filtered by the data alone.
-                const extra = [
-                    ["saturated_fat_g"],
-                    ["trans_fat_g"],
-                    ["fiber_g"],
-                    ["sugar_g"],
-                    ["added_sugar_g"],
-                    ["alcohol_g", true],
-                    ["caffeine_mg"],
-                    ["sodium_mg"],
-                ].filter(
-                    (c) =>
-                        (!c[1] || alcoholTracked()) &&
-                        S.rows.some((r) => r[c[0]] !== undefined),
-                );
+                const cols = previewColumns();
+                const canImport = !!(API && API.canCallTools);
+
+                const tiles = [
+                    [
+                        "tile main",
+                        S.rows.length,
+                        plural(T.importMeals.tileMeals, S.rows.length),
+                    ],
+                    ["tile", kcal, T.importMeals.tileKcal],
+                ];
+                if (S.skipped)
+                    tiles.push([
+                        "tile warn",
+                        S.skipped,
+                        plural(T.importMeals.tileSkipped, S.skipped),
+                    ]);
+                tiles.push([
+                    "tile",
+                    chunks,
+                    plural(T.importMeals.tileBatches, chunks),
+                ]);
+                // An odd count: the first tile takes the full row on a phone.
+                if (tiles.length % 2) tiles[0][0] += " span";
+
+                const warns = [];
+                // Importing fewer rows than the file holds is the exact failure
+                // this flow exists to prevent, so never let it pass silently.
+                if (S.badDates)
+                    warns.push(
+                        nt(
+                            "warn",
+                            esc(
+                                plural(
+                                    T.importMeals.badDatesWarning,
+                                    S.badDates,
+                                    {
+                                        n: fmtCount(S.badDates),
+                                        format: dateFormatLabel(S.dateFormat),
+                                        sample: S.badDateSample
+                                            ? tpl(T.importMeals.badDateSample, {
+                                                  line: S.badDateSample.line,
+                                                  value: S.badDateSample.value,
+                                              })
+                                            : "",
+                                    },
+                                ),
+                            ),
+                        ),
+                    );
+                if (noTime)
+                    warns.push(
+                        nt(
+                            "warn",
+                            esc(
+                                plural(T.importMeals.noTimeWarning, noTime, {
+                                    n: fmtCount(noTime),
+                                }),
+                            ),
+                        ),
+                    );
+                // A calendar date with more than max_rows_per_call rows on
+                // its own has to be split across more than one import
+                // call — max_rows_per_call and "keep every date together"
+                // cannot both hold there. Flagged so the user knows why,
+                // and because two identical rows for that date landing in
+                // different calls can dedupe against each other instead of
+                // both being written (see chunkRows in src/chunk.ts).
+                if (splitDates.length)
+                    warns.push(
+                        nt(
+                            "warn",
+                            esc(
+                                plural(
+                                    T.importMeals.splitDatesCount,
+                                    splitDates.length,
+                                ) +
+                                    tpl(T.importMeals.splitDatesWarning, {
+                                        max: CFG.max_rows_per_call,
+                                        date: splitDates[0],
+                                    }),
+                            ),
+                        ),
+                    );
+
+                const errs = [];
+                if (S.result && S.result.chunkErrors.length)
+                    for (const e of S.result.chunkErrors)
+                        errs.push(nt("bad", esc(e), "presentation"));
+                if (S.result && S.result.rowErrors.length && !S.busy)
+                    errs.push(
+                        nt(
+                            "bad",
+                            esc(
+                                plural(
+                                    T.importMeals.rowsWouldFail,
+                                    S.result.rowErrors.length,
+                                    {
+                                        line: S.result.rowErrors[0].line,
+                                        message: S.result.rowErrors[0].message,
+                                    },
+                                ),
+                            ),
+                            "presentation",
+                        ),
+                    );
+
+                let rowsHtml = "";
+                if (shown.length) {
+                    const days = previewDays(shown, cols);
+                    rowsHtml =
+                        '<div class="tnav only-d"><span class="sec-t">' +
+                        esc(T.importMeals.rowsHeading) +
+                        '</span><span class="sb"><button type="button" class="reset sbtn2" data-act="scrollL" data-k="scrollL" aria-label="' +
+                        esc(T.importMeals.scrollLeft) +
+                        '">' +
+                        ICON.left +
+                        '</button><button type="button" class="reset sbtn2" data-act="scrollR" data-k="scrollR" aria-label="' +
+                        esc(T.importMeals.scrollRight) +
+                        '">' +
+                        ICON.right +
+                        "</button></span></div>" +
+                        days.tools +
+                        '<div class="only-d">' +
+                        previewTable(shown, cols) +
+                        "</div>" +
+                        days.body +
+                        (S.rows.length > shown.length
+                            ? '<div class="tmore">' +
+                              esc(
+                                  tpl(T.importMeals.showingRows, {
+                                      shown: fmtCount(shown.length),
+                                      total: fmtCount(S.rows.length),
+                                  }),
+                              ) +
+                              "</div>"
+                            : "");
+                }
+
+                let prog = "";
+                if (S.progress) {
+                    const p = S.progress;
+                    const pct = p.total
+                        ? Math.round((p.done / p.total) * 100)
+                        : 0;
+                    prog =
+                        '<div class="prog"><div class="pbar" role="progressbar" aria-label="' +
+                        esc(T.importMeals.progressAria) +
+                        '" aria-valuemin="0" aria-valuemax="' +
+                        p.total +
+                        '" aria-valuenow="' +
+                        p.done +
+                        '"><span style="width:' +
+                        Math.max(4, pct) +
+                        '%"></span></div><div class="ptxt"><span class="spin" aria-hidden="true"></span><span>' +
+                        esc(
+                            tpl(T.importMeals.batchProgress, {
+                                label: p.label,
+                                done: fmtCount(p.done),
+                                total: fmtCount(p.total),
+                            }),
+                        ) +
+                        "</span></div></div>";
+                }
+
                 return (
-                    '<section class="card"><h3>' +
-                    esc(T.importMeals.previewHeading) +
-                    "</h3>" +
-                    '<div class="stat-row"><span>' +
-                    boldCount(
-                        plural(T.importMeals.mealsToImport, S.rows.length),
-                    ) +
-                    "</span><span>" +
-                    boldCount(
-                        tpl(T.importMeals.kcalTotal, {
-                            kcal: kcal.toLocaleString(),
-                        }),
-                    ) +
-                    "</span>" +
-                    (S.skipped
-                        ? "<span>" +
-                          boldCount(
-                              plural(T.importMeals.rowsSkipped, S.skipped),
-                          ) +
-                          "</span>"
-                        : "") +
-                    "<span>" +
-                    boldCount(plural(T.importMeals.batchCount, chunks)) +
-                    "</span></div>" +
+                    '<div class="pane">' +
+                    '<div class="tiles">' +
+                    tiles
+                        .map(
+                            (t) =>
+                                '<div class="' +
+                                t[0] +
+                                '"><b class="num">' +
+                                esc(fmtCount(t[1])) +
+                                "</b><span>" +
+                                esc(t[2]) +
+                                "</span></div>",
+                        )
+                        .join("") +
+                    "</div>" +
                     // State the two conversions applied, so the confirmation step
                     // shows what will be sent rather than what the file said.
-                    '<div class="hint" style="margin-bottom:10px">' +
+                    '<div class="readas">' +
+                    ICON.info +
+                    "<span>" +
                     esc(
                         tpl(T.importMeals.datesReadAs, {
                             format: dateFormatLabel(S.dateFormat),
@@ -1477,181 +4094,59 @@
                                     : T.importMeals.energyReadAsKcal,
                         }),
                     ) +
-                    "</div>" +
-                    // Importing fewer rows than the file holds is the exact failure
-                    // this flow exists to prevent, so never let it pass silently.
-                    (S.badDates
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(
-                              plural(
-                                  T.importMeals.badDatesWarning,
-                                  S.badDates,
-                                  {
-                                      format: dateFormatLabel(S.dateFormat),
-                                      sample: S.badDateSample
-                                          ? tpl(T.importMeals.badDateSample, {
-                                                line: S.badDateSample.line,
-                                                value: S.badDateSample.value,
-                                            })
-                                          : "",
-                                  },
-                              ),
-                          ) +
-                          "</span></div>"
-                        : "") +
-                    (noTime
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(plural(T.importMeals.noTimeWarning, noTime)) +
-                          "</span></div>"
-                        : "") +
-                    // A calendar date with more than max_rows_per_call rows on
-                    // its own has to be split across more than one import
-                    // call — max_rows_per_call and "keep every date together"
-                    // cannot both hold there. Flagged so the user knows why,
-                    // and because two identical rows for that date landing in
-                    // different calls can dedupe against each other instead of
-                    // both being written (see chunkRows in src/chunk.ts).
-                    (splitDates.length
-                        ? '<div class="notice notice-warn"><span>!</span><span>' +
-                          esc(
-                              plural(
-                                  T.importMeals.splitDatesCount,
-                                  splitDates.length,
-                              ) +
-                                  tpl(T.importMeals.splitDatesWarning, {
-                                      max: CFG.max_rows_per_call,
-                                      date: splitDates[0],
-                                  }),
-                          ) +
-                          "</span></div>"
-                        : "") +
-                    '<div class="tscroll"><table class="tbl"><thead><tr>' +
-                    "<th>" +
-                    esc(T.importMeals.tableLine) +
-                    "</th><th>" +
-                    esc(T.importMeals.tableWhen) +
-                    "</th><th>" +
-                    esc(T.importMeals.tableMeal) +
-                    "</th><th class='wide'>" +
-                    esc(T.importMeals.tableFood) +
-                    "</th>" +
-                    '<th class="num">' +
-                    esc(T.macros.units.kcal) +
-                    "</th>" +
-                    ["protein_g", "carbs_g", "fat_g"]
-                        .concat(extra.map((c) => c[0]))
-                        .map(nutrientTh)
-                        .join("") +
-                    "</tr></thead><tbody>" +
-                    shown
-                        .map(
-                            (r) =>
-                                "<tr><td class='dim'>" +
-                                r.source_line +
-                                "</td><td>" +
-                                esc(r.logged_at) +
-                                "</td><td>" +
-                                esc(r.meal_type || "—") +
-                                "</td><td class='wide'>" +
-                                esc(
-                                    r.description ||
-                                        T.importMeals.noNameFallback,
-                                ) +
-                                '</td><td class="num">' +
-                                (r.calories ?? "—") +
-                                '</td><td class="num">' +
-                                (r.protein_g ?? "—") +
-                                '</td><td class="num">' +
-                                (r.carbs_g ?? "—") +
-                                '</td><td class="num">' +
-                                (r.fat_g ?? "—") +
-                                "</td>" +
-                                extra
-                                    .map(
-                                        (c) =>
-                                            '<td class="num">' +
-                                            (r[c[0]] ?? "—") +
-                                            "</td>",
-                                    )
-                                    .join("") +
-                                "</tr>",
-                        )
-                        .join("") +
-                    "</tbody></table>" +
-                    (S.rows.length > shown.length
-                        ? '<div class="tmore">' +
-                          esc(
-                              tpl(T.importMeals.showingRows, {
-                                  shown: shown.length,
-                                  total: S.rows.length,
-                              }),
-                          ) +
+                    "</span></div>" +
+                    notices(warns) +
+                    (errs.length
+                        ? '<div class="errs" tabindex="-1" role="alert">' +
+                          errs.join("") +
                           "</div>"
                         : "") +
-                    "</div>" +
-                    (S.progress
-                        ? '<div style="margin-top:12px"><div class="bar"><span style="width:' +
-                          Math.round(
-                              (S.progress.done / S.progress.total) * 100,
-                          ) +
-                          '%"></span></div><div class="hint" style="margin-top:6px">' +
-                          esc(
-                              tpl(T.importMeals.batchProgress, {
-                                  label: S.progress.label,
-                                  done: S.progress.done,
-                                  total: S.progress.total,
-                              }),
-                          ) +
-                          "</div></div>"
-                        : "") +
-                    (S.result && S.result.chunkErrors.length
-                        ? S.result.chunkErrors
-                              .map(
-                                  (e) =>
-                                      '<div class="notice notice-error"><span>✕</span><span>' +
-                                      esc(e) +
-                                      "</span></div>",
-                              )
-                              .join("")
-                        : "") +
-                    (S.result && S.result.rowErrors.length && !S.busy
-                        ? '<div class="notice notice-error"><span>✕</span><span>' +
-                          esc(
-                              plural(
-                                  T.importMeals.rowsWouldFail,
-                                  S.result.rowErrors.length,
-                                  {
-                                      line: S.result.rowErrors[0].line,
-                                      message: S.result.rowErrors[0].message,
-                                  },
-                              ),
-                          ) +
-                          "</span></div>"
-                        : "") +
+                    (S.rows.length
+                        ? ""
+                        : '<div class="imp-empty">' +
+                          esc(T.importMeals.noRowsToImport) +
+                          "</div>") +
+                    rowsHtml +
                     (S.badDates > 0 ? diagnosticsBlock() : "") +
-                    '<div class="actions"><button class="btn btn-primary" id="doImport"' +
-                    (S.busy || !(API && API.canCallTools) ? " disabled" : "") +
-                    ">" +
-                    esc(
-                        S.busy
-                            ? T.importMeals.importingEllipsis
-                            : plural(T.importMeals.importButton, S.rows.length),
-                    ) +
-                    "</button>" +
-                    '<button class="btn" id="backToMap"' +
-                    (S.busy ? " disabled" : "") +
-                    ">" +
-                    esc(T.importMeals.backToMapping) +
-                    "</button></div>" +
-                    "</section>"
+                    actionBar({
+                        prog,
+                        why:
+                            API && !API.canCallTools
+                                ? T.importMeals.importOff
+                                : S.busy
+                                  ? T.importMeals.backBusy
+                                  : "",
+                        sec: {
+                            id: "backToMap",
+                            txt: T.importMeals.backToMapping,
+                            dis: S.busy,
+                        },
+                        pri: {
+                            id: "doImport",
+                            txt: S.busy
+                                ? T.importMeals.importingEllipsis
+                                : plural(
+                                      T.importMeals.importButton,
+                                      S.rows.length,
+                                      { n: fmtCount(S.rows.length) },
+                                  ),
+                            dis: S.busy || !canImport || !S.rows.length,
+                            busy: S.busy,
+                        },
+                    }) +
+                    "</div>"
                 );
             }
 
+            // ---- done step ----
             function doneStep() {
                 const r = S.result || {
                     created: 0,
                     deduplicated: 0,
                     failed: 0,
+                    chunkErrors: [],
+                    rowErrors: [],
+                    warnings: [],
                 };
                 const ok = r.failed === 0 && !r.chunkErrors.length;
                 const tail =
@@ -1659,168 +4154,462 @@
                         ? plural(
                               T.importMeals.resultAlreadyLogged,
                               r.deduplicated,
+                              { n: fmtCount(r.deduplicated) },
                           )
                         : "") +
                     (r.failed
-                        ? plural(T.importMeals.resultFailed, r.failed)
+                        ? plural(T.importMeals.resultFailed, r.failed, {
+                              n: fmtCount(r.failed),
+                          })
                         : "") +
                     (S.skipped
-                        ? plural(T.importMeals.resultSkipped, S.skipped)
+                        ? plural(T.importMeals.resultSkipped, S.skipped, {
+                              n: fmtCount(S.skipped),
+                          })
                         : "");
                 return (
-                    '<section class="card"><h3>' +
-                    esc(T.importMeals.importCompleteHeading) +
-                    "</h3>" +
-                    '<div class="notice ' +
-                    (ok ? "notice-ok" : "notice-warn") +
-                    '"><span>' +
+                    '<div class="pane">' +
+                    '<div class="sum' +
+                    (ok ? "" : " warn") +
+                    '" role="status"><span class="sic" aria-hidden="true">' +
                     (ok ? "✓" : "!") +
                     "</span><span>" +
                     boldCount(
-                        plural(T.importMeals.resultMealsImported, r.created),
+                        plural(T.importMeals.resultMealsImported, r.created, {
+                            n: fmtCount(r.created),
+                        }),
                     ) +
                     esc(tail) +
                     ".</span></div>" +
-                    (r.warnings || [])
-                        .map(
-                            (w) =>
-                                '<div class="notice"><span>i</span><span>' +
-                                esc(w) +
-                                "</span></div>",
-                        )
-                        .join("") +
+                    notices((r.warnings || []).map((w) => nt("info", esc(w)))) +
                     (r.rowErrors && r.rowErrors.length
-                        ? '<div class="tscroll" style="max-height:160px"><table class="tbl"><thead><tr><th>' +
+                        ? '<div class="etbl" role="table" tabindex="0" aria-label="' +
+                          esc(T.importMeals.failedRowsAria) +
+                          '"><div class="etr h" role="row"><span role="columnheader">' +
                           esc(T.importMeals.tableLine) +
-                          '</th><th class="wide">' +
+                          '</span><span role="columnheader">' +
                           esc(T.importMeals.tableProblem) +
-                          "</th></tr></thead><tbody>" +
+                          "</span></div>" +
                           r.rowErrors
                               .slice(0, 20)
                               .map(
                                   (e) =>
-                                      "<tr class='bad'><td class='dim'>" +
-                                      e.line +
-                                      "</td><td class='wide'>" +
+                                      '<div class="etr" role="row"><span role="cell">' +
+                                      esc(e.line) +
+                                      '</span><span role="cell">' +
                                       esc(e.message) +
-                                      "</td></tr>",
+                                      "</span></div>",
                               )
                               .join("") +
-                          "</tbody></table></div>"
+                          "</div>"
                         : "") +
                     (ok ? "" : diagnosticsBlock()) +
-                    '<div class="actions"><button class="btn" id="restart">' +
-                    esc(T.importMeals.restartButton) +
-                    "</button></div>" +
-                    "</section>"
+                    (S.modelSummary
+                        ? '<p class="ctxl">' +
+                          tpl(esc(T.importMeals.toldOnly), {
+                              summary: "<q>" + esc(S.modelSummary) + "</q>",
+                          }) +
+                          "</p>"
+                        : "") +
+                    actionBar({
+                        pri: {
+                            id: "restart",
+                            txt: T.importMeals.restartButton,
+                            soft: true,
+                        },
+                    }) +
+                    "</div>"
                 );
             }
 
-            function render() {
-                const el = document.getElementById("root");
-                if (!el) return;
+            // ---- paint + events ----
+
+            // The visible copy of a control: both layouts are in the DOM, CSS
+            // hides one, and a hidden element cannot take focus.
+            function visible(sel) {
+                const all = document.querySelectorAll(sel);
+                for (const el of all) if (el.getClientRects().length) return el;
+                return all[0] || null;
+            }
+
+            let wired = false;
+            // What the last paint showed, and the per-paint flags the
+            // builders read: prevAt (steps at or past it get the check-mark
+            // pop), optsEnter (a column list just opened), prevDays (which
+            // day groups were open; null on a step change) and days (filled
+            // in by previewDays for the next paint to compare against).
+            const painted = { step: null, open: null, days: null, pct: null };
+            const PAINT = {
+                prevAt: 9,
+                optsEnter: false,
+                prevDays: null,
+                days: {},
+            };
+
+            function progressPct() {
+                const p = S.progress;
+                if (!p) return null;
+                return Math.max(
+                    4,
+                    p.total ? Math.round((p.done / p.total) * 100) : 0,
+                );
+            }
+
+            // The rebuilt view arrives already in its new state, so a CSS
+            // transition (chevron turn, row highlight, progress width) would
+            // never run. Paint what changed in its previous state, force one
+            // style flush, then flip it: the transition then plays as if the
+            // element had been changed in place.
+            function replayTransitions(root, prev) {
+                if (!root.querySelectorAll) return;
+                const flips = [];
+                const rowOf = (k) =>
+                    k == null
+                        ? []
+                        : [...root.querySelectorAll('[data-k="row:' + k + '"]')]
+                              .map((b) => b.closest(".mrow"))
+                              .filter(Boolean);
+                if (prev.open !== S.open)
+                    for (const el of rowOf(prev.open).concat(rowOf(S.open)))
+                        flips.push(() => el.classList.toggle("open"));
+                if (prev.days)
+                    for (const b of root.querySelectorAll(".dgh")) {
+                        const iso = b.dataset.v;
+                        const was = prev.days[iso];
+                        const g = b.closest(".dg");
+                        if (g && was != null && was !== PAINT.days[iso])
+                            flips.push(() => g.classList.toggle("open"));
+                    }
+                const pct = progressPct();
+                const bar = root.querySelector(".pbar span");
+                let barTo = null;
+                if (
+                    bar &&
+                    prev.pct != null &&
+                    pct != null &&
+                    prev.pct !== pct
+                ) {
+                    bar.style.width = prev.pct + "%";
+                    barTo = pct + "%";
+                }
+                if (!flips.length && barTo == null) return;
+                for (const f of flips) f();
+                void root.offsetWidth;
+                for (const f of flips) f();
+                if (barTo != null) bar.style.width = barTo;
+            }
+            // `fromHost`: a paint the bridge drives (a tool result), which
+            // appends its settings footer to #root right after. Only those
+            // rebuild #root; every other repaint replaces #imp-view inside
+            // it, so the footer survives the user's clicks instead of
+            // vanishing at the first one.
+            function render(fromHost) {
+                const root = document.getElementById("root");
+                if (!root) return;
+                // The view is rebuilt wholesale, so carry focus and the
+                // table's sideways scroll across the repaint by key.
+                const ae = document.activeElement;
+                const keepKey =
+                    ae && ae.getAttribute ? ae.getAttribute("data-k") : null;
+                const ts = document.getElementById("tscroll");
+                const scrollLeft = ts ? ts.scrollLeft : 0;
+
+                // Entrance motion is for mounting only: the view is rebuilt
+                // on every click, and an animation restarts whenever its
+                // element is newly inserted. So mark only what is new since
+                // the last paint (see PAINT).
+                const prev = {
+                    step: painted.step,
+                    open: painted.open,
+                    days: painted.days,
+                    pct: painted.pct,
+                };
+                const enter = !!fromHost || S.step !== prev.step;
+                const order = ["file", "map", "preview", "done"];
+                PAINT.prevAt =
+                    enter && prev.step
+                        ? order.indexOf(prev.step)
+                        : enter
+                          ? 0
+                          : 9;
+                PAINT.optsEnter = !!S.open && (enter || S.open !== prev.open);
+                PAINT.prevDays = enter ? null : prev.days;
+                PAINT.days = {};
+
                 let body = "";
                 if (S.step === "file") body = fileStep();
                 else if (S.step === "map") body = mapStep();
                 else if (S.step === "preview") body = previewStep();
                 else body = doneStep();
-                el.innerHTML = '<div class="imp">' + steps() + body + "</div>";
-                wire();
+                const markup =
+                    '<div class="imp' +
+                    (enter ? " enter" : "") +
+                    '">' +
+                    header() +
+                    body +
+                    "</div>";
+                const view = document.getElementById("imp-view");
+                if (fromHost || !view || view.parentNode !== root) {
+                    root.innerHTML = '<div id="imp-view">' + markup + "</div>";
+                } else {
+                    view.innerHTML = markup;
+                }
+                if (!enter) replayTransitions(root, prev);
+                painted.step = S.step;
+                painted.open = S.open;
+                painted.days = PAINT.days;
+                painted.pct = progressPct();
+
+                const ts2 = document.getElementById("tscroll");
+                if (ts2 && scrollLeft) ts2.scrollLeft = scrollLeft;
+                if (!wired) {
+                    wire(root);
+                    wired = true;
+                }
+                const want = S.focus;
+                S.focus = null;
+                const target = want
+                    ? visible(want)
+                    : keepKey
+                      ? visible('[data-k="' + keepKey + '"]')
+                      : null;
+                if (target && target.focus) {
+                    try {
+                        target.focus({ preventScroll: !want });
+                    } catch (_) {
+                        target.focus();
+                    }
+                }
             }
 
-            function wire() {
-                const file = document.getElementById("file");
-                if (file)
-                    file.onchange = (e) => {
-                        const f = e.target.files && e.target.files[0];
-                        if (f) loadFile(f);
-                    };
-                const drop = document.getElementById("drop");
-                if (drop) {
-                    drop.ondragover = (e) => {
-                        e.preventDefault();
-                        drop.classList.add("over");
-                    };
-                    drop.ondragleave = () => drop.classList.remove("over");
-                    drop.ondrop = (e) => {
-                        e.preventDefault();
-                        drop.classList.remove("over");
-                        const f =
-                            e.dataTransfer &&
-                            e.dataTransfer.files &&
-                            e.dataTransfer.files[0];
-                        if (f) loadFile(f);
-                    };
-                }
-                for (const sel of document.querySelectorAll(".map-sel")) {
-                    sel.onchange = (e) => {
-                        const field = e.target.dataset.field;
-                        S.mapping[field] = Number(e.target.value);
-                        // The date format and energy unit were read off the column
-                        // that was mapped a moment ago, so a remap invalidates
-                        // them: sniff the newly chosen column instead.
-                        if (field === "logged_at") resniffDateFormat();
-                        if (field === "calories") resniffEnergyUnit();
-                        render();
-                    };
-                }
+            function goStep(step, focusSel) {
+                S.step = step;
+                S.open = null;
+                S.focus = focusSel || ".ptitle";
+                announce(stepAnnouncement());
+                render();
+            }
+            function resetAll() {
+                S.table = null;
+                S.fileName = "";
+                S.rows = [];
+                S.result = null;
+                S.errors = [];
+                S.dateFormat = "iso";
+                S.dateAmbiguous = false;
+                S.energyUnit = "kcal";
+                S.badDates = 0;
+                S.badDateSample = null;
+                S.skipped = 0;
+                S.mapping = {};
+                S.autoMapping = {};
+                S.dayOpen = {};
+                S.modelSummary = "";
+            }
+
+            const ACTIONS = {
+                choose() {
+                    const input = document.getElementById("file");
+                    if (input) {
+                        input.value = "";
+                        input.click();
+                    }
+                },
+                toggle(b) {
+                    const k = b.dataset.field;
+                    S.open = S.open === k ? null : k;
+                    // Opening lands on the chosen option, so arrow keys work
+                    // at once; closing stays on the row.
+                    S.focus =
+                        S.open === k
+                            ? "#opts-" + k + ' [aria-checked="true"]'
+                            : '[data-k="row:' + k + '"]';
+                    render();
+                },
+                pick(b) {
+                    const k = b.dataset.field;
+                    const i = Number(b.dataset.col);
+                    S.mapping[k] = i;
+                    // The date format and energy unit were read off the column
+                    // that was mapped a moment ago, so a remap invalidates
+                    // them: sniff the newly chosen column instead.
+                    if (k === "logged_at") resniffDateFormat();
+                    if (k === "calories") resniffEnergyUnit();
+                    S.open = null;
+                    S.focus = '[data-k="row:' + k + '"]';
+                    announce(
+                        tpl(T.importMeals.liveMapped, {
+                            field: fieldLabel(k),
+                            column:
+                                i >= 0
+                                    ? columnName(i)
+                                    : T.importMeals.notInFileAria,
+                        }),
+                    );
+                    render();
+                },
                 // Re-rendering on change is what makes the worked example live.
-                const dateFormat = document.getElementById("dateFormat");
-                if (dateFormat)
-                    dateFormat.onchange = (e) => {
-                        S.dateFormat = e.target.value;
-                        // The user has now stated it, so stop asking.
-                        S.dateAmbiguous = false;
+                df(b) {
+                    S.dateFormat = b.dataset.v;
+                    // The user has now stated it, so stop asking.
+                    S.dateAmbiguous = false;
+                    S.focus = '[data-k="df:' + b.dataset.v + '"]';
+                    render();
+                },
+                eu(b) {
+                    S.energyUnit = b.dataset.v;
+                    S.focus = '[data-k="eu:' + b.dataset.v + '"]';
+                    render();
+                },
+                toPreview() {
+                    buildRows();
+                    S.result = null;
+                    S.dayOpen = {};
+                    goStep("preview");
+                },
+                backToFile() {
+                    S.errors = [];
+                    goStep("file", "#drop");
+                },
+                backToMap() {
+                    if (S.busy) return;
+                    goStep("map");
+                },
+                doImport(b) {
+                    if (b.getAttribute("aria-disabled") === "true") return;
+                    runImport();
+                },
+                restart() {
+                    resetAll();
+                    goStep("file", "#drop");
+                },
+                day(b) {
+                    const iso = b.dataset.v;
+                    S.dayOpen[iso] = b.getAttribute("aria-expanded") !== "true";
+                    render();
+                },
+                allDays() {
+                    const btns = document.querySelectorAll(".dgh");
+                    const allOpen = [...btns].every(
+                        (x) => x.getAttribute("aria-expanded") === "true",
+                    );
+                    for (const x of btns) S.dayOpen[x.dataset.v] = !allOpen;
+                    render();
+                },
+                scrollL() {
+                    scrollTable(-260);
+                },
+                scrollR() {
+                    scrollTable(260);
+                },
+            };
+            function scrollTable(dx) {
+                const t = document.getElementById("tscroll");
+                if (!t) return;
+                const still =
+                    window.matchMedia &&
+                    window.matchMedia("(prefers-reduced-motion: reduce)")
+                        .matches;
+                t.scrollBy({ left: dx, behavior: still ? "auto" : "smooth" });
+            }
+
+            // Roving focus inside a radio group: arrows move, Home/End jump.
+            // In the date/energy segments moving also selects (they are
+            // plain radios); in a column list it only moves, because choosing
+            // a column closes the list — Enter or Space picks.
+            function radioKeys(e, b) {
+                const group = b.closest('[role="radiogroup"]');
+                if (!group) return false;
+                const items = [...group.querySelectorAll('[role="radio"]')];
+                const at = items.indexOf(b);
+                let to = -1;
+                if (e.key === "ArrowDown" || e.key === "ArrowRight")
+                    to = (at + 1) % items.length;
+                else if (e.key === "ArrowUp" || e.key === "ArrowLeft")
+                    to = (at - 1 + items.length) % items.length;
+                else if (e.key === "Home") to = 0;
+                else if (e.key === "End") to = items.length - 1;
+                if (to < 0) return false;
+                e.preventDefault();
+                const next = items[to];
+                if (next.dataset.act === "pick") {
+                    for (const x of items) x.tabIndex = -1;
+                    next.tabIndex = 0;
+                    next.focus();
+                } else {
+                    next.click();
+                }
+                return true;
+            }
+
+            function wire(root) {
+                root.addEventListener("click", (e) => {
+                    const b = e.target.closest("[data-act]");
+                    if (!b || !root.contains(b)) return;
+                    const fn = ACTIONS[b.dataset.act];
+                    if (fn) fn(b);
+                });
+                root.addEventListener("keydown", (e) => {
+                    const b =
+                        e.target.closest && e.target.closest("[data-act]");
+                    if (b && b.getAttribute("role") === "radio")
+                        if (radioKeys(e, b)) return;
+                    // Escape closes an open column list and returns to its row.
+                    if (e.key === "Escape" && S.open) {
+                        const k = S.open;
+                        S.open = null;
+                        S.focus = '[data-k="row:' + k + '"]';
+                        e.preventDefault();
                         render();
-                    };
-                const energyUnit = document.getElementById("energyUnit");
-                if (energyUnit)
-                    energyUnit.onchange = (e) => {
-                        S.energyUnit = e.target.value;
-                        render();
-                    };
-                const srcapp = document.getElementById("srcapp");
-                if (srcapp)
-                    srcapp.oninput = (e) => {
-                        S.sourceApp = e.target.value.trim();
-                    };
-                const toPreview = document.getElementById("toPreview");
-                if (toPreview)
-                    toPreview.onclick = () => {
-                        buildRows();
-                        S.step = "preview";
-                        S.result = null;
-                        render();
-                    };
-                const backToFile = document.getElementById("backToFile");
-                if (backToFile)
-                    backToFile.onclick = () => {
-                        S.step = "file";
-                        render();
-                    };
-                const backToMap = document.getElementById("backToMap");
-                if (backToMap)
-                    backToMap.onclick = () => {
-                        S.step = "map";
-                        render();
-                    };
-                const doImport = document.getElementById("doImport");
-                if (doImport) doImport.onclick = () => runImport();
-                const restart = document.getElementById("restart");
-                if (restart)
-                    restart.onclick = () => {
-                        S.step = "file";
-                        S.table = null;
-                        S.rows = [];
-                        S.result = null;
-                        S.errors = [];
-                        S.dateFormat = "iso";
-                        S.dateAmbiguous = false;
-                        S.energyUnit = "kcal";
-                        S.badDates = 0;
-                        S.badDateSample = null;
-                        render();
-                    };
+                    }
+                });
+                root.addEventListener("change", (e) => {
+                    const t = e.target;
+                    if (t.id === "file") {
+                        const f = t.files && t.files[0];
+                        if (f) loadFile(f);
+                    }
+                    if (t.dataset && t.dataset.act === "srcapp") {
+                        S.sourceApp = t.value.trim();
+                    }
+                });
+                root.addEventListener("input", (e) => {
+                    const t = e.target;
+                    if (t.dataset && t.dataset.act === "srcapp")
+                        S.sourceApp = t.value.trim();
+                });
+                // Drag and drop on the drop zone. The class is toggled on the
+                // element directly rather than through render(), which would
+                // rebuild the target mid-drag.
+                const dropOf = (e) =>
+                    e.target && e.target.closest && e.target.closest("#drop");
+                root.addEventListener("dragover", (e) => {
+                    const d = dropOf(e);
+                    if (!d) return;
+                    e.preventDefault();
+                    if (!S.over) {
+                        S.over = true;
+                        d.classList.add("over");
+                    }
+                });
+                root.addEventListener("dragleave", (e) => {
+                    const d = dropOf(e);
+                    if (!d || d.contains(e.relatedTarget)) return;
+                    S.over = false;
+                    d.classList.remove("over");
+                });
+                root.addEventListener("drop", (e) => {
+                    const d = dropOf(e);
+                    if (!d) return;
+                    e.preventDefault();
+                    S.over = false;
+                    d.classList.remove("over");
+                    const f =
+                        e.dataTransfer &&
+                        e.dataTransfer.files &&
+                        e.dataTransfer.files[0];
+                    if (f) loadFile(f);
+                });
             }
 
             initWidget({
@@ -1828,9 +4617,9 @@
                 // A function: bridge.js calls it with the strings for the
                 // browser language, since the payload's locale isn't known yet.
                 loading: (strings) =>
-                    '<div class="empty"><div class="big">📥</div><div>' +
+                    '<div class="imp"><div class="loadg" role="status"><div class="big" aria-hidden="true">📥</div><div>' +
                     esc(strings.importMeals.loading) +
-                    "</div></div>",
+                    "</div></div></div>",
                 coerce: (payload) => {
                     if (!payload || typeof payload !== "object") return null;
                     // start_meal_import's own payload, or a wrapper round it.
@@ -1851,7 +4640,7 @@
                                 : null,
                         ),
                     );
-                    render();
+                    render(true);
                 },
                 sample: {
                     tz: "Europe/Kyiv",

@@ -44,7 +44,7 @@
 //   hostCapabilities: object     // as reported by the host
 //   hostContext: object          // theme, containerDimensions, ...
 //   hostInfo: object             // { name, version } of the host
-//   updateModelContext(text)     // push a short summary into the model's context
+//   updateModelContext(text)     // push a short summary into the model's context; resolves true/false
 // }
 function initWidget(config) {
     const rootId = config.rootId || "root";
@@ -244,14 +244,21 @@ function initWidget(config) {
                 "ui/update-model-context",
                 { content: [{ type: "text", text: String(text) }] },
                 15000,
-            ).catch((e) => {
-                try {
-                    console.warn(
-                        "[widget] ui/update-model-context failed:",
-                        e.message,
-                    );
-                } catch (_) {}
-            });
+            ).then(
+                // Resolves true once the host accepted the context and false
+                // when it refused or never answered, so a caller can tell
+                // the user only what actually reached the model.
+                () => true,
+                (e) => {
+                    try {
+                        console.warn(
+                            "[widget] ui/update-model-context failed:",
+                            e.message,
+                        );
+                    } catch (_) {}
+                    return false;
+                },
+            );
         },
         canCallTools: false,
         hostCapabilities,
