@@ -218,6 +218,7 @@ import {
     MEAL_TIMES_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
     GOAL_DAY_META_KEY,
+    DIGEST_META_KEY,
 } from "./widgets.js";
 import {
     buildGoalDayMeta,
@@ -225,6 +226,12 @@ import {
     historyFoods,
     type GoalDayFood,
 } from "./goal-day.js";
+import {
+    computeDigest,
+    digestText,
+    DIGEST_HISTORY_DAYS,
+    DIGEST_PERIODS,
+} from "./digest.js";
 import {
     assertFoodRefPlacement,
     buildNutrientSourcesMeta,
@@ -284,6 +291,7 @@ const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 const TRENDS_WIDGET_URI = "ui://widget/trends.html";
 const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
 const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
+const DIGEST_WIDGET_URI = "ui://widget/digest.html";
 
 // The completeness rule for the three nutrients the model routinely forgets,
 // declared once and spliced into SERVER_INSTRUCTIONS, log_meal and update_meal
@@ -2904,7 +2912,7 @@ export function registerTools(
     usda: Partial<UsdaDeps> = {},
 ) {
     const usdaOverrides: Partial<UsdaDeps> = usda;
-    // One context for all 48 tools. clientInfo is a getter, not a value: at
+    // One context for all 49 tools. clientInfo is a getter, not a value: at
     // registration time the SDK has not yet resolved who is calling, and on the
     // modern leg it backfills the identity per request before dispatch.
     const analytics = {
@@ -4131,6 +4139,31 @@ export function registerTools(
         },
     );
 
+    // UI resource for the get_digest widget (one period: calories, goals,
+    // trends, nutrients, water and weight, meals or habits, highlights).
+    server.registerResource(
+        "digest-widget",
+        DIGEST_WIDGET_URI,
+        {
+            title: "Nutrition Digest",
+            description:
+                "Interactive UI for get_digest: a collapsible card for one period with a calorie gauge (day) or daily bars (range), goals at a glance, trend charts, a nutrient table, water and weight, meals or logging habits, and highlights, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await getWidgetHtml("digest"),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
     // UI resource for the get_weight_trends widget (weight-over-time chart with
     // a trend line, a range toggle and target line). Same contract as above.
     server.registerResource(
@@ -4564,6 +4597,132 @@ export function registerTools(
                 },
                 analytics,
                 { start_date, end_date },
+            );
+        },
+    );
+
+    // One period at a glance: get_digest and its widget (digest.html). The
+    // computation is src/digest.ts (pure, unit-tested); this adapter reads one
+    // DIGEST_HISTORY_DAYS window, the goals and the profile's units. The
+    // structuredContent is deliberately minimal (it is frozen from the first
+    // deploy); everything the widget draws rides in _meta under
+    // DIGEST_META_KEY as codes and numbers.
+    const DIGEST_NUTRIENTS_ITEM = z.object({
+        calories: z.number().nullable(),
+        protein_g: z.number().nullable(),
+        carbs_g: z.number().nullable(),
+        fat_g: z.number().nullable(),
+        fiber_g: z.number().nullable(),
+        sugar_g: z.number().nullable(),
+        added_sugar_g: z.number().nullable(),
+        saturated_fat_g: z.number().nullable(),
+        trans_fat_g: z.number().nullable(),
+        sodium_mg: z.number().nullable(),
+        caffeine_mg: z.number().nullable(),
+        alcohol_g: z.number().nullable(),
+        water_ml: z.number().nullable(),
+    });
+    server.registerTool(
+        "get_digest",
+        {
+            title: "Get Nutrition Digest",
+            description: `A digest of one period: yesterday, today so far, the last 7 days or the last 30 days (both ranges end yesterday). It covers calories and every tracked nutrient against the user's goals, the previous period for comparison, trends, water and weight, the day's meals or the period's logging habits (typical meal times, top foods by calories), and a few highlights drawn from the user's own log. Renders an interactive digest card in clients that support MCP Apps UI, and returns the same figures as text elsewhere. Range figures are per logged day. Figures are estimates, not medical or dietary advice.`,
+            annotations: {
+                title: "Get Nutrition Digest",
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                period: z
+                    .enum(DIGEST_PERIODS)
+                    .optional()
+                    .describe(
+                        "yesterday (the default), today (so far), last_7_days or last_30_days. Both ranges end yesterday.",
+                    ),
+            }),
+            outputSchema: z.object({
+                period: z.enum(DIGEST_PERIODS),
+                start_date: z.string(),
+                end_date: z.string(),
+                days_in_range: z.number(),
+                logged_days: z.number(),
+                // The widget's UI language, as on get_nutrition_summary.
+                locale: z.string(),
+                // The day's totals, or per-day averages over the logged days
+                // that record each figure. Null = not recorded; alcohol is
+                // null when tracking is off.
+                averages: DIGEST_NUTRIENTS_ITEM,
+                goals: DIGEST_NUTRIENTS_ITEM.omit({
+                    trans_fat_g: true,
+                }).nullable(),
+            }),
+            ...uiMeta(DIGEST_WIDGET_URI),
+        },
+        async ({ period }) => {
+            const which = period ?? "yesterday";
+            return withAnalytics(
+                "get_digest",
+                async () => {
+                    const now = new Date();
+                    const profile = await getProfile(userId);
+                    const tz = timezoneFromProfile(profile) ?? "UTC";
+                    const today = dateInTz(now, tz);
+                    const start = shiftLocalDate(today, -DIGEST_HISTORY_DAYS);
+                    const [meals, water, weights, goals, latestWeight] =
+                        await Promise.all([
+                            getMealsInRange(userId, start, today, tz),
+                            getWaterInRange(userId, start, today, tz),
+                            getWeightInRange(userId, start, today, tz),
+                            getNutritionGoals(userId),
+                            getLatestWeight(userId),
+                        ]);
+                    // Ingredients for the reported day's meals only (the
+                    // meal list); a failed read drops them, never the tool.
+                    let items = new Map<string, MealItemValues[]>();
+                    if (which === "today" || which === "yesterday") {
+                        const day =
+                            which === "today"
+                                ? today
+                                : shiftLocalDate(today, -1);
+                        const ids = meals
+                            .filter((m) => dateInTz(m.logged_at, tz) === day)
+                            .map((m) => m.id);
+                        if (ids.length) {
+                            try {
+                                items = await getMealItems(userId, ids);
+                            } catch (err) {
+                                const ref = newErrorRef();
+                                console.warn(
+                                    `[widget] digest meal-items read error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+                                );
+                            }
+                        }
+                    }
+                    const result = computeDigest({
+                        period: which,
+                        now,
+                        tz,
+                        meals,
+                        water,
+                        weights,
+                        latestWeight,
+                        items,
+                        goals,
+                        alcohol,
+                        weightUnit:
+                            preferredWeightUnitFromProfile(profile) ?? "kg",
+                        locale: localeFromProfile(profile) ?? "en",
+                    });
+                    return {
+                        content: [{ type: "text", text: digestText(result) }],
+                        structuredContent: result.structured,
+                        _meta: { [DIGEST_META_KEY]: result.meta },
+                    };
+                },
+                analytics,
+                { period: which },
             );
         },
     );

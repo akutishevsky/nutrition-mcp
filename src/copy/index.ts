@@ -578,7 +578,7 @@ const INDEX_EN: IndexDoc = {
         note: "Everything here is optional. You can do it now, later, or never — just start logging and set these whenever you like.",
         toolsCta: {
             heading: "Curious what it can actually do?",
-            body: "Browse all 48 tools — logging, barcodes, water, weight and body measurements, goals, and trends — with a description and an example prompt for each.",
+            body: "Browse all 49 tools — logging, barcodes, water, weight and body measurements, goals, and trends — with a description and an example prompt for each.",
             arrow: "Explore the tools",
         },
     },

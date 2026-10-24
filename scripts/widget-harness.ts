@@ -47,6 +47,10 @@
 //   ?groupBy=week       trends: the period fixture instead, opening on that
 //                       `group_by` (week/month/quarter/year); ?noMeta=1
 //                       shows its plain 7/14/30 day view, as without group_by
+//   ?period=today       digest: yesterday (default), today, last_7_days,
+//                       last_30_days
+//   ?scenario=rough     digest: typical (default), great, rough, sparse,
+//                       empty, long, nogoals, nosodium
 //   ?goals=0            trends: no goals history at all (averages only)
 //   ?locale=pl          structuredContent.locale (and hostContext.locale)
 //   ?addedSugar=unrecorded  a 29 g added-sugar limit and NO recorded figure:
@@ -116,6 +120,7 @@ import {
     trendsScenario,
     type TrendsScenario,
 } from "./trends-scenarios.js";
+import { digestFixture } from "./digest-fixture.js";
 import { buildDailyBuckets } from "../src/insights.js";
 import {
     buildPeriodAveragesMeta,
@@ -750,7 +755,10 @@ function indexPage(): string {
      or <code>?groupBy=week</code> and <code>?goals=0</code> for the period
      view; meal-logged and nutrition-summary take <code>?scenario=</code>
      (see harness-day-view.ts); import-meals takes
-     <code>?csv=</code>${IMPORT_FIXTURE_NAMES.join(", ")} and <code>?tz=0</code>.</p>
+     <code>?csv=</code>${IMPORT_FIXTURE_NAMES.join(", ")} and <code>?tz=0</code>; digest takes
+     <code>?period=today|yesterday|last_7_days|last_30_days</code>,
+     <code>?scenario=typical|great|rough|sparse|empty|long|nogoals|nosodium</code>
+     and <code>?unit=lb</code>.</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -1718,6 +1726,15 @@ function hostPage(widget: string, params: URLSearchParams): string {
         );
         RESULTS["goal-progress"] = gp.result;
         METAS["goal-progress"] = gp.meta;
+    }
+
+    // The digest's own fixture: a 61-day log run through computeDigest
+    // (scripts/digest-fixture.ts; ?period=, ?scenario=, ?unit=lb,
+    // ?drinkUnit=us).
+    if (widget === "digest") {
+        const fx = digestFixture(params);
+        RESULTS.digest = fx.result;
+        METAS.digest = fx.meta;
     }
 
     // Probe and gallery paint their own UI; anything non-null will do.

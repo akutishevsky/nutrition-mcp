@@ -2,11 +2,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_PL: ToolsDoc = {
     meta: {
-        title: "48 narzędzi: kalorie, makroskładniki, woda i waga",
+        title: "49 narzędzi: kalorie, makroskładniki, woda i waga",
         description:
-            "Wszystkie 48 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, zapisane posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
+            "Wszystkie 49 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, zapisane posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
         ogDescription:
-            "Wszystkie 48 narzędzi, które serwer Nutrition MCP daje Twojemu AI, od zapisanych posiłków po importer CSV historii — z opisami i przykładowymi poleceniami.",
+            "Wszystkie 49 narzędzi, które serwer Nutrition MCP daje Twojemu AI, od zapisanych posiłków po importer CSV historii — z opisami i przykładowymi poleceniami.",
     },
     hero: {
         eyebrow: "Dokumentacja",
@@ -14,7 +14,7 @@ export const TOOLS_PL: ToolsDoc = {
         titleEm: "potrafi",
         titleAfterEm: " Twoje AI",
         lead: "Nie wywołujesz tych narzędzi samodzielnie — po prostu rozmawiasz z Claude, ChatGPT albo innym klientem MCP, a on sam dobiera właściwe narzędzie. Oto wszystkie narzędzia, które serwer Nutrition MCP udostępnia do śledzenia posiłków i zapisanych posiłków, kalorii i makroskładników, wody i wagi — z opisem działania i przykładowym poleceniem, które je uruchamia.",
-        countBold: "48 narzędzi",
+        countBold: "49 narzędzi",
         countTail: "w 7 obszarach",
     },
     categories: {
@@ -532,6 +532,14 @@ export const TOOLS_PL: ToolsDoc = {
                     "Data końcowa (RRRR-MM-DD), maksymalnie 92 dni wraz z dniem początkowym",
             },
             example: "Podsumuj mój ostatni tydzień",
+        },
+        get_digest: {
+            description:
+                "Podsumowanie jednego okresu — wczoraj, dziś do tej pory albo ostatnie 7 lub 30 dni — jako interaktywna karta: kalorie i wszystkie składniki odżywcze na tle Twoich celów, trendy w porównaniu z poprzednim okresem, woda i waga, Twoje posiłki lub nawyki zapisywania oraz kilka wyróżnień z Twojego dziennika.",
+            params: {
+                period: "<code>yesterday</code> (domyślnie), <code>today</code>, <code>last_7_days</code> lub <code>last_30_days</code>. Oba zakresy kończą się wczoraj.",
+            },
+            example: "Jak mi poszło wczoraj?",
         },
         get_trends: {
             description:

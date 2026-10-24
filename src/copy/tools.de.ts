@@ -6,11 +6,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_DE: ToolsDoc = {
     meta: {
-        title: "48 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
+        title: "49 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
         description:
-            "Alle 48 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, häufige Mahlzeiten speichern, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
+            "Alle 49 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, häufige Mahlzeiten speichern, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
         ogDescription:
-            "Alle 48 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – von gespeicherten Mahlzeiten bis zum CSV-Importer für deinen Verlauf, mit Beschreibungen und Beispielsätzen.",
+            "Alle 49 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – von gespeicherten Mahlzeiten bis zum CSV-Importer für deinen Verlauf, mit Beschreibungen und Beispielsätzen.",
     },
     hero: {
         eyebrow: "Referenz",
@@ -18,7 +18,7 @@ export const TOOLS_DE: ToolsDoc = {
         titleEm: "kann",
         titleAfterEm: "",
         lead: "Du rufst diese Werkzeuge nie selbst auf – du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und der wählt das passende Werkzeug. Hier findest du jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten und gespeicherte Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt – jeweils mit Beschreibung und einem Beispielsatz, der es auslöst.",
-        countBold: "48 Werkzeuge",
+        countBold: "49 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
     categories: {
@@ -549,6 +549,14 @@ export const TOOLS_DE: ToolsDoc = {
                     "Enddatum (JJJJ-MM-TT), höchstens 92 Tage inklusive Starttag",
             },
             example: "Gib mir eine Übersicht über die letzte Woche",
+        },
+        get_digest: {
+            description:
+                "Eine Übersicht über einen Zeitraum – gestern, heute bis jetzt oder die letzten 7 bzw. 30 Tage – als interaktive Karte: Kalorien und alle Nährwerte im Vergleich zu deinen Zielen, Trends gegenüber dem vorherigen Zeitraum, Wasser und Gewicht, deine Mahlzeiten oder Erfassungsgewohnheiten und ein paar Highlights aus deinem eigenen Protokoll.",
+            params: {
+                period: "<code>yesterday</code> (Standard), <code>today</code>, <code>last_7_days</code> oder <code>last_30_days</code>. Beide Zeiträume enden gestern.",
+            },
+            example: "Wie lief es gestern?",
         },
         get_trends: {
             description:

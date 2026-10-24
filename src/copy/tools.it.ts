@@ -15,11 +15,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_IT: ToolsDoc = {
     meta: {
-        title: "48 strumenti per calorie, macro, acqua e peso",
+        title: "49 strumenti per calorie, macro, acqua e peso",
         description:
-            "I 48 strumenti per Claude, ChatGPT e altre IA: registra pasti, salva i pasti che mangi spesso, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
+            "I 49 strumenti per Claude, ChatGPT e altre IA: registra pasti, salva i pasti che mangi spesso, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
         ogDescription:
-            "Tutti i 48 strumenti che il server Nutrition MCP mette a disposizione della tua IA, dai pasti salvati a un importatore CSV per il tuo storico, con descrizioni ed esempi di richieste.",
+            "Tutti i 49 strumenti che il server Nutrition MCP mette a disposizione della tua IA, dai pasti salvati a un importatore CSV per il tuo storico, con descrizioni ed esempi di richieste.",
     },
     hero: {
         eyebrow: "Guida di riferimento",
@@ -27,7 +27,7 @@ export const TOOLS_IT: ToolsDoc = {
         titleEm: "fare",
         titleAfterEm: "",
         lead: "Non devi mai usarli direttamente: parli con Claude, ChatGPT o un altro client MCP e l'assistente sceglie lo strumento giusto. Ecco tutti gli strumenti che il server Nutrition MCP offre per pasti e pasti salvati, calorie e macro, acqua e peso, con cosa fa ciascuno e una frase che lo attiva.",
-        countBold: "48 strumenti",
+        countBold: "49 strumenti",
         countTail: "in 7 aree",
     },
     categories: {
@@ -552,6 +552,14 @@ export const TOOLS_IT: ToolsDoc = {
                     "Data di fine (AAAA-MM-GG), al massimo 92 giorni compreso quello di inizio",
             },
             example: "Fammi un riepilogo della settimana appena passata",
+        },
+        get_digest: {
+            description:
+                "Un riepilogo di un periodo — ieri, oggi finora, o gli ultimi 7 o 30 giorni — in una scheda interattiva: calorie e ogni nutriente rispetto ai tuoi obiettivi, andamenti rispetto al periodo precedente, acqua e peso, i tuoi pasti o le abitudini di registrazione, e alcuni punti salienti dal tuo diario.",
+            params: {
+                period: "<code>yesterday</code> (predefinito), <code>today</code>, <code>last_7_days</code> o <code>last_30_days</code>. Entrambi gli intervalli finiscono ieri.",
+            },
+            example: "Com'è andata ieri?",
         },
         get_trends: {
             description:

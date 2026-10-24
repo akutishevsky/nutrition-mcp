@@ -227,6 +227,20 @@ export const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
  */
 export const NUTRIENT_SOURCES_META_KEY = "nutrition-mcp.com/nutrient-sources";
 
+/**
+ * Where get_digest puts everything its widget draws beyond the minimal
+ * structuredContent: the DigestMeta built by computeDigest (src/digest.ts),
+ * `{ v: 1, period, mode, metrics, verdict, trends, water, weight, meals,
+ * habits, highlights, rest, ... }` — codes and numbers only, so the widget
+ * assembles every string in the user's language. In `_meta` for the same
+ * frozen-outputSchema reason as the keys above: the payload can grow (as v
+ * stays 1 for additive changes) without touching the advertised schema. The
+ * digest template repeats this literal, and src/mcp.test.ts checks the
+ * assembled widget contains it. A host that drops `_meta` leaves the widget
+ * on its averages-only view of structuredContent.
+ */
+export const DIGEST_META_KEY = "nutrition-mcp.com/digest";
+
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
     "nutrition-summary": "nutrition-summary.html",
@@ -235,6 +249,7 @@ export const WIDGET_TEMPLATES: Record<string, string> = {
     trends: "trends.html",
     "weight-trends": "weight-trends.html",
     "import-meals": "import-meals.html",
+    digest: "digest.html",
     // Dev-only visual reference for the shared components. Listed here so it is
     // assembled and covered by widgets.test.ts, but NO ui:// resource and no
     // tool reference it, so no client can reach it. View via `bun run harness`.
