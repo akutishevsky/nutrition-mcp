@@ -205,6 +205,7 @@ import {
     ADDED_SUGAR_META_KEY,
     SATURATED_FAT_META_KEY,
     SODIUM_META_KEY,
+    LOCAL_TODAY_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_ITEMS_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
@@ -727,6 +728,8 @@ export { PERIOD_AVERAGES_META_KEY };
 // And for the added-sugar figures (AddedSugarMeta) that five tools carry
 // beside their frozen structuredContent.
 export { ADDED_SUGAR_META_KEY, SATURATED_FAT_META_KEY, SODIUM_META_KEY };
+// And get_trends' local "today" (the trends widget's still-running-day rule).
+export { LOCAL_TODAY_META_KEY };
 // And for the ingredients behind the breakdown rows (MealItemsMeta, built in
 // src/meal-items.ts), present only when some row has items.
 export { MEAL_ITEMS_META_KEY };
@@ -4028,7 +4031,7 @@ export function registerTools(
         {
             title: "Trends",
             description:
-                "Interactive UI for get_trends: a 7/14/30-day toggle over a daily calories chart and trailing-average-vs-goal rings, with automatic light/dark theming.",
+                "Interactive UI for get_trends: a 7/14/30-day toggle and a nutrient switcher over a daily bar chart, with each nutrient's average against its goal or limit, with automatic light/dark theming.",
             mimeType: APP_UI_MIME_TYPE,
         },
         async (uri) => {
@@ -7618,7 +7621,8 @@ export function registerTools(
                     const profile = await getProfile(userId);
                     const tz = timezoneFromProfile(profile) ?? "UTC";
                     const locale = localeFromProfile(profile) ?? "en";
-                    const endDate = end_date ?? todayInTz(tz);
+                    const today = todayInTz(tz);
+                    const endDate = end_date ?? today;
                     const windowDays = days ?? 30;
                     // The widget's toggle always offers up to 30 days, so build
                     // at least 30 days of series regardless of the text window.
@@ -7725,6 +7729,10 @@ export function registerTools(
                                 goal: goals?.daily_sodium_mg,
                                 days: seriesMeals,
                             }),
+                            // Which day is still running in the profile
+                            // timezone, so the widget can tell a partial
+                            // today from a past window.
+                            [LOCAL_TODAY_META_KEY]: { v: 1, today },
                         },
                         structuredContent: {
                             end_date: endDate,

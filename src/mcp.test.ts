@@ -41,6 +41,7 @@ import {
     ADDED_SUGAR_META_KEY,
     SATURATED_FAT_META_KEY,
     SODIUM_META_KEY,
+    LOCAL_TODAY_META_KEY,
     MEAL_ITEMS_META_KEY,
     topMealBreakdown,
     emptyMealContributors,
@@ -10566,8 +10567,8 @@ describe("saturated fat rides in _meta on every widget tool", () => {
 // buildSodiumMeta in src/sodium.ts), on every tool that carries the
 // saturated-fat payload. Output schemas are frozen, so the figure is asserted
 // absent from structuredContent here; the frozen pin is the "output schemas"
-// test above. No widget reads the key yet (the widgets are being redesigned),
-// so there is no assembled-template literal check for it.
+// test above. The trends widget reads the key; its literal is checked at the
+// end of this block.
 describe("sodium rides in _meta on every widget tool", () => {
     const SODIUM_META = z.strictObject({
         v: z.literal(1),
@@ -10684,8 +10685,32 @@ describe("sodium rides in _meta on every widget tool", () => {
                 });
                 expect(trends.meta.goal).toBe(2300);
                 expect(trends.meta.days?.[DAY]).toBe(900);
+                // get_trends alone also says which day is still running.
+                expect(trends.r._meta?.[LOCAL_TODAY_META_KEY]).toEqual({
+                    v: 1,
+                    today: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+                });
+                expect(
+                    progress.r._meta?.[LOCAL_TODAY_META_KEY],
+                ).toBeUndefined();
             });
         });
+    });
+
+    // The trends widget draws sodium (and saturated fat, and the
+    // still-running day) from `_meta`; it cannot import, so it repeats each
+    // key as a literal, and a rename on the server would silently drop them.
+    test("the assembled trends widget reads every key it draws", async () => {
+        expect(LOCAL_TODAY_META_KEY).toBe("nutrition-mcp.com/local-today");
+        const html = await getWidgetHtml("trends");
+        for (const key of [
+            ADDED_SUGAR_META_KEY,
+            SATURATED_FAT_META_KEY,
+            SODIUM_META_KEY,
+            LOCAL_TODAY_META_KEY,
+        ]) {
+            expect(html).toContain(JSON.stringify(key));
+        }
     });
 });
 

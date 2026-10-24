@@ -139,10 +139,21 @@ export const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
  * `_meta` key for sodium, on the same tools as SATURATED_FAT_META_KEY:
  * `{ v: 1, goal, days, meals, contributors?, extra? }` built by buildSodiumMeta
  * (src/sodium.ts), milligrams. Same reason for `_meta`: output schemas are
- * frozen. No widget reads it yet; a widget that draws the sodium limit repeats
- * this literal.
+ * frozen. The trends template reads its per-day series and repeats this
+ * literal; any other widget that draws sodium repeats it too.
  */
 export const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
+
+/**
+ * Where get_trends says which local calendar day is "today" in the profile
+ * timezone: `{ v: 1, today: "YYYY-MM-DD" }`. The trends widget compares it with
+ * the series' last day to tell a still-running today (shown, labelled "so
+ * far", left out of the averages) from a past window. `_meta`, not
+ * structuredContent, because the output schema is frozen. The trends template
+ * repeats this literal; without it (a host that drops `_meta`) the widget
+ * falls back to the viewer's device date.
+ */
+export const LOCAL_TODAY_META_KEY = "nutrition-mcp.com/local-today";
 
 /**
  * Where log_meal, update_meal, log_saved_meal, get_goal_progress and
