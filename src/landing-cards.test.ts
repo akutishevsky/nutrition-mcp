@@ -28,7 +28,6 @@ const STRIP_CARDS: DemoCardId[] = [
     "scan-barcode",
     "saved-meal",
     "goals-progress",
-    "review-week",
     "track-drinks",
     "usda-food",
 ];
@@ -45,6 +44,14 @@ test("every strip card shows the saturated-fat cell and its limit", () => {
         expect(html, `${id} omits saturated fat`).toContain("Saturated fat");
         expect(html, `${id} omits the 20 g limit`).toContain("limit 20 g");
     }
+});
+
+// review-week is the trends widget, which no longer draws the macro strip:
+// it offers saturated fat as one of its nutrient chips instead.
+test("the review-week card offers saturated fat among its nutrients", () => {
+    const html = renderCard("review-week", "en", "Meal", DAY_MEALS);
+    expect(html).toContain("Saturated fat");
+    expect(html).toContain("14-day calorie trend");
 });
 
 test("fat covers saturated and trans fat in every demo meal and day", () => {

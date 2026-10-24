@@ -275,23 +275,8 @@ export interface WidgetStrings {
          * before the payload's locale is known, so shared/bridge.js picks
          * it from the browser language. */
         loading: string;
-        title: string;
-        empty: string;
-        /** The word after a floor-metric AVERAGE that fell short of its target, e.g. "124 kcal under". Distinct from macros.floorUnder (live "still left to eat today" framing, wrong for a historical average) and macros.ceilingUnder (safety-margin-before-a-limit framing in several locales, wrong for a shortfall). */
-        avgUnder: string;
-        /** Template for the calories chart's caption. Placeholders: {logged},
-         * {total}. */
-        loggedOfTotal: string;
-        /** Template for the calories chart's aria-label. Placeholder: {range}. */
-        caloriesOverRange: string;
         /** aria-label on the 7/14/30-day segmented control. */
         windowAriaLabel: string;
-        /** Template for a range button's aria-label. Placeholder: {n}. */
-        rangeDaysAriaLabel: string;
-        /** Template for the strip's calorie caption. Placeholder: {range}.
-         * Day view only; the period view labels its own denominator with
-         * perLoggedDay, so each view names what it divides by. */
-        avgAllDays: string;
         /** Period view (get_trends with group_by, rows from the result's
          * `nutrition-mcp.com/period-averages` _meta). Short labels for the
          * five-button `.seg-sm` control — Week · Month · Quarter · Year ·
@@ -343,6 +328,156 @@ export interface WidgetStrings {
         /** Template for a quarter's period label. Placeholders: {q} (1–4),
          * {year}. */
         quarter: string;
+        /** Name of the still-running last day (x labels, chart header, day list). */
+        today: string;
+        /** A still-running day in the chart header. Placeholder: {day}. */
+        daySoFar: string;
+        /** Suffix on a still-running day's meta line in the day list. */
+        soFar: string;
+        /** Eyebrow when the window ends today. Placeholder: {n}. */
+        lastNDays: string;
+        /** Eyebrow when the window ends before today. Placeholder: {n}. */
+        nDays: string;
+        /** Card title. Placeholders: {n} (7/14/30), {metric} (a metricInTitle word). */
+        titleMetric: string;
+        /** Nutrient names on chips, cards, charts and day rows. */
+        metricLabel: {
+            calories: string;
+            protein: string;
+            carbs: string;
+            fat: string;
+            fiber: string;
+            sugar: string;
+            addedSugar: string;
+            saturated: string;
+            trans: string;
+            sodium: string;
+            caffeine: string;
+            water: string;
+            alcohol: string;
+        };
+        /** The nutrient word inside titleMetric (lower case in English). */
+        metricInTitle: {
+            calories: string;
+            protein: string;
+            carbs: string;
+            fat: string;
+            fiber: string;
+            sugar: string;
+            addedSugar: string;
+            saturated: string;
+            trans: string;
+            sodium: string;
+            caffeine: string;
+            water: string;
+            alcohol: string;
+        };
+        /** Range pill label. Placeholder: {n}. Keep it to about four characters. */
+        pill: string;
+        /** Range pill aria-label. Placeholder: {n}. */
+        pillAria: string;
+        /** aria-label on the nutrient chip strip. */
+        metricsAria: string;
+        /** aria-label on the chip strip's left arrow. */
+        scrollLeft: string;
+        /** aria-label on the chip strip's right arrow. */
+        scrollRight: string;
+        /** Word before the big average figure. */
+        avgWord: string;
+        /** Unit after the big average figure. Placeholder: {unit}. */
+        perDay: string;
+        /** Bar chart heading. Placeholder: {metric} (a metricLabel). */
+        chartTitle: string;
+        /** aria-label on a bar chart. Placeholders: {metric}, {n}. */
+        chartAria: string;
+        /** Bold part of the mobile delta line. Placeholders: {a}, {n}. */
+        loggedOf: string;
+        /** After loggedOf, for calories, protein, carbs, fat and water. */
+        daysLoggedWord: string;
+        /** After loggedOf, for nutrients averaged over the days that recorded them. */
+        daysRecordedWord: string;
+        /** After an amount under a goal. */
+        belowGoal: string;
+        /** After an amount over a goal. */
+        overGoal: string;
+        /** After an amount under a limit. */
+        underLimit: string;
+        /** After an amount over a limit. */
+        overLimit: string;
+        /** Delta line when no goal is set. */
+        noGoalSet: string;
+        /** Goal line under the average. Placeholders: {goal} (with unit), {pct} (bold). */
+        heroGoal: string;
+        /** The same line when the average is above the goal. */
+        heroGoalOver: string;
+        /** Goal line for a limit. Placeholders: {goal}, {pct}. */
+        heroLimit: string;
+        /** Goal line with no goal set. */
+        heroNoGoal: string;
+        /** Under the average while today is still running. */
+        todayNote: string;
+        /** Expand button (collapsed). */
+        showMore: string;
+        /** Expand button (expanded). */
+        showLess: string;
+        /** Button under the nutrient cards. */
+        collapseAll: string;
+        /** A day or nutrient with no recorded value. */
+        notRecorded: string;
+        /** Day meta. Placeholder: {pct} (formatted percent). */
+        pctOfGoal: string;
+        /** Day meta for a limit. Placeholder: {pct}. */
+        pctOfLimit: string;
+        /** Day meta. Placeholder: {amount} (with unit). */
+        amountOverGoal: string;
+        /** Day meta for a limit. Placeholder: {amount}. */
+        amountOverLimit: string;
+        /** Day meta within 10% of the goal. Placeholder: {pct}. */
+        onTargetPct: string;
+        /** Card trend tag when the second half of the window matches the first. */
+        steady: string;
+        /** Card and day meta with no goal. */
+        noGoal: string;
+        /** Open card of a nutrient with no value in the window. Placeholder: {metric}. */
+        notRecordedInRange: string;
+        /** Stat chip. Placeholders: {value} (bold, with unit), {day}. */
+        chipHigh: string;
+        /** Stat chip. Placeholders: {value}, {day}. */
+        chipLow: string;
+        /** Stat chip. Placeholders: {value} ("9 / 14", bold), {n} (the second number). */
+        chipOnTarget: PluralForms;
+        /** Stat chip for a limit. Placeholders: {value}, {n}. */
+        chipOverLimit: PluralForms;
+        /** Desktop stat label. */
+        statDaysLogged: string;
+        /** Desktop stat label for nutrients averaged over recorded days. */
+        statDaysRecorded: string;
+        /** Desktop stat label. */
+        statOnTarget: string;
+        /** Desktop stat label for a limit. */
+        statDaysOverLimit: string;
+        /** Desktop stat label. */
+        statBelowGoal: string;
+        /** Desktop stat label. */
+        statOverGoal: string;
+        /** Desktop stat label. */
+        statUnderLimit: string;
+        /** Desktop stat label. */
+        statOverLimit: string;
+        /** Desktop stat label with no goal. */
+        statNoGoal: string;
+        /** Small unit after "12 / 14". Placeholder: {n} (the second number). */
+        daysUnit: PluralForms;
+        /** Under a day list capped at 7. Placeholder: {n}. */
+        showAllDays: string;
+        /** Empty state heading. */
+        emptyTitle: string;
+        /** Empty state line: a fact, not a suggestion. */
+        emptyBody: string;
+        /** Alcohol's unit, per the account's drink unit. */
+        drinkUnit: { us: string; uk: string };
+        /** A bar's aria-label. Placeholders: {day}, {value}. */
+        dayAria: string;
     };
 
     /** templates/weight-trends.html's own top matter. No macro strip here. */
@@ -701,14 +836,7 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
     },
     trends: {
         loading: "Loading your trends…",
-        title: "Trends",
-        empty: "No meals or water logged in this range yet.",
-        avgUnder: "under",
-        loggedOfTotal: "{logged}/{total} days logged",
-        caloriesOverRange: "Calories per day over the last {range} days",
         windowAriaLabel: "Trend window",
-        rangeDaysAriaLabel: "{n} days",
-        avgAllDays: "{range}-day avg · all days",
         segWeek: "Week",
         segMonth: "Month",
         segQuarter: "Qtr",
@@ -736,6 +864,108 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         targetsAssumed: "targets before {date} not recorded",
         noTargets: "No targets set — averages only.",
         quarter: "Q{q} {year}",
+        today: "Today",
+        daySoFar: "{day} (so far)",
+        soFar: "so far",
+        lastNDays: "Last {n} days",
+        nDays: "{n} days",
+        titleMetric: "{n}-day {metric} trend",
+        metricLabel: {
+            calories: "Calories",
+            protein: "Protein",
+            carbs: "Carbs",
+            fat: "Fat",
+            fiber: "Fiber",
+            sugar: "Sugar",
+            addedSugar: "Added sugar",
+            saturated: "Saturated fat",
+            trans: "Trans fat",
+            sodium: "Sodium",
+            caffeine: "Caffeine",
+            water: "Water",
+            alcohol: "Alcohol",
+        },
+        metricInTitle: {
+            calories: "calorie",
+            protein: "protein",
+            carbs: "carb",
+            fat: "fat",
+            fiber: "fiber",
+            sugar: "sugar",
+            addedSugar: "added sugar",
+            saturated: "saturated fat",
+            trans: "trans fat",
+            sodium: "sodium",
+            caffeine: "caffeine",
+            water: "water",
+            alcohol: "alcohol",
+        },
+        pill: "{n}d",
+        pillAria: "Show the last {n} days",
+        metricsAria: "Choose a nutrient",
+        scrollLeft: "Scroll left",
+        scrollRight: "Scroll right",
+        avgWord: "avg",
+        perDay: "{unit}/day",
+        chartTitle: "{metric} per day",
+        chartAria: "{metric} per day over the last {n} days",
+        loggedOf: "{a} of {n}",
+        daysLoggedWord: "days logged",
+        daysRecordedWord: "days recorded",
+        belowGoal: "below goal",
+        overGoal: "over goal",
+        underLimit: "under limit",
+        overLimit: "over limit",
+        noGoalSet: "no goal set",
+        heroGoal: "Goal {goal} · {pct} reached",
+        heroGoalOver: "Goal {goal} · {pct} of goal",
+        heroLimit: "Limit {goal} · {pct} used",
+        heroNoGoal: "No goal set",
+        todayNote: "Today is still in progress, so it isn’t averaged yet.",
+        showMore: "Show more",
+        showLess: "Show less",
+        collapseAll: "Collapse all",
+        notRecorded: "not recorded",
+        pctOfGoal: "{pct} of goal",
+        pctOfLimit: "{pct} of limit",
+        amountOverGoal: "{amount} over goal",
+        amountOverLimit: "{amount} over limit",
+        onTargetPct: "on target · {pct}",
+        steady: "steady",
+        noGoal: "no goal",
+        notRecordedInRange:
+            "{metric} wasn’t recorded on any day in this range.",
+        chipHigh: "High {value} {day}",
+        chipLow: "Low {value} {day}",
+        chipOnTarget: {
+            one: "{value} day on target",
+            other: "{value} days on target",
+        },
+        chipOverLimit: {
+            one: "{value} day over limit",
+            other: "{value} days over limit",
+        },
+        statDaysLogged: "Days logged",
+        statDaysRecorded: "Days recorded",
+        statOnTarget: "On target",
+        statDaysOverLimit: "Days over limit",
+        statBelowGoal: "Below goal",
+        statOverGoal: "Over goal",
+        statUnderLimit: "Under limit",
+        statOverLimit: "Over limit",
+        statNoGoal: "No goal set",
+        daysUnit: {
+            one: "day",
+            other: "days",
+        },
+        showAllDays: "Show all {n} days",
+        emptyTitle: "No meals logged in the last 30 days",
+        emptyBody: "Your trend appears here once meals are logged.",
+        drinkUnit: {
+            us: "drinks",
+            uk: "units",
+        },
+        dayAria: "{day}, {value}",
     },
     weightTrends: {
         loading: "Loading your weight trends…",
