@@ -1,21 +1,29 @@
 <!doctype html>
 <!--
-  Goal progress widget (MCP Apps).
+  Goal progress widget (MCP Apps), for get_goal_progress.
 
   Assembled from shared partials at server startup (see src/widgets.ts); the
-  @include markers below inline the shared design tokens, components, and host
-  bridge. The result is fully self-contained — inline CSS + JS, zero network
-  requests — because the MCP Apps sandbox blocks external hosts.
+  @include markers below inline the shared design tokens, the host bridge and
+  the macro strip's `_meta` merges. The result is fully self-contained —
+  inline CSS + JS, zero network requests — because the MCP Apps sandbox blocks
+  external hosts.
 
-  One card (`.panel`): a header line naming the day and what was logged, the
-  shared macro strip (calories, the three macro bars, the limits row and the
-  water line), and one compact weight row under a hairline. The weight row is
-  the only markup this widget owns — everything above it comes from
-  shared/macros.js.
+  The view is a goal-status list, not the macro strip: a header (eyebrow and a
+  one-line verdict), four status counters that double as filters (over, near
+  the limit, to go, on track), a "for the rest of today" card (today only),
+  then — once expanded — the goals grouped by status, each opening to its
+  largest source, the user's own logged foods richest in a target still to go,
+  and the per-meal breakdown with ingredients; and a footer with the latest
+  weight and trans fat for reference.
 
-  Data arrives as the `structuredContent` of the get_goal_progress tool result;
-  the shared bridge (shared/bridge.js) reads it across host conventions and
-  calls render(). Standalone preview uses the SAMPLE below.
+  Mobile and desktop are one markup, laid out by the iframe's own width
+  (@media min-width: 640px is the desktop layout; widget-static.ts turns it
+  into a container query for the landing cards). Which goal is over, near or
+  to go is src/goal-progress-model.ts, inlined below and tested on the server.
+
+  Copy describes the day; it never suggests what to eat. The only foods it
+  names are the user's own: the day's ingredients and GOAL_DAY_META_KEY's
+  `foods`, which the server builds from the user's recent log.
 -->
 <html lang="en">
     <head>
@@ -27,62 +35,1124 @@
 
             /*@include shared/base.css@*/
 
-            /*@include shared/ring.css@*/
+            /* Theme-dependent tint strengths: the design mixes status and
+               metric colours more strongly on dark. Set in the same four
+               blocks as tokens.css, so an explicit host theme wins over the
+               media query in both directions. */
+            :root {
+                --gp-ctr: 9%;
+                --gp-ctr-hover: 14%;
+                --gp-ctr-on: 6%;
+                --gp-pill: 11%;
+                --gp-em: 15%;
+                --gp-em-base: var(--panel);
+                --gp-hover: rgba(0, 0, 0, 0.025);
+                --gp-btn: color-mix(in srgb, var(--text) 6%, var(--panel));
+                --gp-btn-hover: color-mix(
+                    in srgb,
+                    var(--text) 10%,
+                    var(--panel)
+                );
+            }
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --gp-ctr: 13%;
+                    --gp-ctr-hover: 18%;
+                    --gp-ctr-on: 9%;
+                    --gp-pill: 16%;
+                    --gp-em: 22%;
+                    --gp-em-base: var(--surface-soft);
+                    --gp-hover: rgba(255, 255, 255, 0.03);
+                }
+            }
+            :root[data-theme="light"] {
+                --gp-ctr: 9%;
+                --gp-ctr-hover: 14%;
+                --gp-ctr-on: 6%;
+                --gp-pill: 11%;
+                --gp-em: 15%;
+                --gp-em-base: var(--panel);
+                --gp-hover: rgba(0, 0, 0, 0.025);
+            }
+            :root[data-theme="dark"] {
+                --gp-ctr: 13%;
+                --gp-ctr-hover: 18%;
+                --gp-ctr-on: 9%;
+                --gp-pill: 16%;
+                --gp-em: 22%;
+                --gp-em-base: var(--surface-soft);
+                --gp-hover: rgba(255, 255, 255, 0.03);
+            }
 
-            /*@include shared/macros.css@*/
+            /* clip: an entrance animation's offset (gRise starts 14px low)
+               must not flash a scrollbar in an iframe sized to the content. */
+            .gp-root {
+                overflow: clip;
+                padding: 16px 16px 18px;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI",
+                    Roboto, sans-serif;
+            }
+            .num {
+                font-variant-numeric: tabular-nums;
+            }
+            button {
+                font: inherit;
+                color: inherit;
+            }
+            :where(button.reset) {
+                all: unset;
+                box-sizing: border-box;
+                cursor: pointer;
+                text-align: left;
+            }
+            button.reset:focus-visible {
+                outline: 2px solid var(--focus);
+                outline-offset: 2px;
+                border-radius: 10px;
+            }
+            .accH:focus-visible,
+            .mlg:focus-visible {
+                outline-offset: -2px !important;
+                border-radius: 14px !important;
+            }
 
-            /* Weight — a standing metric (latest overall vs target), not a
-               per-day total, so it sits below the strip rather than in it. The
-               row reuses the strip's own idiom (.wrow / .wlab / .dot / .wnum /
-               .wsub from macros.css); only the number line itself is local: a
-               track with the span between the two readings highlighted, a
-               hollow target marker and a filled current one. Marker positions
-               (left %) are set inline from the data. */
-            .wtrack {
+            /* One status colour per status; the metric colour only tints the
+               emoji chip. --sc is the hue (dots, rings, tints), --si the ink
+               for text on those tints. */
+            .s-over {
+                --sc: var(--status-over);
+                --si: var(--status-over-ink);
+            }
+            .s-near {
+                --sc: var(--status-near);
+                --si: var(--status-near-ink);
+            }
+            .s-togo {
+                --sc: var(--status-togo);
+                --si: var(--status-togo-ink);
+            }
+            .s-ok {
+                --sc: var(--status-ok);
+                --si: var(--status-ok-ink);
+            }
+            .s-nr,
+            .s-none {
+                --sc: var(--status-nr);
+                --si: var(--status-nr-ink);
+            }
+
+            /* Odometer numbers: each digit is a 1em window over a column of
+               0–9 three times, resting on the last run. The spin is a CSS
+               animation on the first paint only (.intro), so the markup always
+               holds the final value: a static render and reduced motion both
+               show it as is. */
+            .rl {
+                display: inline-block;
+                height: 1em;
+                line-height: 1;
+                overflow: hidden;
+                vertical-align: top;
+            }
+            .rs {
+                display: flex;
+                flex-direction: column;
+                transform: translateY(calc((var(--d) + 20) * -1em));
+            }
+            .rs span {
+                display: block;
+                height: 1em;
+                line-height: 1;
+                text-align: center;
+            }
+            .intro .rs {
+                animation: gReel var(--dur, 1.6s) cubic-bezier(0.22, 1, 0.36, 1)
+                    var(--dl, 0s) backwards;
+            }
+            @keyframes gReel {
+                from {
+                    transform: translateY(calc(var(--d) * -1em));
+                }
+            }
+            @keyframes gRise {
+                0% {
+                    opacity: 0;
+                    transform: translateY(14px) scale(0.96);
+                    filter: blur(3px);
+                }
+                60% {
+                    opacity: 1;
+                    filter: blur(0);
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                    filter: none;
+                }
+            }
+            @keyframes gUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+            }
+            @keyframes gDrop {
+                0% {
+                    opacity: 0;
+                    transform: translateY(-8px);
+                    max-height: 0;
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                    max-height: 3000px;
+                }
+            }
+            @keyframes gFade {
+                0% {
+                    opacity: 0;
+                    transform: translateY(6px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                }
+            }
+            @keyframes gOut {
+                0% {
+                    opacity: 1;
+                    transform: none;
+                    filter: none;
+                }
+                100% {
+                    opacity: 0;
+                    transform: translateY(-12px) scale(0.96);
+                    filter: blur(2px);
+                }
+            }
+            @keyframes gFold {
+                0% {
+                    opacity: 1;
+                    max-height: 3000px;
+                }
+                100% {
+                    opacity: 0;
+                    max-height: 0;
+                    transform: translateY(-8px);
+                }
+            }
+
+            .gcard {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                color: var(--text);
+            }
+            .gtop {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                width: 100%;
+            }
+            .eyb2 {
+                font-size: 12.5px;
+                font-weight: 600;
+                color: var(--text-dim);
+                letter-spacing: 0.01em;
+            }
+            .gtop .t {
+                font-size: 17px;
+                font-weight: 650;
+                line-height: 1.3;
+                letter-spacing: -0.01em;
+                color: var(--text);
+                text-wrap: balance;
+            }
+            .t-d {
+                display: none;
+            }
+
+            /* status counters */
+            .ctrs {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 6px;
+                margin-top: 16px;
+            }
+            .ctr {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 6px;
+                padding: 11px 4px 10px;
+                border-radius: 14px;
+                background: color-mix(
+                    in srgb,
+                    var(--sc) var(--gp-ctr),
+                    var(--panel)
+                );
+                box-shadow: inset 0 0 0 2px transparent;
+                transition:
+                    box-shadow 0.3s ease,
+                    background-color 0.3s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .intro .ctr {
+                animation: gRise 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+                animation-delay: calc(var(--i) * 60ms + 60ms);
+            }
+            .ctr:hover {
+                background: color-mix(
+                    in srgb,
+                    var(--sc) var(--gp-ctr-hover),
+                    var(--panel)
+                );
+            }
+            .ctr:active {
+                transform: scale(0.95);
+            }
+            .ctr.on {
+                box-shadow: inset 0 0 0 2px var(--sc);
+                background: color-mix(
+                    in srgb,
+                    var(--sc) var(--gp-ctr-on),
+                    var(--panel)
+                );
+            }
+            .ctr .cn {
+                display: flex;
+                height: 1em;
+                font-size: 27px;
+                font-weight: 800;
+                line-height: 1;
+                letter-spacing: -0.02em;
+                color: var(--si);
+            }
+            .ctr .cl {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 11.5px;
+                font-weight: 650;
+                color: var(--text);
+                white-space: nowrap;
+            }
+            .ctr .cl::before {
+                content: "";
+                width: 7px;
+                height: 7px;
+                border-radius: 4px;
+                background: var(--sc);
+                flex: none;
+            }
+            .ctr.zero {
+                background: var(--surface-soft);
+                cursor: default;
+            }
+            .ctr.zero .cn,
+            .ctr.zero .cl {
+                color: var(--text-mute);
+            }
+            .ctr.zero .cl::before {
+                background: color-mix(
+                    in srgb,
+                    var(--text-mute) 35%,
+                    var(--panel)
+                );
+            }
+            .nrnote {
+                font-size: 12.5px;
+                color: var(--text-dim);
+                margin-top: 8px;
+                text-align: center;
+                line-height: 1.4;
+            }
+            .gempty {
+                margin-top: 12px;
+                padding: 12px 14px;
+                border-radius: 14px;
+                background: var(--surface-soft);
+                font-size: 13.5px;
+                line-height: 1.5;
+                color: var(--text-dim);
+            }
+
+            /* for the rest of today */
+            .dbody {
+                display: flex;
+                flex-direction: column;
+            }
+            .dleft {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+            }
+            .rest {
+                margin-top: 14px;
+                padding: 12px 14px;
+                border-radius: 16px;
+                background: var(--surface-soft);
+            }
+            .intro .rest {
+                animation: gRise 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.3s
+                    backwards;
+            }
+            .rh {
+                font-size: 11.5px;
+                font-weight: 750;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--text-dim);
+            }
+            .kv {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                column-gap: 16px;
+                margin-top: 4px;
+            }
+            .kvr {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                min-width: 0;
+                padding: 9px 0 8px;
+                border-top: 1px solid var(--panel-border);
+            }
+            .kvr:nth-child(-n + 2) {
+                border-top: none;
+            }
+            .kvr:nth-child(5) {
+                display: none;
+            }
+            .kk {
+                font-size: 12.5px;
+                color: var(--text-dim);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .kk .ke {
+                margin-right: 5px;
+            }
+            .kvv {
+                display: flex;
+                height: 1em;
+                font-size: 16px;
+                font-weight: 800;
+                line-height: 1;
+                color: var(--si);
+                white-space: nowrap;
+            }
+            .hint {
+                display: flex;
+                gap: 8px;
+                margin-top: 4px;
+                padding-top: 10px;
+                border-top: 1px solid var(--panel-border);
+                font-size: 13.5px;
+                line-height: 1.45;
+                color: var(--text);
+            }
+            .hint .hi {
+                flex: none;
+            }
+            .hint b {
+                font-weight: 700;
+            }
+
+            /* show more / collapse */
+            .bigchev {
+                display: flex;
+                align-self: center;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                height: 40px;
+                padding: 0 18px 0 20px;
+                margin-top: 14px;
+                border-radius: 20px;
+                background: var(--pill-bg);
+                font-size: 15px;
+                font-weight: 800;
+                color: var(--text);
+                transition:
+                    background-color 0.3s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .intro .bigchev {
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.55s
+                    backwards;
+            }
+            .bigchev:hover {
+                background: var(--pill-bg-hover);
+            }
+            .bigchev:active {
+                transform: scale(0.94);
+            }
+            .bigchev svg {
+                stroke: currentColor;
+            }
+            .nchev {
+                transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+                flex: none;
+            }
+            .nchev.open {
+                transform: rotate(180deg);
+            }
+            .collall {
+                display: flex;
+                align-self: center;
+                align-items: center;
+                gap: 8px;
+                height: 40px;
+                padding: 0 20px;
+                margin-top: 16px;
+                margin-bottom: 4px;
+                border-radius: 20px;
+                background: var(--gp-btn);
+                color: var(--text);
+                font-size: 14.5px;
+                font-weight: 700;
+                transition:
+                    background-color 0.25s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .collall.new {
+                animation: gUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s
+                    backwards;
+            }
+            .collall:hover {
+                background: var(--gp-btn-hover);
+            }
+            .collall:active {
+                transform: scale(0.95);
+            }
+
+            /* grouped list */
+            .rows {
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+                margin-top: 20px;
+                min-width: 0;
+            }
+            .sech {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 8px;
+                min-height: 26px;
+            }
+            .pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                height: 26px;
+                padding: 0 11px 0 10px;
+                border-radius: 13px;
+                background: color-mix(
+                    in srgb,
+                    var(--sc) var(--gp-pill),
+                    var(--panel)
+                );
+                color: var(--si);
+                font-size: 13px;
+                font-weight: 750;
+                white-space: nowrap;
+            }
+            .pill::before {
+                content: "";
+                width: 7px;
+                height: 7px;
+                border-radius: 4px;
+                background: var(--sc);
+            }
+            .secn {
+                font-size: 13px;
+                font-weight: 650;
+                color: var(--text-dim);
+            }
+            .showall {
+                display: inline-flex;
+                align-items: center;
+                min-height: 32px;
+                margin: -3px -8px -3px auto;
+                padding: 0 8px;
+                border-radius: 10px;
+                font-size: 13px;
+                font-weight: 700;
+                color: var(--status-togo-ink);
+            }
+            .showall:hover {
+                background: color-mix(in srgb, var(--focus) 8%, transparent);
+            }
+            .srows {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+            .chips {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 6px;
+                grid-auto-flow: row dense;
+            }
+            .chips .acc.sel {
+                grid-column: 1 / -1;
+            }
+            .acc {
                 position: relative;
-                flex: 1;
-                height: 5px;
-                border-radius: 999px;
-                background: var(--track);
+                border-radius: 16px;
+                background: var(--surface-soft);
+                box-shadow: inset 0 0 0 2px transparent;
+                transition:
+                    box-shadow 0.35s ease,
+                    background-color 0.35s ease;
+                overflow: hidden;
+                min-width: 0;
             }
-            .wseg {
-                position: absolute;
-                top: 0;
-                height: 100%;
-                border-radius: 999px;
-                background: var(--accent);
-                opacity: 0.4;
+            .acc.new,
+            .sec.new .sech {
+                animation: gRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+                animation-delay: calc(var(--i) * 35ms);
             }
-            .wmark {
-                position: absolute;
-                top: 50%;
-                width: 11px;
-                height: 11px;
-                border-radius: 50%;
-                transform: translate(-50%, -50%);
+            .acc.sel {
+                box-shadow: inset 0 0 0 2px var(--sc);
             }
-            .wmark.tgt {
-                background: var(--panel);
-                border: 2px solid var(--text-dim);
-                z-index: 1;
+            .accH {
+                display: grid;
+                grid-template-columns: 38px minmax(0, 1fr) auto 16px;
+                column-gap: 11px;
+                align-items: center;
+                width: 100%;
+                padding: 10px 12px 10px 10px;
+                min-height: 58px;
             }
-            .wmark.cur {
-                background: var(--accent);
-                box-shadow: 0 0 0 3px
-                    color-mix(in srgb, var(--accent) 22%, transparent);
-                z-index: 2;
+            .accH:hover {
+                background: var(--gp-hover);
             }
-            /* The states with nothing to plot — no reading yet, or a reading
-               with no target — are one line of text in the same section, never
-               a card of their own. */
-            .wnote {
+            .em {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 38px;
+                height: 38px;
+                border-radius: 12px;
+                background: color-mix(
+                    in srgb,
+                    var(--mc) var(--gp-em),
+                    var(--gp-em-base)
+                );
+                font-size: 19px;
+                line-height: 1;
+            }
+            .ab {
+                display: flex;
+                flex-direction: column;
+                gap: 3px;
+                min-width: 0;
+            }
+            .lb {
+                display: flex;
+                align-items: baseline;
+                flex-wrap: wrap;
+                column-gap: 6px;
+                font-size: 15px;
+                font-weight: 700;
+                color: var(--text);
+                line-height: 1.25;
+            }
+            .lb .kw {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-mute);
+            }
+            .sec2 {
+                font-size: 13px;
+                color: var(--text-dim);
+                line-height: 1.3;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .pri {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 1px;
+                font-size: 15px;
+                font-weight: 800;
+                color: var(--si);
+                white-space: nowrap;
+                text-align: right;
+                line-height: 1.2;
+            }
+            .pri .pw {
+                font-size: 12px;
+                font-weight: 650;
+            }
+            .srows .pri {
+                flex-direction: row;
+                align-items: baseline;
+                gap: 4px;
+            }
+            .srows .pri .pw {
+                font-size: 15px;
+                font-weight: 800;
+            }
+            .achev {
+                color: var(--text-mute);
+                transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .acc.sel .achev {
+                transform: rotate(180deg);
+                color: var(--text);
+            }
+            .chips .accH {
+                grid-template-columns: 22px minmax(0, 1fr) 12px;
+                column-gap: 7px;
+                row-gap: 3px;
+                padding: 9px 10px 9px 9px;
+                min-height: 52px;
+            }
+            .chips .em {
+                grid-column: 1;
+                grid-row: 1;
+                width: 22px;
+                height: 22px;
+                border-radius: 7px;
+                font-size: 12.5px;
+            }
+            .chips .ab {
+                grid-column: 2;
+                grid-row: 1;
+            }
+            .chips .lb {
+                font-size: 13px;
+                letter-spacing: -0.005em;
+                display: block;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .chips .lb .kw,
+            .chips .sec2 {
+                display: none;
+            }
+            .chips .pri {
+                grid-column: 1 / 3;
+                grid-row: 2;
+                display: block;
+                font-size: 12.5px;
+                font-weight: 700;
+                text-align: left;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                line-height: 1.3;
+            }
+            .chips .pri .pw {
+                font-size: inherit;
+                font-weight: inherit;
+            }
+            .chips .achev {
+                grid-column: 3;
+                grid-row: 1 / 3;
+                width: 12px;
+            }
+            .s-nr .pri {
+                color: var(--text-mute);
+                font-weight: 600;
+            }
+
+            /* a goal's detail */
+            .accB {
+                padding: 0 12px 12px;
+                overflow: hidden;
+            }
+            .accB.new {
+                animation: gDrop 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .ctx {
+                display: none;
+                font-size: 13px;
+                color: var(--text-dim);
+                padding: 0 0 8px;
+            }
+            .chips .accB .ctx {
+                display: block;
+            }
+            .lead {
+                font-size: 13px;
+                line-height: 1.45;
+                padding: 9px 11px;
+                border-radius: 12px;
+                background: var(--surface-inset);
+                color: var(--text);
+                margin-bottom: 6px;
+                overflow-wrap: anywhere;
+            }
+            .lead b {
+                color: var(--si);
+                font-weight: 750;
+                margin-right: 4px;
+            }
+            .gap {
+                border-radius: 12px;
+                background: var(--surface-inset);
+                padding: 7px 11px 3px;
+                margin-bottom: 6px;
+            }
+            .gaph {
+                font-size: 12px;
+                font-weight: 750;
+                color: var(--si);
+                padding: 2px 0 3px;
+            }
+            .gapr {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 10px;
+                padding: 6px 0;
+                border-top: 1px solid var(--panel-border);
+                font-size: 13px;
+                color: var(--text);
+                overflow-wrap: anywhere;
+            }
+            .gaph + .gapr {
+                border-top: none;
+            }
+            .gapr b {
+                color: var(--si);
+                font-weight: 800;
+                white-space: nowrap;
+            }
+            .mlh {
+                font-size: 11.5px;
+                font-weight: 750;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--text-dim);
+                padding: 10px 0 2px;
+            }
+            .mls {
+                display: flex;
+                flex-direction: column;
+            }
+            .mlg {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto 36px 14px;
+                column-gap: 10px;
+                align-items: center;
+                width: 100%;
+                padding: 9px 0;
+                border-top: 1px solid var(--panel-border);
+                font-size: 13.5px;
+            }
+            .accB.new .mlg {
+                animation: gFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .mls > .mlg:first-child {
+                border-top: none;
+            }
+            .mlg .nmf {
+                line-height: 1.35;
+                font-weight: 600;
+                color: var(--text);
+                overflow-wrap: anywhere;
+            }
+            .mlg .nmf span {
+                display: block;
+                font-size: 11.5px;
+                font-weight: 400;
+                color: var(--text-dim);
+            }
+            .mlg > b {
+                justify-self: end;
+                font-weight: 750;
+                color: var(--text);
+                white-space: nowrap;
+            }
+            .mlg .pc {
+                justify-self: end;
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-dim);
+            }
+            .mlg.nrm > b {
+                color: var(--text-mute);
+                font-weight: 600;
+                font-size: 12.5px;
+            }
+            .mlg.static {
+                cursor: default;
+            }
+            .mc {
+                transition: transform 0.25s;
+                flex: none;
+                color: var(--text-mute);
+            }
+            .mc.open {
+                transform: rotate(90deg);
+                color: var(--text);
+            }
+            .mc.hide {
+                visibility: hidden;
+            }
+            .itl {
+                display: flex;
+                flex-direction: column;
+                background: var(--surface-inset);
+                border-radius: 12px;
+                padding: 2px 11px;
+                margin: 0 0 8px;
+            }
+            .itl.new {
+                animation: gFade 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .itr {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 2px 10px;
+                padding: 7px 0;
+                border-top: 1px solid var(--panel-border);
+                font-size: 13px;
+                color: var(--text);
+                overflow-wrap: anywhere;
+            }
+            .itr:first-child {
+                border-top: none;
+            }
+            .itr .im {
+                grid-column: 1;
                 font-size: 11.5px;
                 color: var(--text-dim);
+            }
+            .itr .iv {
+                grid-row: 1;
+                grid-column: 2;
+                font-weight: 650;
+                white-space: nowrap;
+            }
+            .est {
+                text-decoration: underline dotted;
+                text-decoration-color: var(--text-mute);
+                text-underline-offset: 2px;
+            }
+            .msg {
+                font-size: 13px;
+                color: var(--text-dim);
+                padding: 6px 0;
+                line-height: 1.45;
+            }
+
+            /* footer */
+            .foot {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                margin-top: 18px;
+                padding-top: 12px;
+                border-top: 1px solid var(--panel-border);
+                font-size: 13px;
+                color: var(--text-dim);
+                line-height: 1.4;
+            }
+            .foot b {
+                color: var(--text);
+                font-weight: 700;
+            }
+            .foot .fe {
+                margin-right: 6px;
+            }
+            .foot.fl {
+                display: none;
+            }
+
+            /* collapse */
+            .gcard.closing .rows .acc,
+            .gcard.closing .sech {
+                animation: gOut 0.4s cubic-bezier(0.55, 0, 0.75, 0.3) both;
+                animation-delay: calc((16 - var(--i, 0)) * 18ms);
+            }
+            .gcard.closing .accB {
+                animation: gFold 0.36s cubic-bezier(0.55, 0, 0.75, 0.3) both;
+            }
+            .gcard.closing .collall,
+            .gcard.closing .foot {
+                animation: gOut 0.3s ease both;
+            }
+            .gcard.closing .nchev {
+                transform: rotate(0deg) !important;
+            }
+
+            /* ===== desktop: the iframe's own width ===== */
+            @media (min-width: 640px) {
+                .gp-root {
+                    padding: 20px 18px 22px;
+                }
+                .t-d {
+                    display: inline;
+                }
+                .t-m {
+                    display: none;
+                }
+                .gtop .t {
+                    font-size: 21px;
+                    line-height: 1.25;
+                }
+                .dtop {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) 420px;
+                    gap: 28px;
+                    align-items: center;
+                }
+                .dtop .ctrs {
+                    margin-top: 0;
+                    gap: 8px;
+                }
+                .dtop .ctr {
+                    padding: 13px 4px 12px;
+                }
+                .dtop .ctr .cn {
+                    font-size: 30px;
+                }
+                .dtop .ctr .cl {
+                    font-size: 12.5px;
+                }
+                .nrnote {
+                    text-align: right;
+                }
+                .dbody {
+                    margin-top: 18px;
+                }
+                .dbody .rest {
+                    margin-top: 0;
+                }
+                .kvr:nth-child(5) {
+                    display: flex;
+                }
+                .dbody.lv1 .rest {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr);
+                    padding: 14px 18px;
+                }
+                .dbody.lv1 .kv {
+                    grid-template-columns: repeat(var(--kvn), minmax(0, 1fr));
+                    column-gap: 0;
+                    margin-top: 8px;
+                }
+                .dbody.lv1 .kvr {
+                    border-top: none;
+                    border-left: 1px solid var(--panel-border);
+                    padding: 4px 16px 8px;
+                }
+                .dbody.lv1 .kvr:first-child {
+                    border-left: none;
+                    padding-left: 0;
+                }
+                .dbody.lv1 .kvv {
+                    font-size: 18px;
+                }
+                .dbody.lv1 .hint {
+                    margin-top: 6px;
+                }
+                .dbody.lv2 {
+                    display: grid;
+                    grid-template-columns: 300px minmax(0, 1fr);
+                    gap: 24px;
+                    align-items: start;
+                }
+                .dbody.lv2 .dleft {
+                    position: sticky;
+                    top: 12px;
+                }
+                .dbody.lv2 .rows {
+                    margin-top: 0;
+                }
+                .dbody.lv2 .kvr:nth-child(5) {
+                    grid-column: 1 / -1;
+                }
+                .dbody.lv2 .bigchev {
+                    display: none;
+                }
+                .dbody.nocard {
+                    display: flex;
+                    align-items: stretch;
+                }
+                .dbody.nocard .dleft {
+                    display: none;
+                }
+                .dbody.nocard .srows {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 8px;
+                    grid-auto-flow: row dense;
+                }
+                .dbody.nocard .srows .acc.sel {
+                    grid-column: 1 / -1;
+                }
+                .dbody.nocard .chips {
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                }
+                .dbody.lv2:not(.nocard) ~ .foot.fb {
+                    display: none;
+                }
+                .dbody.lv2:not(.nocard) .foot.fl {
+                    display: flex;
+                    margin-top: 14px;
+                    padding: 0 2px;
+                    border-top: none;
+                }
+            }
+            /* mobile: once expanded the card keeps only its one-line fact */
+            @media (max-width: 639.98px) {
+                .dbody.lv2 .rest {
+                    padding: 10px 14px;
+                }
+                .dbody.lv2 .rest .rh,
+                .dbody.lv2 .rest .kv {
+                    display: none;
+                }
+                .dbody.lv2 .rest .hint {
+                    margin-top: 0;
+                    padding-top: 0;
+                    border-top: none;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .intro .rs,
+                .intro .ctr,
+                .intro .rest,
+                .intro .bigchev,
+                .collall.new,
+                .acc.new,
+                .sec.new .sech,
+                .accB.new,
+                .accB.new .mlg,
+                .itl.new,
+                .gcard.closing .rows .acc,
+                .gcard.closing .sech,
+                .gcard.closing .accB,
+                .gcard.closing .collall,
+                .gcard.closing .foot {
+                    animation: none;
+                }
+                .achev,
+                .nchev,
+                .ctr,
+                .acc,
+                .mc,
+                .bigchev,
+                .collall {
+                    transition: none;
+                }
             }
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="gp-root" id="root"></div>
 
         <script>
             "use strict";
@@ -90,19 +1160,16 @@
             /*@i18n@*/
             /*@include shared/i18n.js@*/
 
-            /*@include shared/date.js@*/
-
             /*@include shared/bridge.js@*/
+
+            /*@inlinets src/goal-progress-model.ts@*/
 
             // ---- Sample data so the file renders on its own (browser preview) ----
             const SAMPLE = {
-                date: "2026-07-10",
+                date: "2026-10-24",
                 locale: "en",
-                meal_count: 5,
-                water_entries: 6,
-                // The alcohol opt-in, which every payload with an alcohol
-                // figure carries. Without it here the preview glosses grams as
-                // US drinks by fallback and the UK path is never seen.
+                meal_count: 3,
+                water_entries: 3,
                 drink_unit: "us",
                 goals: {
                     calories: 2200,
@@ -112,105 +1179,106 @@
                     fiber_g: 30,
                     sugar_g: 45,
                     alcohol_g: 20,
-                    // A ceiling, like sugar and alcohol: EFSA's 400 mg/day.
                     caffeine_mg: 400,
                     water_ml: 2500,
                 },
                 totals: {
-                    calories: 1980,
-                    protein_g: 148,
-                    carbs_g: 231,
-                    fat_g: 74,
-                    fiber_g: 24.6,
-                    // Over its ceiling, so the limits row flags it with --over.
-                    sugar_g: 61.3,
-                    // Alcohol tracking ON in this sample; null would mean the
-                    // user has it off and the limit cell disappears.
-                    alcohol_g: 27.7,
-                    // Over its ceiling too, so its cell flags it. null here
-                    // (nothing recorded today) would drop the cell rather than
-                    // claim a 0 mg day against the 400 mg limit.
-                    caffeine_mg: 470,
-                    water_ml: 2100,
+                    calories: 1250,
+                    protein_g: 79,
+                    carbs_g: 132,
+                    fat_g: 41,
+                    fiber_g: 13.5,
+                    sugar_g: 42,
+                    alcohol_g: 0,
+                    caffeine_mg: 126,
+                    water_ml: 1050,
                 },
                 weight: {
                     current: 78.4,
                     target: 75,
                     unit: "kg",
-                    logged_on: "2026-07-09",
+                    logged_on: "2026-10-23",
                 },
                 meals: [
                     {
                         description: "Overnight oats with berries",
                         meal_type: "breakfast",
                         date: null,
-                        calories: 420,
-                        protein_g: 18,
-                        carbs_g: 62,
-                        fat_g: 12,
-                        fiber_g: 9.4,
-                        sugar_g: 24.6,
+                        calories: 443,
+                        protein_g: 16.5,
+                        carbs_g: 70,
+                        fat_g: 11.9,
+                        fiber_g: 13.1,
+                        sugar_g: 21.9,
                         alcohol_g: 0,
                         caffeine_mg: null,
+                    },
+                    {
+                        description: "Flat white",
+                        meal_type: "snack",
+                        date: null,
+                        calories: 100,
+                        protein_g: 5.4,
+                        carbs_g: 7.7,
+                        fat_g: 5.3,
+                        fiber_g: 0,
+                        sugar_g: 7.7,
+                        alcohol_g: 0,
+                        caffeine_mg: 126,
                     },
                     {
                         description: "Grilled chicken & rice bowl",
                         meal_type: "lunch",
                         date: null,
-                        calories: 650,
-                        protein_g: 52,
-                        carbs_g: 78,
-                        fat_g: 16,
-                        fiber_g: 6.2,
-                        sugar_g: 9.4,
+                        calories: 595,
+                        protein_g: 54,
+                        carbs_g: 64.7,
+                        fat_g: 10.7,
+                        fiber_g: 2.8,
+                        sugar_g: 8.6,
                         alcohol_g: 0,
                         caffeine_mg: null,
-                    },
-                    {
-                        description: "Greek yogurt & almonds",
-                        meal_type: "snack",
-                        date: null,
-                        calories: 260,
-                        protein_g: 22,
-                        carbs_g: 14,
-                        fat_g: 14,
-                        fiber_g: 1.1,
-                        sugar_g: 12.6,
-                        alcohol_g: 0,
-                        caffeine_mg: null,
-                    },
-                    {
-                        description: "Salmon with quinoa & veg",
-                        meal_type: "dinner",
-                        date: null,
-                        calories: 650,
-                        protein_g: 56,
-                        carbs_g: 77,
-                        fat_g: 32,
-                        fiber_g: 7.9,
-                        sugar_g: 14.7,
-                        alcohol_g: 27.7,
-                        caffeine_mg: null,
-                    },
-                    {
-                        // Where the day's caffeine came from. The food rows
-                        // carry null, not 0 — a nutrient nobody filled in is
-                        // absent, not zero.
-                        description: "Double espresso",
-                        meal_type: "snack",
-                        date: null,
-                        calories: 10,
-                        protein_g: 0,
-                        carbs_g: 1,
-                        fat_g: 0,
-                        fiber_g: 0,
-                        sugar_g: 0,
-                        alcohol_g: 0,
-                        caffeine_mg: 470,
                     },
                 ],
             };
+            const SAMPLE_META = {
+                "nutrition-mcp.com/added-sugar": {
+                    v: 1,
+                    goal: 25,
+                    days: { "2026-10-24": 12.6 },
+                    meals: { a: 5.8, b: 0, c: 6.8 },
+                },
+                "nutrition-mcp.com/saturated-fat": {
+                    v: 1,
+                    goal: 20,
+                    days: { "2026-10-24": 9.4 },
+                    meals: { a: 3.1, b: 3.4, c: 2.3 },
+                    trans: { days: { "2026-10-24": 0.3 }, meals: {} },
+                },
+                "nutrition-mcp.com/sodium": {
+                    v: 1,
+                    goal: 2300,
+                    days: { "2026-10-24": 1251 },
+                    meals: { a: 74, b: 78, c: 1025 },
+                },
+                "nutrition-mcp.com/goal-day": {
+                    v: 1,
+                    now: "14:20",
+                    meals: [
+                        { time: "08:10", missing: [] },
+                        { time: "10:40", missing: [] },
+                        { time: "13:05", missing: [] },
+                    ],
+                    water: [
+                        { time: "07:50", ml: 300 },
+                        { time: "09:30", ml: 250 },
+                        { time: "11:45", ml: 500 },
+                    ],
+                    foods: [],
+                },
+            };
 
+            // macros.js (below) expects these two in scope.
             function fmt(n, decimals) {
                 if (n == null || isNaN(n)) return "0";
                 const r = decimals ? n.toFixed(decimals) : Math.round(n);
@@ -229,242 +1297,1252 @@
                 );
             }
 
+            // Only the `_meta` merges (withAddedSugar, withSaturatedFat,
+            // withNutrient, withMealItems, withNutrientSources and their
+            // validators) are used here; this view draws no strip.
             /*@include shared/macros.js@*/
 
-            // The weight section: one compact row on the strip's own idiom
-            // (label · track · figure), or one line of text when there is
-            // nothing to plot. Never a card — it is the last section of the
-            // widget's single panel.
-            function weightRow(w) {
-                const cur = w?.current;
-                const tgt = w?.target;
-                const unit = esc(weightUnit(w?.unit || "kg"));
-                const hasCur = cur != null;
-                const hasTgt = tgt != null;
-
-                // Nothing to plot without a current weight — say which piece is
-                // missing and which tool supplies it, rather than dropping the
-                // section silently.
-                if (!hasCur) {
-                    const msg = hasTgt
-                        ? tpl(T.goalProgress.weightNoneWithTarget, {
-                              target: `${fmt(tgt, 1)} ${unit}`,
-                          })
-                        : T.goalProgress.weightNoneNoTarget;
-                    return `<div class="wnote psec">${msg}</div>`;
-                }
-
-                // Have a reading but no target: there is no line to plot it on,
-                // so show the reading and prompt for the goal.
-                if (!hasTgt) {
-                    // The reading is the LATEST one overall, not necessarily
-                    // this day's — with no track to hang a tooltip on, the
-                    // date has to be in the sentence or it is lost.
-                    const when = w.logged_on
-                        ? ` (${esc(shortDate(w.logged_on))})`
-                        : "";
-                    const reading = `${fmt(cur, 1)} ${unit}${when}`;
-                    return `<div class="wnote psec">${tpl(T.goalProgress.weightNoGoal, { reading })}</div>`;
-                }
-
-                const atTarget = Math.abs(cur - tgt) < 0.05;
-                const delta = Math.round((cur - tgt) * 10) / 10;
-                const state = atTarget
-                    ? T.goalProgress.atTarget
-                    : tpl(
-                          delta > 0
-                              ? T.goalProgress.toLose
-                              : T.goalProgress.toGain,
-                          { amount: `${fmt(Math.abs(delta), 1)} ${unit}` },
-                      );
-                // The row shows the two readings; the distance between them and
-                // the date behind the current one ride along as the graphic's
-                // accessible name and the row's tooltip. "·" separates them
-                // visually, but a screen reader either skips it or announces
-                // "middle dot", so the spoken name uses commas.
-                const metaTxt = w.logged_on
-                    ? tpl(T.goalProgress.lastLogged, {
-                          date: esc(w.logged_on),
-                      })
-                    : "";
-                const title = metaTxt ? `${state} · ${metaTxt}` : state;
-                const aria = tpl(T.goalProgress.weightAria, {
-                    current: `${fmt(cur, 1)} ${unit}`,
-                    target: `${fmt(tgt, 1)} ${unit}`,
-                    state,
-                    metaSuffix: metaTxt ? `, ${metaTxt}` : "",
-                });
-
-                let pc = 50;
-                let pt = 50;
-                if (!atTarget) {
-                    // Pad the scale beyond the two points so the markers land
-                    // inboard (~22% / 78%): an 11px marker centred on 0% or
-                    // 100% would hang off the end of its own track.
-                    const lo = Math.min(cur, tgt);
-                    const hi = Math.max(cur, tgt);
-                    const pad = (hi - lo) * 0.4;
-                    const smin = lo - pad;
-                    const span = hi - lo + pad * 2;
-                    const pos = (v) => ((v - smin) / span) * 100;
-                    pc = pos(cur);
-                    pt = pos(tgt);
-                }
-                const segL = Math.min(pc, pt);
-                const segW = Math.abs(pc - pt);
-                const num = atTarget
-                    ? `${fmt(cur, 1)}<span class="wsub"> ${unit} · ${esc(T.goalProgress.atTarget)}</span>`
-                    : `${fmt(cur, 1)}<span class="wsub"> → ${fmt(tgt, 1)} ${unit}</span>`;
-
-                return `
-          <div class="wrow psec" title="${title}">
-            <span class="wlab"><span class="dot" style="background:var(--accent)"></span>${esc(T.goalProgress.weightLabel)}</span>
-            <div class="wtrack" role="img" aria-label="${aria}">
-              <div class="wseg" style="left:${segL.toFixed(1)}%;width:${segW.toFixed(1)}%"></div>
-              <div class="wmark tgt" style="left:${pt.toFixed(1)}%"></div>
-              <div class="wmark cur" style="left:${pc.toFixed(1)}%"></div>
-            </div>
-            <span class="wnum">${num}</span>
-          </div>`;
-            }
-
-            let __widgetApi = null;
-
-            // Where get_goal_progress puts the day's added-sugar figures
-            // (AddedSugarMeta, src/added-sugar.ts) — in the result's `_meta`,
-            // because the frozen outputSchema can gain no field. Must equal
-            // ADDED_SUGAR_META_KEY in src/widgets.ts.
+            // The `_meta` keys this view reads. A template cannot import, so
+            // each must equal its constant in src/widgets.ts (src/mcp.test.ts
+            // checks the assembled widget contains them).
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
-            // Where the same result carries the saturated- and trans-fat figures
-            // (SaturatedFatMeta, src/saturated-fat.ts), under the same frozen-schema
-            // reasoning as added sugar. Must equal SATURATED_FAT_META_KEY in
-            // src/widgets.ts.
             const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
-            // Where the same result carries each listed meal's ingredients
-            // ({ v: 1, meals: [items | null, …] }, aligned with data.meals by
-            // position), for the breakdown's expandable rows. Must equal
-            // MEAL_ITEMS_META_KEY in src/widgets.ts.
+            const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
             const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
-            // Where the same result carries each value's source (a USDA or OFF
-            // record, the user's own figure, or an estimate), position-aligned
-            // with the meals and their items. Must equal NUTRIENT_SOURCES_META_KEY
-            // in src/widgets.ts.
             const NUTRIENT_SOURCES_META_KEY =
                 "nutrition-mcp.com/nutrient-sources";
+            const GOAL_DAY_META_KEY = "nutrition-mcp.com/goal-day";
 
-            // `resultMeta` is the tool result's `_meta` (or null — see
-            // bridge.js).
-            function render(data, resultMeta) {
-                const root = document.getElementById("root");
-                setLocaleFrom(data, __widgetApi);
-                if (!data || typeof data !== "object") {
-                    root.innerHTML = `
-            <div class="empty">
-              <div class="big">🎯</div>
-              <div>${esc(T.goalProgress.empty)}</div>
-            </div>`;
-                    return;
+            // Payload field per model key, and the colour token per key.
+            const GP_FIELD = {
+                calories: "calories",
+                protein: "protein_g",
+                carbs: "carbs_g",
+                fat: "fat_g",
+                fiber: "fiber_g",
+                sugar: "sugar_g",
+                added_sugar: "added_sugar_g",
+                saturated: "saturated_fat_g",
+                trans: "trans_fat_g",
+                sodium: "sodium_mg",
+                caffeine: "caffeine_mg",
+                alcohol: "alcohol_g",
+                water: "water_ml",
+            };
+            const GP_COLOR = {
+                calories: "calories",
+                protein: "protein",
+                carbs: "carbs",
+                fat: "fat",
+                fiber: "fiber",
+                sugar: "sugar",
+                added_sugar: "added-sugar",
+                saturated: "saturated",
+                trans: "trans",
+                sodium: "sodium",
+                caffeine: "caffeine",
+                alcohol: "alcohol",
+                water: "water",
+            };
+            const MEAL_KEYS = Object.keys(GP_FIELD).filter(
+                (k) => k !== "water",
+            );
+
+            // ---- formatting ------------------------------------------------
+            function nf(v, dec) {
+                try {
+                    return new Intl.NumberFormat(WIDGET_LOCALE, {
+                        minimumFractionDigits: dec,
+                        maximumFractionDigits: dec,
+                    }).format(v);
+                } catch (_) {
+                    return v.toFixed(dec);
                 }
-
-                const totals = data.totals || {};
-                const meals = data.meal_count || 0;
-                const water = data.water_entries || 0;
-                const w = data.weight;
-                const nothingLogged =
-                    meals === 0 &&
-                    water === 0 &&
-                    !(w && (w.current != null || w.target != null));
-
-                const dateOrThisDay =
-                    esc(shortDate(data.date)) || T.goalProgress.thisDay;
-
-                if (nothingLogged) {
-                    root.innerHTML = `
-            <div class="empty">
-              <div class="big">🎯</div>
-              <div>${tpl(T.goalProgress.nothingLoggedFor, { date: dateOrThisDay })}</div>
-            </div>`;
-                    return;
+            }
+            // A figure in its display unit, without the unit: kcal, mg and ml
+            // whole; grams under 10 to one decimal when it has one; water in
+            // litres, two decimals unless a whole tenth.
+            function num(unit, v) {
+                if (v == null || !Number.isFinite(v)) return "–";
+                if (Math.abs(v) < 0.05) return nf(0, 0);
+                if (unit === "L") {
+                    const l = v / 1000;
+                    return nf(
+                        l,
+                        Math.abs(l * 10 - Math.round(l * 10)) > 0.01 ? 2 : 1,
+                    );
                 }
-
-                // The date this widget shows is arbitrary — get_goal_progress
-                // takes any date — so the calorie label only says "today" when
-                // it actually is the viewer's today (#114); otherwise it names
-                // the day, matching the date already printed in `meta` below.
-                const calLabel = isToday(data.date)
-                    ? T.macros.caloriesToday
-                    : tpl(T.macros.caloriesOn, { date: shortDate(data.date) });
-
-                // Added sugar joins the strip only when `_meta` carries it;
-                // without it these are the payload's own objects, untouched.
-                const as = addedSugarPayload(
-                    resultMeta && resultMeta[ADDED_SUGAR_META_KEY],
+                if (unit === "kcal" || unit === "mg" || unit === "ml")
+                    return nf(Math.round(v), 0);
+                return nf(
+                    v,
+                    Math.abs(v) < 10 && Math.abs(v - Math.round(v)) > 0.05
+                        ? 1
+                        : 0,
                 );
+            }
+            const shown = (unit) => (unit === "ml" ? "L" : unit);
+            function wu(unit, v) {
+                const u = shown(unit);
+                return `${num(u, v)} ${T.goalProgress.units[u]}`;
+            }
+            function amountText(amount, unit) {
+                if (amount == null) return "";
+                const n = nf(amount, Number.isInteger(amount) ? 0 : 1);
+                return unit ? `${n} ${unit}` : n;
+            }
+            function dateText(iso) {
+                const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+                if (!m) return String(iso || "");
+                try {
+                    return new Intl.DateTimeFormat(
+                        WIDGET_LOCALE === "en" ? "en-GB" : WIDGET_LOCALE,
+                        {
+                            weekday: "short",
+                            day: "numeric",
+                            month: "short",
+                            timeZone: "UTC",
+                        },
+                    )
+                        .format(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])))
+                        .replace(",", "");
+                } catch (_) {
+                    return iso;
+                }
+            }
+            // The device's own calendar day: only a fallback, for a host that
+            // dropped GOAL_DAY_META_KEY (whose `now` is the server's answer).
+            function deviceToday(iso) {
+                const d = new Date();
+                const p = (n) => String(n).padStart(2, "0");
+                return (
+                    String(iso || "") ===
+                    `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+                );
+            }
+            function cap(s) {
+                return s
+                    ? s.charAt(0).toLocaleUpperCase(WIDGET_LOCALE) + s.slice(1)
+                    : s;
+            }
+            function joinList(names) {
+                const G = T.goalProgress;
+                if (names.length <= 1) return names[0] || "";
+                if (names.length === 2)
+                    return tpl(G.listPair, { a: names[0], b: names[1] });
+                return tpl(G.listMore, {
+                    rest: names.slice(0, -1).join(G.listSep),
+                    last: names[names.length - 1],
+                });
+            }
+            const nameOf = (r) => T.goalProgress.names[r.key];
+            const labelOf = (r) => T.goalProgress.labels[r.key];
+            function drinksText(g) {
+                const unit = gpDay && gpDay.drinkUnit;
+                if (!(g > 0) || !DRINK_GRAMS[unit]) return "";
+                const n = Math.round((g / DRINK_GRAMS[unit]) * 10) / 10;
+                return plural(T.goalProgress.drinks[unit], n, { n: nf(n, 1) });
+            }
+
+            // ---- the day, from the payload and its `_meta` -------------------
+            // A part's figure for the day: undefined when the part (or its day)
+            // is absent, null when the day is "not recorded", else the value.
+            function dayValue(part, date) {
+                if (!part || !part.days || typeof part.days !== "object")
+                    return undefined;
+                if (!Object.prototype.hasOwnProperty.call(part.days, date))
+                    return undefined;
+                const v = part.days[date];
+                return Number.isFinite(v) ? v : null;
+            }
+            function partOf(raw) {
+                return raw &&
+                    typeof raw === "object" &&
+                    !Array.isArray(raw) &&
+                    raw.v === 1
+                    ? raw
+                    : null;
+            }
+            function finiteOr(v, d) {
+                return typeof v === "number" && Number.isFinite(v) ? v : d;
+            }
+
+            let gpDay = null;
+
+            function buildDay(data, meta) {
+                const date = data.date;
+                const totals = data.totals || {};
+                const m = (k) => (meta ? meta[k] : null);
+                // The strip's own merges, so this view joins `_meta` exactly as
+                // every other widget does: by position, only when counts agree.
+                const as = addedSugarPayload(m(ADDED_SUGAR_META_KEY));
                 const merged = withAddedSugar(
                     as,
-                    addedSugarFor(as, [data.date]),
+                    addedSugarFor(as, [date]),
                     totals,
                     data.goals,
                     data.meals,
                 );
-                // Saturated and trans fat join the strip the same way, after added
-                // sugar (withSaturatedFat): each figure is the mean over the days that
-                // recorded it, and without `_meta` the strip is unchanged.
+                const sfRaw = m(SATURATED_FAT_META_KEY);
                 Object.assign(
                     merged,
                     withSaturatedFat(
-                        resultMeta && resultMeta[SATURATED_FAT_META_KEY],
-                        [data.date],
+                        sfRaw,
+                        [date],
                         merged.vals,
                         merged.goal,
                         merged.meals,
                     ),
                 );
-                // Ingredients join the rows the same way, last;
-                // without `_meta` this is merged.meals itself.
-                const itemsMeta = mealItemsPayload(
-                    resultMeta && resultMeta[MEAL_ITEMS_META_KEY],
-                );
-                const rows = withNutrientSources(
-                    nutrientSourcesPayload(
-                        resultMeta && resultMeta[NUTRIENT_SOURCES_META_KEY],
+                const na = partOf(m(SODIUM_META_KEY));
+                Object.assign(
+                    merged,
+                    withNutrient(
+                        na,
+                        "sodium_mg",
+                        recordedMeanFor(na, [date]),
+                        merged.vals,
+                        merged.goal,
+                        merged.meals,
+                        true,
                     ),
+                );
+                const itemsMeta = mealItemsPayload(m(MEAL_ITEMS_META_KEY));
+                const rows = withNutrientSources(
+                    nutrientSourcesPayload(m(NUTRIENT_SOURCES_META_KEY)),
                     withMealItems(itemsMeta, merged.meals),
                     itemsMeta,
                 );
-                const panel = macroPanel(
-                    merged.vals,
-                    merged.goal,
-                    undefined,
-                    rows,
-                    // Nothing sits between the header line and the strip, so no
-                    // leading hairline.
-                    { drinkUnit: data.drink_unit, calLabel },
-                );
+                const dm = gpDayMetaOf(m(GOAL_DAY_META_KEY));
+                const rowList = Array.isArray(rows) ? rows : [];
+                const dayMeals =
+                    dm && dm.meals.length === rowList.length ? dm.meals : null;
 
-                // The day itself and what was logged on it — the context the
-                // strip's numbers are read against.
-                const meta = `${esc(shortDate(data.date))} · ${plural(T.goalProgress.mealsCount, meals)} · ${plural(T.goalProgress.waterCount, water)}`;
-                // A day with a weight reading but no meals or water still shows
-                // the strip (all zeros against the goals), so say why.
-                const sub =
-                    meals === 0 && water === 0
-                        ? `<div class="psub">${tpl(T.goalProgress.nothingLoggedFor, { date: dateOrThisDay })}</div>`
-                        : "";
+                const alcoholOn =
+                    data.drink_unit === "us" || data.drink_unit === "uk";
+                const g = merged.goal || {};
+                const goals = {};
+                for (const k of Object.keys(GP_FIELD)) {
+                    goals[k] = finiteOr(g[GP_FIELD[k]], null);
+                }
+                const sf = saturatedFatPayload(sfRaw);
+                const all = (field) =>
+                    dayMeals &&
+                    dayMeals.length > 0 &&
+                    dayMeals.every((x) => x.missing.includes(field));
+                const tot = {
+                    calories: finiteOr(totals.calories, 0),
+                    protein: finiteOr(totals.protein_g, 0),
+                    carbs: finiteOr(totals.carbs_g, 0),
+                    fat: finiteOr(totals.fat_g, 0),
+                    fiber: all("fiber_g") ? null : finiteOr(totals.fiber_g, 0),
+                    sugar: all("sugar_g") ? null : finiteOr(totals.sugar_g, 0),
+                    added_sugar: dayValue(as, date),
+                    saturated: dayValue(sf, date),
+                    trans: dayValue(sf && sf.trans, date),
+                    sodium: dayValue(na, date),
+                    caffeine: finiteOr(totals.caffeine_mg, null),
+                    alcohol: alcoholOn
+                        ? finiteOr(totals.alcohol_g, null)
+                        : null,
+                    water: finiteOr(totals.water_ml, 0),
+                };
 
-                root.innerHTML = `
-          <div class="panel">
-            <div class="phead">
-              <div class="ptitle">${esc(T.goalProgress.title)}</div>
-              ${sub}
-              <div class="pmeta">${meta}</div>
-            </div>
-            ${panel}
-            ${weightRow(w)}
-          </div>`;
+                const meals = rowList.map((r, i) => {
+                    const missing = dayMeals ? dayMeals[i].missing : [];
+                    const v = {};
+                    for (const k of MEAL_KEYS) {
+                        const f = GP_FIELD[k];
+                        v[k] = missing.includes(f)
+                            ? null
+                            : finiteOr(r[f], null);
+                    }
+                    if (!alcoholOn) v.alcohol = null;
+                    // Ingredients: the strip's validated copies, plus sodium
+                    // read from the same raw slot (the shared item validator
+                    // predates it), by the same index.
+                    let items = null;
+                    if (Array.isArray(r.items) && r.items.length) {
+                        const raw = itemsMeta ? itemsMeta.meals[i] : null;
+                        const entries = mealItemEntries(raw);
+                        items = r.items.map((it, k) => {
+                            const iv = {};
+                            for (const key of MEAL_KEYS) {
+                                iv[key] = finiteOr(it[GP_FIELD[key]], null);
+                            }
+                            const src0 =
+                                entries.length === r.items.length
+                                    ? raw[entries[k].index]
+                                    : null;
+                            iv.sodium = finiteOr(src0 && src0.sodium_mg, null);
+                            if (!alcoholOn) iv.alcohol = null;
+                            const src = {};
+                            const tags = it.sourceTags || {};
+                            for (const key of MEAL_KEYS) {
+                                const t = tags[GP_FIELD[key]] || tags.calories;
+                                if (t && t.s) src[key] = t.s;
+                            }
+                            return {
+                                name: it.name,
+                                amount: it.amount,
+                                unit: it.unit,
+                                v: iv,
+                                src,
+                            };
+                        });
+                    }
+                    return {
+                        name:
+                            typeof r.description === "string"
+                                ? r.description
+                                : "",
+                        type:
+                            typeof r.meal_type === "string"
+                                ? r.meal_type
+                                : null,
+                        time: dayMeals ? dayMeals[i].time : null,
+                        items,
+                        v,
+                    };
+                });
+
+                return {
+                    date,
+                    today: dm ? dm.now != null : deviceToday(date),
+                    now: dm ? dm.now : null,
+                    alcoholOn,
+                    drinkUnit: alcoholOn ? data.drink_unit : null,
+                    goals,
+                    totals: tot,
+                    meals,
+                    water: dm ? dm.water : null,
+                    waterEntries: finiteOr(data.water_entries, 0),
+                    hasLog:
+                        finiteOr(data.meal_count, 0) > 0 ||
+                        finiteOr(data.water_entries, 0) > 0,
+                    foods: dm ? dm.foods : null,
+                    weight:
+                        data.weight && typeof data.weight === "object"
+                            ? data.weight
+                            : null,
+                };
             }
 
-            // ---- Rendering intake ----------------------------------------------
+            // ---- view state ---------------------------------------------------
+            // level 0: counters and the card; 1: the goals list. flt: a status
+            // filter; sel: the open goal (one at a time); mo: the open meal row.
+            let S = { level: 0, flt: null, sel: null, mo: null };
+            let prev = null;
+            let painted = 0;
+            let closing = false;
+
+            const reduceMotion = () => {
+                try {
+                    return window.matchMedia("(prefers-reduced-motion: reduce)")
+                        .matches;
+                } catch (_) {
+                    return true;
+                }
+            };
+            const isDesktop = () => {
+                try {
+                    return window.matchMedia("(min-width: 640px)").matches;
+                } catch (_) {
+                    return false;
+                }
+            };
+
+            // ---- markup pieces ------------------------------------------------
+            const DIGITS = "0123456789"
+                .repeat(3)
+                .split("")
+                .map((d) => `<span>${d}</span>`)
+                .join("");
+            // An odometer number. `first` staggers the digits from that
+            // fraction of the spin to its end, as the design's reel does.
+            function reel(str, first, total) {
+                const n = (str.match(/[0-9]/g) || []).length;
+                let di = 0;
+                return String(str)
+                    .split("")
+                    .map((ch) => {
+                        if (!/[0-9]/.test(ch))
+                            return `<span>${esc(ch === " " ? " " : ch)}</span>`;
+                        const i = di++;
+                        const stop =
+                            n > 1 ? first + ((1 - first) * i) / (n - 1) : first;
+                        const dur = (total * stop).toFixed(2);
+                        return `<span class="rl"><span class="rs" style="--d:${ch};--dur:${dur}s">${DIGITS}</span></span>`;
+                    })
+                    .join("");
+            }
+            const CHEV_DOWN = `<svg class="achev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round"><path d="M6 9l6 6 6-6"></path></svg>`;
+            const CHEV_RIGHT = (cls) =>
+                `<svg class="${cls}" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round"><path d="M9 6l6 6-6 6"></path></svg>`;
+
+            // A goal row's values: the line under its label, and the figure
+            // on its right (value + word). A limit is stated as a share of it,
+            // never as an allowance left.
+            function rowText(r, today) {
+                const G = T.goalProgress;
+                let pv;
+                let pw = "";
+                if (r.st === "nr") pv = G.notRecorded;
+                else if (r.kind === "target") {
+                    if (r.st === "ok") pv = today ? G.done : G.met;
+                    else {
+                        pv = wu(r.unit, r.g - r.t);
+                        pw = today ? G.toGo : G.short;
+                    }
+                } else if (r.st === "over") {
+                    pv = "+" + wu(r.unit, r.t - r.g);
+                    pw = G.over;
+                } else if (r.kind === "budget") {
+                    pv = wu(r.unit, Math.max(r.g - r.t, 0));
+                    pw = today ? G.left : G.under;
+                } else if (r.g > 0) {
+                    pv = nf(Math.round((r.t / r.g) * 100), 0) + "%";
+                    pw = G.ofLimit;
+                } else {
+                    pv = wu(r.unit, r.t);
+                }
+                let sec =
+                    r.st === "nr"
+                        ? G.noDayTotal
+                        : tpl(G.ofGoal, {
+                              value: num(shown(r.unit), r.t),
+                              goal: wu(r.unit, r.g),
+                          });
+                if (r.key === "alcohol" && r.t > 0)
+                    sec += " · " + drinksText(r.t);
+                return { pv, pw, sec };
+            }
+
+            function verdict(day, groups, max) {
+                const G = T.goalProgress;
+                const { over, near, togo, ok, scored } = groups;
+                const names = (rs) => rs.map(nameOf);
+                if (!day.hasLog)
+                    return day.today ? G.nothingToday : G.nothingPast;
+                // Every goal set lacks a day total: nothing to judge.
+                if (!scored.length) return G.sections.nr;
+                if (!over.length && !togo.length && !near.length) {
+                    return plural(
+                        day.today ? G.allOnTrack : G.allMet,
+                        scored.length,
+                        {
+                            n: nf(scored.length, 0),
+                        },
+                    );
+                }
+                const n = (k) => nf(k, 0);
+                const full = [];
+                const short = [];
+                const mid = [];
+                if (!day.today) {
+                    if (over.length) {
+                        full.push(
+                            over.length <= 2
+                                ? tpl(G.pastOverNamed, {
+                                      list: joinList(names(over)),
+                                  })
+                                : plural(G.pastOverMany, over.length, {
+                                      n: n(over.length),
+                                  }),
+                        );
+                        short.push(
+                            plural(G.pastBriefOver, over.length, {
+                                n: n(over.length),
+                            }),
+                        );
+                    }
+                    if (togo.length) {
+                        full.push(
+                            togo.length <= 3
+                                ? tpl(G.pastShortNamed, {
+                                      list: joinList(names(togo)),
+                                  })
+                                : plural(G.pastShortMany, togo.length, {
+                                      n: n(togo.length),
+                                  }),
+                        );
+                        short.push(
+                            plural(G.pastBriefShort, togo.length, {
+                                n: n(togo.length),
+                            }),
+                        );
+                    }
+                    if (!full.length && near.length) {
+                        full.push(
+                            tpl(G.pastCloseNamed, {
+                                list: joinList(names(near)),
+                            }),
+                        );
+                    }
+                    short.push(
+                        plural(G.pastBriefMet, ok.length, { n: n(ok.length) }),
+                    );
+                    const f = cap(full.join(G.titleSep));
+                    return f.length <= max
+                        ? f
+                        : cap(short.join(G.titleSepPast));
+                }
+                if (over.length) {
+                    full.push(
+                        over.length === 1
+                            ? tpl(G.overOne, { a: nameOf(over[0]) })
+                            : over.length === 2
+                              ? tpl(G.overNamed, {
+                                    list: joinList(names(over)),
+                                })
+                              : plural(G.overMany, over.length, {
+                                    n: n(over.length),
+                                }),
+                    );
+                    short.push(
+                        over.length === 1
+                            ? tpl(G.briefOverOne, { a: nameOf(over[0]) })
+                            : plural(G.briefOverMany, over.length, {
+                                  n: n(over.length),
+                              }),
+                    );
+                }
+                if (!over.length && near.length) {
+                    full.push(
+                        near.length <= 2
+                            ? tpl(G.nearNamed, { list: joinList(names(near)) })
+                            : plural(G.nearMany, near.length, {
+                                  n: n(near.length),
+                              }),
+                    );
+                    short.push(
+                        plural(G.briefNear, near.length, { n: n(near.length) }),
+                    );
+                }
+                if (togo.length) {
+                    full.push(
+                        togo.length <= 3
+                            ? tpl(G.toGoNamed, { list: joinList(names(togo)) })
+                            : plural(G.toGoMany, togo.length, {
+                                  n: n(togo.length),
+                              }),
+                    );
+                    mid.push(
+                        plural(G.toGoMany, togo.length, { n: n(togo.length) }),
+                    );
+                    short.push(
+                        togo.length === 1
+                            ? tpl(G.briefToGoOne, { a: nameOf(togo[0]) })
+                            : plural(G.briefToGoMany, togo.length, {
+                                  n: n(togo.length),
+                              }),
+                    );
+                }
+                const f = cap(full.join(G.titleSep));
+                if (f.length <= max) return f;
+                const m2 = cap(
+                    [...full.slice(0, full.length - mid.length), ...mid].join(
+                        G.titleSep,
+                    ),
+                );
+                if (mid.length && m2.length <= max) return m2;
+                return cap(short.join(G.titleSep));
+            }
+
+            function counterHtml(st, i, n, label) {
+                const G = T.goalProgress;
+                const on = S.level >= 1 && S.flt === st;
+                const aria = tpl(n ? G.counterAria : G.counterAriaZero, {
+                    label,
+                    n: nf(n, 0),
+                });
+                const d = 0.05 + i * 0.07;
+                return `<button type="button" class="reset ctr s-${st}${n ? "" : " zero"}${on ? " on" : ""}" style="--i:${i}" data-act="ctr" data-st="${st}" data-fid="ctr-${st}" aria-pressed="${on}" aria-label="${esc(aria)}"${n ? "" : " disabled"}><b class="cn num" aria-hidden="true">${reel(nf(n, 0), 0.45, 1.8 + d)}</b><span class="cl" aria-hidden="true">${esc(label)}</span></button>`;
+            }
+
+            function cellHtml(c, i) {
+                const G = T.goalProgress;
+                const r = c.row;
+                let key;
+                let v;
+                if (c.kind === "calLeft") {
+                    key = G.cellCaloriesLeft;
+                    v = wu(r.unit, Math.max(r.g - r.t, 0));
+                } else if (c.kind === "calOver") {
+                    key = G.cellCalories;
+                    v = tpl(G.cellOver, { value: wu(r.unit, r.t - r.g) });
+                } else if (c.kind === "toGo") {
+                    key = tpl(G.cellToGo, { label: labelOf(r) });
+                    v = wu(r.unit, r.g - r.t);
+                } else if (c.kind === "over") {
+                    key = labelOf(r);
+                    v = tpl(G.cellOver, { value: wu(r.unit, r.t - r.g) });
+                } else {
+                    key = labelOf(r);
+                    v = tpl(G.cellPct, {
+                        pct: nf(Math.round((r.t / r.g) * 100), 0),
+                    });
+                }
+                return `<div class="kvr s-${r.st}" role="group" aria-label="${esc(tpl(G.cellAria, { key, value: v }))}"><span class="kk" aria-hidden="true"><span class="ke">${r.emoji}</span>${esc(key)}</span><b class="kvv num" aria-hidden="true">${reel(v, 0.5, 2.2 + i * 0.15)}</b></div>`;
+            }
+
+            function hintHtml(h, day) {
+                if (!h) return "";
+                const G = T.goalProgress;
+                let k;
+                let txt;
+                if (h.kind === "over") {
+                    k = G.hintOverK;
+                    const vars = {
+                        over: wu("kcal", h.cal.t - h.cal.g),
+                        goal: wu("kcal", h.cal.g),
+                    };
+                    txt = h.water
+                        ? tpl(G.hintOverWater, {
+                              ...vars,
+                              left: wu("ml", h.water.g - h.water.t),
+                          })
+                        : tpl(G.hintOver, vars);
+                } else if (h.kind === "food") {
+                    k = G.hintFoodK;
+                    const a = amountText(h.food.amount, h.food.unit);
+                    const facts = [
+                        `${wu(h.row.unit, h.food.v[h.row.key])} ${nameOf(h.row)}`,
+                        wu("kcal", h.food.v.calories),
+                    ].join(", ");
+                    txt = tpl(G.hintFood, {
+                        food: a ? `${h.food.name}, ${a}` : h.food.name,
+                        facts,
+                    });
+                } else if (h.kind === "toGo") {
+                    k = G.hintToGoK;
+                    txt = tpl(G.hintList, {
+                        list: h.rows
+                            .map((r) => `${wu(r.unit, r.g - r.t)} ${nameOf(r)}`)
+                            .join(" · "),
+                    });
+                } else if (h.kind === "water") {
+                    k = G.hintWaterK;
+                    const left = h.row.g - h.row.t;
+                    const n = Math.ceil(left / 250);
+                    txt = plural(G.waterLeft, n, {
+                        left: wu("ml", left),
+                        n: nf(n, 0),
+                    });
+                } else if (h.kind === "limits") {
+                    // Crossed limits, then the close ones, each with its lead.
+                    const part = (lead, rs) =>
+                        `<b>${esc(lead)}</b> ${esc(tpl(G.hintList, { list: joinList(rs.map(nameOf)) }))}`;
+                    const parts = [];
+                    if (h.over.length)
+                        parts.push(part(G.hintOverLimitK, h.over));
+                    if (h.near.length) parts.push(part(G.hintNearK, h.near));
+                    return `<div class="hint"><span class="hi" aria-hidden="true">🍽️</span><span>${parts.join(" ")}</span></div>`;
+                } else {
+                    k = G.hintAllK;
+                    txt = G.hintAll;
+                }
+                return `<div class="hint"><span class="hi" aria-hidden="true">🍽️</span><span><b>${esc(k)}</b> ${esc(txt)}</span></div>`;
+            }
+
+            function srcWord(s) {
+                return T.goalProgress.sources[s] || "";
+            }
+
+            function detailHtml(r, day, rows, isNew) {
+                const G = T.goalProgress;
+                const out = [];
+                const t = rowText(r, day.today);
+                out.push(
+                    `<div class="ctx num">${esc(t.sec)} · ${esc(G.kinds[r.kind] || "")}</div>`,
+                );
+                if (r.st === "over" || r.st === "near") {
+                    const b = gpBiggest(r, day.meals);
+                    if (b) {
+                        const a = amountText(b.amount, b.unit);
+                        const name = a ? `${b.name} (${a})` : b.name;
+                        out.push(
+                            `<div class="lead"><b>${esc(G.leadK)}</b>${esc(tpl(G.leadV, { name, value: wu(r.unit, b.v) }))}</div>`,
+                        );
+                    }
+                }
+                if (r.key === "water") {
+                    if (r.st === "togo" && day.today) {
+                        const left = r.g - r.t;
+                        const n = Math.ceil(left / 250);
+                        out.push(
+                            `<div class="msg">${esc(plural(G.waterLeft, n, { left: wu("ml", left), n: nf(n, 0) }))}</div>`,
+                        );
+                    }
+                    const w = (day.water || []).slice();
+                    if (w.length) {
+                        const total = w.reduce((s, x) => s + x.ml, 0) || 1;
+                        out.push(
+                            `<div class="mlh">${esc(day.today ? G.waterToday : G.waterPast)}</div><div class="mls">${w
+                                .map(
+                                    (x) =>
+                                        `<div class="mlg static"><span class="nmf num">${esc(x.time || "–")}</span><b class="num">${nf(Math.round(x.ml), 0)} ${esc(G.units.ml)}</b><span class="pc num">${nf(Math.round((x.ml / total) * 100), 0)}%</span>${CHEV_RIGHT("mc hide")}</div>`,
+                                )
+                                .join("")}</div>`,
+                        );
+                    } else if (!day.waterEntries) {
+                        out.push(
+                            `<div class="msg">${esc(day.today ? G.noWaterToday : G.noWaterPast)}</div>`,
+                        );
+                    }
+                    return out.join("");
+                }
+                if (r.st === "togo" && day.today) {
+                    const foods = gpFoodsFor(r, rows, day.foods, 2);
+                    if (foods.length) {
+                        out.push(
+                            `<div class="gap"><div class="gaph">${esc(G.gapTitle)}</div>${foods
+                                .map((f) => {
+                                    const a = amountText(f.amount, f.unit);
+                                    return `<div class="gapr"><span>${esc(a ? `${f.name}, ${a}` : f.name)}</span><b class="num">${wu(r.unit, f.v[r.key])}</b></div>`;
+                                })
+                                .join("")}</div>`,
+                        );
+                    }
+                }
+                if (!day.meals.length) {
+                    out.push(
+                        `<div class="msg">${esc(day.today ? G.noMealsToday : G.noMealsPast)}</div>`,
+                    );
+                    return out.join("");
+                }
+                const bd = gpBreakdown(r, day.meals);
+                if (r.st === "nr") {
+                    const miss = day.meals.filter((m) => m.v[r.key] == null);
+                    const vars = {
+                        label: labelOf(r),
+                        goal: wu(r.unit, r.g),
+                        kind: G.kinds[r.kind],
+                    };
+                    out.push(
+                        `<div class="msg">${esc(
+                            miss.length === 1
+                                ? tpl(G.nrOne, { ...vars, meal: miss[0].name })
+                                : plural(G.nrMany, miss.length, {
+                                      ...vars,
+                                      n: nf(miss.length, 0),
+                                  }),
+                        )}</div>`,
+                    );
+                }
+                // The open meal: the one picked, else the largest with items.
+                let mo = S.mo;
+                if (mo === "auto") {
+                    const c = bd.rows.find((x) => day.meals[x.i].items && x.v);
+                    mo = c ? c.i : null;
+                }
+                if (bd.rows.length) {
+                    out.push(
+                        `<div class="mlh">${esc(G.mealsTitle)}</div><div class="mls">`,
+                    );
+                    for (const x of bd.rows) {
+                        const m = day.meals[x.i];
+                        const items = m.items ? gpItemsFor(r.key, m.items) : [];
+                        const open = mo === x.i && items.length > 0;
+                        const metaBits = [
+                            m.time,
+                            m.type && G.mealTypes[m.type]
+                                ? G.mealTypes[m.type]
+                                : G.mealFallback,
+                        ].filter(Boolean);
+                        if (!m.items) metaBits.push(G.totalOnly);
+                        const val =
+                            x.v == null ? G.notRecorded : wu(r.unit, x.v);
+                        const cls =
+                            "reset mlg" +
+                            (x.v == null ? " nrm" : "") +
+                            (open ? " open" : "") +
+                            (items.length ? "" : " static");
+                        const attrs = items.length
+                            ? ` data-act="meal" data-i="${x.i}" data-fid="meal-${r.key}-${x.i}" aria-expanded="${open}"`
+                            : ` tabindex="-1" aria-disabled="true"`;
+                        const tag = items.length ? "button" : "div";
+                        out.push(
+                            `<${tag}${tag === "button" ? ' type="button"' : ""} class="${cls}"${attrs}><span class="nmf">${esc(m.name)}<span>${esc(metaBits.join(" · "))}</span></span><b class="num">${esc(val)}</b><span class="pc num">${x.share == null ? "" : nf(x.share, 0) + "%"}</span>${CHEV_RIGHT(items.length ? (open ? "mc open" : "mc") : "mc hide")}</${tag}>`,
+                        );
+                        if (open) {
+                            const itNew =
+                                isNew ||
+                                !prev ||
+                                prev.mo !== S.mo ||
+                                prev.sel !== S.sel;
+                            out.push(
+                                `<div class="itl${itNew ? " new" : ""}">${items
+                                    .map((it) => {
+                                        const iv = it.v[r.key];
+                                        const s = it.src[r.key];
+                                        const a = amountText(
+                                            it.amount,
+                                            it.unit,
+                                        );
+                                        const srcTxt = s
+                                            ? `<span class="${s === "estimate" ? "est" : ""}">${esc(srcWord(s))}</span>`
+                                            : "";
+                                        const im = [a ? esc(a) : "", srcTxt]
+                                            .filter(Boolean)
+                                            .join(" · ");
+                                        return `<div class="itr"><span>${esc(it.name)}</span><span class="iv num">${iv == null ? "–" : wu(r.unit, iv)}</span>${im ? `<span class="im">${im}</span>` : ""}</div>`;
+                                    })
+                                    .join("")}</div>`,
+                            );
+                        }
+                    }
+                    out.push("</div>");
+                }
+                if (bd.none) {
+                    out.push(
+                        `<div class="msg">${esc(plural(G.otherMealsNone, bd.none, { n: nf(bd.none, 0) }))}</div>`,
+                    );
+                }
+                if (bd.missing && r.st !== "nr") {
+                    out.push(
+                        `<div class="msg">${esc(plural(G.missingNote, bd.missing, { n: nf(bd.missing, 0) }))}</div>`,
+                    );
+                }
+                return out.join("");
+            }
+
+            function rowHtml(r, i, chip, day, rows, newKeys) {
+                const G = T.goalProgress;
+                const sel = S.sel === r.key;
+                const t = rowText(r, day.today);
+                const label =
+                    chip && r.key === "saturated" ? G.satFatShort : labelOf(r);
+                const kw = G.kinds[r.kind] || "";
+                const aria = tpl(G.rowAria, {
+                    label: labelOf(r),
+                    kind: kw,
+                    status: [t.pv, t.pw].filter(Boolean).join(" "),
+                    detail: t.sec,
+                });
+                const isNew = newKeys.has("acc:" + r.key);
+                const detailNew = sel && (!prev || prev.sel !== r.key);
+                return `<div class="acc s-${r.st}${sel ? " sel" : ""}${isNew ? " new" : ""}" data-key="${r.key}" style="--mc:var(--${GP_COLOR[r.key]});--i:${i}"><button type="button" class="reset accH" data-act="pick" data-k="${r.key}" data-fid="acc-${r.key}" aria-expanded="${sel}" aria-label="${esc(aria)}"><span class="em" aria-hidden="true">${r.emoji}</span><span class="ab" aria-hidden="true"><span class="lb"><span class="nm">${esc(label)}</span><span class="kw">${esc(kw)}</span></span><span class="sec2 num">${esc(t.sec)}</span></span><span class="pri num" aria-hidden="true"><span class="pv">${esc(t.pv)}</span> <span class="pw">${esc(t.pw)}</span></span>${CHEV_DOWN}</button>${sel ? `<div class="accB${detailNew ? " new" : ""}">${detailHtml(r, day, rows, detailNew)}</div>` : ""}</div>`;
+            }
+
+            function footHtml(day, groups, cls) {
+                const G = T.goalProgress;
+                const lines = [];
+                const w = day.weight;
+                if (w && (w.current != null || w.target != null)) {
+                    const u = G.units[w.unit] || esc(w.unit || "kg");
+                    const kg = (v) => `${nf(v, 1)} ${u}`;
+                    if (w.current != null) {
+                        let state;
+                        if (w.target == null) state = G.weightNoGoal;
+                        else {
+                            const d =
+                                Math.round((w.current - w.target) * 10) / 10;
+                            state =
+                                Math.abs(d) < 0.05
+                                    ? tpl(G.weightAt, { target: kg(w.target) })
+                                    : tpl(
+                                          d > 0 ? G.weightAbove : G.weightBelow,
+                                          {
+                                              delta: kg(Math.abs(d)),
+                                              target: kg(w.target),
+                                          },
+                                      );
+                        }
+                        const on = w.logged_on
+                            ? ` <span>(${esc(tpl(G.weightLatest, { date: dateText(w.logged_on) }))})</span>`
+                            : "";
+                        lines.push(
+                            `<div><span class="fe" aria-hidden="true">⚖️</span>${esc(G.weight)} <b class="num">${kg(w.current)}</b> · ${esc(state)}${on}</div>`,
+                        );
+                    } else {
+                        lines.push(
+                            `<div><span class="fe" aria-hidden="true">⚖️</span>${esc(G.weight)} · ${esc(tpl(G.weightNoneGoal, { target: kg(w.target) }))}</div>`,
+                        );
+                    }
+                }
+                if (groups.trans) {
+                    lines.push(
+                        `<div><span class="fe" aria-hidden="true">🍟</span>${esc(G.labels.trans)} <b class="num">${wu("g", groups.trans.t)}</b> · ${esc(G.transNote)}</div>`,
+                    );
+                }
+                return lines.length
+                    ? `<div class="foot ${cls}">${lines.join("")}</div>`
+                    : "";
+            }
+
+            function totalsList(day) {
+                const G = T.goalProgress;
+                const parts = [];
+                for (const k of ["calories", "protein", "carbs", "fat"]) {
+                    const v = day.totals[k];
+                    const u = k === "calories" ? "kcal" : "g";
+                    parts.push(
+                        k === "calories"
+                            ? wu(u, v)
+                            : tpl(G.goalItem, {
+                                  value: wu(u, v),
+                                  name: G.names[k],
+                              }),
+                    );
+                }
+                if (day.totals.water > 0)
+                    parts.push(
+                        tpl(G.goalItem, {
+                            value: wu("ml", day.totals.water),
+                            name: G.names.water,
+                        }),
+                    );
+                return parts.join(" · ");
+            }
+
+            function goalsList(rows) {
+                const G = T.goalProgress;
+                return rows
+                    .filter((r) => r.st !== "none")
+                    .map((r) =>
+                        r.key === "calories"
+                            ? wu(r.unit, r.g)
+                            : tpl(
+                                  r.kind === "limit"
+                                      ? G.goalLimitItem
+                                      : G.goalItem,
+                                  {
+                                      value: wu(r.unit, r.g),
+                                      name: nameOf(r),
+                                  },
+                              ),
+                    )
+                    .join(" · ");
+            }
+
+            // ---- the whole view ---------------------------------------------
+            function viewHtml(day) {
+                const G = T.goalProgress;
+                const rows = gpRows(day);
+                const groups = gpGroups(rows);
+                const goalRows = rows.filter((r) => r.st !== "none");
+                const empty = !day.hasLog;
+                const noGoals = !empty && goalRows.length === 0;
+                const when = day.today
+                    ? day.now
+                        ? tpl(G.todayAt, { time: day.now })
+                        : G.today
+                    : dateText(day.date);
+                const eyebrow = tpl(G.eyebrow, { when });
+                let title;
+                if (noGoals) title = `<span>${esc(G.noGoalsTitle)}</span>`;
+                else {
+                    const td = verdict(day, groups, 74);
+                    const tm = verdict(day, groups, 54);
+                    title =
+                        td === tm
+                            ? `<span>${esc(td)}</span>`
+                            : `<span class="t-d">${esc(td)}</span><span class="t-m">${esc(tm)}</span>`;
+                }
+                const interactive = !empty && !noGoals;
+                const lv2 = interactive && S.level >= 1;
+                const head = interactive
+                    ? `<button type="button" class="reset gtop" data-act="tog" data-fid="tog-h" aria-expanded="${lv2}"><span class="eyb2">${esc(eyebrow)}</span><span class="t">${title}</span></button>`
+                    : `<div class="gtop"><span class="eyb2">${esc(eyebrow)}</span><span class="t">${title}</span></div>`;
+
+                let counters = "";
+                if (interactive) {
+                    const labels = day.today ? G.counters : G.countersPast;
+                    counters = `<div class="ctrs" role="group" aria-label="${esc(G.countersAria)}">${[
+                        "over",
+                        "near",
+                        "togo",
+                        "ok",
+                    ]
+                        .map((st, i) =>
+                            counterHtml(st, i, groups[st].length, labels[st]),
+                        )
+                        .join("")}</div>`;
+                    if (groups.nr.length) {
+                        counters += `<div class="nrnote">${esc(tpl(day.today ? G.nrNoteToday : G.nrNotePast, { list: joinList(groups.nr.map(nameOf)) }))}</div>`;
+                    }
+                }
+                const top = `<div class="dtop"><div>${head}</div><div>${counters}</div></div>`;
+
+                if (!interactive) {
+                    const msg = empty
+                        ? [
+                              day.today ? G.emptyToday : G.emptyPast,
+                              goalRows.length
+                                  ? tpl(G.dailyGoals, { list: goalsList(rows) })
+                                  : "",
+                          ]
+                              .filter(Boolean)
+                              .join(" ")
+                        : tpl(day.today ? G.noGoalsToday : G.noGoalsPast, {
+                              list: totalsList(day),
+                          });
+                    return `<div class="gcard">${top}<div class="gempty">${esc(msg)}</div>${footHtml(day, groups, "fb")}</div>`;
+                }
+
+                const showRest = day.today;
+                let rest = "";
+                if (showRest) {
+                    const cells = gpRestCells(rows, 5);
+                    const hint = hintHtml(gpHint(rows, day), day);
+                    rest = `<div class="rest" style="--kvn:${cells.length || 1}">${cells.length ? `<div class="rh">${esc(G.restTitle)}</div><div class="kv">${cells.map(cellHtml).join("")}</div>` : ""}${hint}</div>`;
+                }
+                const big = `<button type="button" class="reset bigchev" data-act="tog" data-fid="tog-b" aria-expanded="${lv2}"><span>${esc(lv2 ? G.showLess : G.showMore)}</span><svg class="nchev${lv2 ? " open" : ""}" width="14" height="9" viewBox="0 0 34 22" aria-hidden="true" style="fill:none;stroke-width:6.5;stroke-linecap:round;stroke-linejoin:round"><path d="M5 5l12 12 12-12"></path></svg></button>`;
+
+                let list = "";
+                const newKeys = new Set();
+                if (lv2) {
+                    const seen =
+                        prev && prev.level >= 1 ? prev.keys : new Set();
+                    let ri = 0;
+                    const SECT = day.today ? G.sections : G.sectionsPast;
+                    const secs = ["over", "near", "togo", "ok", "nr"]
+                        .map((st) => {
+                            const rs = groups[st];
+                            if (!rs.length) return "";
+                            if (S.flt && S.flt !== st) return "";
+                            const chip = st === "ok" || st === "nr";
+                            const secNew = !seen.has("sec:" + st);
+                            for (const r of rs) {
+                                if (!seen.has("acc:" + r.key))
+                                    newKeys.add("acc:" + r.key);
+                            }
+                            const items = rs
+                                .map((r) =>
+                                    rowHtml(r, ri++, chip, day, rows, newKeys),
+                                )
+                                .join("");
+                            const showAll =
+                                S.flt === st
+                                    ? `<button type="button" class="reset showall" data-act="all" data-fid="all-${st}">${esc(G.showAll)}</button>`
+                                    : "";
+                            return `<section class="sec s-${st}${secNew ? " new" : ""}" style="--i:${ri}" aria-label="${esc(SECT[st])}" data-sec="${st}"><div class="sech"><span class="pill">${esc(SECT[st])}</span><span class="secn num">${nf(rs.length, 0)}</span>${showAll}</div><div class="${chip ? "chips" : "srows"}">${items}</div></section>`;
+                        })
+                        .join("");
+                    list = `<div class="rows">${secs}</div>`;
+                }
+                const keys = new Set();
+                if (lv2) {
+                    for (const st of ["over", "near", "togo", "ok", "nr"]) {
+                        if (S.flt && S.flt !== st) continue;
+                        if (groups[st].length) keys.add("sec:" + st);
+                        groups[st].forEach((r) => keys.add("acc:" + r.key));
+                    }
+                }
+                paintKeys = keys;
+
+                const dCls =
+                    "dbody" +
+                    (lv2 ? " lv2" : " lv1") +
+                    (showRest ? "" : " nocard");
+                const foot = lv2 ? footHtml(day, groups, "fl") : "";
+                const footB = lv2 ? footHtml(day, groups, "fb") : "";
+                const coll = lv2
+                    ? `<button type="button" class="reset collall${prev && prev.level >= 1 ? "" : " new"}" data-act="collapse" data-fid="collall"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round"><path d="M7 11l5-5 5 5"></path><path d="M7 18l5-5 5 5"></path></svg><span>${esc(G.collapseAll)}</span></button>`
+                    : "";
+                return `<div class="gcard">${top}<div class="${dCls}"><div class="dleft">${rest}${foot}</div>${big}${list}</div>${footB}${coll}</div>`;
+            }
+            let paintKeys = new Set();
+
+            // ---- painting and interaction -----------------------------------
+            function paint(focusFid) {
+                const host = document.getElementById("gp");
+                if (!host || !gpDay) return;
+                const fid =
+                    focusFid ||
+                    (document.activeElement &&
+                        document.activeElement.dataset &&
+                        document.activeElement.dataset.fid);
+                host.innerHTML = viewHtml(gpDay);
+                host.classList.remove("intro");
+                prev = Object.assign({}, S, { keys: paintKeys });
+                if (fid) {
+                    const el =
+                        host.querySelector(`[data-fid="${fid}"]`) ||
+                        host.querySelector(".gtop");
+                    if (el && el.focus) el.focus({ preventScroll: true });
+                }
+            }
+
+            // Desktop only: rows slide from where they were to where they are
+            // (FLIP), so a filter or an opened goal reads as a reflow rather
+            // than a jump. Mobile and reduced motion apply the change at once.
+            function flip(apply) {
+                const host = document.getElementById("gp");
+                if (
+                    !host ||
+                    reduceMotion() ||
+                    !isDesktop() ||
+                    !Element.prototype.animate
+                ) {
+                    apply();
+                    return;
+                }
+                const q = () =>
+                    Array.from(host.querySelectorAll(".rows .acc[data-key]"));
+                const first = new Map(
+                    q().map((e) => [e.dataset.key, e.getBoundingClientRect()]),
+                );
+                apply();
+                q().forEach((e) => {
+                    const fr = first.get(e.dataset.key);
+                    if (!fr) return;
+                    const l = e.getBoundingClientRect();
+                    const dx = fr.left - l.left;
+                    const dy = fr.top - l.top;
+                    const dw = l.width - fr.width;
+                    const dh = l.height - fr.height;
+                    if (
+                        Math.abs(dx) < 0.5 &&
+                        Math.abs(dy) < 0.5 &&
+                        Math.abs(dw) < 1 &&
+                        Math.abs(dh) < 1
+                    )
+                        return;
+                    const k0 = { transform: `translate(${dx}px, ${dy}px)` };
+                    const k1 = { transform: "translate(0px, 0px)" };
+                    if (dw > 1 || dh > 1) {
+                        k0.clipPath = `inset(0px ${Math.max(dw, 0)}px ${Math.max(dh, 0)}px 0px round 16px)`;
+                        k1.clipPath = "inset(0px 0px 0px 0px round 16px)";
+                    }
+                    e.animate([k0, k1], {
+                        duration: Math.min(
+                            820,
+                            560 + Math.hypot(dx, dy) * 0.35,
+                        ),
+                        easing: "cubic-bezier(.22, 1, .32, 1)",
+                        fill: "backwards",
+                    });
+                });
+            }
+
+            function collapse() {
+                if (closing) return;
+                const done = () => {
+                    closing = false;
+                    S = { level: 0, flt: null, sel: null, mo: null };
+                    paint("tog-h");
+                };
+                const card = document.querySelector("#gp .gcard");
+                if (!card || reduceMotion()) {
+                    done();
+                    return;
+                }
+                closing = true;
+                card.classList.add("closing");
+                setTimeout(done, 520);
+            }
+
+            function onClick(e) {
+                const el =
+                    e.target &&
+                    e.target.closest &&
+                    e.target.closest("[data-act]");
+                if (!el || !gpDay || closing) return;
+                const act = el.dataset.act;
+                if (act === "tog") {
+                    if (S.level === 0) {
+                        S = { level: 1, flt: null, sel: null, mo: null };
+                        paint();
+                    } else collapse();
+                } else if (act === "ctr") {
+                    if (el.disabled) return;
+                    const st = el.dataset.st;
+                    if (S.level === 0) {
+                        S = { level: 1, flt: st, sel: null, mo: null };
+                        paint();
+                        setTimeout(() => {
+                            const sec = document.querySelector(
+                                `#gp [data-sec="${st}"]`,
+                            );
+                            if (sec && sec.scrollIntoView)
+                                sec.scrollIntoView({
+                                    behavior: reduceMotion()
+                                        ? "auto"
+                                        : "smooth",
+                                    block: "nearest",
+                                });
+                        }, 140);
+                    } else {
+                        const on = S.flt === st;
+                        flip(() => {
+                            S = {
+                                level: 1,
+                                flt: on ? null : st,
+                                sel: null,
+                                mo: null,
+                            };
+                            paint();
+                        });
+                    }
+                } else if (act === "all") {
+                    // The button goes with the filter: focus its counter.
+                    const st = S.flt;
+                    flip(() => {
+                        S = Object.assign({}, S, { flt: null });
+                        paint(`ctr-${st}`);
+                    });
+                } else if (act === "pick") {
+                    const k = el.dataset.k;
+                    const sel = S.sel === k;
+                    flip(() => {
+                        S = Object.assign(
+                            {},
+                            S,
+                            sel
+                                ? { sel: null, mo: null }
+                                : { sel: k, mo: "auto" },
+                        );
+                        paint();
+                    });
+                } else if (act === "meal") {
+                    const i = Number(el.dataset.i);
+                    // "auto" resolved to a row on the last paint; reading the
+                    // button's own state makes the second click close it.
+                    const open = el.getAttribute("aria-expanded") === "true";
+                    S = Object.assign({}, S, { mo: open ? null : i });
+                    paint();
+                } else if (act === "collapse") {
+                    collapse();
+                }
+            }
+
+            let __widgetApi = null;
+            let wired = false;
+
+            // `resultMeta` is the tool result's `_meta` (or null — see
+            // bridge.js). Everything it carries is optional: without it the
+            // view still shows every goal in structuredContent.
+            function render(data, resultMeta) {
+                const root = document.getElementById("root");
+                setLocale(
+                    pickLocale(
+                        data && data.locale,
+                        __widgetApi && __widgetApi.hostContext
+                            ? __widgetApi.hostContext.locale
+                            : null,
+                    ),
+                );
+                if (!data || typeof data !== "object") {
+                    root.innerHTML = "";
+                    return;
+                }
+                gpDay = buildDay(data, resultMeta);
+                S = { level: 0, flt: null, sel: null, mo: null };
+                prev = null;
+                // One assignment with the whole markup (the static renderer
+                // reads root.innerHTML); interactions repaint #gp only, so the
+                // bridge's settings footer after it stays.
+                root.innerHTML = `<div id="gp" class="intro">${viewHtml(gpDay)}</div>`;
+                prev = Object.assign({}, S, { keys: paintKeys });
+                painted++;
+                if (!wired && root.addEventListener) {
+                    wired = true;
+                    root.addEventListener("click", onClick);
+                }
+            }
+
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
                 // The structuredContent object itself, or a wrapper around it.
@@ -484,6 +2562,7 @@
                 coerce,
                 render,
                 sample: SAMPLE,
+                sampleMeta: SAMPLE_META,
                 onReady(api) {
                     __widgetApi = api;
                 },

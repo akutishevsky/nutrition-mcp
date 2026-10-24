@@ -27,11 +27,19 @@ const STRIP_CARDS: DemoCardId[] = [
     "photo-meal",
     "scan-barcode",
     "saved-meal",
-    "goals-progress",
     "review-week",
     "track-drinks",
     "usda-food",
 ];
+
+// The goals card is the goal-progress widget, which no longer draws the macro
+// strip: it shows status counters and the rest-of-today card instead.
+test("the goals card shows the status counters and the rest-of-today card", () => {
+    const html = renderCard("goals-progress", "en");
+    expect(html).toContain('aria-label="Goals by status"');
+    expect(html).toContain("For the rest of today");
+    expect(html).not.toContain('class="strip');
+});
 
 const DAY_MEALS = [
     { description: "Breakfast", type: "breakfast" },

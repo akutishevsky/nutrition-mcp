@@ -58,6 +58,23 @@ export interface PluralForms {
     many?: string;
 }
 
+/** One string per goal-progress metric (templates/goal-progress.html). */
+export interface GoalProgressMetrics {
+    calories: string;
+    protein: string;
+    carbs: string;
+    fat: string;
+    fiber: string;
+    sugar: string;
+    added_sugar: string;
+    saturated: string;
+    trans: string;
+    sodium: string;
+    caffeine: string;
+    alcohol: string;
+    water: string;
+}
+
 export interface WidgetStrings {
     /** shared/macros.js — the macro strip every widget embeds. */
     macros: {
@@ -222,40 +239,196 @@ export interface WidgetStrings {
         ];
     };
 
-    /** templates/goal-progress.html's own top matter (the weight row; the
-     * strip above it is shared/macros.js). */
+    /** templates/goal-progress.html: the goal-status view (counters, the
+     * "rest of today" card, the goal accordion and the footer). Copy is
+     * descriptive: it states what the day holds and never suggests what to
+     * eat; the only foods it names are the user's own logged ones. */
     goalProgress: {
         /** Loading line shown before the first tool result arrives —
          * before the payload's locale is known, so shared/bridge.js picks
          * it from the browser language. */
         loading: string;
-        title: string;
-        /** No data at all for the requested date. */
-        empty: string;
-        /** Template. Placeholder: {date}. */
-        nothingLoggedFor: string;
-        /** Fallback when the date itself failed to format. */
-        thisDay: string;
-        mealsCount: PluralForms;
-        /** Count of water entries — deliberately "N water(s)", matching the
-         * source string's own count-the-entries phrasing. */
-        waterCount: PluralForms;
-        weightLabel: string;
-        weightNoneNoTarget: string;
-        /** Template. Placeholder: {target} (pre-formatted with its unit). */
-        weightNoneWithTarget: string;
-        /** Template. Placeholder: {reading} (pre-formatted "78.4 kg (9 Jul)"). */
+        /** Template. Placeholder: {when} (today / todayAt / a date). */
+        eyebrow: string;
+        today: string;
+        /** Template. Placeholder: {time} (HH:MM). */
+        todayAt: string;
+        /** Each goal's label, as a heading ("Saturated fat"). */
+        labels: GoalProgressMetrics;
+        /** Each goal's name inside a sentence ("saturated fat"); German keeps
+         * its capitals here. */
+        names: GoalProgressMetrics;
+        /** The saturated-fat label in a two-column chip. */
+        satFatShort: string;
+        kinds: { budget: string; target: string; limit: string };
+        units: {
+            kcal: string;
+            g: string;
+            mg: string;
+            L: string;
+            ml: string;
+            kg: string;
+            lb: string;
+        };
+        /** Templates for joining names: {a} {b}; {rest} {last}. */
+        listPair: string;
+        listMore: string;
+        listSep: string;
+        /** Between the parts of a verdict title. */
+        titleSep: string;
+        titleSepPast: string;
+        nothingToday: string;
+        nothingPast: string;
+        allOnTrack: PluralForms;
+        allMet: PluralForms;
+        /** Templates. {a} one name; {list} joined names. */
+        overOne: string;
+        overNamed: string;
+        overMany: PluralForms;
+        nearNamed: string;
+        nearMany: PluralForms;
+        toGoNamed: string;
+        toGoMany: PluralForms;
+        /** Short verdict parts, used when the full title is too long. */
+        briefOverOne: string;
+        briefOverMany: PluralForms;
+        briefNear: PluralForms;
+        briefToGoOne: string;
+        briefToGoMany: PluralForms;
+        pastOverNamed: string;
+        pastOverMany: PluralForms;
+        pastShortNamed: string;
+        pastShortMany: PluralForms;
+        pastCloseNamed: string;
+        pastBriefOver: PluralForms;
+        pastBriefShort: PluralForms;
+        pastBriefMet: PluralForms;
+        noGoalsTitle: string;
+        countersAria: string;
+        counters: { over: string; near: string; togo: string; ok: string };
+        countersPast: { over: string; near: string; togo: string; ok: string };
+        /** Templates. Placeholders: {label}, {n}. */
+        counterAria: string;
+        counterAriaZero: string;
+        /** Template. Placeholder: {list}. */
+        nrNoteToday: string;
+        nrNotePast: string;
+        emptyToday: string;
+        emptyPast: string;
+        /** Template. Placeholder: {list}. */
+        dailyGoals: string;
+        /** Templates. Placeholders: {value} (with its unit), {name}. */
+        goalItem: string;
+        goalLimitItem: string;
+        /** Templates. Placeholder: {list} (the day's totals). */
+        noGoalsToday: string;
+        noGoalsPast: string;
+        sections: {
+            over: string;
+            near: string;
+            togo: string;
+            ok: string;
+            nr: string;
+        };
+        sectionsPast: {
+            over: string;
+            near: string;
+            togo: string;
+            ok: string;
+            nr: string;
+        };
+        showAll: string;
+        showMore: string;
+        showLess: string;
+        collapseAll: string;
+        done: string;
+        met: string;
+        toGo: string;
+        short: string;
+        over: string;
+        left: string;
+        under: string;
+        ofLimit: string;
+        notRecorded: string;
+        noDayTotal: string;
+        /** Template. Placeholders: {value}, {goal} (both with units). */
+        ofGoal: string;
+        /** Template for a goal row's aria-label. Placeholders: {label},
+         * {kind}, {status}, {detail}. */
+        rowAria: string;
+        restTitle: string;
+        cellCaloriesLeft: string;
+        cellCalories: string;
+        /** Templates: {label}; {value}; {pct}. */
+        cellToGo: string;
+        cellOver: string;
+        cellPct: string;
+        /** Template. Placeholders: {key}, {value}. */
+        cellAria: string;
+        hintOverK: string;
+        /** Template. Placeholders: {over}, {goal}. */
+        hintOver: string;
+        /** Template. Placeholders: {over}, {goal}, {left}. */
+        hintOverWater: string;
+        hintFoodK: string;
+        /** Template. Placeholders: {food} (name and amount), {facts}. */
+        hintFood: string;
+        hintToGoK: string;
+        hintWaterK: string;
+        hintOverLimitK: string;
+        hintNearK: string;
+        /** Template. Placeholder: {list}. */
+        hintList: string;
+        /** Placeholders: {left}, {n} (glasses of 250 ml). */
+        waterLeft: PluralForms;
+        hintAllK: string;
+        hintAll: string;
+        leadK: string;
+        /** Template. Placeholders: {name}, {value}. */
+        leadV: string;
+        gapTitle: string;
+        mealsTitle: string;
+        waterToday: string;
+        waterPast: string;
+        totalOnly: string;
+        mealFallback: string;
+        mealTypes: {
+            breakfast: string;
+            lunch: string;
+            dinner: string;
+            snack: string;
+        };
+        noMealsToday: string;
+        noMealsPast: string;
+        noWaterToday: string;
+        noWaterPast: string;
+        otherMealsNone: PluralForms;
+        missingNote: PluralForms;
+        /** Templates. Placeholders: {label}, {meal}, {goal}, {kind}; nrMany
+         * also {n}. */
+        nrOne: string;
+        nrMany: PluralForms;
+        sources: {
+            usda: string;
+            openfoodfacts: string;
+            user: string;
+            estimate: string;
+            mixed: string;
+        };
+        weight: string;
+        /** Templates. Placeholders: {delta}, {target} (with units). */
+        weightAbove: string;
+        weightBelow: string;
+        weightAt: string;
         weightNoGoal: string;
-        atTarget: string;
-        /** Template. Placeholder: {amount} (pre-formatted with its unit). */
-        toLose: string;
-        /** Template. Placeholder: {amount} (pre-formatted with its unit). */
-        toGain: string;
         /** Template. Placeholder: {date}. */
-        lastLogged: string;
-        /** Template for the weight track's aria-label. Placeholders: {current},
-         * {target}, {state}, {metaSuffix} (all pre-formatted/pre-translated). */
-        weightAria: string;
+        weightLatest: string;
+        weightNone: string;
+        /** Template. Placeholder: {target}. */
+        weightNoneGoal: string;
+        transNote: string;
+        /** Placeholder: {n} (one decimal). */
+        drinks: { us: PluralForms; uk: PluralForms };
     };
 
     /** templates/meal-logged.html's own top matter (the header line; the
@@ -675,24 +848,223 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
     },
     goalProgress: {
         loading: "Loading your goal progress…",
-        title: "Goal progress",
-        empty: "No goal progress to show.",
-        nothingLoggedFor: "Nothing logged yet for {date}.",
-        thisDay: "this day",
-        mealsCount: { one: "{n} meal", other: "{n} meals" },
-        waterCount: { one: "{n} water", other: "{n} waters" },
-        weightLabel: "Weight",
-        weightNoneNoTarget:
-            "No weight logged yet. Log one with log_weight to track progress.",
-        weightNoneWithTarget:
-            "No weight logged yet. Log one with log_weight to track progress toward your {target} target.",
-        weightNoGoal:
-            "Weight {reading} — no goal set. Set one with set_nutrition_goals to see progress here.",
-        atTarget: "at target",
-        toLose: "{amount} to lose",
-        toGain: "{amount} to gain",
-        lastLogged: "last logged {date}",
-        weightAria: "Weight {current}, target {target}, {state}{metaSuffix}",
+        eyebrow: "Goal progress · {when}",
+        today: "Today",
+        todayAt: "Today, {time}",
+        labels: {
+            calories: "Calories",
+            protein: "Protein",
+            carbs: "Carbs",
+            fat: "Fat",
+            fiber: "Fiber",
+            sugar: "Sugar",
+            added_sugar: "Added sugar",
+            saturated: "Saturated fat",
+            trans: "Trans fat",
+            sodium: "Sodium",
+            caffeine: "Caffeine",
+            alcohol: "Alcohol",
+            water: "Water",
+        },
+        names: {
+            calories: "calories",
+            protein: "protein",
+            carbs: "carbs",
+            fat: "fat",
+            fiber: "fiber",
+            sugar: "sugar",
+            added_sugar: "added sugar",
+            saturated: "saturated fat",
+            trans: "trans fat",
+            sodium: "sodium",
+            caffeine: "caffeine",
+            alcohol: "alcohol",
+            water: "water",
+        },
+        satFatShort: "Sat. fat",
+        kinds: { budget: "budget", target: "target", limit: "limit" },
+        units: {
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            L: "L",
+            ml: "ml",
+            kg: "kg",
+            lb: "lb",
+        },
+        listPair: "{a} and {b}",
+        listMore: "{rest} and {last}",
+        listSep: ", ",
+        titleSep: " · ",
+        titleSepPast: ", ",
+        nothingToday: "Nothing logged today yet",
+        nothingPast: "Nothing was logged that day",
+        allOnTrack: {
+            one: "Your {n} goal is on track",
+            other: "All {n} goals on track",
+        },
+        allMet: { one: "Your {n} goal was met", other: "All {n} goals met" },
+        overOne: "{a} is over",
+        overNamed: "{list} are over",
+        overMany: { one: "{n} limit is over", other: "{n} limits are over" },
+        nearNamed: "{list} near the limit",
+        nearMany: {
+            one: "{n} goal near the limit",
+            other: "{n} goals near the limit",
+        },
+        toGoNamed: "{list} still to go",
+        toGoMany: { one: "{n} target to go", other: "{n} targets to go" },
+        briefOverOne: "{a} over",
+        briefOverMany: { one: "{n} over", other: "{n} over" },
+        briefNear: { one: "{n} near the limit", other: "{n} near the limit" },
+        briefToGoOne: "{a} to go",
+        briefToGoMany: { one: "{n} target to go", other: "{n} targets to go" },
+        pastOverNamed: "{list} went over",
+        pastOverMany: {
+            one: "{n} limit went over",
+            other: "{n} limits went over",
+        },
+        pastShortNamed: "{list} fell short",
+        pastShortMany: {
+            one: "{n} target fell short",
+            other: "{n} targets fell short",
+        },
+        pastCloseNamed: "{list} came close",
+        pastBriefOver: { one: "{n} over", other: "{n} over" },
+        pastBriefShort: { one: "{n} short", other: "{n} short" },
+        pastBriefMet: { one: "{n} met", other: "{n} met" },
+        noGoalsTitle: "No daily goals set",
+        countersAria: "Goals by status",
+        counters: {
+            over: "Over",
+            near: "Near limit",
+            togo: "To go",
+            ok: "On track",
+        },
+        countersPast: {
+            over: "Over",
+            near: "Near limit",
+            togo: "Short",
+            ok: "Met",
+        },
+        counterAria: "{label}: {n}. Show them",
+        counterAriaZero: "{label}: {n}",
+        nrNoteToday: "Not recorded today, so not counted: {list}",
+        nrNotePast: "Not recorded that day, so not counted: {list}",
+        emptyToday:
+            "Nothing logged today yet. Once a meal or water is logged, this shows what is over, what is close and what is still to go.",
+        emptyPast: "Nothing was logged that day.",
+        dailyGoals: "Daily goals: {list}.",
+        goalItem: "{value} {name}",
+        goalLimitItem: "{value} {name} limit",
+        noGoalsToday:
+            "No daily goals are set, so there is nothing to compare with. Logged today: {list}.",
+        noGoalsPast:
+            "No daily goals are set, so there is nothing to compare with. Logged that day: {list}.",
+        sections: {
+            over: "Over the limit",
+            near: "Near the limit",
+            togo: "Still to go",
+            ok: "On track",
+            nr: "Not recorded",
+        },
+        sectionsPast: {
+            over: "Went over",
+            near: "Close to the limit",
+            togo: "Fell short",
+            ok: "Met",
+            nr: "Not recorded",
+        },
+        showAll: "Show all goals",
+        showMore: "Show more",
+        showLess: "Show less",
+        collapseAll: "Collapse all",
+        done: "Done",
+        met: "Met",
+        toGo: "to go",
+        short: "short",
+        over: "over",
+        left: "left",
+        under: "under",
+        ofLimit: "of limit",
+        notRecorded: "not recorded",
+        noDayTotal: "no day total",
+        ofGoal: "{value} of {goal}",
+        rowAria: "{label} {kind}: {status}, {detail}",
+        restTitle: "For the rest of today",
+        cellCaloriesLeft: "Calories left",
+        cellCalories: "Calories",
+        cellToGo: "{label} to go",
+        cellOver: "+{value} over",
+        cellPct: "{pct}% of limit",
+        cellAria: "{key}: {value}",
+        hintOverK: "Over budget:",
+        hintOver: "{over} above the {goal} budget.",
+        hintOverWater: "{over} above the {goal} budget; water {left} to go.",
+        hintFoodK: "Logged before:",
+        hintFood: "{food} — {facts}.",
+        hintToGoK: "Still to go:",
+        hintWaterK: "Water:",
+        hintOverLimitK: "Over the limit:",
+        hintNearK: "Close to the limit:",
+        hintList: "{list}.",
+        waterLeft: {
+            one: "{left} to go, about {n} glass of 250 ml.",
+            other: "{left} to go, about {n} glasses of 250 ml.",
+        },
+        hintAllK: "All set:",
+        hintAll: "every goal is on track.",
+        leadK: "Largest source:",
+        leadV: "{name}, {value}",
+        gapTitle: "Foods you’ve logged before",
+        mealsTitle: "Where it came from",
+        waterToday: "Logged today",
+        waterPast: "Logged that day",
+        totalOnly: "total only",
+        mealFallback: "Meal",
+        mealTypes: {
+            breakfast: "Breakfast",
+            lunch: "Lunch",
+            dinner: "Dinner",
+            snack: "Snack",
+        },
+        noMealsToday: "No meals logged today.",
+        noMealsPast: "No meals logged that day.",
+        noWaterToday: "No water logged today.",
+        noWaterPast: "No water logged that day.",
+        otherMealsNone: {
+            one: "{n} other meal had none.",
+            other: "{n} other meals had none.",
+        },
+        missingNote: {
+            one: "Not recorded for {n} meal; the total counts only the meals that had it.",
+            other: "Not recorded for {n} meals; the total counts only the meals that had it.",
+        },
+        nrOne: "{label} wasn’t recorded for “{meal}”, so there is no day total to compare with the {goal} {kind}.",
+        nrMany: {
+            one: "{label} wasn’t recorded for {n} meal, so there is no day total to compare with the {goal} {kind}.",
+            other: "{label} wasn’t recorded for {n} meals, so there is no day total to compare with the {goal} {kind}.",
+        },
+        sources: {
+            usda: "USDA",
+            openfoodfacts: "Open Food Facts",
+            user: "your figure",
+            estimate: "estimate",
+            mixed: "mixed sources",
+        },
+        weight: "Weight",
+        weightAbove: "{delta} above your {target} goal",
+        weightBelow: "{delta} below your {target} goal",
+        weightAt: "at your {target} goal",
+        weightNoGoal: "no goal set",
+        weightLatest: "latest reading, {date}",
+        weightNone: "no reading yet",
+        weightNoneGoal: "no reading yet · goal {target}",
+        transNote: "no limit set, shown for reference",
+        drinks: {
+            us: { one: "{n} US drink", other: "{n} US drinks" },
+            uk: { one: "{n} UK unit", other: "{n} UK units" },
+        },
     },
     mealLogged: {
         titleLogged: "Meal logged",
