@@ -218,6 +218,12 @@
             }
             .imp .st.done .ck {
                 display: block;
+            }
+            /* Entrance motion plays only when something mounts (a step
+               change, a list opening, a day expanding), never on the
+               repaint every click causes: render() marks the mounting
+               element with .pop / .enter. */
+            .imp .st.done.pop .ck {
                 animation: imp-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
             }
             .imp .st.run .sd {
@@ -259,6 +265,8 @@
                 gap: 12px;
                 margin-top: 12px;
                 min-width: 0;
+            }
+            .imp.enter .pane {
                 animation: imp-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
             }
 
@@ -697,6 +705,8 @@
                 box-shadow: inset 0 0 0 1px var(--line);
                 max-height: 332px;
                 overflow: auto;
+            }
+            .imp .opts.enter {
                 animation: imp-drop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
             }
             .imp .opt {
@@ -1028,6 +1038,12 @@
                 flex-direction: column;
                 gap: 4px;
             }
+            .imp .dgcut {
+                margin: 0;
+                padding: 0 16px 10px;
+                font-size: 12px;
+                color: var(--sub);
+            }
             .imp .rc {
                 display: flex;
                 flex-direction: column;
@@ -1035,6 +1051,9 @@
                 padding: 9px 10px;
                 border-radius: 11px;
                 background: var(--page);
+            }
+            .imp.enter .rc,
+            .imp .dg.enter .rc {
                 animation: imp-fade 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
             }
             .imp .rc1 {
@@ -1233,6 +1252,8 @@
                 color: var(--on-g);
                 font-size: 20px;
                 font-weight: 800;
+            }
+            .imp.enter .sum .sic {
                 animation: imp-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s
                     both;
             }
@@ -1615,11 +1636,12 @@
                turning (it is the only sign of life during a long import),
                three times slower. */
             @media (prefers-reduced-motion: reduce) {
-                .imp .pane,
-                .imp .rc,
-                .imp .opts,
-                .imp .st.done .ck,
-                .imp .sum .sic,
+                .imp.enter .pane,
+                .imp.enter .rc,
+                .imp .dg.enter .rc,
+                .imp .opts.enter,
+                .imp .st.done.pop .ck,
+                .imp.enter .sum .sic,
                 .imp .loadg .big {
                     animation: none;
                 }
@@ -2679,24 +2701,32 @@
                 // Kept on S too: the done step shows the user this exact
                 // sentence, so they can see that nothing more left the panel.
                 // English on purpose, like every tool's model-facing text.
-                {
-                    const r = S.result;
-                    S.modelSummary =
-                        "Bulk meal import finished: " +
-                        r.created +
-                        " meals imported, " +
-                        r.deduplicated +
-                        " already logged, " +
-                        r.failed +
-                        " failed" +
-                        (S.skipped ? ", " + S.skipped + " rows skipped" : "") +
-                        ". Source: " +
-                        (S.fileName || "pasted data") +
-                        ".";
-                }
+                const r = S.result;
+                const summary =
+                    "Bulk meal import finished: " +
+                    r.created +
+                    " meals imported, " +
+                    r.deduplicated +
+                    " already logged, " +
+                    r.failed +
+                    " failed" +
+                    (S.skipped ? ", " + S.skipped + " rows skipped" : "") +
+                    ". Source: " +
+                    (S.fileName || "pasted data") +
+                    ".";
                 render();
+                // The done step quotes the summary as what the assistant was
+                // told, so show it only once the host accepted it: the
+                // bridge resolves false when the request fails or times out
+                // (a host without ui/update-model-context, say).
                 if (API.updateModelContext)
-                    API.updateModelContext(S.modelSummary);
+                    Promise.resolve(API.updateModelContext(summary)).then(
+                        (ok) => {
+                            if (ok === false || S.result !== r) return;
+                            S.modelSummary = summary;
+                            if (S.step === "done") render();
+                        },
+                    );
             }
 
             function collect(sc) {
@@ -2855,6 +2885,7 @@
                         const cls =
                             "st" +
                             (i === at ? " cur" : i < at ? " done" : "") +
+                            (i < at && i >= PAINT.prevAt ? " pop" : "") +
                             (i === 3 && S.busy ? " run" : "");
                         const aria = tpl(
                             i < at
@@ -3006,11 +3037,16 @@
                     '<p class="hint2">' +
                     esc(T.importMeals.recognizedHint) +
                     "</p>" +
-                    '<div class="priv">' +
-                    ICON.lock +
-                    "<span>" +
-                    esc(T.importMeals.privacyNote) +
-                    "</span></div>" +
+                    // The note describes the in-panel path. With no tool
+                    // access the user is sent to the chat instead, where the
+                    // rows do pass through the assistant, so it would mislead.
+                    (API && !API.canCallTools
+                        ? ""
+                        : '<div class="priv">' +
+                          ICON.lock +
+                          "<span>" +
+                          esc(T.importMeals.privacyNote) +
+                          "</span></div>") +
                     "</div>"
                 );
             }
@@ -3268,7 +3304,9 @@
                         S.table.headers.map((_, i) => i),
                     );
                     opts =
-                        '<div class="opts" role="radiogroup" id="opts-' +
+                        '<div class="opts' +
+                        (PAINT.optsEnter ? " enter" : "") +
+                        '" role="radiogroup" id="opts-' +
                         k +
                         '" aria-label="' +
                         esc(
@@ -3648,36 +3686,67 @@
 
             // Phone preview: the same rows, grouped by calendar date. The first
             // two days start open; the user's own toggles win after that.
-            function previewDays(shown, cols) {
-                const groups = [];
+            // One group per date, in order of first appearance, so an
+            // unsorted export still shows each date once. A day's row count
+            // and energy come from every row in the file, not just the shown
+            // ones, so a day the row limit cuts still states its real total.
+            function dayGroups(shown, all) {
+                const byIso = new Map();
                 for (const r of shown) {
                     const iso = String(r.logged_at).slice(0, 10);
-                    let g = groups[groups.length - 1];
-                    if (!g || g.iso !== iso) {
-                        g = { iso, rows: [] };
-                        groups.push(g);
+                    let g = byIso.get(iso);
+                    if (!g) {
+                        g = { iso, rows: [], count: 0, kcal: 0 };
+                        byIso.set(iso, g);
                     }
                     g.rows.push(r);
                 }
+                for (const r of all) {
+                    const g = byIso.get(String(r.logged_at).slice(0, 10));
+                    if (!g) continue;
+                    g.count++;
+                    g.kcal += r.calories ?? 0;
+                }
+                return [...byIso.values()];
+            }
+
+            function previewDays(shown, cols) {
+                const groups = dayGroups(shown, S.rows);
                 const isOpen = (g, gi) =>
                     S.dayOpen[g.iso] != null ? S.dayOpen[g.iso] : gi < 2;
                 const allOpen = groups.every(isOpen);
+                const prevDays = PAINT.prevDays;
                 const kcalUnit = T.macros.units.kcal;
                 const body = groups
                     .map((g, gi) => {
                         const open = isOpen(g, gi);
-                        const kc = g.rows.reduce(
-                            (a, r) => a + (r.calories ?? 0),
-                            0,
-                        );
+                        PAINT.days[g.iso] = open;
+                        // Rows fade in only when their day opens, not on
+                        // every repaint.
+                        const enterDay =
+                            open && !!prevDays && prevDays[g.iso] === false;
+                        const kc = Math.round(g.kcal);
                         const sub = kc
-                            ? plural(T.importMeals.dayRowsKcal, g.rows.length, {
-                                  n: fmtCount(g.rows.length),
+                            ? plural(T.importMeals.dayRowsKcal, g.count, {
+                                  n: fmtCount(g.count),
                                   kcal: fmtCount(kc),
                               })
-                            : plural(T.importMeals.dayRows, g.rows.length, {
-                                  n: fmtCount(g.rows.length),
+                            : plural(T.importMeals.dayRows, g.count, {
+                                  n: fmtCount(g.count),
                               });
+                        // The row limit cut this day: say how many of its
+                        // rows the list shows.
+                        const cut =
+                            open && g.rows.length < g.count
+                                ? '<p class="dgcut">' +
+                                  esc(
+                                      tpl(T.importMeals.showingRows, {
+                                          shown: fmtCount(g.rows.length),
+                                          total: fmtCount(g.count),
+                                      }),
+                                  ) +
+                                  "</p>"
+                                : "";
                         const items = open
                             ? '<ul class="rlist" id="day-' +
                               g.iso +
@@ -3778,6 +3847,7 @@
                         return (
                             '<div class="dg' +
                             (open ? " open" : "") +
+                            (enterDay ? " enter" : "") +
                             '"><button type="button" class="reset dgh" data-act="day" data-v="' +
                             g.iso +
                             '" data-k="day:' +
@@ -3794,6 +3864,7 @@
                             ICON.chev +
                             "</button>" +
                             items +
+                            cut +
                             "</div>"
                         );
                     })
@@ -4162,6 +4233,71 @@
             }
 
             let wired = false;
+            // What the last paint showed, and the per-paint flags the
+            // builders read: prevAt (steps at or past it get the check-mark
+            // pop), optsEnter (a column list just opened), prevDays (which
+            // day groups were open; null on a step change) and days (filled
+            // in by previewDays for the next paint to compare against).
+            const painted = { step: null, open: null, days: null, pct: null };
+            const PAINT = {
+                prevAt: 9,
+                optsEnter: false,
+                prevDays: null,
+                days: {},
+            };
+
+            function progressPct() {
+                const p = S.progress;
+                if (!p) return null;
+                return Math.max(
+                    4,
+                    p.total ? Math.round((p.done / p.total) * 100) : 0,
+                );
+            }
+
+            // The rebuilt view arrives already in its new state, so a CSS
+            // transition (chevron turn, row highlight, progress width) would
+            // never run. Paint what changed in its previous state, force one
+            // style flush, then flip it: the transition then plays as if the
+            // element had been changed in place.
+            function replayTransitions(root, prev) {
+                if (!root.querySelectorAll) return;
+                const flips = [];
+                const rowOf = (k) =>
+                    k == null
+                        ? []
+                        : [...root.querySelectorAll('[data-k="row:' + k + '"]')]
+                              .map((b) => b.closest(".mrow"))
+                              .filter(Boolean);
+                if (prev.open !== S.open)
+                    for (const el of rowOf(prev.open).concat(rowOf(S.open)))
+                        flips.push(() => el.classList.toggle("open"));
+                if (prev.days)
+                    for (const b of root.querySelectorAll(".dgh")) {
+                        const iso = b.dataset.v;
+                        const was = prev.days[iso];
+                        const g = b.closest(".dg");
+                        if (g && was != null && was !== PAINT.days[iso])
+                            flips.push(() => g.classList.toggle("open"));
+                    }
+                const pct = progressPct();
+                const bar = root.querySelector(".pbar span");
+                let barTo = null;
+                if (
+                    bar &&
+                    prev.pct != null &&
+                    pct != null &&
+                    prev.pct !== pct
+                ) {
+                    bar.style.width = prev.pct + "%";
+                    barTo = pct + "%";
+                }
+                if (!flips.length && barTo == null) return;
+                for (const f of flips) f();
+                void root.offsetWidth;
+                for (const f of flips) f();
+                if (barTo != null) bar.style.width = barTo;
+            }
             // `fromHost`: a paint the bridge drives (a tool result), which
             // appends its settings footer to #root right after. Only those
             // rebuild #root; every other repaint replaces #imp-view inside
@@ -4178,18 +4314,51 @@
                 const ts = document.getElementById("tscroll");
                 const scrollLeft = ts ? ts.scrollLeft : 0;
 
+                // Entrance motion is for mounting only: the view is rebuilt
+                // on every click, and an animation restarts whenever its
+                // element is newly inserted. So mark only what is new since
+                // the last paint (see PAINT).
+                const prev = {
+                    step: painted.step,
+                    open: painted.open,
+                    days: painted.days,
+                    pct: painted.pct,
+                };
+                const enter = !!fromHost || S.step !== prev.step;
+                const order = ["file", "map", "preview", "done"];
+                PAINT.prevAt =
+                    enter && prev.step
+                        ? order.indexOf(prev.step)
+                        : enter
+                          ? 0
+                          : 9;
+                PAINT.optsEnter = !!S.open && (enter || S.open !== prev.open);
+                PAINT.prevDays = enter ? null : prev.days;
+                PAINT.days = {};
+
                 let body = "";
                 if (S.step === "file") body = fileStep();
                 else if (S.step === "map") body = mapStep();
                 else if (S.step === "preview") body = previewStep();
                 else body = doneStep();
-                const markup = '<div class="imp">' + header() + body + "</div>";
+                const markup =
+                    '<div class="imp' +
+                    (enter ? " enter" : "") +
+                    '">' +
+                    header() +
+                    body +
+                    "</div>";
                 const view = document.getElementById("imp-view");
                 if (fromHost || !view || view.parentNode !== root) {
                     root.innerHTML = '<div id="imp-view">' + markup + "</div>";
                 } else {
                     view.innerHTML = markup;
                 }
+                if (!enter) replayTransitions(root, prev);
+                painted.step = S.step;
+                painted.open = S.open;
+                painted.days = PAINT.days;
+                painted.pct = progressPct();
 
                 const ts2 = document.getElementById("tscroll");
                 if (ts2 && scrollLeft) ts2.scrollLeft = scrollLeft;

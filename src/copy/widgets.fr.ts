@@ -356,80 +356,81 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         noDataRows: "Aucune ligne de données dans ce fichier.",
         emailNotice:
             "Ça ne marche pas comme prévu ? Écris à {email} en joignant les lignes ci-dessous : c'est tout ce qu'il faut pour diagnostiquer le problème.",
-        eyebrow: "Import meals", // i18n:pending
-        eyebrowWithFile: "Import meals · {file}", // i18n:pending
-        stepsLabel: "Import steps", // i18n:pending
-        stepAriaDone: "Step {i} of 4: {name}, completed", // i18n:pending
-        stepAriaCurrent: "Step {i} of 4: {name}, current", // i18n:pending
-        stepAriaUpcoming: "Step {i} of 4: {name}", // i18n:pending
-        browseFiles: "Browse files", // i18n:pending
-        dropAccept: ".csv or tab-separated text", // i18n:pending
-        dropAria: "Choose a CSV file, or drag it here", // i18n:pending
+        eyebrow: "Importer des repas",
+        eyebrowWithFile: "Importer des repas · {file}",
+        stepsLabel: "Étapes de l'import",
+        stepAriaDone: "Étape {i} sur 4 : {name}, terminée",
+        stepAriaCurrent: "Étape {i} sur 4 : {name}, en cours",
+        stepAriaUpcoming: "Étape {i} sur 4 : {name}",
+        browseFiles: "Parcourir les fichiers",
+        dropAccept: ".csv ou texte séparé par des tabulations",
+        dropAria: "Choisis un fichier CSV ou glisse-le ici",
         privacyNote:
-            "The file is read here, in this panel. Its rows never pass through the chat — the assistant only gets a one-line summary when the import finishes.", // i18n:pending
+            "Le fichier est lu ici, dans ce panneau. Ses lignes ne passent jamais par le chat : l'assistant ne reçoit qu'un résumé d'une ligne à la fin de l'import.",
         binaryFile:
-            "Could not read that file: this looks like a binary file (an Excel workbook?), not CSV text. Export it as CSV and try again.", // i18n:pending
-        columnsHeading: "Columns", // i18n:pending
+            "Impossible de lire ce fichier : il ressemble à un fichier binaire (un classeur Excel ?), pas à du texte CSV. Exporte-le en CSV et réessaie.",
+        columnsHeading: "Colonnes",
         fieldsMatched: {
-            one: "{n} of {total} field matched",
-            other: "{n} of {total} fields matched",
-        }, // i18n:pending
-        tableFieldHead: "Field", // i18n:pending
-        tableColumnHead: "Column in your file", // i18n:pending
-        tableRow1Head: "Row 1 value", // i18n:pending
-        badgeNew: "new", // i18n:pending
-        colNumber: "Col {n}", // i18n:pending
-        colNumberAuto: "Col {n} · auto", // i18n:pending
-        colNumberManual: "Col {n} · set by you", // i18n:pending
-        row1Empty: "row 1 empty", // i18n:pending
-        alsoUsed: "also {field}", // i18n:pending
-        sameColumn: "Same column as {fields}", // i18n:pending
-        columnForAria: "Column for {field}", // i18n:pending
-        mapRowAria: "{field}{required}: {column}{sample}", // i18n:pending
-        requiredAria: ", required", // i18n:pending
-        columnAria: "column {n}, {name}", // i18n:pending
-        notInFileAria: "not in this file", // i18n:pending
-        sampleAria: ", {sample}", // i18n:pending
-        howRead: "How values are read", // i18n:pending
-        appExport: "{app} export", // i18n:pending
-        tileMeals: { one: "meal to import", other: "meals to import" }, // i18n:pending
-        tileKcal: "kcal total", // i18n:pending
-        tileSkipped: { one: "row skipped", other: "rows skipped" }, // i18n:pending
-        tileBatches: { one: "batch", other: "batches" }, // i18n:pending
-        rowsHeading: "Rows", // i18n:pending
-        scrollLeft: "Scroll table left", // i18n:pending
-        scrollRight: "Scroll table right", // i18n:pending
-        previewRegionAria: "Preview of the rows to import", // i18n:pending
-        expandAllDays: "Expand all days", // i18n:pending
-        collapseAllDays: "Collapse all days", // i18n:pending
-        dayRows: { one: "{n} row", other: "{n} rows" }, // i18n:pending
+            one: "{n} champ associé sur {total}",
+            other: "{n} champs associés sur {total}",
+        },
+        tableFieldHead: "Champ",
+        tableColumnHead: "Colonne de ton fichier",
+        tableRow1Head: "Valeur de la ligne 1",
+        badgeNew: "nouveau",
+        colNumber: "Col. {n}",
+        colNumberAuto: "Col. {n} · auto",
+        colNumberManual: "Col. {n} · choisie par toi",
+        row1Empty: "ligne 1 vide",
+        alsoUsed: "aussi {field}",
+        sameColumn: "Même colonne que {fields}",
+        columnForAria: "Colonne pour {field}",
+        mapRowAria: "{field}{required} : {column}{sample}",
+        requiredAria: ", obligatoire",
+        columnAria: "colonne {n}, {name}",
+        notInFileAria: "pas dans ce fichier",
+        sampleAria: ", {sample}",
+        howRead: "Lecture des valeurs",
+        appExport: "Export {app}",
+        tileMeals: { one: "repas à importer", other: "repas à importer" },
+        tileKcal: "kcal au total",
+        tileSkipped: { one: "ligne ignorée", other: "lignes ignorées" },
+        tileBatches: { one: "lot", other: "lots" },
+        rowsHeading: "Lignes",
+        scrollLeft: "Faire défiler le tableau vers la gauche",
+        scrollRight: "Faire défiler le tableau vers la droite",
+        previewRegionAria: "Aperçu des lignes à importer",
+        expandAllDays: "Déplier tous les jours",
+        collapseAllDays: "Replier tous les jours",
+        dayRows: { one: "{n} ligne", other: "{n} lignes" },
         dayRowsKcal: {
-            one: "{n} row · {kcal} kcal",
-            other: "{n} rows · {kcal} kcal",
-        }, // i18n:pending
-        noTimeShort: "no time", // i18n:pending
-        lineN: "Line {n}", // i18n:pending
-        rowCardAria: "Line {line}, {when}, {meal}, {food}, {kcal}", // i18n:pending
-        noMealAria: "no meal", // i18n:pending
-        noKcalAria: "no calories", // i18n:pending
-        noRowsToImport: "No rows to import with the current mapping.", // i18n:pending
+            one: "{n} ligne · {kcal} kcal",
+            other: "{n} lignes · {kcal} kcal",
+        },
+        noTimeShort: "sans heure",
+        lineN: "Ligne {n}",
+        rowCardAria: "Ligne {line}, {when}, {meal}, {food}, {kcal}",
+        noMealAria: "aucun repas",
+        noKcalAria: "aucune calorie",
+        noRowsToImport: "Aucune ligne à importer avec l'association actuelle.",
         importOff:
-            "Import is off: this host does not let this view write to your log. Ask Claude to import the file instead.", // i18n:pending
-        backBusy: "Back is unavailable while batches are being sent.", // i18n:pending
-        progressAria: "Import progress, batches", // i18n:pending
-        failedRowsAria: "Rows that failed", // i18n:pending
-        toldOnly: "The assistant was told only: {summary}", // i18n:pending
-        liveStep: "Step {i} of 4, {name}.", // i18n:pending
-        liveMapped: "{field}: {column}", // i18n:pending
+            "L'import est désactivé : cet hôte ne permet pas à cette vue d'écrire dans ton journal. Demande plutôt à Claude d'importer le fichier.",
+        backBusy: "Retour indisponible pendant l'envoi des lots.",
+        progressAria: "Progression de l'import, lots",
+        failedRowsAria: "Lignes en échec",
+        toldOnly: "L'assistant a seulement reçu : {summary}",
+        liveStep: "Étape {i} sur 4, {name}.",
+        liveMapped: "{field} : {column}",
         liveImporting: {
-            one: "Importing. {n} batch.",
-            other: "Importing. {n} batches.",
-        }, // i18n:pending
+            one: "Import en cours. {n} lot.",
+            other: "Import en cours. {n} lots.",
+        },
         liveDone: {
-            one: "Import complete. {n} meal imported.",
-            other: "Import complete. {n} meals imported.",
-        }, // i18n:pending
-        liveNoWrite: "Preflight check failed. Nothing was written.", // i18n:pending
-        liveFileError: "Could not use that file.", // i18n:pending
+            one: "Import terminé. {n} repas importé.",
+            other: "Import terminé. {n} repas importés.",
+        },
+        liveNoWrite:
+            "La vérification préalable a échoué. Rien n'a été enregistré.",
+        liveFileError: "Impossible d'utiliser ce fichier.",
     },
 };

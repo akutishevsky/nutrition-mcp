@@ -355,80 +355,83 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
         noDataRows: "O dosyada veri satırı bulunamadı.",
         emailNotice:
             "Beklediğin gibi çalışmıyor mu? {email} adresine e-posta gönder ve aşağıdaki satırları ekle — sorunu anlamak için gereken her şey bu.",
-        eyebrow: "Import meals", // i18n:pending
-        eyebrowWithFile: "Import meals · {file}", // i18n:pending
-        stepsLabel: "Import steps", // i18n:pending
-        stepAriaDone: "Step {i} of 4: {name}, completed", // i18n:pending
-        stepAriaCurrent: "Step {i} of 4: {name}, current", // i18n:pending
-        stepAriaUpcoming: "Step {i} of 4: {name}", // i18n:pending
-        browseFiles: "Browse files", // i18n:pending
-        dropAccept: ".csv or tab-separated text", // i18n:pending
-        dropAria: "Choose a CSV file, or drag it here", // i18n:pending
+        eyebrow: "Yemekleri içe aktar",
+        eyebrowWithFile: "Yemekleri içe aktar · {file}",
+        stepsLabel: "İçe aktarma adımları",
+        stepAriaDone: "Adım {i}/4: {name}, tamamlandı",
+        stepAriaCurrent: "Adım {i}/4: {name}, şu anki adım",
+        stepAriaUpcoming: "Adım {i}/4: {name}",
+        browseFiles: "Dosyalara göz at",
+        dropAccept: ".csv ya da sekmeyle ayrılmış metin",
+        dropAria: "Bir CSV dosyası seç ya da buraya sürükle",
         privacyNote:
-            "The file is read here, in this panel. Its rows never pass through the chat — the assistant only gets a one-line summary when the import finishes.", // i18n:pending
+            "Dosya burada, bu panelde okunur. Satırları hiçbir zaman sohbetten geçmez; asistan, içe aktarma bitince yalnızca tek satırlık bir özet alır.",
         binaryFile:
-            "Could not read that file: this looks like a binary file (an Excel workbook?), not CSV text. Export it as CSV and try again.", // i18n:pending
-        columnsHeading: "Columns", // i18n:pending
+            "Dosya okunamadı: CSV metni değil, ikili bir dosyaya (bir Excel çalışma kitabı mı?) benziyor. CSV olarak dışa aktarıp yeniden dene.",
+        columnsHeading: "Kolonlar",
         fieldsMatched: {
-            one: "{n} of {total} field matched",
-            other: "{n} of {total} fields matched",
-        }, // i18n:pending
-        tableFieldHead: "Field", // i18n:pending
-        tableColumnHead: "Column in your file", // i18n:pending
-        tableRow1Head: "Row 1 value", // i18n:pending
-        badgeNew: "new", // i18n:pending
-        colNumber: "Col {n}", // i18n:pending
-        colNumberAuto: "Col {n} · auto", // i18n:pending
-        colNumberManual: "Col {n} · set by you", // i18n:pending
-        row1Empty: "row 1 empty", // i18n:pending
-        alsoUsed: "also {field}", // i18n:pending
-        sameColumn: "Same column as {fields}", // i18n:pending
-        columnForAria: "Column for {field}", // i18n:pending
-        mapRowAria: "{field}{required}: {column}{sample}", // i18n:pending
-        requiredAria: ", required", // i18n:pending
-        columnAria: "column {n}, {name}", // i18n:pending
-        notInFileAria: "not in this file", // i18n:pending
-        sampleAria: ", {sample}", // i18n:pending
-        howRead: "How values are read", // i18n:pending
-        appExport: "{app} export", // i18n:pending
-        tileMeals: { one: "meal to import", other: "meals to import" }, // i18n:pending
-        tileKcal: "kcal total", // i18n:pending
-        tileSkipped: { one: "row skipped", other: "rows skipped" }, // i18n:pending
-        tileBatches: { one: "batch", other: "batches" }, // i18n:pending
-        rowsHeading: "Rows", // i18n:pending
-        scrollLeft: "Scroll table left", // i18n:pending
-        scrollRight: "Scroll table right", // i18n:pending
-        previewRegionAria: "Preview of the rows to import", // i18n:pending
-        expandAllDays: "Expand all days", // i18n:pending
-        collapseAllDays: "Collapse all days", // i18n:pending
-        dayRows: { one: "{n} row", other: "{n} rows" }, // i18n:pending
+            one: "{total} alandan {n} tanesi eşlendi",
+            other: "{total} alandan {n} tanesi eşlendi",
+        },
+        tableFieldHead: "Alan",
+        tableColumnHead: "Dosyandaki kolon",
+        tableRow1Head: "1. satırdaki değer",
+        badgeNew: "yeni",
+        colNumber: "Kol. {n}",
+        colNumberAuto: "Kol. {n} · otomatik",
+        colNumberManual: "Kol. {n} · senin seçimin",
+        row1Empty: "1. satır boş",
+        alsoUsed: "ayrıca {field}",
+        sameColumn: "{fields} ile aynı kolon",
+        columnForAria: "{field} için kolon",
+        mapRowAria: "{field}{required}: {column}{sample}",
+        requiredAria: ", zorunlu",
+        columnAria: "kolon {n}, {name}",
+        notInFileAria: "bu dosyada yok",
+        sampleAria: ", {sample}",
+        howRead: "Değerler nasıl okunur",
+        appExport: "{app} dışa aktarımı",
+        tileMeals: {
+            one: "içe aktarılacak yemek",
+            other: "içe aktarılacak yemek",
+        },
+        tileKcal: "toplam kcal",
+        tileSkipped: { one: "satır atlandı", other: "satır atlandı" },
+        tileBatches: { one: "grup", other: "grup" },
+        rowsHeading: "Satırlar",
+        scrollLeft: "Tabloyu sola kaydır",
+        scrollRight: "Tabloyu sağa kaydır",
+        previewRegionAria: "İçe aktarılacak satırların önizlemesi",
+        expandAllDays: "Tüm günleri aç",
+        collapseAllDays: "Tüm günleri kapat",
+        dayRows: { one: "{n} satır", other: "{n} satır" },
         dayRowsKcal: {
-            one: "{n} row · {kcal} kcal",
-            other: "{n} rows · {kcal} kcal",
-        }, // i18n:pending
-        noTimeShort: "no time", // i18n:pending
-        lineN: "Line {n}", // i18n:pending
-        rowCardAria: "Line {line}, {when}, {meal}, {food}, {kcal}", // i18n:pending
-        noMealAria: "no meal", // i18n:pending
-        noKcalAria: "no calories", // i18n:pending
-        noRowsToImport: "No rows to import with the current mapping.", // i18n:pending
+            one: "{n} satır · {kcal} kcal",
+            other: "{n} satır · {kcal} kcal",
+        },
+        noTimeShort: "saat yok",
+        lineN: "Satır {n}",
+        rowCardAria: "Satır {line}, {when}, {meal}, {food}, {kcal}",
+        noMealAria: "öğün yok",
+        noKcalAria: "kalori yok",
+        noRowsToImport: "Mevcut eşlemeyle içe aktarılacak satır yok.",
         importOff:
-            "Import is off: this host does not let this view write to your log. Ask Claude to import the file instead.", // i18n:pending
-        backBusy: "Back is unavailable while batches are being sent.", // i18n:pending
-        progressAria: "Import progress, batches", // i18n:pending
-        failedRowsAria: "Rows that failed", // i18n:pending
-        toldOnly: "The assistant was told only: {summary}", // i18n:pending
-        liveStep: "Step {i} of 4, {name}.", // i18n:pending
-        liveMapped: "{field}: {column}", // i18n:pending
+            "İçe aktarma kapalı: bu uygulama bu görünümün kaydına yazmasına izin vermiyor. Bunun yerine dosyayı Claude ile içe aktar.",
+        backBusy: "Gruplar gönderilirken geri dönülemez.",
+        progressAria: "İçe aktarma ilerlemesi, gruplar",
+        failedRowsAria: "Başarısız satırlar",
+        toldOnly: "Asistana yalnızca şu söylendi: {summary}",
+        liveStep: "Adım {i}/4, {name}.",
+        liveMapped: "{field}: {column}",
         liveImporting: {
-            one: "Importing. {n} batch.",
-            other: "Importing. {n} batches.",
-        }, // i18n:pending
+            one: "İçe aktarılıyor. {n} grup.",
+            other: "İçe aktarılıyor. {n} grup.",
+        },
         liveDone: {
-            one: "Import complete. {n} meal imported.",
-            other: "Import complete. {n} meals imported.",
-        }, // i18n:pending
-        liveNoWrite: "Preflight check failed. Nothing was written.", // i18n:pending
-        liveFileError: "Could not use that file.", // i18n:pending
+            one: "İçe aktarma tamamlandı. {n} yemek aktarıldı.",
+            other: "İçe aktarma tamamlandı. {n} yemek aktarıldı.",
+        },
+        liveNoWrite: "Ön kontrol başarısız oldu. Hiçbir şey kaydedilmedi.",
+        liveFileError: "Bu dosya kullanılamadı.",
     },
 };

@@ -413,80 +413,108 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         noDataRows: "У файлі немає рядків із даними.",
         emailNotice:
             "Щось не так? Напиши на {email} і додай рядки нижче — цього вистачить, щоб знайти причину.",
-        eyebrow: "Import meals", // i18n:pending
-        eyebrowWithFile: "Import meals · {file}", // i18n:pending
-        stepsLabel: "Import steps", // i18n:pending
-        stepAriaDone: "Step {i} of 4: {name}, completed", // i18n:pending
-        stepAriaCurrent: "Step {i} of 4: {name}, current", // i18n:pending
-        stepAriaUpcoming: "Step {i} of 4: {name}", // i18n:pending
-        browseFiles: "Browse files", // i18n:pending
-        dropAccept: ".csv or tab-separated text", // i18n:pending
-        dropAria: "Choose a CSV file, or drag it here", // i18n:pending
+        eyebrow: "Імпорт страв",
+        eyebrowWithFile: "Імпорт страв · {file}",
+        stepsLabel: "Кроки імпорту",
+        stepAriaDone: "Крок {i} з 4: {name}, виконано",
+        stepAriaCurrent: "Крок {i} з 4: {name}, поточний",
+        stepAriaUpcoming: "Крок {i} з 4: {name}",
+        browseFiles: "Вибрати файл",
+        dropAccept: ".csv або текст, розділений табуляцією",
+        dropAria: "Обери CSV-файл або перетягни його сюди",
         privacyNote:
-            "The file is read here, in this panel. Its rows never pass through the chat — the assistant only gets a one-line summary when the import finishes.", // i18n:pending
+            "Файл читається тут, у цій панелі. Його рядки ніколи не потрапляють у чат — асистент отримує лише підсумок в один рядок, коли імпорт завершиться.",
         binaryFile:
-            "Could not read that file: this looks like a binary file (an Excel workbook?), not CSV text. Export it as CSV and try again.", // i18n:pending
-        columnsHeading: "Columns", // i18n:pending
+            "Не вдалося прочитати файл: схоже, це двійковий файл (книга Excel?), а не текст CSV. Експортуй його як CSV і спробуй ще раз.",
+        columnsHeading: "Колонки",
         fieldsMatched: {
-            one: "{n} of {total} field matched",
-            other: "{n} of {total} fields matched",
-        }, // i18n:pending
-        tableFieldHead: "Field", // i18n:pending
-        tableColumnHead: "Column in your file", // i18n:pending
-        tableRow1Head: "Row 1 value", // i18n:pending
-        badgeNew: "new", // i18n:pending
-        colNumber: "Col {n}", // i18n:pending
-        colNumberAuto: "Col {n} · auto", // i18n:pending
-        colNumberManual: "Col {n} · set by you", // i18n:pending
-        row1Empty: "row 1 empty", // i18n:pending
-        alsoUsed: "also {field}", // i18n:pending
-        sameColumn: "Same column as {fields}", // i18n:pending
-        columnForAria: "Column for {field}", // i18n:pending
-        mapRowAria: "{field}{required}: {column}{sample}", // i18n:pending
-        requiredAria: ", required", // i18n:pending
-        columnAria: "column {n}, {name}", // i18n:pending
-        notInFileAria: "not in this file", // i18n:pending
-        sampleAria: ", {sample}", // i18n:pending
-        howRead: "How values are read", // i18n:pending
-        appExport: "{app} export", // i18n:pending
-        tileMeals: { one: "meal to import", other: "meals to import" }, // i18n:pending
-        tileKcal: "kcal total", // i18n:pending
-        tileSkipped: { one: "row skipped", other: "rows skipped" }, // i18n:pending
-        tileBatches: { one: "batch", other: "batches" }, // i18n:pending
-        rowsHeading: "Rows", // i18n:pending
-        scrollLeft: "Scroll table left", // i18n:pending
-        scrollRight: "Scroll table right", // i18n:pending
-        previewRegionAria: "Preview of the rows to import", // i18n:pending
-        expandAllDays: "Expand all days", // i18n:pending
-        collapseAllDays: "Collapse all days", // i18n:pending
-        dayRows: { one: "{n} row", other: "{n} rows" }, // i18n:pending
+            one: "Зіставлено {n} з {total} поля",
+            few: "Зіставлено {n} з {total} полів",
+            many: "Зіставлено {n} з {total} полів",
+            other: "Зіставлено {n} з {total} полів",
+        },
+        tableFieldHead: "Поле",
+        tableColumnHead: "Колонка у твоєму файлі",
+        tableRow1Head: "Значення в рядку 1",
+        badgeNew: "нове",
+        colNumber: "Кол. {n}",
+        colNumberAuto: "Кол. {n} · автоматично",
+        colNumberManual: "Кол. {n} · обрано тобою",
+        row1Empty: "рядок 1 порожній",
+        alsoUsed: "також {field}",
+        sameColumn: "Та сама колонка, що й {fields}",
+        columnForAria: "Колонка для поля {field}",
+        mapRowAria: "{field}{required}: {column}{sample}",
+        requiredAria: ", обов’язкове",
+        columnAria: "колонка {n}, {name}",
+        notInFileAria: "немає в цьому файлі",
+        sampleAria: ", {sample}",
+        howRead: "Як читаються значення",
+        appExport: "Експорт з {app}",
+        tileMeals: {
+            one: "страва для імпорту",
+            few: "страви для імпорту",
+            many: "страв для імпорту",
+            other: "страв для імпорту",
+        },
+        tileKcal: "ккал загалом",
+        tileSkipped: {
+            one: "рядок пропущено",
+            few: "рядки пропущено",
+            many: "рядків пропущено",
+            other: "рядків пропущено",
+        },
+        tileBatches: {
+            one: "пакет",
+            few: "пакети",
+            many: "пакетів",
+            other: "пакетів",
+        },
+        rowsHeading: "Рядки",
+        scrollLeft: "Прокрутити таблицю ліворуч",
+        scrollRight: "Прокрутити таблицю праворуч",
+        previewRegionAria: "Попередній перегляд рядків для імпорту",
+        expandAllDays: "Розгорнути всі дні",
+        collapseAllDays: "Згорнути всі дні",
+        dayRows: {
+            one: "{n} рядок",
+            few: "{n} рядки",
+            many: "{n} рядків",
+            other: "{n} рядків",
+        },
         dayRowsKcal: {
-            one: "{n} row · {kcal} kcal",
-            other: "{n} rows · {kcal} kcal",
-        }, // i18n:pending
-        noTimeShort: "no time", // i18n:pending
-        lineN: "Line {n}", // i18n:pending
-        rowCardAria: "Line {line}, {when}, {meal}, {food}, {kcal}", // i18n:pending
-        noMealAria: "no meal", // i18n:pending
-        noKcalAria: "no calories", // i18n:pending
-        noRowsToImport: "No rows to import with the current mapping.", // i18n:pending
+            one: "{n} рядок · {kcal} ккал",
+            few: "{n} рядки · {kcal} ккал",
+            many: "{n} рядків · {kcal} ккал",
+            other: "{n} рядків · {kcal} ккал",
+        },
+        noTimeShort: "без часу",
+        lineN: "Рядок {n}",
+        rowCardAria: "Рядок {line}, {when}, {meal}, {food}, {kcal}",
+        noMealAria: "без прийому їжі",
+        noKcalAria: "без калорій",
+        noRowsToImport: "З поточним зіставленням немає рядків для імпорту.",
         importOff:
-            "Import is off: this host does not let this view write to your log. Ask Claude to import the file instead.", // i18n:pending
-        backBusy: "Back is unavailable while batches are being sent.", // i18n:pending
-        progressAria: "Import progress, batches", // i18n:pending
-        failedRowsAria: "Rows that failed", // i18n:pending
-        toldOnly: "The assistant was told only: {summary}", // i18n:pending
-        liveStep: "Step {i} of 4, {name}.", // i18n:pending
-        liveMapped: "{field}: {column}", // i18n:pending
+            "Імпорт вимкнено: цей застосунок не дає віджету записувати дані у твій щоденник. Попроси Claude імпортувати файл.",
+        backBusy: "Повернутися не можна, поки надсилаються пакети.",
+        progressAria: "Перебіг імпорту, пакети",
+        failedRowsAria: "Рядки з помилками",
+        toldOnly: "Асистент отримав лише це: {summary}",
+        liveStep: "Крок {i} з 4, {name}.",
+        liveMapped: "{field}: {column}",
         liveImporting: {
-            one: "Importing. {n} batch.",
-            other: "Importing. {n} batches.",
-        }, // i18n:pending
+            one: "Імпорт. {n} пакет.",
+            few: "Імпорт. {n} пакети.",
+            many: "Імпорт. {n} пакетів.",
+            other: "Імпорт. {n} пакетів.",
+        },
         liveDone: {
-            one: "Import complete. {n} meal imported.",
-            other: "Import complete. {n} meals imported.",
-        }, // i18n:pending
-        liveNoWrite: "Preflight check failed. Nothing was written.", // i18n:pending
-        liveFileError: "Could not use that file.", // i18n:pending
+            one: "Імпорт завершено. Імпортовано {n} страву.",
+            few: "Імпорт завершено. Імпортовано {n} страви.",
+            many: "Імпорт завершено. Імпортовано {n} страв.",
+            other: "Імпорт завершено. Імпортовано {n} страв.",
+        },
+        liveNoWrite: "Попередня перевірка не вдалася. Нічого не записано.",
+        liveFileError: "Не вдалося використати цей файл.",
     },
 };

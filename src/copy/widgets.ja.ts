@@ -356,80 +356,83 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         noDataRows: "このファイルにはデータ行がありません。",
         emailNotice:
             "うまく動きませんか？　下の内容を添えて{email}までメールでご連絡ください。原因の調査に必要な情報はすべてそろっています。",
-        eyebrow: "Import meals", // i18n:pending
-        eyebrowWithFile: "Import meals · {file}", // i18n:pending
-        stepsLabel: "Import steps", // i18n:pending
-        stepAriaDone: "Step {i} of 4: {name}, completed", // i18n:pending
-        stepAriaCurrent: "Step {i} of 4: {name}, current", // i18n:pending
-        stepAriaUpcoming: "Step {i} of 4: {name}", // i18n:pending
-        browseFiles: "Browse files", // i18n:pending
-        dropAccept: ".csv or tab-separated text", // i18n:pending
-        dropAria: "Choose a CSV file, or drag it here", // i18n:pending
+        eyebrow: "食事のインポート",
+        eyebrowWithFile: "食事のインポート · {file}",
+        stepsLabel: "インポートの手順",
+        stepAriaDone: "手順 {i}/4：{name}（完了）",
+        stepAriaCurrent: "手順 {i}/4：{name}（現在）",
+        stepAriaUpcoming: "手順 {i}/4：{name}",
+        browseFiles: "ファイルを選ぶ",
+        dropAccept: ".csv またはタブ区切りテキスト",
+        dropAria: "CSVファイルを選択するか、ここにドラッグ",
         privacyNote:
-            "The file is read here, in this panel. Its rows never pass through the chat — the assistant only gets a one-line summary when the import finishes.", // i18n:pending
+            "ファイルはこのパネルの中で読み込まれます。行の内容がチャットを通ることはなく、アシスタントにはインポート完了時に1行の要約だけが伝わります。",
         binaryFile:
-            "Could not read that file: this looks like a binary file (an Excel workbook?), not CSV text. Export it as CSV and try again.", // i18n:pending
-        columnsHeading: "Columns", // i18n:pending
+            "ファイルを読み込めませんでした。CSVテキストではなくバイナリファイル（Excelブック？）のようです。CSVとして書き出してから、もう一度お試しください。",
+        columnsHeading: "列",
         fieldsMatched: {
-            one: "{n} of {total} field matched",
-            other: "{n} of {total} fields matched",
-        }, // i18n:pending
-        tableFieldHead: "Field", // i18n:pending
-        tableColumnHead: "Column in your file", // i18n:pending
-        tableRow1Head: "Row 1 value", // i18n:pending
-        badgeNew: "new", // i18n:pending
-        colNumber: "Col {n}", // i18n:pending
-        colNumberAuto: "Col {n} · auto", // i18n:pending
-        colNumberManual: "Col {n} · set by you", // i18n:pending
-        row1Empty: "row 1 empty", // i18n:pending
-        alsoUsed: "also {field}", // i18n:pending
-        sameColumn: "Same column as {fields}", // i18n:pending
-        columnForAria: "Column for {field}", // i18n:pending
-        mapRowAria: "{field}{required}: {column}{sample}", // i18n:pending
-        requiredAria: ", required", // i18n:pending
-        columnAria: "column {n}, {name}", // i18n:pending
-        notInFileAria: "not in this file", // i18n:pending
-        sampleAria: ", {sample}", // i18n:pending
-        howRead: "How values are read", // i18n:pending
-        appExport: "{app} export", // i18n:pending
-        tileMeals: { one: "meal to import", other: "meals to import" }, // i18n:pending
-        tileKcal: "kcal total", // i18n:pending
-        tileSkipped: { one: "row skipped", other: "rows skipped" }, // i18n:pending
-        tileBatches: { one: "batch", other: "batches" }, // i18n:pending
-        rowsHeading: "Rows", // i18n:pending
-        scrollLeft: "Scroll table left", // i18n:pending
-        scrollRight: "Scroll table right", // i18n:pending
-        previewRegionAria: "Preview of the rows to import", // i18n:pending
-        expandAllDays: "Expand all days", // i18n:pending
-        collapseAllDays: "Collapse all days", // i18n:pending
-        dayRows: { one: "{n} row", other: "{n} rows" }, // i18n:pending
+            one: "{total}項目中{n}項目を対応付け",
+            other: "{total}項目中{n}項目を対応付け",
+        },
+        tableFieldHead: "項目",
+        tableColumnHead: "ファイルの列",
+        tableRow1Head: "1行目の値",
+        badgeNew: "新規",
+        colNumber: "{n}列目",
+        colNumberAuto: "{n}列目 · 自動",
+        colNumberManual: "{n}列目 · 手動で選択",
+        row1Empty: "1行目は空",
+        alsoUsed: "{field}にも使用",
+        sameColumn: "{fields}と同じ列",
+        columnForAria: "{field}の列",
+        mapRowAria: "{field}{required}：{column}{sample}",
+        requiredAria: "、必須",
+        columnAria: "{n}列目、{name}",
+        notInFileAria: "このファイルにはありません",
+        sampleAria: "、{sample}",
+        howRead: "値の読み取り方",
+        appExport: "{app}のエクスポート",
+        tileMeals: {
+            one: "件の食事をインポート",
+            other: "件の食事をインポート",
+        },
+        tileKcal: "kcal（合計）",
+        tileSkipped: { one: "行をスキップ", other: "行をスキップ" },
+        tileBatches: { one: "バッチ", other: "バッチ" },
+        rowsHeading: "行",
+        scrollLeft: "表を左にスクロール",
+        scrollRight: "表を右にスクロール",
+        previewRegionAria: "インポートする行のプレビュー",
+        expandAllDays: "すべての日を開く",
+        collapseAllDays: "すべての日を閉じる",
+        dayRows: { one: "{n}行", other: "{n}行" },
         dayRowsKcal: {
-            one: "{n} row · {kcal} kcal",
-            other: "{n} rows · {kcal} kcal",
-        }, // i18n:pending
-        noTimeShort: "no time", // i18n:pending
-        lineN: "Line {n}", // i18n:pending
-        rowCardAria: "Line {line}, {when}, {meal}, {food}, {kcal}", // i18n:pending
-        noMealAria: "no meal", // i18n:pending
-        noKcalAria: "no calories", // i18n:pending
-        noRowsToImport: "No rows to import with the current mapping.", // i18n:pending
+            one: "{n}行 · {kcal} kcal",
+            other: "{n}行 · {kcal} kcal",
+        },
+        noTimeShort: "時刻なし",
+        lineN: "{n}行目",
+        rowCardAria: "{line}行目、{when}、{meal}、{food}、{kcal}",
+        noMealAria: "食事区分なし",
+        noKcalAria: "カロリーなし",
+        noRowsToImport: "現在の対応付けではインポートする行がありません。",
         importOff:
-            "Import is off: this host does not let this view write to your log. Ask Claude to import the file instead.", // i18n:pending
-        backBusy: "Back is unavailable while batches are being sent.", // i18n:pending
-        progressAria: "Import progress, batches", // i18n:pending
-        failedRowsAria: "Rows that failed", // i18n:pending
-        toldOnly: "The assistant was told only: {summary}", // i18n:pending
-        liveStep: "Step {i} of 4, {name}.", // i18n:pending
-        liveMapped: "{field}: {column}", // i18n:pending
+            "インポートはオフです。このホストでは、この画面から記録に書き込めません。代わりにClaudeにファイルのインポートを頼んでください。",
+        backBusy: "バッチの送信中は戻れません。",
+        progressAria: "インポートの進捗（バッチ）",
+        failedRowsAria: "失敗した行",
+        toldOnly: "アシスタントに伝えたのはこれだけです：{summary}",
+        liveStep: "手順 {i}/4、{name}。",
+        liveMapped: "{field}：{column}",
         liveImporting: {
-            one: "Importing. {n} batch.",
-            other: "Importing. {n} batches.",
-        }, // i18n:pending
+            one: "インポート中。{n}バッチ。",
+            other: "インポート中。{n}バッチ。",
+        },
         liveDone: {
-            one: "Import complete. {n} meal imported.",
-            other: "Import complete. {n} meals imported.",
-        }, // i18n:pending
-        liveNoWrite: "Preflight check failed. Nothing was written.", // i18n:pending
-        liveFileError: "Could not use that file.", // i18n:pending
+            one: "インポート完了。{n}件の食事をインポートしました。",
+            other: "インポート完了。{n}件の食事をインポートしました。",
+        },
+        liveNoWrite: "事前チェックに失敗しました。何も保存されていません。",
+        liveFileError: "このファイルは使用できません。",
     },
 };
