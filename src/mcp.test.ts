@@ -92,7 +92,7 @@ import type { MealNutrientKey as UsdaMealNutrientKey } from "./meal-items.js";
 import searchBananaFx from "./__fixtures__/usda/search-banana.json";
 import usdaSrBananaFx from "./__fixtures__/usda/detail-SR_Legacy-173944-full.json";
 import usdaFoundationBananaFx from "./__fixtures__/usda/detail-Foundation-1105073-filtered.json";
-import { NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
+import { DIGEST_META_KEY, NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
 
 // Snapshot BEFORE mock.module runs: Bun patches a mocked module's namespace
 // in place, so restoring from the live `actualSupabase` afterwards would hand
@@ -6730,7 +6730,7 @@ describe("every tool carries directory-ready annotations", () => {
             "search_foods",
             "get_food_macros",
         ]);
-        expect(tools.length).toBe(48);
+        expect(tools.length).toBe(49);
         for (const t of tools) {
             const a = t.annotations;
             expect(a?.title, t.name).toBeTruthy();
@@ -8028,6 +8028,147 @@ describe("output schemas are frozen once deployed", () => {
         const html = await getWidgetHtml("nutrition-summary");
         expect(html).toContain(JSON.stringify(MEAL_CONTRIBUTORS_META_KEY));
     });
+});
+
+// ---------- get_digest ----------
+//
+// A new tool: its structuredContent is frozen from the first deploy (pinned in
+// output-schemas.frozen.json like every other), and everything the widget
+// draws rides in _meta under DIGEST_META_KEY.
+describe("get_digest", () => {
+    test("pins its full annotation object (read-only, closed world)", async () => {
+        const server = new McpServer(
+            { name: "t", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", true, null);
+        const [ct, st] = InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "c", version: "0.0.0" });
+        await Promise.all([server.connect(st), client.connect(ct)]);
+        const { tools } = await client.listTools();
+        await client.close();
+        await server.close();
+        const t = tools.find((x) => x.name === "get_digest")!;
+        expect(t.title).toBe("Get Nutrition Digest");
+        expect(t.annotations).toEqual({
+            title: "Get Nutrition Digest",
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: false,
+        });
+        expect(t._meta?.ui).toEqual({ resourceUri: "ui://widget/digest.html" });
+    });
+
+    test.each(ERAS)(
+        "validates against the frozen schema and carries the digest in _meta (%p)",
+        async (mode) => {
+            const today = new Date().toISOString().slice(0, 10);
+            db.goals = goals();
+            db.meals = [meal({ logged_at: `${today}T00:00:01.000Z` })];
+            const frozen = (await Bun.file(
+                new URL("./output-schemas.frozen.json", import.meta.url),
+            ).json()) as Record<string, JsonSchemaType>;
+            const validate = new AjvJsonSchemaValidator().getValidator(
+                frozen.get_digest!,
+            );
+            await withHttpClient("u1", mode, async (client) => {
+                await client.listTools();
+                for (const period of [
+                    "yesterday",
+                    "today",
+                    "last_7_days",
+                    "last_30_days",
+                ]) {
+                    const r = await client.callTool({
+                        name: "get_digest",
+                        arguments: { period },
+                    });
+                    expect(r.isError, period).toBeFalsy();
+                    const v = validate(r.structuredContent);
+                    expect(v.errorMessage).toBeUndefined();
+                    expect(
+                        Object.keys(r.structuredContent ?? {}).sort(),
+                    ).toEqual([
+                        "averages",
+                        "days_in_range",
+                        "end_date",
+                        "goals",
+                        "locale",
+                        "logged_days",
+                        "period",
+                        "start_date",
+                    ]);
+                    const meta = (r._meta ?? {})[DIGEST_META_KEY] as {
+                        v: number;
+                        period: string;
+                    };
+                    expect(meta.v).toBe(1);
+                    expect(meta.period).toBe(period);
+                }
+            });
+        },
+    );
+
+    test("defaults to yesterday, and the text is a factual summary", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_digest", {});
+            expect(r.isError).toBeFalsy();
+            expect(r.structuredContent?.period).toBe("yesterday");
+            expect(r.content[0]!.text).toContain("Nutrition digest for");
+        });
+    });
+
+    test("alcohol stays out of the payload with tracking off", async () => {
+        db.goals = goals();
+        db.meals = [meal()];
+        await withTools(null, async (call) => {
+            const r = await call("get_digest", { period: "last_30_days" });
+            const sc = r.structuredContent as {
+                averages: Record<string, unknown>;
+                goals: Record<string, unknown>;
+            };
+            expect(sc.averages.alcohol_g).toBeNull();
+            expect(sc.goals.alcohol_g).toBeNull();
+            const meta = r._meta![DIGEST_META_KEY] as {
+                metrics: { key: string }[];
+                drink_unit: unknown;
+            };
+            expect(meta.drink_unit).toBeNull();
+            expect(meta.metrics.map((m) => m.key)).not.toContain("alcohol_g");
+        });
+    });
+
+    test("an unknown period is refused by the schema", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_digest", { period: "last_year" });
+            expect(r.isError).toBe(true);
+        });
+    });
+
+    // The widget cannot import the key, so it carries the literal.
+    test("the digest widget reads _meta under DIGEST_META_KEY", async () => {
+        const html = await getWidgetHtml("digest");
+        expect(html).toContain(JSON.stringify(DIGEST_META_KEY));
+    });
+
+    test.each(ERAS)(
+        "ui://widget/digest.html reads as the assembled mcp-app document (%p)",
+        async (mode) => {
+            const assembled = await getWidgetHtml("digest");
+            await withHttpClient("u1", mode, async (client) => {
+                const res = await client.readResource({
+                    uri: "ui://widget/digest.html",
+                });
+                const c = res.contents[0] as {
+                    mimeType?: string;
+                    text?: string;
+                };
+                expect(c.mimeType).toBe("text/html;profile=mcp-app");
+                expect(c.text).toBe(assembled);
+            });
+        },
+    );
 });
 
 // ---------- get_weight_trends: trend weight and long-range series ----------

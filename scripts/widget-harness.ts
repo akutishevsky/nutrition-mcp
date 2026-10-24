@@ -31,6 +31,10 @@
 //                       structuredContent.default_range (7/14/30/90/365, else 30)
 //   ?unit=lb            weight-trends: display unit (default kg)
 //   ?target=0           weight-trends: no target weight set
+//   ?period=today       digest: yesterday (default), today, last_7_days,
+//                       last_30_days
+//   ?scenario=rough     digest: typical (default), great, rough, sparse,
+//                       empty, long, nogoals, nosodium
 //   ?groupBy=week       trends: the `group_by` the period view opens on
 //                       (week/month/quarter/year, default month); ?noMeta=1
 //                       shows the plain 7/14/30 day view, as without group_by
@@ -85,6 +89,7 @@ import {
     type SourceDetail,
 } from "../src/provenance.js";
 import { runImport } from "../src/import.js";
+import { digestFixture } from "./digest-fixture.js";
 import { buildDailyBuckets } from "../src/insights.js";
 import {
     buildPeriodAveragesMeta,
@@ -446,7 +451,10 @@ function indexPage(): string {
      goal-progress takes <code>?meals=0</code> (the static strip);
      weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
      <code>?unit=lb</code>, <code>?target=0</code>; trends takes
-     <code>?groupBy=week</code> and <code>?goals=0</code>.</p>
+     <code>?groupBy=week</code> and <code>?goals=0</code>; digest takes
+     <code>?period=today|yesterday|last_7_days|last_30_days</code>,
+     <code>?scenario=typical|great|rough|sparse|empty|long|nogoals|nosodium</code>
+     and <code>?unit=lb</code>.</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -1367,6 +1375,15 @@ function hostPage(widget: string, params: URLSearchParams): string {
             withSources("goal-progress", sourcesOf(dayMeals, true));
         }
         withSources("meal-logged", sourcesOf(dayMeals, false));
+    }
+
+    // The digest's own fixture: a 61-day log run through computeDigest
+    // (scripts/digest-fixture.ts; ?period=, ?scenario=, ?unit=lb,
+    // ?drinkUnit=us).
+    if (widget === "digest") {
+        const fx = digestFixture(params);
+        RESULTS.digest = fx.result;
+        METAS.digest = fx.meta;
     }
 
     // Probe and gallery paint their own UI; anything non-null will do.
