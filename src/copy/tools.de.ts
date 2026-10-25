@@ -82,6 +82,7 @@ export const TOOLS_DE: ToolsDoc = {
         optionalLabel: "optional",
         trySayingLabel: "Sag zum Beispiel",
         categoriesLabel: "Werkzeugkategorien",
+        copyLinkLabel: "Link zu {tool} kopieren",
     },
     tools: {
         log_meal: {

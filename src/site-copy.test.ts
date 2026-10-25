@@ -1965,3 +1965,28 @@ test("no landing copy in any locale says there is no database search", async () 
     }
     expect(problems).toEqual([]);
 });
+
+// Each /tools card has a button that copies a link to it (site.js builds the
+// URL from the page's own address plus data-copy-anchor), so its anchor must
+// be the card's id and its label the locale's copyLinkLabel for that tool.
+test("every /tools card has a copy-link button for its own anchor, in every locale", async () => {
+    for (const locale of SITE_LOCALES) {
+        const doc = TOOLS_COPY[locale]!;
+        const html = await Bun.file(
+            `./public${pathFor(locale, "/tools")}.html`,
+        ).text();
+        for (const tool of TOOLS) {
+            const label = doc.ui.copyLinkLabel.replace("{tool}", tool.name);
+            expect(doc.ui.copyLinkLabel, locale).toContain("{tool}");
+            expect(
+                html,
+                `${locale}: ${tool.name} has no copy-link button`,
+            ).toContain(
+                `data-copy-anchor="${tool.name}" aria-label="${label}" title="${label}"`,
+            );
+            expect(html).toContain(
+                `<article class="tool-card" id="${tool.name}"`,
+            );
+        }
+    }
+});
