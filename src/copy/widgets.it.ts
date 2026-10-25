@@ -83,95 +83,97 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             other: "{n} giorni registrati",
         },
         daysOfLogged: "{logged} giorni registrati su {span}",
-        periodToday: "Today", // i18n:pending
-        periodPastDay: "Past day", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        ofGoal: "of {goal} kcal", // i18n:pending
-        avgOfGoal: "avg/day of {goal} kcal", // i18n:pending
-        left: "{amount} left", // i18n:pending
-        over: "{amount} over", // i18n:pending
-        toGo: "{amount} to go", // i18n:pending
-        above: "{amount} above", // i18n:pending
-        onTarget: "on target", // i18n:pending
-        goalMet: "goal met", // i18n:pending
-        noLimit: "no limit", // i18n:pending
-        none: "none", // i18n:pending
-        notRecorded: "Not recorded", // i18n:pending
-        leftToday: "{amount} left today", // i18n:pending
-        overToday: "{amount} over today", // i18n:pending
-        leftThatDay: "{amount} left that day", // i18n:pending
-        overThatDay: "{amount} over that day", // i18n:pending
-        underGoal: "{amount} under goal", // i18n:pending
-        overGoal: "{amount} over goal", // i18n:pending
-        peak: "peak {amount}", // i18n:pending
+        periodToday: "Oggi",
+        periodPastDay: "Giorno passato",
+        showMore: "Mostra di più",
+        showLess: "Mostra meno",
+        collapseAll: "Comprimi tutto",
+        ofGoal: "su {goal} kcal",
+        avgOfGoal: "media/giorno su {goal} kcal",
+        left: "{amount} rimanenti",
+        over: "{amount} in eccesso",
+        toGo: "{amount} mancanti",
+        above: "{amount} sopra",
+        onTarget: "nell'obiettivo",
+        goalMet: "obiettivo raggiunto",
+        noLimit: "nessun limite",
+        none: "niente",
+        notRecorded: "Non registrato",
+        leftToday: "{amount} rimanenti oggi",
+        overToday: "{amount} in eccesso oggi",
+        leftThatDay: "{amount} rimanenti quel giorno",
+        overThatDay: "{amount} in eccesso quel giorno",
+        underGoal: "{amount} sotto l'obiettivo",
+        overGoal: "{amount} sopra l'obiettivo",
+        peak: "picco {amount}",
         mealsCount: {
-            one: "{n} meal", // i18n:pending
-            other: "{n} meals", // i18n:pending
+            one: "{n} pasto",
+            other: "{n} pasti",
         },
-        emptyToday: "No meals logged today yet", // i18n:pending
-        emptyThatDay: "No meals logged that day", // i18n:pending
-        emptyRange: "No meals logged in this range", // i18n:pending
-        statEatenSoFar: "Eaten so far", // i18n:pending
-        statEaten: "Eaten", // i18n:pending
-        statRemaining: "Remaining", // i18n:pending
-        statOverGoal: "Over goal", // i18n:pending
-        statMeals: "Meals", // i18n:pending
-        statLogged: "logged", // i18n:pending
-        statAvgDay: "Avg / day", // i18n:pending
-        statPeakDay: "Peak day", // i18n:pending
-        statLoggedDays: "Logged", // i18n:pending
-        statOfDays: "of {n} days", // i18n:pending
+        emptyToday: "Ancora nessun pasto registrato oggi",
+        emptyThatDay: "Nessun pasto registrato quel giorno",
+        emptyRange: "Nessun pasto registrato in questo periodo",
+        statEatenSoFar: "Mangiato finora",
+        statEaten: "Mangiato",
+        statRemaining: "Rimanenti",
+        statOverGoal: "Oltre l'obiettivo",
+        statMeals: "Pasti",
+        statLogged: "registrati",
+        statAvgDay: "Media / giorno",
+        statPeakDay: "Giorno di picco",
+        statLoggedDays: "Registrati",
+        statOfDays: "su {n} giorni",
         gaugeAriaToday:
-            "{eaten} of {goal} kcal today, {pct}% of goal, {status}.", // i18n:pending
+            "{eaten} su {goal} kcal oggi, {pct}% dell'obiettivo, {status}.",
         gaugeAriaThatDay:
-            "{eaten} of {goal} kcal that day, {pct}% of goal, {status}.", // i18n:pending
+            "{eaten} su {goal} kcal quel giorno, {pct}% dell'obiettivo, {status}.",
         gaugeAriaRange:
-            "Average {eaten} of {goal} kcal a day, {pct}% of goal, {status}.", // i18n:pending
-        gaugeAriaNoGoal: "{eaten} kcal.", // i18n:pending
-        gaugeAriaMeals: "Meals: {list}.", // i18n:pending
-        caloriesByDay: "Calories by day", // i18n:pending
+            "In media {eaten} su {goal} kcal al giorno, {pct}% dell'obiettivo, {status}.",
+        gaugeAriaNoGoal: "{eaten} kcal.",
+        gaugeAriaMeals: "Pasti: {list}.",
+        caloriesByDay: "Calorie per giorno",
         mealTypes: {
-            breakfast: "Breakfast", // i18n:pending
-            lunch: "Lunch", // i18n:pending
-            dinner: "Dinner", // i18n:pending
-            snack: "Snack", // i18n:pending
+            breakfast: "Colazione",
+            lunch: "Pranzo",
+            dinner: "Cena",
+            snack: "Spuntino",
         },
         items: {
-            one: "{n} item", // i18n:pending
-            other: "{n} items", // i18n:pending
+            one: "{n} ingrediente",
+            other: "{n} ingredienti",
         },
-        totalOnlyShort: "total only", // i18n:pending
-        totalOnly: "Logged as a total, without ingredients.", // i18n:pending
-        goalLine: "goal", // i18n:pending
-        byDay: "By day", // i18n:pending
-        byDayPartial: "By day · recorded on {rec} of {logged} logged days", // i18n:pending
+        totalOnlyShort: "solo totale",
+        totalOnly: "Registrato come totale, senza ingredienti.",
+        goalLine: "obiettivo",
+        byDay: "Per giorno",
+        byDayPartial:
+            "Per giorno · presente in {rec} su {logged} giorni registrati",
         byMealCount: {
-            one: "By meal · {n} meal", // i18n:pending
-            other: "By meal · {n} meals", // i18n:pending
+            one: "Per pasto · {n} pasto",
+            other: "Per pasto · {n} pasti",
         },
         notRecordedCount: {
-            one: "{n} not recorded", // i18n:pending
-            other: "{n} not recorded", // i18n:pending
+            one: "{n} non registrato",
+            other: "{n} non registrati",
         },
-        notRecordedToday: "{label} wasn't recorded for today's meals.", // i18n:pending
-        notRecordedThatDay: "{label} wasn't recorded for that day's meals.", // i18n:pending
-        notRecordedRange: "{label} wasn't recorded on any day in this range.", // i18n:pending
+        notRecordedToday: "{label}: non registrato nei pasti di oggi.",
+        notRecordedThatDay: "{label}: non registrato nei pasti di quel giorno.",
+        notRecordedRange:
+            "{label}: non registrato in nessun giorno di questo periodo.",
         waterToday:
-            "Water is logged on its own, not with meals: {amount} today.", // i18n:pending
+            "L'acqua si registra a parte, non con i pasti: {amount} oggi.",
         waterThatDay:
-            "Water is logged on its own, not with meals: {amount} that day.", // i18n:pending
-        waterRange: "Water is logged on its own, not with meals.", // i18n:pending
-        noneInToday: "{label}: none in today's meals.", // i18n:pending
-        noneInThatDay: "{label}: none in that day's meals.", // i18n:pending
-        noneInRange: "{label}: none in the listed meals.", // i18n:pending
-        topMeals: "Top meals", // i18n:pending
+            "L'acqua si registra a parte, non con i pasti: {amount} quel giorno.",
+        waterRange: "L'acqua si registra a parte, non con i pasti.",
+        noneInToday: "{label}: assente nei pasti di oggi.",
+        noneInThatDay: "{label}: assente nei pasti di quel giorno.",
+        noneInRange: "{label}: assente nei pasti elencati.",
+        topMeals: "Pasti principali",
         dailyAverages: {
-            one: "Daily averages · {n} logged day", // i18n:pending
-            other: "Daily averages · {n} logged days", // i18n:pending
+            one: "Medie giornaliere · {n} giorno registrato",
+            other: "Medie giornaliere · {n} giorni registrati",
         },
-        selected: "Selected {tip}", // i18n:pending
+        selected: "Selezionato: {tip}",
         months: [
             "gen",
             "feb",
@@ -189,232 +191,247 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
     },
     goalProgress: {
         loading: "Caricamento dei progressi…",
-        eyebrow: "Goal progress · {when}", // i18n:pending
-        today: "Today", // i18n:pending
-        todayAt: "Today, {time}", // i18n:pending
+        eyebrow: "Progressi degli obiettivi · {when}",
+        today: "Oggi",
+        todayAt: "Oggi, {time}",
         labels: {
-            calories: "Calories", // i18n:pending
-            protein: "Protein", // i18n:pending
-            carbs: "Carbs", // i18n:pending
-            fat: "Fat", // i18n:pending
-            fiber: "Fiber", // i18n:pending
-            sugar: "Sugar", // i18n:pending
-            added_sugar: "Added sugar", // i18n:pending
-            saturated: "Saturated fat", // i18n:pending
-            trans: "Trans fat", // i18n:pending
-            sodium: "Sodium", // i18n:pending
-            caffeine: "Caffeine", // i18n:pending
-            alcohol: "Alcohol", // i18n:pending
-            water: "Water", // i18n:pending
+            calories: "Calorie",
+            protein: "Proteine",
+            carbs: "Carboidrati",
+            fat: "Grassi",
+            fiber: "Fibre",
+            sugar: "Zuccheri",
+            added_sugar: "Zuccheri aggiunti",
+            saturated: "Grassi saturi",
+            trans: "Grassi trans",
+            sodium: "Sodio",
+            caffeine: "Caffeina",
+            alcohol: "Alcol",
+            water: "Acqua",
         },
         names: {
-            calories: "calories", // i18n:pending
-            protein: "protein", // i18n:pending
-            carbs: "carbs", // i18n:pending
-            fat: "fat", // i18n:pending
-            fiber: "fiber", // i18n:pending
-            sugar: "sugar", // i18n:pending
-            added_sugar: "added sugar", // i18n:pending
-            saturated: "saturated fat", // i18n:pending
-            trans: "trans fat", // i18n:pending
-            sodium: "sodium", // i18n:pending
-            caffeine: "caffeine", // i18n:pending
-            alcohol: "alcohol", // i18n:pending
-            water: "water", // i18n:pending
+            calories: "calorie",
+            protein: "proteine",
+            carbs: "carboidrati",
+            fat: "grassi",
+            fiber: "fibre",
+            sugar: "zuccheri",
+            added_sugar: "zuccheri aggiunti",
+            saturated: "grassi saturi",
+            trans: "grassi trans",
+            sodium: "sodio",
+            caffeine: "caffeina",
+            alcohol: "alcol",
+            water: "acqua",
         },
-        satFatShort: "Sat. fat", // i18n:pending
-        kinds: { budget: "budget", target: "target", limit: "limit" }, // i18n:pending
+        satFatShort: "Gr. saturi",
+        kinds: { budget: "budget", target: "obiettivo", limit: "limite" },
         units: {
-            kcal: "kcal", // i18n:pending
-            g: "g", // i18n:pending
-            mg: "mg", // i18n:pending
-            L: "L", // i18n:pending
-            ml: "ml", // i18n:pending
-            kg: "kg", // i18n:pending
-            lb: "lb", // i18n:pending
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            L: "L",
+            ml: "ml",
+            kg: "kg",
+            lb: "lb",
         },
-        listPair: "{a} and {b}", // i18n:pending
-        listMore: "{rest} and {last}", // i18n:pending
-        listSep: ", ", // i18n:pending
-        titleSep: " · ", // i18n:pending
-        titleSepPast: ", ", // i18n:pending
-        nothingToday: "Nothing logged today yet", // i18n:pending
-        nothingPast: "Nothing was logged that day", // i18n:pending
+        listPair: "{a} e {b}",
+        listMore: "{rest} e {last}",
+        listSep: ", ",
+        titleSep: " · ",
+        titleSepPast: ", ",
+        nothingToday: "Ancora niente registrato oggi",
+        nothingPast: "Niente registrato quel giorno",
         allOnTrack: {
-            one: "Your {n} goal is on track", // i18n:pending
-            other: "All {n} goals on track", // i18n:pending
+            one: "{n} obiettivo in linea",
+            other: "Tutti i {n} obiettivi in linea",
         },
-        allMet: { one: "Your {n} goal was met", other: "All {n} goals met" }, // i18n:pending
-        overOne: "{a} is over", // i18n:pending
-        overNamed: "{list} are over", // i18n:pending
-        overMany: { one: "{n} limit is over", other: "{n} limits are over" }, // i18n:pending
-        nearNamed: "{list} near the limit", // i18n:pending
+        allMet: {
+            one: "{n} obiettivo raggiunto",
+            other: "Tutti i {n} obiettivi raggiunti",
+        },
+        overOne: "{a} oltre il limite",
+        overNamed: "{list} oltre il limite",
+        overMany: { one: "{n} limite superato", other: "{n} limiti superati" },
+        nearNamed: "{list} vicino al limite",
         nearMany: {
-            one: "{n} goal near the limit", // i18n:pending
-            other: "{n} goals near the limit", // i18n:pending
+            one: "{n} obiettivo vicino al limite",
+            other: "{n} obiettivi vicini al limite",
         },
-        toGoNamed: "{list} still to go", // i18n:pending
-        toGoMany: { one: "{n} target to go", other: "{n} targets to go" }, // i18n:pending
-        briefOverOne: "{a} over", // i18n:pending
-        briefOverMany: { one: "{n} over", other: "{n} over" }, // i18n:pending
-        briefNear: { one: "{n} near the limit", other: "{n} near the limit" }, // i18n:pending
-        briefToGoOne: "{a} to go", // i18n:pending
-        briefToGoMany: { one: "{n} target to go", other: "{n} targets to go" }, // i18n:pending
-        pastOverNamed: "{list} went over", // i18n:pending
+        toGoNamed: "{list} ancora da raggiungere",
+        toGoMany: {
+            one: "{n} obiettivo da raggiungere",
+            other: "{n} obiettivi da raggiungere",
+        },
+        briefOverOne: "{a} oltre",
+        briefOverMany: { one: "{n} oltre", other: "{n} oltre" },
+        briefNear: {
+            one: "{n} vicino al limite",
+            other: "{n} vicini al limite",
+        },
+        briefToGoOne: "{a} da raggiungere",
+        briefToGoMany: {
+            one: "{n} da raggiungere",
+            other: "{n} da raggiungere",
+        },
+        pastOverNamed: "{list} oltre il limite",
         pastOverMany: {
-            one: "{n} limit went over", // i18n:pending
-            other: "{n} limits went over", // i18n:pending
+            one: "{n} limite superato",
+            other: "{n} limiti superati",
         },
-        pastShortNamed: "{list} fell short", // i18n:pending
+        pastShortNamed: "{list} sotto l'obiettivo",
         pastShortMany: {
-            one: "{n} target fell short", // i18n:pending
-            other: "{n} targets fell short", // i18n:pending
+            one: "{n} obiettivo mancato",
+            other: "{n} obiettivi mancati",
         },
-        pastCloseNamed: "{list} came close", // i18n:pending
-        pastBriefOver: { one: "{n} over", other: "{n} over" }, // i18n:pending
-        pastBriefShort: { one: "{n} short", other: "{n} short" }, // i18n:pending
-        pastBriefMet: { one: "{n} met", other: "{n} met" }, // i18n:pending
-        noGoalsTitle: "No daily goals set", // i18n:pending
-        countersAria: "Goals by status", // i18n:pending
+        pastCloseNamed: "{list} vicino al limite",
+        pastBriefOver: { one: "{n} oltre", other: "{n} oltre" },
+        pastBriefShort: { one: "{n} sotto", other: "{n} sotto" },
+        pastBriefMet: { one: "{n} raggiunto", other: "{n} raggiunti" },
+        noGoalsTitle: "Nessun obiettivo giornaliero impostato",
+        countersAria: "Obiettivi per stato",
         counters: {
-            over: "Over", // i18n:pending
-            near: "Near limit", // i18n:pending
-            togo: "To go", // i18n:pending
-            ok: "On track", // i18n:pending
+            over: "Oltre",
+            near: "Al limite",
+            togo: "Mancanti",
+            ok: "In linea",
         },
         countersPast: {
-            over: "Over", // i18n:pending
-            near: "Near limit", // i18n:pending
-            togo: "Short", // i18n:pending
-            ok: "Met", // i18n:pending
+            over: "Oltre",
+            near: "Al limite",
+            togo: "Sotto",
+            ok: "Raggiunti",
         },
-        counterAria: "{label}: {n}. Show them", // i18n:pending
-        counterAriaZero: "{label}: {n}", // i18n:pending
-        nrNoteToday: "Not recorded today, so not counted: {list}", // i18n:pending
-        nrNotePast: "Not recorded that day, so not counted: {list}", // i18n:pending
+        counterAria: "{label}: {n}. Mostrali",
+        counterAriaZero: "{label}: {n}",
+        nrNoteToday: "Non registrati oggi, quindi non conteggiati: {list}",
+        nrNotePast:
+            "Non registrati quel giorno, quindi non conteggiati: {list}",
         emptyToday:
-            "Once a meal or water is logged, this shows what is over, what is close and what is still to go.", // i18n:pending
-        emptyPast: "There is nothing to compare with the goals for that day.", // i18n:pending
-        dailyGoals: "Daily goals: {list}.", // i18n:pending
-        goalItem: "{value} {name}", // i18n:pending
-        goalLimitItem: "{value} {name} limit", // i18n:pending
+            "Quando un pasto o dell'acqua viene registrato, qui compare cosa è oltre il limite, cosa è vicino e cosa manca ancora.",
+        emptyPast:
+            "Per quel giorno non c'è nulla da confrontare con gli obiettivi.",
+        dailyGoals: "Obiettivi giornalieri: {list}.",
+        goalItem: "{name} {value}",
+        goalLimitItem: "limite di {name} {value}",
         noGoalsToday:
-            "No daily goals are set, so there is nothing to compare with. Logged today: {list}.", // i18n:pending
+            "Nessun obiettivo giornaliero impostato, quindi non c'è nulla da confrontare. Registrato oggi: {list}.",
         noGoalsPast:
-            "No daily goals are set, so there is nothing to compare with. Logged that day: {list}.", // i18n:pending
+            "Nessun obiettivo giornaliero impostato, quindi non c'è nulla da confrontare. Registrato quel giorno: {list}.",
         sections: {
-            over: "Over the limit", // i18n:pending
-            near: "Near the limit", // i18n:pending
-            togo: "Still to go", // i18n:pending
-            ok: "On track", // i18n:pending
-            nr: "Not recorded", // i18n:pending
+            over: "Oltre il limite",
+            near: "Vicino al limite",
+            togo: "Ancora da raggiungere",
+            ok: "In linea",
+            nr: "Non registrati",
         },
         sectionsPast: {
-            over: "Went over", // i18n:pending
-            near: "Close to the limit", // i18n:pending
-            togo: "Fell short", // i18n:pending
-            ok: "Met", // i18n:pending
-            nr: "Not recorded", // i18n:pending
+            over: "Oltre il limite",
+            near: "Vicino al limite",
+            togo: "Sotto l'obiettivo",
+            ok: "Raggiunti",
+            nr: "Non registrati",
         },
-        showAll: "Show all goals", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        done: "Done", // i18n:pending
-        met: "Met", // i18n:pending
-        toGo: "to go", // i18n:pending
-        short: "short", // i18n:pending
-        over: "over", // i18n:pending
-        left: "left", // i18n:pending
-        under: "under", // i18n:pending
-        ofLimit: "of limit", // i18n:pending
-        notRecorded: "not recorded", // i18n:pending
-        noDayTotal: "no day total", // i18n:pending
-        ofGoal: "{value} of {goal}", // i18n:pending
-        rowAria: "{label} {kind}: {status}, {detail}", // i18n:pending
-        restTitle: "For the rest of today", // i18n:pending
-        cellCaloriesLeft: "Calories left", // i18n:pending
-        cellCalories: "Calories", // i18n:pending
-        cellToGo: "{label} to go", // i18n:pending
-        cellOver: "+{value} over", // i18n:pending
-        cellPct: "{pct}% of limit", // i18n:pending
-        cellAria: "{key}: {value}", // i18n:pending
-        hintOverK: "Over budget:", // i18n:pending
-        hintOver: "{over} above the {goal} budget.", // i18n:pending
-        hintOverWater: "{over} above the {goal} budget; water {left} to go.", // i18n:pending
-        hintFoodK: "Logged before:", // i18n:pending
-        hintFood: "{food} — {facts}.", // i18n:pending
-        hintToGoK: "Still to go:", // i18n:pending
-        hintWaterK: "Water:", // i18n:pending
-        hintOverLimitK: "Over the limit:", // i18n:pending
-        hintNearK: "Close to the limit:", // i18n:pending
-        hintList: "{list}.", // i18n:pending
+        showAll: "Mostra tutti gli obiettivi",
+        showMore: "Mostra di più",
+        showLess: "Mostra meno",
+        collapseAll: "Comprimi tutto",
+        done: "Raggiunto",
+        met: "Raggiunto",
+        toGo: "mancanti",
+        short: "in meno",
+        over: "in eccesso",
+        left: "rimanenti",
+        under: "sotto",
+        ofLimit: "del limite",
+        notRecorded: "non registrato",
+        noDayTotal: "nessun totale del giorno",
+        ofGoal: "{value} su {goal}",
+        rowAria: "{label}, {kind}: {status}, {detail}",
+        restTitle: "Per il resto di oggi",
+        cellCaloriesLeft: "Calorie rimanenti",
+        cellCalories: "Calorie",
+        cellToGo: "{label}",
+        cellOver: "+{value} in eccesso",
+        cellPct: "{pct}% del limite",
+        cellAria: "{key}: {value}",
+        hintOverK: "Oltre il budget:",
+        hintOver: "{over} sopra il budget di {goal}.",
+        hintOverWater:
+            "{over} sopra il budget di {goal}; acqua: {left} mancanti.",
+        hintFoodK: "Registrato in passato:",
+        hintFood: "{food} — {facts}.",
+        hintToGoK: "Ancora da raggiungere:",
+        hintWaterK: "Acqua:",
+        hintOverLimitK: "Oltre il limite:",
+        hintNearK: "Vicino al limite:",
+        hintList: "{list}.",
         waterLeft: {
-            one: "{left} to go, about {n} glass of 250 ml.", // i18n:pending
-            other: "{left} to go, about {n} glasses of 250 ml.", // i18n:pending
+            one: "{left} mancanti, circa {n} bicchiere da 250 ml.",
+            other: "{left} mancanti, circa {n} bicchieri da 250 ml.",
         },
-        hintAllK: "All set:", // i18n:pending
-        hintAll: "every goal is on track.", // i18n:pending
-        leadK: "Biggest source:", // i18n:pending
-        leadV: "{name} — {value} {nutrient}", // i18n:pending
-        gapTitle: "Foods you’ve logged before", // i18n:pending
-        mealsTitle: "Where it came from", // i18n:pending
-        waterToday: "Logged today", // i18n:pending
-        waterPast: "Logged that day", // i18n:pending
-        totalOnly: "total only", // i18n:pending
-        mealFallback: "Meal", // i18n:pending
+        hintAllK: "Tutto in linea:",
+        hintAll: "ogni obiettivo è in linea.",
+        leadK: "Fonte principale:",
+        leadV: "{name} — {value} {nutrient}",
+        gapTitle: "Alimenti che hai già registrato",
+        mealsTitle: "Da dove proviene",
+        waterToday: "Registrata oggi",
+        waterPast: "Registrata quel giorno",
+        totalOnly: "solo totale",
+        mealFallback: "Pasto",
         mealTypes: {
-            breakfast: "Breakfast", // i18n:pending
-            lunch: "Lunch", // i18n:pending
-            dinner: "Dinner", // i18n:pending
-            snack: "Snack", // i18n:pending
+            breakfast: "Colazione",
+            lunch: "Pranzo",
+            dinner: "Cena",
+            snack: "Spuntino",
         },
-        noMealsToday: "No meals logged today.", // i18n:pending
-        noMealsPast: "No meals logged that day.", // i18n:pending
-        noWaterToday: "No water logged today.", // i18n:pending
-        noWaterPast: "No water logged that day.", // i18n:pending
+        noMealsToday: "Nessun pasto registrato oggi.",
+        noMealsPast: "Nessun pasto registrato quel giorno.",
+        noWaterToday: "Nessuna acqua registrata oggi.",
+        noWaterPast: "Nessuna acqua registrata quel giorno.",
         otherMealsNone: {
-            one: "{n} other meal had none.", // i18n:pending
-            other: "{n} other meals had none.", // i18n:pending
+            one: "{n} altro pasto non ne conteneva.",
+            other: "{n} altri pasti non ne contenevano.",
         },
         missingNote: {
-            one: "Not recorded for {n} meal; the total counts only the meals that had it.", // i18n:pending
-            other: "Not recorded for {n} meals; the total counts only the meals that had it.", // i18n:pending
+            one: "Non registrato per {n} pasto; il totale conta solo i pasti che lo riportano.",
+            other: "Non registrato per {n} pasti; il totale conta solo i pasti che lo riportano.",
         },
-        nrOne: "{label} wasn’t recorded for “{meal}”, so there is no day total to compare with the {goal} {kind}.", // i18n:pending
+        nrOne: "{label}: non registrato per “{meal}”, quindi non c'è un totale del giorno da confrontare con il {kind} di {goal}.",
         nrMany: {
-            one: "{label} wasn’t recorded for {n} meal, so there is no day total to compare with the {goal} {kind}.", // i18n:pending
-            other: "{label} wasn’t recorded for {n} meals, so there is no day total to compare with the {goal} {kind}.", // i18n:pending
+            one: "{label}: non registrato per {n} pasto, quindi non c'è un totale del giorno da confrontare con il {kind} di {goal}.",
+            other: "{label}: non registrato per {n} pasti, quindi non c'è un totale del giorno da confrontare con il {kind} di {goal}.",
         },
         sources: {
-            usda: "USDA", // i18n:pending
-            openfoodfacts: "Open Food Facts", // i18n:pending
-            user: "your figure", // i18n:pending
-            estimate: "estimate", // i18n:pending
-            mixed: "mixed sources", // i18n:pending
+            usda: "USDA",
+            openfoodfacts: "Open Food Facts",
+            user: "valore tuo",
+            estimate: "stima",
+            mixed: "fonti miste",
         },
-        weight: "Weight", // i18n:pending
-        weightAbove: "{delta} above your {target} goal", // i18n:pending
-        weightBelow: "{delta} below your {target} goal", // i18n:pending
-        weightAt: "at your {target} goal", // i18n:pending
-        weightNoGoal: "no goal set", // i18n:pending
-        weightLatest: "latest reading, {date}", // i18n:pending
-        weightNone: "no reading yet", // i18n:pending
-        weightNoneGoal: "no reading yet · goal {target}", // i18n:pending
-        transNote: "no limit set, shown for reference", // i18n:pending
+        weight: "Peso",
+        weightAbove: "{delta} sopra il tuo obiettivo di {target}",
+        weightBelow: "{delta} sotto il tuo obiettivo di {target}",
+        weightAt: "al tuo obiettivo di {target}",
+        weightNoGoal: "nessun obiettivo impostato",
+        weightLatest: "ultima pesata, {date}",
+        weightNone: "ancora nessuna pesata",
+        weightNoneGoal: "ancora nessuna pesata · obiettivo {target}",
+        transNote: "nessun limite impostato, mostrato come riferimento",
         drinks: {
-            us: { one: "{n} US drink", other: "{n} US drinks" }, // i18n:pending
-            uk: { one: "{n} UK unit", other: "{n} UK units" }, // i18n:pending
+            us: { one: "{n} drink USA", other: "{n} drink USA" },
+            uk: { one: "{n} unità UK", other: "{n} unità UK" },
         },
     },
     mealLogged: {
-        logged: "logged", // i18n:pending
-        edited: "edited", // i18n:pending
-        thisMeal: "{amount} this meal", // i18n:pending
-        statThisMeal: "This meal", // i18n:pending
-        statToday: "Today", // i18n:pending
-        statLeftToday: "Left today", // i18n:pending
-        statLeftThatDay: "Left that day", // i18n:pending
+        logged: "registrato",
+        edited: "modificato",
+        thisMeal: "{amount} questo pasto",
+        statThisMeal: "Questo pasto",
+        statToday: "Oggi",
+        statLeftToday: "Rimanenti oggi",
+        statLeftThatDay: "Rimanenti quel giorno",
     },
     trends: {
         loading: "Caricamento dell'andamento…",
@@ -446,108 +463,110 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         targetsAssumed: "obiettivi prima del {date} non registrati",
         noTargets: "Nessun obiettivo impostato: solo medie.",
         quarter: "T{q} {year}",
-        today: "Today", // i18n:pending
-        daySoFar: "{day} (so far)", // i18n:pending
-        soFar: "so far", // i18n:pending
-        lastNDays: "Last {n} days", // i18n:pending
-        nDays: "{n} days", // i18n:pending
-        titleMetric: "{n}-day {metric} trend", // i18n:pending
+        today: "Oggi",
+        daySoFar: "{day} (finora)",
+        soFar: "finora",
+        lastNDays: "Ultimi {n} giorni",
+        nDays: "{n} giorni",
+        titleMetric: "Andamento {metric} a {n} giorni",
         metricLabel: {
-            calories: "Calories", // i18n:pending
-            protein: "Protein", // i18n:pending
-            carbs: "Carbs", // i18n:pending
-            fat: "Fat", // i18n:pending
-            fiber: "Fiber", // i18n:pending
-            sugar: "Sugar", // i18n:pending
-            addedSugar: "Added sugar", // i18n:pending
-            saturated: "Saturated fat", // i18n:pending
-            trans: "Trans fat", // i18n:pending
-            sodium: "Sodium", // i18n:pending
-            caffeine: "Caffeine", // i18n:pending
-            water: "Water", // i18n:pending
-            alcohol: "Alcohol", // i18n:pending
+            calories: "Calorie",
+            protein: "Proteine",
+            carbs: "Carboidrati",
+            fat: "Grassi",
+            fiber: "Fibre",
+            sugar: "Zuccheri",
+            addedSugar: "Zuccheri aggiunti",
+            saturated: "Grassi saturi",
+            trans: "Grassi trans",
+            sodium: "Sodio",
+            caffeine: "Caffeina",
+            water: "Acqua",
+            alcohol: "Alcol",
         },
         metricInTitle: {
-            calories: "calorie", // i18n:pending
-            protein: "protein", // i18n:pending
-            carbs: "carb", // i18n:pending
-            fat: "fat", // i18n:pending
-            fiber: "fiber", // i18n:pending
-            sugar: "sugar", // i18n:pending
-            addedSugar: "added sugar", // i18n:pending
-            saturated: "saturated fat", // i18n:pending
-            trans: "trans fat", // i18n:pending
-            sodium: "sodium", // i18n:pending
-            caffeine: "caffeine", // i18n:pending
-            water: "water", // i18n:pending
-            alcohol: "alcohol", // i18n:pending
+            calories: "delle calorie",
+            protein: "delle proteine",
+            carbs: "dei carboidrati",
+            fat: "dei grassi",
+            fiber: "delle fibre",
+            sugar: "degli zuccheri",
+            addedSugar: "degli zuccheri aggiunti",
+            saturated: "dei grassi saturi",
+            trans: "dei grassi trans",
+            sodium: "del sodio",
+            caffeine: "della caffeina",
+            water: "dell'acqua",
+            alcohol: "dell'alcol",
         },
-        pill: "{n}d", // i18n:pending
-        pillAria: "Show {n} days", // i18n:pending
-        metricsAria: "Choose a nutrient", // i18n:pending
-        scrollLeft: "Scroll left", // i18n:pending
-        scrollRight: "Scroll right", // i18n:pending
-        avgWord: "avg", // i18n:pending
-        perDay: "{unit}/day", // i18n:pending
-        chartTitle: "{metric} per day", // i18n:pending
-        chartAria: "{metric} per day over {n} days", // i18n:pending
-        loggedOf: "{a} of {n}", // i18n:pending
-        daysLoggedWord: "days logged", // i18n:pending
-        daysRecordedWord: "days recorded", // i18n:pending
-        belowGoal: "below goal", // i18n:pending
-        overGoal: "over goal", // i18n:pending
-        underLimit: "under limit", // i18n:pending
-        overLimit: "over limit", // i18n:pending
-        noGoalSet: "no goal set", // i18n:pending
-        heroGoal: "Goal {goal} · {pct} reached", // i18n:pending
-        heroGoalOver: "Goal {goal} · {pct} of goal", // i18n:pending
-        heroLimit: "Limit {goal} · {pct} used", // i18n:pending
-        heroNoGoal: "No goal set", // i18n:pending
-        todayNote: "Today is still in progress, so it isn’t averaged yet.", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        notRecorded: "not recorded", // i18n:pending
-        pctOfGoal: "{pct} of goal", // i18n:pending
-        pctOfLimit: "{pct} of limit", // i18n:pending
-        amountOverGoal: "{amount} over goal", // i18n:pending
-        amountOverLimit: "{amount} over limit", // i18n:pending
-        onTargetPct: "on target · {pct}", // i18n:pending
-        steady: "steady", // i18n:pending
-        noGoal: "no goal", // i18n:pending
+        pill: "{n} g",
+        pillAria: "Mostra {n} giorni",
+        metricsAria: "Scegli un nutriente",
+        scrollLeft: "Scorri a sinistra",
+        scrollRight: "Scorri a destra",
+        avgWord: "media",
+        perDay: "{unit}/giorno",
+        chartTitle: "{metric} per giorno",
+        chartAria: "{metric} per giorno in {n} giorni",
+        loggedOf: "{a} su {n}",
+        daysLoggedWord: "giorni registrati",
+        daysRecordedWord: "giorni con dato",
+        belowGoal: "sotto l'obiettivo",
+        overGoal: "sopra l'obiettivo",
+        underLimit: "sotto il limite",
+        overLimit: "oltre il limite",
+        noGoalSet: "nessun obiettivo",
+        heroGoal: "Obiettivo {goal} · {pct} raggiunto",
+        heroGoalOver: "Obiettivo {goal} · {pct} dell'obiettivo",
+        heroLimit: "Limite {goal} · {pct} usato",
+        heroNoGoal: "Nessun obiettivo impostato",
+        todayNote:
+            "Oggi è ancora in corso, quindi non rientra ancora nella media.",
+        showMore: "Mostra di più",
+        showLess: "Mostra meno",
+        collapseAll: "Comprimi tutto",
+        notRecorded: "non registrato",
+        pctOfGoal: "{pct} dell'obiettivo",
+        pctOfLimit: "{pct} del limite",
+        amountOverGoal: "{amount} sopra l'obiettivo",
+        amountOverLimit: "{amount} oltre il limite",
+        onTargetPct: "nell'obiettivo · {pct}",
+        steady: "stabile",
+        noGoal: "nessun obiettivo",
         notRecordedInRange:
-            "{metric} wasn’t recorded on any day in this range.", // i18n:pending
-        chipHigh: "High {value} {day}", // i18n:pending
-        chipLow: "Low {value} {day}", // i18n:pending
+            "{metric}: non registrato in nessun giorno di questo periodo.",
+        chipHigh: "Max {value} {day}",
+        chipLow: "Min {value} {day}",
         chipOnTarget: {
-            one: "{value} day on target", // i18n:pending
-            other: "{value} days on target", // i18n:pending
+            one: "{value} giorno nell'obiettivo",
+            other: "{value} giorni nell'obiettivo",
         },
         chipOverLimit: {
-            one: "{value} day over limit", // i18n:pending
-            other: "{value} days over limit", // i18n:pending
+            one: "{value} giorno oltre il limite",
+            other: "{value} giorni oltre il limite",
         },
-        statDaysLogged: "Days logged", // i18n:pending
-        statDaysRecorded: "Days recorded", // i18n:pending
-        statOnTarget: "On target", // i18n:pending
-        statDaysOverLimit: "Days over limit", // i18n:pending
-        statBelowGoal: "Below goal", // i18n:pending
-        statOverGoal: "Over goal", // i18n:pending
-        statUnderLimit: "Under limit", // i18n:pending
-        statOverLimit: "Over limit", // i18n:pending
-        statNoGoal: "No goal set", // i18n:pending
+        statDaysLogged: "Giorni registrati",
+        statDaysRecorded: "Giorni con dato",
+        statOnTarget: "Nell'obiettivo",
+        statDaysOverLimit: "Giorni oltre il limite",
+        statBelowGoal: "Sotto l'obiettivo",
+        statOverGoal: "Sopra l'obiettivo",
+        statUnderLimit: "Sotto il limite",
+        statOverLimit: "Oltre il limite",
+        statNoGoal: "Nessun obiettivo",
         daysUnit: {
-            one: "day", // i18n:pending
-            other: "days", // i18n:pending
+            one: "giorno",
+            other: "giorni",
         },
-        showAllDays: "Show all {n} days", // i18n:pending
-        emptyTitle: "No meals logged in this period", // i18n:pending
-        emptyBody: "Your trend appears here once meals are logged.", // i18n:pending
+        showAllDays: "Mostra tutti i {n} giorni",
+        emptyTitle: "Nessun pasto registrato in questo periodo",
+        emptyBody:
+            "L'andamento compare qui quando vengono registrati dei pasti.",
         drinkUnit: {
-            us: "drinks", // i18n:pending
-            uk: "units", // i18n:pending
+            us: "drink",
+            uk: "unità",
         },
-        dayAria: "{day}, {value}", // i18n:pending
+        dayAria: "{day}, {value}",
     },
     weightTrends: {
         loading: "Caricamento dell'andamento del peso…",
@@ -950,395 +969,410 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         liveFileError: "Impossibile usare questo file.",
     },
     digest: {
-        loading: "Loading your digest…", // i18n:pending
-        eyebrow: "Nutrition digest · {range}", // i18n:pending
-        daySoFar: "{date} · so far, {time}", // i18n:pending
-        rangeEnds: "{range} · ends yesterday", // i18n:pending
+        loading: "Caricamento del riepilogo…",
+        eyebrow: "Riepilogo nutrizionale · {range}",
+        daySoFar: "{date} · finora, {time}",
+        rangeEnds: "{range} · fino a ieri",
         labels: {
-            calories: "Calories", // i18n:pending
-            protein_g: "Protein", // i18n:pending
-            carbs_g: "Carbs", // i18n:pending
-            fat_g: "Fat", // i18n:pending
-            fiber_g: "Fiber", // i18n:pending
-            sugar_g: "Sugar", // i18n:pending
-            added_sugar_g: "Added sugar", // i18n:pending
-            saturated_fat_g: "Saturated fat", // i18n:pending
-            trans_fat_g: "Trans fat", // i18n:pending
-            sodium_mg: "Sodium", // i18n:pending
-            caffeine_mg: "Caffeine", // i18n:pending
-            alcohol_g: "Alcohol", // i18n:pending
-            water_ml: "Water", // i18n:pending
-            weight: "Weight", // i18n:pending
+            calories: "Calorie",
+            protein_g: "Proteine",
+            carbs_g: "Carboidrati",
+            fat_g: "Grassi",
+            fiber_g: "Fibre",
+            sugar_g: "Zuccheri",
+            added_sugar_g: "Zuccheri aggiunti",
+            saturated_fat_g: "Grassi saturi",
+            trans_fat_g: "Grassi trans",
+            sodium_mg: "Sodio",
+            caffeine_mg: "Caffeina",
+            alcohol_g: "Alcol",
+            water_ml: "Acqua",
+            weight: "Peso",
         },
         inline: {
-            calories: "calories", // i18n:pending
-            protein_g: "protein", // i18n:pending
-            carbs_g: "carbs", // i18n:pending
-            fat_g: "fat", // i18n:pending
-            fiber_g: "fiber", // i18n:pending
-            sugar_g: "sugar", // i18n:pending
-            added_sugar_g: "added sugar", // i18n:pending
-            saturated_fat_g: "saturated fat", // i18n:pending
-            trans_fat_g: "trans fat", // i18n:pending
-            sodium_mg: "sodium", // i18n:pending
-            caffeine_mg: "caffeine", // i18n:pending
-            alcohol_g: "alcohol", // i18n:pending
-            water_ml: "water", // i18n:pending
-            weight: "weight", // i18n:pending
+            calories: "calorie",
+            protein_g: "proteine",
+            carbs_g: "carboidrati",
+            fat_g: "grassi",
+            fiber_g: "fibre",
+            sugar_g: "zuccheri",
+            added_sugar_g: "zuccheri aggiunti",
+            saturated_fat_g: "grassi saturi",
+            trans_fat_g: "grassi trans",
+            sodium_mg: "sodio",
+            caffeine_mg: "caffeina",
+            alcohol_g: "alcol",
+            water_ml: "acqua",
+            weight: "peso",
         },
         units: {
-            kcal: "kcal", // i18n:pending
-            g: "g", // i18n:pending
-            mg: "mg", // i18n:pending
-            L: "L", // i18n:pending
-            kg: "kg", // i18n:pending
-            lb: "lb", // i18n:pending
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            L: "L",
+            kg: "kg",
+            lb: "lb",
         },
-        drinkLabels: { us: "US drinks", uk: "UK units" }, // i18n:pending
-        sep: " · ", // i18n:pending
+        drinkLabels: { us: "drink USA", uk: "unità UK" },
+        sep: " · ",
         verdict: {
-            calOverPast: "calories went over", // i18n:pending
-            calOverToday: "calories over budget", // i18n:pending
-            calOnTrack: "calories on track", // i18n:pending
-            calOnTarget: "calories on target", // i18n:pending
-            calJustUnder: "calories just under target", // i18n:pending
-            calUnder: "calories under target", // i18n:pending
-            calMostly: "calories mostly on target", // i18n:pending
-            calOverMost: "calories over most days", // i18n:pending
-            calUnderMost: "calories under target most days", // i18n:pending
-            calSome: "calories on target some days", // i18n:pending
-            overPast: "{list} went over", // i18n:pending
-            overToday: "{list} over", // i18n:pending
-            limitsOver: { one: "{n} limit over", other: "{n} limits over" }, // i18n:pending
-            shortPast: "{list} fell short", // i18n:pending
-            shortToday: "{list} to go", // i18n:pending
+            calOverPast: "calorie sopra il budget",
+            calOverToday: "calorie oltre il budget",
+            calOnTrack: "calorie in linea",
+            calOnTarget: "calorie nell'obiettivo",
+            calJustUnder: "calorie appena sotto l'obiettivo",
+            calUnder: "calorie sotto l'obiettivo",
+            calMostly: "calorie quasi sempre nell'obiettivo",
+            calOverMost: "calorie oltre il budget quasi tutti i giorni",
+            calUnderMost: "calorie sotto l'obiettivo quasi tutti i giorni",
+            calSome: "calorie nell'obiettivo in alcuni giorni",
+            overPast: "{list} oltre il limite",
+            overToday: "{list} oltre",
+            limitsOver: {
+                one: "{n} limite superato",
+                other: "{n} limiti superati",
+            },
+            shortPast: "{list} sotto l'obiettivo",
+            shortToday: "{list} da raggiungere",
             targetsShortPast: {
-                one: "{n} target fell short", // i18n:pending
-                other: "{n} targets fell short", // i18n:pending
+                one: "{n} obiettivo mancato",
+                other: "{n} obiettivi mancati",
             },
             targetsShortToday: {
-                one: "{n} target to go", // i18n:pending
-                other: "{n} targets to go", // i18n:pending
+                one: "{n} obiettivo da raggiungere",
+                other: "{n} obiettivi da raggiungere",
             },
-            allMetPast: "every goal met", // i18n:pending
-            allMetToday: "every goal on track", // i18n:pending
-            rising: "{label} rising", // i18n:pending
-            falling: "{label} falling", // i18n:pending
-            logged: "logged {n} of {of} days", // i18n:pending
-            missTarget: "{label} short most days", // i18n:pending
-            missLimit: "{label} often over", // i18n:pending
-            noMiss: "no goal missed most days", // i18n:pending
+            allMetPast: "tutti gli obiettivi raggiunti",
+            allMetToday: "tutti gli obiettivi in linea",
+            rising: "{label} in aumento",
+            falling: "{label} in calo",
+            logged: "registrati {n} giorni su {of}",
+            missTarget: "{label} sotto l'obiettivo quasi tutti i giorni",
+            missLimit: "{label} spesso oltre il limite",
+            noMiss: "nessun obiettivo mancato nella maggior parte dei giorni",
         },
         emptyTitle: {
-            today: "Nothing logged today yet", // i18n:pending
-            yesterday: "Nothing was logged yesterday", // i18n:pending
-            range: "Nothing logged in the last {n} days", // i18n:pending
+            today: "Ancora niente registrato oggi",
+            yesterday: "Niente registrato ieri",
+            range: "Niente registrato negli ultimi {n} giorni",
         },
         emptyText: {
-            today: "Meals, water and weigh-ins you log today show up here, with goals and trends.", // i18n:pending
-            day: "Meals, water and weigh-ins you log for a day show up here, with goals and trends.", // i18n:pending
-            range: "Meals, water and weigh-ins you log over a period show up here, with goals and trends.", // i18n:pending
+            today: "Qui compaiono i pasti, l'acqua e le pesate che registri oggi, con obiettivi e andamenti.",
+            day: "Qui compaiono i pasti, l'acqua e le pesate che registri per un giorno, con obiettivi e andamenti.",
+            range: "Qui compaiono i pasti, l'acqua e le pesate che registri in un periodo, con obiettivi e andamenti.",
         },
-        intakeDay: "{kcal} kcal · {meals}", // i18n:pending
-        intakeRange: "{kcal} kcal a day · logged {n} of {of} days", // i18n:pending
-        mealCount: { one: "{n} meal", other: "{n} meals" }, // i18n:pending
-        noGoals: "No goals set", // i18n:pending
-        averagesOnly: "Only the averages and goals are available in this view.", // i18n:pending
+        intakeDay: "{kcal} kcal · {meals}",
+        intakeRange: "{kcal} kcal al giorno · {n} giorni registrati su {of}",
+        mealCount: { one: "{n} pasto", other: "{n} pasti" },
+        noGoals: "Nessun obiettivo impostato",
+        averagesOnly:
+            "In questa vista sono disponibili solo le medie e gli obiettivi.",
         score: {
-            met: "{n} of {of} goals met", // i18n:pending
-            onTrack: "{n} of {of} goals on track", // i18n:pending
-            mostly: "{n} of {of} goals mostly met", // i18n:pending
-            partial: "{score} · partial logs", // i18n:pending
+            met: "{n} su {of} obiettivi raggiunti",
+            onTrack: "{n} su {of} obiettivi in linea",
+            mostly: "{n} su {of} obiettivi quasi raggiunti",
+            partial: "{score} · registrazioni parziali",
         },
         sections: {
-            calories: "Calories", // i18n:pending
-            goals: "Goals at a glance", // i18n:pending
-            trends: "Trends", // i18n:pending
-            nutrients: "Nutrients", // i18n:pending
-            cards: "Water & weight", // i18n:pending
-            cardsHidden: "Water and weight", // i18n:pending
-            meals: "Meals", // i18n:pending
-            highlights: "Highlights", // i18n:pending
-            rest: "For the rest of today", // i18n:pending
+            calories: "Calorie",
+            goals: "Obiettivi in breve",
+            trends: "Andamenti",
+            nutrients: "Nutrienti",
+            cards: "Acqua e peso",
+            cardsHidden: "Acqua e peso",
+            meals: "Pasti",
+            highlights: "In evidenza",
+            rest: "Per il resto di oggi",
         },
         meta: {
-            final: "final", // i18n:pending
-            soFar: "so far", // i18n:pending
-            rightNow: "right now", // i18n:pending
-            daysMet: "days met / logged", // i18n:pending
-            dailyAvg: "Daily average, logged days", // i18n:pending
-            dayTotal: "Day total", // i18n:pending
-            soFarToday: "So far today", // i18n:pending
-            tapMeal: "tap a meal for items", // i18n:pending
-            habits: "logging habits", // i18n:pending
-            last14: "last 14 days", // i18n:pending
-            last14Today: "last 14 days · today so far", // i18n:pending
-            fewDays: "few days logged · read loosely", // i18n:pending
-            vsPrev: "vs previous {n} days (grey)", // i18n:pending
-            waterAvg: "water: daily avg", // i18n:pending
+            final: "definitivo",
+            soFar: "finora",
+            rightNow: "adesso",
+            daysMet: "giorni raggiunti / registrati",
+            dailyAvg: "Media giornaliera, giorni registrati",
+            dayTotal: "Totale del giorno",
+            soFarToday: "Oggi finora",
+            tapMeal: "tocca un pasto per gli ingredienti",
+            habits: "abitudini di registrazione",
+            last14: "ultimi 14 giorni",
+            last14Today: "ultimi 14 giorni · oggi finora",
+            fewDays: "pochi giorni registrati · dati indicativi",
+            vsPrev: "rispetto ai {n} giorni precedenti (grigio)",
+            waterAvg: "acqua: media giornaliera",
         },
-        fold: "Fold {section}", // i18n:pending
-        unfold: "Unfold {section}", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
+        fold: "Comprimi {section}",
+        unfold: "Espandi {section}",
+        showMore: "Mostra di più",
+        showLess: "Mostra meno",
+        collapseAll: "Comprimi tutto",
         gauge: {
-            ofGoal: "of {goal} kcal", // i18n:pending
-            kcal: "kcal", // i18n:pending
-            aria: "{kcal} of {goal} kcal {when}, {pct}% of goal.", // i18n:pending
-            ariaNoGoal: "{kcal} kcal {when}.", // i18n:pending
-            onDate: "on {date}", // i18n:pending
-            soFarToday: "so far today", // i18n:pending
-            ariaMeals: "Meals: {list}", // i18n:pending
-            ariaMeal: "{name} {kcal} kcal", // i18n:pending
-            segment: "{name}, {kcal} kcal", // i18n:pending
-            finished: "You finished {b} your goal", // i18n:pending
-            kcalUnder: "{x} kcal under", // i18n:pending
-            kcalOver: "{x} kcal over", // i18n:pending
-            kcalLeft: "{x} kcal left", // i18n:pending
-            todayLine: "{b} · {meals} so far", // i18n:pending
-            mealsOnly: "{meals}", // i18n:pending
-            hint: "Tap a meal piece for details", // i18n:pending
-            popMeta: "{meta} · {pct}% of the day’s goal", // i18n:pending
-            popMetaNoGoal: "{meta}", // i18n:pending
-            totalOnly: "Logged as a total, no items", // i18n:pending
-            closeMeal: "Close meal details", // i18n:pending
+            ofGoal: "su {goal} kcal",
+            kcal: "kcal",
+            aria: "{kcal} su {goal} kcal {when}, {pct}% dell'obiettivo.",
+            ariaNoGoal: "{kcal} kcal {when}.",
+            onDate: "il {date}",
+            soFarToday: "oggi finora",
+            ariaMeals: "Pasti: {list}",
+            ariaMeal: "{name} {kcal} kcal",
+            segment: "{name}, {kcal} kcal",
+            finished: "Giornata chiusa con {b} rispetto all'obiettivo",
+            kcalUnder: "{x} kcal in meno",
+            kcalOver: "{x} kcal in eccesso",
+            kcalLeft: "{x} kcal rimanenti",
+            todayLine: "{b} · {meals} finora",
+            mealsOnly: "{meals}",
+            hint: "Tocca un settore per i dettagli del pasto",
+            popMeta: "{meta} · {pct}% dell'obiettivo del giorno",
+            popMetaNoGoal: "{meta}",
+            totalOnly: "Registrato come totale, senza ingredienti",
+            closeMeal: "Chiudi i dettagli del pasto",
         },
         range: {
-            avg: "avg", // i18n:pending
-            kcalDay: "kcal/day", // i18n:pending
-            rightOn: "right on your {goal} kcal goal", // i18n:pending
-            overGoal: "{x} kcal over your {goal} kcal goal", // i18n:pending
-            underGoal: "{x} kcal under your {goal} kcal goal", // i18n:pending
-            footMet: "{met} of {n}", // i18n:pending
-            footRest: "logged days on target", // i18n:pending
-            footOver: "{n} over", // i18n:pending
-            footUnder: "{n} under", // i18n:pending
-            legendOn: "on target", // i18n:pending
-            legendUnder: "under", // i18n:pending
-            legendOver: "over", // i18n:pending
-            zone: "Target zone {lo}–{hi} kcal", // i18n:pending
-            prev: "Previous {n} days: {avg} kcal/day", // i18n:pending
-            barNone: "{date}: nothing logged", // i18n:pending
-            barOver: "{date}: {kcal} kcal, over goal", // i18n:pending
-            barOn: "{date}: {kcal} kcal, on target", // i18n:pending
-            barUnder: "{date}: {kcal} kcal, under target", // i18n:pending
-            barPlain: "{date}: {kcal} kcal", // i18n:pending
-            popSub: "{kcal} kcal · {meals}", // i18n:pending
-            popOver: "{x} over", // i18n:pending
-            nothingThisDay: "Nothing logged this day", // i18n:pending
-            closeDay: "Close day details", // i18n:pending
+            avg: "media",
+            kcalDay: "kcal/giorno",
+            rightOn: "esattamente sul tuo obiettivo di {goal} kcal",
+            overGoal: "{x} kcal sopra il tuo obiettivo di {goal} kcal",
+            underGoal: "{x} kcal sotto il tuo obiettivo di {goal} kcal",
+            footMet: "{met} su {n}",
+            footRest: "giorni registrati nell'obiettivo",
+            footOver: "{n} oltre",
+            footUnder: "{n} sotto",
+            legendOn: "nell'obiettivo",
+            legendUnder: "sotto",
+            legendOver: "oltre",
+            zone: "Zona obiettivo {lo}–{hi} kcal",
+            prev: "{n} giorni precedenti: {avg} kcal/giorno",
+            barNone: "{date}: niente registrato",
+            barOver: "{date}: {kcal} kcal, sopra l'obiettivo",
+            barOn: "{date}: {kcal} kcal, nell'obiettivo",
+            barUnder: "{date}: {kcal} kcal, sotto l'obiettivo",
+            barPlain: "{date}: {kcal} kcal",
+            popSub: "{kcal} kcal · {meals}",
+            popOver: "{x} in eccesso",
+            nothingThisDay: "Niente registrato in questo giorno",
+            closeDay: "Chiudi i dettagli del giorno",
         },
         groups: {
-            over: "Over", // i18n:pending
-            near: "Near limit", // i18n:pending
-            short: "Short", // i18n:pending
-            togo: "To go", // i18n:pending
-            met: "Met", // i18n:pending
-            onTrack: "On track", // i18n:pending
-            mostlyMet: "Mostly met", // i18n:pending
-            mixed: "Mixed", // i18n:pending
-            mostlyMissed: "Mostly missed", // i18n:pending
-            days: { one: "day", other: "days" }, // i18n:pending
+            over: "Oltre",
+            near: "Quasi al limite",
+            short: "Sotto",
+            togo: "Da raggiungere",
+            met: "Raggiunti",
+            onTrack: "In linea",
+            mostlyMet: "Quasi raggiunti",
+            mixed: "Alterni",
+            mostlyMissed: "Quasi sempre mancati",
+            days: { one: "giorno", other: "giorni" },
             nrDay: {
-                one: "{list} wasn’t recorded — left out of the goals.", // i18n:pending
-                other: "{list} weren’t recorded — left out of the goals.", // i18n:pending
+                one: "{list} non registrato — escluso dagli obiettivi.",
+                other: "{list} non registrati — esclusi dagli obiettivi.",
             },
             nrRange: {
-                one: "{list} wasn’t recorded on any day — left out of the goals.", // i18n:pending
-                other: "{list} weren’t recorded on any day — left out of the goals.", // i18n:pending
+                one: "{list} non registrato in nessun giorno — escluso dagli obiettivi.",
+                other: "{list} non registrati in nessun giorno — esclusi dagli obiettivi.",
             },
         },
         trends: {
-            rising: "↑ rising", // i18n:pending
-            falling: "↓ falling", // i18n:pending
-            noClear: "→ no clear trend", // i18n:pending
-            steady: "→ steady", // i18n:pending
-            avg7: "7-day avg {a}, was {b}", // i18n:pending
-            todaySoFar: "Today so far {v}", // i18n:pending
-            noneToday: "None so far today", // i18n:pending
-            nothingToday: "Nothing logged yet today", // i18n:pending
-            dayAboutAvg: "Yesterday ≈ avg", // i18n:pending
-            dayVsAvg: "Yesterday {pct}% vs avg", // i18n:pending
-            noneDay: "None yesterday", // i18n:pending
-            notLoggedDay: "Not logged yesterday", // i18n:pending
-            perDay: "{d} a day", // i18n:pending
-            was: "was {b} a day", // i18n:pending
-            wasAvg: "was {b} avg", // i18n:pending
-            steadyNote: "Steady: {list}.", // i18n:pending
-            alsoNote: "Also moving: {list}.", // i18n:pending
-            mixedNote: "Up and down, no clear trend: {list}.", // i18n:pending
-            fewNote: "Too few logged days to tell: {list}.", // i18n:pending
-            none: "Not enough logged days yet to show trends.", // i18n:pending
-            aria: "{label}: {dir}, {l1}, {l2}", // i18n:pending
+            rising: "↑ in aumento",
+            falling: "↓ in calo",
+            noClear: "→ nessun andamento chiaro",
+            steady: "→ stabile",
+            avg7: "media 7 giorni {a}, prima {b}",
+            todaySoFar: "Oggi finora {v}",
+            noneToday: "Niente finora oggi",
+            nothingToday: "Ancora niente registrato oggi",
+            dayAboutAvg: "Ieri ≈ media",
+            dayVsAvg: "Ieri {pct}% rispetto alla media",
+            noneDay: "Niente ieri",
+            notLoggedDay: "Non registrato ieri",
+            perDay: "{d} al giorno",
+            was: "prima {b} al giorno",
+            wasAvg: "prima {b} di media",
+            steadyNote: "Stabili: {list}.",
+            alsoNote: "In movimento anche: {list}.",
+            mixedNote: "Su e giù, nessun andamento chiaro: {list}.",
+            fewNote: "Troppo pochi giorni registrati per dirlo: {list}.",
+            none: "Non ci sono ancora abbastanza giorni registrati per mostrare gli andamenti.",
+            aria: "{label}: {dir}, {l1}, {l2}",
             dirWord: {
-                rising: "rising", // i18n:pending
-                falling: "falling", // i18n:pending
-                noClear: "no clear trend", // i18n:pending
-                steady: "steady", // i18n:pending
+                rising: "in aumento",
+                falling: "in calo",
+                noClear: "nessun andamento chiaro",
+                steady: "stabile",
             },
         },
         table: {
-            noGoal: "no goal", // i18n:pending
-            notRecorded: "not recorded", // i18n:pending
-            notLogged: "not logged", // i18n:pending
-            over: "+{x} over", // i18n:pending
-            short: "{x} short", // i18n:pending
-            togo: "{x} to go", // i18n:pending
-            met: "met", // i18n:pending
-            done: "done", // i18n:pending
-            none: "none", // i18n:pending
-            under: "{x} under", // i18n:pending
-            left: "{x} left", // i18n:pending
-            onTarget: "on target", // i18n:pending
-            nearLimit: "near limit", // i18n:pending
-            atLimit: "at limit", // i18n:pending
-            target: "/ ≥ {g}", // i18n:pending
-            limit: "/ ≤ {g}", // i18n:pending
-            noGoalUnit: "{u} · no goal", // i18n:pending
-            sparse: "Only {n} of {of} days logged — averages cover logged days only.", // i18n:pending
-            partial: "Recorded on fewer days: {list}.", // i18n:pending
-            partialItem: "{label} {n} of {of}", // i18n:pending
-            ariaTarget: "{label}: {value}, target {goal}, {delta}", // i18n:pending
-            ariaLimit: "{label}: {value}, limit {goal}, {delta}", // i18n:pending
-            ariaPlain: "{label}: {value}", // i18n:pending
+            noGoal: "nessun obiettivo",
+            notRecorded: "non registrato",
+            notLogged: "nessun dato",
+            over: "+{x} in eccesso",
+            short: "{x} in meno",
+            togo: "{x} mancanti",
+            met: "raggiunto",
+            done: "completato",
+            none: "niente",
+            under: "{x} sotto",
+            left: "{x} rimanenti",
+            onTarget: "nell'obiettivo",
+            nearLimit: "quasi al limite",
+            atLimit: "al limite",
+            target: "/ ≥ {g}",
+            limit: "/ ≤ {g}",
+            noGoalUnit: "{u} · nessun obiettivo",
+            sparse: "Solo {n} giorni registrati su {of}: le medie considerano solo i giorni registrati.",
+            partial: "Registrati in meno giorni: {list}.",
+            partialItem: "{label} {n} su {of}",
+            ariaTarget: "{label}: {value}, obiettivo {goal}, {delta}",
+            ariaLimit: "{label}: {value}, limite {goal}, {delta}",
+            ariaPlain: "{label}: {value}",
         },
         water: {
-            of: "of {goal}", // i18n:pending
-            aDay: "a day", // i18n:pending
-            metDays: "goal met {n} of {of} days", // i18n:pending
-            noneToday: "No water logged yet today", // i18n:pending
-            noneDay: "No water logged that day", // i18n:pending
-            noneRange: "No water logged in this period", // i18n:pending
-            dot: "{date}: {v}", // i18n:pending
+            of: "su {goal}",
+            aDay: "al giorno",
+            metDays: "obiettivo raggiunto {n} giorni su {of}",
+            noneToday: "Ancora nessuna acqua registrata oggi",
+            noneDay: "Nessuna acqua registrata quel giorno",
+            noneRange: "Nessuna acqua registrata in questo periodo",
+            dot: "{date}: {v}",
         },
         weight: {
-            thisMorning: "Weighed in this morning", // i18n:pending
-            thatMorning: "Weighed in that day", // i18n:pending
-            last: "Last weigh-in {date}", // i18n:pending
-            noChange: "no change", // i18n:pending
-            vs: "vs {date}", // i18n:pending
-            first: "first weigh-in", // i18n:pending
-            latest: "Latest · {date}", // i18n:pending
+            thisMorning: "Pesata stamattina",
+            thatMorning: "Pesata quel giorno",
+            last: "Ultima pesata {date}",
+            noChange: "nessuna variazione",
+            vs: "rispetto al {date}",
+            first: "prima pesata",
+            latest: "Ultima · {date}",
             since: {
-                one: "since {date} · {n} weigh‑in", // i18n:pending
-                other: "since {date} · {n} weigh‑ins", // i18n:pending
+                one: "dal {date} · {n} pesata",
+                other: "dal {date} · {n} pesate",
             },
-            only1: "only 1 weigh‑in this period", // i18n:pending
-            goal: "Goal {v}", // i18n:pending
-            noneRecent: "No recent weigh-in · last {v} on {date}", // i18n:pending
-            noneYet: "No weigh-ins yet", // i18n:pending
-            nonePeriod: "No weigh-in this period · last {v} on {date}", // i18n:pending
+            only1: "solo 1 pesata in questo periodo",
+            goal: "Obiettivo {v}",
+            noneRecent: "Nessuna pesata recente · ultima {v} il {date}",
+            noneYet: "Ancora nessuna pesata",
+            nonePeriod:
+                "Nessuna pesata in questo periodo · ultima {v} il {date}",
         },
         meals: {
             types: {
-                breakfast: "Breakfast", // i18n:pending
-                lunch: "Lunch", // i18n:pending
-                dinner: "Dinner", // i18n:pending
-                snack: "Snack", // i18n:pending
-                drink: "Drink", // i18n:pending
+                breakfast: "Colazione",
+                lunch: "Pranzo",
+                dinner: "Cena",
+                snack: "Spuntino",
+                drink: "Bevanda",
             },
-            macro: "{x} {label}", // i18n:pending
-            totalOnly: "total only", // i18n:pending
-            daysLogged: "Days logged", // i18n:pending
-            mealsADay: "Meals a day", // i18n:pending
-            ofDays: "{n} of {of}", // i18n:pending
-            typical: "Typical times", // i18n:pending
-            typicalItem: "{type} {time}", // i18n:pending
-            topFoods: "Top foods by calories", // i18n:pending
-            times: "×{n}", // i18n:pending
-            best: "Best day", // i18n:pending
-            tough: "Toughest day", // i18n:pending
-            goalsMet: "{n} of {of} goals met", // i18n:pending
-            whyOver: "{list} over", // i18n:pending
-            whyLimits: { one: "{n} limit over", other: "{n} limits over" }, // i18n:pending
-            whyShort: "{list} short", // i18n:pending
-            whyAll: "every recorded goal met", // i18n:pending
+            macro: "{x} {label}",
+            totalOnly: "solo totale",
+            daysLogged: "Giorni registrati",
+            mealsADay: "Pasti al giorno",
+            ofDays: "{n} su {of}",
+            typical: "Orari tipici",
+            typicalItem: "{type} {time}",
+            topFoods: "Alimenti principali per calorie",
+            times: "×{n}",
+            best: "Giorno migliore",
+            tough: "Giorno più difficile",
+            goalsMet: "{n} su {of} obiettivi raggiunti",
+            whyOver: "{list} oltre",
+            whyLimits: {
+                one: "{n} limite superato",
+                other: "{n} limiti superati",
+            },
+            whyShort: "{list} sotto",
+            whyAll: "tutti gli obiettivi registrati raggiunti",
         },
         highlights: {
-            count: { one: "{n} highlight", other: "{n} highlights" }, // i18n:pending
-            sugarA: "Biggest sugar source: ", // i18n:pending
-            sugarAToday: "Biggest sugar source so far: ", // i18n:pending
-            times: " (×{n})", // i18n:pending
-            sugarDay: " — {g}, {pct}% of the day’s sugar.", // i18n:pending
-            sugarToday: " — {g}, {pct}% of today’s sugar.", // i18n:pending
-            sugarRange: " — {g}, {pct}% of the period’s sugar.", // i18n:pending
-            streakA: "Calories in the target zone ", // i18n:pending
-            streakB: { one: "{n} day in a row", other: "{n} days in a row" }, // i18n:pending
-            streakToday: " up to yesterday.", // i18n:pending
-            streakPast: " — the current streak.", // i18n:pending
-            gapsA: "Gaps in the log: ", // i18n:pending
+            count: {
+                one: "{n} punto in evidenza",
+                other: "{n} punti in evidenza",
+            },
+            sugarA: "Fonte principale di zuccheri: ",
+            sugarAToday: "Fonte principale di zuccheri finora: ",
+            times: " (×{n})",
+            sugarDay: " — {g}, il {pct}% degli zuccheri del giorno.",
+            sugarToday: " — {g}, il {pct}% degli zuccheri di oggi.",
+            sugarRange: " — {g}, il {pct}% degli zuccheri del periodo.",
+            streakA: "Calorie nella zona obiettivo ",
+            streakB: {
+                one: "per {n} giorno di fila",
+                other: "per {n} giorni di fila",
+            },
+            streakToday: " fino a ieri.",
+            streakPast: " — la serie attuale.",
+            gapsA: "Vuoti nel diario: ",
             gapsB: {
-                one: "{n} day with nothing logged", // i18n:pending
-                other: "{n} days with nothing logged", // i18n:pending
+                one: "{n} giorno senza registrazioni",
+                other: "{n} giorni senza registrazioni",
             },
-            gapsC: " — averages cover logged days only.", // i18n:pending
+            gapsC: " — le medie considerano solo i giorni registrati.",
             overRange: {
-                one: "{label} went over on {n} day", // i18n:pending
-                other: "{label} went over on {n} days", // i18n:pending
+                one: "{label} oltre il limite in {n} giorno",
+                other: "{label} oltre il limite in {n} giorni",
             },
-            overToday: "{label} is over so far", // i18n:pending
-            overPast: "{label} went over", // i18n:pending
-            overEach: " — largest source: {name}, {x} each time (×{n}).", // i18n:pending
-            overTotal: " — largest source: {name}, {x} in total (×{n}).", // i18n:pending
-            overOnce: " — largest source: {name}, {x}.", // i18n:pending
+            overToday: "{label} oltre il limite finora",
+            overPast: "{label} oltre il limite",
+            overEach: " — fonte principale: {name}, {x} ogni volta (×{n}).",
+            overTotal: " — fonte principale: {name}, {x} in totale (×{n}).",
+            overOnce: " — fonte principale: {name}, {x}.",
             shortRange: {
-                one: "{label} fell short on {n} day", // i18n:pending
-                other: "{label} fell short on {n} days", // i18n:pending
+                one: "{label} sotto l'obiettivo in {n} giorno",
+                other: "{label} sotto l'obiettivo in {n} giorni",
             },
-            shortToday: "{label} is still short", // i18n:pending
-            shortPast: "{label} fell short", // i18n:pending
-            shortFood: " — {name}, logged before, has {x} for {kcal} kcal.", // i18n:pending
-            allMetA: "Nothing missed: ", // i18n:pending
-            allMetRange: "every goal mostly met", // i18n:pending
-            allMetPast: "every goal met", // i18n:pending
-            allMetToday: "every goal on track", // i18n:pending
-            allMetC: ".", // i18n:pending
+            shortToday: "{label} ancora sotto l'obiettivo",
+            shortPast: "{label} sotto l'obiettivo",
+            shortFood:
+                " — {name}, già registrato, contiene {x} per {kcal} kcal.",
+            allMetA: "Niente di mancato: ",
+            allMetRange: "tutti gli obiettivi quasi sempre raggiunti",
+            allMetPast: "tutti gli obiettivi raggiunti",
+            allMetToday: "tutti gli obiettivi in linea",
+            allMetC: ".",
         },
         rest: {
-            kcalLeft: "Calories left", // i18n:pending
-            kcalOver: "Calories over", // i18n:pending
-            water: "Water still to drink", // i18n:pending
-            togo: "{label} still to go", // i18n:pending
-            foodLabel: "Logged before:", // i18n:pending
-            food: "{name} — {x} {label}, {kcal} kcal.", // i18n:pending
+            kcalLeft: "Calorie rimanenti",
+            kcalOver: "Calorie in eccesso",
+            water: "Acqua ancora da bere",
+            togo: "{label} ancora da raggiungere",
+            foodLabel: "Registrato in passato:",
+            food: "{name} — {x} {label}, {kcal} kcal.",
             summary: {
-                one: "{n} amount left", // i18n:pending
-                other: "{n} amounts left", // i18n:pending
+                one: "{n} quantità rimanente",
+                other: "{n} quantità rimanenti",
             },
-            reached: "every target reached so far", // i18n:pending
+            reached: "tutti gli obiettivi raggiunti finora",
         },
         facts: {
-            water: "Water {v}", // i18n:pending
-            waterOf: "Water {v} of {goal}", // i18n:pending
-            waterDay: "Water {v} a day", // i18n:pending
-            weight: "{v}", // i18n:pending
-            weightChg: "{v} ({chg})", // i18n:pending
-            trend: "{label} {dir}", // i18n:pending
-            biggest: "Biggest meal: {name}", // i18n:pending
+            water: "Acqua {v}",
+            waterOf: "Acqua {v} su {goal}",
+            waterDay: "Acqua {v} al giorno",
+            weight: "{v}",
+            weightChg: "{v} ({chg})",
+            trend: "{label} {dir}",
+            biggest: "Pasto più abbondante: {name}",
         },
         summaries: {
-            over: "{n} over", // i18n:pending
-            near: "{n} near limit", // i18n:pending
-            short: "{n} short", // i18n:pending
-            togo: "{n} to go", // i18n:pending
-            met: "{n} met", // i18n:pending
-            onTrack: "{n} on track", // i18n:pending
-            mostlyMet: "{n} mostly met", // i18n:pending
-            mixed: "{n} mixed", // i18n:pending
-            mostlyMissed: "{n} mostly missed", // i18n:pending
-            noGoals: "no goals recorded", // i18n:pending
-            rising: "{n} rising", // i18n:pending
-            falling: "{n} falling", // i18n:pending
-            steady: "{n} steady", // i18n:pending
-            notEnough: "not enough data", // i18n:pending
-            metrics: { one: "{n} metric", other: "{n} metrics" }, // i18n:pending
-            water: "Water {v}", // i18n:pending
-            noWater: "no water", // i18n:pending
-            weight: "Weight {v}", // i18n:pending
-            noWeigh: "no weigh-in", // i18n:pending
-            daysLogged: "{n} of {of} days logged", // i18n:pending
-            mealSpan: "{meals} · {from}–{to}", // i18n:pending
+            over: "{n} oltre",
+            near: "{n} quasi al limite",
+            short: "{n} sotto",
+            togo: "{n} da raggiungere",
+            met: "{n} raggiunti",
+            onTrack: "{n} in linea",
+            mostlyMet: "{n} quasi raggiunti",
+            mixed: "{n} alterni",
+            mostlyMissed: "{n} quasi sempre mancati",
+            noGoals: "nessun obiettivo registrato",
+            rising: "{n} in aumento",
+            falling: "{n} in calo",
+            steady: "{n} stabili",
+            notEnough: "dati insufficienti",
+            metrics: { one: "{n} parametro", other: "{n} parametri" },
+            water: "Acqua {v}",
+            noWater: "nessuna acqua",
+            weight: "Peso {v}",
+            noWeigh: "nessuna pesata",
+            daysLogged: "{n} giorni registrati su {of}",
+            mealSpan: "{meals} · {from}–{to}",
         },
     },
 };

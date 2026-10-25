@@ -550,7 +550,7 @@ export const TOOLS_ES: ToolsDoc = {
             description:
                 "Un resumen de un periodo —ayer, hoy hasta ahora o los últimos 7 o 30 días— como tarjeta interactiva: calorías y todos los nutrientes frente a tus objetivos, tendencias respecto al periodo anterior, agua y peso, tus comidas o hábitos de registro y algunos datos destacados de tu propio registro.",
             params: {
-                period: "<code>yesterday</code> (por defecto), <code>today</code>, <code>last_7_days</code> o <code>last_30_days</code>. Ambos periodos terminan ayer.",
+                period: "<code>yesterday</code> (por defecto), <code>today</code>, <code>last_7_days</code> o <code>last_30_days</code>. Los dos periodos de varios días terminan ayer.",
             },
             example: "¿Qué tal me fue ayer?",
         },

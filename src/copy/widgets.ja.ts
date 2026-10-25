@@ -83,95 +83,92 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             other: "{n}日分を記録",
         },
         daysOfLogged: "{span}日中{logged}日を記録",
-        periodToday: "Today", // i18n:pending
-        periodPastDay: "Past day", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        ofGoal: "of {goal} kcal", // i18n:pending
-        avgOfGoal: "avg/day of {goal} kcal", // i18n:pending
-        left: "{amount} left", // i18n:pending
-        over: "{amount} over", // i18n:pending
-        toGo: "{amount} to go", // i18n:pending
-        above: "{amount} above", // i18n:pending
-        onTarget: "on target", // i18n:pending
-        goalMet: "goal met", // i18n:pending
-        noLimit: "no limit", // i18n:pending
-        none: "none", // i18n:pending
-        notRecorded: "Not recorded", // i18n:pending
-        leftToday: "{amount} left today", // i18n:pending
-        overToday: "{amount} over today", // i18n:pending
-        leftThatDay: "{amount} left that day", // i18n:pending
-        overThatDay: "{amount} over that day", // i18n:pending
-        underGoal: "{amount} under goal", // i18n:pending
-        overGoal: "{amount} over goal", // i18n:pending
-        peak: "peak {amount}", // i18n:pending
+        periodToday: "今日",
+        periodPastDay: "指定日",
+        showMore: "もっと見る",
+        showLess: "表示を減らす",
+        collapseAll: "すべて折りたたむ",
+        ofGoal: "/ {goal} kcal",
+        avgOfGoal: "1日平均 / {goal} kcal",
+        left: "残り{amount}",
+        over: "{amount}超過",
+        toGo: "あと{amount}",
+        above: "{amount}多め",
+        onTarget: "目標どおり",
+        goalMet: "目標達成",
+        noLimit: "上限なし",
+        none: "なし",
+        notRecorded: "未記録",
+        leftToday: "今日の残り{amount}",
+        overToday: "今日は{amount}超過",
+        leftThatDay: "この日の残り{amount}",
+        overThatDay: "この日は{amount}超過",
+        underGoal: "目標より{amount}少なめ",
+        overGoal: "目標より{amount}多め",
+        peak: "最大 {amount}",
         mealsCount: {
-            one: "{n} meal", // i18n:pending
-            other: "{n} meals", // i18n:pending
+            one: "{n}食",
+            other: "{n}食",
         },
-        emptyToday: "No meals logged today yet", // i18n:pending
-        emptyThatDay: "No meals logged that day", // i18n:pending
-        emptyRange: "No meals logged in this range", // i18n:pending
-        statEatenSoFar: "Eaten so far", // i18n:pending
-        statEaten: "Eaten", // i18n:pending
-        statRemaining: "Remaining", // i18n:pending
-        statOverGoal: "Over goal", // i18n:pending
-        statMeals: "Meals", // i18n:pending
-        statLogged: "logged", // i18n:pending
-        statAvgDay: "Avg / day", // i18n:pending
-        statPeakDay: "Peak day", // i18n:pending
-        statLoggedDays: "Logged", // i18n:pending
-        statOfDays: "of {n} days", // i18n:pending
-        gaugeAriaToday:
-            "{eaten} of {goal} kcal today, {pct}% of goal, {status}.", // i18n:pending
+        emptyToday: "今日はまだ食事の記録がありません",
+        emptyThatDay: "この日は食事の記録がありません",
+        emptyRange: "この期間は食事の記録がありません",
+        statEatenSoFar: "ここまでの摂取",
+        statEaten: "摂取",
+        statRemaining: "残り",
+        statOverGoal: "目標超過",
+        statMeals: "食事",
+        statLogged: "件記録",
+        statAvgDay: "1日平均",
+        statPeakDay: "最大の日",
+        statLoggedDays: "記録日",
+        statOfDays: "/ {n}日",
+        gaugeAriaToday: "今日 {eaten} / {goal} kcal、目標の{pct}%、{status}。",
         gaugeAriaThatDay:
-            "{eaten} of {goal} kcal that day, {pct}% of goal, {status}.", // i18n:pending
+            "この日 {eaten} / {goal} kcal、目標の{pct}%、{status}。",
         gaugeAriaRange:
-            "Average {eaten} of {goal} kcal a day, {pct}% of goal, {status}.", // i18n:pending
-        gaugeAriaNoGoal: "{eaten} kcal.", // i18n:pending
-        gaugeAriaMeals: "Meals: {list}.", // i18n:pending
-        caloriesByDay: "Calories by day", // i18n:pending
+            "1日平均 {eaten} / {goal} kcal、目標の{pct}%、{status}。",
+        gaugeAriaNoGoal: "{eaten} kcal。",
+        gaugeAriaMeals: "食事：{list}。",
+        caloriesByDay: "日別のカロリー",
         mealTypes: {
-            breakfast: "Breakfast", // i18n:pending
-            lunch: "Lunch", // i18n:pending
-            dinner: "Dinner", // i18n:pending
-            snack: "Snack", // i18n:pending
+            breakfast: "朝食",
+            lunch: "昼食",
+            dinner: "夕食",
+            snack: "間食",
         },
         items: {
-            one: "{n} item", // i18n:pending
-            other: "{n} items", // i18n:pending
+            one: "材料{n}点",
+            other: "材料{n}点",
         },
-        totalOnlyShort: "total only", // i18n:pending
-        totalOnly: "Logged as a total, without ingredients.", // i18n:pending
-        goalLine: "goal", // i18n:pending
-        byDay: "By day", // i18n:pending
-        byDayPartial: "By day · recorded on {rec} of {logged} logged days", // i18n:pending
+        totalOnlyShort: "合計のみ",
+        totalOnly: "材料なしで合計のみ記録されています。",
+        goalLine: "目標",
+        byDay: "日別",
+        byDayPartial: "日別 · 記録日{logged}日中{rec}日に記録あり",
         byMealCount: {
-            one: "By meal · {n} meal", // i18n:pending
-            other: "By meal · {n} meals", // i18n:pending
+            one: "食事別 · {n}食",
+            other: "食事別 · {n}食",
         },
         notRecordedCount: {
-            one: "{n} not recorded", // i18n:pending
-            other: "{n} not recorded", // i18n:pending
+            one: "{n}食は未記録",
+            other: "{n}食は未記録",
         },
-        notRecordedToday: "{label} wasn't recorded for today's meals.", // i18n:pending
-        notRecordedThatDay: "{label} wasn't recorded for that day's meals.", // i18n:pending
-        notRecordedRange: "{label} wasn't recorded on any day in this range.", // i18n:pending
-        waterToday:
-            "Water is logged on its own, not with meals: {amount} today.", // i18n:pending
-        waterThatDay:
-            "Water is logged on its own, not with meals: {amount} that day.", // i18n:pending
-        waterRange: "Water is logged on its own, not with meals.", // i18n:pending
-        noneInToday: "{label}: none in today's meals.", // i18n:pending
-        noneInThatDay: "{label}: none in that day's meals.", // i18n:pending
-        noneInRange: "{label}: none in the listed meals.", // i18n:pending
-        topMeals: "Top meals", // i18n:pending
+        notRecordedToday: "今日の食事には{label}が記録されていません。",
+        notRecordedThatDay: "この日の食事には{label}が記録されていません。",
+        notRecordedRange: "この期間のどの日にも{label}は記録されていません。",
+        waterToday: "水分は食事とは別に記録されます：今日は{amount}。",
+        waterThatDay: "水分は食事とは別に記録されます：この日は{amount}。",
+        waterRange: "水分は食事とは別に記録されます。",
+        noneInToday: "{label}：今日の食事には含まれていません。",
+        noneInThatDay: "{label}：この日の食事には含まれていません。",
+        noneInRange: "{label}：一覧の食事には含まれていません。",
+        topMeals: "上位の食事",
         dailyAverages: {
-            one: "Daily averages · {n} logged day", // i18n:pending
-            other: "Daily averages · {n} logged days", // i18n:pending
+            one: "1日平均 · 記録日{n}日",
+            other: "1日平均 · 記録日{n}日",
         },
-        selected: "Selected {tip}", // i18n:pending
+        selected: "選択中：{tip}",
         months: [
             "1月",
             "2月",
@@ -189,232 +186,232 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
     },
     goalProgress: {
         loading: "目標の進捗を読み込み中…",
-        eyebrow: "Goal progress · {when}", // i18n:pending
-        today: "Today", // i18n:pending
-        todayAt: "Today, {time}", // i18n:pending
+        eyebrow: "目標の進捗 · {when}",
+        today: "今日",
+        todayAt: "今日 {time}",
         labels: {
-            calories: "Calories", // i18n:pending
-            protein: "Protein", // i18n:pending
-            carbs: "Carbs", // i18n:pending
-            fat: "Fat", // i18n:pending
-            fiber: "Fiber", // i18n:pending
-            sugar: "Sugar", // i18n:pending
-            added_sugar: "Added sugar", // i18n:pending
-            saturated: "Saturated fat", // i18n:pending
-            trans: "Trans fat", // i18n:pending
-            sodium: "Sodium", // i18n:pending
-            caffeine: "Caffeine", // i18n:pending
-            alcohol: "Alcohol", // i18n:pending
-            water: "Water", // i18n:pending
+            calories: "カロリー",
+            protein: "タンパク質",
+            carbs: "炭水化物",
+            fat: "脂質",
+            fiber: "食物繊維",
+            sugar: "糖類",
+            added_sugar: "添加糖",
+            saturated: "飽和脂肪酸",
+            trans: "トランス脂肪酸",
+            sodium: "ナトリウム",
+            caffeine: "カフェイン",
+            alcohol: "アルコール",
+            water: "水分",
         },
         names: {
-            calories: "calories", // i18n:pending
-            protein: "protein", // i18n:pending
-            carbs: "carbs", // i18n:pending
-            fat: "fat", // i18n:pending
-            fiber: "fiber", // i18n:pending
-            sugar: "sugar", // i18n:pending
-            added_sugar: "added sugar", // i18n:pending
-            saturated: "saturated fat", // i18n:pending
-            trans: "trans fat", // i18n:pending
-            sodium: "sodium", // i18n:pending
-            caffeine: "caffeine", // i18n:pending
-            alcohol: "alcohol", // i18n:pending
-            water: "water", // i18n:pending
+            calories: "カロリー",
+            protein: "タンパク質",
+            carbs: "炭水化物",
+            fat: "脂質",
+            fiber: "食物繊維",
+            sugar: "糖類",
+            added_sugar: "添加糖",
+            saturated: "飽和脂肪酸",
+            trans: "トランス脂肪酸",
+            sodium: "ナトリウム",
+            caffeine: "カフェイン",
+            alcohol: "アルコール",
+            water: "水分",
         },
-        satFatShort: "Sat. fat", // i18n:pending
-        kinds: { budget: "budget", target: "target", limit: "limit" }, // i18n:pending
+        satFatShort: "飽和脂肪",
+        kinds: { budget: "目安", target: "目標", limit: "上限" },
         units: {
-            kcal: "kcal", // i18n:pending
-            g: "g", // i18n:pending
-            mg: "mg", // i18n:pending
-            L: "L", // i18n:pending
-            ml: "ml", // i18n:pending
-            kg: "kg", // i18n:pending
-            lb: "lb", // i18n:pending
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            L: "L",
+            ml: "ml",
+            kg: "kg",
+            lb: "lb",
         },
-        listPair: "{a} and {b}", // i18n:pending
-        listMore: "{rest} and {last}", // i18n:pending
-        listSep: ", ", // i18n:pending
-        titleSep: " · ", // i18n:pending
-        titleSepPast: ", ", // i18n:pending
-        nothingToday: "Nothing logged today yet", // i18n:pending
-        nothingPast: "Nothing was logged that day", // i18n:pending
+        listPair: "{a}と{b}",
+        listMore: "{rest}、{last}",
+        listSep: "、",
+        titleSep: " · ",
+        titleSepPast: "、",
+        nothingToday: "今日はまだ何も記録されていません",
+        nothingPast: "この日は何も記録されていません",
         allOnTrack: {
-            one: "Your {n} goal is on track", // i18n:pending
-            other: "All {n} goals on track", // i18n:pending
+            one: "目標{n}件は順調",
+            other: "目標{n}件すべて順調",
         },
-        allMet: { one: "Your {n} goal was met", other: "All {n} goals met" }, // i18n:pending
-        overOne: "{a} is over", // i18n:pending
-        overNamed: "{list} are over", // i18n:pending
-        overMany: { one: "{n} limit is over", other: "{n} limits are over" }, // i18n:pending
-        nearNamed: "{list} near the limit", // i18n:pending
+        allMet: { one: "目標{n}件を達成", other: "目標{n}件すべて達成" },
+        overOne: "{a}が超過",
+        overNamed: "{list}が超過",
+        overMany: { one: "上限{n}件を超過", other: "上限{n}件を超過" },
+        nearNamed: "{list}が上限間近",
         nearMany: {
-            one: "{n} goal near the limit", // i18n:pending
-            other: "{n} goals near the limit", // i18n:pending
+            one: "目標{n}件が上限間近",
+            other: "目標{n}件が上限間近",
         },
-        toGoNamed: "{list} still to go", // i18n:pending
-        toGoMany: { one: "{n} target to go", other: "{n} targets to go" }, // i18n:pending
-        briefOverOne: "{a} over", // i18n:pending
-        briefOverMany: { one: "{n} over", other: "{n} over" }, // i18n:pending
-        briefNear: { one: "{n} near the limit", other: "{n} near the limit" }, // i18n:pending
-        briefToGoOne: "{a} to go", // i18n:pending
-        briefToGoMany: { one: "{n} target to go", other: "{n} targets to go" }, // i18n:pending
-        pastOverNamed: "{list} went over", // i18n:pending
+        toGoNamed: "{list}はまだ未達",
+        toGoMany: { one: "目標{n}件が未達", other: "目標{n}件が未達" },
+        briefOverOne: "{a}超過",
+        briefOverMany: { one: "{n}件超過", other: "{n}件超過" },
+        briefNear: { one: "{n}件が上限間近", other: "{n}件が上限間近" },
+        briefToGoOne: "{a}未達",
+        briefToGoMany: { one: "{n}件未達", other: "{n}件未達" },
+        pastOverNamed: "{list}が超過",
         pastOverMany: {
-            one: "{n} limit went over", // i18n:pending
-            other: "{n} limits went over", // i18n:pending
+            one: "上限{n}件を超過",
+            other: "上限{n}件を超過",
         },
-        pastShortNamed: "{list} fell short", // i18n:pending
+        pastShortNamed: "{list}が不足",
         pastShortMany: {
-            one: "{n} target fell short", // i18n:pending
-            other: "{n} targets fell short", // i18n:pending
+            one: "目標{n}件が不足",
+            other: "目標{n}件が不足",
         },
-        pastCloseNamed: "{list} came close", // i18n:pending
-        pastBriefOver: { one: "{n} over", other: "{n} over" }, // i18n:pending
-        pastBriefShort: { one: "{n} short", other: "{n} short" }, // i18n:pending
-        pastBriefMet: { one: "{n} met", other: "{n} met" }, // i18n:pending
-        noGoalsTitle: "No daily goals set", // i18n:pending
-        countersAria: "Goals by status", // i18n:pending
+        pastCloseNamed: "{list}が上限近く",
+        pastBriefOver: { one: "{n}件超過", other: "{n}件超過" },
+        pastBriefShort: { one: "{n}件不足", other: "{n}件不足" },
+        pastBriefMet: { one: "{n}件達成", other: "{n}件達成" },
+        noGoalsTitle: "1日の目標が未設定",
+        countersAria: "状態別の目標",
         counters: {
-            over: "Over", // i18n:pending
-            near: "Near limit", // i18n:pending
-            togo: "To go", // i18n:pending
-            ok: "On track", // i18n:pending
+            over: "超過",
+            near: "上限間近",
+            togo: "未達",
+            ok: "順調",
         },
         countersPast: {
-            over: "Over", // i18n:pending
-            near: "Near limit", // i18n:pending
-            togo: "Short", // i18n:pending
-            ok: "Met", // i18n:pending
+            over: "超過",
+            near: "上限間近",
+            togo: "不足",
+            ok: "達成",
         },
-        counterAria: "{label}: {n}. Show them", // i18n:pending
-        counterAriaZero: "{label}: {n}", // i18n:pending
-        nrNoteToday: "Not recorded today, so not counted: {list}", // i18n:pending
-        nrNotePast: "Not recorded that day, so not counted: {list}", // i18n:pending
+        counterAria: "{label}：{n}件。表示する",
+        counterAriaZero: "{label}：{n}件",
+        nrNoteToday: "今日は未記録のため集計外：{list}",
+        nrNotePast: "この日は未記録のため集計外：{list}",
         emptyToday:
-            "Once a meal or water is logged, this shows what is over, what is close and what is still to go.", // i18n:pending
-        emptyPast: "There is nothing to compare with the goals for that day.", // i18n:pending
-        dailyGoals: "Daily goals: {list}.", // i18n:pending
-        goalItem: "{value} {name}", // i18n:pending
-        goalLimitItem: "{value} {name} limit", // i18n:pending
+            "食事や水分を記録すると、超過している目標、上限に近い目標、まだ届いていない目標がここに表示されます。",
+        emptyPast: "この日は目標と比べる記録がありません。",
+        dailyGoals: "1日の目標：{list}。",
+        goalItem: "{name} {value}",
+        goalLimitItem: "{name}上限 {value}",
         noGoalsToday:
-            "No daily goals are set, so there is nothing to compare with. Logged today: {list}.", // i18n:pending
+            "1日の目標が未設定のため、比べる対象がありません。今日の記録：{list}。",
         noGoalsPast:
-            "No daily goals are set, so there is nothing to compare with. Logged that day: {list}.", // i18n:pending
+            "1日の目標が未設定のため、比べる対象がありません。この日の記録：{list}。",
         sections: {
-            over: "Over the limit", // i18n:pending
-            near: "Near the limit", // i18n:pending
-            togo: "Still to go", // i18n:pending
-            ok: "On track", // i18n:pending
-            nr: "Not recorded", // i18n:pending
+            over: "上限超過",
+            near: "上限間近",
+            togo: "未達",
+            ok: "順調",
+            nr: "未記録",
         },
         sectionsPast: {
-            over: "Went over", // i18n:pending
-            near: "Close to the limit", // i18n:pending
-            togo: "Fell short", // i18n:pending
-            ok: "Met", // i18n:pending
-            nr: "Not recorded", // i18n:pending
+            over: "上限超過",
+            near: "上限に近い",
+            togo: "不足",
+            ok: "達成",
+            nr: "未記録",
         },
-        showAll: "Show all goals", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        done: "Done", // i18n:pending
-        met: "Met", // i18n:pending
-        toGo: "to go", // i18n:pending
-        short: "short", // i18n:pending
-        over: "over", // i18n:pending
-        left: "left", // i18n:pending
-        under: "under", // i18n:pending
-        ofLimit: "of limit", // i18n:pending
-        notRecorded: "not recorded", // i18n:pending
-        noDayTotal: "no day total", // i18n:pending
-        ofGoal: "{value} of {goal}", // i18n:pending
-        rowAria: "{label} {kind}: {status}, {detail}", // i18n:pending
-        restTitle: "For the rest of today", // i18n:pending
-        cellCaloriesLeft: "Calories left", // i18n:pending
-        cellCalories: "Calories", // i18n:pending
-        cellToGo: "{label} to go", // i18n:pending
-        cellOver: "+{value} over", // i18n:pending
-        cellPct: "{pct}% of limit", // i18n:pending
-        cellAria: "{key}: {value}", // i18n:pending
-        hintOverK: "Over budget:", // i18n:pending
-        hintOver: "{over} above the {goal} budget.", // i18n:pending
-        hintOverWater: "{over} above the {goal} budget; water {left} to go.", // i18n:pending
-        hintFoodK: "Logged before:", // i18n:pending
-        hintFood: "{food} — {facts}.", // i18n:pending
-        hintToGoK: "Still to go:", // i18n:pending
-        hintWaterK: "Water:", // i18n:pending
-        hintOverLimitK: "Over the limit:", // i18n:pending
-        hintNearK: "Close to the limit:", // i18n:pending
-        hintList: "{list}.", // i18n:pending
+        showAll: "すべての目標を表示",
+        showMore: "もっと見る",
+        showLess: "表示を減らす",
+        collapseAll: "すべて折りたたむ",
+        done: "達成",
+        met: "達成",
+        toGo: "残り",
+        short: "不足",
+        over: "超過",
+        left: "残り",
+        under: "少なめ",
+        ofLimit: "上限比",
+        notRecorded: "未記録",
+        noDayTotal: "1日の合計なし",
+        ofGoal: "{value} / {goal}",
+        rowAria: "{label}（{kind}）：{status}、{detail}",
+        restTitle: "今日の残り",
+        cellCaloriesLeft: "残りカロリー",
+        cellCalories: "カロリー",
+        cellToGo: "{label}の残り",
+        cellOver: "+{value}超過",
+        cellPct: "上限の{pct}%",
+        cellAria: "{key}：{value}",
+        hintOverK: "目安超過：",
+        hintOver: "目安{goal}を{over}上回っています。",
+        hintOverWater: "目安{goal}を{over}上回っています。水分はあと{left}。",
+        hintFoodK: "以前の記録：",
+        hintFood: "{food} — {facts}。",
+        hintToGoK: "残り：",
+        hintWaterK: "水分：",
+        hintOverLimitK: "上限超過：",
+        hintNearK: "上限間近：",
+        hintList: "{list}。",
         waterLeft: {
-            one: "{left} to go, about {n} glass of 250 ml.", // i18n:pending
-            other: "{left} to go, about {n} glasses of 250 ml.", // i18n:pending
+            one: "あと{left}、250 mlのグラスで約{n}杯。",
+            other: "あと{left}、250 mlのグラスで約{n}杯。",
         },
-        hintAllK: "All set:", // i18n:pending
-        hintAll: "every goal is on track.", // i18n:pending
-        leadK: "Biggest source:", // i18n:pending
-        leadV: "{name} — {value} {nutrient}", // i18n:pending
-        gapTitle: "Foods you’ve logged before", // i18n:pending
-        mealsTitle: "Where it came from", // i18n:pending
-        waterToday: "Logged today", // i18n:pending
-        waterPast: "Logged that day", // i18n:pending
-        totalOnly: "total only", // i18n:pending
-        mealFallback: "Meal", // i18n:pending
+        hintAllK: "すべて順調：",
+        hintAll: "どの目標も順調です。",
+        leadK: "最大の摂取源：",
+        leadV: "{name} — {nutrient}{value}",
+        gapTitle: "以前に記録した食品",
+        mealsTitle: "内訳",
+        waterToday: "今日の記録",
+        waterPast: "この日の記録",
+        totalOnly: "合計のみ",
+        mealFallback: "食事",
         mealTypes: {
-            breakfast: "Breakfast", // i18n:pending
-            lunch: "Lunch", // i18n:pending
-            dinner: "Dinner", // i18n:pending
-            snack: "Snack", // i18n:pending
+            breakfast: "朝食",
+            lunch: "昼食",
+            dinner: "夕食",
+            snack: "間食",
         },
-        noMealsToday: "No meals logged today.", // i18n:pending
-        noMealsPast: "No meals logged that day.", // i18n:pending
-        noWaterToday: "No water logged today.", // i18n:pending
-        noWaterPast: "No water logged that day.", // i18n:pending
+        noMealsToday: "今日は食事の記録がありません。",
+        noMealsPast: "この日は食事の記録がありません。",
+        noWaterToday: "今日は水分の記録がありません。",
+        noWaterPast: "この日は水分の記録がありません。",
         otherMealsNone: {
-            one: "{n} other meal had none.", // i18n:pending
-            other: "{n} other meals had none.", // i18n:pending
+            one: "ほかの{n}食には含まれていません。",
+            other: "ほかの{n}食には含まれていません。",
         },
         missingNote: {
-            one: "Not recorded for {n} meal; the total counts only the meals that had it.", // i18n:pending
-            other: "Not recorded for {n} meals; the total counts only the meals that had it.", // i18n:pending
+            one: "{n}食で未記録のため、合計は記録のある食事のみを集計しています。",
+            other: "{n}食で未記録のため、合計は記録のある食事のみを集計しています。",
         },
-        nrOne: "{label} wasn’t recorded for “{meal}”, so there is no day total to compare with the {goal} {kind}.", // i18n:pending
+        nrOne: "「{meal}」に{label}が記録されていないため、{kind}{goal}と比べる1日の合計がありません。",
         nrMany: {
-            one: "{label} wasn’t recorded for {n} meal, so there is no day total to compare with the {goal} {kind}.", // i18n:pending
-            other: "{label} wasn’t recorded for {n} meals, so there is no day total to compare with the {goal} {kind}.", // i18n:pending
+            one: "{n}食に{label}が記録されていないため、{kind}{goal}と比べる1日の合計がありません。",
+            other: "{n}食に{label}が記録されていないため、{kind}{goal}と比べる1日の合計がありません。",
         },
         sources: {
-            usda: "USDA", // i18n:pending
-            openfoodfacts: "Open Food Facts", // i18n:pending
-            user: "your figure", // i18n:pending
-            estimate: "estimate", // i18n:pending
-            mixed: "mixed sources", // i18n:pending
+            usda: "USDA",
+            openfoodfacts: "Open Food Facts",
+            user: "入力値",
+            estimate: "推定",
+            mixed: "複数の出典",
         },
-        weight: "Weight", // i18n:pending
-        weightAbove: "{delta} above your {target} goal", // i18n:pending
-        weightBelow: "{delta} below your {target} goal", // i18n:pending
-        weightAt: "at your {target} goal", // i18n:pending
-        weightNoGoal: "no goal set", // i18n:pending
-        weightLatest: "latest reading, {date}", // i18n:pending
-        weightNone: "no reading yet", // i18n:pending
-        weightNoneGoal: "no reading yet · goal {target}", // i18n:pending
-        transNote: "no limit set, shown for reference", // i18n:pending
+        weight: "体重",
+        weightAbove: "目標{target}より{delta}上",
+        weightBelow: "目標{target}より{delta}下",
+        weightAt: "目標{target}に到達",
+        weightNoGoal: "目標未設定",
+        weightLatest: "最新の計測、{date}",
+        weightNone: "まだ計測なし",
+        weightNoneGoal: "まだ計測なし · 目標 {target}",
+        transNote: "上限は未設定、参考として表示",
         drinks: {
-            us: { one: "{n} US drink", other: "{n} US drinks" }, // i18n:pending
-            uk: { one: "{n} UK unit", other: "{n} UK units" }, // i18n:pending
+            us: { one: "US標準ドリンク{n}杯", other: "US標準ドリンク{n}杯" },
+            uk: { one: "UKユニット{n}", other: "UKユニット{n}" },
         },
     },
     mealLogged: {
-        logged: "logged", // i18n:pending
-        edited: "edited", // i18n:pending
-        thisMeal: "{amount} this meal", // i18n:pending
-        statThisMeal: "This meal", // i18n:pending
-        statToday: "Today", // i18n:pending
-        statLeftToday: "Left today", // i18n:pending
-        statLeftThatDay: "Left that day", // i18n:pending
+        logged: "記録",
+        edited: "編集",
+        thisMeal: "この食事 {amount}",
+        statThisMeal: "この食事",
+        statToday: "今日",
+        statLeftToday: "今日の残り",
+        statLeftThatDay: "この日の残り",
     },
     trends: {
         loading: "トレンドを読み込み中…",
@@ -446,108 +443,108 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         targetsAssumed: "{date}より前の目標は未記録",
         noTargets: "目標が未設定のため、平均のみ表示しています。",
         quarter: "{year}年 第{q}四半期",
-        today: "Today", // i18n:pending
-        daySoFar: "{day} (so far)", // i18n:pending
-        soFar: "so far", // i18n:pending
-        lastNDays: "Last {n} days", // i18n:pending
-        nDays: "{n} days", // i18n:pending
-        titleMetric: "{n}-day {metric} trend", // i18n:pending
+        today: "今日",
+        daySoFar: "{day}（途中）",
+        soFar: "途中",
+        lastNDays: "過去{n}日間",
+        nDays: "{n}日間",
+        titleMetric: "{n}日間の{metric}の推移",
         metricLabel: {
-            calories: "Calories", // i18n:pending
-            protein: "Protein", // i18n:pending
-            carbs: "Carbs", // i18n:pending
-            fat: "Fat", // i18n:pending
-            fiber: "Fiber", // i18n:pending
-            sugar: "Sugar", // i18n:pending
-            addedSugar: "Added sugar", // i18n:pending
-            saturated: "Saturated fat", // i18n:pending
-            trans: "Trans fat", // i18n:pending
-            sodium: "Sodium", // i18n:pending
-            caffeine: "Caffeine", // i18n:pending
-            water: "Water", // i18n:pending
-            alcohol: "Alcohol", // i18n:pending
+            calories: "カロリー",
+            protein: "タンパク質",
+            carbs: "炭水化物",
+            fat: "脂質",
+            fiber: "食物繊維",
+            sugar: "糖類",
+            addedSugar: "添加糖",
+            saturated: "飽和脂肪酸",
+            trans: "トランス脂肪酸",
+            sodium: "ナトリウム",
+            caffeine: "カフェイン",
+            water: "水分",
+            alcohol: "アルコール",
         },
         metricInTitle: {
-            calories: "calorie", // i18n:pending
-            protein: "protein", // i18n:pending
-            carbs: "carb", // i18n:pending
-            fat: "fat", // i18n:pending
-            fiber: "fiber", // i18n:pending
-            sugar: "sugar", // i18n:pending
-            addedSugar: "added sugar", // i18n:pending
-            saturated: "saturated fat", // i18n:pending
-            trans: "trans fat", // i18n:pending
-            sodium: "sodium", // i18n:pending
-            caffeine: "caffeine", // i18n:pending
-            water: "water", // i18n:pending
-            alcohol: "alcohol", // i18n:pending
+            calories: "カロリー",
+            protein: "タンパク質",
+            carbs: "炭水化物",
+            fat: "脂質",
+            fiber: "食物繊維",
+            sugar: "糖類",
+            addedSugar: "添加糖",
+            saturated: "飽和脂肪酸",
+            trans: "トランス脂肪酸",
+            sodium: "ナトリウム",
+            caffeine: "カフェイン",
+            water: "水分",
+            alcohol: "アルコール",
         },
-        pill: "{n}d", // i18n:pending
-        pillAria: "Show {n} days", // i18n:pending
-        metricsAria: "Choose a nutrient", // i18n:pending
-        scrollLeft: "Scroll left", // i18n:pending
-        scrollRight: "Scroll right", // i18n:pending
-        avgWord: "avg", // i18n:pending
-        perDay: "{unit}/day", // i18n:pending
-        chartTitle: "{metric} per day", // i18n:pending
-        chartAria: "{metric} per day over {n} days", // i18n:pending
-        loggedOf: "{a} of {n}", // i18n:pending
-        daysLoggedWord: "days logged", // i18n:pending
-        daysRecordedWord: "days recorded", // i18n:pending
-        belowGoal: "below goal", // i18n:pending
-        overGoal: "over goal", // i18n:pending
-        underLimit: "under limit", // i18n:pending
-        overLimit: "over limit", // i18n:pending
-        noGoalSet: "no goal set", // i18n:pending
-        heroGoal: "Goal {goal} · {pct} reached", // i18n:pending
-        heroGoalOver: "Goal {goal} · {pct} of goal", // i18n:pending
-        heroLimit: "Limit {goal} · {pct} used", // i18n:pending
-        heroNoGoal: "No goal set", // i18n:pending
-        todayNote: "Today is still in progress, so it isn’t averaged yet.", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
-        notRecorded: "not recorded", // i18n:pending
-        pctOfGoal: "{pct} of goal", // i18n:pending
-        pctOfLimit: "{pct} of limit", // i18n:pending
-        amountOverGoal: "{amount} over goal", // i18n:pending
-        amountOverLimit: "{amount} over limit", // i18n:pending
-        onTargetPct: "on target · {pct}", // i18n:pending
-        steady: "steady", // i18n:pending
-        noGoal: "no goal", // i18n:pending
+        pill: "{n}日",
+        pillAria: "{n}日間を表示",
+        metricsAria: "栄養素を選択",
+        scrollLeft: "左にスクロール",
+        scrollRight: "右にスクロール",
+        avgWord: "平均",
+        perDay: "{unit}/日",
+        chartTitle: "1日あたりの{metric}",
+        chartAria: "{n}日間の1日あたりの{metric}",
+        loggedOf: "{a}/{n}",
+        daysLoggedWord: "日を記録",
+        daysRecordedWord: "日に記録あり",
+        belowGoal: "目標未満",
+        overGoal: "目標超過",
+        underLimit: "上限未満",
+        overLimit: "上限超過",
+        noGoalSet: "目標未設定",
+        heroGoal: "目標 {goal} · {pct}達成",
+        heroGoalOver: "目標 {goal} · 目標の{pct}",
+        heroLimit: "上限 {goal} · {pct}使用",
+        heroNoGoal: "目標未設定",
+        todayNote: "今日はまだ途中のため、平均には含めていません。",
+        showMore: "もっと見る",
+        showLess: "表示を減らす",
+        collapseAll: "すべて折りたたむ",
+        notRecorded: "未記録",
+        pctOfGoal: "目標の{pct}",
+        pctOfLimit: "上限の{pct}",
+        amountOverGoal: "目標を{amount}超過",
+        amountOverLimit: "上限を{amount}超過",
+        onTargetPct: "目標内 · {pct}",
+        steady: "横ばい",
+        noGoal: "目標なし",
         notRecordedInRange:
-            "{metric} wasn’t recorded on any day in this range.", // i18n:pending
-        chipHigh: "High {value} {day}", // i18n:pending
-        chipLow: "Low {value} {day}", // i18n:pending
+            "この期間のどの日にも{metric}は記録されていません。",
+        chipHigh: "最高 {value} {day}",
+        chipLow: "最低 {value} {day}",
         chipOnTarget: {
-            one: "{value} day on target", // i18n:pending
-            other: "{value} days on target", // i18n:pending
+            one: "目標内 {value}日",
+            other: "目標内 {value}日",
         },
         chipOverLimit: {
-            one: "{value} day over limit", // i18n:pending
-            other: "{value} days over limit", // i18n:pending
+            one: "上限超過 {value}日",
+            other: "上限超過 {value}日",
         },
-        statDaysLogged: "Days logged", // i18n:pending
-        statDaysRecorded: "Days recorded", // i18n:pending
-        statOnTarget: "On target", // i18n:pending
-        statDaysOverLimit: "Days over limit", // i18n:pending
-        statBelowGoal: "Below goal", // i18n:pending
-        statOverGoal: "Over goal", // i18n:pending
-        statUnderLimit: "Under limit", // i18n:pending
-        statOverLimit: "Over limit", // i18n:pending
-        statNoGoal: "No goal set", // i18n:pending
+        statDaysLogged: "記録日数",
+        statDaysRecorded: "記録あり日数",
+        statOnTarget: "目標内",
+        statDaysOverLimit: "上限超過の日",
+        statBelowGoal: "目標未満",
+        statOverGoal: "目標超過",
+        statUnderLimit: "上限未満",
+        statOverLimit: "上限超過",
+        statNoGoal: "目標未設定",
         daysUnit: {
-            one: "day", // i18n:pending
-            other: "days", // i18n:pending
+            one: "日",
+            other: "日",
         },
-        showAllDays: "Show all {n} days", // i18n:pending
-        emptyTitle: "No meals logged in this period", // i18n:pending
-        emptyBody: "Your trend appears here once meals are logged.", // i18n:pending
+        showAllDays: "全{n}日を表示",
+        emptyTitle: "この期間は食事の記録がありません",
+        emptyBody: "食事を記録すると、ここに推移が表示されます。",
         drinkUnit: {
-            us: "drinks", // i18n:pending
-            uk: "units", // i18n:pending
+            us: "ドリンク",
+            uk: "ユニット",
         },
-        dayAria: "{day}, {value}", // i18n:pending
+        dayAria: "{day}、{value}",
     },
     weightTrends: {
         loading: "体重の推移を読み込み中…",
@@ -951,395 +948,396 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         liveFileError: "このファイルは使用できません。",
     },
     digest: {
-        loading: "Loading your digest…", // i18n:pending
-        eyebrow: "Nutrition digest · {range}", // i18n:pending
-        daySoFar: "{date} · so far, {time}", // i18n:pending
-        rangeEnds: "{range} · ends yesterday", // i18n:pending
+        loading: "ダイジェストを読み込み中…",
+        eyebrow: "栄養ダイジェスト · {range}",
+        daySoFar: "{date} · {time}時点",
+        rangeEnds: "{range} · 昨日まで",
         labels: {
-            calories: "Calories", // i18n:pending
-            protein_g: "Protein", // i18n:pending
-            carbs_g: "Carbs", // i18n:pending
-            fat_g: "Fat", // i18n:pending
-            fiber_g: "Fiber", // i18n:pending
-            sugar_g: "Sugar", // i18n:pending
-            added_sugar_g: "Added sugar", // i18n:pending
-            saturated_fat_g: "Saturated fat", // i18n:pending
-            trans_fat_g: "Trans fat", // i18n:pending
-            sodium_mg: "Sodium", // i18n:pending
-            caffeine_mg: "Caffeine", // i18n:pending
-            alcohol_g: "Alcohol", // i18n:pending
-            water_ml: "Water", // i18n:pending
-            weight: "Weight", // i18n:pending
+            calories: "カロリー",
+            protein_g: "タンパク質",
+            carbs_g: "炭水化物",
+            fat_g: "脂質",
+            fiber_g: "食物繊維",
+            sugar_g: "糖類",
+            added_sugar_g: "添加糖",
+            saturated_fat_g: "飽和脂肪酸",
+            trans_fat_g: "トランス脂肪酸",
+            sodium_mg: "ナトリウム",
+            caffeine_mg: "カフェイン",
+            alcohol_g: "アルコール",
+            water_ml: "水分",
+            weight: "体重",
         },
         inline: {
-            calories: "calories", // i18n:pending
-            protein_g: "protein", // i18n:pending
-            carbs_g: "carbs", // i18n:pending
-            fat_g: "fat", // i18n:pending
-            fiber_g: "fiber", // i18n:pending
-            sugar_g: "sugar", // i18n:pending
-            added_sugar_g: "added sugar", // i18n:pending
-            saturated_fat_g: "saturated fat", // i18n:pending
-            trans_fat_g: "trans fat", // i18n:pending
-            sodium_mg: "sodium", // i18n:pending
-            caffeine_mg: "caffeine", // i18n:pending
-            alcohol_g: "alcohol", // i18n:pending
-            water_ml: "water", // i18n:pending
-            weight: "weight", // i18n:pending
+            calories: "カロリー",
+            protein_g: "タンパク質",
+            carbs_g: "炭水化物",
+            fat_g: "脂質",
+            fiber_g: "食物繊維",
+            sugar_g: "糖類",
+            added_sugar_g: "添加糖",
+            saturated_fat_g: "飽和脂肪酸",
+            trans_fat_g: "トランス脂肪酸",
+            sodium_mg: "ナトリウム",
+            caffeine_mg: "カフェイン",
+            alcohol_g: "アルコール",
+            water_ml: "水分",
+            weight: "体重",
         },
         units: {
-            kcal: "kcal", // i18n:pending
-            g: "g", // i18n:pending
-            mg: "mg", // i18n:pending
-            L: "L", // i18n:pending
-            kg: "kg", // i18n:pending
-            lb: "lb", // i18n:pending
+            kcal: "kcal",
+            g: "g",
+            mg: "mg",
+            L: "L",
+            kg: "kg",
+            lb: "lb",
         },
-        drinkLabels: { us: "US drinks", uk: "UK units" }, // i18n:pending
-        sep: " · ", // i18n:pending
+        drinkLabels: { us: "US標準ドリンク", uk: "UKユニット" },
+        sep: " · ",
         verdict: {
-            calOverPast: "calories went over", // i18n:pending
-            calOverToday: "calories over budget", // i18n:pending
-            calOnTrack: "calories on track", // i18n:pending
-            calOnTarget: "calories on target", // i18n:pending
-            calJustUnder: "calories just under target", // i18n:pending
-            calUnder: "calories under target", // i18n:pending
-            calMostly: "calories mostly on target", // i18n:pending
-            calOverMost: "calories over most days", // i18n:pending
-            calUnderMost: "calories under target most days", // i18n:pending
-            calSome: "calories on target some days", // i18n:pending
-            overPast: "{list} went over", // i18n:pending
-            overToday: "{list} over", // i18n:pending
-            limitsOver: { one: "{n} limit over", other: "{n} limits over" }, // i18n:pending
-            shortPast: "{list} fell short", // i18n:pending
-            shortToday: "{list} to go", // i18n:pending
+            calOverPast: "カロリーが超過",
+            calOverToday: "カロリーが目安を超過",
+            calOnTrack: "カロリーは順調",
+            calOnTarget: "カロリーは目標内",
+            calJustUnder: "カロリーは目標をわずかに下回る",
+            calUnder: "カロリーは目標未満",
+            calMostly: "カロリーはおおむね目標内",
+            calOverMost: "カロリーはほとんどの日で超過",
+            calUnderMost: "カロリーはほとんどの日で目標未満",
+            calSome: "カロリーは一部の日で目標内",
+            overPast: "{list}が超過",
+            overToday: "{list}が超過",
+            limitsOver: { one: "上限{n}件を超過", other: "上限{n}件を超過" },
+            shortPast: "{list}が不足",
+            shortToday: "{list}が未達",
             targetsShortPast: {
-                one: "{n} target fell short", // i18n:pending
-                other: "{n} targets fell short", // i18n:pending
+                one: "目標{n}件が不足",
+                other: "目標{n}件が不足",
             },
             targetsShortToday: {
-                one: "{n} target to go", // i18n:pending
-                other: "{n} targets to go", // i18n:pending
+                one: "目標{n}件が未達",
+                other: "目標{n}件が未達",
             },
-            allMetPast: "every goal met", // i18n:pending
-            allMetToday: "every goal on track", // i18n:pending
-            rising: "{label} rising", // i18n:pending
-            falling: "{label} falling", // i18n:pending
-            logged: "logged {n} of {of} days", // i18n:pending
-            missTarget: "{label} short most days", // i18n:pending
-            missLimit: "{label} often over", // i18n:pending
-            noMiss: "no goal missed most days", // i18n:pending
+            allMetPast: "すべての目標を達成",
+            allMetToday: "すべての目標が順調",
+            rising: "{label}が増加",
+            falling: "{label}が減少",
+            logged: "{of}日中{n}日を記録",
+            missTarget: "{label}はほとんどの日で不足",
+            missLimit: "{label}はたびたび超過",
+            noMiss: "ほとんどの日で未達の目標なし",
         },
         emptyTitle: {
-            today: "Nothing logged today yet", // i18n:pending
-            yesterday: "Nothing was logged yesterday", // i18n:pending
-            range: "Nothing logged in the last {n} days", // i18n:pending
+            today: "今日はまだ何も記録されていません",
+            yesterday: "昨日は何も記録されていません",
+            range: "過去{n}日間は何も記録されていません",
         },
         emptyText: {
-            today: "Meals, water and weigh-ins you log today show up here, with goals and trends.", // i18n:pending
-            day: "Meals, water and weigh-ins you log for a day show up here, with goals and trends.", // i18n:pending
-            range: "Meals, water and weigh-ins you log over a period show up here, with goals and trends.", // i18n:pending
+            today: "今日記録した食事・水分・体重が、目標や推移とともにここに表示されます。",
+            day: "その日に記録した食事・水分・体重が、目標や推移とともにここに表示されます。",
+            range: "期間中に記録した食事・水分・体重が、目標や推移とともにここに表示されます。",
         },
-        intakeDay: "{kcal} kcal · {meals}", // i18n:pending
-        intakeRange: "{kcal} kcal a day · logged {n} of {of} days", // i18n:pending
-        mealCount: { one: "{n} meal", other: "{n} meals" }, // i18n:pending
-        noGoals: "No goals set", // i18n:pending
-        averagesOnly: "Only the averages and goals are available in this view.", // i18n:pending
+        intakeDay: "{kcal} kcal · {meals}",
+        intakeRange: "1日{kcal} kcal · {of}日中{n}日を記録",
+        mealCount: { one: "{n}食", other: "{n}食" },
+        noGoals: "目標未設定",
+        averagesOnly: "この表示では平均と目標のみ確認できます。",
         score: {
-            met: "{n} of {of} goals met", // i18n:pending
-            onTrack: "{n} of {of} goals on track", // i18n:pending
-            mostly: "{n} of {of} goals mostly met", // i18n:pending
-            partial: "{score} · partial logs", // i18n:pending
+            met: "目標{of}件中{n}件を達成",
+            onTrack: "目標{of}件中{n}件が順調",
+            mostly: "目標{of}件中{n}件をおおむね達成",
+            partial: "{score} · 記録は一部のみ",
         },
         sections: {
-            calories: "Calories", // i18n:pending
-            goals: "Goals at a glance", // i18n:pending
-            trends: "Trends", // i18n:pending
-            nutrients: "Nutrients", // i18n:pending
-            cards: "Water & weight", // i18n:pending
-            cardsHidden: "Water and weight", // i18n:pending
-            meals: "Meals", // i18n:pending
-            highlights: "Highlights", // i18n:pending
-            rest: "For the rest of today", // i18n:pending
+            calories: "カロリー",
+            goals: "目標の概要",
+            trends: "推移",
+            nutrients: "栄養素",
+            cards: "水分と体重",
+            cardsHidden: "水分と体重",
+            meals: "食事",
+            highlights: "ハイライト",
+            rest: "今日の残り",
         },
         meta: {
-            final: "final", // i18n:pending
-            soFar: "so far", // i18n:pending
-            rightNow: "right now", // i18n:pending
-            daysMet: "days met / logged", // i18n:pending
-            dailyAvg: "Daily average, logged days", // i18n:pending
-            dayTotal: "Day total", // i18n:pending
-            soFarToday: "So far today", // i18n:pending
-            tapMeal: "tap a meal for items", // i18n:pending
-            habits: "logging habits", // i18n:pending
-            last14: "last 14 days", // i18n:pending
-            last14Today: "last 14 days · today so far", // i18n:pending
-            fewDays: "few days logged · read loosely", // i18n:pending
-            vsPrev: "vs previous {n} days (grey)", // i18n:pending
-            waterAvg: "water: daily avg", // i18n:pending
+            final: "確定",
+            soFar: "途中",
+            rightNow: "現在",
+            daysMet: "達成日 / 記録日",
+            dailyAvg: "1日平均（記録日）",
+            dayTotal: "1日の合計",
+            soFarToday: "今日のここまで",
+            tapMeal: "食事をタップで内訳",
+            habits: "記録の習慣",
+            last14: "過去14日間",
+            last14Today: "過去14日間 · 今日は途中",
+            fewDays: "記録日が少ないため参考程度",
+            vsPrev: "前の{n}日間と比較（グレー）",
+            waterAvg: "水分：1日平均",
         },
-        fold: "Fold {section}", // i18n:pending
-        unfold: "Unfold {section}", // i18n:pending
-        showMore: "Show more", // i18n:pending
-        showLess: "Show less", // i18n:pending
-        collapseAll: "Collapse all", // i18n:pending
+        fold: "{section}を閉じる",
+        unfold: "{section}を開く",
+        showMore: "もっと見る",
+        showLess: "表示を減らす",
+        collapseAll: "すべて折りたたむ",
         gauge: {
-            ofGoal: "of {goal} kcal", // i18n:pending
-            kcal: "kcal", // i18n:pending
-            aria: "{kcal} of {goal} kcal {when}, {pct}% of goal.", // i18n:pending
-            ariaNoGoal: "{kcal} kcal {when}.", // i18n:pending
-            onDate: "on {date}", // i18n:pending
-            soFarToday: "so far today", // i18n:pending
-            ariaMeals: "Meals: {list}", // i18n:pending
-            ariaMeal: "{name} {kcal} kcal", // i18n:pending
-            segment: "{name}, {kcal} kcal", // i18n:pending
-            finished: "You finished {b} your goal", // i18n:pending
-            kcalUnder: "{x} kcal under", // i18n:pending
-            kcalOver: "{x} kcal over", // i18n:pending
-            kcalLeft: "{x} kcal left", // i18n:pending
-            todayLine: "{b} · {meals} so far", // i18n:pending
-            mealsOnly: "{meals}", // i18n:pending
-            hint: "Tap a meal piece for details", // i18n:pending
-            popMeta: "{meta} · {pct}% of the day’s goal", // i18n:pending
-            popMetaNoGoal: "{meta}", // i18n:pending
-            totalOnly: "Logged as a total, no items", // i18n:pending
-            closeMeal: "Close meal details", // i18n:pending
+            ofGoal: "/ {goal} kcal",
+            kcal: "kcal",
+            aria: "{when}：{kcal} / {goal} kcal、目標の{pct}%。",
+            ariaNoGoal: "{when}：{kcal} kcal。",
+            onDate: "{date}",
+            soFarToday: "今日のここまで",
+            ariaMeals: "食事：{list}",
+            ariaMeal: "{name} {kcal} kcal",
+            segment: "{name}、{kcal} kcal",
+            finished: "1日の結果：目標より{b}",
+            kcalUnder: "{x} kcal少ない",
+            kcalOver: "{x} kcal超過",
+            kcalLeft: "残り{x} kcal",
+            todayLine: "{b} · ここまで{meals}",
+            mealsOnly: "{meals}",
+            hint: "食事の部分をタップすると詳細を表示",
+            popMeta: "{meta} · 1日の目標の{pct}%",
+            popMetaNoGoal: "{meta}",
+            totalOnly: "合計のみの記録（材料なし）",
+            closeMeal: "食事の詳細を閉じる",
         },
         range: {
-            avg: "avg", // i18n:pending
-            kcalDay: "kcal/day", // i18n:pending
-            rightOn: "right on your {goal} kcal goal", // i18n:pending
-            overGoal: "{x} kcal over your {goal} kcal goal", // i18n:pending
-            underGoal: "{x} kcal under your {goal} kcal goal", // i18n:pending
-            footMet: "{met} of {n}", // i18n:pending
-            footRest: "logged days on target", // i18n:pending
-            footOver: "{n} over", // i18n:pending
-            footUnder: "{n} under", // i18n:pending
-            legendOn: "on target", // i18n:pending
-            legendUnder: "under", // i18n:pending
-            legendOver: "over", // i18n:pending
-            zone: "Target zone {lo}–{hi} kcal", // i18n:pending
-            prev: "Previous {n} days: {avg} kcal/day", // i18n:pending
-            barNone: "{date}: nothing logged", // i18n:pending
-            barOver: "{date}: {kcal} kcal, over goal", // i18n:pending
-            barOn: "{date}: {kcal} kcal, on target", // i18n:pending
-            barUnder: "{date}: {kcal} kcal, under target", // i18n:pending
-            barPlain: "{date}: {kcal} kcal", // i18n:pending
-            popSub: "{kcal} kcal · {meals}", // i18n:pending
-            popOver: "{x} over", // i18n:pending
-            nothingThisDay: "Nothing logged this day", // i18n:pending
-            closeDay: "Close day details", // i18n:pending
+            avg: "平均",
+            kcalDay: "kcal/日",
+            rightOn: "目標{goal} kcalちょうど",
+            overGoal: "目標{goal} kcalより{x} kcal多い",
+            underGoal: "目標{goal} kcalより{x} kcal少ない",
+            footMet: "{n}日中{met}日",
+            footRest: "記録日のうち目標内",
+            footOver: "超過{n}日",
+            footUnder: "未満{n}日",
+            legendOn: "目標内",
+            legendUnder: "未満",
+            legendOver: "超過",
+            zone: "目標範囲 {lo}–{hi} kcal",
+            prev: "前の{n}日間：{avg} kcal/日",
+            barNone: "{date}：記録なし",
+            barOver: "{date}：{kcal} kcal、目標超過",
+            barOn: "{date}：{kcal} kcal、目標内",
+            barUnder: "{date}：{kcal} kcal、目標未満",
+            barPlain: "{date}：{kcal} kcal",
+            popSub: "{kcal} kcal · {meals}",
+            popOver: "{x}超過",
+            nothingThisDay: "この日は記録なし",
+            closeDay: "日の詳細を閉じる",
         },
         groups: {
-            over: "Over", // i18n:pending
-            near: "Near limit", // i18n:pending
-            short: "Short", // i18n:pending
-            togo: "To go", // i18n:pending
-            met: "Met", // i18n:pending
-            onTrack: "On track", // i18n:pending
-            mostlyMet: "Mostly met", // i18n:pending
-            mixed: "Mixed", // i18n:pending
-            mostlyMissed: "Mostly missed", // i18n:pending
-            days: { one: "day", other: "days" }, // i18n:pending
+            over: "超過",
+            near: "上限間近",
+            short: "不足",
+            togo: "未達",
+            met: "達成",
+            onTrack: "順調",
+            mostlyMet: "おおむね達成",
+            mixed: "まちまち",
+            mostlyMissed: "ほぼ未達",
+            days: { one: "日", other: "日" },
             nrDay: {
-                one: "{list} wasn’t recorded — left out of the goals.", // i18n:pending
-                other: "{list} weren’t recorded — left out of the goals.", // i18n:pending
+                one: "{list}は未記録のため、目標から除外しています。",
+                other: "{list}は未記録のため、目標から除外しています。",
             },
             nrRange: {
-                one: "{list} wasn’t recorded on any day — left out of the goals.", // i18n:pending
-                other: "{list} weren’t recorded on any day — left out of the goals.", // i18n:pending
+                one: "{list}はどの日にも記録がないため、目標から除外しています。",
+                other: "{list}はどの日にも記録がないため、目標から除外しています。",
             },
         },
         trends: {
-            rising: "↑ rising", // i18n:pending
-            falling: "↓ falling", // i18n:pending
-            noClear: "→ no clear trend", // i18n:pending
-            steady: "→ steady", // i18n:pending
-            avg7: "7-day avg {a}, was {b}", // i18n:pending
-            todaySoFar: "Today so far {v}", // i18n:pending
-            noneToday: "None so far today", // i18n:pending
-            nothingToday: "Nothing logged yet today", // i18n:pending
-            dayAboutAvg: "Yesterday ≈ avg", // i18n:pending
-            dayVsAvg: "Yesterday {pct}% vs avg", // i18n:pending
-            noneDay: "None yesterday", // i18n:pending
-            notLoggedDay: "Not logged yesterday", // i18n:pending
-            perDay: "{d} a day", // i18n:pending
-            was: "was {b} a day", // i18n:pending
-            wasAvg: "was {b} avg", // i18n:pending
-            steadyNote: "Steady: {list}.", // i18n:pending
-            alsoNote: "Also moving: {list}.", // i18n:pending
-            mixedNote: "Up and down, no clear trend: {list}.", // i18n:pending
-            fewNote: "Too few logged days to tell: {list}.", // i18n:pending
-            none: "Not enough logged days yet to show trends.", // i18n:pending
-            aria: "{label}: {dir}, {l1}, {l2}", // i18n:pending
+            rising: "↑ 増加",
+            falling: "↓ 減少",
+            noClear: "→ 明確な傾向なし",
+            steady: "→ 横ばい",
+            avg7: "7日平均 {a}（以前は{b}）",
+            todaySoFar: "今日のここまで {v}",
+            noneToday: "今日はまだなし",
+            nothingToday: "今日はまだ記録なし",
+            dayAboutAvg: "昨日 ≈ 平均",
+            dayVsAvg: "昨日は平均比{pct}%",
+            noneDay: "昨日はなし",
+            notLoggedDay: "昨日は記録なし",
+            perDay: "1日{d}",
+            was: "以前は1日{b}",
+            wasAvg: "以前は平均{b}",
+            steadyNote: "横ばい：{list}。",
+            alsoNote: "ほかに変化：{list}。",
+            mixedNote: "増減があり明確な傾向なし：{list}。",
+            fewNote: "記録日が少なく判断できません：{list}。",
+            none: "推移を表示するには、まだ記録日が足りません。",
+            aria: "{label}：{dir}、{l1}、{l2}",
             dirWord: {
-                rising: "rising", // i18n:pending
-                falling: "falling", // i18n:pending
-                noClear: "no clear trend", // i18n:pending
-                steady: "steady", // i18n:pending
+                rising: "増加",
+                falling: "減少",
+                noClear: "明確な傾向なし",
+                steady: "横ばい",
             },
         },
         table: {
-            noGoal: "no goal", // i18n:pending
-            notRecorded: "not recorded", // i18n:pending
-            notLogged: "not logged", // i18n:pending
-            over: "+{x} over", // i18n:pending
-            short: "{x} short", // i18n:pending
-            togo: "{x} to go", // i18n:pending
-            met: "met", // i18n:pending
-            done: "done", // i18n:pending
-            none: "none", // i18n:pending
-            under: "{x} under", // i18n:pending
-            left: "{x} left", // i18n:pending
-            onTarget: "on target", // i18n:pending
-            nearLimit: "near limit", // i18n:pending
-            atLimit: "at limit", // i18n:pending
-            target: "/ ≥ {g}", // i18n:pending
-            limit: "/ ≤ {g}", // i18n:pending
-            noGoalUnit: "{u} · no goal", // i18n:pending
-            sparse: "Only {n} of {of} days logged — averages cover logged days only.", // i18n:pending
-            partial: "Recorded on fewer days: {list}.", // i18n:pending
-            partialItem: "{label} {n} of {of}", // i18n:pending
-            ariaTarget: "{label}: {value}, target {goal}, {delta}", // i18n:pending
-            ariaLimit: "{label}: {value}, limit {goal}, {delta}", // i18n:pending
-            ariaPlain: "{label}: {value}", // i18n:pending
+            noGoal: "目標なし",
+            notRecorded: "未記録",
+            notLogged: "記録なし",
+            over: "+{x}超過",
+            short: "{x}不足",
+            togo: "残り{x}",
+            met: "達成",
+            done: "達成",
+            none: "なし",
+            under: "{x}少なめ",
+            left: "残り{x}",
+            onTarget: "目標内",
+            nearLimit: "上限間近",
+            atLimit: "上限ちょうど",
+            target: "/ ≥ {g}",
+            limit: "/ ≤ {g}",
+            noGoalUnit: "{u} · 目標なし",
+            sparse: "{of}日中{n}日のみ記録。平均は記録日だけが対象です。",
+            partial: "記録日が少ない項目：{list}。",
+            partialItem: "{label} {of}日中{n}日",
+            ariaTarget: "{label}：{value}、目標 {goal}、{delta}",
+            ariaLimit: "{label}：{value}、上限 {goal}、{delta}",
+            ariaPlain: "{label}：{value}",
         },
         water: {
-            of: "of {goal}", // i18n:pending
-            aDay: "a day", // i18n:pending
-            metDays: "goal met {n} of {of} days", // i18n:pending
-            noneToday: "No water logged yet today", // i18n:pending
-            noneDay: "No water logged that day", // i18n:pending
-            noneRange: "No water logged in this period", // i18n:pending
-            dot: "{date}: {v}", // i18n:pending
+            of: "/ {goal}",
+            aDay: "/日",
+            metDays: "{of}日中{n}日で目標達成",
+            noneToday: "今日はまだ水分の記録なし",
+            noneDay: "この日は水分の記録なし",
+            noneRange: "この期間は水分の記録なし",
+            dot: "{date}：{v}",
         },
         weight: {
-            thisMorning: "Weighed in this morning", // i18n:pending
-            thatMorning: "Weighed in that day", // i18n:pending
-            last: "Last weigh-in {date}", // i18n:pending
-            noChange: "no change", // i18n:pending
-            vs: "vs {date}", // i18n:pending
-            first: "first weigh-in", // i18n:pending
-            latest: "Latest · {date}", // i18n:pending
+            thisMorning: "今朝計測",
+            thatMorning: "この日に計測",
+            last: "最終計測 {date}",
+            noChange: "変化なし",
+            vs: "{date}比",
+            first: "初回の計測",
+            latest: "最新 · {date}",
             since: {
-                one: "since {date} · {n} weigh‑in", // i18n:pending
-                other: "since {date} · {n} weigh‑ins", // i18n:pending
+                one: "{date}から · 計測{n}回",
+                other: "{date}から · 計測{n}回",
             },
-            only1: "only 1 weigh‑in this period", // i18n:pending
-            goal: "Goal {v}", // i18n:pending
-            noneRecent: "No recent weigh-in · last {v} on {date}", // i18n:pending
-            noneYet: "No weigh-ins yet", // i18n:pending
-            nonePeriod: "No weigh-in this period · last {v} on {date}", // i18n:pending
+            only1: "この期間の計測は1回のみ",
+            goal: "目標 {v}",
+            noneRecent: "最近の計測なし · 最終は{date}の{v}",
+            noneYet: "まだ計測なし",
+            nonePeriod: "この期間の計測なし · 最終は{date}の{v}",
         },
         meals: {
             types: {
-                breakfast: "Breakfast", // i18n:pending
-                lunch: "Lunch", // i18n:pending
-                dinner: "Dinner", // i18n:pending
-                snack: "Snack", // i18n:pending
-                drink: "Drink", // i18n:pending
+                breakfast: "朝食",
+                lunch: "昼食",
+                dinner: "夕食",
+                snack: "間食",
+                drink: "飲み物",
             },
-            macro: "{x} {label}", // i18n:pending
-            totalOnly: "total only", // i18n:pending
-            daysLogged: "Days logged", // i18n:pending
-            mealsADay: "Meals a day", // i18n:pending
-            ofDays: "{n} of {of}", // i18n:pending
-            typical: "Typical times", // i18n:pending
-            typicalItem: "{type} {time}", // i18n:pending
-            topFoods: "Top foods by calories", // i18n:pending
-            times: "×{n}", // i18n:pending
-            best: "Best day", // i18n:pending
-            tough: "Toughest day", // i18n:pending
-            goalsMet: "{n} of {of} goals met", // i18n:pending
-            whyOver: "{list} over", // i18n:pending
-            whyLimits: { one: "{n} limit over", other: "{n} limits over" }, // i18n:pending
-            whyShort: "{list} short", // i18n:pending
-            whyAll: "every recorded goal met", // i18n:pending
+            macro: "{label} {x}",
+            totalOnly: "合計のみ",
+            daysLogged: "記録日数",
+            mealsADay: "1日の食事数",
+            ofDays: "{n}/{of}",
+            typical: "いつもの時刻",
+            typicalItem: "{type} {time}",
+            topFoods: "カロリーの多い食品",
+            times: "×{n}",
+            best: "最も良かった日",
+            tough: "最も厳しかった日",
+            goalsMet: "目標{of}件中{n}件を達成",
+            whyOver: "{list}が超過",
+            whyLimits: { one: "上限{n}件を超過", other: "上限{n}件を超過" },
+            whyShort: "{list}が不足",
+            whyAll: "記録したすべての目標を達成",
         },
         highlights: {
-            count: { one: "{n} highlight", other: "{n} highlights" }, // i18n:pending
-            sugarA: "Biggest sugar source: ", // i18n:pending
-            sugarAToday: "Biggest sugar source so far: ", // i18n:pending
-            times: " (×{n})", // i18n:pending
-            sugarDay: " — {g}, {pct}% of the day’s sugar.", // i18n:pending
-            sugarToday: " — {g}, {pct}% of today’s sugar.", // i18n:pending
-            sugarRange: " — {g}, {pct}% of the period’s sugar.", // i18n:pending
-            streakA: "Calories in the target zone ", // i18n:pending
-            streakB: { one: "{n} day in a row", other: "{n} days in a row" }, // i18n:pending
-            streakToday: " up to yesterday.", // i18n:pending
-            streakPast: " — the current streak.", // i18n:pending
-            gapsA: "Gaps in the log: ", // i18n:pending
+            count: { one: "ハイライト{n}件", other: "ハイライト{n}件" },
+            sugarA: "最大の糖類の摂取源：",
+            sugarAToday: "ここまでの最大の糖類の摂取源：",
+            times: "（×{n}）",
+            sugarDay: " — {g}、この日の糖類の{pct}%。",
+            sugarToday: " — {g}、今日の糖類の{pct}%。",
+            sugarRange: " — {g}、期間中の糖類の{pct}%。",
+            streakA: "カロリーが目標範囲内：",
+            streakB: { one: "{n}日連続", other: "{n}日連続" },
+            streakToday: "（昨日まで）。",
+            streakPast: " — 現在も継続中。",
+            gapsA: "記録の空白：",
             gapsB: {
-                one: "{n} day with nothing logged", // i18n:pending
-                other: "{n} days with nothing logged", // i18n:pending
+                one: "記録のない日が{n}日",
+                other: "記録のない日が{n}日",
             },
-            gapsC: " — averages cover logged days only.", // i18n:pending
+            gapsC: " — 平均は記録日だけが対象です。",
             overRange: {
-                one: "{label} went over on {n} day", // i18n:pending
-                other: "{label} went over on {n} days", // i18n:pending
+                one: "{label}が{n}日で超過",
+                other: "{label}が{n}日で超過",
             },
-            overToday: "{label} is over so far", // i18n:pending
-            overPast: "{label} went over", // i18n:pending
-            overEach: " — largest source: {name}, {x} each time (×{n}).", // i18n:pending
-            overTotal: " — largest source: {name}, {x} in total (×{n}).", // i18n:pending
-            overOnce: " — largest source: {name}, {x}.", // i18n:pending
+            overToday: "{label}がここまでで超過",
+            overPast: "{label}が超過",
+            overEach: " — 最大の摂取源：{name}、1回あたり{x}（×{n}）。",
+            overTotal: " — 最大の摂取源：{name}、合計{x}（×{n}）。",
+            overOnce: " — 最大の摂取源：{name}、{x}。",
             shortRange: {
-                one: "{label} fell short on {n} day", // i18n:pending
-                other: "{label} fell short on {n} days", // i18n:pending
+                one: "{label}が{n}日で不足",
+                other: "{label}が{n}日で不足",
             },
-            shortToday: "{label} is still short", // i18n:pending
-            shortPast: "{label} fell short", // i18n:pending
-            shortFood: " — {name}, logged before, has {x} for {kcal} kcal.", // i18n:pending
-            allMetA: "Nothing missed: ", // i18n:pending
-            allMetRange: "every goal mostly met", // i18n:pending
-            allMetPast: "every goal met", // i18n:pending
-            allMetToday: "every goal on track", // i18n:pending
-            allMetC: ".", // i18n:pending
+            shortToday: "{label}はまだ不足",
+            shortPast: "{label}が不足",
+            shortFood:
+                " — 以前記録した{name}には{x}（{kcal} kcal）が含まれます。",
+            allMetA: "未達なし：",
+            allMetRange: "すべての目標をおおむね達成",
+            allMetPast: "すべての目標を達成",
+            allMetToday: "すべての目標が順調",
+            allMetC: "。",
         },
         rest: {
-            kcalLeft: "Calories left", // i18n:pending
-            kcalOver: "Calories over", // i18n:pending
-            water: "Water still to drink", // i18n:pending
-            togo: "{label} still to go", // i18n:pending
-            foodLabel: "Logged before:", // i18n:pending
-            food: "{name} — {x} {label}, {kcal} kcal.", // i18n:pending
+            kcalLeft: "残りカロリー",
+            kcalOver: "超過カロリー",
+            water: "残りの水分",
+            togo: "{label}の残り",
+            foodLabel: "以前の記録：",
+            food: "{name} — {label}{x}、{kcal} kcal。",
             summary: {
-                one: "{n} amount left", // i18n:pending
-                other: "{n} amounts left", // i18n:pending
+                one: "残り{n}項目",
+                other: "残り{n}項目",
             },
-            reached: "every target reached so far", // i18n:pending
+            reached: "ここまでですべての目標量に到達",
         },
         facts: {
-            water: "Water {v}", // i18n:pending
-            waterOf: "Water {v} of {goal}", // i18n:pending
-            waterDay: "Water {v} a day", // i18n:pending
-            weight: "{v}", // i18n:pending
-            weightChg: "{v} ({chg})", // i18n:pending
-            trend: "{label} {dir}", // i18n:pending
-            biggest: "Biggest meal: {name}", // i18n:pending
+            water: "水分 {v}",
+            waterOf: "水分 {v} / {goal}",
+            waterDay: "水分 1日{v}",
+            weight: "{v}",
+            weightChg: "{v}（{chg}）",
+            trend: "{label} {dir}",
+            biggest: "最大の食事：{name}",
         },
         summaries: {
-            over: "{n} over", // i18n:pending
-            near: "{n} near limit", // i18n:pending
-            short: "{n} short", // i18n:pending
-            togo: "{n} to go", // i18n:pending
-            met: "{n} met", // i18n:pending
-            onTrack: "{n} on track", // i18n:pending
-            mostlyMet: "{n} mostly met", // i18n:pending
-            mixed: "{n} mixed", // i18n:pending
-            mostlyMissed: "{n} mostly missed", // i18n:pending
-            noGoals: "no goals recorded", // i18n:pending
-            rising: "{n} rising", // i18n:pending
-            falling: "{n} falling", // i18n:pending
-            steady: "{n} steady", // i18n:pending
-            notEnough: "not enough data", // i18n:pending
-            metrics: { one: "{n} metric", other: "{n} metrics" }, // i18n:pending
-            water: "Water {v}", // i18n:pending
-            noWater: "no water", // i18n:pending
-            weight: "Weight {v}", // i18n:pending
-            noWeigh: "no weigh-in", // i18n:pending
-            daysLogged: "{n} of {of} days logged", // i18n:pending
-            mealSpan: "{meals} · {from}–{to}", // i18n:pending
+            over: "{n}件超過",
+            near: "{n}件が上限間近",
+            short: "{n}件不足",
+            togo: "{n}件未達",
+            met: "{n}件達成",
+            onTrack: "{n}件順調",
+            mostlyMet: "{n}件おおむね達成",
+            mixed: "{n}件まちまち",
+            mostlyMissed: "{n}件ほぼ未達",
+            noGoals: "目標の記録なし",
+            rising: "{n}件増加",
+            falling: "{n}件減少",
+            steady: "{n}件横ばい",
+            notEnough: "データ不足",
+            metrics: { one: "{n}項目", other: "{n}項目" },
+            water: "水分 {v}",
+            noWater: "水分なし",
+            weight: "体重 {v}",
+            noWeigh: "計測なし",
+            daysLogged: "{of}日中{n}日を記録",
+            mealSpan: "{meals} · {from}–{to}",
         },
     },
 };
