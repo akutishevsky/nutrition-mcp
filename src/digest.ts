@@ -28,7 +28,9 @@ import type {
     WaterEntry,
     WeightEntry,
 } from "./supabase.js";
-import { dateInTz, formatLocalDateTime, shiftLocalDate } from "./tz.js";
+import { localClock } from "./meal-times.js";
+import { dateInTz, shiftLocalDate } from "./tz.js";
+import { daysBetween } from "./weight-trend.js";
 import { fromGrams, type WeightUnit } from "./units.js";
 
 export const DIGEST_PERIODS = [
@@ -199,8 +201,6 @@ function slope(a: readonly (number | null)[]): number {
 
 const clip = (s: string, max = DIGEST_NAME_MAX) =>
     s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s;
-const localTime = (iso: string, tz: string) =>
-    formatLocalDateTime(iso, tz).slice(11, 16);
 const nameKey = (s: string) => s.trim().toLowerCase();
 
 function metricValue(m: Meal, key: DigestMetric): number | null {
@@ -575,7 +575,7 @@ export interface DigestResult {
 export function computeDigest(input: DigestInput): DigestResult {
     const { period, now, tz, goals, alcohol } = input;
     const today = dateInTz(now, tz);
-    const asOfNow = localTime(now.toISOString(), tz);
+    const asOfNow = localClock(now.toISOString(), tz);
     const dateAt = (i: number) => shiftLocalDate(today, -i);
     const isDay = period === "yesterday" || period === "today";
     const isToday = period === "today";
@@ -633,7 +633,7 @@ export function computeDigest(input: DigestInput): DigestResult {
     const cutBefore = <T extends { logged_at: string }>(
         list: readonly T[],
         hhmm: string,
-    ): T[] => list.filter((x) => localTime(x.logged_at, tz) <= hhmm);
+    ): T[] => list.filter((x) => localClock(x.logged_at, tz) <= hhmm);
     const dayAt = (i: number, cut: string | null = null): DayVals => {
         const date = dateAt(i);
         const ms = mealsBy.get(date) ?? [];
@@ -997,7 +997,7 @@ export function computeDigest(input: DigestInput): DigestResult {
     };
     const dayMeals = (d: DayVals) =>
         d.meals.slice(0, DIGEST_MEALS_PER_DAY).map((m) => ({
-            time: localTime(m.logged_at, tz),
+            time: localClock(m.logged_at, tz),
             name: clip(m.description),
             calories: r0(m.calories ?? 0),
         }));
@@ -1094,7 +1094,7 @@ export function computeDigest(input: DigestInput): DigestResult {
         ? day0.meals.slice(0, DIGEST_MEALS_PER_DAY).map((m) => {
               const its = input.items.get(m.id);
               return {
-                  time: localTime(m.logged_at, tz),
+                  time: localClock(m.logged_at, tz),
                   meal_type: m.meal_type,
                   name: clip(m.description),
                   calories: r0(m.calories ?? 0),
@@ -1122,7 +1122,7 @@ export function computeDigest(input: DigestInput): DigestResult {
     const allMeals = loggedDays.flatMap((d) => d.meals);
     if (!isDay && hasData) {
         const minutes = (m: Meal) => {
-            const t = localTime(m.logged_at, tz);
+            const t = localClock(m.logged_at, tz);
             return Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
         };
         const fmtMin = (x: number) => {
@@ -1525,14 +1525,6 @@ export function computeDigest(input: DigestInput): DigestResult {
         },
         meta,
     };
-}
-
-/** Whole days from `a` to `b` (YYYY-MM-DD). */
-function daysBetween(a: string, b: string): number {
-    return Math.round(
-        (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) /
-            86_400_000,
-    );
 }
 
 /** The logged meal (by name, from the user's own history) richest in `key`

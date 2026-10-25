@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildMealTimesMeta, mealClockTime } from "./meal-times.js";
+import { buildMealTimesMeta, localClock } from "./meal-times.js";
 
 const meal = (id: string, logged_at: string) => ({ id, logged_at });
 
@@ -17,12 +17,8 @@ describe("buildMealTimesMeta", () => {
 
     test("a late-evening meal keeps its local hour, never the UTC one", () => {
         // 21:00 in Kyiv is 18:00Z; the issue #68 shape.
-        expect(
-            mealClockTime(meal("a", "2026-10-24T18:00:00Z"), "Europe/Kyiv"),
-        ).toBe("21:00");
-        expect(mealClockTime(meal("a", "2026-10-24T00:30:00Z"), "UTC")).toBe(
-            "00:30",
-        );
+        expect(localClock("2026-10-24T18:00:00Z", "Europe/Kyiv")).toBe("21:00");
+        expect(localClock("2026-10-24T00:30:00Z", "UTC")).toBe("00:30");
     });
 
     test("current is the written meal's position, or null when absent", () => {

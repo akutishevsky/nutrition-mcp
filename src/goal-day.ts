@@ -1,6 +1,6 @@
 import type { MealItemValues } from "./meal-items.js";
 import type { Meal, WaterEntry } from "./supabase.js";
-import { formatLocalDateTime } from "./tz.js";
+import { localClock } from "./meal-times.js";
 
 /**
  * The goal-progress widget's day detail, under GOAL_DAY_META_KEY
@@ -14,8 +14,10 @@ import { formatLocalDateTime } from "./tz.js";
  *   the device clock.
  * - `meals`: one slot per structuredContent.meals row, in the same order (the
  *   rows carry no id, so the widget joins by position, as it does every other
- *   per-meal `_meta`): the meal's local time and which of the row's nutrients
- *   were not recorded. The rows print an unrecorded fiber or sugar as 0, which
+ *   per-meal `_meta`): which of the row's nutrients were not recorded. The
+ *   row's local time is not repeated here: get_goal_progress sends
+ *   MEAL_TIMES_META_KEY (buildMealTimesMeta, src/meal-times.ts) like the other
+ *   meal tools. The rows print an unrecorded fiber or sugar as 0, which
  *   the widget must not read as a measured zero.
  * - `water`: the day's water entries, local time and millilitres, oldest
  *   first; past GOAL_DAY_WATER_MAX only the latest are kept, so shares are
@@ -49,8 +51,6 @@ export const GOAL_DAY_ROW_NUTRIENTS = [
 export type GoalDayRowNutrient = (typeof GOAL_DAY_ROW_NUTRIENTS)[number];
 
 export interface GoalDayMeal {
-    /** Local HH:MM. */
-    time: string | null;
     /** Row nutrients this meal did not record (its row shows them as 0). */
     missing: GoalDayRowNutrient[];
 }
@@ -82,11 +82,6 @@ export interface GoalDayMeta {
     meals: GoalDayMeal[];
     water: GoalDayWater[];
     foods?: GoalDayFood[];
-}
-
-/** Local HH:MM of an instant. */
-export function localClock(instant: Date | string, tz: string): string {
-    return formatLocalDateTime(instant, tz).slice(11, 16);
 }
 
 const tenth = (v: number | null | undefined): number | null =>
@@ -227,7 +222,6 @@ export function buildGoalDayMeta(input: {
         v: 1,
         now: input.now ? localClock(input.now, input.tz) : null,
         meals: input.meals.map((m) => ({
-            time: localClock(m.logged_at, input.tz),
             missing: GOAL_DAY_ROW_NUTRIENTS.filter((k) => m[k] == null),
         })),
         water: [...input.water]

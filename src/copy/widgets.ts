@@ -50,10 +50,13 @@ import { WIDGET_STRINGS_TR } from "./widgets.tr.js";
 export interface PluralForms {
     one: string;
     other: string;
-    /** Optional CLDR categories for languages that need them — Polish and
-     *  Ukrainian put 2–4 in "few" ("3 posiłki", "3 страви"), which "other"
-     *  (their 5+ genitive) gets wrong. plural() uses a category when present
-     *  and falls back to "other" otherwise. */
+    /** Optional CLDR categories (Intl.PluralRules) for languages that need
+     *  them — Polish and Ukrainian put 2–4 in "few" ("3 posiłki", "3 страви")
+     *  and 5+ in "many", which a bare "other" gets wrong. plural() in
+     *  shared/i18n.js uses the category Intl.PluralRules selects when it is
+     *  present, else "other", then "one". */
+    zero?: string;
+    two?: string;
     few?: string;
     many?: string;
 }

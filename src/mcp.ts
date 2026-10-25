@@ -1273,7 +1273,8 @@ async function mealItemsMetaEntry(
     };
 }
 
-// get_goal_progress's GOAL_DAY_META_KEY entry (src/goal-day.ts). On today it
+// get_goal_progress's GOAL_DAY_META_KEY entry (src/goal-day.ts), with the rows'
+// MEAL_TIMES_META_KEY beside it (src/meal-times.ts). On today it
 // also reads the GOAL_DAY_HISTORY_DAYS before the date, and their ingredients,
 // for the foods the widget may name; a failed read drops only `foods` (logged
 // with a ref, never a user id), so the tool and the rest of the day detail
@@ -1319,6 +1320,9 @@ async function goalDayMetaEntry(
         }
     }
     return {
+        // Row times ride under the shared MEAL_TIMES_META_KEY, as on the other
+        // meal tools; GOAL_DAY_META_KEY carries only what is goal-progress's own.
+        [MEAL_TIMES_META_KEY]: buildMealTimesMeta(meals, tz),
         [GOAL_DAY_META_KEY]: buildGoalDayMeta({
             meals,
             water,

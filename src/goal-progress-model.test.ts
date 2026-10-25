@@ -373,7 +373,7 @@ describe("gpDayMetaOf", () => {
         });
         const out = gpDayMetaOf(JSON.parse(JSON.stringify(meta)))!;
         expect(out.now).toBe("20:45");
-        expect(out.meals).toEqual([{ time: "09:10", missing: ["fiber_g"] }]);
+        expect(out.meals).toEqual([{ missing: ["fiber_g"] }]);
         expect(out.water).toEqual([{ time: "10:00", ml: 300 }]);
         expect(out.foods?.[0]?.v.protein).toBe(17);
         expect(out.foods?.[0]?.v.caffeine).toBeNull();
@@ -394,10 +394,7 @@ describe("gpDayMetaOf", () => {
             ],
         })!;
         expect(out.now).toBeNull();
-        expect(out.meals).toEqual([
-            { time: null, missing: [] },
-            { time: null, missing: ["sugar_g"] },
-        ]);
+        expect(out.meals).toEqual([{ missing: [] }, { missing: ["sugar_g"] }]);
         expect(out.water).toEqual([{ time: "08:00", ml: 250 }]);
         expect(out.foods).toEqual([
             {

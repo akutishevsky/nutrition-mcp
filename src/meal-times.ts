@@ -11,6 +11,10 @@ import { formatLocalDateTime } from "./tz.js";
  * `times` is aligned BY POSITION with structuredContent.meals, exactly like
  * MEAL_ITEMS_META_KEY's `meals`: the rows carry no id.
  *
+ * The meal-logged, nutrition-summary and goal-progress widgets all read their
+ * rows' times from this one payload (get_goal_progress sends it beside
+ * GOAL_DAY_META_KEY, which no longer repeats a per-row time).
+ *
  * `current` is set only by the meal-progress tools (log_meal, update_meal,
  * log_saved_meal): the position of the meal the call wrote among those rows,
  * so the meal-logged widget can mark it without guessing from its description
@@ -25,10 +29,12 @@ export interface MealTimesMeta {
     current?: number | null;
 }
 
-/** Local "HH:MM" of a meal's logged_at in `tz`, the same slice every meal
- * listing prints (renderMealListing in src/meal-listing.ts). */
-export function mealClockTime(meal: Pick<Meal, "logged_at">, tz: string) {
-    return formatLocalDateTime(meal.logged_at, tz).slice(11, 16);
+/** Local "HH:MM" of an instant in `tz`, the same slice every meal listing
+ * prints (renderMealListing in src/meal-listing.ts). The one clock helper the
+ * widget `_meta` builders share: buildMealTimesMeta here, the goal-day water
+ * entries and `now` (src/goal-day.ts) and the digest (src/digest.ts). */
+export function localClock(instant: Date | string, tz: string): string {
+    return formatLocalDateTime(instant, tz).slice(11, 16);
 }
 
 /**
@@ -43,7 +49,7 @@ export function buildMealTimesMeta(
 ): MealTimesMeta {
     const meta: MealTimesMeta = {
         v: 1,
-        times: rowMeals.map((m) => mealClockTime(m, tz)),
+        times: rowMeals.map((m) => localClock(m.logged_at, tz)),
     };
     if (currentId !== undefined) {
         const i = rowMeals.findIndex((m) => m.id === currentId);

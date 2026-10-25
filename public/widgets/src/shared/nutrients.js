@@ -866,60 +866,6 @@ function nvUpdate(root, c, how) {
 }
 
 // ---- Payload helpers shared by the two templates ---------------------------
-// Sodium from the result's `_meta` (SodiumMeta, src/sodium.ts): the same shape
-// as saturated fat's, merged through shared/macros.js's withNutrient. A
-// missing, malformed or future-versioned payload merges nothing.
-function withSodium(raw, dates, vals, goal, meals) {
-    const p = raw && typeof raw === "object" && raw.v === 1 ? raw : null;
-    if (!p) return { vals, goal, meals, extraRows: null, contributors: null };
-    return withNutrient(
-        p,
-        "sodium_mg",
-        recordedMeanFor(p, dates),
-        vals,
-        goal,
-        meals,
-        true,
-    );
-}
-
-// The meal-items validator in shared/macros.js keeps the nutrients the strip
-// draws, which do not include sodium; this puts each item's sodium back from
-// the same payload, by the same position join (and only when it lines up).
-function withItemSodium(itemsPayload, rows) {
-    if (!itemsPayload || !Array.isArray(rows)) return rows;
-    if (itemsPayload.meals.length !== rows.length) return rows;
-    return rows.map((r, i) => {
-        if (!Array.isArray(r.items) || !r.items.length) return r;
-        const raw = itemsPayload.meals[i];
-        const entries = mealItemEntries(raw);
-        if (entries.length !== r.items.length) return r;
-        return Object.assign({}, r, {
-            items: r.items.map((it, j) => {
-                const s = raw[entries[j].index].sodium_mg;
-                return Object.assign({}, it, {
-                    sodium_mg: Number.isFinite(s) ? s : null,
-                });
-            }),
-        });
-    });
-}
-
-// MealTimesMeta (src/meal-times.ts), validated: untrusted like all `_meta`.
-// null unless `times` lines up with the `n` rows; a malformed entry is "".
-function mealTimesPayload(raw, n) {
-    if (!raw || typeof raw !== "object" || raw.v !== 1) return null;
-    if (!Array.isArray(raw.times) || raw.times.length !== n) return null;
-    return {
-        times: raw.times.map((t) =>
-            typeof t === "string" && /^\d{2}:\d{2}$/.test(t) ? t : "",
-        ),
-        current:
-            Number.isInteger(raw.current) && raw.current >= 0 && raw.current < n
-                ? raw.current
-                : null,
-    };
-}
 
 function nvItemsOf(items) {
     if (!Array.isArray(items) || !items.length) return null;

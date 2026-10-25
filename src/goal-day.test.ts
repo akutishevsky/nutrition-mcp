@@ -4,8 +4,8 @@ import {
     GOAL_DAY_FOODS_PER_NUTRIENT,
     GOAL_DAY_WATER_MAX,
     historyFoods,
-    localClock,
 } from "./goal-day.js";
+import { localClock } from "./meal-times.js";
 import type { MealItemValues } from "./meal-items.js";
 import type { Meal } from "./supabase.js";
 
@@ -150,7 +150,7 @@ describe("buildGoalDayMeta", () => {
         expect(meta).toEqual({
             v: 1,
             now: "22:05",
-            meals: [{ time: "21:30", missing: ["sugar_g"] }],
+            meals: [{ missing: ["sugar_g"] }],
             water: [
                 { time: "09:00", ml: 300 },
                 { time: "15:00", ml: 250 },

@@ -1261,14 +1261,14 @@
                     days: { "2026-10-24": 1251 },
                     meals: { a: 74, b: 78, c: 1025 },
                 },
+                "nutrition-mcp.com/meal-times": {
+                    v: 1,
+                    times: ["08:10", "10:40", "13:05"],
+                },
                 "nutrition-mcp.com/goal-day": {
                     v: 1,
                     now: "14:20",
-                    meals: [
-                        { time: "08:10", missing: [] },
-                        { time: "10:40", missing: [] },
-                        { time: "13:05", missing: [] },
-                    ],
+                    meals: [{ missing: [] }, { missing: [] }, { missing: [] }],
                     water: [
                         { time: "07:50", ml: 300 },
                         { time: "09:30", ml: 250 },
@@ -1312,6 +1312,7 @@
             const NUTRIENT_SOURCES_META_KEY =
                 "nutrition-mcp.com/nutrient-sources";
             const GOAL_DAY_META_KEY = "nutrition-mcp.com/goal-day";
+            const MEAL_TIMES_META_KEY = "nutrition-mcp.com/meal-times";
 
             // Payload field per model key, and the colour token per key.
             const GP_FIELD = {
@@ -1497,24 +1498,29 @@
                 const na = partOf(m(SODIUM_META_KEY));
                 Object.assign(
                     merged,
-                    withNutrient(
+                    withSodium(
                         na,
-                        "sodium_mg",
-                        recordedMeanFor(na, [date]),
+                        [date],
                         merged.vals,
                         merged.goal,
                         merged.meals,
-                        true,
                     ),
                 );
                 const itemsMeta = mealItemsPayload(m(MEAL_ITEMS_META_KEY));
-                const rows = withNutrientSources(
-                    nutrientSourcesPayload(m(NUTRIENT_SOURCES_META_KEY)),
-                    withMealItems(itemsMeta, merged.meals),
+                const rows = withItemSodium(
                     itemsMeta,
+                    withNutrientSources(
+                        nutrientSourcesPayload(m(NUTRIENT_SOURCES_META_KEY)),
+                        withMealItems(itemsMeta, merged.meals),
+                        itemsMeta,
+                    ),
                 );
                 const dm = gpDayMetaOf(m(GOAL_DAY_META_KEY));
                 const rowList = Array.isArray(rows) ? rows : [];
+                const rowTimes = mealTimesPayload(
+                    m(MEAL_TIMES_META_KEY),
+                    rowList.length,
+                );
                 const dayMeals =
                     dm && dm.meals.length === rowList.length ? dm.meals : null;
 
@@ -1558,23 +1564,16 @@
                             : finiteOr(r[f], null);
                     }
                     if (!alcoholOn) v.alcohol = null;
-                    // Ingredients: the strip's validated copies, plus sodium
-                    // read from the same raw slot (the shared item validator
-                    // predates it), by the same index.
+                    // Ingredients: the strip's validated copies, with sodium
+                    // put back by the shared withItemSodium (macros.js).
                     let items = null;
                     if (Array.isArray(r.items) && r.items.length) {
-                        const raw = itemsMeta ? itemsMeta.meals[i] : null;
-                        const entries = mealItemEntries(raw);
-                        items = r.items.map((it, k) => {
+                        items = r.items.map((it) => {
                             const iv = {};
                             for (const key of MEAL_KEYS) {
                                 iv[key] = finiteOr(it[GP_FIELD[key]], null);
                             }
-                            const src0 =
-                                entries.length === r.items.length
-                                    ? raw[entries[k].index]
-                                    : null;
-                            iv.sodium = finiteOr(src0 && src0.sodium_mg, null);
+                            iv.sodium = finiteOr(it.sodium_mg, null);
                             if (!alcoholOn) iv.alcohol = null;
                             const src = {};
                             const tags = it.sourceTags || {};
@@ -1600,7 +1599,7 @@
                             typeof r.meal_type === "string"
                                 ? r.meal_type
                                 : null,
-                        time: dayMeals ? dayMeals[i].time : null,
+                        time: rowTimes ? rowTimes.times[i] || null : null,
                         items,
                         v,
                     };

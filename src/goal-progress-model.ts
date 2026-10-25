@@ -410,10 +410,10 @@ export function gpItemsFor(key: GpKey, items: readonly GpItem[]): GpItem[] {
 // It arrives from the host, so it is untrusted: every field is rebuilt from
 // the shape src/goal-day.ts writes, anything else dropped. A payload that is
 // not an object with v === 1 is null, and the widget then renders without
-// meal times, water entries or logged foods.
+// water entries or logged foods. Row times are not here: the template reads
+// them from MEAL_TIMES_META_KEY with macros.js's mealTimesPayload.
 
 export interface GpDayMeal {
-    time: string | null;
     missing: string[];
 }
 
@@ -471,7 +471,6 @@ export function gpDayMetaOf(raw: unknown): GpDayMeta | null {
                       ? (m as Record<string, unknown>)
                       : {};
               return {
-                  time: gpClock(o.time),
                   missing: Array.isArray(o.missing)
                       ? o.missing.filter(
                             (k): k is string =>

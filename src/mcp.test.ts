@@ -12761,9 +12761,10 @@ describe("USDA end to end: get_food_macros then log_meal", () => {
 });
 
 // get_goal_progress's day detail (GOAL_DAY_META_KEY, built by buildGoalDayMeta
-// in src/goal-day.ts): meal times, unrecorded row nutrients, water entries and,
-// on today only, the user's own logged foods. In _meta, never structuredContent
-// (frozen), and the template must spell every key it reads.
+// in src/goal-day.ts): unrecorded row nutrients, water entries and, on today
+// only, the user's own logged foods; the rows' times ride beside it under the
+// shared MEAL_TIMES_META_KEY. In _meta, never structuredContent (frozen), and
+// the template must spell every key it reads.
 describe("get_goal_progress carries the day detail in _meta", () => {
     const DAY = "2026-07-26";
     async function call(client: Client, args: Record<string, unknown>) {
@@ -12796,8 +12797,18 @@ describe("get_goal_progress carries the day detail in _meta", () => {
                 expect(meta).toEqual({
                     v: 1,
                     now: null,
-                    meals: [{ time: "08:10", missing: ["fiber_g"] }],
+                    meals: [{ missing: ["fiber_g"] }],
                     water: [{ time: "07:50", ml: 300 }],
+                });
+            });
+            await withHttpClient("u1", mode, async (client) => {
+                const r = (await client.callTool({
+                    name: "get_goal_progress",
+                    arguments: { date: DAY },
+                })) as unknown as ToolResult;
+                expect(r._meta?.[MEAL_TIMES_META_KEY]).toEqual({
+                    v: 1,
+                    times: ["08:10"],
                 });
             });
             // No history read for a past day.
@@ -12886,6 +12897,7 @@ describe("get_goal_progress carries the day detail in _meta", () => {
         const html = await getWidgetHtml("goal-progress");
         for (const key of [
             GOAL_DAY_META_KEY,
+            MEAL_TIMES_META_KEY,
             SODIUM_META_KEY,
             ADDED_SUGAR_META_KEY,
             SATURATED_FAT_META_KEY,

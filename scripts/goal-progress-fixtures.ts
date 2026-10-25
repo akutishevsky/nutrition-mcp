@@ -17,6 +17,7 @@ import {
     type GoalDayFood,
 } from "../src/goal-day.js";
 import { buildMealItemsMeta, type MealItemValues } from "../src/meal-items.js";
+import { buildMealTimesMeta } from "../src/meal-times.js";
 import {
     buildNutrientSourcesMeta,
     type NutrientSources,
@@ -28,6 +29,7 @@ import {
     ADDED_SUGAR_META_KEY,
     GOAL_DAY_META_KEY,
     MEAL_ITEMS_META_KEY,
+    MEAL_TIMES_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
     SATURATED_FAT_META_KEY,
     SODIUM_META_KEY,
@@ -995,6 +997,7 @@ export function goalProgressFixture(
         }),
         ...(itemsMeta ? { [MEAL_ITEMS_META_KEY]: itemsMeta } : {}),
         ...(sources ? { [NUTRIENT_SOURCES_META_KEY]: sources } : {}),
+        [MEAL_TIMES_META_KEY]: buildMealTimesMeta(meals, "UTC"),
         [GOAL_DAY_META_KEY]: buildGoalDayMeta({
             meals,
             water,
