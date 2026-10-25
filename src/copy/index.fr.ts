@@ -485,6 +485,8 @@ export const INDEX_FR: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Calcule tes moyennes sur 7, 14 et 30 jours et ouvre la carte des tendances",
+                    get_digest:
+                        "Résume tes 7 derniers jours avec objectifs et points forts dans une seule carte",
                 },
                 messages: [
                     {
@@ -507,6 +509,10 @@ export const INDEX_FR: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],

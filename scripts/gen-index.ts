@@ -195,7 +195,7 @@ const EX_META: Record<
     "review-week": {
         icon: "fa-solid fa-chart-area",
         color: "pro",
-        tools: ["get_trends"],
+        tools: ["get_trends", "get_digest"],
     },
     "weight-trend": {
         icon: "fa-solid fa-weight-scale",
@@ -551,10 +551,13 @@ function exampleThread(
     s.messages.forEach((m, i) => {
         out.push(exampleMessage(m, doc));
         for (const c of s.cards ?? []) {
-            if (c.after !== i || !cardId) continue;
+            // A slide's own widget, except a digest, which a slide can add
+            // beside it (review-week asks get_trends and get_digest).
+            const id = c.kind === "digest" ? "digest-week" : cardId;
+            if (c.after !== i || !id) continue;
             const meal = c.kind === "meal-logged" ? (meals.shift() ?? "") : "";
             out.push(
-                `<div class="lp-card-slot">${renderCard(cardId, locale, meal)}</div>`,
+                `<div class="lp-card-slot">${renderCard(id, locale, meal)}</div>`,
             );
         }
     });

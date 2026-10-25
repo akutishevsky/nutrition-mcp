@@ -482,6 +482,8 @@ export const INDEX_TR: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Son 7, 14 ve 30 gününün ortalamasını alır ve eğilimler kartını açar",
+                    get_digest:
+                        "Son 7 gününü hedefler ve öne çıkanlarla tek bir kartta özetler",
                 },
                 messages: [
                     {
@@ -504,6 +506,10 @@ export const INDEX_TR: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],

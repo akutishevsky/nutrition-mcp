@@ -491,6 +491,8 @@ export const INDEX_JA: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "直近7日・14日・30日の平均を出し、トレンドカードを開く",
+                    get_digest:
+                        "直近7日間を目標と注目点とともに1枚のカードにまとめる",
                 },
                 messages: [
                     {
@@ -513,6 +515,10 @@ export const INDEX_JA: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
