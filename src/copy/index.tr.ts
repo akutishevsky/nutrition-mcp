@@ -456,7 +456,7 @@ export const INDEX_TR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, 2,300 mg sodium, your 25 g added-sugar limit and your 75 kg target weight.", // i18n:pending
+                        text: "Tamam: hedef 2.000 kcal ve 160 g protein, kafein 400 mg'ın altında. Geri kalan her şey olduğu gibi kaldı: 220 g karbonhidrat, 70 g yağ, 20 g doymuş yağ, 30 g lif, 2,5 L su, 2.300 mg sodyum, 25 g ilave şeker sınırın ve 75 kg hedef kilon.",
                     },
                     {
                         from: "user",
@@ -516,21 +516,21 @@ export const INDEX_TR: IndexDoc = {
             },
             {
                 id: "daily-digest",
-                title: "Check how a day went", // i18n:pending
+                title: "Bir günün nasıl geçtiğine bak",
                 description:
-                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals, and a few highlights drawn from your own log.", // i18n:pending
+                    "Dünün nasıl geçtiğini, bugünün ya da son 7 veya 30 günün nasıl gittiğini sor; sohbette bir özet kartı açılır: kalori ve takip ettiğin her besin hedeflerine göre, su ve kilo, günün öğünleri ve kendi kaydından çıkan birkaç öne çıkan nokta.",
                 toolNotes: {
                     get_digest:
-                        "Builds the digest for the period you ask about, with the day's meals listed", // i18n:pending
+                        "İstediğin dönem için özeti hazırlar; günün öğünleri de listelenir",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "how did yesterday go?", // i18n:pending
+                        text: "dün nasıl geçti?",
                     },
                     {
                         from: "ai",
-                        text: "Yesterday you logged 3 meals: 1,150 of your 2,000 kcal and 76 of your 160 g protein, so 850 kcal and 84 g protein are still to reach. Added sugar was 23 g of your 25 g limit, sodium 1,050 mg of 2,300 mg, and you logged 500 ml of water against 2,500 ml.", // i18n:pending
+                        text: "Dün 3 öğün kaydettin: 2.000 kcal hedefinin 1.150'si ve 160 g proteinin 76 g'ı; yani 850 kcal ve 84 g protein kaldı. İlave şeker 25 g sınırının 23 g'ıydı, sodyum 2.300 mg'ın 1.050 mg'ı, su da 2.500 ml hedefine karşı 500 ml kaydettin.",
                     },
                 ],
                 cards: [
@@ -669,23 +669,23 @@ export const INDEX_TR: IndexDoc = {
             },
             {
                 id: "track-sodium",
-                title: "Track sodium", // i18n:pending
+                title: "Sodyumu takip et",
                 description:
-                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. A salty meal shows its sodium next to that limit the moment it is logged, so you can see how much of the day it used.", // i18n:pending
+                    "Sodyum tuz değil, miligram cinsinden takip edilir; her öğünde, senin belirlediğin günlük bir sınıra karşı. Tuzlu bir öğün kaydedildiği anda sodyumu o sınırın yanında görünür; böylece günün ne kadarını kullandığını hemen görürsün.",
                 toolNotes: {
                     log_meal:
-                        "Logs the bowl with its sodium in milligrams, not salt", // i18n:pending
+                        "Kâseyi sodyumuyla birlikte miligram cinsinden kaydeder, tuz olarak değil",
                     set_nutrition_goals:
-                        "Sets the 2,300 mg daily sodium limit each meal is checked against", // i18n:pending
+                        "Her öğünün karşılaştırıldığı 2.300 mg günlük sodyum sınırını belirler",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "tonkotsu ramen with an egg for dinner, one big bowl", // i18n:pending
+                        text: "akşam yemeğinde yumurtalı bir kâse tonkotsu ramen, büyük boy",
                     },
                     {
                         from: "ai",
-                        text: "Logged dinner: about 610 kcal, 28 g protein and 2,640 mg sodium. That bowl alone is 340 mg over your 2,300 mg daily sodium limit.", // i18n:pending
+                        text: "Akşam yemeği kaydedildi: yaklaşık 610 kcal, 28 g protein ve 2.640 mg sodyum. Bu kâse tek başına günlük 2.300 mg sodyum sınırının 340 mg üzerinde.",
                     },
                 ],
                 cards: [
@@ -694,7 +694,7 @@ export const INDEX_TR: IndexDoc = {
                         after: 0,
                     },
                 ],
-                cardMeals: ["Tonkotsu ramen with egg (1 large bowl)"], // i18n:pending
+                cardMeals: ["Yumurtalı tonkotsu ramen (1 büyük kâse)"],
             },
             {
                 id: "import-history",

@@ -450,7 +450,7 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, 2,300 mg sodium, your 25 g added-sugar limit and your 75 kg target weight.", // i18n:pending
+                        text: "Klaar: nog 2.000 kcal en 160 g eiwit te halen, cafeïne onder 400 mg. Verder blijft alles zoals het was: 220 g koolhydraten, 70 g vet, 20 g verzadigd vet, 30 g vezels, 2,5 L water, 2.300 mg natrium, je limiet van 25 g toegevoegde suiker en je streefgewicht van 75 kg.",
                     },
                     {
                         from: "user",
@@ -510,21 +510,21 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 id: "daily-digest",
-                title: "Check how a day went", // i18n:pending
+                title: "Bekijk hoe een dag ging",
                 description:
-                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals, and a few highlights drawn from your own log.", // i18n:pending
+                    "Vraag hoe gisteren ging, of hoe vandaag of de afgelopen 7 of 30 dagen gaan, en er opent een samenvattingskaart in de chat: calorieën en elke bijgehouden voedingsstof tegen je doelen, water en gewicht, de maaltijden van de dag en een paar highlights uit je eigen dagboek.",
                 toolNotes: {
                     get_digest:
-                        "Builds the digest for the period you ask about, with the day's meals listed", // i18n:pending
+                        "Stelt de samenvatting op voor de periode die je vraagt, met de maaltijden van de dag erbij",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "how did yesterday go?", // i18n:pending
+                        text: "hoe ging gisteren?",
                     },
                     {
                         from: "ai",
-                        text: "Yesterday you logged 3 meals: 1,150 of your 2,000 kcal and 76 of your 160 g protein, so 850 kcal and 84 g protein are still to reach. Added sugar was 23 g of your 25 g limit, sodium 1,050 mg of 2,300 mg, and you logged 500 ml of water against 2,500 ml.", // i18n:pending
+                        text: "Gisteren heb je 3 maaltijden gelogd: 1.150 van je 2.000 kcal en 76 van je 160 g eiwit, dus nog 850 kcal en 84 g eiwit te gaan. Toegevoegde suiker zat op 23 g van je limiet van 25 g, natrium op 1.050 mg van 2.300 mg, en je kwam op 500 ml water van de 2.500 ml.",
                     },
                 ],
                 cards: [
@@ -663,23 +663,23 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 id: "track-sodium",
-                title: "Track sodium", // i18n:pending
+                title: "Natrium bijhouden",
                 description:
-                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. A salty meal shows its sodium next to that limit the moment it is logged, so you can see how much of the day it used.", // i18n:pending
+                    "Natrium wordt bijgehouden in milligram, niet als zout, bij elke maaltijd, tegen een dagelijkse limiet die je zelf instelt. Een zoute maaltijd toont zijn natrium direct naast die limiet zodra je hem logt, zodat je ziet hoeveel van de dag hij opgebruikte.",
                 toolNotes: {
                     log_meal:
-                        "Logs the bowl with its sodium in milligrams, not salt", // i18n:pending
+                        "Logt de kom met het natrium in milligram, niet als zout",
                     set_nutrition_goals:
-                        "Sets the 2,300 mg daily sodium limit each meal is checked against", // i18n:pending
+                        "Zet de dagelijkse natriumlimiet van 2.300 mg, waartegen elke maaltijd wordt gecontroleerd",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "tonkotsu ramen with an egg for dinner, one big bowl", // i18n:pending
+                        text: "tonkotsu ramen met ei voor het avondeten, één grote kom",
                     },
                     {
                         from: "ai",
-                        text: "Logged dinner: about 610 kcal, 28 g protein and 2,640 mg sodium. That bowl alone is 340 mg over your 2,300 mg daily sodium limit.", // i18n:pending
+                        text: "Gelogd als avondeten: ongeveer 610 kcal, 28 g eiwit en 2.640 mg natrium. Die kom alleen al is 340 mg boven je dagelijkse natriumlimiet van 2.300 mg.",
                     },
                 ],
                 cards: [
@@ -688,7 +688,7 @@ export const INDEX_NL: IndexDoc = {
                         after: 0,
                     },
                 ],
-                cardMeals: ["Tonkotsu ramen with egg (1 large bowl)"], // i18n:pending
+                cardMeals: ["Tonkotsu ramen met ei (1 grote kom)"],
             },
             {
                 id: "import-history",

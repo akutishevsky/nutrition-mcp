@@ -465,7 +465,7 @@ export const INDEX_JA: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, 2,300 mg sodium, your 25 g added-sugar limit and your 75 kg target weight.", // i18n:pending
+                        text: "設定しました：到達目標は2,000 kcalとタンパク質160 g、カフェインは400 mg未満です。ほかの値はそのままです：炭水化物220 g、脂質70 g、飽和脂肪酸20 g、食物繊維30 g、水分2.5 L、ナトリウム2,300 mg、添加糖の上限25 g、目標体重75 kg。",
                     },
                     {
                         from: "user",
@@ -525,21 +525,21 @@ export const INDEX_JA: IndexDoc = {
             },
             {
                 id: "daily-digest",
-                title: "Check how a day went", // i18n:pending
+                title: "1日の振り返りを確認",
                 description:
-                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals, and a few highlights drawn from your own log.", // i18n:pending
+                    "「昨日どうだった？」や、今日・直近7日・30日の調子を聞くと、ダイジェストカードがチャット内に開きます。カロリーと追跡しているすべての栄養素を目標と比べ、水分と体重、その日の食事、記録から拾った注目点もまとめます。",
                 toolNotes: {
                     get_digest:
-                        "Builds the digest for the period you ask about, with the day's meals listed", // i18n:pending
+                        "指定した期間のダイジェストを作成し、その日の食事も一覧表示",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "how did yesterday go?", // i18n:pending
+                        text: "昨日はどうだった？",
                     },
                     {
                         from: "ai",
-                        text: "Yesterday you logged 3 meals: 1,150 of your 2,000 kcal and 76 of your 160 g protein, so 850 kcal and 84 g protein are still to reach. Added sugar was 23 g of your 25 g limit, sodium 1,050 mg of 2,300 mg, and you logged 500 ml of water against 2,500 ml.", // i18n:pending
+                        text: "昨日は食事を3回記録していて、2,000 kcalの目標のうち1,150 kcal、160 gのタンパク質目標のうち76 gでした。あと850 kcalと84 gのタンパク質が残っています。添加糖は上限25 gのうち23 g、ナトリウムは2,300 mgのうち1,050 mg、水分は2,500 mlのうち500 mlを記録しています。",
                     },
                 ],
                 cards: [
@@ -675,23 +675,23 @@ export const INDEX_JA: IndexDoc = {
             },
             {
                 id: "track-sodium",
-                title: "Track sodium", // i18n:pending
+                title: "ナトリウムを記録",
                 description:
-                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. A salty meal shows its sodium next to that limit the moment it is logged, so you can see how much of the day it used.", // i18n:pending
+                    "ナトリウムは塩分ではなくミリグラムで、食事ごとに記録し、自分で決めた1日の上限と照らし合わせます。塩分の多い食事は、記録した瞬間にその上限の横にナトリウムが表示されるので、1日のうちどれくらい使ったかがわかります。",
                 toolNotes: {
                     log_meal:
-                        "Logs the bowl with its sodium in milligrams, not salt", // i18n:pending
+                        "ラーメンをナトリウムのミリグラム（塩分ではなく）で記録",
                     set_nutrition_goals:
-                        "Sets the 2,300 mg daily sodium limit each meal is checked against", // i18n:pending
+                        "食事ごとのチェックに使う1日のナトリウム上限2,300 mgを設定",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "tonkotsu ramen with an egg for dinner, one big bowl", // i18n:pending
+                        text: "夕食に味玉入りのとんこつラーメンを大盛りで1杯食べた",
                     },
                     {
                         from: "ai",
-                        text: "Logged dinner: about 610 kcal, 28 g protein and 2,640 mg sodium. That bowl alone is 340 mg over your 2,300 mg daily sodium limit.", // i18n:pending
+                        text: "夕食として記録しました：約610 kcal、タンパク質28 g、ナトリウム2,640 mg。この1杯だけで、1日のナトリウム上限2,300 mgを340 mg超えています。",
                     },
                 ],
                 cards: [
@@ -700,7 +700,7 @@ export const INDEX_JA: IndexDoc = {
                         after: 0,
                     },
                 ],
-                cardMeals: ["Tonkotsu ramen with egg (1 large bowl)"], // i18n:pending
+                cardMeals: ["とんこつラーメン味玉入り（大盛り1杯）"],
             },
             {
                 id: "import-history",

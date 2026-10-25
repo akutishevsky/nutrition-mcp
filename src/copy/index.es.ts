@@ -448,7 +448,7 @@ export const INDEX_ES: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, 2,300 mg sodium, your 25 g added-sugar limit and your 75 kg target weight.", // i18n:pending
+                        text: "Listo: te faltan 2000 kcal y 160 g de proteína para llegar, y la cafeína se queda por debajo de 400 mg. Lo demás sigue como estaba: 220 g de carbohidratos, 70 g de grasa, 20 g de grasa saturada, 30 g de fibra, 2,5 L de agua, 2300 mg de sodio, tu límite de 25 g de azúcar añadido y tu peso objetivo de 75 kg.",
                     },
                     {
                         from: "user",
@@ -508,21 +508,21 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 id: "daily-digest",
-                title: "Check how a day went", // i18n:pending
+                title: "Revisa cómo fue un día",
                 description:
-                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals, and a few highlights drawn from your own log.", // i18n:pending
+                    "Pregunta cómo fue ayer, o cómo van hoy o los últimos 7 o 30 días, y se abre en el chat una tarjeta de resumen: calorías y cada nutriente que registras frente a tus objetivos, agua y peso, las comidas del día y algunos destacados sacados de tu propio registro.",
                 toolNotes: {
                     get_digest:
-                        "Builds the digest for the period you ask about, with the day's meals listed", // i18n:pending
+                        "Genera el resumen del periodo que pidas, con las comidas del día",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "how did yesterday go?", // i18n:pending
+                        text: "¿qué tal fue ayer?",
                     },
                     {
                         from: "ai",
-                        text: "Yesterday you logged 3 meals: 1,150 of your 2,000 kcal and 76 of your 160 g protein, so 850 kcal and 84 g protein are still to reach. Added sugar was 23 g of your 25 g limit, sodium 1,050 mg of 2,300 mg, and you logged 500 ml of water against 2,500 ml.", // i18n:pending
+                        text: "Ayer registraste 3 comidas: 1150 de tus 2000 kcal y 76 de tus 160 g de proteína, así que te faltan 850 kcal y 84 g de proteína. El azúcar añadido fue de 23 g frente a tu límite de 25 g, el sodio de 1050 mg frente a 2300 mg, y registraste 500 ml de agua de los 2500 ml previstos.",
                     },
                 ],
                 cards: [
@@ -658,23 +658,23 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 id: "track-sodium",
-                title: "Track sodium", // i18n:pending
+                title: "Controla el sodio",
                 description:
-                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. A salty meal shows its sodium next to that limit the moment it is logged, so you can see how much of the day it used.", // i18n:pending
+                    "El sodio se registra en miligramos, no en sal, en cada comida, frente a un límite diario que tú fijas. Una comida salada muestra su sodio junto a ese límite en cuanto la registras, para que veas cuánto del día ha consumido.",
                 toolNotes: {
                     log_meal:
-                        "Logs the bowl with its sodium in milligrams, not salt", // i18n:pending
+                        "Registra el cuenco con su sodio en miligramos, no en sal",
                     set_nutrition_goals:
-                        "Sets the 2,300 mg daily sodium limit each meal is checked against", // i18n:pending
+                        "Fija el límite diario de sodio de 2300 mg con el que se compara cada comida",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "tonkotsu ramen with an egg for dinner, one big bowl", // i18n:pending
+                        text: "ramen tonkotsu con un huevo para cenar, un cuenco grande",
                     },
                     {
                         from: "ai",
-                        text: "Logged dinner: about 610 kcal, 28 g protein and 2,640 mg sodium. That bowl alone is 340 mg over your 2,300 mg daily sodium limit.", // i18n:pending
+                        text: "Cena registrada: unas 610 kcal, 28 g de proteína y 2640 mg de sodio. Ese cuenco por sí solo supera tu límite diario de sodio de 2300 mg en 340 mg.",
                     },
                 ],
                 cards: [
@@ -683,7 +683,7 @@ export const INDEX_ES: IndexDoc = {
                         after: 0,
                     },
                 ],
-                cardMeals: ["Tonkotsu ramen with egg (1 large bowl)"], // i18n:pending
+                cardMeals: ["Ramen tonkotsu con huevo (1 cuenco grande)"],
             },
             {
                 id: "import-history",

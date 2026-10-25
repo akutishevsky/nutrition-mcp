@@ -459,7 +459,7 @@ export const INDEX_UK: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, 2,300 mg sodium, your 25 g added-sugar limit and your 75 kg target weight.", // i18n:pending
+                        text: "Готово: ціль — 2 000 ккал і 160 г білка, кофеїн — менше 400 мг. Решта без змін: 220 г вуглеводів, 70 г жиру, 20 г насичених жирів, 30 г клітковини, 2,5 л води, 2 300 мг натрію, твій ліміт доданого цукру 25 г і цільова вага 75 кг.",
                     },
                     {
                         from: "user",
@@ -519,21 +519,21 @@ export const INDEX_UK: IndexDoc = {
             },
             {
                 id: "daily-digest",
-                title: "Check how a day went", // i18n:pending
+                title: "Перевір, як минув день",
                 description:
-                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals, and a few highlights drawn from your own log.", // i18n:pending
+                    "Спитай, як минув учорашній день, або як іде сьогодні чи останні 7 і 30 днів — і в чаті відкриється картка підсумку: калорії та кожна відстежувана поживна речовина порівняно з цілями, вода й вага, страви за день і кілька помітних моментів із твого журналу.",
                 toolNotes: {
                     get_digest:
-                        "Builds the digest for the period you ask about, with the day's meals listed", // i18n:pending
+                        "Будує підсумок за період, про який ти питаєш, зі списком страв за день",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "how did yesterday go?", // i18n:pending
+                        text: "як минув учорашній день?",
                     },
                     {
                         from: "ai",
-                        text: "Yesterday you logged 3 meals: 1,150 of your 2,000 kcal and 76 of your 160 g protein, so 850 kcal and 84 g protein are still to reach. Added sugar was 23 g of your 25 g limit, sodium 1,050 mg of 2,300 mg, and you logged 500 ml of water against 2,500 ml.", // i18n:pending
+                        text: "Учора ти записав 3 прийоми їжі: 1 150 із твоїх 2 000 ккал і 76 із 160 г білка, тож лишилося 850 ккал і 84 г білка. Доданого цукру було 23 г із ліміту 25 г, натрію 1 050 мг із 2 300 мг, а води ти записав 500 мл із 2 500 мл.",
                     },
                 ],
                 cards: [
@@ -673,23 +673,23 @@ export const INDEX_UK: IndexDoc = {
             },
             {
                 id: "track-sodium",
-                title: "Track sodium", // i18n:pending
+                title: "Стеж за натрієм",
                 description:
-                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. A salty meal shows its sodium next to that limit the moment it is logged, so you can see how much of the day it used.", // i18n:pending
+                    "Натрій рахується в міліграмах, а не в солі, для кожного прийому їжі відносно денного ліміту, який ти задаєш. Солона страва показує свій натрій поруч із цим лімітом одразу після запису, тож видно, яку частину дня вона забрала.",
                 toolNotes: {
                     log_meal:
-                        "Logs the bowl with its sodium in milligrams, not salt", // i18n:pending
+                        "Записує миску з натрієм у міліграмах, а не в солі",
                     set_nutrition_goals:
-                        "Sets the 2,300 mg daily sodium limit each meal is checked against", // i18n:pending
+                        "Встановлює денний ліміт натрію 2 300 мг, з яким перевіряється кожен прийом їжі",
                 },
                 messages: [
                     {
                         from: "user",
-                        text: "tonkotsu ramen with an egg for dinner, one big bowl", // i18n:pending
+                        text: "на вечерю тонкоцу рамен з яйцем, одна велика миска",
                     },
                     {
                         from: "ai",
-                        text: "Logged dinner: about 610 kcal, 28 g protein and 2,640 mg sodium. That bowl alone is 340 mg over your 2,300 mg daily sodium limit.", // i18n:pending
+                        text: "Записано вечерю: близько 610 ккал, 28 г білка і 2 640 мг натрію. Сама ця миска на 340 мг перевищує твій денний ліміт натрію 2 300 мг.",
                     },
                 ],
                 cards: [
@@ -698,7 +698,7 @@ export const INDEX_UK: IndexDoc = {
                         after: 0,
                     },
                 ],
-                cardMeals: ["Tonkotsu ramen with egg (1 large bowl)"], // i18n:pending
+                cardMeals: ["Тонкоцу рамен з яйцем (1 велика миска)"],
             },
             {
                 id: "import-history",
