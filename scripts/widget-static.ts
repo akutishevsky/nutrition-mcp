@@ -204,6 +204,37 @@ interface StubEl {
 }
 
 /** An object any wiring code can poke at without effect. */
+/** A node of `root`'s own markup, by id. Its innerHTML is written back into
+ * the root: the node is empty when the widget first draws it (render() writes
+ * the empty element), so the write replaces that empty body. */
+function innerNode(id: string, root: StubEl): unknown {
+    const node: Record<string, unknown> = {
+        className: "",
+        addEventListener() {},
+        removeEventListener() {},
+        setAttribute() {},
+        removeAttribute() {},
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        contains: () => false,
+        focus() {},
+        getAttribute: () => null,
+        classList: inert(),
+        style: {},
+        dataset: {},
+    };
+    Object.defineProperty(node, "innerHTML", {
+        get: () => "",
+        set: (html: string) => {
+            root.innerHTML = root.innerHTML.replace(
+                `id="${id}"></div>`,
+                `id="${id}">${html}</div>`,
+            );
+        },
+    });
+    return node;
+}
+
 function inert(): unknown {
     const fn = function () {
         return proxy;
@@ -250,7 +281,14 @@ function renderMarkup(
         dataset: {},
     };
     const documentStub = {
-        getElementById: (id: string) => (id === "root" ? root : inert()),
+        getElementById: (id: string) => {
+            if (id === "root") return root;
+            // A node a widget draws into after render() built it (digest's
+            // #dgx): its innerHTML is written back into the root markup.
+            return root.innerHTML.includes(`id="${id}"`)
+                ? innerNode(id, root)
+                : inert();
+        },
         querySelector: () => null,
         querySelectorAll: () => [],
         addEventListener() {},

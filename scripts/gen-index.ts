@@ -197,6 +197,11 @@ const EX_META: Record<
         color: "pro",
         tools: ["get_trends"],
     },
+    "daily-digest": {
+        icon: "fa-solid fa-newspaper",
+        color: "cal",
+        tools: ["get_digest"],
+    },
     "weight-trend": {
         icon: "fa-solid fa-weight-scale",
         color: "wat",
@@ -216,6 +221,11 @@ const EX_META: Record<
         icon: "fa-solid fa-beer-mug-empty",
         color: "gold",
         tools: ["set_alcohol_tracking", "log_meal"],
+    },
+    "track-sodium": {
+        icon: "fa-solid fa-scale-balanced",
+        color: "caf",
+        tools: ["log_meal", "set_nutrition_goals"],
     },
     "import-history": {
         icon: "fa-solid fa-file-import",
@@ -245,8 +255,10 @@ const EX_CARD: Partial<Record<ExampleSlideId, DemoCardId>> = {
     "saved-meal": "saved-meal",
     "goals-progress": "goals-progress",
     "review-week": "review-week",
+    "daily-digest": "daily-digest",
     "weight-trend": "weight-trend",
     "track-drinks": "track-drinks",
+    "track-sodium": "track-sodium",
     "import-history": "import-file",
 };
 
@@ -309,7 +321,7 @@ const STAT_TILES: {
     },
 ];
 
-/** Every locale has to tell the same eleven stories in the same shape — the
+/** Every locale has to tell the same stories in the same shape — the
  * icons, tools and cards above are keyed by id and drawn by index. */
 function assertExamples(doc: IndexDoc, locale: SiteLocale): void {
     const ids = doc.examples.slides.map((s) => s.id);

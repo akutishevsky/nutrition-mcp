@@ -19,6 +19,7 @@
  */
 
 import { addedSugarExtra, buildAddedSugarMeta } from "../src/added-sugar.js";
+import { computeDigest } from "../src/digest.js";
 import {
     buildNutrientSourcesMeta,
     type NutrientSources,
@@ -30,13 +31,21 @@ import {
     saturatedFatExtra,
     transFatExtra,
 } from "../src/saturated-fat.js";
-import type { Meal } from "../src/supabase.js";
+import { buildSodiumMeta, sodiumExtra } from "../src/sodium.js";
+import type {
+    Meal,
+    NutritionGoals,
+    WaterEntry,
+    WeightEntry,
+} from "../src/supabase.js";
 import {
     ADDED_SUGAR_META_KEY,
+    DIGEST_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_CONTRIBUTORS_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
     SATURATED_FAT_META_KEY,
+    SODIUM_META_KEY,
 } from "../src/widgets.js";
 import { loadWidgetSources, renderWidgetCard } from "./widget-static.js";
 
@@ -46,7 +55,7 @@ import { loadWidgetSources, renderWidgetCard } from "./widget-static.js";
  * sets exactly these). The sugar limit is on ADDED sugar (25 g) and there is
  * deliberately no total-sugar limit: the fruit in a smoothie bowl no longer
  * fills it, which is the point of tracking added sugar separately. */
-const GOALS = {
+export const GOALS = {
     kcal: 2000,
     pro: 160,
     car: 220,
@@ -58,6 +67,10 @@ const GOALS = {
     sug: null,
     add: 25,
     caf: 400,
+    /** Sodium ceiling, milligrams: the 2,300 mg a day the US guidelines name.
+     * Carried in _meta (the goal of SODIUM_META_KEY), never in
+     * structuredContent. */
+    sodium: 2300,
     water: 2500,
 } as const;
 
@@ -80,6 +93,9 @@ interface Totals {
     /** Trans fat, grams: part of `fat`. null: not recorded for the food, so
      * the cell says so rather than showing 0. */
     trans: number | null;
+    /** Sodium, milligrams (not salt). Carried in _meta (SODIUM_META_KEY),
+     * never in structuredContent. */
+    na: number;
     /** Millilitres. */
     water: number;
 }
@@ -139,6 +155,14 @@ export const TRENDS_FATS: [number, number][] = [
     [21.3, 0.4],
 ];
 
+/** Sodium, milligrams, for each TRENDS_DAYS row in order (the unlogged 25 Feb
+ * is 0 and never reaches a day's _meta). Between 1,580 and 2,610 mg, so the
+ * 2,300 mg line is crossed on some days and not others. */
+export const TRENDS_SODIUM: number[] = [
+    2050, 1720, 2480, 0, 1930, 2610, 1640, 2190, 1870, 2340, 1580, 2420, 1760,
+    2060,
+];
+
 /** Weigh-ins, [days before the last one, kg], oldest first: 80.2 kg on
  * 11 Feb down to 78.4 kg on 12 Mar (the "Track weight and measurements" slide). */
 const WEIGH_INS: [number, number][] = [
@@ -169,8 +193,10 @@ export type DemoCardId =
     | "review-week"
     | "weight-trend"
     | "track-drinks"
+    | "track-sodium"
     | "import-file"
-    | "usda-food";
+    | "usda-food"
+    | "daily-digest";
 
 /** A meal-logged card's figures: the day's totals right after the log, which
  * on these demo days is the meal itself. */
@@ -204,6 +230,8 @@ export const MEAL_CARDS: Partial<
             // Yogurt and granola: the dairy carries the trans fat.
             sat: 4.2,
             trans: 0.1,
+            // Yogurt and granola carry most of the salt; the honey and fruit none.
+            na: 150,
             water: 0,
         },
     },
@@ -223,6 +251,8 @@ export const MEAL_CARDS: Partial<
             // Whole milk in the oats: the saturated fat, a trace of trans.
             sat: 3.2,
             trans: 0.1,
+            // Whole milk and the oats: the milk carries most of it.
+            na: 120,
             water: 0,
         },
     },
@@ -242,6 +272,8 @@ export const MEAL_CARDS: Partial<
             // Sour cream and the rye's butter; beef in the borscht.
             sat: 8.6,
             trans: 0.3,
+            // The restaurant borscht's stock and the rye bread's salt.
+            na: 1040,
             water: 0,
         },
     },
@@ -263,6 +295,8 @@ export const MEAL_CARDS: Partial<
             // Nonfat yogurt: no saturated or trans fat to speak of.
             sat: 0,
             trans: 0,
+            // The plain yogurt's own milk salt, scaled to the 150 g pot.
+            na: 60,
             water: 0,
         },
     },
@@ -287,6 +321,8 @@ export const MEAL_CARDS: Partial<
             // Mostly the 30 g of cheese; the chicken adds a little.
             sat: 7.4,
             trans: 0.1,
+            // Rice, beans, cheese and salsa; the doubled chicken adds some, no sour cream.
+            na: 960,
             water: 0,
         },
     },
@@ -307,6 +343,30 @@ export const MEAL_CARDS: Partial<
             // Beer carries no fat.
             sat: 0,
             trans: 0,
+            // Lager carries very little sodium.
+            na: 25,
+            water: 0,
+        },
+    },
+    // A restaurant tonkotsu ramen: the broth, the tare and the egg's seasoning
+    // are all salty, and the bowl alone is over the day's 2,300 mg limit.
+    "track-sodium": {
+        date: "2026-03-22",
+        type: "dinner",
+        totals: {
+            kcal: 610,
+            pro: 28,
+            car: 72,
+            fat: 22,
+            fib: 4,
+            // Mostly the broth's own sugar; no added sugar in the bowl.
+            sug: 6,
+            add: 0,
+            caf: null,
+            // Pork broth and the chashu: the saturated fat.
+            sat: 7.5,
+            trans: 0.1,
+            na: 2640,
             water: 0,
         },
     },
@@ -328,6 +388,8 @@ export const MEAL_CARDS: Partial<
             caf: null,
             sat: 1.5,
             trans: null,
+            // USDA record 171477: 74 mg per 100 g, scaled to 150 g.
+            na: 111,
             water: 0,
         },
     },
@@ -389,6 +451,7 @@ const ZERO: Totals = {
     sat: 0,
     // null, not 0: a sum over meals that record no trans fat stays unrecorded.
     trans: null,
+    na: 0,
     water: 0,
 };
 
@@ -413,6 +476,8 @@ export const HERO_DAY_MEALS: [string, Totals][] = [
             caf: null,
             sat: 4.1,
             trans: 0.1,
+            // The stir-fry sauce.
+            na: 780,
             water: 0,
         },
     ],
@@ -429,6 +494,7 @@ export const HERO_DAY_MEALS: [string, Totals][] = [
             caf: null,
             sat: 0.4,
             trans: 0,
+            na: 120,
             water: 0,
         },
     ],
@@ -453,6 +519,7 @@ function sumTotals(rows: Totals[], water: number): Totals {
                 r.trans == null && a.trans == null
                     ? null
                     : (a.trans ?? 0) + (r.trans ?? 0),
+            na: a.na + r.na,
             water: 0,
         }),
         ZERO,
@@ -475,6 +542,7 @@ export const GOALS_DAY_MEALS: Totals[] = [
         caf: 95,
         sat: 3.1,
         trans: 0.1,
+        na: 420,
         water: 0,
     },
     {
@@ -488,6 +556,7 @@ export const GOALS_DAY_MEALS: Totals[] = [
         caf: null,
         sat: 6.8,
         trans: 0.4,
+        na: 780,
         water: 0,
     },
     {
@@ -501,6 +570,7 @@ export const GOALS_DAY_MEALS: Totals[] = [
         caf: 35,
         sat: 2.9,
         trans: 0.1,
+        na: 210,
         water: 0,
     },
     {
@@ -514,6 +584,7 @@ export const GOALS_DAY_MEALS: Totals[] = [
         caf: null,
         sat: 5.0,
         trans: 0.3,
+        na: 380,
         water: 0,
     },
 ];
@@ -528,13 +599,18 @@ export const GOALS_DAY_MEALS: Totals[] = [
 
 /** A stand-in meals row: buildAddedSugarMeta reads only `id` and
  * `added_sugar_g`, the rest is here to satisfy the type. */
-function demoMeal(id: string, t: Totals): Meal {
+function demoMeal(
+    id: string,
+    t: Totals,
+    at = "",
+    meal_type: string | null = null,
+): Meal {
     return {
         id,
         user_id: "demo",
         saved_meal_id: null,
-        logged_at: "",
-        meal_type: null,
+        logged_at: at,
+        meal_type,
         description: "",
         calories: t.kcal,
         protein_g: t.pro,
@@ -547,6 +623,7 @@ function demoMeal(id: string, t: Totals): Meal {
         trans_fat_g: t.trans,
         alcohol_g: t.alc ?? null,
         caffeine_mg: t.caf,
+        sodium_mg: t.na,
         notes: null,
         idempotency_key: null,
     };
@@ -567,6 +644,11 @@ function dayMeta(date: string, rows: Totals[]) {
             days: { [date]: meals },
             meals,
         }),
+        [SODIUM_META_KEY]: buildSodiumMeta({
+            goal: GOALS.sodium,
+            days: { [date]: meals },
+            meals,
+        }),
     };
 }
 
@@ -582,6 +664,7 @@ const USDA_CHICKEN_SOURCES: NutrientSources = {
     saturated_fat_g: { s: "usda", ref: "171477" },
     fiber_g: { s: "usda", ref: "171477" },
     sugar_g: { s: "usda", ref: "171477" },
+    sodium_mg: { s: "usda", ref: "171477" },
     added_sugar_g: { s: "estimate" },
 };
 
@@ -677,6 +760,13 @@ function summaryMeta(rows: ReturnType<typeof mealRow>[]) {
             extra: saturatedFatExtra(meals, rows, kept, MEAL_BREAKDOWN_TOP_N),
             transExtra: transFatExtra(meals, rows, kept, MEAL_BREAKDOWN_TOP_N),
         }),
+        [SODIUM_META_KEY]: buildSodiumMeta({
+            goal: GOALS.sodium,
+            days: { [HERO_DATE]: meals },
+            meals,
+            contributorsOf: meals,
+            extra: sodiumExtra(meals, rows, kept, MEAL_BREAKDOWN_TOP_N),
+        }),
     };
 }
 
@@ -755,6 +845,7 @@ function trendsMeta() {
                               add,
                               sat,
                               trans,
+                              na: TRENDS_SODIUM[i]!,
                           }),
                       ]
                     : [],
@@ -768,6 +859,10 @@ function trendsMeta() {
         }),
         [SATURATED_FAT_META_KEY]: buildSaturatedFatMeta({
             goal: GOALS.sat,
+            days,
+        }),
+        [SODIUM_META_KEY]: buildSodiumMeta({
+            goal: GOALS.sodium,
             days,
         }),
     };
@@ -853,6 +948,80 @@ function importPayload(locale: string) {
 
 // --------------------------------------------------------------- cards
 
+/** The digest demo: "How did yesterday go?" asked on the morning of 9 Mar,
+ * so the period is 8 Mar, the hero day, in Chicago (the import slide's zone).
+ * The meals are the hero day's three, the one water entry and the 8 Mar
+ * weigh-in are the hero account's, and the goals are GOALS. Built with the
+ * server's own computeDigest, so the card's figures are the tool's. */
+const DIGEST_NOW = new Date("2026-03-09T15:00:00Z");
+const DIGEST_TZ = "America/Chicago";
+const DIGEST_CLOCK = "2026-03-09";
+
+/** The hero day's logged times (UTC): 08:00, 13:15 and 17:30 local. */
+const HERO_MEAL_TIMES = [
+    "2026-03-08T13:00:00Z",
+    "2026-03-08T18:15:00Z",
+    "2026-03-08T22:30:00Z",
+];
+
+export function digestMeta(locale: string, dayMeals: HeroMeal[]) {
+    const meals: Meal[] = HERO_DAY_MEALS.map(([type, t], i) => ({
+        ...demoMeal(`digest-${type}`, t, HERO_MEAL_TIMES[i]!, type),
+        description: dayMeals[i]?.description ?? "",
+    }));
+    const goals: NutritionGoals = {
+        user_id: "demo",
+        daily_calories: GOALS.kcal,
+        daily_protein_g: GOALS.pro,
+        daily_carbs_g: GOALS.car,
+        daily_fat_g: GOALS.fat,
+        daily_saturated_fat_g: GOALS.sat,
+        daily_fiber_g: GOALS.fib,
+        daily_sugar_g: null,
+        daily_added_sugar_g: GOALS.add,
+        daily_alcohol_g: null,
+        daily_caffeine_mg: GOALS.caf,
+        daily_sodium_mg: GOALS.sodium,
+        daily_water_ml: GOALS.water,
+        target_weight_g: TARGET_KG * 1000,
+        updated_at: "",
+    };
+    const water: WaterEntry[] = [
+        {
+            id: "digest-water",
+            user_id: "demo",
+            amount_ml: 500,
+            logged_at: "2026-03-08T14:00:00Z",
+            notes: null,
+            created_at: "",
+            idempotency_key: null,
+        },
+    ];
+    const weight: WeightEntry = {
+        id: "digest-weight",
+        user_id: "demo",
+        weight_g: 78800,
+        logged_at: "2026-03-08T12:30:00Z",
+        notes: null,
+        created_at: "",
+        idempotency_key: null,
+    };
+    return computeDigest({
+        period: "yesterday",
+        now: DIGEST_NOW,
+        tz: DIGEST_TZ,
+        meals,
+        water,
+        weights: [weight],
+        latestWeight: weight,
+        items: new Map(),
+        goals,
+        alcohol: null,
+        weightUnit: "kg",
+        locale,
+    });
+}
+
 await loadWidgetSources();
 
 /** One demo card, in the page's language: the real widget's markup for its
@@ -909,6 +1078,12 @@ export function renderCard(
             );
         case "import-file":
             return card("import-meals", importPayload(locale), "2026-03-20");
+        case "daily-digest": {
+            const d = digestMeta(locale, dayMeals);
+            return card("digest", d.structured, DIGEST_CLOCK, {
+                [DIGEST_META_KEY]: d.meta,
+            });
+        }
         default: {
             const p = mealLoggedPayload(id, meal, locale);
             // The demo day is this one meal, so the day's added sugar is

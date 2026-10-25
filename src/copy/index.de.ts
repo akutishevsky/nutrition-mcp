@@ -447,7 +447,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 20 g gesättigte Fettsäuren, 30 g Ballaststoffe, 2,5 l Wasser, dein Limit von 25 g für zugesetzten Zucker und dein Zielgewicht von 75 kg.",
+                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, 2,300 mg sodium, your 25 g added-sugar limit and your 75 kg target weight.", // i18n:pending
                     },
                     {
                         from: "user",
@@ -495,6 +495,32 @@ export const INDEX_DE: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Check how a day went", // i18n:pending
+                description:
+                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals, and a few highlights drawn from your own log.", // i18n:pending
+                toolNotes: {
+                    get_digest:
+                        "Builds the digest for the period you ask about, with the day's meals listed", // i18n:pending
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "how did yesterday go?", // i18n:pending
+                    },
+                    {
+                        from: "ai",
+                        text: "Yesterday you logged 3 meals: 1,150 of your 2,000 kcal and 76 of your 160 g protein, so 850 kcal and 84 g protein are still to reach. Added sugar was 23 g of your 25 g limit, sodium 1,050 mg of 2,300 mg, and you logged 500 ml of water against 2,500 ml.", // i18n:pending
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -626,6 +652,35 @@ export const INDEX_DE: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Lagerbier, 4 % (1 Pint, 568 ml)"],
+            },
+            {
+                id: "track-sodium",
+                title: "Track sodium", // i18n:pending
+                description:
+                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. A salty meal shows its sodium next to that limit the moment it is logged, so you can see how much of the day it used.", // i18n:pending
+                toolNotes: {
+                    log_meal:
+                        "Logs the bowl with its sodium in milligrams, not salt", // i18n:pending
+                    set_nutrition_goals:
+                        "Sets the 2,300 mg daily sodium limit each meal is checked against", // i18n:pending
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "tonkotsu ramen with an egg for dinner, one big bowl", // i18n:pending
+                    },
+                    {
+                        from: "ai",
+                        text: "Logged dinner: about 610 kcal, 28 g protein and 2,640 mg sodium. That bowl alone is 340 mg over your 2,300 mg daily sodium limit.", // i18n:pending
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Tonkotsu ramen with egg (1 large bowl)"], // i18n:pending
             },
             {
                 id: "import-history",
