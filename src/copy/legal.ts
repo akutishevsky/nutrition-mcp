@@ -221,7 +221,7 @@ const TERMS_EN: LegalDoc = {
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT. Plain-language terms covering accounts, acceptable use, your data, and liability.",
     ogDescription:
         "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT.",
-    lastUpdated: "October 10, 2026",
+    lastUpdated: "October 25, 2026",
     backToHome: "Back to home",
     lead: "The terms that govern use of Nutrition MCP — the free, open-source nutrition tracker and remote MCP server for Claude and ChatGPT.",
     documentsLabel: "Legal documents",
@@ -242,7 +242,7 @@ const TERMS_EN: LegalDoc = {
             heading: "The service",
             blocks: [
                 p(
-                    'Nutrition MCP is a free, open-source nutrition tracker that runs as an MCP server, letting AI assistants such as Claude and ChatGPT log meals, water, body weight and body measurements on your behalf. Optionally, a shortcut on your iPhone can copy your daily totals into Apple Health. There is no paid tier, no advertising, and no charge for using the service. We accept voluntary donations on Patreon to help cover hosting and database costs; they are a gift, not a purchase, and they buy no features, no tier, and no priority of any kind. The source code is published under the MIT license on <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> and you are free to self-host it.',
+                    'Nutrition MCP is a free, open-source nutrition tracker that runs as an MCP server, letting AI assistants such as Claude and ChatGPT log meals, water, body weight and body measurements on your behalf. Optionally, a shortcut on your iPhone can copy your daily totals into Apple Health. There is no paid tier, no advertising, and no charge for using the service. We accept voluntary donations on Patreon to help cover hosting and database costs; they are a gift, not a purchase, and they buy no features, no tier, and no priority of any kind. Paid supporters also get access to a community Discord, which is not part of the service. The source code is published under the MIT license on <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> and you are free to self-host it.',
                 ),
             ],
         },
@@ -578,7 +578,7 @@ const TERMS_DE: LegalDoc = {
         "Die Bedingungen für die Nutzung von Nutrition MCP – dem kostenlosen Open-Source-Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT. Verständliche Regeln zu Konto, zulässiger Nutzung, deinen Daten und Haftung.",
     ogDescription:
         "Die Bedingungen für die Nutzung von Nutrition MCP – dem kostenlosen Open-Source-Ernährungs-Tracker und Remote-MCP-Server für Claude und ChatGPT.",
-    lastUpdated: "10. Oktober 2026",
+    lastUpdated: "25. Oktober 2026",
     backToHome: "Zurück zur Startseite",
     sections: [
         {
@@ -596,7 +596,7 @@ const TERMS_DE: LegalDoc = {
             heading: "Der Dienst",
             blocks: [
                 p(
-                    'Nutrition MCP ist ein kostenloser Open-Source-Ernährungs-Tracker, der als MCP-Server läuft und mit dem KI-Assistenten wie Claude und ChatGPT in deinem Namen Mahlzeiten, Wasser, Körpergewicht und Körpermaße erfassen können. Optional kann ein Kurzbefehl auf deinem iPhone deine Tagessummen in Apple Health übertragen. Es gibt keinen kostenpflichtigen Tarif, keine Werbung und keine Gebühr für die Nutzung des Dienstes. Wir nehmen freiwillige Spenden auf Patreon an, die helfen, die Kosten für Hosting und Datenbank zu decken; sie sind ein Geschenk, kein Kauf, und mit ihnen erwirbst du keine Funktionen, keinen Tarif und keinerlei Vorrang. Der Quellcode ist unter der MIT-Lizenz auf <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> veröffentlicht, und es steht dir frei, ihn selbst zu hosten.',
+                    'Nutrition MCP ist ein kostenloser Open-Source-Ernährungs-Tracker, der als MCP-Server läuft und mit dem KI-Assistenten wie Claude und ChatGPT in deinem Namen Mahlzeiten, Wasser, Körpergewicht und Körpermaße erfassen können. Optional kann ein Kurzbefehl auf deinem iPhone deine Tagessummen in Apple Health übertragen. Es gibt keinen kostenpflichtigen Tarif, keine Werbung und keine Gebühr für die Nutzung des Dienstes. Wir nehmen freiwillige Spenden auf Patreon an, die helfen, die Kosten für Hosting und Datenbank zu decken; sie sind ein Geschenk, kein Kauf, und mit ihnen erwirbst du keine Funktionen, keinen Tarif und keinerlei Vorrang. Zahlende Unterstützer erhalten außerdem Zugang zu einer Community auf Discord, die nicht Teil des Dienstes ist. Der Quellcode ist unter der MIT-Lizenz auf <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> veröffentlicht, und es steht dir frei, ihn selbst zu hosten.',
                 ),
             ],
         },

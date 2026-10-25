@@ -172,7 +172,7 @@ export const TERMS_ES: LegalDoc = {
         "Términos claros de Nutrition MCP, app de nutrición y servidor MCP gratuito y de código abierto para Claude y ChatGPT: cuentas, uso aceptable, datos y responsabilidad.",
     ogDescription:
         "Los términos que rigen el uso de Nutrition MCP, la app de seguimiento nutricional gratuita y de código abierto que funciona como servidor MCP remoto para Claude y ChatGPT.",
-    lastUpdated: "10 de octubre de 2026",
+    lastUpdated: "25 de octubre de 2026",
     backToHome: "Volver al inicio",
     lead: "Los términos que rigen el uso de Nutrition MCP, la app de seguimiento nutricional gratuita y de código abierto que funciona como servidor MCP remoto para Claude y ChatGPT.",
     documentsLabel: "Documentos legales",
@@ -193,7 +193,7 @@ export const TERMS_ES: LegalDoc = {
             heading: "El servicio",
             blocks: [
                 p(
-                    'Nutrition MCP es una app de seguimiento nutricional gratuita y de código abierto que funciona como servidor MCP y permite que asistentes de IA como Claude y ChatGPT registren comidas, agua, peso corporal y medidas corporales en tu nombre. De forma opcional, un atajo en tu iPhone puede copiar tus totales diarios en Apple Health. No hay ningún plan de pago, ni publicidad, ni ningún coste por usar el servicio. Aceptamos donaciones voluntarias en Patreon para ayudar a cubrir los costes de alojamiento y de base de datos; son un regalo, no una compra, y no dan acceso a ninguna función, ningún plan ni ningún tipo de prioridad. El código fuente está publicado con licencia MIT en <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> y puedes autoalojarlo libremente.',
+                    'Nutrition MCP es una app de seguimiento nutricional gratuita y de código abierto que funciona como servidor MCP y permite que asistentes de IA como Claude y ChatGPT registren comidas, agua, peso corporal y medidas corporales en tu nombre. De forma opcional, un atajo en tu iPhone puede copiar tus totales diarios en Apple Health. No hay ningún plan de pago, ni publicidad, ni ningún coste por usar el servicio. Aceptamos donaciones voluntarias en Patreon para ayudar a cubrir los costes de alojamiento y de base de datos; son un regalo, no una compra, y no dan acceso a ninguna función, ningún plan ni ningún tipo de prioridad. Los mecenas de pago también obtienen acceso a una comunidad en Discord, que no forma parte del servicio. El código fuente está publicado con licencia MIT en <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> y puedes autoalojarlo libremente.',
                 ),
             ],
         },

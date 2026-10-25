@@ -902,7 +902,7 @@ export const INDEX_DE: IndexDoc = {
         paid: {
             tier: "Zahlendes Mitglied",
             price: "Zahl, was du willst",
-            desc: "Wenn dir Nutrition MCP hilft, kannst du dich an den Kosten für Hosting und Datenbank beteiligen. Alle bekommen dieselben Funktionen – Unterstützer eingeschlossen –, und es bleibt für alle kostenlos.",
+            desc: "Wenn dir Nutrition MCP hilft, kannst du dich an den Kosten für Hosting und Datenbank beteiligen. Alle bekommen dieselben Funktionen – Unterstützer eingeschlossen –, und es bleibt für alle kostenlos. Zahlende Unterstützer bekommen außerdem Zugang zum Community-Discord.",
             cta: "Unterstützer werden",
         },
     },
@@ -964,7 +964,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Ist Nutrition MCP kostenlos?",
             visibleHtml:
-                "Ja, es ist komplett kostenlos – keine kostenpflichtige Version, keine Werbung, keine versteckten Kosten. Du brauchst eine KI-App, die MCP-Connectors unterstützt, etwa Claude oder ChatGPT, und ein kostenloses Nutrition-MCP-Konto, das du beim ersten Verbinden anlegst. Freiwillige Spenden auf Patreon helfen, die Serverkosten zu decken, und schalten nichts frei.",
+                "Ja, es ist komplett kostenlos – keine kostenpflichtige Version, keine Werbung, keine versteckten Kosten. Du brauchst eine KI-App, die MCP-Connectors unterstützt, etwa Claude oder ChatGPT, und ein kostenloses Nutrition-MCP-Konto, das du beim ersten Verbinden anlegst. Freiwillige Spenden auf Patreon helfen, die Serverkosten zu decken, und schalten keine Funktionen frei; zahlende Unterstützer bekommen außerdem Zugang zum Community-Discord.",
         },
         {
             question: "Was kann ich erfassen?",

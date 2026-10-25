@@ -1300,7 +1300,7 @@ const INDEX_EN: IndexDoc = {
         paid: {
             tier: "Paid member",
             price: "Pay what you want",
-            desc: "If Nutrition MCP is useful to you, you can help with its hosting and database costs. Everyone gets the same features, supporters included, and it stays free for all.",
+            desc: "If Nutrition MCP is useful to you, you can help with its hosting and database costs. Everyone gets the same features, supporters included, and it stays free for all. Paid supporters also get access to the community Discord.",
             cta: "Become a supporter",
         },
     },
@@ -1362,7 +1362,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "Is Nutrition MCP free?",
             visibleHtml:
-                "Yes, it is completely free — no paid tier, no ads, no hidden costs. You need an AI app that supports MCP connectors, such as Claude or ChatGPT, and a free Nutrition MCP account, which you create the first time you connect. Voluntary donations on Patreon help cover server costs and unlock nothing.",
+                "Yes, it is completely free — no paid tier, no ads, no hidden costs. You need an AI app that supports MCP connectors, such as Claude or ChatGPT, and a free Nutrition MCP account, which you create the first time you connect. Voluntary donations on Patreon help cover server costs and unlock no features; paid supporters also get access to the community Discord.",
         },
         {
             question: "What can I track?",

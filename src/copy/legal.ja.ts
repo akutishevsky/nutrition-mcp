@@ -188,7 +188,7 @@ export const TERMS_JA: LegalDoc = {
         "Nutrition MCP（Claude・ChatGPT向けの無料・オープンソースの栄養管理ツール兼リモートMCPサーバー）の利用規約です。アカウント、許容される利用、データの扱い、責任について、わかりやすい言葉で定めています。",
     ogDescription:
         "Nutrition MCP（Claude・ChatGPT向けの無料・オープンソースの栄養管理ツール兼リモートMCPサーバー）の利用に適用される規約です。",
-    lastUpdated: "2026年10月10日",
+    lastUpdated: "2026年10月25日",
     backToHome: "ホームに戻る",
     lead: "Nutrition MCP（Claude・ChatGPT向けの無料・オープンソースの栄養管理ツール兼リモートMCPサーバー）の利用に適用される規約です。",
     documentsLabel: "法的文書",
@@ -209,7 +209,7 @@ export const TERMS_JA: LegalDoc = {
             heading: "本サービスについて",
             blocks: [
                 p(
-                    'Nutrition MCPは、MCPサーバーとして動作する無料・オープンソースの栄養管理ツールです。ClaudeやChatGPTなどのAIアシスタントが、あなたに代わって食事、水分、体重、体の計測値を記録できるようにします。任意で、iPhoneのショートカットを使って1日の合計をApple Healthにコピーすることもできます。有料プランも広告もなく、本サービスの利用に料金はかかりません。ホスティングとデータベースの費用を補うため、Patreonで任意の寄付を受け付けています。寄付は贈与であって購入ではなく、寄付によって機能、プラン、優先対応など、いかなるものも得られることはありません。ソースコードはMITライセンスの下で<a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a>に公開されており、自由にセルフホストできます。',
+                    'Nutrition MCPは、MCPサーバーとして動作する無料・オープンソースの栄養管理ツールです。ClaudeやChatGPTなどのAIアシスタントが、あなたに代わって食事、水分、体重、体の計測値を記録できるようにします。任意で、iPhoneのショートカットを使って1日の合計をApple Healthにコピーすることもできます。有料プランも広告もなく、本サービスの利用に料金はかかりません。ホスティングとデータベースの費用を補うため、Patreonで任意の寄付を受け付けています。寄付は贈与であって購入ではなく、寄付によって機能、プラン、優先対応など、いかなるものも得られることはありません。有料の支援者はDiscordのコミュニティにも参加できますが、これは本サービスの一部ではありません。ソースコードはMITライセンスの下で<a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a>に公開されており、自由にセルフホストできます。',
                 ),
             ],
         },
