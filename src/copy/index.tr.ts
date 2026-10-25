@@ -913,7 +913,7 @@ export const INDEX_TR: IndexDoc = {
         paid: {
             tier: "Ücretli üye",
             price: "İstediğin kadar öde",
-            desc: "Nutrition MCP sana yarıyorsa barındırma ve veri tabanı masraflarına yardım edebilirsin. Destekçiler dahil herkes aynı özellikleri alır ve herkes için ücretsiz kalır.",
+            desc: "Nutrition MCP sana yarıyorsa barındırma ve veri tabanı masraflarına yardım edebilirsin. Destekçiler dahil herkes aynı özellikleri alır ve herkes için ücretsiz kalır. Ücretli destekçiler topluluk Discord sunucusuna da erişir.",
             cta: "Destekçi ol",
         },
     },
@@ -975,7 +975,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Nutrition MCP ücretsiz mi?",
             visibleHtml:
-                "Evet, tamamen ücretsiz — ücretli paket yok, reklam yok, gizli masraf yok. MCP bağlayıcılarını destekleyen bir yapay zekâ uygulamasına (örneğin Claude veya ChatGPT) ve ilk bağlandığında oluşturduğun ücretsiz bir Nutrition MCP hesabına ihtiyacın var. Patreon üzerindeki gönüllü bağışlar sunucu masraflarını karşılamaya yardım eder ve hiçbir şeyin kilidini açmaz.",
+                "Evet, tamamen ücretsiz — ücretli paket yok, reklam yok, gizli masraf yok. MCP bağlayıcılarını destekleyen bir yapay zekâ uygulamasına (örneğin Claude veya ChatGPT) ve ilk bağlandığında oluşturduğun ücretsiz bir Nutrition MCP hesabına ihtiyacın var. Patreon üzerindeki gönüllü bağışlar sunucu masraflarını karşılamaya yardım eder ve hiçbir özelliğin kilidini açmaz; ücretli destekçiler topluluk Discord sunucusuna da erişir.",
         },
         {
             question: "Neleri takip edebilirim?",

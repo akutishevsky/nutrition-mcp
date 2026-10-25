@@ -661,23 +661,20 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
             [PRIVACY[l]!.lastUpdated, TERMS[l]!.lastUpdated],
         ]),
     );
-    const expected: Record<SiteLocale, string> = {
-        en: "October 10, 2026",
-        de: "10. Oktober 2026",
-        es: "10 de octubre de 2026",
-        fr: "10 octobre 2026",
-        nl: "10 oktober 2026",
-        pl: "10 października 2026",
-        it: "10 ottobre 2026",
-        uk: "10 жовтня 2026 року",
-        ja: "2026年10月10日",
-        tr: "10 Ekim 2026",
+    // [privacy, terms]
+    const expected: Record<SiteLocale, [string, string]> = {
+        en: ["October 10, 2026", "October 25, 2026"],
+        de: ["10. Oktober 2026", "25. Oktober 2026"],
+        es: ["10 de octubre de 2026", "25 de octubre de 2026"],
+        fr: ["10 octobre 2026", "25 octobre 2026"],
+        nl: ["10 oktober 2026", "25 oktober 2026"],
+        pl: ["10 października 2026", "25 października 2026"],
+        it: ["10 ottobre 2026", "25 ottobre 2026"],
+        uk: ["10 жовтня 2026 року", "25 жовтня 2026 року"],
+        ja: ["2026年10月10日", "2026年10月25日"],
+        tr: ["10 Ekim 2026", "25 Ekim 2026"],
     };
-    expect(dates).toEqual(
-        Object.fromEntries(
-            SITE_LOCALES.map((l) => [l, [expected[l], expected[l]]]),
-        ),
-    );
+    expect(dates).toEqual(expected);
 });
 
 // Brief 13: the disclosures a directory review checks for, pinned per locale

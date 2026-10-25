@@ -916,7 +916,7 @@ export const INDEX_PL: IndexDoc = {
         paid: {
             tier: "Płatne członkostwo",
             price: "Płacisz, ile chcesz",
-            desc: "Jeśli Nutrition MCP Ci się przydaje, możesz dorzucić się do kosztów hostingu i bazy danych. Wszyscy, także wspierający, mają te same funkcje, a całość pozostaje darmowa dla każdego.",
+            desc: "Jeśli Nutrition MCP Ci się przydaje, możesz dorzucić się do kosztów hostingu i bazy danych. Wszyscy, także wspierający, mają te same funkcje, a całość pozostaje darmowa dla każdego. Płacący wspierający dostają też dostęp do społecznościowego serwera Discord.",
             cta: "Zostań patronem",
         },
     },
@@ -977,7 +977,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Czy Nutrition MCP jest darmowy?",
             visibleHtml:
-                "Tak, jest całkowicie darmowy — bez płatnego planu, bez reklam, bez ukrytych kosztów. Potrzebujesz aplikacji AI obsługującej konektory MCP, takiej jak Claude albo ChatGPT, oraz darmowego konta Nutrition MCP, które zakładasz przy pierwszym połączeniu. Dobrowolne darowizny przez Patreon pomagają pokryć koszty serwera i niczego nie odblokowują.",
+                "Tak, jest całkowicie darmowy — bez płatnego planu, bez reklam, bez ukrytych kosztów. Potrzebujesz aplikacji AI obsługującej konektory MCP, takiej jak Claude albo ChatGPT, oraz darmowego konta Nutrition MCP, które zakładasz przy pierwszym połączeniu. Dobrowolne darowizny przez Patreon pomagają pokryć koszty serwera i nie odblokowują żadnych funkcji; płacący wspierający dostają też dostęp do społecznościowego serwera Discord.",
         },
         {
             question: "Co mogę śledzić?",

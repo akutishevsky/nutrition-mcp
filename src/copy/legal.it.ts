@@ -186,7 +186,7 @@ export const TERMS_IT: LegalDoc = {
         "I termini che regolano l'uso di Nutrition MCP, il tracker nutrizionale e server MCP remoto, gratuito e open source, per Claude e ChatGPT. Termini in linguaggio semplice su account, uso consentito, i tuoi dati e responsabilità.",
     ogDescription:
         "I termini che regolano l'uso di Nutrition MCP, il tracker nutrizionale e server MCP remoto, gratuito e open source, per Claude e ChatGPT.",
-    lastUpdated: "10 ottobre 2026",
+    lastUpdated: "25 ottobre 2026",
     backToHome: "Torna alla home",
     lead: "I termini che regolano l'uso di Nutrition MCP, il tracker nutrizionale e server MCP remoto, gratuito e open source, per Claude e ChatGPT.",
     documentsLabel: "Documenti legali",
@@ -207,7 +207,7 @@ export const TERMS_IT: LegalDoc = {
             heading: "Il servizio",
             blocks: [
                 p(
-                    'Nutrition MCP è un tracker nutrizionale gratuito e open source che funziona come server MCP e permette ad assistenti IA come Claude e ChatGPT di registrare pasti, acqua, peso corporeo e misure corporee per tuo conto. Facoltativamente, un comando rapido sul tuo iPhone può copiare i tuoi totali giornalieri in Apple Health. Non esistono piani a pagamento, pubblicità né costi per l\'uso del servizio. Accettiamo donazioni volontarie su Patreon per contribuire ai costi di hosting e del database; sono un regalo, non un acquisto, e non danno diritto ad alcuna funzionalità, piano o priorità. Il codice sorgente è pubblicato con licenza MIT su <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> e puoi liberamente ospitarlo tu stesso.',
+                    'Nutrition MCP è un tracker nutrizionale gratuito e open source che funziona come server MCP e permette ad assistenti IA come Claude e ChatGPT di registrare pasti, acqua, peso corporeo e misure corporee per tuo conto. Facoltativamente, un comando rapido sul tuo iPhone può copiare i tuoi totali giornalieri in Apple Health. Non esistono piani a pagamento, pubblicità né costi per l\'uso del servizio. Accettiamo donazioni volontarie su Patreon per contribuire ai costi di hosting e del database; sono un regalo, non un acquisto, e non danno diritto ad alcuna funzionalità, piano o priorità. I sostenitori paganti ottengono anche l\'accesso a una community su Discord, che non fa parte del servizio. Il codice sorgente è pubblicato con licenza MIT su <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> e puoi liberamente ospitarlo tu stesso.',
                 ),
             ],
         },

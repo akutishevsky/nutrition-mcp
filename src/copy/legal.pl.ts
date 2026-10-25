@@ -175,7 +175,7 @@ export const TERMS_PL: LegalDoc = {
         "Zasady korzystania z Nutrition MCP — darmowej aplikacji open source do śledzenia odżywiania i zdalnego serwera MCP dla Claude i ChatGPT. Regulamin prostym językiem: konto, dopuszczalne korzystanie, Twoje dane i odpowiedzialność.",
     ogDescription:
         "Zasady korzystania z Nutrition MCP — darmowej aplikacji open source do śledzenia odżywiania i zdalnego serwera MCP dla Claude i ChatGPT.",
-    lastUpdated: "10 października 2026",
+    lastUpdated: "25 października 2026",
     backToHome: "Wróć na stronę główną",
     sections: [
         {
@@ -193,7 +193,7 @@ export const TERMS_PL: LegalDoc = {
             heading: "Usługa",
             blocks: [
                 p(
-                    'Nutrition MCP to darmowa aplikacja open source do śledzenia odżywiania, działająca jako serwer MCP: pozwala asystentom AI, takim jak Claude i ChatGPT, zapisywać w Twoim imieniu posiłki, wodę oraz masę i wymiary ciała. Opcjonalnie skrót w telefonie iPhone może kopiować Twoje sumy dzienne do Apple Health. Nie ma płatnego planu, reklam ani żadnych opłat za korzystanie z usługi. Przyjmujemy dobrowolne darowizny za pośrednictwem serwisu Patreon, które pomagają pokryć koszty hostingu i bazy danych; są one darowizną, a nie zakupem, i nie dają żadnych funkcji, planu ani jakiegokolwiek pierwszeństwa. Kod źródłowy jest opublikowany na licencji MIT w serwisie <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> i możesz go swobodnie hostować samodzielnie.',
+                    'Nutrition MCP to darmowa aplikacja open source do śledzenia odżywiania, działająca jako serwer MCP: pozwala asystentom AI, takim jak Claude i ChatGPT, zapisywać w Twoim imieniu posiłki, wodę oraz masę i wymiary ciała. Opcjonalnie skrót w telefonie iPhone może kopiować Twoje sumy dzienne do Apple Health. Nie ma płatnego planu, reklam ani żadnych opłat za korzystanie z usługi. Przyjmujemy dobrowolne darowizny za pośrednictwem serwisu Patreon, które pomagają pokryć koszty hostingu i bazy danych; są one darowizną, a nie zakupem, i nie dają żadnych funkcji, planu ani jakiegokolwiek pierwszeństwa. Płacący wspierający otrzymują też dostęp do społeczności w serwisie Discord, która nie jest częścią usługi. Kod źródłowy jest opublikowany na licencji MIT w serwisie <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> i możesz go swobodnie hostować samodzielnie.',
                 ),
             ],
         },

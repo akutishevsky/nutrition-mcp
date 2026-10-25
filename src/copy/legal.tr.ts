@@ -210,7 +210,7 @@ export const TERMS_TR: LegalDoc = {
     lead: "Nutrition MCP kullanımını düzenleyen koşullar — Claude ve ChatGPT için ücretsiz, açık kaynak beslenme takipçisi ve uzak MCP sunucusu.",
     documentsLabel: "Hukuki belgeler",
     tocLabel: "Bu sayfada",
-    lastUpdated: "10 Ekim 2026",
+    lastUpdated: "25 Ekim 2026",
     backToHome: "Ana sayfaya dön",
     sections: [
         {
@@ -231,7 +231,7 @@ export const TERMS_TR: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: 'Nutrition MCP, MCP sunucusu olarak çalışan ücretsiz ve açık kaynak bir beslenme takipçisidir; Claude ve ChatGPT gibi yapay zekâ asistanlarının senin adına yemek, su, kilo ve vücut ölçüsü kaydetmesine olanak tanır. İstersen, iPhone cihazındaki bir kısayol günlük toplamlarını Apple Health içine kopyalayabilir. Ücretli bir paket, reklam ve servisi kullanmak için herhangi bir ücret yok. Barındırma ve veritabanı masraflarını karşılamaya yardımcı olmak üzere Patreon üzerinden gönüllü bağışlar kabul ediyoruz; bunlar bir hediyedir, satın alma değildir ve hiçbir özellik, hiçbir paket ve hiçbir tür ayrıcalık satın almaz. Kaynak kodu MIT lisansıyla <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> üzerinde yayımlanmıştır ve onu kendi sunucunda barındırmakta özgürsün.',
+                    html: 'Nutrition MCP, MCP sunucusu olarak çalışan ücretsiz ve açık kaynak bir beslenme takipçisidir; Claude ve ChatGPT gibi yapay zekâ asistanlarının senin adına yemek, su, kilo ve vücut ölçüsü kaydetmesine olanak tanır. İstersen, iPhone cihazındaki bir kısayol günlük toplamlarını Apple Health içine kopyalayabilir. Ücretli bir paket, reklam ve servisi kullanmak için herhangi bir ücret yok. Barındırma ve veritabanı masraflarını karşılamaya yardımcı olmak üzere Patreon üzerinden gönüllü bağışlar kabul ediyoruz; bunlar bir hediyedir, satın alma değildir ve hiçbir özellik, hiçbir paket ve hiçbir tür ayrıcalık satın almaz. Ücretli destekçiler ayrıca hizmetin parçası olmayan bir Discord topluluğuna erişim kazanır. Kaynak kodu MIT lisansıyla <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a> üzerinde yayımlanmıştır ve onu kendi sunucunda barındırmakta özgürsün.',
                 },
             ],
         },
