@@ -456,7 +456,7 @@ export const INDEX_TR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Tamam: ulaşılacak 2.000 kcal ve 160 g protein, kafein 400 mg altında. Geri kalan her şey olduğu gibi kalıyor: 220 g karbonhidrat, 70 g yağ, 20 g doymuş yağ, 30 g lif, 2,5 L su, 25 g ilave şeker sınırın ve 75 kg hedef kilon.",
+                        text: "Tamam: hedef 2.000 kcal ve 160 g protein, kafein 400 mg'ın altında. Geri kalan her şey olduğu gibi kaldı: 220 g karbonhidrat, 70 g yağ, 20 g doymuş yağ, 30 g lif, 2,5 L su, 2.300 mg sodyum, 25 g ilave şeker sınırın ve 75 kg hedef kilon.",
                     },
                     {
                         from: "user",
@@ -482,6 +482,8 @@ export const INDEX_TR: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Son 7, 14 ve 30 gününün ortalamasını alır ve eğilimler kartını açar",
+                    get_digest:
+                        "Son 7 gününü hedefler ve öne çıkanlarla tek bir kartta özetler",
                 },
                 messages: [
                     {
@@ -504,6 +506,36 @@ export const INDEX_TR: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Bir günün nasıl geçtiğine bak",
+                description:
+                    "Dünün nasıl geçtiğini, bugünün ya da son 7 veya 30 günün nasıl gittiğini sor; sohbette bir özet kartı açılır: kalori ve takip ettiğin her besin hedeflerine göre, su ve kilo, tek bir gün için günün öğünleri, bir dönem için kayıt alışkanlıkların ve kendi kaydından çıkan birkaç öne çıkan nokta.",
+                toolNotes: {
+                    get_digest:
+                        "İstediğin dönem için özeti hazırlar: tek gün için günün öğünleri, bir dönem için kayıt alışkanlıkları",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "dün nasıl geçti?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dün 3 öğün kaydettin: 2.000 kcal hedefinin 1.150'si ve 160 g proteinin 76 g'ı; yani 850 kcal ve 84 g protein kaldı. İlave şeker 25 g sınırının 23 g'ıydı, sodyum 2.300 mg'ın 1.050 mg'ı, su da 2.500 ml hedefine karşı 500 ml kaydettin.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -634,6 +666,35 @@ export const INDEX_TR: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Lager, %4 (1 pint, 568 ml)"],
+            },
+            {
+                id: "track-sodium",
+                title: "Sodyumu takip et",
+                description:
+                    "Sodyum tuz değil, miligram cinsinden takip edilir; her öğünde, senin belirlediğin günlük bir sınıra karşı. Daha fazla göster, bir öğünün sodyumunu bu sınırın yanında listeler; böylece günün ne kadarını kullandığını görürsün.",
+                toolNotes: {
+                    log_meal:
+                        "Kâseyi sodyumuyla birlikte miligram cinsinden kaydeder, tuz olarak değil",
+                    set_nutrition_goals:
+                        "Her öğünün karşılaştırıldığı 2.300 mg günlük sodyum sınırını belirler",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "akşam yemeğinde yumurtalı bir kâse tonkotsu ramen, büyük boy",
+                    },
+                    {
+                        from: "ai",
+                        text: "Akşam yemeği kaydedildi: yaklaşık 610 kcal, 28 g protein ve 2.640 mg sodyum. Bu kâse tek başına günlük 2.300 mg sodyum sınırının 340 mg üzerinde.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Yumurtalı tonkotsu ramen (1 büyük kâse)"],
             },
             {
                 id: "import-history",

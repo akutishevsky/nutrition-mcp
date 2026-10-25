@@ -195,7 +195,12 @@ const EX_META: Record<
     "review-week": {
         icon: "fa-solid fa-chart-area",
         color: "pro",
-        tools: ["get_trends"],
+        tools: ["get_trends", "get_digest"],
+    },
+    "daily-digest": {
+        icon: "fa-solid fa-newspaper",
+        color: "cal",
+        tools: ["get_digest"],
     },
     "weight-trend": {
         icon: "fa-solid fa-weight-scale",
@@ -216,6 +221,11 @@ const EX_META: Record<
         icon: "fa-solid fa-beer-mug-empty",
         color: "gold",
         tools: ["set_alcohol_tracking", "log_meal"],
+    },
+    "track-sodium": {
+        icon: "fa-solid fa-scale-balanced",
+        color: "caf",
+        tools: ["log_meal", "set_nutrition_goals"],
     },
     "import-history": {
         icon: "fa-solid fa-file-import",
@@ -245,8 +255,10 @@ const EX_CARD: Partial<Record<ExampleSlideId, DemoCardId>> = {
     "saved-meal": "saved-meal",
     "goals-progress": "goals-progress",
     "review-week": "review-week",
+    "daily-digest": "daily-digest",
     "weight-trend": "weight-trend",
     "track-drinks": "track-drinks",
+    "track-sodium": "track-sodium",
     "import-history": "import-file",
 };
 
@@ -309,7 +321,7 @@ const STAT_TILES: {
     },
 ];
 
-/** Every locale has to tell the same eleven stories in the same shape — the
+/** Every locale has to tell the same stories in the same shape — the
  * icons, tools and cards above are keyed by id and drawn by index. */
 function assertExamples(doc: IndexDoc, locale: SiteLocale): void {
     const ids = doc.examples.slides.map((s) => s.id);
@@ -540,21 +552,34 @@ function exampleMessage(m: ExampleMessage, doc: IndexDoc): string {
     return `<div class="lp-msg-a">${esc(m.text)}${link}</div>`;
 }
 
-function exampleThread(
+/** The card a slide's digest card draws. The daily-digest slide asks about
+ * one day (the hero day), every other slide's digest is the 7-day review. */
+export function digestCardId(slideId: string): "daily-digest" | "digest-week" {
+    return slideId === "daily-digest" ? "daily-digest" : "digest-week";
+}
+
+export function exampleThread(
     s: ExampleSlide,
     doc: IndexDoc,
     locale: SiteLocale,
 ): string {
     const cardId = EX_CARD[s.id];
     const meals = [...(s.cardMeals ?? [])];
+    const heroMeals = doc.hero.chat.exchanges.flatMap((e) =>
+        e.meal ? [e.meal] : [],
+    );
     const out: string[] = [];
     s.messages.forEach((m, i) => {
         out.push(exampleMessage(m, doc));
         for (const c of s.cards ?? []) {
-            if (c.after !== i || !cardId) continue;
+            // A slide's own widget, except a digest, which a slide can add
+            // beside it (review-week asks get_trends and get_digest).
+            const id = c.kind === "digest" ? digestCardId(s.id) : cardId;
+            if (c.after !== i || !id) continue;
             const meal = c.kind === "meal-logged" ? (meals.shift() ?? "") : "";
+            const dayMeals = id === "daily-digest" ? heroMeals : [];
             out.push(
-                `<div class="lp-card-slot">${renderCard(cardId, locale, meal)}</div>`,
+                `<div class="lp-card-slot">${renderCard(id, locale, meal, dayMeals)}</div>`,
             );
         }
     });

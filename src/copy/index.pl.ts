@@ -454,7 +454,7 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Gotowe: 2000 kcal i 160 g białka do osiągnięcia, kofeina poniżej 400 mg. Reszta bez zmian: 220 g węglowodanów, 70 g tłuszczu, 20 g tłuszczu nasyconego, 30 g błonnika, 2,5 l wody, limit cukru dodanego 25 g i waga docelowa 75 kg.",
+                        text: "Gotowe. Do osiągnięcia zostaje 2000 kcal i 160 g białka, kofeina poniżej 400 mg. Reszta bez zmian: 220 g węglowodanów, 70 g tłuszczu, 20 g tłuszczu nasyconego, 30 g błonnika, 2,5 l wody, 2300 mg sodu, Twój limit 25 g cukru dodanego i Twoja waga docelowa 75 kg.",
                     },
                     {
                         from: "user",
@@ -480,6 +480,8 @@ export const INDEX_PL: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Liczy średnie z ostatnich 7, 14 i 30 dni i otwiera widżet trendów",
+                    get_digest:
+                        "Podsumowuje ostatnie 7 dni z celami i najważniejszymi punktami w jednej karcie",
                 },
                 messages: [
                     {
@@ -502,6 +504,36 @@ export const INDEX_PL: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Sprawdź, jak minął dzień",
+                description:
+                    "Zapytaj, jak minął wczoraj, dziś albo ostatnie 7 lub 30 dni, a w czacie otworzy się karta podsumowania: kalorie i każdy śledzony składnik odżywczy na tle Twoich celów, woda i waga, posiłki z dnia przy jednym dniu albo nawyki zapisywania przy okresie oraz kilka najważniejszych punktów z Twojego własnego dziennika.",
+                toolNotes: {
+                    get_digest:
+                        "Buduje podsumowanie za wybrany okres: posiłki z dnia dla jednego dnia, nawyki zapisywania dla okresu",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "jak wczoraj poszło?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Wczoraj zapisano 3 posiłki: 1150 z 2000 kcal i 76 z 160 g białka, więc do celu zostało 850 kcal i 84 g białka. Cukier dodany: 23 g z limitu 25 g, sód: 1050 mg z 2300 mg, woda: 500 ml z 2500 ml.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -632,6 +664,35 @@ export const INDEX_PL: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
+            },
+            {
+                id: "track-sodium",
+                title: "Śledź sód",
+                description:
+                    "Sód śledzi się w miligramach, nie w soli, przy każdym posiłku i względem dziennego limitu, który sam ustawiasz. Pokaż więcej wyświetla sód posiłku obok tego limitu, więc widać, jaką część dnia zajął.",
+                toolNotes: {
+                    log_meal:
+                        "Zapisuje miskę z sodem w miligramach, nie w soli",
+                    set_nutrition_goals:
+                        "Ustawia dzienny limit sodu 2300 mg, z którym sprawdzany jest każdy posiłek",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "tonkotsu ramen z jajkiem na kolację, jedna duża miska",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano kolację: około 610 kcal, 28 g białka i 2640 mg sodu. Sama ta miska przekracza Twój dzienny limit sodu 2300 mg o 340 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Tonkotsu ramen z jajkiem (1 duża miska)"],
             },
             {
                 id: "import-history",

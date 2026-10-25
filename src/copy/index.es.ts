@@ -448,7 +448,7 @@ export const INDEX_ES: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Hecho: 2000 kcal y 160 g de proteína por alcanzar, y la cafeína por debajo de 400 mg. Lo demás sigue igual: 220 g de carbohidratos, 70 g de grasa, 20 g de grasa saturada, 30 g de fibra, 2,5 L de agua, tu límite de 25 g de azúcar añadido y tu peso objetivo de 75 kg.",
+                        text: "Listo: te faltan 2000 kcal y 160 g de proteína para llegar, y la cafeína se queda por debajo de 400 mg. Lo demás sigue como estaba: 220 g de carbohidratos, 70 g de grasa, 20 g de grasa saturada, 30 g de fibra, 2,5 L de agua, 2300 mg de sodio, tu límite de 25 g de azúcar añadido y tu peso objetivo de 75 kg.",
                     },
                     {
                         from: "user",
@@ -474,6 +474,8 @@ export const INDEX_ES: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Calcula tus medias de los últimos 7, 14 y 30 días y abre la tarjeta de tendencias",
+                    get_digest:
+                        "Resume tus últimos 7 días con objetivos y destacados en una sola tarjeta",
                 },
                 messages: [
                     {
@@ -496,6 +498,36 @@ export const INDEX_ES: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Revisa cómo fue un día",
+                description:
+                    "Pregunta cómo fue ayer, o cómo van hoy o los últimos 7 o 30 días, y se abre en el chat una tarjeta de resumen: calorías y cada nutriente que registras frente a tus objetivos, agua y peso, las comidas del día en un solo día o tus hábitos de registro en un periodo, y algunos destacados sacados de tu propio registro.",
+                toolNotes: {
+                    get_digest:
+                        "Genera el resumen del periodo que pidas: las comidas del día para un solo día, los hábitos de registro para un periodo",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "¿qué tal fue ayer?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Ayer registraste 3 comidas: 1150 de tus 2000 kcal y 76 de tus 160 g de proteína, así que te faltan 850 kcal y 84 g de proteína. El azúcar añadido fue de 23 g frente a tu límite de 25 g, el sodio de 1050 mg frente a 2300 mg, y registraste 500 ml de agua de los 2500 ml previstos.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -623,6 +655,35 @@ export const INDEX_ES: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Lager, 4 % (1 pinta, 568 ml)"],
+            },
+            {
+                id: "track-sodium",
+                title: "Controla el sodio",
+                description:
+                    "El sodio se registra en miligramos, no en sal, en cada comida, frente a un límite diario que tú fijas. Mostrar más enumera el sodio de una comida junto a ese límite, para que veas cuánto del día ha consumido.",
+                toolNotes: {
+                    log_meal:
+                        "Registra el cuenco con su sodio en miligramos, no en sal",
+                    set_nutrition_goals:
+                        "Fija el límite diario de sodio de 2300 mg con el que se compara cada comida",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "ramen tonkotsu con un huevo para cenar, un cuenco grande",
+                    },
+                    {
+                        from: "ai",
+                        text: "Cena registrada: unas 610 kcal, 28 g de proteína y 2640 mg de sodio. Ese cuenco por sí solo supera tu límite diario de sodio de 2300 mg en 340 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Ramen tonkotsu con huevo (1 cuenco grande)"],
             },
             {
                 id: "import-history",

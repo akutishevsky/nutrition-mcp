@@ -457,7 +457,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Fatto: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto rimane com'era: 220 g di carboidrati, 70 g di grassi, 20 g di grassi saturi, 30 g di fibre, 2,5 L d'acqua, il tuo limite di 25 g di zuccheri aggiunti e il tuo peso obiettivo di 75 kg.",
+                        text: "Fatto: 2.000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto resta com'era: 220 g di carboidrati, 70 g di grassi, 20 g di grassi saturi, 30 g di fibre, 2,5 L di acqua, 2.300 mg di sodio, il tuo limite di 25 g di zuccheri aggiunti e il peso obiettivo di 75 kg.",
                     },
                     {
                         from: "user",
@@ -483,6 +483,8 @@ export const INDEX_IT: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Calcola le medie degli ultimi 7, 14 e 30 giorni e apre il widget degli andamenti",
+                    get_digest:
+                        "Riassume gli ultimi 7 giorni con obiettivi e punti salienti in un'unica scheda",
                 },
                 messages: [
                     {
@@ -505,6 +507,36 @@ export const INDEX_IT: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Vedi com'è andata una giornata",
+                description:
+                    "Chiedi com'è andata ieri, o come procedono oggi o gli ultimi 7 o 30 giorni: in chat si apre una scheda di riepilogo con calorie e ogni nutriente tracciato rispetto ai tuoi obiettivi, acqua e peso, i pasti della giornata per un singolo giorno o le tue abitudini di registrazione per un periodo, e qualche spunto tratto dal tuo diario.",
+                toolNotes: {
+                    get_digest:
+                        "Crea il riepilogo del periodo richiesto: i pasti della giornata per un singolo giorno, le abitudini di registrazione per un periodo",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "com'è andata ieri?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Ieri hai registrato 3 pasti: 1.150 dei tuoi 2.000 kcal e 76 dei tuoi 160 g di proteine, quindi ti mancano ancora 850 kcal e 84 g di proteine. Gli zuccheri aggiunti sono a 23 g sul limite di 25 g, il sodio a 1.050 mg su 2.300 mg e hai bevuto 500 ml d'acqua su 2.500 ml.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -636,6 +668,35 @@ export const INDEX_IT: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
+            },
+            {
+                id: "track-sodium",
+                title: "Tieni sotto controllo il sodio",
+                description:
+                    "Il sodio si registra in milligrammi, non in sale, su ogni pasto, rispetto a un limite giornaliero che imposti tu. Mostra di più elenca il sodio di un pasto accanto a quel limite, così vedi quanta parte della giornata ha già usato.",
+                toolNotes: {
+                    log_meal:
+                        "Registra la ciotola con il suo sodio in milligrammi, non in sale",
+                    set_nutrition_goals:
+                        "Imposta il limite giornaliero di sodio di 2.300 mg con cui viene confrontato ogni pasto",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "ramen tonkotsu con un uovo per cena, una ciotola grande",
+                    },
+                    {
+                        from: "ai",
+                        text: "Registrata la cena: circa 610 kcal, 28 g di proteine e 2.640 mg di sodio. Quella sola ciotola supera di 340 mg il tuo limite giornaliero di 2.300 mg di sodio.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Ramen tonkotsu con uovo (1 ciotola grande)"],
             },
             {
                 id: "import-history",

@@ -447,7 +447,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 20 g gesättigte Fettsäuren, 30 g Ballaststoffe, 2,5 l Wasser, dein Limit von 25 g für zugesetzten Zucker und dein Zielgewicht von 75 kg.",
+                        text: "Erledigt: 2.000 kcal und 160 g Protein als Ziel, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 20 g gesättigte Fettsäuren, 30 g Ballaststoffe, 2,5 l Wasser, 2.300 mg Natrium, dein Limit von 25 g zugesetztem Zucker und dein Zielgewicht von 75 kg.",
                     },
                     {
                         from: "user",
@@ -473,6 +473,8 @@ export const INDEX_DE: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Bildet Durchschnitte über deine letzten 7, 14 und 30 Tage und öffnet die Trends-Karte",
+                    get_digest:
+                        "Fasst deine letzten 7 Tage mit Zielen und Auffälligkeiten in einer Karte zusammen",
                 },
                 messages: [
                     {
@@ -495,6 +497,36 @@ export const INDEX_DE: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Einen Tag auswerten",
+                description:
+                    "Frag, wie gestern lief oder wie heute oder die letzten 7 oder 30 Tage laufen, und im Chat öffnet sich eine Tagesübersicht: Kalorien und jeder erfasste Nährstoff im Vergleich zu deinen Zielen, Wasser und Gewicht, die Mahlzeiten des Tages bei einem einzelnen Tag oder deine Erfassungsgewohnheiten bei einem Zeitraum, und ein paar Auffälligkeiten aus deinem eigenen Tagebuch.",
+                toolNotes: {
+                    get_digest:
+                        "Erstellt die Übersicht für den Zeitraum, den du nennst: die Mahlzeiten des Tages für einen einzelnen Tag, Erfassungsgewohnheiten für einen Zeitraum",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "wie lief gestern?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Gestern hast du 3 Mahlzeiten erfasst: 1.150 von deinen 2.000 kcal und 76 von deinen 160 g Protein, es fehlen also noch 850 kcal und 84 g Protein. Zugesetzter Zucker lag bei 23 g von deinem Limit von 25 g, Natrium bei 1.050 mg von 2.300 mg, und du hast 500 ml Wasser von 2.500 ml erfasst.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -626,6 +658,35 @@ export const INDEX_DE: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Lagerbier, 4 % (1 Pint, 568 ml)"],
+            },
+            {
+                id: "track-sodium",
+                title: "Natrium erfassen",
+                description:
+                    "Natrium wird in Milligramm erfasst, nicht als Salz, bei jeder Mahlzeit und gegen ein Tageslimit, das du festlegst. Mehr anzeigen listet das Natrium einer Mahlzeit neben diesem Limit auf, damit du siehst, wie viel vom Tag sie verbraucht hat.",
+                toolNotes: {
+                    log_meal:
+                        "Erfasst die Schüssel mit ihrem Natrium in Milligramm, nicht als Salz",
+                    set_nutrition_goals:
+                        "Legt das tägliche Natriumlimit von 2.300 mg fest, gegen das jede Mahlzeit geprüft wird",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "tonkotsu ramen mit Ei zum Abendessen, eine große Schüssel",
+                    },
+                    {
+                        from: "ai",
+                        text: "Abendessen erfasst: etwa 610 kcal, 28 g Protein und 2.640 mg Natrium. Allein diese Schüssel liegt 340 mg über deinem täglichen Natriumlimit von 2.300 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Tonkotsu-Ramen mit Ei (1 große Schüssel)"],
             },
             {
                 id: "import-history",

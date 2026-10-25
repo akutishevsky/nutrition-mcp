@@ -459,7 +459,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "C'est fait : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Le reste ne change pas : 220 g de glucides, 70 g de lipides, 20 g d'acides gras saturés, 30 g de fibres, 2,5 L d'eau, ta limite de 25 g de sucres ajoutés et ton poids cible de 75 kg.",
+                        text: "C'est noté : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Tout le reste reste inchangé : 220 g de glucides, 70 g de lipides, 20 g de graisses saturées, 30 g de fibres, 2,5 L d'eau, 2 300 mg de sodium, ta limite de 25 g de sucres ajoutés et ton poids cible de 75 kg.",
                     },
                     {
                         from: "user",
@@ -485,6 +485,8 @@ export const INDEX_FR: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Calcule tes moyennes sur 7, 14 et 30 jours et ouvre la carte des tendances",
+                    get_digest:
+                        "Résume tes 7 derniers jours avec objectifs et points forts dans une seule carte",
                 },
                 messages: [
                     {
@@ -507,6 +509,36 @@ export const INDEX_FR: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Fais le bilan d'une journée",
+                description:
+                    "Demande comment s'est passée ta journée d'hier, ou comment se passent aujourd'hui ou les 7 ou 30 derniers jours, et une carte bilan s'ouvre dans le chat : calories et chaque nutriment suivi face à tes objectifs, eau et poids, repas de la journée pour un seul jour ou tes habitudes de saisie pour une période, et quelques points forts tirés de ton propre journal.",
+                toolNotes: {
+                    get_digest:
+                        "Construit le bilan de la période demandée : la liste des repas pour un seul jour, les habitudes de saisie pour une période",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "ça a donné quoi hier ?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Hier tu as enregistré 3 repas : 1 150 kcal sur tes 2 000, et 76 g de protéines sur tes 160 g. Il te reste donc 850 kcal et 84 g de protéines à atteindre. Les sucres ajoutés sont à 23 g sur ta limite de 25 g, le sodium à 1 050 mg sur 2 300 mg, et tu as bu 500 ml d'eau sur 2 500 ml.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -638,6 +670,35 @@ export const INDEX_FR: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Lager, 4 % (1 pinte, 568 ml)"],
+            },
+            {
+                id: "track-sodium",
+                title: "Suis ton sodium",
+                description:
+                    "Le sodium se suit en milligrammes, pas en sel, sur chaque repas, face à une limite quotidienne que tu fixes. Afficher plus liste le sodium d'un repas à côté de cette limite, pour que tu voies la part de la journée qu'il occupe.",
+                toolNotes: {
+                    log_meal:
+                        "Enregistre le bol avec son sodium en milligrammes, pas en sel",
+                    set_nutrition_goals:
+                        "Fixe la limite quotidienne de sodium de 2 300 mg à laquelle chaque repas est comparé",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "ramen tonkotsu avec un œuf pour le dîner, un grand bol",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dîner enregistré : environ 610 kcal, 28 g de protéines et 2 640 mg de sodium. Ce bol à lui seul dépasse de 340 mg ta limite quotidienne de sodium, fixée à 2 300 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Ramen tonkotsu avec œuf (1 grand bol)"],
             },
             {
                 id: "import-history",

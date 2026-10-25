@@ -450,7 +450,7 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Klaar: 2.000 kcal en 160 g eiwit om te halen, cafeïne onder de 400 mg. De rest blijft zoals het was: 220 g koolhydraten, 70 g vet, 20 g verzadigd vet, 30 g vezels, 2,5 L water, je limiet van 25 g toegevoegde suiker en je streefgewicht van 75 kg.",
+                        text: "Klaar: nog 2.000 kcal en 160 g eiwit te halen, cafeïne onder 400 mg. Verder blijft alles zoals het was: 220 g koolhydraten, 70 g vet, 20 g verzadigd vet, 30 g vezels, 2,5 L water, 2.300 mg natrium, je limiet van 25 g toegevoegde suiker en je streefgewicht van 75 kg.",
                     },
                     {
                         from: "user",
@@ -476,6 +476,8 @@ export const INDEX_NL: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Berekent je gemiddelden over de laatste 7, 14 en 30 dagen en opent de trendkaart",
+                    get_digest:
+                        "Vat je afgelopen 7 dagen samen met doelen en highlights in één kaart",
                 },
                 messages: [
                     {
@@ -498,6 +500,36 @@ export const INDEX_NL: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Bekijk hoe een dag ging",
+                description:
+                    "Vraag hoe gisteren ging, of hoe vandaag of de afgelopen 7 of 30 dagen gaan, en er opent een samenvattingskaart in de chat: calorieën en elke bijgehouden voedingsstof tegen je doelen, water en gewicht, de maaltijden van de dag voor één dag of je loggewoonten voor een periode en een paar highlights uit je eigen dagboek.",
+                toolNotes: {
+                    get_digest:
+                        "Stelt de samenvatting op voor de periode die je vraagt: de maaltijden van de dag voor één dag, loggewoonten voor een periode",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "hoe ging gisteren?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Gisteren heb je 3 maaltijden gelogd: 1.150 van je 2.000 kcal en 76 van je 160 g eiwit, dus nog 850 kcal en 84 g eiwit te gaan. Toegevoegde suiker zat op 23 g van je limiet van 25 g, natrium op 1.050 mg van 2.300 mg, en je kwam op 500 ml water van de 2.500 ml.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -628,6 +660,35 @@ export const INDEX_NL: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Pils, 4% (1 pint, 568 ml)"],
+            },
+            {
+                id: "track-sodium",
+                title: "Natrium bijhouden",
+                description:
+                    "Natrium wordt bijgehouden in milligram, niet als zout, bij elke maaltijd, tegen een dagelijkse limiet die je zelf instelt. Meer tonen toont het natrium van een maaltijd naast die limiet, zodat je ziet hoeveel van de dag hij opgebruikte.",
+                toolNotes: {
+                    log_meal:
+                        "Logt de kom met het natrium in milligram, niet als zout",
+                    set_nutrition_goals:
+                        "Zet de dagelijkse natriumlimiet van 2.300 mg, waartegen elke maaltijd wordt gecontroleerd",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "tonkotsu ramen met ei voor het avondeten, één grote kom",
+                    },
+                    {
+                        from: "ai",
+                        text: "Gelogd als avondeten: ongeveer 610 kcal, 28 g eiwit en 2.640 mg natrium. Die kom alleen al is 340 mg boven je dagelijkse natriumlimiet van 2.300 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Tonkotsu ramen met ei (1 grote kom)"],
             },
             {
                 id: "import-history",
