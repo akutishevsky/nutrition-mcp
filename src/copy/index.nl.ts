@@ -512,10 +512,10 @@ export const INDEX_NL: IndexDoc = {
                 id: "daily-digest",
                 title: "Bekijk hoe een dag ging",
                 description:
-                    "Vraag hoe gisteren ging, of hoe vandaag of de afgelopen 7 of 30 dagen gaan, en er opent een samenvattingskaart in de chat: calorieën en elke bijgehouden voedingsstof tegen je doelen, water en gewicht, de maaltijden van de dag en een paar highlights uit je eigen dagboek.",
+                    "Vraag hoe gisteren ging, of hoe vandaag of de afgelopen 7 of 30 dagen gaan, en er opent een samenvattingskaart in de chat: calorieën en elke bijgehouden voedingsstof tegen je doelen, water en gewicht, de maaltijden van de dag voor één dag of je loggewoonten voor een periode en een paar highlights uit je eigen dagboek.",
                 toolNotes: {
                     get_digest:
-                        "Stelt de samenvatting op voor de periode die je vraagt, met de maaltijden van de dag erbij",
+                        "Stelt de samenvatting op voor de periode die je vraagt: de maaltijden van de dag voor één dag, loggewoonten voor een periode",
                 },
                 messages: [
                     {
@@ -665,7 +665,7 @@ export const INDEX_NL: IndexDoc = {
                 id: "track-sodium",
                 title: "Natrium bijhouden",
                 description:
-                    "Natrium wordt bijgehouden in milligram, niet als zout, bij elke maaltijd, tegen een dagelijkse limiet die je zelf instelt. Een zoute maaltijd toont zijn natrium direct naast die limiet zodra je hem logt, zodat je ziet hoeveel van de dag hij opgebruikte.",
+                    "Natrium wordt bijgehouden in milligram, niet als zout, bij elke maaltijd, tegen een dagelijkse limiet die je zelf instelt. Meer tonen toont het natrium van een maaltijd naast die limiet, zodat je ziet hoeveel van de dag hij opgebruikte.",
                 toolNotes: {
                     log_meal:
                         "Logt de kom met het natrium in milligram, niet als zout",

@@ -509,10 +509,10 @@ export const INDEX_DE: IndexDoc = {
                 id: "daily-digest",
                 title: "Einen Tag auswerten",
                 description:
-                    "Frag, wie gestern lief oder wie heute oder die letzten 7 oder 30 Tage laufen, und im Chat öffnet sich eine Tagesübersicht: Kalorien und jeder erfasste Nährstoff im Vergleich zu deinen Zielen, Wasser und Gewicht, die Mahlzeiten des Tages und ein paar Auffälligkeiten aus deinem eigenen Tagebuch.",
+                    "Frag, wie gestern lief oder wie heute oder die letzten 7 oder 30 Tage laufen, und im Chat öffnet sich eine Tagesübersicht: Kalorien und jeder erfasste Nährstoff im Vergleich zu deinen Zielen, Wasser und Gewicht, die Mahlzeiten des Tages bei einem einzelnen Tag oder deine Erfassungsgewohnheiten bei einem Zeitraum, und ein paar Auffälligkeiten aus deinem eigenen Tagebuch.",
                 toolNotes: {
                     get_digest:
-                        "Erstellt die Übersicht für den Zeitraum, den du nennst, mit den Mahlzeiten des Tages",
+                        "Erstellt die Übersicht für den Zeitraum, den du nennst: die Mahlzeiten des Tages für einen einzelnen Tag, Erfassungsgewohnheiten für einen Zeitraum",
                 },
                 messages: [
                     {
@@ -663,7 +663,7 @@ export const INDEX_DE: IndexDoc = {
                 id: "track-sodium",
                 title: "Natrium erfassen",
                 description:
-                    "Natrium wird in Milligramm erfasst, nicht als Salz, bei jeder Mahlzeit und gegen ein Tageslimit, das du festlegst. Eine salzige Mahlzeit zeigt ihr Natrium direkt nach dem Erfassen neben diesem Limit, damit du siehst, wie viel vom Tag sie schon verbraucht hat.",
+                    "Natrium wird in Milligramm erfasst, nicht als Salz, bei jeder Mahlzeit und gegen ein Tageslimit, das du festlegst. Mehr anzeigen listet das Natrium einer Mahlzeit neben diesem Limit auf, damit du siehst, wie viel vom Tag sie verbraucht hat.",
                 toolNotes: {
                     log_meal:
                         "Erfasst die Schüssel mit ihrem Natrium in Milligramm, nicht als Salz",

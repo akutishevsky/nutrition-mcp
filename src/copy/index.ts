@@ -909,10 +909,10 @@ const INDEX_EN: IndexDoc = {
                 id: "daily-digest",
                 title: "Check how a day went",
                 description:
-                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals, and a few highlights drawn from your own log.",
+                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals for a single day or your logging habits for a range, and a few highlights drawn from your own log.",
                 toolNotes: {
                     get_digest:
-                        "Builds the digest for the period you ask about, with the day's meals listed",
+                        "Builds the digest for the period you ask about: the day's meals for a single day, logging habits for a range",
                 },
                 messages: [
                     {
@@ -1062,7 +1062,7 @@ const INDEX_EN: IndexDoc = {
                 id: "track-sodium",
                 title: "Track sodium",
                 description:
-                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. A salty meal shows its sodium next to that limit the moment it is logged, so you can see how much of the day it used.",
+                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. Show more lists a meal's sodium next to that limit, so you can see how much of the day it used.",
                 toolNotes: {
                     log_meal:
                         "Logs the bowl with its sodium in milligrams, not salt",

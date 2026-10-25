@@ -11,6 +11,7 @@ import {
     type DemoCardId,
 } from "../scripts/landing-cards.js";
 import { INDEX } from "./copy/index.js";
+import { digestCardId, exampleThread } from "../scripts/gen-index.js";
 import { SITE_LOCALES } from "./routes.js";
 import { NUTRIENT_SOURCES_META_KEY } from "./widgets.js";
 
@@ -294,6 +295,48 @@ test("the digest card draws its gauge and the demo period", () => {
     expect(html).toContain("Sun 8 Mar");
     expect(html).toContain("1,150 of 2,000 kcal");
     expect(html).not.toMatch(/undefined|NaN/);
+});
+
+test("no card repeats an element id inside its shadow root", () => {
+    const ids: DemoCardId[] = [
+        "hero-meal",
+        "hero-day",
+        "hero-weight",
+        "log-meal",
+        "photo-meal",
+        "scan-barcode",
+        "saved-meal",
+        "goals-progress",
+        "review-week",
+        "weight-trend",
+        "track-drinks",
+        "track-sodium",
+        "import-file",
+        "usda-food",
+        "daily-digest",
+        "digest-week",
+    ];
+    for (const id of ids) {
+        const html = renderCard(id, "en", "Meal", DAY_MEALS);
+        const root = html.slice(
+            html.indexOf("<template shadowrootmode"),
+            html.indexOf("</template>"),
+        );
+        const seen = [...root.matchAll(/\sid="([^"]*)"/g)].map((m) => m[1]);
+        const dupes = seen.filter((v, i) => seen.indexOf(v) !== i);
+        expect(dupes, `${id} duplicate ids`).toEqual([]);
+    }
+});
+
+test("the daily-digest slide's card is the one-day digest, not the week", () => {
+    expect(digestCardId("daily-digest")).toBe("daily-digest");
+    expect(digestCardId("review-week")).toBe("digest-week");
+    const doc = INDEX.en!;
+    const slide = doc.examples.slides.find((s) => s.id === "daily-digest")!;
+    const thread = exampleThread(slide, doc, "en");
+    expect(thread).toContain("Sun 8 Mar");
+    expect(thread).toContain("1,150 of 2,000 kcal");
+    expect(thread).not.toContain("28 Feb");
 });
 
 test("every locale has the digest and sodium slides", () => {

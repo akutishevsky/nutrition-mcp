@@ -519,10 +519,10 @@ export const INDEX_IT: IndexDoc = {
                 id: "daily-digest",
                 title: "Vedi com'è andata una giornata",
                 description:
-                    "Chiedi com'è andata ieri, o come procedono oggi o gli ultimi 7 o 30 giorni: in chat si apre una scheda di riepilogo con calorie e ogni nutriente tracciato rispetto ai tuoi obiettivi, acqua e peso, i pasti della giornata e qualche spunto tratto dal tuo diario.",
+                    "Chiedi com'è andata ieri, o come procedono oggi o gli ultimi 7 o 30 giorni: in chat si apre una scheda di riepilogo con calorie e ogni nutriente tracciato rispetto ai tuoi obiettivi, acqua e peso, i pasti della giornata per un singolo giorno o le tue abitudini di registrazione per un periodo, e qualche spunto tratto dal tuo diario.",
                 toolNotes: {
                     get_digest:
-                        "Crea il riepilogo del periodo richiesto, con l'elenco dei pasti della giornata",
+                        "Crea il riepilogo del periodo richiesto: i pasti della giornata per un singolo giorno, le abitudini di registrazione per un periodo",
                 },
                 messages: [
                     {
@@ -673,7 +673,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "track-sodium",
                 title: "Tieni sotto controllo il sodio",
                 description:
-                    "Il sodio si registra in milligrammi, non in sale, su ogni pasto, rispetto a un limite giornaliero che imposti tu. Un pasto salato mostra il suo sodio accanto a quel limite appena lo registri, così vedi quanta parte della giornata ha già usato.",
+                    "Il sodio si registra in milligrammi, non in sale, su ogni pasto, rispetto a un limite giornaliero che imposti tu. Mostra di più elenca il sodio di un pasto accanto a quel limite, così vedi quanta parte della giornata ha già usato.",
                 toolNotes: {
                     log_meal:
                         "Registra la ciotola con il suo sodio in milligrammi, non in sale",

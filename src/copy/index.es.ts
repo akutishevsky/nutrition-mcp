@@ -510,10 +510,10 @@ export const INDEX_ES: IndexDoc = {
                 id: "daily-digest",
                 title: "Revisa cómo fue un día",
                 description:
-                    "Pregunta cómo fue ayer, o cómo van hoy o los últimos 7 o 30 días, y se abre en el chat una tarjeta de resumen: calorías y cada nutriente que registras frente a tus objetivos, agua y peso, las comidas del día y algunos destacados sacados de tu propio registro.",
+                    "Pregunta cómo fue ayer, o cómo van hoy o los últimos 7 o 30 días, y se abre en el chat una tarjeta de resumen: calorías y cada nutriente que registras frente a tus objetivos, agua y peso, las comidas del día en un solo día o tus hábitos de registro en un periodo, y algunos destacados sacados de tu propio registro.",
                 toolNotes: {
                     get_digest:
-                        "Genera el resumen del periodo que pidas, con las comidas del día",
+                        "Genera el resumen del periodo que pidas: las comidas del día para un solo día, los hábitos de registro para un periodo",
                 },
                 messages: [
                     {
@@ -660,7 +660,7 @@ export const INDEX_ES: IndexDoc = {
                 id: "track-sodium",
                 title: "Controla el sodio",
                 description:
-                    "El sodio se registra en miligramos, no en sal, en cada comida, frente a un límite diario que tú fijas. Una comida salada muestra su sodio junto a ese límite en cuanto la registras, para que veas cuánto del día ha consumido.",
+                    "El sodio se registra en miligramos, no en sal, en cada comida, frente a un límite diario que tú fijas. Mostrar más enumera el sodio de una comida junto a ese límite, para que veas cuánto del día ha consumido.",
                 toolNotes: {
                     log_meal:
                         "Registra el cuenco con su sodio en miligramos, no en sal",

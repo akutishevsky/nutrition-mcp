@@ -552,24 +552,34 @@ function exampleMessage(m: ExampleMessage, doc: IndexDoc): string {
     return `<div class="lp-msg-a">${esc(m.text)}${link}</div>`;
 }
 
-function exampleThread(
+/** The card a slide's digest card draws. The daily-digest slide asks about
+ * one day (the hero day), every other slide's digest is the 7-day review. */
+export function digestCardId(slideId: string): "daily-digest" | "digest-week" {
+    return slideId === "daily-digest" ? "daily-digest" : "digest-week";
+}
+
+export function exampleThread(
     s: ExampleSlide,
     doc: IndexDoc,
     locale: SiteLocale,
 ): string {
     const cardId = EX_CARD[s.id];
     const meals = [...(s.cardMeals ?? [])];
+    const heroMeals = doc.hero.chat.exchanges.flatMap((e) =>
+        e.meal ? [e.meal] : [],
+    );
     const out: string[] = [];
     s.messages.forEach((m, i) => {
         out.push(exampleMessage(m, doc));
         for (const c of s.cards ?? []) {
             // A slide's own widget, except a digest, which a slide can add
             // beside it (review-week asks get_trends and get_digest).
-            const id = c.kind === "digest" ? "digest-week" : cardId;
+            const id = c.kind === "digest" ? digestCardId(s.id) : cardId;
             if (c.after !== i || !id) continue;
             const meal = c.kind === "meal-logged" ? (meals.shift() ?? "") : "";
+            const dayMeals = id === "daily-digest" ? heroMeals : [];
             out.push(
-                `<div class="lp-card-slot">${renderCard(id, locale, meal)}</div>`,
+                `<div class="lp-card-slot">${renderCard(id, locale, meal, dayMeals)}</div>`,
             );
         }
     });

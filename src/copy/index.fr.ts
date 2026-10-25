@@ -521,10 +521,10 @@ export const INDEX_FR: IndexDoc = {
                 id: "daily-digest",
                 title: "Fais le bilan d'une journée",
                 description:
-                    "Demande comment s'est passée ta journée d'hier, ou comment se passent aujourd'hui ou les 7 ou 30 derniers jours, et une carte bilan s'ouvre dans le chat : calories et chaque nutriment suivi face à tes objectifs, eau et poids, repas de la journée et quelques points forts tirés de ton propre journal.",
+                    "Demande comment s'est passée ta journée d'hier, ou comment se passent aujourd'hui ou les 7 ou 30 derniers jours, et une carte bilan s'ouvre dans le chat : calories et chaque nutriment suivi face à tes objectifs, eau et poids, repas de la journée pour un seul jour ou tes habitudes de saisie pour une période, et quelques points forts tirés de ton propre journal.",
                 toolNotes: {
                     get_digest:
-                        "Construit le bilan de la période demandée, avec la liste des repas de la journée",
+                        "Construit le bilan de la période demandée : la liste des repas pour un seul jour, les habitudes de saisie pour une période",
                 },
                 messages: [
                     {
@@ -675,7 +675,7 @@ export const INDEX_FR: IndexDoc = {
                 id: "track-sodium",
                 title: "Suis ton sodium",
                 description:
-                    "Le sodium se suit en milligrammes, pas en sel, sur chaque repas, face à une limite quotidienne que tu fixes. Un repas salé affiche son sodium à côté de cette limite dès qu'il est enregistré, pour que tu voies la part de la journée qu'il occupe.",
+                    "Le sodium se suit en milligrammes, pas en sel, sur chaque repas, face à une limite quotidienne que tu fixes. Afficher plus liste le sodium d'un repas à côté de cette limite, pour que tu voies la part de la journée qu'il occupe.",
                 toolNotes: {
                     log_meal:
                         "Enregistre le bol avec son sodium en milligrammes, pas en sel",

@@ -559,9 +559,16 @@
         var pills = scope.querySelectorAll(".nmw-tog");
         for (var j = 0; j < pills.length; j++)
             pills[j].setAttribute("aria-expanded", open ? "true" : "false");
-        var next = scope.querySelector(
+        // A card can carry two Show more pills, a phone one and a wide-card
+        // one, and only one is rendered at a time (the other is display:none,
+        // which cannot take focus). Focus the first one on screen in the new
+        // state; getClientRects() is empty for a hidden element.
+        var targets = scope.querySelectorAll(
             open ? ".nmw-s-x .nmw-tog" : ".nmw-s-c .nmw-tog",
         );
+        var next = null;
+        for (var k = 0; k < targets.length && !next; k++)
+            if (targets[k].getClientRects().length) next = targets[k];
         if (next) next.focus({ preventScroll: true });
     });
 

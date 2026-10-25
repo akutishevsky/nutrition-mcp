@@ -516,10 +516,10 @@ export const INDEX_PL: IndexDoc = {
                 id: "daily-digest",
                 title: "Sprawdź, jak minął dzień",
                 description:
-                    "Zapytaj, jak minął wczoraj, dziś albo ostatnie 7 lub 30 dni, a w czacie otworzy się karta podsumowania: kalorie i każdy śledzony składnik odżywczy na tle Twoich celów, woda i waga, posiłki z dnia oraz kilka najważniejszych punktów z Twojego własnego dziennika.",
+                    "Zapytaj, jak minął wczoraj, dziś albo ostatnie 7 lub 30 dni, a w czacie otworzy się karta podsumowania: kalorie i każdy śledzony składnik odżywczy na tle Twoich celów, woda i waga, posiłki z dnia przy jednym dniu albo nawyki zapisywania przy okresie oraz kilka najważniejszych punktów z Twojego własnego dziennika.",
                 toolNotes: {
                     get_digest:
-                        "Buduje podsumowanie za wybrany okres, z listą posiłków z dnia",
+                        "Buduje podsumowanie za wybrany okres: posiłki z dnia dla jednego dnia, nawyki zapisywania dla okresu",
                 },
                 messages: [
                     {
@@ -669,7 +669,7 @@ export const INDEX_PL: IndexDoc = {
                 id: "track-sodium",
                 title: "Śledź sód",
                 description:
-                    "Sód śledzi się w miligramach, nie w soli, przy każdym posiłku i względem dziennego limitu, który sam ustawiasz. Słony posiłek pokazuje swój sód obok tego limitu w chwili zapisu, więc widać, jaką część dnia zajął.",
+                    "Sód śledzi się w miligramach, nie w soli, przy każdym posiłku i względem dziennego limitu, który sam ustawiasz. Pokaż więcej wyświetla sód posiłku obok tego limitu, więc widać, jaką część dnia zajął.",
                 toolNotes: {
                     log_meal:
                         "Zapisuje miskę z sodem w miligramach, nie w soli",

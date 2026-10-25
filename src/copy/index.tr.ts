@@ -518,10 +518,10 @@ export const INDEX_TR: IndexDoc = {
                 id: "daily-digest",
                 title: "Bir günün nasıl geçtiğine bak",
                 description:
-                    "Dünün nasıl geçtiğini, bugünün ya da son 7 veya 30 günün nasıl gittiğini sor; sohbette bir özet kartı açılır: kalori ve takip ettiğin her besin hedeflerine göre, su ve kilo, günün öğünleri ve kendi kaydından çıkan birkaç öne çıkan nokta.",
+                    "Dünün nasıl geçtiğini, bugünün ya da son 7 veya 30 günün nasıl gittiğini sor; sohbette bir özet kartı açılır: kalori ve takip ettiğin her besin hedeflerine göre, su ve kilo, tek bir gün için günün öğünleri, bir dönem için kayıt alışkanlıkların ve kendi kaydından çıkan birkaç öne çıkan nokta.",
                 toolNotes: {
                     get_digest:
-                        "İstediğin dönem için özeti hazırlar; günün öğünleri de listelenir",
+                        "İstediğin dönem için özeti hazırlar: tek gün için günün öğünleri, bir dönem için kayıt alışkanlıkları",
                 },
                 messages: [
                     {
@@ -671,7 +671,7 @@ export const INDEX_TR: IndexDoc = {
                 id: "track-sodium",
                 title: "Sodyumu takip et",
                 description:
-                    "Sodyum tuz değil, miligram cinsinden takip edilir; her öğünde, senin belirlediğin günlük bir sınıra karşı. Tuzlu bir öğün kaydedildiği anda sodyumu o sınırın yanında görünür; böylece günün ne kadarını kullandığını hemen görürsün.",
+                    "Sodyum tuz değil, miligram cinsinden takip edilir; her öğünde, senin belirlediğin günlük bir sınıra karşı. Daha fazla göster, bir öğünün sodyumunu bu sınırın yanında listeler; böylece günün ne kadarını kullandığını görürsün.",
                 toolNotes: {
                     log_meal:
                         "Kâseyi sodyumuyla birlikte miligram cinsinden kaydeder, tuz olarak değil",

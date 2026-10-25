@@ -476,7 +476,43 @@ export function renderWidgetCard(
     // toggle, site.js) shows the expanded one. The collapsed state is what a
     // card shows until its Show more is pressed.
     const sheet = shadowCss(css, bodies.join(""), EXPAND_CSS);
-    return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="nmw-body"><div class="nmw-s nmw-s-c">${bodies[0]}</div><div class="nmw-s nmw-s-x">${bodies[1]}</div></div></template></div>`;
+    const expanded = suffixIds(bodies[1]!, "x-");
+    return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="nmw-body"><div class="nmw-s nmw-s-c">${bodies[0]}</div><div class="nmw-s nmw-s-x">${expanded}</div></div></template></div>`;
+}
+
+/** Give every id in an expanded body a prefix, and every reference to one of
+ * those ids inside the same body (aria-controls, aria-labelledby,
+ * aria-describedby, for, headers, list, href="#…", url(#…)) with it. The two
+ * states are serialised side by side in one shadow root, so without this an
+ * id such as `wt` would occur twice in the same tree. */
+export function suffixIds(markup: string, prefix: string): string {
+    const ids = [...markup.matchAll(/\sid="([^"]*)"/g)].map((m) => m[1]!);
+    let out = markup;
+    for (const id of ids) {
+        const q = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const renamed = prefix + id;
+        out = out.replace(new RegExp(` id="${q}"`, "g"), ` id="${renamed}"`);
+        out = out.replace(
+            new RegExp(
+                `(\\s(?:aria-controls|aria-labelledby|aria-describedby|for|headers|list)=")([^"]*)"`,
+                "g",
+            ),
+            (_m, lead: string, val: string) =>
+                `${lead}${val
+                    .split(/\s+/)
+                    .map((t) => (t === id ? renamed : t))
+                    .join(" ")}"`,
+        );
+        out = out.replace(
+            new RegExp(`href="#${q}"`, "g"),
+            `href="#${renamed}"`,
+        );
+        out = out.replace(
+            new RegExp(`url\\(#${q}\\)`, "g"),
+            `url(#${renamed})`,
+        );
+    }
+    return out;
 }
 
 /** The two-state switch inside a card's shadow root (see renderWidgetCard).
