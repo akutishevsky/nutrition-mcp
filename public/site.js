@@ -470,16 +470,23 @@
     }
 
     /* ---------- copy buttons ---------- */
+    // data-copy is the literal text; data-copy-anchor copies this page's own
+    // URL with that #anchor (the /tools cards), so a link copied on a
+    // translated page, dev or a fork points back at that same page.
     doc.querySelectorAll(".copy-mini").forEach(function (btn) {
         var icon = btn.querySelector("i");
+        var iconClass = icon ? icon.className : "";
         btn.addEventListener("click", function () {
-            var text = btn.getAttribute("data-copy");
+            var anchor = btn.getAttribute("data-copy-anchor");
+            var text = anchor
+                ? location.origin + location.pathname + "#" + anchor
+                : btn.getAttribute("data-copy");
             function ok() {
                 btn.classList.add("copied");
                 if (icon) icon.className = "fa-solid fa-check";
                 setTimeout(function () {
                     btn.classList.remove("copied");
-                    if (icon) icon.className = "fa-solid fa-copy";
+                    if (icon) icon.className = iconClass;
                 }, 1500);
             }
             function fallback() {

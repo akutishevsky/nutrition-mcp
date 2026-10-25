@@ -99,6 +99,7 @@ export const TOOLS_JA: ToolsDoc = {
         optionalLabel: "任意",
         trySayingLabel: "こう話しかけてみましょう",
         categoriesLabel: "ツールのカテゴリー",
+        copyLinkLabel: "{tool} へのリンクをコピー",
     },
     tools: {
         log_meal: {

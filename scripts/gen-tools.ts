@@ -361,6 +361,27 @@ const TOOLS_STYLE = `        <style>
                 font-size: 16px;
                 line-height: 1.3;
             }
+            /* The name and its copy-link button (site.js copies this
+               page's URL with the card's #anchor). */
+            body.tools .tool-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+            }
+            body.tools .tool-copy {
+                flex: none;
+                width: 30px;
+                height: 30px;
+                font-size: 12px;
+                background: var(--bg2);
+                color: var(--ink2);
+            }
+            body.tools .tool-copy:hover,
+            body.tools .tool-copy.copied {
+                background: var(--acc);
+                color: var(--acc-ink);
+            }
             body.tools .tool-name {
                 border: 0;
                 font-family: var(--mono);
@@ -927,13 +948,17 @@ function renderToolCard(
                                         <p class="tool-ex-photo"><i class="fa-solid fa-camera" aria-hidden="true"></i><span>${esc(prose.photoHint)}</span></p>`
             : "";
     const [q1, q2] = QUOTES[locale];
+    const copyLabel = doc.ui.copyLinkLabel.replace("{tool}", tool.name);
     return `<article class="tool-card" id="${tool.name}" data-reveal>
                                 <div class="tool-card-body">
                                     <div class="tool-card-top">
                                         <span class="nm-tile tools-tile-md ${tint}" aria-hidden="true"><i class="${icon}"></i></span>
                                         <span class="tool-badges">${badgesHtml}</span>
                                     </div>
-                                    <h3><code class="tool-name">${tool.name}</code></h3>
+                                    <div class="tool-head">
+                                        <h3><code class="tool-name">${tool.name}</code></h3>
+                                        <button class="nm-icon-btn copy-mini tool-copy" type="button" data-copy-anchor="${tool.name}" aria-label="${esc(copyLabel)}" title="${esc(copyLabel)}"><i class="fa-solid fa-link" aria-hidden="true"></i></button>
+                                    </div>
                                     <p class="tool-desc">${esc(prose.description)}</p>${paramsHtml}
                                     <div class="tool-ex">
                                         <p class="tool-say"><span class="tool-say-l">${esc(doc.ui.trySayingLabel)} </span>${q1}${esc(prose.example)}${q2}</p>${photoHtml}

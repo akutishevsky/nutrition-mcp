@@ -77,6 +77,7 @@ export const TOOLS_PL: ToolsDoc = {
         optionalLabel: "opcjonalny",
         trySayingLabel: "Przykładowe polecenie",
         categoriesLabel: "Kategorie narzędzi",
+        copyLinkLabel: "Kopiuj link do {tool}",
     },
     tools: {
         log_meal: {

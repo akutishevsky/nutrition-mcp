@@ -81,6 +81,7 @@ export const TOOLS_UK: ToolsDoc = {
         optionalLabel: "необов’язковий",
         trySayingLabel: "Спробуй сказати",
         categoriesLabel: "Категорії інструментів",
+        copyLinkLabel: "Копіювати посилання на {tool}",
     },
     tools: {
         log_meal: {

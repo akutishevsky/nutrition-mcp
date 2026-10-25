@@ -750,6 +750,9 @@ export interface ToolsDoc {
         trySayingLabel: string;
         /** aria-label of the sticky category-chip <nav>. */
         categoriesLabel: string;
+        /** aria-label and tooltip of each card's copy-link button; `{tool}`
+         * is the tool name, kept verbatim. */
+        copyLinkLabel: string;
     };
     /** Keyed by ToolIdentity.name. */
     tools: Record<string, ToolProse>;
@@ -849,6 +852,7 @@ const TOOLS_EN: ToolsDoc = {
         optionalLabel: "optional",
         trySayingLabel: "Try saying",
         categoriesLabel: "Tool categories",
+        copyLinkLabel: "Copy link to {tool}",
     },
     tools: {
         log_meal: {

@@ -86,6 +86,7 @@ export const TOOLS_ES: ToolsDoc = {
         optionalLabel: "opcional",
         trySayingLabel: "Prueba con",
         categoriesLabel: "Categorías de herramientas",
+        copyLinkLabel: "Copiar enlace a {tool}",
     },
     tools: {
         log_meal: {

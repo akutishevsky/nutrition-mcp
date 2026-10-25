@@ -82,6 +82,7 @@ export const TOOLS_TR: ToolsDoc = {
         optionalLabel: "isteğe bağlı",
         trySayingLabel: "Şöyle söyle",
         categoriesLabel: "Araç kategorileri",
+        copyLinkLabel: "{tool} bağlantısını kopyala",
     },
     tools: {
         log_meal: {
