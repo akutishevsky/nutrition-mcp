@@ -124,8 +124,15 @@
                 outline-offset: 2px;
                 border-radius: 12px;
             }
+            /* top/left pin the hidden box to the top-left corner. Without them an
+               absolutely positioned box takes its static position, which for the
+               #imp-live region is just below #root, and that 1px box extends the
+               document's scrollable overflow past the height the bridge measures:
+               the iframe then scrolls by a pixel or two and clips the footer. */
             .vh {
                 position: absolute;
+                top: 0;
+                left: 0;
                 width: 1px;
                 height: 1px;
                 overflow: hidden;
