@@ -694,7 +694,7 @@ export function computeDigest(input: DigestInput): DigestResult {
         idx.map((i) => {
             if (key === "weight") return weightBy.get(dateAt(i)) ?? null;
             if (i > DIGEST_HISTORY_DAYS) return null;
-            const d = dayAt(i, isToday && i === 0 ? asOfNow : null);
+            const d = dayAt(i);
             if (key === "water_ml") return d.v.water_ml;
             return d.logged ? d.v[key] : null;
         });
@@ -1084,7 +1084,9 @@ export function computeDigest(input: DigestInput): DigestResult {
             weight.previous = pts.length > 1 ? pts[0]! : null;
             weight.count = pts.length;
         } else {
-            weight.last_known = lastOnOrBefore(1) ?? overall;
+            weight.last_known =
+                lastOnOrBefore(1) ??
+                (overall && overall.date <= dateAt(1) ? overall : null);
         }
     }
 

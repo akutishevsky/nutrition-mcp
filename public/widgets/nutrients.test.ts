@@ -37,7 +37,7 @@ const api = await (async () => {
         "fmt",
         "esc",
         "WIDGET_STRINGS",
-        `${parts.join("\n")}\nreturn { gaugeSegments, nvStatus, mealTimesPayload, withItemSodium, mealItemsPayload, nvMealsFrom, nvDayHidden, nvBodyHtml, nvMoreHtml, SOURCE_NUTRIENT_KEYS };`,
+        `${parts.join("\n")}\nreturn { gaugeSegments, nvStatus, mealTimesPayload, withItemSodium, mealItemsPayload, nvMealsFrom, nvDayHidden, nvBodyHtml, nvMoreHtml, nvStripHtml, SOURCE_NUTRIENT_KEYS };`,
     );
     return factory(fmt, esc, { en: WIDGET_STRINGS_EN }) as {
         gaugeSegments: (
@@ -81,9 +81,35 @@ const api = await (async () => {
             rowsLen: number,
             shown: number,
         ) => string;
+        nvStripHtml: (
+            V: Record<string, unknown>,
+            key: string,
+            k: number,
+            goal: number | null,
+            kind: string,
+        ) => string;
         SOURCE_NUTRIENT_KEYS: string[];
     };
 })();
+
+describe("the by-day strip's goal line", () => {
+    // Bars are a share of .dbars' content box (68px less its 6px top
+    // padding); the absolutely-positioned line is a share of the padding
+    // box, so it must take the same 6px off or it sits ~10% above the bars.
+    test("is placed against the bars' own box", () => {
+        const V = {
+            days: [
+                { logged: true, vals: { calories: 2410 } },
+                { logged: true, vals: { calories: 1800 } },
+            ],
+        };
+        const html = api.nvStripHtml(V, "calories", 1, 2200, "ceil");
+        const mx = 2410 * 1.08;
+        expect(html).toContain(
+            `bottom:calc((100% - 6px) * ${(2200 / mx).toFixed(4)})`,
+        );
+    });
+});
 
 test("macros.js tags every nutrient the server records a source for", () => {
     // Drift here silently drops the source word on that nutrient's

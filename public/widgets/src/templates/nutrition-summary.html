@@ -344,6 +344,22 @@
             // replaying a tool result from before it existed has no such field,
             // and older payloads must render exactly as they always did, so it
             // is only used when it is a real number larger than logged_days.
+            // Whether the card has anything to open. Meals count, and so does
+            // logged water: a water-only day arrives with meal_count 0, and its
+            // Water row lives in the accordion, so the card keeps its Show
+            // more pill rather than reading "No meals logged" with no way in.
+            function summaryHasData(days) {
+                const mealCount = days.every((d) =>
+                    Number.isFinite(d && d.meal_count),
+                )
+                    ? days.reduce((n, d) => n + d.meal_count, 0)
+                    : null;
+                const hasWater = days.some((d) => Number(d && d.water_ml) > 0);
+                return (
+                    (mealCount == null ? days.length > 0 : mealCount > 0) ||
+                    hasWater
+                );
+            }
             function loggedDaysCaption(data) {
                 const logged = data.logged_days;
                 const span = Number(data.days_in_range);
@@ -418,7 +434,7 @@
                 )
                     ? days.reduce((n, d) => n + d.meal_count, 0)
                     : null;
-                const hasData = mealCount == null ? nLogged > 0 : mealCount > 0;
+                const hasData = summaryHasData(days);
                 const rec = data.recorded_days || {};
 
                 // The payload's own averages (one day: that day's totals), then

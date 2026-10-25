@@ -25,14 +25,30 @@ async function freshSummaryWidget() {
     if (boot === -1) throw new Error("nutrition-summary bootstrap not found");
     const factory = new Function(
         `${script.slice(0, boot)}
-         return { loggedDaysCaption };`,
+         return { loggedDaysCaption, summaryHasData };`,
     );
     return factory() as {
         loggedDaysCaption: (data: Record<string, unknown>) => string;
+        summaryHasData: (days: Record<string, unknown>[]) => boolean;
     };
 }
 
-const { loggedDaysCaption } = await freshSummaryWidget();
+const { loggedDaysCaption, summaryHasData } = await freshSummaryWidget();
+
+// A day with only water logged arrives with meal_count 0; the card must still
+// open, since its Water row is the only place the water shows.
+test("a water-only day counts as data; an empty day does not", () => {
+    const day = (meal_count: number, water_ml: number) => ({
+        date: "2026-10-24",
+        meal_count,
+        calories: 0,
+        water_ml,
+    });
+    expect(summaryHasData([day(0, 1500)])).toBe(true);
+    expect(summaryHasData([day(0, 0), day(0, 250)])).toBe(true);
+    expect(summaryHasData([day(2, 0)])).toBe(true);
+    expect(summaryHasData([day(0, 0)])).toBe(false);
+});
 
 test("a window with gaps names both denominators", () => {
     expect(loggedDaysCaption({ logged_days: 15, days_in_range: 30 })).toBe(

@@ -487,7 +487,7 @@ function nvStripHtml(V, key, k, goal, kind) {
         .join("");
     const gl =
         g != null
-            ? `<span class="dgl" style="bottom:${((g / mx) * 100).toFixed(1)}%"><em>${esc(S.goalLine)}</em></span>`
+            ? `<span class="dgl" style="bottom:calc((100% - 6px) * ${(g / mx).toFixed(4)})"><em>${esc(S.goalLine)}</em></span>`
             : "";
     const labels =
         days.length <= 14

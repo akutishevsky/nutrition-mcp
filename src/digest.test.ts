@@ -344,6 +344,31 @@ describe("water and weight", () => {
             date: "2026-09-01",
         });
     });
+    test("a range's last known weigh-in is never after the range ends", () => {
+        // last_7_days ends yesterday (the 23rd); the only weigh-in is today.
+        const today = weigh("2026-10-24", 80);
+        const r = run({
+            period: "last_7_days",
+            meals: [meal("2026-10-22", "12:00")],
+            weights: [today],
+            latestWeight: today,
+        });
+        expect(r.meta.weight.latest).toBeNull();
+        expect(r.meta.weight.last_known).toBeNull();
+    });
+    test("a range with no weigh-in names an earlier one", () => {
+        const old = weigh("2026-09-01", 81);
+        const r = run({
+            period: "last_7_days",
+            meals: [meal("2026-10-22", "12:00")],
+            weights: [old],
+            latestWeight: old,
+        });
+        expect(r.meta.weight.last_known).toEqual({
+            value: 81,
+            date: "2026-09-01",
+        });
+    });
 });
 
 describe("meals and habits", () => {
@@ -598,6 +623,24 @@ describe("trends", () => {
             b: 3000,
         });
         expect(card!.series).toHaveLength(14);
+    });
+    test("today's trend point is the same uncut day as the gauge", () => {
+        // A row timed later today (a bare date at local noon is a placeholder;
+        // here 20:00, after NOW's 17:40) counts in "today so far" and must
+        // count in today's trend point too, or the card says "nothing today"
+        // under a gauge that shows it.
+        const meals: Meal[] = [];
+        for (let i = 1; i <= 14; i++) {
+            const d = new Date(Date.UTC(2026, 9, 24 - i))
+                .toISOString()
+                .slice(0, 10);
+            meals.push(meal(d, "12:00", { calories: 2000 }));
+        }
+        meals.push(meal("2026-10-24", "20:00", { calories: 900 }));
+        const r = run({ period: "today", meals });
+        expect(row(r, "calories")?.value).toBe(900);
+        const card = r.meta.trends.cards.find((c) => c.key === "calories");
+        expect(card?.day_value).toBe(900);
     });
     test("too few days to tell are listed, not drawn", () => {
         const r = run({

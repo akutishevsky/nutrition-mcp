@@ -4630,7 +4630,7 @@ export function registerTools(
         "get_digest",
         {
             title: "Get Nutrition Digest",
-            description: `A digest of one period: yesterday, today so far, the last 7 days or the last 30 days (both ranges end yesterday). It covers calories and every tracked nutrient against the user's goals, the previous period for comparison, trends, water and weight, the day's meals or the period's logging habits (typical meal times, top foods by calories), and a few highlights drawn from the user's own log. Renders an interactive digest card in clients that support MCP Apps UI, and returns the same figures as text elsewhere. Range figures are per logged day. Figures are estimates, not medical or dietary advice.`,
+            description: `A digest of one period: yesterday, today so far, the last 7 days or the last 30 days (both ranges end yesterday). Returns calories and every tracked nutrient against the user's goals (for a range, per logged day with the number of days each goal was met), the latest weight, and for a day the number of meals logged. In clients that support MCP Apps UI it also renders an interactive digest card, which adds a comparison with the previous period, trends, logging habits and highlights. Figures are estimates, not medical or dietary advice.`,
             annotations: {
                 title: "Get Nutrition Digest",
                 readOnlyHint: true,
