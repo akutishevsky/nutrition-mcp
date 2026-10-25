@@ -1317,6 +1317,13 @@
                 .collall:hover {
                     filter: brightness(0.97);
                 }
+                /* base.css caps .wrap at 760px. The desktop artboard (W4-Weight-D)
+                   is a 920px frame, and the 814x200 chart plus the two-column
+                   details are drawn for it. Scoped to this widget's root, like
+                   the day view's .wrap.dayview, so no other widget widens. */
+                .wrap.wt-wide {
+                    max-width: 920px;
+                }
             }
 
             @media (prefers-reduced-motion: reduce) {
@@ -1330,7 +1337,7 @@
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="wrap tight wt-wide" id="root"></div>
 
         <script>
             "use strict";
