@@ -1,5 +1,6 @@
 import { test, expect } from "bun:test";
 import {
+    GOALS,
     GOALS_DAY_MEALS,
     HERO_DAY_MEALS,
     MEAL_CARDS,
@@ -138,6 +139,7 @@ const EXPANDABLE_CARDS: DemoCardId[] = [
     "saved-meal",
     "track-drinks",
     "usda-food",
+    "track-sodium",
     "goals-progress",
     "review-week",
 ];
@@ -228,12 +230,24 @@ test("sodium shows in the meal and day views' expanded state and in trends", () 
     expect(trends, "trends sodium").toContain("Sodium");
 });
 
-test("the digest card renders both states", () => {
-    const html = renderCard("digest-week", "en", "Meal", DAY_MEALS);
-    const { collapsed, expanded } = statesOf(html);
-    expect(collapsed).toContain("Show more");
-    expect(expanded).toContain("Show less");
-    expect(html).not.toMatch(/undefined|NaN/);
+test("the digest cards render both states", () => {
+    for (const id of ["digest-week", "daily-digest"] as const) {
+        const html = renderCard(id, "en", "Meal", DAY_MEALS);
+        const { collapsed, expanded } = statesOf(html);
+        expect(collapsed, id).toContain("Show more");
+        expect(expanded, id).toContain("Show less");
+        expect(html, id).not.toMatch(/undefined|NaN/);
+    }
+});
+
+test("the track-sodium card opens sodium as its expanded row", () => {
+    const { collapsed, expanded } = statesOf(
+        renderCard("track-sodium", "en", "Tonkotsu ramen", DAY_MEALS),
+    );
+    // Collapsed, no nutrient row is open; expanded, the sodium row is.
+    expect(collapsed).not.toContain('class="accB');
+    expect(expanded).toContain('class="accB');
+    expect(expanded).toMatch(/data-k="sodium_mg"[^>]*aria-expanded="true"/);
 });
 
 test("every locale's review-week slide draws the trends card, then the digest", () => {
@@ -250,4 +264,49 @@ test("every locale's review-week slide draws the trends card, then the digest", 
             "get_digest",
         ]);
     }
+});
+// Sodium is tracked in milligrams and carried in every demo meal and day, so
+// the figures the sodium slide and the digest quote are the ones the cards are
+// built from.
+test("every demo meal and day carries a sodium figure", () => {
+    const rows = [
+        ...Object.values(MEAL_CARDS).map((c) => c!.totals),
+        ...HERO_DAY_MEALS.map(([, t]) => t),
+        ...GOALS_DAY_MEALS,
+    ];
+    for (const t of rows) {
+        expect(t.na).toBeGreaterThan(0);
+    }
+    expect(GOALS.sodium).toBe(2300);
+});
+
+test("the track-sodium card's meal is over the 2,300 mg limit", () => {
+    const na = MEAL_CARDS["track-sodium"]!.totals.na;
+    expect(na).toBe(2640);
+    expect(na).toBeGreaterThan(GOALS.sodium);
+    const html = renderCard("track-sodium", "en", "Tonkotsu ramen", DAY_MEALS);
+    expect(html).toContain("Tonkotsu ramen");
+});
+
+test("the digest card draws its gauge and the demo period", () => {
+    const html = renderCard("daily-digest", "en", "", DAY_MEALS);
+    expect(html).toContain('class="gw');
+    expect(html).toContain("Sun 8 Mar");
+    expect(html).toContain("1,150 of 2,000 kcal");
+    expect(html).not.toMatch(/undefined|NaN/);
+});
+
+test("every locale has the digest and sodium slides", () => {
+    for (const locale of SITE_LOCALES) {
+        const ids = INDEX[locale]!.examples.slides.map((s) => s.id);
+        expect(ids, locale).toContain("daily-digest");
+        expect(ids, locale).toContain("track-sodium");
+    }
+});
+
+test("the english goals reply names the sodium limit", () => {
+    const slide = INDEX.en!.examples.slides.find(
+        (s) => s.id === "goals-progress",
+    )!;
+    expect(slide.messages[3]!.text).toContain("2,300 mg sodium");
 });

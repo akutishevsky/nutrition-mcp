@@ -108,9 +108,11 @@ export type ExampleSlideId =
     | "saved-meal"
     | "goals-progress"
     | "review-week"
+    | "daily-digest"
     | "weight-trend"
     | "meal-patterns"
     | "track-drinks"
+    | "track-sodium"
     | "import-history"
     | "export-data";
 
@@ -290,7 +292,8 @@ export interface IndexDoc {
         /** Accessible names of the two photo-turn pictures. */
         photoMealAlt: string;
         photoPackageAlt: string;
-        /** 11 slides, in English's order (see ExampleSlide.id). */
+        /** One slide per ExampleSlideId, in the carousel's order (EX_META in
+         * scripts/gen-index.ts). */
         slides: ExampleSlide[];
     };
 
@@ -844,7 +847,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, your 25 g added-sugar limit and your 75 kg target weight.",
+                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, 2,300 mg sodium, your 25 g added-sugar limit and your 75 kg target weight.",
                     },
                     {
                         from: "user",
@@ -896,6 +899,32 @@ const INDEX_EN: IndexDoc = {
                         kind: "trends",
                         after: 0,
                     },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Check how a day went",
+                description:
+                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals, and a few highlights drawn from your own log.",
+                toolNotes: {
+                    get_digest:
+                        "Builds the digest for the period you ask about, with the day's meals listed",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "how did yesterday go?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Yesterday you logged 3 meals: 1,150 of your 2,000 kcal and 76 of your 160 g protein, so 850 kcal and 84 g protein are still to reach. Added sugar was 23 g of your 25 g limit, sodium 1,050 mg of 2,300 mg, and you logged 500 ml of water against 2,500 ml.",
+                    },
+                ],
+                cards: [
                     {
                         kind: "digest",
                         after: 0,
@@ -1028,6 +1057,35 @@ const INDEX_EN: IndexDoc = {
                     },
                 ],
                 cardMeals: ["Lager, 4% (1 pint, 568 ml)"],
+            },
+            {
+                id: "track-sodium",
+                title: "Track sodium",
+                description:
+                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. A salty meal shows its sodium next to that limit the moment it is logged, so you can see how much of the day it used.",
+                toolNotes: {
+                    log_meal:
+                        "Logs the bowl with its sodium in milligrams, not salt",
+                    set_nutrition_goals:
+                        "Sets the 2,300 mg daily sodium limit each meal is checked against",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "tonkotsu ramen with an egg for dinner, one big bowl",
+                    },
+                    {
+                        from: "ai",
+                        text: "Logged dinner: about 610 kcal, 28 g protein and 2,640 mg sodium. That bowl alone is 340 mg over your 2,300 mg daily sodium limit.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Tonkotsu ramen with egg (1 large bowl)"],
             },
             {
                 id: "import-history",
