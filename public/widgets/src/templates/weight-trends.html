@@ -1453,12 +1453,10 @@
                 const s = n === 0 ? "±" : v < 0 ? "−" : "+";
                 return s + nf(d).format(n);
             }
+            // Intl formatters from shared/date.js (UTC, cached per locale).
             function dtf(opts) {
                 try {
-                    return new Intl.DateTimeFormat(
-                        WIDGET_LOCALE,
-                        Object.assign({ timeZone: "UTC" }, opts),
-                    );
+                    return dateFmt(opts);
                 } catch (_) {
                     return null;
                 }
@@ -2645,10 +2643,7 @@
                 const cur = weekStart(M_today());
                 if (k === cur) return W.weekThis;
                 if (k === shiftDate(cur, -7)) return W.weekLast;
-                const e = shiftDate(k, 6);
-                if (k.slice(0, 7) === e.slice(0, 7) && WIDGET_LOCALE !== "ja")
-                    return `${Number(k.slice(8))}–${shortDate(e)}`;
-                return `${shortDate(k)} – ${shortDate(e)}`;
+                return dateRange(k, shiftDate(k, 6), "none");
             }
             function M_today() {
                 return MODEL.today;

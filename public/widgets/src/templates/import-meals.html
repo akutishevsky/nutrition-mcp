@@ -1676,6 +1676,7 @@
         <script>
             /*@i18n@*/
             /*@include shared/i18n.js@*/
+            /*@include shared/date.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -3603,20 +3604,14 @@
                 );
             }
 
-            // A calendar date, e.g. "Wed 1 Oct", in the widget's language.
-            // UTC on purpose: the value is a date, not an instant, so no
-            // zone may shift it.
+            // A calendar date, e.g. "Wed 1 Oct", in the widget's language
+            // (dfmt, shared/date.js: Intl, UTC, so no zone shifts the day).
             function dayLabel(iso) {
-                try {
-                    return new Intl.DateTimeFormat(WIDGET_LOCALE, {
-                        weekday: "short",
-                        day: "numeric",
-                        month: "short",
-                        timeZone: "UTC",
-                    }).format(new Date(iso + "T12:00:00Z"));
-                } catch (_) {
-                    return iso;
-                }
+                return dfmt(iso, {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                });
             }
 
             function previewTable(shown, cols) {
