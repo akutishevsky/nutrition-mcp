@@ -1986,6 +1986,7 @@
         <script>
             /*@i18n@*/
             /*@include shared/i18n.js@*/
+            /*@include shared/date.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -2152,39 +2153,14 @@
             }
             const SEP = () => T.digest.sep;
 
-            function utc(iso) {
-                const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(S(iso));
-                return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null;
-            }
-            function dfmt(iso, opts) {
-                const t = utc(iso);
-                if (t == null) return S(iso);
-                try {
-                    return new Intl.DateTimeFormat(
-                        WIDGET_LOCALE,
-                        Object.assign({ timeZone: "UTC" }, opts),
-                    ).format(t);
-                } catch (_) {
-                    return S(iso);
-                }
-            }
+            // dfmt (shared/date.js) formats a YYYY-MM-DD through Intl in the
+            // widget's language; these are its digest-specific shapes.
             const dS = (iso) =>
                 dfmt(iso, { weekday: "short", day: "numeric", month: "short" });
             const dDM = (iso) => dfmt(iso, { day: "numeric", month: "short" });
             const dWD = (iso) => dfmt(iso, { weekday: "short" });
             function dRange(a, b) {
-                const ta = utc(a);
-                const tb = utc(b);
-                if (ta == null || tb == null) return dDM(a) + " – " + dDM(b);
-                try {
-                    const f = new Intl.DateTimeFormat(WIDGET_LOCALE, {
-                        day: "numeric",
-                        month: "short",
-                        timeZone: "UTC",
-                    });
-                    if (f.formatRange) return f.formatRange(ta, tb);
-                } catch (_) {}
-                return dDM(a) + " – " + dDM(b);
+                return dateRange(a, b, "none");
             }
             function tm(hhmm) {
                 const m = /^(\d{2}):(\d{2})$/.exec(S(hhmm));

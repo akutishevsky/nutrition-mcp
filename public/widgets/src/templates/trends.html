@@ -1585,6 +1585,7 @@
 
             // periodsFrom() + the period row builders. Requires fmt + esc
             // above and T / tpl / plural from shared/i18n.js.
+            /*@include shared/date.js@*/
             /*@include shared/period.js@*/
 
             const RANGES = [7, 14, 30];
@@ -1749,19 +1750,7 @@
 
             // Dates arrive as local YYYY-MM-DD; read them at UTC noon and
             // format in UTC so no timezone can move them a day.
-            const DF = {};
-            function dfmt(iso, opts) {
-                const k = WIDGET_LOCALE + JSON.stringify(opts);
-                if (!DF[k]) {
-                    const o = Object.assign({ timeZone: "UTC" }, opts);
-                    try {
-                        DF[k] = new Intl.DateTimeFormat(WIDGET_LOCALE, o);
-                    } catch (_) {
-                        DF[k] = new Intl.DateTimeFormat("en", o);
-                    }
-                }
-                return DF[k].format(new Date(iso + "T12:00:00Z"));
-            }
+            // dfmt (shared/date.js) formats through Intl in the widget's language.
             const wdShort = (iso) => dfmt(iso, { weekday: "short" });
             const dShort = (iso) =>
                 dfmt(iso, { day: "numeric", month: "short" });
@@ -1769,16 +1758,7 @@
             const dLong = (iso) =>
                 dfmt(iso, { weekday: "short", day: "numeric", month: "short" });
             function spanOf(a, b) {
-                const o = { day: "numeric", month: "short", timeZone: "UTC" };
-                try {
-                    const f = new Intl.DateTimeFormat(WIDGET_LOCALE, o);
-                    if (typeof f.formatRange === "function")
-                        return f.formatRange(
-                            new Date(a + "T12:00:00Z"),
-                            new Date(b + "T12:00:00Z"),
-                        );
-                } catch (_) {}
-                return dShort(a) + " – " + dShort(b);
+                return dateRange(a, b, "none");
             }
 
             // ---- the model: 30 days of every nutrient -----------------------

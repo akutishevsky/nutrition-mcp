@@ -13,9 +13,17 @@ import {
 } from "./copy/widgets.js";
 import { PERIOD_AVERAGES_META_KEY } from "./widgets.js";
 
-const SOURCE = await Bun.file(
-    new URL("../public/widgets/src/shared/period.js", import.meta.url),
-).text();
+// date.js (dfmt, dateRange) is included ahead of period.js in every template
+// that renders period rows, so the sandbox loads both.
+const SOURCE = (
+    await Promise.all(
+        ["shared/date.js", "shared/period.js"].map((f) =>
+            Bun.file(
+                new URL(`../public/widgets/src/${f}`, import.meta.url),
+            ).text(),
+        ),
+    )
+).join("\n");
 
 interface PeriodApi {
     periodsFrom: (meta: unknown) => {
@@ -34,7 +42,7 @@ interface PeriodApi {
     periodListHtml: (rows: unknown[], g: string, opts?: unknown) => string;
 }
 
-function load(strings: WidgetStrings): PeriodApi {
+function load(strings: WidgetStrings, locale = "en"): PeriodApi {
     const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
     const esc = (s: unknown) =>
         String(s)
@@ -54,7 +62,7 @@ function load(strings: WidgetStrings): PeriodApi {
         "WIDGET_LOCALE",
         `${SOURCE}\nreturn { periodsFrom, periodRowFrom, periodMacroHtml, periodListHtml };`,
     ) as (...args: unknown[]) => PeriodApi;
-    return factory(strings, fmt, esc, tpl, plural, "en");
+    return factory(strings, fmt, esc, tpl, plural, locale);
 }
 
 const api = load(WIDGET_STRINGS_EN);
@@ -248,5 +256,55 @@ describe("trends strings across locales", () => {
             expect(f.many).toBeDefined();
             expect(new Set([f.one, f.few, f.many]).size).toBe(3);
         }
+    });
+});
+
+describe("period labels follow the locale (shared/date.js)", () => {
+    // A one-week row (Mon 6 – Sun 12 Jul 2026) and a one-month row, rendered
+    // through the real list builder so the assertions read the shipped markup.
+    const weekRow = {
+        key: "2026-07-06",
+        start: "2026-07-06",
+        end: "2026-07-12",
+        days: 7,
+        logged_days: 7,
+        avg: { calories: 2000, protein: 100, carbs: 200, fat: 60 },
+    };
+    const label = (locale: string, strings: WidgetStrings) => {
+        const r = load(strings, locale).periodRowFrom({
+            ...weekRow,
+            targets: null,
+            on_target_days: null,
+        });
+        return load(strings, locale).periodListHtml([r], "week");
+    };
+
+    test("en keeps the day-before-month week label", () => {
+        expect(label("en", WIDGET_STRINGS_EN)).toContain(
+            '<span class="plabel">6–12 Jul</span>',
+        );
+    });
+
+    test("de and ja use their own day/month order and punctuation", () => {
+        expect(label("de", WIDGET_STRINGS.de!)).toContain(
+            '<span class="plabel">6.–12. Juli</span>',
+        );
+        expect(label("ja", WIDGET_STRINGS.ja!)).toContain(
+            '<span class="plabel">7月6日〜12日</span>',
+        );
+    });
+
+    test("a week across two months names both ends", () => {
+        const r = load(WIDGET_STRINGS.de!, "de").periodRowFrom({
+            ...weekRow,
+            start: "2026-06-29",
+            end: "2026-07-05",
+            key: "2026-06-29",
+            targets: null,
+            on_target_days: null,
+        });
+        expect(
+            load(WIDGET_STRINGS.de!, "de").periodListHtml([r], "week"),
+        ).toContain('<span class="plabel">29. Juni – 5. Juli</span>');
     });
 });

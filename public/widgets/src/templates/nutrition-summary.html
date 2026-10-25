@@ -47,6 +47,7 @@
 
             /*@i18n@*/
             /*@include shared/i18n.js@*/
+            /*@include shared/date.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -267,49 +268,17 @@
                 const p = ymd(s);
                 return p ? new Date(Date.UTC(p.y, p.m - 1, p.d, 12)) : null;
             }
-            function intlDate(s, opts) {
-                const d = utcNoon(s);
-                if (!d) return String(s ?? "");
-                try {
-                    // English day-before-month, as every other date on the
-                    // widgets ("24 Oct"), not en-US's "October 24".
-                    return new Intl.DateTimeFormat(
-                        WIDGET_LOCALE === "en" ? "en-GB" : WIDGET_LOCALE,
-                        Object.assign({ timeZone: "UTC" }, opts),
-                    ).format(d);
-                } catch (_) {
-                    return String(s);
-                }
-            }
-            // Every supported locale except Japanese shares English's
-            // day-before-month order, so only `ja` gets a distinct branch.
+            // The day labels (dateText, dateRange, dfmt) come from
+            // shared/date.js, which formats through Intl in the widget's
+            // language. Kept as named wrappers so the call sites read the same.
             function dayLabel(s, withYear) {
-                const p = ymd(s);
-                if (!p) return String(s ?? "");
-                const month = T.nutritionSummary.months[p.m - 1];
-                return WIDGET_LOCALE === "ja"
-                    ? `${withYear ? `${p.y}年` : ""}${month}${p.d}日`
-                    : `${p.d} ${month}${withYear ? ` ${p.y}` : ""}`;
+                return dateText(s, withYear);
             }
-            // "5–7 Jul" within a month, "28 Jun – 4 Jul" across two; the year
-            // when the range crosses one or is not the current year.
             function rangeLabel(start, end) {
-                const a = ymd(start),
-                    b = ymd(end);
-                if (!a || !b) return `${start} → ${end}`;
-                const thisYear = new Date().getFullYear();
-                if (a.y !== b.y)
-                    return `${dayLabel(start, true)} – ${dayLabel(end, true)}`;
-                const yr = b.y === thisYear ? "" : ` ${b.y}`;
-                if (a.m === b.m) {
-                    if (a.d === b.d) return `${dayLabel(end, false)}${yr}`;
-                    if (WIDGET_LOCALE === "ja") {
-                        const yearPrefix = b.y === thisYear ? "" : `${b.y}年`;
-                        return `${yearPrefix}${T.nutritionSummary.months[b.m - 1]}${a.d}日〜${b.d}日`;
-                    }
-                    return `${a.d}–${b.d} ${T.nutritionSummary.months[b.m - 1]}${yr}`;
-                }
-                return `${dayLabel(start, false)} – ${dayLabel(end, false)}${yr}`;
+                return dateRange(start, end, "auto");
+            }
+            function intlDate(s, opts) {
+                return dfmt(s, opts);
             }
             // "Saturday, 24 October" (the year when it is not this one).
             function fullDayLabel(s) {
