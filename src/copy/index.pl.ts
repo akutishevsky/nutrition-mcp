@@ -480,6 +480,8 @@ export const INDEX_PL: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Liczy średnie z ostatnich 7, 14 i 30 dni i otwiera widżet trendów",
+                    get_digest:
+                        "Podsumowuje ostatnie 7 dni z celami i najważniejszymi punktami w jednej karcie",
                 },
                 messages: [
                     {
@@ -502,6 +504,10 @@ export const INDEX_PL: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],

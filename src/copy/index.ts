@@ -139,6 +139,7 @@ export type ExampleWidget =
     | "meal-logged"
     | "goal-progress"
     | "weight-trends"
+    | "digest"
     | "import-meals";
 
 /** One widget card in an example conversation. Every field is structural:
@@ -869,6 +870,8 @@ const INDEX_EN: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Averages your last 7, 14 and 30 days and opens the trends card",
+                    get_digest:
+                        "Sums up your last 7 days with goals and highlights in one card",
                 },
                 messages: [
                     {
@@ -891,6 +894,10 @@ const INDEX_EN: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],

@@ -476,6 +476,8 @@ export const INDEX_NL: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Berekent je gemiddelden over de laatste 7, 14 en 30 dagen en opent de trendkaart",
+                    get_digest:
+                        "Vat je afgelopen 7 dagen samen met doelen en highlights in één kaart",
                 },
                 messages: [
                     {
@@ -498,6 +500,10 @@ export const INDEX_NL: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],

@@ -485,6 +485,8 @@ export const INDEX_UK: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Рахує середні значення за останні 7, 14 і 30 днів і відкриває картку трендів",
+                    get_digest:
+                        "Підсумовує твої останні 7 днів із цілями та головним в одній картці",
                 },
                 messages: [
                     {
@@ -507,6 +509,10 @@ export const INDEX_UK: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],

@@ -30,13 +30,17 @@ import {
     saturatedFatExtra,
     transFatExtra,
 } from "../src/saturated-fat.js";
-import type { Meal } from "../src/supabase.js";
+import { computeDigest, type DigestResult } from "../src/digest.js";
+import { buildSodiumMeta } from "../src/sodium.js";
+import type { Meal, NutritionGoals, WaterEntry } from "../src/supabase.js";
 import {
     ADDED_SUGAR_META_KEY,
+    DIGEST_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_CONTRIBUTORS_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
     SATURATED_FAT_META_KEY,
+    SODIUM_META_KEY,
 } from "../src/widgets.js";
 import { loadWidgetSources, renderWidgetCard } from "./widget-static.js";
 
@@ -82,7 +86,13 @@ interface Totals {
     trans: number | null;
     /** Millilitres. */
     water: number;
+    /** Milligrams of sodium (not salt). Optional: a figure the demo shows
+     * only where the card's _meta carries it. */
+    sodium?: number;
 }
+
+/** The sodium ceiling every demo account shares (daily_sodium_mg). */
+const SODIUM_GOAL_MG = 2300;
 
 /** 14 days of the "Review the week" account, oldest first: date, kcal,
  * protein, carbs, fat, fiber, sugar, added sugar, caffeine, water ml. 25 Feb
@@ -141,6 +151,12 @@ export const TRENDS_FATS: [number, number][] = [
 
 /** Weigh-ins, [days before the last one, kg], oldest first: 80.2 kg on
  * 11 Feb down to 78.4 kg on 12 Mar (the "Track weight and measurements" slide). */
+/** Sodium, milligrams, for each TRENDS_DAYS row (0 for the unlogged 25 Feb). */
+const TRENDS_SODIUM: number[] = [
+    2180, 2010, 2460, 0, 1930, 2390, 1870, 2250, 2040, 2470, 1820, 2380, 1760,
+    2120,
+];
+
 const WEIGH_INS: [number, number][] = [
     [29, 80.2],
     [26, 80.0],
@@ -170,7 +186,8 @@ export type DemoCardId =
     | "weight-trend"
     | "track-drinks"
     | "import-file"
-    | "usda-food";
+    | "usda-food"
+    | "digest-week";
 
 /** A meal-logged card's figures: the day's totals right after the log, which
  * on these demo days is the meal itself. */
@@ -191,6 +208,7 @@ export const MEAL_CARDS: Partial<
         type: "breakfast",
         totals: {
             kcal: 480,
+            sodium: 190,
             pro: 21,
             car: 85,
             fat: 8,
@@ -212,6 +230,7 @@ export const MEAL_CARDS: Partial<
         type: "breakfast",
         totals: {
             kcal: 320,
+            sodium: 410,
             pro: 11,
             car: 56,
             fat: 6,
@@ -231,6 +250,7 @@ export const MEAL_CARDS: Partial<
         type: "lunch",
         totals: {
             kcal: 520,
+            sodium: 1180,
             pro: 24,
             car: 43,
             fat: 27,
@@ -252,6 +272,7 @@ export const MEAL_CARDS: Partial<
             // A 150 g pot of plain 0% Greek yogurt, scaled from the
             // per-100 g label figures lookup_barcode returns.
             kcal: 87,
+            sodium: 45,
             pro: 15,
             car: 5,
             fat: 0,
@@ -276,6 +297,7 @@ export const MEAL_CARDS: Partial<
             // (+200 kcal, +37 g protein, +5 g fat). Protein: chicken 74,
             // black beans 9, cheese 7, rice 4, salsa 1.
             kcal: 865,
+            sodium: 1390,
             pro: 95,
             car: 70,
             fat: 21,
@@ -296,6 +318,7 @@ export const MEAL_CARDS: Partial<
         drink: "uk",
         totals: {
             kcal: 180,
+            sodium: 20,
             pro: 2,
             car: 12,
             fat: 0,
@@ -317,6 +340,7 @@ export const MEAL_CARDS: Partial<
         type: "lunch",
         totals: {
             kcal: 248,
+            sodium: 340,
             pro: 46.5,
             car: 0,
             fat: 5.4,
@@ -412,6 +436,7 @@ export const HERO_DAY_MEALS: [string, Totals][] = [
             add: 3,
             caf: null,
             sat: 4.1,
+            sodium: 1210,
             trans: 0.1,
             water: 0,
         },
@@ -428,6 +453,7 @@ export const HERO_DAY_MEALS: [string, Totals][] = [
             add: 0,
             caf: null,
             sat: 0.4,
+            sodium: 90,
             trans: 0,
             water: 0,
         },
@@ -547,6 +573,7 @@ function demoMeal(id: string, t: Totals): Meal {
         trans_fat_g: t.trans,
         alcohol_g: t.alc ?? null,
         caffeine_mg: t.caf,
+        sodium_mg: t.sodium ?? null,
         notes: null,
         idempotency_key: null,
     };
@@ -564,6 +591,11 @@ function dayMeta(date: string, rows: Totals[]) {
         }),
         [SATURATED_FAT_META_KEY]: buildSaturatedFatMeta({
             goal: GOALS.sat,
+            days: { [date]: meals },
+            meals,
+        }),
+        [SODIUM_META_KEY]: buildSodiumMeta({
+            goal: SODIUM_GOAL_MG,
             days: { [date]: meals },
             meals,
         }),
@@ -677,6 +709,12 @@ function summaryMeta(rows: ReturnType<typeof mealRow>[]) {
             extra: saturatedFatExtra(meals, rows, kept, MEAL_BREAKDOWN_TOP_N),
             transExtra: transFatExtra(meals, rows, kept, MEAL_BREAKDOWN_TOP_N),
         }),
+        [SODIUM_META_KEY]: buildSodiumMeta({
+            goal: SODIUM_GOAL_MG,
+            days: { [HERO_DATE]: meals },
+            meals,
+            contributorsOf: meals,
+        }),
     };
 }
 
@@ -755,6 +793,7 @@ function trendsMeta() {
                               add,
                               sat,
                               trans,
+                              sodium: TRENDS_SODIUM[i],
                           }),
                       ]
                     : [],
@@ -770,6 +809,7 @@ function trendsMeta() {
             goal: GOALS.sat,
             days,
         }),
+        [SODIUM_META_KEY]: buildSodiumMeta({ goal: SODIUM_GOAL_MG, days }),
     };
 }
 
@@ -855,6 +895,95 @@ function importPayload(locale: string) {
 
 await loadWidgetSources();
 
+/** The expanded state every expandable card shows: Show more, then its first
+ * detail row open (a nutrient for the day and meal cards, which lists the
+ * meals and ingredients behind it; a metric for trends; a category for goal
+ * progress). One row, so the expanded card stays legible. */
+const OPEN_NUTRIENT = { then: ['[data-act="row"]'] };
+const OPEN_TREND = { then: ['[data-act="acc"]'] };
+const OPEN_GOAL = { then: ['[data-act="pick"]'] };
+/** Weight has no row to open: its expanded state is the weigh-in list. */
+const OPEN_WEIGHT = { then: [] as string[] };
+/** The digest's own Show more opens its sections; none is pre-opened. */
+const OPEN_DIGEST = { then: [] as string[] };
+
+// ------------------------------------------------------------- digest
+
+/** The digest card's "now": the evening of 7 Mar, so the last seven days are
+ * 28 Feb to 6 Mar and the card is drawn on 7 Mar. */
+const DIGEST_NOW = new Date("2026-03-07T21:00:00Z");
+
+/** The daily columns the digest reads. A digest needs the whole
+ * NutritionGoals row type, but only these fields are read from it. */
+const DIGEST_GOALS = {
+    daily_calories: GOALS.kcal,
+    daily_protein_g: GOALS.pro,
+    daily_carbs_g: GOALS.car,
+    daily_fat_g: GOALS.fat,
+    daily_saturated_fat_g: GOALS.sat,
+    daily_fiber_g: GOALS.fib,
+    daily_sugar_g: null,
+    daily_added_sugar_g: GOALS.add,
+    daily_alcohol_g: null,
+    daily_caffeine_mg: GOALS.caf,
+    daily_sodium_mg: SODIUM_GOAL_MG,
+    daily_water_ml: GOALS.water,
+} as unknown as NutritionGoals;
+
+/** The digest of the review-week account, built by the server's own
+ * computeDigest from the same days the trends card shows: one meal and one
+ * water entry per logged day, so its averages come from the same figures. */
+function digestWeek(locale: string): DigestResult {
+    const meals: Meal[] = [];
+    const water: WaterEntry[] = [];
+    TRENDS_DAYS.forEach(
+        ([date, kcal, pro, car, fat, fib, sug, add, caf, ml], i) => {
+            if (!kcal) return;
+            const [sat, trans] = TRENDS_FATS[i]!;
+            meals.push({
+                ...demoMeal(`${date}-meal`, {
+                    ...ZERO,
+                    kcal,
+                    pro,
+                    car,
+                    fat,
+                    fib,
+                    sug,
+                    add,
+                    caf,
+                    sat,
+                    trans,
+                    sodium: TRENDS_SODIUM[i],
+                }),
+                logged_at: `${date}T12:00:00.000Z`,
+            });
+            water.push({
+                id: `${date}-water`,
+                user_id: "demo",
+                amount_ml: ml,
+                logged_at: `${date}T18:00:00.000Z`,
+                notes: null,
+                created_at: `${date}T18:00:00.000Z`,
+                idempotency_key: null,
+            });
+        },
+    );
+    return computeDigest({
+        period: "last_7_days",
+        now: DIGEST_NOW,
+        tz: "UTC",
+        meals,
+        water,
+        weights: [],
+        latestWeight: null,
+        items: new Map(),
+        goals: DIGEST_GOALS,
+        alcohol: null,
+        weightUnit: "kg",
+        locale,
+    });
+}
+
 /** One demo card, in the page's language: the real widget's markup for its
  * payload. `meal` is the meal a meal-logged card names and `dayMeals` the
  * meals the hero day's summary lists (both from the page copy); the other
@@ -871,7 +1000,8 @@ export function renderCard(
         payload: { locale: string },
         today: string,
         meta: Record<string, unknown> | null = null,
-    ) => renderWidgetCard(key, payload, { lang, today, meta });
+        expand?: { then: string[] },
+    ) => renderWidgetCard(key, payload, { lang, today, meta, expand });
     switch (id) {
         case "hero-day": {
             const p = summaryPayload(locale, dayMeals);
@@ -880,15 +1010,16 @@ export function renderCard(
                 p,
                 HERO_DATE,
                 summaryMeta(p.meals),
+                OPEN_NUTRIENT,
             );
         }
         case "hero-weight": {
             const p = weightPayload(locale, true);
-            return card("weight-trends", p, p.end_date);
+            return card("weight-trends", p, p.end_date, null, OPEN_WEIGHT);
         }
         case "weight-trend": {
             const p = weightPayload(locale, false);
-            return card("weight-trends", p, p.end_date);
+            return card("weight-trends", p, p.end_date, null, OPEN_WEIGHT);
         }
         case "goals-progress":
             return card(
@@ -896,6 +1027,7 @@ export function renderCard(
                 goalProgressPayload(locale),
                 GOALS_DATE,
                 dayMeta(GOALS_DATE, GOALS_DAY_MEALS),
+                OPEN_GOAL,
             );
         case "review-week":
             // Asked on the evening of the fortnight's last day (7 Mar is
@@ -906,9 +1038,20 @@ export function renderCard(
                 trendsPayload(locale),
                 "2026-03-07",
                 trendsMeta(),
+                OPEN_TREND,
             );
         case "import-file":
             return card("import-meals", importPayload(locale), "2026-03-20");
+        case "digest-week": {
+            const d = digestWeek(locale);
+            return card(
+                "digest",
+                d.structured,
+                "2026-03-07",
+                { [DIGEST_META_KEY]: d.meta },
+                OPEN_DIGEST,
+            );
+        }
         default: {
             const p = mealLoggedPayload(id, meal, locale);
             // The demo day is this one meal, so the day's added sugar is
@@ -917,7 +1060,7 @@ export function renderCard(
                 ...dayMeta(p.date, [MEAL_CARDS[id]!.totals]),
                 ...(id === "usda-food" ? usdaFoodSourcesMeta() : {}),
             };
-            return card("meal-logged", p, p.date, meta);
+            return card("meal-logged", p, p.date, meta, OPEN_NUTRIENT);
         }
     }
 }

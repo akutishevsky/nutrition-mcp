@@ -483,6 +483,8 @@ export const INDEX_IT: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Calcola le medie degli ultimi 7, 14 e 30 giorni e apre il widget degli andamenti",
+                    get_digest:
+                        "Riassume gli ultimi 7 giorni con obiettivi e punti salienti in un'unica scheda",
                 },
                 messages: [
                     {
@@ -505,6 +507,10 @@ export const INDEX_IT: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],

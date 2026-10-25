@@ -125,3 +125,129 @@ test("every locale's goals reply names the 20 g saturated-fat limit", () => {
         expect(reply, locale).toMatch(/20[\s\u00a0][g\u0433]/);
     }
 });
+
+// Show more: every card whose widget has one ships both states, and the
+const EXPANDABLE_CARDS: DemoCardId[] = [
+    "hero-meal",
+    "hero-day",
+    "hero-weight",
+    "weight-trend",
+    "log-meal",
+    "photo-meal",
+    "scan-barcode",
+    "saved-meal",
+    "track-drinks",
+    "usda-food",
+    "goals-progress",
+    "review-week",
+];
+
+/** The two states of a card, split at their markers in the shadow root. */
+function statesOf(html: string): { collapsed: string; expanded: string } {
+    const c = html.indexOf('class="nmw-s nmw-s-c"');
+    const x = html.indexOf('class="nmw-s nmw-s-x"');
+    expect(c, "collapsed state").toBeGreaterThan(-1);
+    expect(x, "expanded state").toBeGreaterThan(c);
+    return { collapsed: html.slice(c, x), expanded: html.slice(x) };
+}
+
+test("every expandable card renders its collapsed and expanded states", () => {
+    for (const id of EXPANDABLE_CARDS) {
+        const { collapsed, expanded } = statesOf(
+            renderCard(id, "en", "Meal", DAY_MEALS),
+        );
+        expect(collapsed, `${id} collapsed`).toContain("Show more");
+        expect(expanded, `${id} expanded`).toContain("Show less");
+        for (const state of [collapsed, expanded])
+            expect(
+                (state.match(/nmw-tog/g) ?? []).length,
+                `${id} pills`,
+            ).toBeGreaterThan(0);
+    }
+});
+
+test("the expanded state shows detail the collapsed one does not", () => {
+    for (const id of EXPANDABLE_CARDS) {
+        const { collapsed, expanded } = statesOf(
+            renderCard(id, "en", "Meal", DAY_MEALS),
+        );
+        expect(expanded.length, id).toBeGreaterThan(collapsed.length);
+        // The accordion cards open a row (its detail is an .accB); weight's
+        // expanded state is its weigh-in list instead.
+        if (!id.startsWith("hero-weight") && id !== "weight-trend")
+            expect(collapsed, `${id} collapsed detail`).not.toContain(
+                'class="accB',
+            );
+        if (!id.startsWith("hero-weight") && id !== "weight-trend")
+            expect(expanded, `${id} expanded detail`).toContain('class="accB');
+    }
+});
+
+test("the Show more pills' aria-expanded matches each state", () => {
+    for (const id of EXPANDABLE_CARDS) {
+        const { collapsed, expanded } = statesOf(
+            renderCard(id, "en", "Meal", DAY_MEALS),
+        );
+        const pills = (state: string) =>
+            state.match(/<button[^>]*nmw-tog[^>]*>/g) ?? [];
+        for (const p of pills(collapsed))
+            expect(p, id).toContain('aria-expanded="false"');
+        for (const p of pills(expanded))
+            expect(p, id).toContain('aria-expanded="true"');
+    }
+});
+
+test("only the Show more pills are live in a card; every other control is inert", () => {
+    for (const id of [...EXPANDABLE_CARDS, "import-file"] as const) {
+        const html = renderCard(id, "en", "Meal", DAY_MEALS);
+        for (const tag of html.match(
+            /<(button|input|select|textarea|label)\b[^>]*>/g,
+        ) ?? []) {
+            if (tag.includes("nmw-tog")) continue;
+            expect(tag, `${id} live control`).toContain(" inert");
+        }
+    }
+});
+
+test("cards without a Show more control ship a single state", () => {
+    const html = renderCard("import-file", "en", "Meal", DAY_MEALS);
+    expect(html).not.toContain("nmw-s-x");
+    expect(html).not.toContain("nmw-tog");
+});
+
+// Sodium rides in each card's _meta, so it shows wherever the widget draws the
+// nutrient: the meal and day views in their expanded state, the trends card's
+// sodium chip. The digest card is the get_digest widget, built by the same
+// computeDigest the tool runs.
+test("sodium shows in the meal and day views' expanded state and in trends", () => {
+    for (const id of ["hero-meal", "hero-day", "usda-food"] as const) {
+        const { expanded } = statesOf(renderCard(id, "en", "Meal", DAY_MEALS));
+        expect(expanded, `${id} sodium`).toContain("Sodium");
+    }
+    const trends = renderCard("review-week", "en", "Meal", DAY_MEALS);
+    expect(trends, "trends sodium").toContain("Sodium");
+});
+
+test("the digest card renders both states", () => {
+    const html = renderCard("digest-week", "en", "Meal", DAY_MEALS);
+    const { collapsed, expanded } = statesOf(html);
+    expect(collapsed).toContain("Show more");
+    expect(expanded).toContain("Show less");
+    expect(html).not.toMatch(/undefined|NaN/);
+});
+
+test("every locale's review-week slide draws the trends card, then the digest", () => {
+    for (const locale of SITE_LOCALES) {
+        const slide = INDEX[locale]!.examples.slides.find(
+            (s) => s.id === "review-week",
+        )!;
+        expect(
+            slide.cards?.map((c) => c.kind),
+            locale,
+        ).toEqual(["trends", "digest"]);
+        expect(Object.keys(slide.toolNotes), locale).toEqual([
+            "get_trends",
+            "get_digest",
+        ]);
+    }
+});

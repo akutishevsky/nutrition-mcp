@@ -533,6 +533,38 @@
         });
     }
 
+    /* ---------- landing demo cards: Show more ---------- */
+    // Each demo card ships its collapsed and its expanded state in an open
+    // shadow root (scripts/widget-static.ts), and its Show more pill is the
+    // one live control in there. A click (or Enter / Space, which a button
+    // turns into one) flips the card's host between the two states: the
+    // shadow CSS shows whichever one data-open selects, aria-expanded is kept
+    // in step on both pills, and focus moves to the pill now on screen. The
+    // pill is found through composedPath(), so it works inside an open shadow
+    // root, in the hero replay's clones and in the examples carousel alike.
+    doc.addEventListener("click", function (e) {
+        var path = e.composedPath ? e.composedPath() : [];
+        var pill = null;
+        for (var i = 0; i < path.length && !pill; i++) {
+            var n = path[i];
+            if (n && n.classList && n.classList.contains("nmw-tog")) pill = n;
+        }
+        if (!pill) return;
+        var scope = pill.getRootNode ? pill.getRootNode() : null;
+        var host = scope && scope.host;
+        if (!host || !scope.querySelectorAll) return;
+        var open = !host.hasAttribute("data-open");
+        if (open) host.setAttribute("data-open", "");
+        else host.removeAttribute("data-open");
+        var pills = scope.querySelectorAll(".nmw-tog");
+        for (var j = 0; j < pills.length; j++)
+            pills[j].setAttribute("aria-expanded", open ? "true" : "false");
+        var next = scope.querySelector(
+            open ? ".nmw-s-x .nmw-tog" : ".nmw-s-c .nmw-tog",
+        );
+        if (next) next.focus({ preventScroll: true });
+    });
+
     /* ---------- live-stats nav badge ---------- */
     // An app-icon-style count on the "Live stats" nav item, so someone
     // reading the site can see that other people are logging meals while

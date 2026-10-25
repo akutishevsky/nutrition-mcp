@@ -39,6 +39,7 @@
 
 import vm from "node:vm";
 import { getWidgetHtml, WIDGET_TEMPLATES } from "../src/widgets.js";
+import { type DomElement, elementFrom } from "./widget-dom.js";
 
 const sources = new Map<string, string>();
 
@@ -142,7 +143,7 @@ function usedClasses(markup: string): Set<string> {
  *  only the selectors whose every class occurs in `markup` — the template's
  *  stylesheet covers every state and screen (the importer's form, an open
  *  meal drawer), and one static card needs a fraction of it. */
-function shadowCss(raw: string, markup: string): string {
+function shadowCss(raw: string, markup: string, extra = ""): string {
     const used = usedClasses(markup);
     used.add("nmw-body"); // the wrapper `body` maps to
     const live = (sel: string) =>
@@ -173,6 +174,7 @@ function shadowCss(raw: string, markup: string): string {
     };
     return minify(
         walk(stripComments(raw), false).join("") +
+            extra +
             // The page, not the iframe, owns the space around the card: no
             // gutter, no backdrop, and a container for the width queries. A
             // still card has nothing to hover.
@@ -228,31 +230,43 @@ export interface RenderOptions {
     today: string;
     /** The tool result's `_meta`, handed to render() as its 2nd argument. */
     meta?: Record<string, unknown> | null;
+    /** A card whose widget has a Show more control: the expanded state is
+     * produced by clicking that control through the widget's own handler,
+     * then each `then` selector (resolved inside the widget's markup) is
+     * clicked once, in order, to open the default detail. */
+    expand?: { then: string[] };
 }
 
-/** Run `key`'s real render() against `payload` and return the markup it
- *  writes into its root (wrapped in the root's own element). */
+/** Marks a Show more / Show less pill in both states, so the page's toggle
+ * (public/site.js) can find it through the card's shadow root. */
+export const TOGGLE_CLASS = "nmw-tog";
+
+/** The `.bigchev` pill is the Show more control of every template that has
+ * one: nutrient summary, meal-logged, goal progress, trends and digest. */
+const SHOW_MORE = ".bigchev";
+
+/** Run `key`'s real render() against `payload`. Returns the widget's markup
+ * (its root's own element included) for the collapsed state and, with
+ * `opts.expand`, for the expanded state: the Show more control and the
+ * default detail are clicked through the widget's own delegated handler. */
 function renderMarkup(
     key: string,
     payload: unknown,
     opts: RenderOptions,
-): { css: string; markup: string } {
+): { css: string; states: string[] } {
     const html = widgetHtml(key);
     const { css, js, rootTag } = splitWidget(html);
 
-    const root: StubEl = {
-        innerHTML: "",
-        addEventListener() {},
-        querySelector: () => null,
-        querySelectorAll: () => [],
-        classList: inert(),
-        style: {},
-        dataset: {},
-    };
+    // The widget's #root, parsed from its own opening tag (class and all).
+    const root: DomElement = elementFrom("#holder", `${rootTag}</div>`)
+        .children[0] as unknown as DomElement;
     const documentStub = {
-        getElementById: (id: string) => (id === "root" ? root : inert()),
-        querySelector: () => null,
-        querySelectorAll: () => [],
+        // Lookups reach inside the widget's root, as a page's would reach its
+        // widget: goal progress repaints its own #gp container.
+        getElementById: (id: string) =>
+            id === "root" ? root : (root.querySelector(`#${id}`) ?? inert()),
+        querySelector: (sel: string) => root.querySelector(sel),
+        querySelectorAll: (sel: string) => root.querySelectorAll(sel),
         addEventListener() {},
         removeEventListener() {},
         createElement: () => inert(),
@@ -353,12 +367,30 @@ function renderMarkup(
         updateModelContext: () => Promise.resolve(),
     });
     config.render(payload, opts.meta ?? null);
+    const states = [paint(root, rootTag, key)];
+    if (opts.expand) {
+        const pill = root.querySelector(SHOW_MORE);
+        if (!pill) throw new Error(`${key}: no Show more control to expand`);
+        pill.dispatch("click");
+        for (const sel of opts.expand.then) {
+            const el = root.querySelector(sel);
+            if (!el) throw new Error(`${key}: no control matches ${sel}`);
+            el.dispatch("click");
+        }
+        states.push(paint(root, rootTag, key));
+    }
+    return { css, states };
+}
+
+/** The root's markup as one state, its Show more pill marked. */
+function paint(root: DomElement, rootTag: string, key: string): string {
+    // Every pill: a widget can carry one per layout (weight trends has a
+    // phone pill and a desktop footer pill), and each one is live.
+    for (const pill of root.querySelectorAll(SHOW_MORE))
+        pill.classList.add(TOGGLE_CLASS);
     const markup = root.innerHTML.replace(/\n\s*/g, "\n").trim();
     if (!markup) throw new Error(`${key}: render() produced no markup`);
-    return {
-        css,
-        markup: `${rootTag.replace(/\s*id="root"/, "")}${markup}</div>`,
-    };
+    return `${rootTag.replace(/\s*id="root"/, "")}${markup}</div>`;
 }
 
 /** The rendered markup made into a picture: the same elements and classes
@@ -384,7 +416,15 @@ function stillMarkup(markup: string): string {
             )
             // Whatever controls remain (the importer's file picker and buttons)
             // stay visible but out of the tab order and the click path.
-            .replace(/<(button|input|select|textarea|label)\b/g, "<$1 inert")
+            // The Show more pill is the one live control (site.js toggles the
+            // card on it); every other control stays out of the click path.
+            .replace(
+                /<(button|input|select|textarea|label)\b([^>]*)>/g,
+                (tag, name: string, attrs: string) =>
+                    new RegExp(`\\b${TOGGLE_CLASS}\\b`).test(attrs)
+                        ? tag
+                        : `<${name} inert${attrs}>`,
+            )
     );
 }
 
@@ -395,8 +435,20 @@ export function renderWidgetCard(
     payload: unknown,
     opts: RenderOptions,
 ): string {
-    const { css, markup } = renderMarkup(key, payload, opts);
-    const body = stillMarkup(markup);
-    const sheet = shadowCss(css, body);
-    return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="nmw-body">${body}</div></template></div>`;
+    const { css, states } = renderMarkup(key, payload, opts);
+    const bodies = states.map(stillMarkup);
+    if (bodies.length === 1) {
+        const sheet = shadowCss(css, bodies[0]!);
+        return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="nmw-body">${bodies[0]}</div></template></div>`;
+    }
+    // Both states ship; the host's data-open attribute (set by the page's
+    // toggle, site.js) shows the expanded one. The collapsed state is what a
+    // card shows until its Show more is pressed.
+    const sheet = shadowCss(css, bodies.join(""), EXPAND_CSS);
+    return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="nmw-body"><div class="nmw-s nmw-s-c">${bodies[0]}</div><div class="nmw-s nmw-s-x">${bodies[1]}</div></div></template></div>`;
 }
+
+/** The two-state switch inside a card's shadow root (see renderWidgetCard).
+ * Motion is only the expanded state's reveal, and only without reduced
+ * motion. */
+const EXPAND_CSS = `.nmw-s-x{display:none}:host([data-open]) .nmw-s-x{display:block}:host([data-open]) .nmw-s-c{display:none}@media (prefers-reduced-motion:no-preference){:host([data-open]) .nmw-s-x{animation:nmw-reveal .32s ease both}}@keyframes nmw-reveal{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}`;
