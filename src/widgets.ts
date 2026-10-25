@@ -106,6 +106,24 @@ export const MEAL_BREAKDOWN_TOP_N = 8;
 export const WEIGHT_SERIES_META_KEY = "nutrition-mcp.com/weight-series";
 
 /**
+ * get_weight_trends' per-reading weigh-in list for the widget's Weigh-ins
+ * view (WeightEntriesMeta, built by buildWeightEntriesMeta in
+ * src/weight-widget.ts): local time, value and note of every weigh-in in the
+ * last 365 days. `_meta`, not structuredContent (the output schema is
+ * frozen). The weight-trends template repeats the literal (asserted in
+ * src/mcp.test.ts); without it the view lists day averages without times.
+ */
+export const WEIGHT_ENTRIES_META_KEY = "nutrition-mcp.com/weight-entries";
+
+/**
+ * get_weight_trends' body-measurement history for the widget's Body
+ * measurements cards (BodyMeasurementsMeta, buildBodyMeasurementsMeta in
+ * src/weight-widget.ts). Dropped, never an error, when the read fails; the
+ * widget then hides the section. Repeated as a literal in the template.
+ */
+export const BODY_MEASUREMENTS_META_KEY = "nutrition-mcp.com/body-measurements";
+
+/**
  * Where get_trends puts its per-period averages when called with `group_by`
  * (the PeriodAveragesMeta built by buildPeriodAveragesMeta in src/periods.ts):
  * the CallToolResult's `_meta`, for the same frozen-outputSchema reason as the
@@ -136,6 +154,54 @@ export const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
 export const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
 
 /**
+ * `_meta` key for sodium, on the same tools as SATURATED_FAT_META_KEY:
+ * `{ v: 1, goal, days, meals, contributors?, extra? }` built by buildSodiumMeta
+ * (src/sodium.ts), milligrams. Same reason for `_meta`: output schemas are
+ * frozen. The meal-logged, nutrition-summary and goal-progress templates read
+ * it (their sodium row / sodium goal row), the trends template its per-day
+ * series; each repeats this literal, as any other widget that draws sodium
+ * must.
+ */
+export const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
+
+/**
+ * `_meta` key for each breakdown row's local clock time, on log_meal,
+ * update_meal, log_saved_meal and get_nutrition_summary:
+ * `{ v: 1, times: ["HH:MM", …], current? }` built by buildMealTimesMeta
+ * (src/meal-times.ts). `times` is aligned by position with
+ * structuredContent.meals (the rows carry no id, and their schema is frozen);
+ * `current`, on the three meal-progress tools only, is the position of the meal
+ * the call wrote, or null. The meal-logged and nutrition-summary templates
+ * repeat this literal, and src/mcp.test.ts checks the assembled widgets
+ * contain it. A host that drops `_meta` leaves the rows without a time and the
+ * meal-logged widget guessing the written meal from its description.
+ */
+export const MEAL_TIMES_META_KEY = "nutrition-mcp.com/meal-times";
+
+/**
+ * get_goal_progress's day detail (GoalDayMeta, built by buildGoalDayMeta in
+ * src/goal-day.ts): the account's local clock when the date is today, each
+ * breakdown row's local time and unrecorded nutrients (aligned by position
+ * with structuredContent.meals), the day's water entries, and on today the
+ * foods from the user's own recent log that the widget may name. In `_meta`
+ * for the same frozen-outputSchema reason as the keys above, and only on that
+ * tool. The goal-progress template repeats this literal; a host that drops
+ * `_meta` leaves it without meal times, water entries or logged-food lines.
+ */
+export const GOAL_DAY_META_KEY = "nutrition-mcp.com/goal-day";
+
+/**
+ * Where get_trends says which local calendar day is "today" in the profile
+ * timezone: `{ v: 1, today: "YYYY-MM-DD" }`. The trends widget compares it with
+ * the series' last day to tell a still-running today (shown, labelled "so
+ * far", left out of the averages) from a past window. `_meta`, not
+ * structuredContent, because the output schema is frozen. The trends template
+ * repeats this literal; without it (a host that drops `_meta`) the widget
+ * falls back to the viewer's device date.
+ */
+export const LOCAL_TODAY_META_KEY = "nutrition-mcp.com/local-today";
+
+/**
  * Where log_meal, update_meal, log_saved_meal, get_goal_progress and
  * get_nutrition_summary put the ingredients behind their breakdown rows (the
  * MealItemsMeta built by buildMealItemsMeta in src/meal-items.ts): the
@@ -161,6 +227,20 @@ export const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
  */
 export const NUTRIENT_SOURCES_META_KEY = "nutrition-mcp.com/nutrient-sources";
 
+/**
+ * Where get_digest puts everything its widget draws beyond the minimal
+ * structuredContent: the DigestMeta built by computeDigest (src/digest.ts),
+ * `{ v: 1, period, mode, metrics, verdict, trends, water, weight, meals,
+ * habits, highlights, rest, ... }` — codes and numbers only, so the widget
+ * assembles every string in the user's language. In `_meta` for the same
+ * frozen-outputSchema reason as the keys above: the payload can grow (as v
+ * stays 1 for additive changes) without touching the advertised schema. The
+ * digest template repeats this literal, and src/mcp.test.ts checks the
+ * assembled widget contains it. A host that drops `_meta` leaves the widget
+ * on its averages-only view of structuredContent.
+ */
+export const DIGEST_META_KEY = "nutrition-mcp.com/digest";
+
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
     "nutrition-summary": "nutrition-summary.html",
@@ -169,6 +249,7 @@ export const WIDGET_TEMPLATES: Record<string, string> = {
     trends: "trends.html",
     "weight-trends": "weight-trends.html",
     "import-meals": "import-meals.html",
+    digest: "digest.html",
     // Dev-only visual reference for the shared components. Listed here so it is
     // assembled and covered by widgets.test.ts, but NO ui:// resource and no
     // tool reference it, so no client can reach it. View via `bun run harness`.

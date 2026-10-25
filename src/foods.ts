@@ -57,6 +57,10 @@ export interface FoodResult {
     // from the ingredient list, not read off a label.
     added_sugar_estimated?: boolean;
     alcohol_g: number | null; // pure ethanol; often null — see resolveAlcoholGrams
+    // SODIUM in MILLIGRAMS (not salt). Optional for the same reason as the fat
+    // parts above; every result this module builds, and every cache hit, carries
+    // it. See resolveSodiumMg.
+    sodium_mg?: number | null;
     // Open Food Facts' own quality scores. Both are null when OFF hasn't
     // computed one — a real gap (missing category or nutrition data on OFF's
     // side, e.g. water, coffee, baby food), not a lookup failure — so unlike
@@ -223,6 +227,24 @@ function resolveAddedSugar(
     };
 }
 
+// Sodium in milligrams from OFF's sodium_* nutriment, which OFF states in GRAMS
+// (sodium_100g 0.4 = 400 mg). Converted before rounding: num() rounds to one
+// decimal, which in grams would turn 0.44 g into 400 mg. Only sodium_* is read.
+// OFF itself fills sodium_* from salt_* (sodium = salt / 2.5) when a label gives
+// salt only, so a product with a salt figure normally carries sodium too; this
+// module does not repeat that derivation, because nothing here records a value
+// as derived (added_sugar_estimated is OFF's own flag, not ours). A product with
+// salt but no sodium_* reads as sodium not recorded.
+function resolveSodiumMg(
+    n: Record<string, unknown>,
+    hasServing: boolean,
+): number | null {
+    const raw = hasServing ? n["sodium_serving"] : n["sodium_100g"];
+    const g = typeof raw === "string" ? parseFloat(raw) : (raw as number);
+    if (typeof g !== "number" || !Number.isFinite(g) || g < 0) return null;
+    return Math.round(g * 1000 * 10) / 10;
+}
+
 // Normalize an OFF product into our shape. Prefer per-serving values when the
 // product declares a serving size and a per-serving energy; otherwise fall back
 // to the always-present per-100g basis and label it as such.
@@ -256,6 +278,7 @@ function normalizeOFFProduct(product: OFFProduct, barcode: string): FoodResult {
         // read alongside total sugar, never in place of it.
         ...resolveAddedSugar(n, hasServing, sugar),
         alcohol_g: resolveAlcoholGrams(product, n, hasServing),
+        sodium_mg: resolveSodiumMg(n, hasServing),
         nutriscore_grade: normalizeNutriscoreGrade(product.nutriscore_grade),
         nova_group: normalizeNovaGroup(product.nova_group),
         source: `off:${barcode}`,
@@ -329,7 +352,7 @@ export async function fetchProductFromOFF(
  * error.
  *
  * Rows cached before fiber/sugar/alcohol/nutriscore/nova — and before
- * saturated and trans fat — have no such keys either; those are backfilled
+ * saturated fat, trans fat and sodium — have no such keys either; those are backfilled
  * rather than refetched (an accepted gap). Deserialized they would be `undefined`, not `null` — and an undefined
  * field is an ABSENT one once it reaches a structuredContent literal, which
  * for a .nullable() (hence *required*) schema field is a validation failure
@@ -353,6 +376,7 @@ export function fromCachedPayload(
             added_sugar_g: payload.added_sugar_g ?? null,
             added_sugar_estimated: payload.added_sugar_estimated ?? false,
             alcohol_g: payload.alcohol_g ?? null,
+            sodium_mg: payload.sodium_mg ?? null,
             nutriscore_grade: payload.nutriscore_grade ?? null,
             nova_group: payload.nova_group ?? null,
         },
@@ -503,7 +527,7 @@ export function formatFoodResult(
         `Saturated fat: ${macro(food.saturated_fat_g ?? null, "g")} · Trans fat: ${macro(
             food.trans_fat_g ?? null,
             "g",
-        )}`,
+        )} · Sodium: ${macro(food.sodium_mg ?? null, "mg")}`,
         `Fiber: ${macro(food.fiber_g, "g")} · Sugar (total): ${macro(
             food.sugar_g,
             "g",

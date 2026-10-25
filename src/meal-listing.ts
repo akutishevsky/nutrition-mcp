@@ -128,6 +128,8 @@ export function formatMealFull(
         meal.caffeine_mg != null
             ? `Caffeine: ${formatMg(meal.caffeine_mg)}`
             : null,
+        // Whole milligrams like caffeine; shown whenever recorded (0 is data).
+        meal.sodium_mg != null ? `Sodium: ${formatMg(meal.sodium_mg)}` : null,
         meal.notes ? `Notes: ${meal.notes}` : null,
     ];
     const block =
@@ -183,6 +185,7 @@ export function formatMealCompact(
         meal.caffeine_mg != null
             ? `caffeine ${formatMg(meal.caffeine_mg)}`
             : null,
+        meal.sodium_mg != null ? `sodium ${formatMg(meal.sodium_mg)}` : null,
         meal.notes ? "notes" : null,
         itemCount && itemCount > 0
             ? `${itemCount} item${itemCount === 1 ? "" : "s"}`

@@ -112,6 +112,10 @@ describe("toleranceFor: boundary table", () => {
         ["caffeine_mg", 0, 1],
         ["caffeine_mg", 95, 1],
         ["caffeine_mg", 150, 1.5],
+        // Sodium is milligrams like caffeine: the 1 mg floor, then 1%.
+        ["sodium_mg", 0, 1],
+        ["sodium_mg", 95, 1],
+        ["sodium_mg", 2300, 23],
     ];
     for (const [key, expected, tol] of rows) {
         test(`${key} at ${expected} allows ±${tol}`, () => {
@@ -367,6 +371,40 @@ describe("referenceFromFood and referenceFromUsda", () => {
         expect(
             referenceFromFood(food({ serving: null }), BARCODE, null),
         ).toBeNull();
+    });
+
+    test("an Open Food Facts sodium figure verifies in mg; a payload without it leaves sodium an estimate", () => {
+        const rec = referenceFromFood(
+            food({ serving: "100 g", sodium_mg: 480 }),
+            BARCODE,
+            null,
+        )!;
+        expect(rec.values.sodium_mg).toBe(480);
+        const out = resolveNutrientSources({
+            values: { calories: 278, sodium_mg: 720 },
+            ref: {
+                ref: { source: "openfoodfacts", id: BARCODE, amount_g: 150 },
+                record: rec,
+            },
+        });
+        expect(out.sources.sodium_mg).toEqual({
+            s: "openfoodfacts",
+            ref: BARCODE,
+        });
+        const legacy = referenceFromFood(
+            food({ serving: "100 g" }),
+            BARCODE,
+            null,
+        )!;
+        expect(legacy.values.sodium_mg).toBeNull();
+        const est = resolveNutrientSources({
+            values: { sodium_mg: 720 },
+            ref: {
+                ref: { source: "openfoodfacts", id: BARCODE, amount_g: 150 },
+                record: legacy,
+            },
+        });
+        expect(est.sources.sodium_mg).toEqual({ s: "estimate" });
     });
 
     test("a payload from before added sugar verifies the rest and leaves added sugar unverified", () => {

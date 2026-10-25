@@ -32,7 +32,7 @@ export const INDEX_TR: IndexDoc = {
 
     featureList: [
         "Öğünleri doğal dille kaydet: kalori, makro, lif, şeker ve eklenen şeker dahil",
-        "Doymuş ve trans yağ takibi, doymuş yağ için isteğe bağlı sınır",
+        "Doymuş yağ, trans yağ ve sodyum takibi, doymuş yağ ve sodyum için isteğe bağlı sınırlar",
         "Genel gıdalarda USDA FoodData Central değerleri, diğerlerinde tahminler",
         "Paketli ürünler için Open Food Facts üzerinden barkod araması",
         "Her besin değeri kaynağıyla birlikte gösterilir",
@@ -191,7 +191,7 @@ export const INDEX_TR: IndexDoc = {
         note: "Buradaki her şey isteğe bağlı. Şimdi, sonra ya da hiç yapmayabilirsin — sadece kaydetmeye başla, bunları canın ne zaman isterse ayarla.",
         toolsCta: {
             heading: "Gerçekte neler yapabildiğini merak ettin mi?",
-            body: "48 aracın tamamına göz at — kaydetme, barkodlar, su, kilo ve vücut ölçüleri, hedefler ve eğilimler — her biri için bir açıklama ve örnek bir cümleyle.",
+            body: "49 aracın tamamına göz at — kaydetme, barkodlar, su, kilo ve vücut ölçüleri, hedefler ve eğilimler — her biri için bir açıklama ve örnek bir cümleyle.",
             arrow: "Araçları keşfet",
         },
     },
@@ -434,7 +434,7 @@ export const INDEX_TR: IndexDoc = {
                 id: "goals-progress",
                 title: "Hedef koy, durumunu gör",
                 description:
-                    "Kalori ve protein gibi ulaşılacak hedefler, ilave şeker, doymuş yağ, toplam şeker, alkol ve kafein için altında kalınacak sınırlar belirle; yalnızca söylediğin değişir. Sonra herhangi bir gün için her hedefe ne kaldığını ve her sınıra göre nerede durduğunu sor.",
+                    "Kalori ve protein gibi ulaşılacak hedefler, ilave şeker, doymuş yağ, sodyum, toplam şeker, alkol ve kafein için altında kalınacak sınırlar belirle; yalnızca söylediğin değişir. Sonra herhangi bir gün için her hedefe ne kaldığını ve her sınıra göre nerede durduğunu sor.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Kalori ve protein hedeflerini ve 400 mg kafein sınırını kaydeder",
@@ -456,7 +456,7 @@ export const INDEX_TR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Tamam: ulaşılacak 2.000 kcal ve 160 g protein, kafein 400 mg altında. Geri kalan her şey olduğu gibi kalıyor: 220 g karbonhidrat, 70 g yağ, 20 g doymuş yağ, 30 g lif, 2,5 L su, 25 g ilave şeker sınırın ve 75 kg hedef kilon.",
+                        text: "Tamam: hedef 2.000 kcal ve 160 g protein, kafein 400 mg'ın altında. Geri kalan her şey olduğu gibi kaldı: 220 g karbonhidrat, 70 g yağ, 20 g doymuş yağ, 30 g lif, 2,5 L su, 2.300 mg sodyum, 25 g ilave şeker sınırın ve 75 kg hedef kilon.",
                     },
                     {
                         from: "user",
@@ -482,6 +482,8 @@ export const INDEX_TR: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Son 7, 14 ve 30 gününün ortalamasını alır ve eğilimler kartını açar",
+                    get_digest:
+                        "Son 7 gününü hedefler ve öne çıkanlarla tek bir kartta özetler",
                 },
                 messages: [
                     {
@@ -504,6 +506,36 @@ export const INDEX_TR: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Bir günün nasıl geçtiğine bak",
+                description:
+                    "Dünün nasıl geçtiğini, bugünün ya da son 7 veya 30 günün nasıl gittiğini sor; sohbette bir özet kartı açılır: kalori ve takip ettiğin her besin hedeflerine göre, su ve kilo, tek bir gün için günün öğünleri, bir dönem için kayıt alışkanlıkların ve kendi kaydından çıkan birkaç öne çıkan nokta.",
+                toolNotes: {
+                    get_digest:
+                        "İstediğin dönem için özeti hazırlar: tek gün için günün öğünleri, bir dönem için kayıt alışkanlıkları",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "dün nasıl geçti?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dün 3 öğün kaydettin: 2.000 kcal hedefinin 1.150'si ve 160 g proteinin 76 g'ı; yani 850 kcal ve 84 g protein kaldı. İlave şeker 25 g sınırının 23 g'ıydı, sodyum 2.300 mg'ın 1.050 mg'ı, su da 2.500 ml hedefine karşı 500 ml kaydettin.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -636,6 +668,35 @@ export const INDEX_TR: IndexDoc = {
                 cardMeals: ["Lager, %4 (1 pint, 568 ml)"],
             },
             {
+                id: "track-sodium",
+                title: "Sodyumu takip et",
+                description:
+                    "Sodyum tuz değil, miligram cinsinden takip edilir; her öğünde, senin belirlediğin günlük bir sınıra karşı. Daha fazla göster, bir öğünün sodyumunu bu sınırın yanında listeler; böylece günün ne kadarını kullandığını görürsün.",
+                toolNotes: {
+                    log_meal:
+                        "Kâseyi sodyumuyla birlikte miligram cinsinden kaydeder, tuz olarak değil",
+                    set_nutrition_goals:
+                        "Her öğünün karşılaştırıldığı 2.300 mg günlük sodyum sınırını belirler",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "akşam yemeğinde yumurtalı bir kâse tonkotsu ramen, büyük boy",
+                    },
+                    {
+                        from: "ai",
+                        text: "Akşam yemeği kaydedildi: yaklaşık 610 kcal, 28 g protein ve 2.640 mg sodyum. Bu kâse tek başına günlük 2.300 mg sodyum sınırının 340 mg üzerinde.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Yumurtalı tonkotsu ramen (1 büyük kâse)"],
+            },
+            {
                 id: "import-history",
                 title: "Geçmişini getir",
                 description:
@@ -759,7 +820,7 @@ export const INDEX_TR: IndexDoc = {
         cards: [
             {
                 title: "Gündelik dille yemekler",
-                body: "Ne yediğini anlat: genel gıdalarda USDA FoodData Central değerleri mevcutsa kullanılır, kalanını yapay zekân tahmin eder: kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker ve kafein (miligram). Öğün kaydedilir ve her değer kaynağını gösterir.",
+                body: "Ne yediğini anlat: genel gıdalarda USDA FoodData Central değerleri mevcutsa kullanılır, kalanını yapay zekân tahmin eder: kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker, sodyum ve kafein (miligram). Öğün kaydedilir ve her değer kaynağını gösterir.",
             },
             {
                 title: "Barkod okut",
@@ -767,7 +828,7 @@ export const INDEX_TR: IndexDoc = {
             },
             {
                 title: "Hedefler ve ilerleme",
-                body: "Kalori, makro, lif ve su için günlük hedefler belirle; eklenen şeker, doymuş yağ, toplam şeker, kafein ve alkol için aşmak istemediğin sınırları da ekle ve ilerlemeni canlı izle.",
+                body: "Kalori, makro, lif ve su için günlük hedefler belirle; eklenen şeker, doymuş yağ, sodyum, toplam şeker, kafein ve alkol için aşmak istemediğin sınırları da ekle ve ilerlemeni canlı izle.",
             },
             {
                 title: "Özetler ve eğilimler",
@@ -877,7 +938,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Nutrition MCP nedir?",
             visibleHtml:
-                "Nutrition MCP, Claude, ChatGPT veya başka bir MCP istemcisini kalori ve makro takipçisine dönüştüren ücretsiz, açık kaynaklı bir Model Context Protocol (MCP) sunucusudur. Her gıdayı tek tek aramak yerine yediğini yapay zekâna söylersin; o da kalori, makro, lif, şeker, eklenen şeker, doymuş ve trans yağ ile kafeini kendi yemek günlüğüne kaydeder.",
+                "Nutrition MCP, Claude, ChatGPT veya başka bir MCP istemcisini kalori ve makro takipçisine dönüştüren ücretsiz, açık kaynaklı bir Model Context Protocol (MCP) sunucusudur. Her gıdayı tek tek aramak yerine yediğini yapay zekâna söylersin; o da kalori, makro, lif, şeker, eklenen şeker, doymuş ve trans yağ, sodyum ile kafeini kendi yemek günlüğüne kaydeder.",
         },
         {
             question: "Model Context Protocol (MCP) nedir?",
@@ -919,7 +980,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Neleri takip edebilirim?",
             visibleHtml:
-                "Her kayıt için kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker ve su: doğal dille anlatılan, genel bir gıda olarak USDA FoodData Central üzerinde aranan ya da Open Food Facts üzerinden bir ürün barkodundan alınan değerler. Bir öğün malzeme malzeme kaydedilebilir; her malzemenin kendi miktarı ve besinleri olur. Sık yediğin bir öğünü kayıtlı öğün olarak saklayıp adıyla yeniden kaydedebilirsin. Kafein de miligram cinsinden takip edilir; bu, her etiketin kullandığı birimdir ve kalori eklemez. Alkol de saf etanol gramı cinsinden takip edilebilir; alkol takibini açtığında görünür. Vücut ağırlığını kg ya da lb olarak kaydedip hedef kiloya giden eğilimleri izleyebilirsin. Vücut ölçüleri (bel, kalça, boyun, göğüs, omuz, üst kol, ön kol, uyluk ve baldır) cm ya da inç olarak kaydedilebilir. Günlük özetleri görebilir, öğünleri tarih aralığına göre sorgulayabilir, geçmiş kayıtları düzenleyebilir ya da silebilir, hedef belirleyebilir ve zaman içindeki eğilimleri takip edebilirsin.",
+                "Her kayıt için kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker, sodyum ve su: doğal dille anlatılan, genel bir gıda olarak USDA FoodData Central üzerinde aranan ya da Open Food Facts üzerinden bir ürün barkodundan alınan değerler. Bir öğün malzeme malzeme kaydedilebilir; her malzemenin kendi miktarı ve besinleri olur. Sık yediğin bir öğünü kayıtlı öğün olarak saklayıp adıyla yeniden kaydedebilirsin. Kafein de miligram cinsinden takip edilir; bu, her etiketin kullandığı birimdir ve kalori eklemez. Alkol de saf etanol gramı cinsinden takip edilebilir; alkol takibini açtığında görünür. Vücut ağırlığını kg ya da lb olarak kaydedip hedef kiloya giden eğilimleri izleyebilirsin. Vücut ölçüleri (bel, kalça, boyun, göğüs, omuz, üst kol, ön kol, uyluk ve baldır) cm ya da inç olarak kaydedilebilir. Günlük özetleri görebilir, öğünleri tarih aralığına göre sorgulayabilir, geçmiş kayıtları düzenleyebilir ya da silebilir, hedef belirleyebilir ve zaman içindeki eğilimleri takip edebilirsin.",
         },
         {
             question:

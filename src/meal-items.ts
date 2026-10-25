@@ -27,6 +27,7 @@ import {
     MAX_CAFFEINE_MG,
     MAX_CALORIES,
     MAX_MACRO_G,
+    MAX_SODIUM_MG,
 } from "./import.js";
 
 export const MAX_ITEMS_PER_MEAL = 30;
@@ -37,7 +38,7 @@ export const MAX_SAVED_MEALS_PER_USER = 200;
 export const MAX_SAVED_MEAL_NAME_CHARS = 100;
 export const MAX_SERVINGS = 20;
 
-/** The eleven nutrient columns a meal row carries, in the order every CSV and
+/** The twelve nutrient columns a meal row carries, in the order every CSV and
  * payload uses. */
 export const MEAL_NUTRIENT_KEYS = [
     "calories",
@@ -51,17 +52,22 @@ export const MEAL_NUTRIENT_KEYS = [
     "added_sugar_g",
     "alcohol_g",
     "caffeine_mg",
+    "sodium_mg",
 ] as const;
 
 export type MealNutrientKey = (typeof MEAL_NUTRIENT_KEYS)[number];
-/** The nutrient values of a meal, an item or a total. The two fat keys are
- * optional in the type so that a row or literal written before they existed
- * still type-checks; every value this module builds sets them. */
+/** The nutrient values of a meal, an item or a total. The two fat keys and
+ * sodium are optional in the type so that a row or literal written before they
+ * existed still type-checks; every value this module builds sets them. */
 export type NutrientValues = Record<
-    Exclude<MealNutrientKey, "saturated_fat_g" | "trans_fat_g">,
+    Exclude<MealNutrientKey, LateNutrientKey>,
     number | null
 > &
-    Partial<Record<"saturated_fat_g" | "trans_fat_g", number | null>>;
+    Partial<Record<LateNutrientKey, number | null>>;
+
+/** The nutrient keys added after the first release of the item tables, kept
+ * optional in NutrientValues (see above). */
+export type LateNutrientKey = "saturated_fat_g" | "trans_fat_g" | "sodium_mg";
 
 /** One ingredient as the caller sends it. Nutrient fields are optional here so
  * the handler, not the schema, names the item that lacks one. */
@@ -80,6 +86,7 @@ export interface MealItemInput {
     added_sugar_g?: number;
     alcohol_g?: number;
     caffeine_mg?: number;
+    sodium_mg?: number;
     /** The USDA or Open Food Facts record the item's values were read from,
      * and the amount they are for. Verified against the stored record by
      * src/provenance.ts, which labels each nutrient; never trusted as a label. */
@@ -113,11 +120,12 @@ const REQUIRED_ITEM_KEYS = [
     "fat_g",
 ] as const satisfies readonly MealNutrientKey[];
 
-/** Keys every item carries or none does (all-or-none). Saturated fat is here,
- * not optional: a total that counted only some items would read as a real,
- * too-low figure. */
+/** Keys every item carries or none does (all-or-none). Saturated fat and sodium
+ * are here, not optional: a total that counted only some items would read as a
+ * real, too-low figure against their daily limits. */
 const ALL_OR_NONE_ITEM_KEYS = [
     "saturated_fat_g",
+    "sodium_mg",
     "fiber_g",
     "sugar_g",
     "added_sugar_g",
@@ -146,6 +154,7 @@ const ITEM_NUTRIENT_MAX: Record<MealNutrientKey, number> = {
     added_sugar_g: MAX_MACRO_G,
     alcohol_g: MAX_ALCOHOL_G,
     caffeine_mg: MAX_CAFFEINE_MG,
+    sodium_mg: MAX_SODIUM_MG,
 };
 
 const CATEGORY = "meal_items_invalid" as const;
@@ -227,7 +236,8 @@ const MEAL_TOTAL_MAX = ITEM_NUTRIENT_MAX;
 /**
  * Refuse a meal whose summed (or scaled) totals exceed what a single meal can
  * hold: calories above MAX_CALORIES, a gram nutrient above MAX_MACRO_G,
- * alcohol_g above MAX_ALCOHOL_G or caffeine_mg above MAX_CAFFEINE_MG. These
+ * alcohol_g above MAX_ALCOHOL_G, caffeine_mg above MAX_CAFFEINE_MG or sodium_mg
+ * above MAX_SODIUM_MG. These
  * are typo guards (an amount in the wrong unit, a servings slip), and checking
  * before the write also keeps calories inside the integer column. Throws a
  * meal_items_invalid ToolError naming the figure; the message carries numbers
@@ -251,7 +261,7 @@ export function assertMealTotals(totals: NutrientValues): void {
  *
  * Refuses (ToolError, meal_items_invalid): a count outside 1..MAX_ITEMS_PER_MEAL,
  * a missing required nutrient, a value outside its range, an amount that is not
- * positive, a partially given saturated-fat/fiber/sugar/added-sugar key, an item
+ * positive, a partially given saturated-fat/sodium/fiber/sugar/added-sugar key, an item
  * whose added sugar exceeds its sugar, and, with the added-sugar gate on, an item with
  * sugar_g but no added_sugar_g (addedSugarMissingError, its own category).
  *
@@ -330,7 +340,7 @@ export function validateItems(
         }
     });
 
-    // Saturated fat, fiber, sugar and added sugar: all items or none.
+    // Saturated fat, sodium, fiber, sugar and added sugar: all items or none.
     for (const key of ALL_OR_NONE_ITEM_KEYS) {
         const withKey = items.flatMap((item, i) =>
             item[key] === undefined ? [] : [i],
@@ -382,6 +392,7 @@ export function validateItems(
             added_sugar_g: item.added_sugar_g ?? null,
             alcohol_g: item.alcohol_g ?? null,
             caffeine_mg: item.caffeine_mg ?? null,
+            sodium_mg: item.sodium_mg ?? null,
         };
     });
 
@@ -646,6 +657,9 @@ export function formatItemLine(item: MealItemValues, alcohol: boolean): string {
         item.caffeine_mg !== null
             ? `caffeine ${Math.round(item.caffeine_mg)} mg`
             : null,
+        item.sodium_mg != null
+            ? `sodium ${Math.round(item.sodium_mg)} mg`
+            : null,
     ].filter((x): x is string => x !== null);
     return `${item.position}. ${item.name}${amount} — ${[...macros, ...extras].join(" · ")}`;
 }
@@ -736,6 +750,7 @@ export function buildMealItemsMeta(
             added_sugar_g: tenth(i.added_sugar_g),
             alcohol_g: alcoholOn ? tenth(i.alcohol_g) : null,
             caffeine_mg: tenth(i.caffeine_mg),
+            sodium_mg: tenth(i.sodium_mg ?? null),
         }));
     });
     return any ? { v: 1, meals } : null;

@@ -18,11 +18,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_FR: ToolsDoc = {
     meta: {
-        title: "48 outils pour suivre calories, macros, eau et poids",
+        title: "49 outils pour suivre calories, macros, eau et poids",
         description:
-            "Les 48 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
+            "Les 49 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
         ogDescription:
-            "Les 48 outils que le serveur Nutrition MCP donne à ton IA, des repas sauvegardés à l'import CSV de ton historique d'une autre app, avec descriptions et exemples de demandes.",
+            "Les 49 outils que le serveur Nutrition MCP donne à ton IA, des repas sauvegardés à l'import CSV de ton historique d'une autre app, avec descriptions et exemples de demandes.",
     },
     hero: {
         eyebrow: "Référence",
@@ -30,7 +30,7 @@ export const TOOLS_FR: ToolsDoc = {
         titleEm: "faire",
         titleAfterEm: "",
         lead: "Tu n'appelles jamais ces outils toi-même : tu parles simplement à Claude, à ChatGPT ou à un autre client MCP, et il choisit le bon outil. Voici tous les outils que le serveur Nutrition MCP met à disposition pour les repas et les repas sauvegardés, les calories et les macros, l'eau et le poids, avec ce que fait chacun et une phrase qui le déclenche.",
-        countBold: "48 outils",
+        countBold: "49 outils",
         countTail: "répartis en 7 catégories",
     },
     categories: {
@@ -92,11 +92,12 @@ export const TOOLS_FR: ToolsDoc = {
         optionalLabel: "facultatif",
         trySayingLabel: "Dis par exemple",
         categoriesLabel: "Catégories d'outils",
+        copyLinkLabel: "Copier le lien vers {tool}",
     },
     tools: {
         log_meal: {
             description:
-                "Enregistre ce que tu as mangé avec les calories et les macros, plus les acides gras saturés et trans, les fibres, les sucres totaux et ajoutés, l'alcool et la caféine quand ces valeurs sont disponibles. Décris-le avec tes mots : l'IA estime les valeurs, te demande la taille de la portion si elle n'est pas claire, et peut d'abord récupérer les données de l'étiquette via un code-barres ou sur le web. Il peut aussi prendre les ingrédients un à un : les totaux sont alors la somme de ces ingrédients.",
+                "Enregistre ce que tu as mangé avec les calories et les macros, plus les acides gras saturés et trans, les fibres, les sucres totaux et ajoutés, le sodium, l'alcool et la caféine quand ces valeurs sont disponibles. Décris-le avec tes mots : l'IA estime les valeurs, te demande la taille de la portion si elle n'est pas claire, et peut d'abord récupérer les données de l'étiquette via un code-barres ou sur le web. Il peut aussi prendre les ingrédients un à un : les totaux sont alors la somme de ces ingrédients.",
             params: {
                 description: "Ce qui a été mangé",
                 meal_type: "petit-déjeuner, déjeuner, dîner ou collation",
@@ -118,6 +119,8 @@ export const TOOLS_FR: ToolsDoc = {
                     "Grammes d'<b>éthanol pur</b>, ni le volume de la boisson ni son degré d'alcool : l'IA le calcule à partir de la quantité servie et du degré (une bière de 330 ml à 5 % en contient 13 g)",
                 caffeine_mg:
                     "Caféine en <b>milligrammes</b>, pas en grammes : c'est le seul champ ici qui n'est pas en grammes, car c'est l'unité qu'emploient toutes les étiquettes et toutes les recommandations (un café filtre contient environ 95 mg, un expresso 63 mg, une canette de cola 34 mg). La caféine n'apporte aucune calorie. Contrairement aux fibres et aux sucres, elle n'est envoyée que pour ce qui contient réellement de la caféine : un 0 enregistré ferait apparaître une ligne caféine sur ton tableau de bord pour un nutriment que tu ne consommes jamais",
+                sodium_mg:
+                    "Facultatif. <b>Sodium</b> en milligrammes : le sodium, pas le sel (1 g de sel contient environ 400 mg de sodium). Une valeur vide est enregistrée comme non mesurée et exclut ce jour de ta moyenne et de ta limite de sodium ; 0 est la valeur correcte pour un aliment qui n'en contient pas.",
                 logged_at:
                     "Quand tu l'as mangé, si ce n'est pas maintenant : permet d'enregistrer quelque chose après coup",
                 notes: "Notes supplémentaires",
@@ -157,7 +160,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Ouvre un outil d'import dans le chat pour récupérer ton historique depuis une autre app : choisis le CSV exporté depuis MyFitnessPal, Cronometer, Lose It!, MacroFactor ou une autre app de suivi, associe ses colonnes aux calories, aux macros, aux fibres, aux sucres totaux et ajoutés et à la caféine (plus l'alcool si tu as activé son suivi), puis vérifie ce qui sera ajouté avant de confirmer. Le fichier est lu dans ton navigateur, rien n'est enregistré tant que tu n'as pas validé l'aperçu, et réimporter le même fichier ne crée pas de doublons.",
+                "Ouvre un outil d'import dans le chat pour récupérer ton historique depuis une autre app : choisis le CSV exporté depuis MyFitnessPal, Cronometer, Lose It!, MacroFactor ou une autre app de suivi, associe ses colonnes aux calories, aux macros, aux fibres, aux sucres totaux et ajoutés, à la caféine et au sodium (plus l'alcool si tu as activé son suivi), puis vérifie ce qui sera ajouté avant de confirmer. Le fichier est lu dans ton navigateur, rien n'est enregistré tant que tu n'as pas validé l'aperçu, et réimporter le même fichier ne crée pas de doublons.",
             params: {},
             example: "Importe mon historique de repas depuis MyFitnessPal",
         },
@@ -165,7 +168,7 @@ export const TOOLS_FR: ToolsDoc = {
             description:
                 "Ajoute d'un coup un lot de repas passés (jusqu'à 50 à la fois) au lieu de les enregistrer un par un. L'outil d'import ci-dessus passe par lui pour enregistrer les repas, et l'IA peut aussi l'utiliser directement pour des repas que tu as collés dans le chat. Chaque ligne est d'abord vérifiée, et tout ce qui ne convient pas est signalé ligne par ligne : renvoyer les mêmes lignes est donc sans risque et ne crée pas de doublons de ce qui est déjà enregistré, tant que ton fuseau horaire n'a pas changé entre-temps.",
             params: {
-                meals: "Les lignes à importer, dans l'ordre du fichier source (1 à 50 par appel). Chaque ligne peut contenir une heure, un type de repas, une description, des notes et les mêmes valeurs qu'un repas enregistré : <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (sucres totaux), <code>added_sugar_g</code> (sucres ajoutés, inclus dans le total), <code>alcohol_g</code> (grammes d'éthanol pur) et <code>caffeine_mg</code> (milligrammes, pas grammes)",
+                meals: "Les lignes à importer, dans l'ordre du fichier source (1 à 50 par appel). Chaque ligne peut contenir une heure, un type de repas, une description, des notes et les mêmes valeurs qu'un repas enregistré : <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (sucres totaux), <code>added_sugar_g</code> (sucres ajoutés, inclus dans le total), <code>alcohol_g</code> (grammes d'éthanol pur), <code>caffeine_mg</code> (milligrammes, pas grammes) et <code>sodium_mg</code> (milligrammes de sodium, pas de sel)",
                 expected_row_count:
                     "Nombre de lignes transmises par cet appel, compté dans le fichier source, pour repérer une ligne perdue",
                 expected_total_kcal:
@@ -180,7 +183,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Modifie un repas déjà enregistré : sa description, une macro, les fibres, les sucres totaux ou ajoutés, l'alcool ou la caféine, l'heure ou les notes. C'est aussi comme ça qu'on complète une valeur manquante : si un repas a été enregistré sans ses fibres, ses sucres ou ses sucres ajoutés, le serveur le signale et l'IA les ajoute ici une fois que tu as donné ton accord. Pour un repas enregistré avec ses ingrédients, les totaux se modifient par sa liste d'ingrédients.",
+                "Modifie un repas déjà enregistré : sa description, une macro, les fibres, les sucres totaux ou ajoutés, le sodium, l'alcool ou la caféine, l'heure ou les notes. C'est aussi comme ça qu'on complète une valeur manquante : si un repas a été enregistré sans ses fibres, ses sucres ou ses sucres ajoutés, le serveur le signale et l'IA les ajoute ici une fois que tu as donné ton accord. Pour un repas enregistré avec ses ingrédients, les totaux se modifient par sa liste d'ingrédients.",
             params: {
                 id: "UUID du repas à modifier",
                 description: "",
@@ -198,6 +201,7 @@ export const TOOLS_FR: ToolsDoc = {
                     "Sucres ajoutés uniquement, jamais plus que les sucres totaux. Accompagne <code>sugar_g</code> : une modification des sucres totaux d'un repas sans sucres ajoutés enregistrés peut ne pas être enregistrée sans cette valeur",
                 alcohol_g: "Grammes d'éthanol pur, pas le volume de la boisson",
                 caffeine_mg: "Milligrammes, pas grammes",
+                sodium_mg: "Milligrammes de sodium, pas de sel",
                 logged_at: "",
                 notes: "",
                 items: "La liste complète des ingrédients, qui remplace l'existante. Les totaux du repas deviennent la somme de cette liste, donc les champs de totaux ne peuvent pas être envoyés avec elle",
@@ -241,6 +245,8 @@ export const TOOLS_FR: ToolsDoc = {
                     "Grammes d'éthanol pur pour une portion, pas le volume de la boisson",
                 caffeine_mg:
                     "Milligrammes de caféine pour une portion, pas grammes",
+                sodium_mg:
+                    "Milligrammes de sodium pour une portion, pas de sel",
             },
             example: "Sauvegarde ça comme mon petit-déjeuner habituel",
         },
@@ -293,6 +299,8 @@ export const TOOLS_FR: ToolsDoc = {
                     "Grammes d'éthanol pur pour une portion, pas le volume de la boisson",
                 caffeine_mg:
                     "Milligrammes de caféine pour une portion, pas grammes",
+                sodium_mg:
+                    "Milligrammes de sodium pour une portion, pas de sel",
             },
             example:
                 "Mon petit-déjeuner habituel fait maintenant 350 calories par portion : mets-le à jour",
@@ -497,7 +505,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Fixe tes objectifs quotidiens de calories, macros, acides gras saturés, fibres, sucres, sucres ajoutés, alcool, caféine et eau, plus un poids cible facultatif. Les calories, les protéines, les glucides, les lipides, les fibres et l'eau sont des cibles à atteindre ; les acides gras saturés, les sucres totaux, les sucres ajoutés, l'alcool et la caféine sont des limites à ne pas dépasser, et la progression est formulée en conséquence. Seuls les champs que tu mentionnes sont mis à jour ; les autres restent inchangés.",
+                "Fixe tes objectifs quotidiens de calories, macros, acides gras saturés, fibres, sucres, sucres ajoutés, alcool, caféine, sodium et eau, plus un poids cible facultatif. Les calories, les protéines, les glucides, les lipides, les fibres et l'eau sont des cibles à atteindre ; les acides gras saturés, les sucres totaux, les sucres ajoutés, l'alcool, la caféine et le sodium sont des limites à ne pas dépasser, et la progression est formulée en conséquence. Seuls les champs que tu mentionnes sont mis à jour ; les autres restent inchangés.",
             params: {
                 daily_calories:
                     "Objectif calorique quotidien (kcal). Mettre à null pour supprimer cet objectif.",
@@ -519,6 +527,8 @@ export const TOOLS_FR: ToolsDoc = {
                     "Limite quotidienne d'alcool en grammes d'<b>éthanol pur</b>, un maximum à ne pas dépasser. Un verre standard américain contient 14 g, une unité d'alcool britannique 7,9 g. Mettre à null pour supprimer cette limite.",
                 daily_caffeine_mg:
                     "Limite quotidienne de caféine en <b>milligrammes</b>, un maximum à ne pas dépasser. L'EFSA et la FDA fixent le plafond à 400 mg par jour pour un adulte en bonne santé (environ quatre cafés filtre) ; pendant la grossesse, l'EFSA retient 200 mg. 0 est une vraie limite : aucune caféine du tout. Mettre à null pour supprimer cette limite.",
+                daily_sodium_mg:
+                    "Limite quotidienne de sodium en <b>milligrammes</b>, un maximum à ne pas dépasser : le sodium, pas le sel. L'OMS recommande moins de 2 000 mg par jour pour un adulte ; les recommandations alimentaires américaines, moins de 2 300 mg. 0 est une vraie limite : aucun sodium du tout. Mettre à null pour supprimer cette limite.",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -527,7 +537,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Affiche tes objectifs quotidiens actuels de calories et de macros, ton éventuel objectif de fibres, tes éventuelles limites de sucres ou de caféine et, si tu suis l'alcool, ta limite d'alcool.",
+                "Affiche tes objectifs quotidiens actuels de calories et de macros, ton éventuel objectif de fibres, tes éventuelles limites de sucres, de caféine ou de sodium et, si tu suis l'alcool, ta limite d'alcool.",
             params: {},
             example: "Quels sont mes objectifs quotidiens ?",
         },
@@ -546,6 +556,14 @@ export const TOOLS_FR: ToolsDoc = {
                     "Date de fin (AAAA-MM-JJ), 92 jours maximum, jour de début compris",
             },
             example: "Fais-moi un résumé de la semaine écoulée",
+        },
+        get_digest: {
+            description:
+                "Un bilan d'une période — hier, aujourd'hui jusqu'à maintenant, ou les 7 ou 30 derniers jours — sous forme de carte interactive : calories et chaque nutriment face à tes objectifs, tendances par rapport à la période précédente, eau et poids, tes repas ou habitudes de saisie, et quelques points marquants tirés de ton propre journal.",
+            params: {
+                period: "<code>yesterday</code> (par défaut), <code>today</code>, <code>last_7_days</code> ou <code>last_30_days</code>. Les deux périodes se terminent hier.",
+            },
+            example: "Comment s'est passée ma journée d'hier ?",
         },
         get_trends: {
             description:

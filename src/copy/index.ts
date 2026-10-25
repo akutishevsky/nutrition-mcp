@@ -108,9 +108,11 @@ export type ExampleSlideId =
     | "saved-meal"
     | "goals-progress"
     | "review-week"
+    | "daily-digest"
     | "weight-trend"
     | "meal-patterns"
     | "track-drinks"
+    | "track-sodium"
     | "import-history"
     | "export-data";
 
@@ -139,6 +141,7 @@ export type ExampleWidget =
     | "meal-logged"
     | "goal-progress"
     | "weight-trends"
+    | "digest"
     | "import-meals";
 
 /** One widget card in an example conversation. Every field is structural:
@@ -289,7 +292,8 @@ export interface IndexDoc {
         /** Accessible names of the two photo-turn pictures. */
         photoMealAlt: string;
         photoPackageAlt: string;
-        /** 11 slides, in English's order (see ExampleSlide.id). */
+        /** One slide per ExampleSlideId, in the carousel's order (EX_META in
+         * scripts/gen-index.ts). */
         slides: ExampleSlide[];
     };
 
@@ -421,7 +425,7 @@ const INDEX_EN: IndexDoc = {
 
     featureList: [
         "Log meals in plain language, with calories, macros, fiber, sugar and added sugar",
-        "Saturated and trans fat tracking, with an optional saturated fat limit",
+        "Saturated fat, trans fat and sodium tracking, with optional saturated fat and sodium limits",
         "USDA FoodData Central values for generic foods, estimates otherwise",
         "Barcode lookup for packaged foods through Open Food Facts",
         "Every nutrient value tagged with where it came from",
@@ -578,7 +582,7 @@ const INDEX_EN: IndexDoc = {
         note: "Everything here is optional. You can do it now, later, or never — just start logging and set these whenever you like.",
         toolsCta: {
             heading: "Curious what it can actually do?",
-            body: "Browse all 48 tools — logging, barcodes, water, weight and body measurements, goals, and trends — with a description and an example prompt for each.",
+            body: "Browse all 49 tools — logging, barcodes, water, weight and body measurements, goals, and trends — with a description and an example prompt for each.",
             arrow: "Explore the tools",
         },
     },
@@ -821,7 +825,7 @@ const INDEX_EN: IndexDoc = {
                 id: "goals-progress",
                 title: "Set goals, check in",
                 description:
-                    "Set targets to reach, like calories and protein, and limits to stay under for added sugar, saturated fat, total sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see what's left to reach each target and where you stand against each limit.",
+                    "Set targets to reach, like calories and protein, and limits to stay under for added sugar, saturated fat, sodium, total sugar, alcohol and caffeine; only what you mention changes. Then ask about any day to see what's left to reach each target and where you stand against each limit.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Saves calorie and protein targets and a 400 mg caffeine limit",
@@ -843,7 +847,7 @@ const INDEX_EN: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, your 25 g added-sugar limit and your 75 kg target weight.",
+                        text: "Done: 2,000 kcal and 160 g protein to reach, caffeine under 400 mg. Everything else stays as it was: 220 g carbs, 70 g fat, 20 g saturated fat, 30 g fiber, 2.5 L water, 2,300 mg sodium, your 25 g added-sugar limit and your 75 kg target weight.",
                     },
                     {
                         from: "user",
@@ -869,6 +873,8 @@ const INDEX_EN: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Averages your last 7, 14 and 30 days and opens the trends card",
+                    get_digest:
+                        "Sums up your last 7 days with goals and highlights in one card",
                 },
                 messages: [
                     {
@@ -891,6 +897,36 @@ const INDEX_EN: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Check how a day went",
+                description:
+                    "Ask how yesterday went, or how today or the last 7 or 30 days are going, and a digest card opens in the chat: calories and every tracked nutrient against your goals, water and weight, the day's meals for a single day or your logging habits for a range, and a few highlights drawn from your own log.",
+                toolNotes: {
+                    get_digest:
+                        "Builds the digest for the period you ask about: the day's meals for a single day, logging habits for a range",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "how did yesterday go?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Yesterday you logged 3 meals: 1,150 of your 2,000 kcal and 76 of your 160 g protein, so 850 kcal and 84 g protein are still to reach. Added sugar was 23 g of your 25 g limit, sodium 1,050 mg of 2,300 mg, and you logged 500 ml of water against 2,500 ml.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -1023,6 +1059,35 @@ const INDEX_EN: IndexDoc = {
                 cardMeals: ["Lager, 4% (1 pint, 568 ml)"],
             },
             {
+                id: "track-sodium",
+                title: "Track sodium",
+                description:
+                    "Sodium is tracked in milligrams, not salt, on every meal, against a daily limit you set. Show more lists a meal's sodium next to that limit, so you can see how much of the day it used.",
+                toolNotes: {
+                    log_meal:
+                        "Logs the bowl with its sodium in milligrams, not salt",
+                    set_nutrition_goals:
+                        "Sets the 2,300 mg daily sodium limit each meal is checked against",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "tonkotsu ramen with an egg for dinner, one big bowl",
+                    },
+                    {
+                        from: "ai",
+                        text: "Logged dinner: about 610 kcal, 28 g protein and 2,640 mg sodium. That bowl alone is 340 mg over your 2,300 mg daily sodium limit.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Tonkotsu ramen with egg (1 large bowl)"],
+            },
+            {
                 id: "import-history",
                 title: "Bring your history",
                 description:
@@ -1145,7 +1210,7 @@ const INDEX_EN: IndexDoc = {
         cards: [
             {
                 title: "Meals in plain language",
-                body: "Describe what you ate — generic foods get USDA FoodData Central values when available, and your AI estimates the rest: calories, protein, carbs, fat, saturated and trans fat, fiber, total sugar, added sugar, and caffeine in milligrams. It logs the meal and tags each value with its source.",
+                body: "Describe what you ate — generic foods get USDA FoodData Central values when available, and your AI estimates the rest: calories, protein, carbs, fat, saturated and trans fat, fiber, total sugar, added sugar, and sodium and caffeine in milligrams. It logs the meal and tags each value with its source.",
             },
             {
                 title: "Scan a barcode",
@@ -1153,7 +1218,7 @@ const INDEX_EN: IndexDoc = {
             },
             {
                 title: "Goals & progress",
-                body: "Set daily calorie, macro, fiber, and water targets — plus added sugar, saturated fat, total sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
+                body: "Set daily calorie, macro, fiber, and water targets — plus added sugar, saturated fat, sodium, total sugar, caffeine, and alcohol limits to stay under — and check live progress toward them.",
             },
             {
                 title: "Summaries & trends",
@@ -1260,7 +1325,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is a free, open-source Model Context Protocol (MCP) server that turns Claude, ChatGPT or another MCP client into a calorie and macro tracker. Instead of looking up each item yourself, you tell your AI what you ate and it logs the calories, macros, fiber, sugar, added sugar, saturated and trans fat and caffeine to your own food diary.",
+                "Nutrition MCP is a free, open-source Model Context Protocol (MCP) server that turns Claude, ChatGPT or another MCP client into a calorie and macro tracker. Instead of looking up each item yourself, you tell your AI what you ate and it logs the calories, macros, fiber, sugar, added sugar, saturated and trans fat, sodium and caffeine to your own food diary.",
         },
         {
             question: "What is the Model Context Protocol (MCP)?",
@@ -1302,7 +1367,7 @@ const INDEX_EN: IndexDoc = {
         {
             question: "What can I track?",
             visibleHtml:
-                "Calories, protein, carbohydrates, fat, saturated and trans fat, fiber, total sugar, added sugar, and water for every entry — described in plain language, looked up as a generic food in USDA FoodData Central, or pulled from a product barcode via Open Food Facts. A meal can be logged ingredient by ingredient, each with its own amount and nutrients, and a meal you eat often can be kept as a saved meal and logged again by its name. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
+                "Calories, protein, carbohydrates, fat, saturated and trans fat, fiber, total sugar, added sugar, sodium, and water for every entry — described in plain language, looked up as a generic food in USDA FoodData Central, or pulled from a product barcode via Open Food Facts. A meal can be logged ingredient by ingredient, each with its own amount and nutrients, and a meal you eat often can be kept as a saved meal and logged again by its name. Caffeine is tracked too, in milligrams, the unit every label uses, and it adds no calories. Alcohol can be tracked as well, in grams of pure ethanol; it is shown once you switch alcohol tracking on. You can also log your body weight in kg or lb and track trends toward a target weight. Body measurements (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh and calf) can be logged in cm or inches too. View daily summaries, query meals by date range, update or delete past entries, set goals, and monitor trends over time.",
         },
         {
             question: "Can I save meals I eat often, or my own recipes?",

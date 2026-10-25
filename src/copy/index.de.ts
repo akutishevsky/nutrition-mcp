@@ -22,7 +22,7 @@ export const INDEX_DE: IndexDoc = {
 
     featureList: [
         "Mahlzeiten in einfachen Worten erfassen, mit Kalorien, Makros, Ballaststoffen, Zucker und zugesetztem Zucker",
-        "Erfassung gesättigter und Transfettsäuren, mit optionalem Limit für gesättigte Fettsäuren",
+        "Erfassung gesättigter und Transfettsäuren sowie von Natrium, mit optionalen Limits für gesättigte Fettsäuren und Natrium",
         "Werte aus USDA FoodData Central für allgemeine Lebensmittel, sonst Schätzungen",
         "Barcode-Suche für verpackte Lebensmittel über Open Food Facts",
         "Jeder Nährstoffwert mit Angabe, woher er stammt",
@@ -181,7 +181,7 @@ export const INDEX_DE: IndexDoc = {
         note: "Das alles ist optional. Ob jetzt, später oder nie – fang einfach an zu erfassen und stell das ein, wann immer du willst.",
         toolsCta: {
             heading: "Neugierig, was es alles kann?",
-            body: "Sieh dir alle 48 Werkzeuge an – Erfassen, Barcodes, Wasser, Gewicht und Körpermaße, Ziele und Trends –, jeweils mit Beschreibung und Beispielsatz.",
+            body: "Sieh dir alle 49 Werkzeuge an – Erfassen, Barcodes, Wasser, Gewicht und Körpermaße, Ziele und Trends –, jeweils mit Beschreibung und Beispielsatz.",
             arrow: "Werkzeuge entdecken",
         },
     },
@@ -425,7 +425,7 @@ export const INDEX_DE: IndexDoc = {
                 id: "goals-progress",
                 title: "Ziele setzen, Stand checken",
                 description:
-                    "Leg Ziele fest, die du erreichen willst, etwa Kalorien und Protein, und Limits für zugesetzten Zucker, gesättigte Fettsäuren, Gesamtzucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Dann frag nach einem beliebigen Tag und sieh, was dir bei jedem Ziel noch fehlt und wo du bei jedem Limit stehst.",
+                    "Leg Ziele fest, die du erreichen willst, etwa Kalorien und Protein, und Limits für zugesetzten Zucker, gesättigte Fettsäuren, Natrium, Gesamtzucker, Alkohol und Koffein, unter denen du bleiben willst; geändert wird nur, was du nennst. Dann frag nach einem beliebigen Tag und sieh, was dir bei jedem Ziel noch fehlt und wo du bei jedem Limit stehst.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Speichert Kalorien- und Proteinziel sowie ein Koffeinlimit von 400 mg",
@@ -447,7 +447,7 @@ export const INDEX_DE: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Erledigt: Ziel 2.000 kcal und 160 g Protein, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 20 g gesättigte Fettsäuren, 30 g Ballaststoffe, 2,5 l Wasser, dein Limit von 25 g für zugesetzten Zucker und dein Zielgewicht von 75 kg.",
+                        text: "Erledigt: 2.000 kcal und 160 g Protein als Ziel, Koffein unter 400 mg. Alles andere bleibt, wie es war: 220 g Kohlenhydrate, 70 g Fett, 20 g gesättigte Fettsäuren, 30 g Ballaststoffe, 2,5 l Wasser, 2.300 mg Natrium, dein Limit von 25 g zugesetztem Zucker und dein Zielgewicht von 75 kg.",
                     },
                     {
                         from: "user",
@@ -473,6 +473,8 @@ export const INDEX_DE: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Bildet Durchschnitte über deine letzten 7, 14 und 30 Tage und öffnet die Trends-Karte",
+                    get_digest:
+                        "Fasst deine letzten 7 Tage mit Zielen und Auffälligkeiten in einer Karte zusammen",
                 },
                 messages: [
                     {
@@ -495,6 +497,36 @@ export const INDEX_DE: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Einen Tag auswerten",
+                description:
+                    "Frag, wie gestern lief oder wie heute oder die letzten 7 oder 30 Tage laufen, und im Chat öffnet sich eine Tagesübersicht: Kalorien und jeder erfasste Nährstoff im Vergleich zu deinen Zielen, Wasser und Gewicht, die Mahlzeiten des Tages bei einem einzelnen Tag oder deine Erfassungsgewohnheiten bei einem Zeitraum, und ein paar Auffälligkeiten aus deinem eigenen Tagebuch.",
+                toolNotes: {
+                    get_digest:
+                        "Erstellt die Übersicht für den Zeitraum, den du nennst: die Mahlzeiten des Tages für einen einzelnen Tag, Erfassungsgewohnheiten für einen Zeitraum",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "wie lief gestern?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Gestern hast du 3 Mahlzeiten erfasst: 1.150 von deinen 2.000 kcal und 76 von deinen 160 g Protein, es fehlen also noch 850 kcal und 84 g Protein. Zugesetzter Zucker lag bei 23 g von deinem Limit von 25 g, Natrium bei 1.050 mg von 2.300 mg, und du hast 500 ml Wasser von 2.500 ml erfasst.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -628,6 +660,35 @@ export const INDEX_DE: IndexDoc = {
                 cardMeals: ["Lagerbier, 4 % (1 Pint, 568 ml)"],
             },
             {
+                id: "track-sodium",
+                title: "Natrium erfassen",
+                description:
+                    "Natrium wird in Milligramm erfasst, nicht als Salz, bei jeder Mahlzeit und gegen ein Tageslimit, das du festlegst. Mehr anzeigen listet das Natrium einer Mahlzeit neben diesem Limit auf, damit du siehst, wie viel vom Tag sie verbraucht hat.",
+                toolNotes: {
+                    log_meal:
+                        "Erfasst die Schüssel mit ihrem Natrium in Milligramm, nicht als Salz",
+                    set_nutrition_goals:
+                        "Legt das tägliche Natriumlimit von 2.300 mg fest, gegen das jede Mahlzeit geprüft wird",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "tonkotsu ramen mit Ei zum Abendessen, eine große Schüssel",
+                    },
+                    {
+                        from: "ai",
+                        text: "Abendessen erfasst: etwa 610 kcal, 28 g Protein und 2.640 mg Natrium. Allein diese Schüssel liegt 340 mg über deinem täglichen Natriumlimit von 2.300 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Tonkotsu-Ramen mit Ei (1 große Schüssel)"],
+            },
+            {
                 id: "import-history",
                 title: "Deinen Verlauf mitnehmen",
                 description:
@@ -751,7 +812,7 @@ export const INDEX_DE: IndexDoc = {
         cards: [
             {
                 title: "Mahlzeiten in eigenen Worten",
-                body: "Beschreib, was du gegessen hast – für allgemeine Lebensmittel gibt es Werte aus USDA FoodData Central, wenn vorhanden, den Rest schätzt deine KI: Kalorien, Protein, Kohlenhydrate, Fett, gesättigte und Transfettsäuren, Ballaststoffe, Gesamtzucker, zugesetzten Zucker und Koffein in Milligramm. Die Mahlzeit wird erfasst, und jeder Wert zeigt seine Quelle.",
+                body: "Beschreib, was du gegessen hast – für allgemeine Lebensmittel gibt es Werte aus USDA FoodData Central, wenn vorhanden, den Rest schätzt deine KI: Kalorien, Protein, Kohlenhydrate, Fett, gesättigte und Transfettsäuren, Ballaststoffe, Gesamtzucker, zugesetzten Zucker sowie Natrium und Koffein in Milligramm. Die Mahlzeit wird erfasst, und jeder Wert zeigt seine Quelle.",
             },
             {
                 title: "Barcode scannen",
@@ -759,7 +820,7 @@ export const INDEX_DE: IndexDoc = {
             },
             {
                 title: "Ziele & Fortschritt",
-                body: "Leg tägliche Ziele für Kalorien, Makros, Ballaststoffe und Wasser fest – dazu Limits für zugesetzten Zucker, gesättigte Fettsäuren, Gesamtzucker, Koffein und Alkohol, unter denen du bleiben willst – und verfolge den Fortschritt live.",
+                body: "Leg tägliche Ziele für Kalorien, Makros, Ballaststoffe und Wasser fest – dazu Limits für zugesetzten Zucker, gesättigte Fettsäuren, Natrium, Gesamtzucker, Koffein und Alkohol, unter denen du bleiben willst – und verfolge den Fortschritt live.",
             },
             {
                 title: "Übersichten & Trends",
@@ -866,7 +927,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was ist Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP ist ein kostenloser Open-Source-MCP-Server (Model Context Protocol), der Claude, ChatGPT oder einen anderen MCP-Client in einen Kalorienzähler und Makro-Tracker verwandelt. Statt jedes Lebensmittel selbst nachzuschlagen, sagst du deiner KI, was du gegessen hast, und sie trägt Kalorien, Makros, Ballaststoffe, Zucker, zugesetzten Zucker, gesättigte und Transfettsäuren sowie Koffein in dein persönliches Ernährungstagebuch ein.",
+                "Nutrition MCP ist ein kostenloser Open-Source-MCP-Server (Model Context Protocol), der Claude, ChatGPT oder einen anderen MCP-Client in einen Kalorienzähler und Makro-Tracker verwandelt. Statt jedes Lebensmittel selbst nachzuschlagen, sagst du deiner KI, was du gegessen hast, und sie trägt Kalorien, Makros, Ballaststoffe, Zucker, zugesetzten Zucker, gesättigte und Transfettsäuren, Natrium sowie Koffein in dein persönliches Ernährungstagebuch ein.",
         },
         {
             question: "Was ist das Model Context Protocol (MCP)?",
@@ -908,7 +969,7 @@ export const INDEX_DE: IndexDoc = {
         {
             question: "Was kann ich erfassen?",
             visibleHtml:
-                "Kalorien, Protein, Kohlenhydrate, Fett, gesättigte und Transfettsäuren, Ballaststoffe, Gesamtzucker, zugesetzter Zucker und Wasser bei jedem Eintrag – in eigenen Worten beschrieben, für ein allgemeines Lebensmittel in USDA FoodData Central nachgeschlagen oder per Produkt-Barcode aus Open Food Facts. Eine Mahlzeit lässt sich Zutat für Zutat erfassen, jede mit eigener Menge und eigenen Nährwerten, und eine Mahlzeit, die du oft isst, kannst du als gespeicherte Mahlzeit ablegen und über ihren Namen erneut erfassen. Koffein wird ebenfalls erfasst, in Milligramm, der Einheit, die jedes Etikett verwendet; es hat keine Kalorien. Alkohol kannst du ebenfalls erfassen, in Gramm reinem Ethanol; er wird angezeigt, sobald du die Alkoholerfassung einschaltest. Du kannst außerdem dein Körpergewicht in kg oder lb erfassen und Trends in Richtung Zielgewicht verfolgen. Körpermaße (Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel und Wade) lassen sich ebenfalls in cm oder Zoll erfassen. Du kannst Tageszusammenfassungen ansehen, Mahlzeiten nach Zeitraum abfragen, vergangene Einträge ändern oder löschen, Ziele setzen und Trends über die Zeit verfolgen.",
+                "Kalorien, Protein, Kohlenhydrate, Fett, gesättigte und Transfettsäuren, Ballaststoffe, Gesamtzucker, zugesetzter Zucker, Natrium und Wasser bei jedem Eintrag – in eigenen Worten beschrieben, für ein allgemeines Lebensmittel in USDA FoodData Central nachgeschlagen oder per Produkt-Barcode aus Open Food Facts. Eine Mahlzeit lässt sich Zutat für Zutat erfassen, jede mit eigener Menge und eigenen Nährwerten, und eine Mahlzeit, die du oft isst, kannst du als gespeicherte Mahlzeit ablegen und über ihren Namen erneut erfassen. Koffein wird ebenfalls erfasst, in Milligramm, der Einheit, die jedes Etikett verwendet; es hat keine Kalorien. Alkohol kannst du ebenfalls erfassen, in Gramm reinem Ethanol; er wird angezeigt, sobald du die Alkoholerfassung einschaltest. Du kannst außerdem dein Körpergewicht in kg oder lb erfassen und Trends in Richtung Zielgewicht verfolgen. Körpermaße (Taille, Hüfte, Hals, Brust, Schultern, Oberarm, Unterarm, Oberschenkel und Wade) lassen sich ebenfalls in cm oder Zoll erfassen. Du kannst Tageszusammenfassungen ansehen, Mahlzeiten nach Zeitraum abfragen, vergangene Einträge ändern oder löschen, Ziele setzen und Trends über die Zeit verfolgen.",
         },
         {
             question:

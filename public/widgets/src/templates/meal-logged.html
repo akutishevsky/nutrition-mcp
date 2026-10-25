@@ -10,15 +10,23 @@
 
   Shown after log_meal, update_meal AND log_saved_meal (all three link this same
   widget and emit the same structuredContent shape via buildMealProgress in
-  src/mcp.ts): the day's running totals vs the user's goals in one compact
-  strip, with the meal just logged naming itself on the header line. The `action` field ("logged"
-  or "updated") only changes the header wording. Per product decision, it renders
-  NOTHING when no nutrition goals are set (there is no target to show progress
-  against).
+  src/mcp.ts). The 2026-10 redesign (artboards MG1 / MG2): the meal's name over
+  a half-gauge of the day's calories, the part eaten before this meal light and
+  this meal's part strong; a delta line ("+520 kcal this meal · 600 kcal left
+  today"), on desktop a stat row instead; Show more opens the day's nutrients
+  as an accordion (shared/nutrients.js) with each nutrient's meals and
+  ingredients, and the centre of the gauge opens the calories by meal. The
+  `action` field ("logged" or "updated") changes the eyebrow word and drops the
+  "+" sign. Per product decision, it renders NOTHING when no nutrition goals are
+  set (there is no target to show progress against). save_meal writes no meal
+  and links no widget.
 
-  Data arrives as the `structuredContent` of the log_meal / update_meal /
-  log_saved_meal tool result; the shared bridge (shared/bridge.js) reads it
-  across host conventions and calls render(). Standalone preview uses the SAMPLE below.
+  Data arrives as the `structuredContent` of the tool result, with the
+  figures its frozen schema cannot carry in `_meta` (added sugar, the fats,
+  sodium, ingredients, sources, each meal's time and which row is this meal),
+  every one validated as untrusted and optional; the shared bridge
+  (shared/bridge.js) reads it across host conventions and calls render().
+  Standalone preview uses the SAMPLE below.
 -->
 <html lang="en">
     <head>
@@ -36,13 +44,13 @@
                 padding: 0;
             }
 
-            /*@include shared/ring.css@*/
+            /*@include shared/gauge.css@*/
 
-            /*@include shared/macros.css@*/
+            /*@include shared/nutrients.css@*/
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="wrap tight dayview" id="root"></div>
 
         <script>
             "use strict";
@@ -56,29 +64,22 @@
 
             // ---- Sample data so the file renders on its own (browser preview) ----
             const SAMPLE = {
-                date: "2026-07-11",
+                action: "logged",
+                date: "2026-10-24",
                 locale: "en",
                 logged_meal: {
                     description: "Grilled chicken salad",
-                    meal_type: "lunch",
+                    meal_type: "dinner",
                     calories: 520,
                     protein_g: 42,
                     carbs_g: 28,
                     fat_g: 22,
-                    fiber_g: 7.4,
-                    sugar_g: 6.1,
-                    // null = this user has alcohol tracking off, which is also
-                    // why the panel below shows no alcohol stat line.
+                    fiber_g: 3.5,
+                    sugar_g: 5,
+                    // null = this user has alcohol tracking off.
                     alcohol_g: null,
-                    // Caffeine is NOT gated on that opt-in — there is no
-                    // caffeine flag at all — so it shows in the same panel that
-                    // hides alcohol. Its own suppression is the data: null on
-                    // this salad, a figure on the coffee below.
                     caffeine_mg: null,
                 },
-                // Alcohol tracking OFF, which is what every `alcohol_g: null`
-                // below is saying; the two must agree or the sample previews a
-                // state the server cannot produce.
                 drink_unit: null,
                 has_goals: true,
                 goals: {
@@ -99,12 +100,8 @@
                     fat_g: 58,
                     fiber_g: 21.8,
                     sugar_g: 38.4,
-                    // Alcohol tracking OFF in this sample (the other widgets'
-                    // samples have it on): null is the opt-in's "hide this
-                    // entirely", distinct from a 0 that means an alcohol-free
-                    // day. No stat line renders.
                     alcohol_g: null,
-                    caffeine_mg: 165,
+                    caffeine_mg: 128,
                     water_ml: 1600,
                 },
                 meals: [
@@ -117,7 +114,7 @@
                         carbs_g: 62,
                         fat_g: 12,
                         fiber_g: 9.4,
-                        sugar_g: 24.6,
+                        sugar_g: 18.2,
                         alcohol_g: null,
                         caffeine_mg: null,
                     },
@@ -129,8 +126,8 @@
                         protein_g: 22,
                         carbs_g: 14,
                         fat_g: 14,
-                        fiber_g: 1.1,
-                        sugar_g: 12.6,
+                        fiber_g: 2.4,
+                        sugar_g: 9.1,
                         alcohol_g: null,
                         caffeine_mg: null,
                     },
@@ -142,8 +139,8 @@
                         protein_g: 36,
                         carbs_g: 61,
                         fat_g: 4,
-                        fiber_g: 3.8,
-                        sugar_g: 5.2,
+                        fiber_g: 7,
+                        sugar_g: 6.2,
                         alcohol_g: null,
                         caffeine_mg: null,
                     },
@@ -156,31 +153,26 @@
                         carbs_g: 10,
                         fat_g: 6,
                         fiber_g: 0,
-                        sugar_g: 9.8,
+                        sugar_g: 10.1,
                         alcohol_g: null,
-                        caffeine_mg: 165,
+                        caffeine_mg: 128,
                     },
                     {
                         description: "Grilled chicken salad",
-                        meal_type: "lunch",
+                        meal_type: "dinner",
                         date: null,
                         calories: 520,
                         protein_g: 42,
                         carbs_g: 28,
                         fat_g: 22,
-                        fiber_g: 7.4,
-                        sugar_g: 6.1,
+                        fiber_g: 3.5,
+                        sugar_g: 5,
                         alcohol_g: null,
                         caffeine_mg: null,
                     },
                 ],
             };
 
-            function fmt(n, decimals) {
-                if (n == null || isNaN(n)) return "0";
-                const r = decimals ? n.toFixed(decimals) : Math.round(n);
-                return Number(r).toLocaleString();
-            }
             function esc(s) {
                 return String(s).replace(
                     /[&<>"]/g,
@@ -193,8 +185,23 @@
                         })[c],
                 );
             }
+            // macros.js's own helpers still format with fmt(); the day view
+            // formats through nvFmt (shared/nutrients.js).
+            function fmt(n, decimals) {
+                if (n == null || isNaN(n)) return "0";
+                const r = decimals ? n.toFixed(decimals) : Math.round(n);
+                return Number(r).toLocaleString(WIDGET_LOCALE);
+            }
 
+            // The `_meta` validators and merges (withAddedSugar & co.), and
+            // DRINK_GRAMS. Its strip is not drawn here, and its delegated
+            // click handlers only answer its own data-macro / data-meal-open /
+            // data-src-open attributes, which this card never uses.
             /*@include shared/macros.js@*/
+
+            /*@include shared/gauge.js@*/
+
+            /*@include shared/nutrients.js@*/
 
             let __widgetApi = null;
 
@@ -203,22 +210,52 @@
             // because the frozen outputSchema can gain no field. Must equal
             // ADDED_SUGAR_META_KEY in src/widgets.ts.
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
-            // Where the same result carries the saturated- and trans-fat figures
-            // (SaturatedFatMeta, src/saturated-fat.ts), under the same frozen-schema
-            // reasoning as added sugar. Must equal SATURATED_FAT_META_KEY in
-            // src/widgets.ts.
+            // Saturated and trans fat (SaturatedFatMeta, src/saturated-fat.ts),
+            // same reasoning. Must equal SATURATED_FAT_META_KEY.
             const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
-            // Where the same result carries each listed meal's ingredients
-            // ({ v: 1, meals: [items | null, …] }, aligned with data.meals by
-            // position), for the breakdown's expandable rows. Must equal
-            // MEAL_ITEMS_META_KEY in src/widgets.ts.
+            // Sodium (SodiumMeta, src/sodium.ts), milligrams with an optional
+            // daily ceiling. Must equal SODIUM_META_KEY.
+            const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
+            // Each listed meal's ingredients ({ v: 1, meals: [items | null, …] },
+            // aligned with data.meals by position). Must equal
+            // MEAL_ITEMS_META_KEY.
             const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
-            // Where the same result carries each value's source (a USDA or OFF
-            // record, the user's own figure, or an estimate), position-aligned
-            // with the meals and their items. Must equal NUTRIENT_SOURCES_META_KEY
-            // in src/widgets.ts.
+            // Each value's source, position-aligned with the meals and their
+            // items. Must equal NUTRIENT_SOURCES_META_KEY.
             const NUTRIENT_SOURCES_META_KEY =
                 "nutrition-mcp.com/nutrient-sources";
+            // Each row's local time and which row is the meal just written
+            // ({ v: 1, times, current }, src/meal-times.ts). Must equal
+            // MEAL_TIMES_META_KEY.
+            const MEAL_TIMES_META_KEY = "nutrition-mcp.com/meal-times";
+
+            function capFirst(s) {
+                const str = String(s || "");
+                return str
+                    ? str.charAt(0).toLocaleUpperCase(WIDGET_LOCALE) +
+                          str.slice(1)
+                    : str;
+            }
+
+            // Which breakdown row is the meal just written: `_meta` says so;
+            // without it, the last row that matches the logged meal (a new
+            // meal is usually the latest), else none.
+            function currentRow(data, times) {
+                if (times && times.current != null) return times.current;
+                const lm = data.logged_meal;
+                const rows = Array.isArray(data.meals) ? data.meals : [];
+                if (!lm) return -1;
+                for (let i = rows.length - 1; i >= 0; i--) {
+                    const r = rows[i];
+                    if (
+                        r &&
+                        r.description === lm.description &&
+                        Math.round(r.calories) === Math.round(lm.calories ?? 0)
+                    )
+                        return i;
+                }
+                return -1;
+            }
 
             // `meta` is the tool result's `_meta` (or null — see bridge.js).
             function render(data, meta) {
@@ -230,100 +267,205 @@
                     root.innerHTML = "";
                     return;
                 }
-                setLocaleFrom(data, __widgetApi);
-
-                const totals = data.totals || {};
-                // update_meal (and log_meal, via a backdated logged_at) can
-                // show a day that is not the viewer's today, so the ring only
-                // claims "today" when data.date actually is that day (#114);
-                // otherwise it names the day, which is also why that day is
-                // now on the header line below.
-                const calLabel = isToday(data.date)
-                    ? T.macros.caloriesToday
-                    : tpl(T.macros.caloriesOn, { date: shortDate(data.date) });
-                // Added sugar joins the strip only when `_meta` carries it;
-                // without it these are the payload's own objects, untouched.
-                const as = addedSugarPayload(
-                    meta && meta[ADDED_SUGAR_META_KEY],
+                setLocale(
+                    pickLocale(
+                        data.locale,
+                        __widgetApi && __widgetApi.hostContext
+                            ? __widgetApi.hostContext.locale
+                            : null,
+                    ),
                 );
+                const S = T.nutritionSummary;
+                const L = T.mealLogged;
+                const m = meta || {};
+                const dates = [data.date];
+                const totals = data.totals || {};
+
+                // The `_meta` figures join the payload's own: added sugar,
+                // then the fats, then sodium, then ingredients and sources.
+                // Each merge leaves its inputs untouched when its key is
+                // missing or malformed.
+                const as = addedSugarPayload(m[ADDED_SUGAR_META_KEY]);
                 const merged = withAddedSugar(
                     as,
-                    addedSugarFor(as, [data.date]),
+                    addedSugarFor(as, dates),
                     totals,
                     data.goals,
                     data.meals,
                 );
-                // Saturated and trans fat join the strip the same way, after added
-                // sugar (withSaturatedFat): each figure is the mean over the days that
-                // recorded it, and without `_meta` the strip is unchanged.
-                Object.assign(
-                    merged,
-                    withSaturatedFat(
-                        meta && meta[SATURATED_FAT_META_KEY],
-                        [data.date],
-                        merged.vals,
-                        merged.goal,
-                        merged.meals,
-                    ),
-                );
-                // Ingredients join the rows the same way, last;
-                // without `_meta` this is merged.meals itself.
-                const itemsMeta = mealItemsPayload(
-                    meta && meta[MEAL_ITEMS_META_KEY],
-                );
-                const rows = withNutrientSources(
-                    nutrientSourcesPayload(
-                        meta && meta[NUTRIENT_SOURCES_META_KEY],
-                    ),
-                    withMealItems(itemsMeta, merged.meals),
-                    itemsMeta,
-                );
-                const panel = macroPanel(
+                const sf = withSaturatedFat(
+                    m[SATURATED_FAT_META_KEY],
+                    dates,
                     merged.vals,
                     merged.goal,
-                    undefined,
-                    rows,
-                    // `drink_unit` is null for a user who does not track
-                    // alcohol, which is also the case in which no alcohol
-                    // figure reaches the strip; macroCtxOf falls back to the
-                    // server's own default of "us".
-                    { drinkUnit: data.drink_unit, calLabel },
+                    merged.meals,
                 );
+                const na = withSodium(
+                    m[SODIUM_META_KEY],
+                    dates,
+                    sf.vals,
+                    sf.goal,
+                    sf.meals,
+                );
+                const itemsMeta = mealItemsPayload(m[MEAL_ITEMS_META_KEY]);
+                const rows = withItemSodium(
+                    itemsMeta,
+                    withNutrientSources(
+                        nutrientSourcesPayload(m[NUTRIENT_SOURCES_META_KEY]),
+                        withMealItems(itemsMeta, na.meals),
+                        itemsMeta,
+                    ),
+                );
+                const times = mealTimesPayload(
+                    m[MEAL_TIMES_META_KEY],
+                    Array.isArray(rows) ? rows.length : 0,
+                );
+                const cur = currentRow(data, times);
 
-                // The meal that was just logged names itself on the header
-                // line, alongside the day it landed on (#114) — the strip
-                // below is that whole day's totals, not necessarily today's.
-                const meal = data.logged_meal;
-                const bits = [];
-                if (data.date) bits.push(esc(shortDate(data.date)));
-                if (meal && meal.description) {
-                    bits.push(esc(meal.description));
-                    if (meal.meal_type) bits.push(esc(meal.meal_type));
+                const lm = data.logged_meal || {};
+                const today = isToday(data.date);
+                const updated = data.action === "updated";
+                // This meal's part of each figure: its own logged values, and
+                // for the `_meta` nutrients its row's.
+                const curRow =
+                    cur >= 0 && Array.isArray(rows) ? rows[cur] : null;
+                const delta = {};
+                for (const def of NV_DEFS) {
+                    const v =
+                        def.key in lm
+                            ? lm[def.key]
+                            : curRow
+                              ? curRow[def.key]
+                              : null;
+                    delta[def.key] = Number.isFinite(v) ? v : null;
                 }
-                const sub = bits.join(" · ");
-                const added =
-                    meal && meal.calories != null
-                        ? tpl(T.mealLogged.addedKcal, {
-                              kcal: fmt(meal.calories, 0),
-                          })
+                const vals = Object.assign({}, na.vals);
+                const goal = na.goal || {};
+
+                const t = Number(totals.calories) || 0;
+                const a = Number(lm.calories) || 0;
+                const g = Number(goal.calories) || 0;
+                const over = g > 0 && t > g;
+                const leftN = Math.abs(g - t);
+                const leftAmt = nvWithUnit("kcal", leftN);
+                const kcalTxt = (n) => nvWithUnit("kcal", n);
+                const sign = updated ? "" : "+";
+
+                // Gauge: eaten before this meal (light), this meal (strong),
+                // both against the goal and capped at it.
+                const pre = g > 0 ? gaugeClamp01((t - a) / g) * 100 : 0;
+                const all = g > 0 ? gaugeClamp01(t / g) * 100 : 0;
+                const add = Math.max(all - pre, a > 0 && g > 0 ? 0.8 : 0);
+                const pct = g > 0 ? Math.round((t / g) * 100) : null;
+                const status =
+                    g > 0
+                        ? tpl(over ? S.over : S.left, { amount: leftAmt })
                         : "";
+                const aria =
+                    g > 0
+                        ? tpl(today ? S.gaugeAriaToday : S.gaugeAriaThatDay, {
+                              eaten: nvFmt("kcal", t),
+                              goal: nvFmt("kcal", g),
+                              pct: nvNum(pct, 0),
+                              status,
+                          })
+                        : tpl(S.gaugeAriaNoGoal, { eaten: nvFmt("kcal", t) });
 
-                // Same widget for log_meal and update_meal — the action only
-                // changes the header wording.
-                const title =
-                    data.action === "updated"
-                        ? T.mealLogged.titleUpdated
-                        : T.mealLogged.titleLogged;
+                const eyebrow = capFirst(
+                    [
+                        nvMealTypeLabel(lm.meal_type),
+                        updated ? L.edited : L.logged,
+                        today ? "" : shortDate(data.date),
+                    ]
+                        .filter(Boolean)
+                        .join(" · "),
+                );
+                const leftKey = over
+                    ? today
+                        ? "overToday"
+                        : "overThatDay"
+                    : today
+                      ? "leftToday"
+                      : "leftThatDay";
+                const deltaHtml =
+                    tpl(esc(L.thisMeal), {
+                        amount: `<b>${esc(sign + kcalTxt(a))}</b>`,
+                    }) +
+                    (g > 0
+                        ? `<span class="dot" aria-hidden="true">·</span><b class="${over ? "over" : ""}">${esc(tpl(S[leftKey], { amount: leftAmt }))}</b>`
+                        : "");
+                const stats = [
+                    {
+                        label: L.statThisMeal,
+                        value: sign + nvFmt("kcal", a),
+                        small: nvUnitLabel("kcal"),
+                    },
+                    {
+                        label: today ? L.statToday : shortDate(data.date),
+                        value: nvFmt("kcal", t),
+                        small: g > 0 ? `/ ${kcalTxt(g)}` : nvUnitLabel("kcal"),
+                        over,
+                    },
+                ];
+                if (g > 0)
+                    stats.push({
+                        label: over
+                            ? S.statOverGoal
+                            : today
+                              ? L.statLeftToday
+                              : L.statLeftThatDay,
+                        value: nvFmt("kcal", leftN),
+                        small: nvUnitLabel("kcal"),
+                        over,
+                    });
 
-                root.innerHTML = `
-          <div class="panel">
-            <div class="phead">
-              <div class="ptitle">${title}</div>
-              ${sub ? `<div class="psub">${sub}</div>` : ""}
-              ${added ? `<div class="pmeta kcal">${added}</div>` : ""}
-            </div>
-            ${panel}
-          </div>`;
+                const meals = nvMealsFrom(
+                    rows,
+                    (r, i) => (times ? times.times[i] : ""),
+                    cur,
+                );
+                const V = {
+                    mode: "meal",
+                    dayWord: today ? "today" : "thatDay",
+                    hasData: true,
+                    // "us" | "uk" for a user who tracks alcohol, null when
+                    // they do not — which is also when every alcohol figure
+                    // in the payload is null and the row is left out.
+                    drinkUnit: data.drink_unit,
+                    alcoholOn:
+                        data.drink_unit != null ||
+                        Number.isFinite(totals.alcohol_g),
+                    vals,
+                    goal,
+                    delta,
+                    zeroMeansUnknown: ["fiber_g", "sugar_g"],
+                    cal: { t, g },
+                    meals,
+                    hero: {
+                        eyebrow,
+                        title: lm.description || T.macros.untitledMeal,
+                        deltaHtml,
+                        stats,
+                        gauge: {
+                            over,
+                            pre,
+                            add,
+                            addOff: -pre,
+                            segs: null,
+                            pctTxt: pct == null ? null : `${nvNum(pct, 0)}%`,
+                            numTxt: nvFmt("kcal", t),
+                            glab:
+                                g > 0
+                                    ? tpl(S.ofGoal, { goal: nvFmt("kcal", g) })
+                                    : nvUnitLabel("kcal"),
+                            aria,
+                            btnLabel: tpl(T.macros.byMealTitle, {
+                                label: nvLabel("calories"),
+                            }),
+                        },
+                    },
+                };
+                nvMount(root, V);
             }
 
             // Pull the meal progress out of whatever wrapper the host used.

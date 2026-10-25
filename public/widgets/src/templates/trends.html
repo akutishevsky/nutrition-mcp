@@ -1,43 +1,49 @@
 <!doctype html>
 <!--
-  Trends widget (MCP Apps).
+  Trends widget (MCP Apps), shown after get_trends.
 
   Assembled from shared partials at server startup (see src/widgets.ts); the
-  @include markers below inline the shared design tokens, components, and host
-  bridge. The result is fully self-contained — inline CSS + JS, zero network
+  @include markers below inline the shared design tokens and the host bridge.
+  The result is fully self-contained — inline CSS + JS, zero network
   requests — because the MCP Apps sandbox blocks external hosts.
 
-  Shown after get_trends. The whole widget is ONE panel: a header line carrying
-  the title and the 7 / 14 / 30-day toggle, the calories-per-day chart, then the
-  shared macro strip. The tool sends up to 30 days of daily series and the
-  toggle slices it CLIENT-SIDE and re-renders — no host round-trip, so switching
-  ranges is instant. The strip shows the trailing average vs goal (calories,
-  protein, carbs, fat and water count empty days as 0, while fiber, sugar,
-  alcohol and caffeine average only over the days that recorded them — see avgOf
-  below — matching the tool's text output).
+  LAYOUT (the 2026-10 redesign, W3-Trends-M / W3-Trends-D). One card, no
+  panel border: a title (which nutrient, over how many days) beside 7d / 14d /
+  30d pills, a horizontal strip of nutrient chips, a big average that rolls in
+  like an odometer, a bar chart of that nutrient per day, then "Show more",
+  which opens one card per nutrient (mini gauge + sparkline; opening a card
+  shows its own chart, high/low/on-target chips and a per-day list). From
+  640px wide (the iframe's own width, a media query — never a JS constant) the
+  hero splits into the average and three stats, and the cards sit in a
+  six-column grid.
 
-  The denominator is EVERY CALENDAR DAY in the window, not just the logged ones:
-  these averages answer "how am I doing across this stretch of time?", so a
-  skipped day pulls the average down. That deliberately differs from the
-  get_nutrition_summary dashboard, whose figures divide by logged days only and
-  answer "how does a day I actually log look?" (issue #70). Both are correct for
-  their question and both name their denominator on screen — here that is the
-  strip's calorie label ("14-day avg · all days"), which is the only place it is
-  said, so keep it explicit if you touch it.
+  DATA. structuredContent is get_trends' frozen shape: up to 30 days of daily
+  totals the pills slice CLIENT-SIDE (no round trip). Everything newer rides in
+  the result's `_meta`, validated here as untrusted and optional:
+    - "nutrition-mcp.com/added-sugar"    per-day added sugar + its limit
+    - "nutrition-mcp.com/saturated-fat"  per-day saturated fat + its limit,
+                                         and trans fat (`.trans`, no limit)
+    - "nutrition-mcp.com/sodium"         per-day sodium (mg) + its limit
+    - "nutrition-mcp.com/local-today"    which day is still running in the
+                                         profile timezone
+  A nutrient whose payload is missing (a host that dropped `_meta`) is simply
+  not offered; a missing local-today falls back to the device date.
 
-  Data arrives as the `structuredContent` of the get_trends tool result; the
-  shared bridge (shared/bridge.js) reads it across host conventions and calls
-  render(). Standalone preview uses the SAMPLE below.
+  AVERAGES. Every average divides by the days that carry a value: a day with
+  no meal is a gap, not a zero (calories, protein, carbs and fat need a meal
+  that day, water any log; fiber, sugar, the `_meta` nutrients, caffeine and
+  alcohol a recorded figure). A still-running today is drawn but left out of
+  the averages and the on-target counts while a finished day exists, and the
+  hero says so. The denominator is always on screen: "12 of 14 days logged"
+  (mobile) or the Days logged stat (desktop). This differs from get_trends'
+  own text, which divides the always-present nutrients by every calendar day;
+  both name what they divide by.
 
-  PERIOD MODE. get_trends called with `group_by` also sends, in the result's
-  `_meta` under "nutrition-mcp.com/period-averages", rows for every
-  granularity (shared/period.js). The widget then opens on the requested one:
-  the header seg becomes Week · Month · Qtr · Year · Days, the first four
-  show stacked period rows (averages PER LOGGED DAY against the targets in
-  effect at the time), and Days is the calendar-day view above with its own
-  7 / 14 / 30 toggle on a second line. Without that `_meta` (no `group_by`, or
-  a host that dropped it) the widget is exactly the day view, unchanged — the
-  same DOM it always painted.
+  PERIOD MODE. get_trends called with `group_by` also sends rows for every
+  granularity under "nutrition-mcp.com/period-averages" (shared/period.js).
+  The widget then opens on the requested one, with a Week · Month · Qtr ·
+  Year · Days seg on top; Days is the day view above. Without that `_meta` the
+  widget is the day view alone.
 -->
 <html lang="en">
     <head>
@@ -49,35 +55,1505 @@
 
             /*@include shared/base.css@*/
 
-            /* Segmented control (7 / 14 / 30-day toggle), riding at the right
-               end of the panel header at its .seg-sm pill scale. The active
-               label uses var(--bg) on the accent fill so it stays
-               high-contrast in both themes. */
+            /* The period view's Week / Month / Qtr / Year / Days control. */
             /*@include shared/seg.css@*/
-
-            /* Calories trend chart (hand-built SVG area + line) */
-            /*@include shared/trend.css@*/
-
-            /* Ring gauge + macro strip (calorie gauge, protein/carbs/fat bars,
-               limits row, water line) — shared across widgets. */
-            /*@include shared/ring.css@*/
-
-            /*@include shared/macros.css@*/
 
             /* Period rows (Week / Month / Quarter / Year view). */
             /*@include shared/period.css@*/
 
-            /* Days mode inside period mode: the 7/14/30 toggle on its own
-               line under the header, since the header seg is the period one. */
-            .rangeline {
+            /* The period rows' calorie bar (period.js emits .mbar/.mfill,
+               which the macro strip styles; this widget no longer includes
+               the strip). */
+            .prow .mbar {
+                position: relative;
+                height: 5px;
+                border-radius: 999px;
+                background: var(--track);
+                overflow: hidden;
+            }
+            .prow .mfill {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                border-radius: 999px;
+            }
+
+            /* ===== shell ===== */
+            .tw {
+                padding: 14px 16px 12px;
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .pbar {
                 display: flex;
                 justify-content: flex-end;
-                margin-top: -2px;
+            }
+            .pbar .seg {
+                margin-bottom: 12px;
+            }
+            .num {
+                font-variant-numeric: tabular-nums;
+            }
+            button {
+                font: inherit;
+                color: inherit;
+            }
+            :where(button.reset) {
+                all: unset;
+                box-sizing: border-box;
+                cursor: pointer;
+                text-align: left;
+            }
+            button.reset:focus-visible {
+                outline: 2px solid var(--focus);
+                outline-offset: 2px;
+                border-radius: 8px;
+            }
+            .msg {
+                font-size: 13px;
+                color: var(--text-dim);
+                padding: 10px 0;
+                line-height: 1.45;
+            }
+
+            /* ===== the metric tint =====
+               --mc is the selected nutrient's colour; everything else derives
+               from it, mixed toward the panel (tints) or toward --text (ink),
+               so one set of rules serves both themes. Registered so a
+               nutrient switch cross-fades. */
+            @property --mc {
+                syntax: "<color>";
+                inherits: true;
+                initial-value: #1d9751;
+            }
+            .gcard,
+            .acc,
+            .mchip {
+                --mcm: var(--mc);
+                --mcs: color-mix(in oklab, var(--mc) 64%, var(--text));
+                --mci: color-mix(in oklab, var(--mc) 62%, var(--text));
+                --mch: color-mix(in oklab, var(--mc) 80%, var(--text));
+                --ovsel: color-mix(in oklab, var(--over) 70%, var(--text));
+                --nrdot: var(--status-nr);
+                --nrsel: var(--status-nr-ink);
+            }
+            .gcard {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                transition: --mc 0.5s ease;
+            }
+
+            /* ===== header + range pills ===== */
+            .hrow {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                width: 100%;
+            }
+            .gtop {
+                display: flex;
+                flex-direction: column;
+                flex: 1;
+                min-width: 0;
+            }
+            .eyb2 {
+                font-size: 12.5px;
+                font-weight: 600;
+                color: var(--text-dim);
+                letter-spacing: 0.01em;
+                margin-bottom: 5px;
+                overflow-wrap: anywhere;
+            }
+            .eyb2 .nw {
+                white-space: nowrap;
+            }
+            .gtop .t {
+                font-size: 17px;
+                font-weight: 650;
+                letter-spacing: -0.015em;
+                line-height: 1.3;
+                color: var(--text);
+                overflow-wrap: anywhere;
+            }
+            .rseg {
+                flex: none;
+                display: inline-flex;
+                gap: 2px;
+                padding: 3px;
+                border-radius: 999px;
+                background: color-mix(in oklab, var(--mc) 15%, var(--panel));
+                margin-top: 2px;
+            }
+            .rpill {
+                height: 32px;
+                min-width: 40px;
+                padding: 0 10px;
+                border-radius: 999px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12.5px;
+                font-weight: 800;
+                color: var(--mci);
+                text-align: center !important;
+                white-space: nowrap;
+                transition:
+                    background-color 0.3s ease,
+                    color 0.3s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .rpill:hover {
+                background: color-mix(in oklab, var(--mc) 26%, var(--panel));
+            }
+            .rpill:active {
+                transform: scale(0.92);
+            }
+            .rpill.on {
+                background: var(--mcs);
+                color: var(--bg);
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            }
+
+            /* ===== nutrient chip strip ===== */
+            .mswW {
+                position: relative;
+                margin: 14px -16px 0;
+            }
+            .msw {
+                display: flex;
+                gap: 8px;
+                overflow-x: auto;
+                overscroll-behavior-x: contain;
+                scrollbar-width: none;
+                scroll-behavior: smooth;
+                padding: 3px 16px 5px;
+                scroll-snap-type: x proximity;
+                scroll-padding: 0 16px;
+                -webkit-mask-image: linear-gradient(
+                    90deg,
+                    #000 calc(100% - 64px),
+                    transparent calc(100% - 28px)
+                );
+                mask-image: linear-gradient(
+                    90deg,
+                    #000 calc(100% - 64px),
+                    transparent calc(100% - 28px)
+                );
+            }
+            .msw::-webkit-scrollbar {
+                display: none;
+            }
+            .mswW[data-s="mid"] .msw {
+                -webkit-mask-image: linear-gradient(
+                    90deg,
+                    transparent 0,
+                    transparent 28px,
+                    #000 64px,
+                    #000 calc(100% - 64px),
+                    transparent calc(100% - 28px)
+                );
+                mask-image: linear-gradient(
+                    90deg,
+                    transparent 0,
+                    transparent 28px,
+                    #000 64px,
+                    #000 calc(100% - 64px),
+                    transparent calc(100% - 28px)
+                );
+            }
+            .mswW[data-s="end"] .msw {
+                -webkit-mask-image: linear-gradient(
+                    90deg,
+                    transparent 0,
+                    transparent 28px,
+                    #000 64px
+                );
+                mask-image: linear-gradient(
+                    90deg,
+                    transparent 0,
+                    transparent 28px,
+                    #000 64px
+                );
+            }
+            .mswW[data-s="none"] .msw {
+                -webkit-mask-image: none;
+                mask-image: none;
+            }
+            .mchip {
+                flex: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                height: 36px;
+                padding: 0 14px 0 11px;
+                border-radius: 999px;
+                background: color-mix(in oklab, var(--mc) 14%, var(--panel));
+                color: var(--mci);
+                font-size: 13.5px;
+                font-weight: 700;
+                white-space: nowrap;
+                scroll-snap-align: start;
+                transition:
+                    background-color 0.3s ease,
+                    color 0.3s ease,
+                    box-shadow 0.3s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                animation: gUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .mchip:hover {
+                background: color-mix(in oklab, var(--mc) 22%, var(--panel));
+            }
+            .mchip:active {
+                transform: scale(0.93);
+            }
+            .mchip .e {
+                font-size: 16px;
+                line-height: 1;
+            }
+            .mchip.on {
+                background: var(--mcs);
+                color: var(--bg);
+                box-shadow: 0 2px 6px
+                    color-mix(in oklab, var(--mc) 35%, transparent);
+            }
+            .mchip:nth-child(1) {
+                animation-delay: 0.05s;
+            }
+            .mchip:nth-child(2) {
+                animation-delay: 0.09s;
+            }
+            .mchip:nth-child(3) {
+                animation-delay: 0.13s;
+            }
+            .mchip:nth-child(4) {
+                animation-delay: 0.17s;
+            }
+            .mchip:nth-child(5) {
+                animation-delay: 0.21s;
+            }
+            .mchip:nth-child(6) {
+                animation-delay: 0.25s;
+            }
+            .mchip:nth-child(7) {
+                animation-delay: 0.29s;
+            }
+            .mchip:nth-child(8) {
+                animation-delay: 0.33s;
+            }
+            .mchip:nth-child(n + 9) {
+                animation-delay: 0.37s;
+            }
+            .msa {
+                position: absolute;
+                top: calc(50% + 1px);
+                transform: translateY(-50%);
+                z-index: 3;
+                width: 34px;
+                height: 34px;
+                border-radius: 50%;
+                display: grid !important;
+                place-items: center;
+                background: color-mix(in oklab, var(--text) 4%, var(--panel));
+                color: var(--text);
+                box-shadow:
+                    0 0 0 1px var(--panel-border),
+                    0 2px 8px rgba(0, 0, 0, 0.16);
+                transition:
+                    opacity 0.22s ease,
+                    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    background-color 0.2s;
+            }
+            .msa.l {
+                left: 8px;
+            }
+            .msa.r {
+                right: 8px;
+            }
+            .msa:hover {
+                background: color-mix(in oklab, var(--text) 9%, var(--panel));
+            }
+            .msa:active {
+                transform: translateY(-50%) scale(0.9);
+            }
+            .msa:focus-visible {
+                border-radius: 50%;
+            }
+            .mswW[data-s="start"] .msa.l,
+            .mswW[data-s="end"] .msa.r,
+            .mswW[data-s="none"] .msa {
+                opacity: 0;
+                pointer-events: none;
+                transform: translateY(-50%) scale(0.7);
+            }
+
+            /* ===== hero average ===== */
+            .dnum {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin-top: 18px;
+            }
+            .dnL {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                min-width: 0;
+                max-width: 100%;
+            }
+            .hnum {
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
+                gap: 8px;
+                min-width: 0;
+            }
+            .hnum .hp,
+            .hnum .hu {
+                font-size: 15px;
+                font-weight: 600;
+                color: var(--text-dim);
+                padding-bottom: 5px;
+                white-space: nowrap;
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
+            }
+            .gnum {
+                display: inline-flex;
+                height: 1em;
+                font-size: 44px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1;
+                color: var(--mch);
+            }
+            .hnum.over .gnum {
+                color: var(--over);
+            }
+            .rl {
+                display: inline-block;
+                height: 1em;
+                line-height: 1;
+                overflow: hidden;
+                vertical-align: top;
+            }
+            .rs {
+                display: flex;
+                flex-direction: column;
+                will-change: transform;
+            }
+            .rs span {
+                display: block;
+                height: 1em;
+                line-height: 1;
+                text-align: center;
+            }
+            .hgoal {
+                text-align: center;
+                font-size: 13px;
+                color: var(--text-dim);
+                margin-top: 5px;
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
+            }
+            .hgoal b {
+                color: var(--text);
+                font-weight: 700;
+            }
+            .hnote {
+                text-align: center;
+                font-size: 12px;
+                color: var(--text-dim);
+                margin-top: 4px;
+                line-height: 1.4;
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.4s both;
+            }
+            .gstats {
+                display: none;
+            }
+            .gdelta {
+                text-align: center;
+                font-size: 13.5px;
+                color: var(--text-dim);
+                margin-top: 16px;
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.3s both;
+                overflow-wrap: anywhere;
+            }
+            .gdelta b {
+                color: var(--mci);
+                font-weight: 800;
+                transition: color 0.3s;
+            }
+            .gdelta b.over {
+                color: var(--over);
+            }
+            .gdelta b.nt {
+                color: var(--text);
+            }
+            .gdelta .dot {
+                margin: 0 6px;
+                color: var(--text-mute);
+            }
+
+            /* ===== daily bar chart: thick rounded bars with pale halos ===== */
+            .ch {
+                --ct: var(--track);
+                --cf: var(--mcm);
+                --cs: var(--mcs);
+                --co: var(--over);
+                --cos: var(--ovsel);
+                --cg: color-mix(in oklab, var(--text) 70%, transparent);
+                --bw: 22px;
+                --hw: 4px;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+            }
+            .ch.hero {
+                margin-top: 16px;
+                --ct: color-mix(in oklab, var(--mc) 15%, var(--panel));
+                --cg: color-mix(in oklab, var(--mc) 70%, var(--text));
+                animation: gIn 0.4s ease 0.1s both;
+            }
+            .ch.hero .cyl span {
+                color: var(--mci);
+            }
+            .ch.hero .chr b {
+                color: var(--mch);
+            }
+            .ch.n7 {
+                --bw: 26px;
+                --hw: 4px;
+            }
+            .ch.n14 {
+                --bw: 12px;
+                --hw: 3px;
+            }
+            .ch.n30 {
+                --bw: 5px;
+                --hw: 1.5px;
+            }
+            .ch.nut {
+                margin: 6px 0 2px;
+                --ct: color-mix(in oklab, var(--mc) 16%, var(--panel));
+            }
+            .ch.nut.n7 {
+                --bw: 22px;
+                --hw: 4px;
+            }
+            .ch.nut.n14 {
+                --bw: 10px;
+                --hw: 3px;
+            }
+            .ch.nut.n30 {
+                --bw: 4px;
+                --hw: 1.5px;
+            }
+            .chd {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 4px 10px;
+                margin-bottom: 12px;
+                font-size: 12.5px;
+            }
+            .chl {
+                font-size: 11.5px;
+                font-weight: 700;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                color: var(--text-dim);
+                white-space: nowrap;
+                min-width: 0;
+            }
+            .chr {
+                color: var(--text-dim);
+                white-space: nowrap;
+                flex: none;
+                margin-left: auto;
+            }
+            .chr b {
+                color: var(--text);
+                font-weight: 800;
+                font-size: 14px;
+            }
+            .ch .chr b.over {
+                color: var(--over);
+            }
+            .cbody {
+                display: grid;
+                grid-template-columns: 36px minmax(0, 1fr);
+                column-gap: 6px;
+            }
+            .cplot,
+            .cyl {
+                position: relative;
+                height: 200px;
+            }
+            .ch.nut .cplot,
+            .ch.nut .cyl {
+                height: 84px;
+            }
+            .cyl span {
+                position: absolute;
+                right: 0;
+                transform: translateY(50%);
+                font-size: 10.5px;
+                font-weight: 700;
+                color: var(--text-dim);
+                white-space: nowrap;
+                transition: bottom 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .cgoal {
+                position: absolute;
+                left: -4px;
+                right: -4px;
+                height: 0;
+                border-top: 2px dashed var(--cg);
+                z-index: 3;
+                pointer-events: none;
+                transition: bottom 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .cbars {
+                position: absolute;
+                inset: 0;
+                display: grid;
+            }
+            .cb {
+                display: flex !important;
+                justify-content: center;
+                height: 100%;
+                border-radius: 8px;
+            }
+            .ctrk {
+                position: relative;
+                display: block;
+                width: var(--bw);
+                height: 100%;
+                border-radius: calc(var(--bw) / 2);
+                background: var(--ct);
+                box-shadow: 0 0 0 var(--hw) var(--ct);
+                transition:
+                    background-color 0.3s ease,
+                    box-shadow 0.3s ease;
+            }
+            .cfill {
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                min-height: var(--bw);
+                border-radius: calc(var(--bw) / 2);
+                background: var(--cf);
+                transform-origin: 50% 100%;
+                animation: cr 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+                transition:
+                    height 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                    background-color 0.3s ease;
+            }
+            .cb.ov .cfill {
+                background: var(--co);
+            }
+            .cb.sel .cfill {
+                background: var(--cs);
+            }
+            .cb.sel.ov .cfill {
+                background: var(--cos);
+            }
+            .cb.sel .ctrk {
+                box-shadow: 0 0 0 var(--hw) var(--cf);
+            }
+            .cb.nr .ctrk {
+                background: transparent;
+                box-shadow: none;
+            }
+            .cb.nr .cfill {
+                display: none;
+            }
+            .cb.nr .ctrk:after {
+                content: "";
+                position: absolute;
+                left: 50%;
+                bottom: 0;
+                width: 6px;
+                height: 6px;
+                margin-left: -3px;
+                border-radius: 3px;
+                background: var(--nrdot);
+            }
+            .cb.nr.sel .ctrk:after {
+                background: var(--nrsel);
+                box-shadow: 0 0 0 3px var(--track);
+            }
+            .cx {
+                display: grid;
+                margin: 9px 0 0 42px;
+                height: 14px;
+                font-size: 11px;
+                color: var(--text-dim);
+            }
+            .cx span {
+                white-space: nowrap;
+                justify-self: center;
+                line-height: 14px;
+            }
+            .cx span.st {
+                justify-self: start;
+            }
+            .cx span.en {
+                justify-self: end;
+            }
+            .cx span.td {
+                font-weight: 800;
+                color: var(--text);
+            }
+
+            /* ===== buttons ===== */
+            .bigchev {
+                display: flex !important;
+                align-self: center;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                height: 40px;
+                padding: 0 18px 0 20px;
+                margin-top: 18px;
+                border-radius: 20px;
+                background: color-mix(in oklab, var(--mc) 15%, var(--panel));
+                font-size: 15px;
+                font-weight: 800;
+                color: var(--text);
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.5s both;
+                transition:
+                    background-color 0.3s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .bigchev:hover {
+                background: color-mix(in oklab, var(--mc) 23%, var(--panel));
+            }
+            .bigchev:active {
+                transform: scale(0.94);
+            }
+            .bigchev svg {
+                transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .nchev.open {
+                transform: rotate(180deg);
+            }
+            .collall {
+                display: flex !important;
+                align-self: center;
+                align-items: center;
+                gap: 8px;
+                height: 40px;
+                padding: 0 20px;
+                margin-top: 16px;
+                margin-bottom: 4px;
+                border-radius: 20px;
+                background: var(--surface-soft);
+                color: var(--text);
+                font-size: 14.5px;
+                font-weight: 700;
+                transition:
+                    background-color 0.25s ease,
+                    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+            }
+            .collall:hover {
+                background: var(--track);
+            }
+            .collall:active {
+                transform: scale(0.95);
+            }
+
+            /* ===== empty ===== */
+            .tempty {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 6px;
+                padding: 34px 12px 26px;
+                margin-top: 16px;
+                border-radius: 18px;
+                background: color-mix(
+                    in oklab,
+                    var(--gauge-fill) 7%,
+                    var(--panel)
+                );
+                animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .tempty .big {
+                font-size: 34px;
+                line-height: 1;
+                margin-bottom: 6px;
+            }
+            .tempty b {
+                font-size: 15.5px;
+                color: var(--text);
+            }
+            .tempty span {
+                font-size: 13.5px;
+                color: var(--text-dim);
+                max-width: 300px;
+                line-height: 1.45;
+            }
+
+            /* ===== nutrient cards ===== */
+            .rows {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                padding-top: 18px;
+            }
+            .acc {
+                border-radius: 18px;
+                background: color-mix(in oklab, var(--mc) 10%, var(--panel));
+                box-shadow: inset 0 0 0 4px transparent;
+                transition:
+                    box-shadow 0.35s ease,
+                    background-color 0.35s ease;
+                overflow: hidden;
+            }
+            .acc.sel {
+                box-shadow: inset 0 0 0 4px
+                    color-mix(in oklab, var(--mc) 34%, var(--panel));
+                background: color-mix(in oklab, var(--mc) 7%, var(--panel));
+            }
+            .accH {
+                display: grid !important;
+                grid-template-columns: 30px minmax(0, 1fr) 60px 16px;
+                column-gap: 10px;
+                row-gap: 9px;
+                align-items: center;
+                width: 100%;
+                padding: 12px 14px 13px;
+            }
+            .accH:hover {
+                background: color-mix(in oklab, var(--mc) 6%, transparent);
+            }
+            .accH .em {
+                font-size: 22px;
+                line-height: 1;
+                grid-row: 1;
+            }
+            .accH .ab {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+                min-width: 0;
+            }
+            .accH .lb {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: baseline;
+                gap: 0 7px;
+                line-height: 1.25;
+                min-width: 0;
+                font-size: 15px;
+                font-weight: 700;
+                color: var(--text);
+            }
+            .accH .lbn {
+                overflow-wrap: anywhere;
+                min-width: 0;
+            }
+            .accH .dl {
+                flex: none;
+                font-size: 12px;
+                font-weight: 800;
+                white-space: nowrap;
+                color: var(--mci);
+            }
+            .accH .dl.zero {
+                color: var(--text-dim);
+                font-weight: 600;
+            }
+            .accH .vl {
+                font-size: 13px;
+                color: var(--text-dim);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .accH .vl b {
+                font-size: 15px;
+                font-weight: 800;
+                color: var(--text);
+            }
+            .accH .vl b.over {
+                color: var(--over);
+            }
+            .accH .vl b.dim {
+                color: var(--text-dim);
+            }
+            .accH .achev {
+                color: var(--mci);
+                transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            .acc.sel .achev {
+                transform: rotate(180deg);
+            }
+            .mg {
+                position: relative;
+                width: 60px;
+                height: 36px;
+                display: block;
+            }
+            .mg svg {
+                position: absolute;
+                inset: 0;
+                width: 60px;
+                height: 34px;
+                overflow: visible;
+            }
+            .mg .mgt {
+                stroke: color-mix(in oklab, var(--mc) 18%, var(--panel));
+            }
+            .mg .mga {
+                stroke: var(--mcm);
+            }
+            .acc.over .mg .mga {
+                stroke: var(--over);
+            }
+            .mg b {
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 1px;
+                text-align: center;
+                font-size: 11px;
+                font-weight: 800;
+                color: var(--mci);
+            }
+            .mg b.over {
+                color: var(--over);
+            }
+            .spk {
+                grid-column: 2 / 4;
+                grid-row: 2;
+                position: relative;
+                display: flex;
+                align-items: flex-end;
+                justify-content: space-between;
+                gap: 2px;
+                height: 18px;
+                margin: 0 2px 1px;
+            }
+            .spk span {
+                flex: 1 1 0;
+                max-width: 10px;
+                min-height: 3px;
+                border-radius: 2px;
+                background: var(--mcm);
+            }
+            .spk span.td {
+                background: var(--mcs);
+            }
+            .spk span.ov {
+                background: var(--over);
+            }
+            .spk span.td.ov {
+                background: var(--ovsel);
+            }
+            .spk span.nr {
+                background: var(--nrdot);
+                height: 3px !important;
+            }
+            .spk i {
+                position: absolute;
+                left: -3px;
+                right: -3px;
+                height: 0;
+                border-top: 1.5px dashed
+                    color-mix(in oklab, var(--mc) 40%, var(--text));
+            }
+            .acc.sel .spk {
+                display: none;
+            }
+            .acc.sel .accH {
+                row-gap: 0;
+            }
+
+            /* ===== an opened card ===== */
+            .accB {
+                padding: 2px 14px 12px;
+                animation: gDrop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .nstat {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin: 14px 0 6px;
+            }
+            .nstat span {
+                font-size: 12.5px;
+                color: var(--text-dim);
+                padding: 5px 10px;
+                border-radius: 999px;
+                background: color-mix(in oklab, var(--mc) 14%, var(--panel));
+                white-space: nowrap;
+            }
+            .nstat b {
+                color: var(--text);
+                font-weight: 800;
+            }
+            .nstat span.bad b {
+                color: var(--over);
+            }
+            .mlg {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) 20px auto 14px;
+                column-gap: 10px;
+                width: 100%;
+                padding: 10px 0;
+                border-top: 1px solid
+                    color-mix(in oklab, var(--mc) 22%, var(--panel));
+                font-size: 13.5px;
+                align-items: center;
+            }
+            .mls > :first-child {
+                border-top: none;
+            }
+            .mlg .nmf {
+                line-height: 1.35;
+                color: var(--text);
+                font-weight: 600;
+                overflow-wrap: anywhere;
+                padding-right: 4px;
+            }
+            .mlg .mmeta {
+                display: block;
+                font-size: 11.5px;
+                font-weight: 400;
+                color: var(--text-dim);
+            }
+            .mlg .mmeta.over {
+                color: var(--over);
+            }
+            .mlg > b {
+                justify-self: end;
+                white-space: nowrap;
+                color: var(--text);
+                min-width: 44px;
+                text-align: right;
+            }
+            .mlg > b span {
+                font-weight: 400;
+                font-size: 11px;
+                color: var(--text-dim);
+            }
+            .mlg.unl .nmf {
+                color: var(--text-dim);
+                font-weight: 500;
+            }
+            .mlg.unl > b {
+                color: var(--text-dim);
+                font-weight: 600;
+            }
+            .mlg.cur .nmf {
+                font-weight: 800;
+            }
+            .mring {
+                display: block;
+                width: 20px;
+                height: 20px;
+            }
+            .mring svg {
+                width: 20px;
+                height: 20px;
+                display: block;
+            }
+            .mring .rt {
+                stroke: color-mix(in oklab, var(--mc) 18%, var(--panel));
+            }
+            .mring .ra {
+                stroke: var(--mcm);
+            }
+            .mlg.ov .mring .ra {
+                stroke: var(--over);
+            }
+            .mc {
+                transition: transform 0.2s;
+                flex: none;
+                color: var(--text-dim);
+            }
+            .mc.open {
+                transform: rotate(90deg);
+            }
+            .mc.hide {
+                visibility: hidden;
+            }
+            .itl {
+                display: flex;
+                flex-direction: column;
+                background: var(--surface-inset);
+                border-radius: 12px;
+                padding: 2px 10px;
+                margin: 2px 0 8px;
+                animation: gFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .itr {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 2px 10px;
+                padding: 7px 0;
+                border-top: 1px solid var(--panel-border);
+                font-size: 13px;
+                color: var(--text);
+            }
+            .itr:first-child {
+                border-top: none;
+            }
+            .itr .im {
+                grid-column: 1;
+                font-size: 11.5px;
+                color: var(--text-dim);
+            }
+            .itr .iv {
+                grid-row: 1;
+                grid-column: 2;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            .pmore {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                width: 100%;
+                min-height: 40px;
+                margin-top: 4px;
+                border-radius: 12px;
+                font-size: 13px;
+                font-weight: 700;
+                color: var(--mci);
+                text-align: center !important;
+            }
+            .pmore:hover {
+                background: color-mix(in oklab, var(--mc) 9%, transparent);
+            }
+
+            /* ===== motion ===== */
+            .rows .acc {
+                animation: gRise 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .rows .acc:nth-child(1) {
+                animation-delay: 0.04s;
+            }
+            .rows .acc:nth-child(2) {
+                animation-delay: 0.09s;
+            }
+            .rows .acc:nth-child(3) {
+                animation-delay: 0.14s;
+            }
+            .rows .acc:nth-child(4) {
+                animation-delay: 0.19s;
+            }
+            .rows .acc:nth-child(5) {
+                animation-delay: 0.24s;
+            }
+            .rows .acc:nth-child(6) {
+                animation-delay: 0.29s;
+            }
+            .rows .acc:nth-child(7) {
+                animation-delay: 0.34s;
+            }
+            .rows .acc:nth-child(8) {
+                animation-delay: 0.39s;
+            }
+            .rows .acc:nth-child(9) {
+                animation-delay: 0.44s;
+            }
+            .rows .acc:nth-child(10) {
+                animation-delay: 0.49s;
+            }
+            .rows .acc:nth-child(11) {
+                animation-delay: 0.54s;
+            }
+            .rows .acc:nth-child(12) {
+                animation-delay: 0.59s;
+            }
+            .rows .acc:nth-child(n + 13) {
+                animation-delay: 0.64s;
+            }
+            .mls .mlg {
+                animation: gFade 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+            }
+            .mls .mlg:nth-child(1) {
+                animation-delay: 0.1s;
+            }
+            .mls .mlg:nth-child(2) {
+                animation-delay: 0.14s;
+            }
+            .mls .mlg:nth-child(3) {
+                animation-delay: 0.18s;
+            }
+            .mls .mlg:nth-child(4) {
+                animation-delay: 0.22s;
+            }
+            .mls .mlg:nth-child(5) {
+                animation-delay: 0.26s;
+            }
+            .mls .mlg:nth-child(6) {
+                animation-delay: 0.3s;
+            }
+            .mls .mlg:nth-child(n + 7) {
+                animation-delay: 0.34s;
+            }
+            @keyframes gIn {
+                from {
+                    opacity: 0;
+                }
+            }
+            @keyframes gUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+            }
+            @keyframes cr {
+                from {
+                    transform: scaleY(0);
+                    opacity: 0;
+                }
+            }
+            @keyframes gRise {
+                0% {
+                    opacity: 0;
+                    transform: translateY(18px) scale(0.94);
+                    filter: blur(3px);
+                }
+                60% {
+                    opacity: 1;
+                    filter: blur(0);
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                    filter: none;
+                }
+            }
+            @keyframes gDrop {
+                0% {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                    max-height: 0;
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                    max-height: 3000px;
+                }
+            }
+            @keyframes gFade {
+                0% {
+                    opacity: 0;
+                    transform: translateY(8px);
+                }
+                100% {
+                    opacity: 1;
+                    transform: none;
+                }
+            }
+            @keyframes gOut {
+                0% {
+                    opacity: 1;
+                    transform: none;
+                    filter: none;
+                }
+                100% {
+                    opacity: 0;
+                    transform: translateY(-14px) scale(0.95);
+                    filter: blur(2px);
+                }
+            }
+            @keyframes gFold {
+                0% {
+                    opacity: 1;
+                    max-height: 3000px;
+                }
+                100% {
+                    opacity: 0;
+                    max-height: 0;
+                    transform: translateY(-8px);
+                }
+            }
+
+            /* Every repaint rebuilds the card's markup, so the entrance
+               motion would replay on each tap. After the first paint the
+               card is .calm and only what a tap actually brings in moves:
+               bars regrow on a range change (.f-regrow), cards rise when the
+               list opens (.f-rows), an opened card drops in (.f-body), a
+               day's other nutrients fade in (.f-itl). */
+            .gcard.calm .mchip,
+            .gcard.calm .hnum .hp,
+            .gcard.calm .hnum .hu,
+            .gcard.calm .hgoal,
+            .gcard.calm .hnote,
+            .gcard.calm .gdelta,
+            .gcard.calm .gs,
+            .gcard.calm .bigchev,
+            .gcard.calm .ch.hero,
+            .gcard.calm .tempty {
+                animation: none;
+            }
+            .gcard.calm:not(.f-regrow) .ch.hero .cfill,
+            .gcard.calm:not(.f-regrow):not(.f-body) .ch.nut .cfill,
+            .gcard.calm:not(.f-rows) .rows .acc,
+            .gcard.calm:not(.f-rows) .collall,
+            .gcard.calm:not(.f-body) .accB,
+            .gcard.calm:not(.f-body) .mls .mlg,
+            .gcard.calm:not(.f-itl) .itl {
+                animation: none;
+            }
+            .gcard.calm.closing .rows .acc {
+                animation: gOut 0.42s cubic-bezier(0.55, 0, 0.75, 0.3) both;
+            }
+            .gcard.calm.closing .accB {
+                animation: gFold 0.38s cubic-bezier(0.55, 0, 0.75, 0.3) both;
+                overflow: hidden;
+            }
+            .gcard.calm.closing .collall {
+                animation: gOut 0.3s ease both;
+            }
+            .gcard.calm.closing .bigchev svg {
+                transform: rotate(0deg) !important;
+            }
+            .gcard.calm.closing .rows .acc:nth-last-child(2) {
+                animation-delay: 0.025s;
+            }
+            .gcard.calm.closing .rows .acc:nth-last-child(3) {
+                animation-delay: 0.05s;
+            }
+            .gcard.calm.closing .rows .acc:nth-last-child(4) {
+                animation-delay: 0.075s;
+            }
+            .gcard.calm.closing .rows .acc:nth-last-child(5) {
+                animation-delay: 0.1s;
+            }
+            .gcard.calm.closing .rows .acc:nth-last-child(6) {
+                animation-delay: 0.125s;
+            }
+            .gcard.calm.closing .rows .acc:nth-last-child(n + 7) {
+                animation-delay: 0.15s;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .gcard *,
+                .gcard {
+                    animation: none !important;
+                    transition: none !important;
+                }
+                .msw {
+                    scroll-behavior: auto;
+                }
+            }
+
+            /* ===== desktop: the iframe itself is at least 640px wide ===== */
+            @media (min-width: 640px) {
+                .tw {
+                    padding: 16px 20px 14px;
+                }
+                .mswW {
+                    margin: 14px -20px 0;
+                }
+                .msw {
+                    padding: 3px 20px 5px;
+                    scroll-padding: 0 20px;
+                }
+                .hrow .gtop .t {
+                    font-size: 21px;
+                    line-height: 1.25;
+                }
+                .dnum {
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 28px;
+                }
+                .dnL {
+                    align-items: flex-start;
+                }
+                .dnL .hnum {
+                    justify-content: flex-start;
+                }
+                .dnL .gnum {
+                    font-size: 54px;
+                }
+                .dnL .hnum .hp,
+                .dnL .hnum .hu {
+                    font-size: 16px;
+                    padding-bottom: 7px;
+                }
+                .dnL .hgoal {
+                    text-align: left;
+                    margin-top: 6px;
+                }
+                .dnL .hnote {
+                    text-align: left;
+                }
+                .gstats {
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, max-content));
+                    gap: 10px 36px;
+                    padding-left: 28px;
+                    border-left: 1px solid var(--panel-border);
+                    flex: none;
+                }
+                .gs {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                    min-width: 0;
+                    animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+                }
+                .gs:nth-child(1) {
+                    animation-delay: 0.45s;
+                }
+                .gs:nth-child(2) {
+                    animation-delay: 0.55s;
+                }
+                .gs:nth-child(3) {
+                    animation-delay: 0.65s;
+                }
+                .gsl {
+                    font-size: 11.5px;
+                    font-weight: 700;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: var(--text-dim);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    max-width: 170px;
+                }
+                .gs b {
+                    font-size: 20px;
+                    font-weight: 800;
+                    color: var(--text);
+                    letter-spacing: -0.01em;
+                    white-space: nowrap;
+                }
+                .gs b small {
+                    font-size: 12.5px;
+                    font-weight: 500;
+                    color: var(--text-dim);
+                }
+                .gs b.over {
+                    color: var(--over);
+                }
+                .gdelta {
+                    display: none;
+                }
+                .ch.hero {
+                    margin-top: 22px;
+                }
+                .cplot,
+                .cyl {
+                    height: 230px;
+                }
+                .ch.nut .cplot,
+                .ch.nut .cyl {
+                    height: 120px;
+                }
+                .ch.n7 {
+                    --bw: 46px;
+                    --hw: 5px;
+                }
+                .ch.n14 {
+                    --bw: 28px;
+                    --hw: 4px;
+                }
+                .ch.n30 {
+                    --bw: 13px;
+                    --hw: 3px;
+                }
+                .ch.nut.n7 {
+                    --bw: 26px;
+                    --hw: 4px;
+                }
+                .ch.nut.n14 {
+                    --bw: 14px;
+                    --hw: 3px;
+                }
+                .ch.nut.n30 {
+                    --bw: 6px;
+                    --hw: 2px;
+                }
+                .tempty {
+                    margin-top: 20px;
+                }
+                .rows {
+                    display: grid;
+                    grid-auto-flow: row dense;
+                    grid-template-columns: repeat(6, minmax(0, 1fr));
+                    gap: 10px;
+                    padding-top: 22px;
+                }
+                .rows .acc {
+                    grid-column: span 2;
+                }
+                .rows .acc.half {
+                    grid-column: span 3;
+                }
+                .rows .acc.sel {
+                    grid-column: 1 / -1;
+                }
+                .bigchev:hover,
+                .collall:hover {
+                    filter: brightness(0.97);
+                }
+                .rows .accH {
+                    grid-template-columns: 26px minmax(0, 1fr) 52px 14px;
+                    column-gap: 8px;
+                    padding: 12px;
+                }
+                .rows .accH .em {
+                    font-size: 20px;
+                }
+                .rows .accH .lb {
+                    font-size: 14.5px;
+                }
+                .rows .mg {
+                    width: 52px;
+                    height: 31px;
+                }
+                .rows .mg svg {
+                    width: 52px;
+                    height: 29px;
+                }
+                .rows .mg b {
+                    font-size: 10.5px;
+                }
+                .rows .acc.sel .accH {
+                    grid-template-columns: 30px minmax(0, 1fr) 60px 16px;
+                    column-gap: 10px;
+                    padding: 12px 14px;
+                }
+                .rows .acc.sel .mg {
+                    width: 60px;
+                    height: 36px;
+                }
+                .rows .acc.sel .mg svg {
+                    width: 60px;
+                    height: 34px;
+                }
+                .rows .acc.sel .mg b {
+                    font-size: 11px;
+                }
+                .nwrap {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+                    gap: 32px;
+                    align-items: start;
+                    padding-top: 4px;
+                }
             }
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="tw" id="root"></div>
 
         <script>
             "use strict";
@@ -87,72 +1563,8 @@
 
             /*@include shared/bridge.js@*/
 
-            const RANGES = [7, 14, 30];
-
-            // ---- Sample data so the file renders on its own (browser preview) ----
-            function buildSample() {
-                const days = [];
-                const end = new Date("2026-07-11T00:00:00Z");
-                let date = "2026-07-11";
-                for (let i = 29; i >= 0; i--) {
-                    const d = new Date(end);
-                    d.setUTCDate(d.getUTCDate() - i);
-                    date = d.toISOString().slice(0, 10);
-                    const w = Math.sin(i / 3);
-                    const skip = i === 4 || i === 11; // a couple of unlogged days
-                    // A few extra days with meals logged but no fiber/sugar on
-                    // them — pre-feature-style rows — so the sample exercises
-                    // the "recorded on some but not all days" case that this
-                    // widget must average correctly (null, not 0).
-                    const noFiberSugar =
-                        !skip && (i === 2 || i === 18 || i === 25);
-                    const r = (n) => Math.round(n * 10) / 10;
-                    days.push({
-                        date,
-                        calories: skip ? 0 : Math.round(2010 + w * 250),
-                        protein_g: skip ? 0 : Math.round(150 + w * 18),
-                        carbs_g: skip ? 0 : Math.round(212 + w * 28),
-                        fat_g: skip ? 0 : Math.round(68 + w * 9),
-                        fiber_g: skip || noFiberSugar ? null : r(26 + w * 6),
-                        sugar_g: skip || noFiberSugar ? null : r(58 + w * 14),
-                        // Alcohol tracking ON in this sample: null on an
-                        // unlogged day (no data), 0 on a real alcohol-free
-                        // day (still shows), a value on the rest. null on
-                        // every day (tracking off) hides the alcohol cell.
-                        alcohol_g: skip ? null : i % 7 ? 0 : r(13.9 + w * 4),
-                        // Caffeine on most days but not all, and never a 0 on
-                        // a day that simply has none: avgOf must divide by the
-                        // days that recorded it, not by the window. null on
-                        // every day (nobody ever logged any) hides the cell —
-                        // there is no opt-in flag to hide it any other way.
-                        caffeine_mg:
-                            skip || i % 5 === 0
-                                ? null
-                                : Math.round(185 + w * 60),
-                        water_ml: skip ? 0 : Math.round(2200 + w * 320),
-                    });
-                }
-                return {
-                    end_date: date,
-                    default_range: 14,
-                    drink_unit: "us",
-                    locale: "en",
-                    goals: {
-                        calories: 2200,
-                        protein_g: 160,
-                        carbs_g: 220,
-                        fat_g: 70,
-                        fiber_g: 30,
-                        sugar_g: 45,
-                        alcohol_g: 20,
-                        caffeine_mg: 400,
-                        water_ml: 2500,
-                    },
-                    days,
-                };
-            }
-            const SAMPLE = buildSample();
-
+            // fmt + esc: the bridge's connect-failure notice and period.js
+            // (the Week / Month / Quarter / Year rows) both need them.
             function fmt(n, decimals) {
                 if (n == null || isNaN(n)) return "0";
                 const r = decimals ? n.toFixed(decimals) : Math.round(n);
@@ -170,191 +1582,881 @@
                         })[c],
                 );
             }
-            // Trailing average over the days that actually carry this key:
-            // sum / count of non-null days — matches computeTrends'
-            // coveredSeries (src/insights.ts), which is where the tool's text
-            // trailingAverage comes from. Calories/protein/carbs/fat/water are
-            // never null (every day counts, as always), but fiber_g, sugar_g,
-            // alcohol_g and caffeine_mg arrive null on a day that never
-            // recorded them — dividing by days.length there would count a
-            // no-data day as a real zero, exactly the drift this fixes.
-            //
-            // A key that is null on EVERY day averages to null, not 0, which is
-            // what hides a metric the user has nothing to say about: alcohol_g
-            // when tracking is off, caffeine_mg when it was never recorded. A 0
-            // there would claim an alcohol-free / caffeine-free window instead.
-            function avgOf(days, key) {
-                if (!days.length) return 0;
-                let sum = 0;
-                let seen = 0;
-                for (const d of days) {
-                    if (d[key] == null) continue;
-                    seen++;
-                    sum += d[key] || 0;
-                }
-                if (!seen) return null;
-                return sum / seen;
-            }
-
-            // MACROS + the macro strip builder (calorie gauge, protein/carbs/fat
-            // bars, limits row, water line). Defines the shared MACROS array the
-            // averaging loop reads. Requires fmt + esc above.
-            /*@include shared/macros.js@*/
 
             // periodsFrom() + the period row builders. Requires fmt + esc
             // above and T / tpl / plural from shared/i18n.js.
+            /*@include shared/date.js@*/
             /*@include shared/period.js@*/
 
-            // Calories-per-day trend: SVG area + line that scales to any range
-            // (7 to 30 days). Compact — a 54-unit-tall viewBox sitting inside
-            // the widget's panel, not a card of its own. Uniform scaling — no
-            // preserveAspectRatio distortion — so it keeps its aspect ratio at
-            // any container width.
-            function trendChart(days, goal, range, logged) {
-                const W = 480,
-                    H = 54,
-                    padL = 8,
-                    padR = 8,
-                    padT = 6,
-                    padB = 4;
-                const n = days.length;
-                const vals = days.map((d) => d.calories || 0);
-                const maxV = Math.max(...vals, goal || 0, 1) * 1.15;
-                const plotW = W - padL - padR;
-                const plotH = H - padT - padB;
-                const base = padT + plotH;
-                const x = (i) =>
-                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
-                const y = (v) => padT + plotH - (v / maxV) * plotH;
-                const pts = vals.map((v, i) => [x(i), y(v)]);
+            const RANGES = [7, 14, 30];
 
-                const line = pts
-                    .map(
-                        (p, i) =>
-                            `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
-                    )
-                    .join(" ");
-                const area =
-                    `M${pts[0][0].toFixed(1)} ${base} ` +
-                    pts
-                        .map((p) => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
-                        .join(" ") +
-                    ` L${pts[n - 1][0].toFixed(1)} ${base} Z`;
+            // Where get_trends puts what its frozen outputSchema cannot carry
+            // (each must equal its constant in src/widgets.ts; a widget
+            // cannot import, so src/mcp.test.ts checks these literals).
+            const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
+            const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
+            const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
+            const LOCAL_TODAY_META_KEY = "nutrition-mcp.com/local-today";
 
-                const goalLine =
-                    goal && goal > 0
-                        ? `<line class="goalline" x1="${padL}" y1="${y(goal).toFixed(1)}" x2="${W - padR}" y2="${y(goal).toFixed(1)}"/>`
-                        : "";
-                // Point markers only on the shortest range: at 14 and 30 days
-                // they crowd the line at this height and read as noise.
-                const dots =
-                    n <= 7
-                        ? pts
-                              .map(
-                                  (p) =>
-                                      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.2" fill="var(--calories)"/>`,
-                              )
-                              .join("")
-                        : "";
-                const md = (d) => esc(d.date.slice(5)); // MM-DD
+            // Grams of alcohol per drink, by the account's drink unit. Must
+            // equal DRINK_GRAMS in src/units.ts (and shared/macros.js).
+            const DRINK_GRAMS = { us: 14, uk: 7.893 };
 
+            // ---- untrusted `_meta` -----------------------------------------
+            const isNum = (v) => typeof v === "number" && isFinite(v);
+            const isDate = (v) =>
+                typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+            // A `{ v: 1, goal, days }` series (added sugar, saturated fat,
+            // sodium, and saturated fat's `.trans`): rebuilt from its fields,
+            // a day kept only as a finite value >= 0, anything else "not
+            // recorded". Null when the payload is unusable — the nutrient is
+            // then not offered at all.
+            function seriesPayload(raw, needV) {
+                if (!raw || typeof raw !== "object") return null;
+                if (needV && raw.v !== 1) return null;
+                const days = {};
+                const src =
+                    raw.days &&
+                    typeof raw.days === "object" &&
+                    !Array.isArray(raw.days)
+                        ? raw.days
+                        : null;
+                if (!src) return null;
+                for (const k of Object.keys(src)) {
+                    if (isDate(k) && isNum(src[k]) && src[k] >= 0)
+                        days[k] = src[k];
+                }
+                return {
+                    goal: isNum(raw.goal) && raw.goal >= 0 ? raw.goal : null,
+                    days,
+                };
+            }
+            function todayFrom(meta) {
+                const t = meta && meta[LOCAL_TODAY_META_KEY];
+                return t && t.v === 1 && isDate(t.today) ? t.today : null;
+            }
+            // Fallback when the host dropped `_meta`: the viewer's own date.
+            function deviceToday() {
+                const now = new Date();
+                const p = (n) => String(n).padStart(2, "0");
+                return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+            }
+
+            // ---- the nutrients, in strip order ------------------------------
+            // [key, strings key, unit code, emoji, ceiling?, averaging]
+            // 'all' = averaged over the logged days (says "days logged"),
+            // 'rec' = over the days that recorded it ("days recorded").
+            const DEF = [
+                ["calories", "calories", "kcal", "🔥", true, "all"],
+                ["protein", "protein", "g", "🥩", false, "all"],
+                ["carbs", "carbs", "g", "🍞", false, "all"],
+                ["fat", "fat", "g", "🥑", false, "all"],
+                ["fiber", "fiber", "g", "🌾", false, "rec"],
+                ["sugar", "sugar", "g", "🍬", true, "rec"],
+                ["added-sugar", "addedSugar", "g", "🍭", true, "rec"],
+                ["saturated", "saturated", "g", "🧈", true, "rec"],
+                ["trans", "trans", "g", "🍟", false, "rec"],
+                ["sodium", "sodium", "mg", "🧂", true, "rec"],
+                ["caffeine", "caffeine", "mg", "☕", true, "rec"],
+                ["water", "water", "L", "💧", false, "all"],
+                ["alcohol", "alcohol", "drinks", "🍷", true, "rec"],
+            ];
+            // Never offered when not one day of the 30 recorded them.
+            const HIDE_IF_NEVER = ["trans", "caffeine", "alcohol"];
+            // Calories' colour is the calorie gauge's green (the design's
+            // --kcal); every other nutrient has its own token.
+            const colourOf = (k) =>
+                k === "calories" ? "var(--gauge-fill)" : `var(--${k})`;
+            const varsOf = (k) => `--mc: ${colourOf(k)}`;
+
+            // ---- state -------------------------------------------------------
+            // level: 0 collapsed, 1 cards shown, 2 one card open (sel).
+            const STATE = {
+                data: null,
+                model: null,
+                periods: null,
+                mode: "days",
+                range: 30,
+                metric: "calories",
+                level: 0,
+                sel: null,
+                day: null,
+                dayOpen: null,
+                all: false,
+                closing: false,
+            };
+            let __widgetApi = null;
+            let painted = false;
+
+            // ---- formatting ----------------------------------------------------
+            const NF = {};
+            function nf(d) {
+                const k = WIDGET_LOCALE + d;
+                if (!NF[k]) {
+                    try {
+                        NF[k] = new Intl.NumberFormat(WIDGET_LOCALE, {
+                            minimumFractionDigits: d,
+                            maximumFractionDigits: d,
+                        });
+                    } catch (_) {
+                        NF[k] = new Intl.NumberFormat("en", {
+                            minimumFractionDigits: d,
+                            maximumFractionDigits: d,
+                        });
+                    }
+                }
+                return NF[k];
+            }
+            // L one decimal; kcal and mg whole; anything else one decimal
+            // under 10 when it is not whole, else whole.
+            function fmtU(u, v) {
+                if (v == null) return "—";
+                if (u === "L") return nf(1).format(v);
+                if (u === "kcal" || u === "mg") return nf(0).format(v);
+                return v < 10 && Math.abs(v - Math.round(v)) > 0.05
+                    ? nf(1).format(v)
+                    : nf(0).format(v);
+            }
+            function pctF(p) {
+                try {
+                    return new Intl.NumberFormat(WIDGET_LOCALE, {
+                        style: "percent",
+                        maximumFractionDigits: 0,
+                    }).format(p / 100);
+                } catch (_) {
+                    return Math.round(p) + "%";
+                }
+            }
+            function unitOf(u) {
+                if (u === "drinks") {
+                    const du = STATE.model && STATE.model.drinkUnit;
+                    return (T.trends.drinkUnit && T.trends.drinkUnit[du]) || u;
+                }
+                const units = (T.macros && T.macros.units) || {};
+                return units[u] || u;
+            }
+            const withU = (u, v) => fmtU(u, v) + " " + unitOf(u);
+            // tpl() with some values already HTML (a bold figure); every
+            // other part of the template is escaped.
+            function tplHtml(s, html) {
+                return String(s)
+                    .split(/(\{\w+\})/)
+                    .map((part) => {
+                        const m = /^\{(\w+)\}$/.exec(part);
+                        return m && html[m[1]] != null ? html[m[1]] : esc(part);
+                    })
+                    .join("");
+            }
+
+            // Dates arrive as local YYYY-MM-DD; read them at UTC noon and
+            // format in UTC so no timezone can move them a day.
+            // dfmt (shared/date.js) formats through Intl in the widget's language.
+            const wdShort = (iso) => dfmt(iso, { weekday: "short" });
+            const dShort = (iso) =>
+                dfmt(iso, { day: "numeric", month: "short" });
+            const domOf = (iso) => dfmt(iso, { day: "numeric" });
+            const dLong = (iso) =>
+                dfmt(iso, { weekday: "short", day: "numeric", month: "short" });
+            function spanOf(a, b) {
+                return dateRange(a, b, "none");
+            }
+
+            // ---- the model: 30 days of every nutrient -----------------------
+            function buildModel(data, meta) {
+                const days = (Array.isArray(data.days) ? data.days : [])
+                    .filter((d) => d && isDate(d.date))
+                    .slice()
+                    .sort((a, b) => (a.date < b.date ? -1 : 1))
+                    .slice(-30);
+                const num = (v) => (isNum(v) && v >= 0 ? v : 0);
+                const opt = (v) => (isNum(v) && v >= 0 ? v : null);
+                const drinkUnit =
+                    data.drink_unit === "us" || data.drink_unit === "uk"
+                        ? data.drink_unit
+                        : null;
+                const g =
+                    data.goals && typeof data.goals === "object"
+                        ? data.goals
+                        : {};
+                const goalOf = (v) => (isNum(v) && v >= 0 ? v : null);
+                const added = seriesPayload(
+                    meta && meta[ADDED_SUGAR_META_KEY],
+                    true,
+                );
+                const satRaw = meta && meta[SATURATED_FAT_META_KEY];
+                const sat = seriesPayload(satRaw, true);
+                const trans =
+                    sat && satRaw && satRaw.trans
+                        ? seriesPayload(satRaw.trans, false)
+                        : null;
+                const sodium = seriesPayload(
+                    meta && meta[SODIUM_META_KEY],
+                    true,
+                );
+                const mealDay = days.map(
+                    (d) =>
+                        num(d.calories) > 0 ||
+                        num(d.protein_g) > 0 ||
+                        num(d.carbs_g) > 0 ||
+                        num(d.fat_g) > 0,
+                );
+                const logged = days.map(
+                    (d, i) => mealDay[i] || num(d.water_ml) > 0,
+                );
+                const meal = (k) =>
+                    days.map((d, i) => (mealDay[i] ? num(d[k]) : null));
+                const rec = (k) =>
+                    days.map((d, i) => (logged[i] ? opt(d[k]) : null));
+                const fromMeta = (p) =>
+                    p
+                        ? days.map((d, i) =>
+                              logged[i] && d.date in p.days
+                                  ? p.days[d.date]
+                                  : null,
+                          )
+                        : null;
+                const perDrink = drinkUnit ? DRINK_GRAMS[drinkUnit] : null;
+                const series = {
+                    calories: meal("calories"),
+                    protein: meal("protein_g"),
+                    carbs: meal("carbs_g"),
+                    fat: meal("fat_g"),
+                    fiber: rec("fiber_g"),
+                    sugar: rec("sugar_g"),
+                    "added-sugar": fromMeta(added),
+                    saturated: fromMeta(sat),
+                    trans: fromMeta(trans),
+                    sodium: fromMeta(sodium),
+                    caffeine: rec("caffeine_mg"),
+                    water: days.map((d, i) =>
+                        logged[i] ? num(d.water_ml) / 1000 : null,
+                    ),
+                    // Alcohol only while tracking is on (the server nulls it
+                    // otherwise), in the account's drink unit.
+                    alcohol: perDrink
+                        ? rec("alcohol_g").map((v) =>
+                              v == null ? null : v / perDrink,
+                          )
+                        : null,
+                };
+                const goals = {
+                    calories: goalOf(g.calories),
+                    protein: goalOf(g.protein_g),
+                    carbs: goalOf(g.carbs_g),
+                    fat: goalOf(g.fat_g),
+                    fiber: goalOf(g.fiber_g),
+                    sugar: goalOf(g.sugar_g),
+                    "added-sugar": added ? added.goal : null,
+                    saturated: sat ? sat.goal : null,
+                    trans: null,
+                    sodium: sodium ? sodium.goal : null,
+                    caffeine: goalOf(g.caffeine_mg),
+                    water:
+                        goalOf(g.water_ml) == null ? null : g.water_ml / 1000,
+                    alcohol:
+                        perDrink && goalOf(g.alcohol_g) != null
+                            ? g.alcohol_g / perDrink
+                            : null,
+                };
+                const today = todayFrom(meta) || deviceToday();
+                return {
+                    days,
+                    dates: days.map((d) => d.date),
+                    logged,
+                    series,
+                    goals,
+                    drinkUnit,
+                    endsToday:
+                        days.length > 0 && days[days.length - 1].date === today,
+                    anyLogged: logged.some(Boolean),
+                };
+            }
+
+            // One nutrient over the current window.
+            function statOf(def, W) {
+                const [key, sk, u, emoji, ceil, mode] = def;
+                const M = STATE.model;
+                const all30 = M.series[key] || M.days.map(() => null);
+                const vals = all30.slice(-W.n);
+                const g = M.goals[key];
+                const isPart = (i) => W.endsToday && i === W.n - 1;
+                const rec = vals.filter((v) => v != null);
+                const fullV = vals.filter((v, i) => v != null && !isPart(i));
+                const full = fullV.length ? fullV : rec;
+                const partEx = full.length < rec.length;
+                const never = all30.every((v) => v == null);
+                const nr = rec.length === 0;
+                const avg = nr
+                    ? null
+                    : full.reduce((a, b) => a + b, 0) / full.length;
+                const hasGoal = g != null && !nr;
+                const band = key === "calories" ? 1.1 : 1;
+                const over = hasGoal && ceil && avg > g * band;
+                const nearT = (v) => Math.abs(v - g) <= 0.1 * g;
+                const limitLike = ceil && key !== "calories";
+                const onT = hasGoal
+                    ? full.filter((v) => (limitLike ? v <= g : nearT(v))).length
+                    : 0;
+                const overN =
+                    hasGoal && ceil ? full.filter((v) => v > g).length : 0;
+                // Trend: the second half of the window against the first,
+                // finished days only.
+                const tv = vals.map((v, i) => (isPart(i) ? null : v));
+                const h = Math.floor(W.n / 2);
+                const h1 = tv.slice(0, h).filter((v) => v != null);
+                const h2 = tv.slice(h).filter((v) => v != null);
+                const av = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+                let dTxt = "";
+                let dCls = "zero";
+                if (!nr && h1.length && h2.length) {
+                    const dd = av(h2) - av(h1);
+                    const thr = 0.04 * (g || avg || 1);
+                    if (
+                        Math.abs(dd) < thr ||
+                        /^0([.,]0)?$/.test(fmtU(u, Math.abs(dd)))
+                    ) {
+                        dTxt = T.trends.steady;
+                    } else {
+                        dTxt = (dd > 0 ? "↑ " : "↓ ") + withU(u, Math.abs(dd));
+                        dCls = "up";
+                    }
+                }
+                return {
+                    key,
+                    u,
+                    emoji,
+                    ceil,
+                    mode,
+                    g,
+                    vals,
+                    rec,
+                    full,
+                    partEx,
+                    never,
+                    nr,
+                    avg,
+                    hasGoal,
+                    over,
+                    onT,
+                    overN,
+                    limitLike,
+                    dTxt,
+                    dCls,
+                    label: T.trends.metricLabel[sk],
+                    inTitle: T.trends.metricInTitle[sk],
+                };
+            }
+            const isOv = (m, v) =>
+                v != null &&
+                m.hasGoal &&
+                m.ceil &&
+                v > m.g * (m.key === "calories" ? 1.1 : 1);
+            const pctOf = (m, v) =>
+                v != null && m.hasGoal && m.g > 0
+                    ? Math.round((v / m.g) * 100)
+                    : null;
+
+            // ---- markup builders ---------------------------------------------
+            function dayName(W, i) {
+                return W.endsToday && i === W.n - 1
+                    ? T.trends.today
+                    : dLong(W.dates[i]);
+            }
+            function xLabels(W) {
+                const n = W.n;
+                const step = n <= 7 ? 1 : n <= 14 ? 2 : 7;
+                const out = [];
+                W.dates.forEach((iso, i) => {
+                    if ((n - 1 - i) % step !== 0) return;
+                    if (n > 14 && i < 3) return;
+                    const td = W.endsToday && i === n - 1;
+                    const txt = td
+                        ? T.trends.today
+                        : n <= 7
+                          ? wdShort(iso)
+                          : n <= 14
+                            ? domOf(iso)
+                            : dShort(iso);
+                    const cls =
+                        (i === n - 1 ? "en" : i === 0 ? "st" : "") +
+                        (td ? " td" : "");
+                    out.push(
+                        `<span class="${cls}" style="grid-column: ${i + 1}">${esc(txt)}</span>`,
+                    );
+                });
+                return out.join("");
+            }
+            function chartOf(m, W, kind, sel) {
+                const n = W.n;
+                const mx =
+                    Math.max(
+                        ...m.vals.map((v) => v || 0),
+                        m.hasGoal ? m.g : 0,
+                        0.0001,
+                    ) * 1.1;
+                const ncls = "n" + (n <= 7 ? 7 : n <= 14 ? 14 : 30);
+                const bars = m.vals
+                    .map((v, i) => {
+                        const s = i === sel;
+                        const ov = isOv(m, v);
+                        const cls =
+                            (s ? " sel" : "") +
+                            (ov ? " ov" : "") +
+                            (v == null ? " nr" : "");
+                        const what =
+                            v == null
+                                ? W.logged[i]
+                                    ? T.trends.notRecorded
+                                    : T.trends.nothingLogged
+                                : withU(m.u, v);
+                        const aria = tpl(T.trends.dayAria, {
+                            day: dayName(W, i),
+                            value: what,
+                        });
+                        const h = v == null ? 0 : ((v / mx) * 100).toFixed(1);
+                        const delay = (
+                            0.15 +
+                            (0.9 * i) / Math.max(n - 1, 1)
+                        ).toFixed(2);
+                        return `<button type="button" class="reset cb${cls}" data-act="day" data-i="${i}" data-fid="${kind}-day-${i}" aria-pressed="${s}" aria-label="${esc(aria)}"><span class="ctrk"><span class="cfill" style="height: ${h}%; animation-delay: ${delay}s"></span></span></button>`;
+                    })
+                    .join("");
+                const sv = m.vals[sel];
+                const td = W.endsToday && sel === n - 1;
+                const pct = pctOf(m, sv);
+                const rDay =
+                    td && sv != null
+                        ? tpl(T.trends.daySoFar, { day: dayName(W, sel) })
+                        : dayName(W, sel);
+                const rUnit =
+                    sv == null
+                        ? W.logged[sel]
+                            ? T.trends.notRecorded
+                            : T.trends.nothingLogged
+                        : unitOf(m.u) + (pct != null ? " · " + pctF(pct) : "");
+                const goalY = m.hasGoal ? ((m.g / mx) * 100).toFixed(1) : "0";
+                const title = tpl(T.trends.chartTitle, { metric: m.label });
                 return `
-          <div class="chart">
-            <div class="chead">
-              <span class="ctitle">${esc(T.nutritionSummary.caloriesPerDay)}</span>
-              <span class="cmeta">${tpl(T.trends.loggedOfTotal, { logged, total: n })}</span>
+          <div class="ch ${kind} ${ncls}" role="group" aria-label="${esc(tpl(T.trends.chartAria, { metric: m.label, n }))}">
+            <div class="chd"><span class="chl">${esc(title)}</span><span class="chr num">${esc(rDay)} · <b class="${isOv(m, sv) ? "over" : ""}">${esc(sv == null ? "—" : fmtU(m.u, sv))}</b> ${esc(rUnit)}</span></div>
+            <div class="cbody">
+              <div class="cyl" aria-hidden="true">${m.hasGoal ? `<span class="num" style="bottom: ${goalY}%">${esc(fmtU(m.u, m.g))}</span>` : ""}</div>
+              <div class="cplot">${m.hasGoal ? `<div class="cgoal" style="bottom: ${goalY}%"></div>` : ""}<div class="cbars" style="grid-template-columns: repeat(${n}, minmax(0, 1fr))">${bars}</div></div>
             </div>
-            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(tpl(T.trends.caloriesOverRange, { range }))}">
-              <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
-              ${goalLine}
-              <path d="${area}" fill="var(--calories)" opacity="0.16"/>
-              <path d="${line}" fill="none" stroke="var(--calories)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-              ${dots}
-            </svg>
-            <div class="tdates">
-              <span>${md(days[0])}</span>
-              <span>${md(days[n - 1])}</span>
-            </div>
+            <div class="cx num" aria-hidden="true" style="grid-template-columns: repeat(${n}, minmax(0, 1fr))">${xLabels(W)}</div>
           </div>`;
             }
 
-            // ---- State + rendering ---------------------------------------------
-            // `periods` is the parsed `_meta` (null → the day view only, as
-            // before). `mode` is a string id: "week" | "month" | "quarter" |
-            // "year" | "days". `range` stays a number (7 / 14 / 30).
-            // `addedSugar` is the AddedSugarMeta from `_meta`, or null.
-            // `saturatedFat` is the SaturatedFatMeta from `_meta`, or null.
-            const STATE = {
-                data: null,
-                range: 30,
-                periods: null,
-                mode: "days",
-                addedSugar: null,
-                saturatedFat: null,
+            // The odometer: each digit a reel of 0–9,0 translated by -y em.
+            // Painted at its final value; runReel() spins it in from rAF, so a
+            // renderer without animation frames (the landing page's static
+            // cards) keeps the true figure.
+            function reelHtml(str) {
+                let di = 0;
+                return str
+                    .split("")
+                    .map((ch) => {
+                        if (!/[0-9]/.test(ch)) return `<span>${esc(ch)}</span>`;
+                        const i = di++;
+                        return `<span class="rl"><span class="rs" data-d="${ch}" data-i="${i}" style="transform: translateY(-${ch}em)"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>0</span></span></span>`;
+                    })
+                    .join("");
+            }
+            const reduced = () => {
+                try {
+                    return (
+                        !!window.matchMedia &&
+                        window.matchMedia("(prefers-reduced-motion: reduce)")
+                            .matches
+                    );
+                } catch (_) {
+                    return true;
+                }
             };
-            let __widgetApi = null;
-
-            // Where get_trends puts the 30-day added-sugar series
-            // (AddedSugarMeta, src/added-sugar.ts) — in the result's `_meta`,
-            // because the frozen outputSchema can gain no field. Must equal
-            // ADDED_SUGAR_META_KEY in src/widgets.ts.
-            const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
-            // And the saturated- and trans-fat series (SaturatedFatMeta,
-            // src/saturated-fat.ts), under the same frozen-schema reasoning.
-            // Must equal SATURATED_FAT_META_KEY in src/widgets.ts.
-            const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
-
-            function render(data, meta) {
-                STATE.data = data;
-                STATE.periods = periodsFrom(meta);
-                STATE.addedSugar = addedSugarPayload(
-                    meta && meta[ADDED_SUGAR_META_KEY],
-                );
-                STATE.saturatedFat = meta && meta[SATURATED_FAT_META_KEY];
-                const root = document.getElementById("root");
-                // The tool sends a bucket for every calendar day (zeros for
-                // unlogged days), so the array is basically never empty — treat
-                // an all-zero series (nothing logged) as empty too.
-                // dayHasData (shared/macros.js) derives the test from MACROS,
-                // so it covers exactly the top-level metrics — fiber, sugar,
-                // alcohol and caffeine never appear without a meal that already
-                // contributes calories, and a null on any of them must not
-                // count as a logged day.
-                const anyLogged =
-                    data &&
-                    Array.isArray(data.days) &&
-                    data.days.some(dayHasData);
-                setLocaleFrom(data, __widgetApi);
-                if (STATE.periods) {
-                    STATE.mode = STATE.periods.groupBy;
-                    STATE.range = RANGES.includes(data && data.default_range)
-                        ? data.default_range
-                        : 30;
-                    paint();
+            let reelId = 0;
+            function runReel(ms) {
+                if (reduced() || typeof requestAnimationFrame !== "function")
                     return;
+                const id = ++reelId;
+                const first = 0.5;
+                const eo = (x) => 1 - Math.pow(1 - x, 3);
+                const card = document.getElementById("tw");
+                if (!card || typeof card.querySelectorAll !== "function")
+                    return;
+                const reels = Array.from(card.querySelectorAll(".hnum .rs"));
+                if (!reels.length) return;
+                let t0 = null;
+                // Frame 0 at once, so the true figure never flashes first.
+                const put = (at) => {
+                    const nd = reels.length;
+                    const stepR = nd > 1 ? (1 - first) / (nd - 1) : 0;
+                    for (const el of reels) {
+                        const i = Number(el.dataset.i);
+                        const stop = Math.min(first + stepR * i, 1);
+                        const lt = Math.min(at / stop, 1);
+                        const r =
+                            Number(el.dataset.d) +
+                            (10 * (3 + i) + 5) * (1 - eo(lt));
+                        el.style.transform = `translateY(-${(r % 10).toFixed(3)}em)`;
+                    }
+                };
+                const step = (now) => {
+                    if (id !== reelId) return;
+                    if (t0 === null) t0 = now;
+                    const at = Math.min((now - t0) / ms, 1);
+                    put(at);
+                    if (at < 1) requestAnimationFrame(step);
+                };
+                put(0);
+                requestAnimationFrame(step);
+            }
+
+            function dayList(m, W) {
+                const n = W.n;
+                const idx = W.dates.map((d, i) => i).reverse();
+                const shown = STATE.all || n <= 7 ? idx : idx.slice(0, 7);
+                const OTHERS = ["calories", "protein", "carbs", "fat", "water"];
+                const rows = shown
+                    .map((i) => {
+                        const v = m.vals[i];
+                        const td = W.endsToday && i === n - 1;
+                        const lg = W.logged[i];
+                        const open = STATE.dayOpen === i && lg;
+                        let meta;
+                        let metaCls = "";
+                        const pct = pctOf(m, v);
+                        if (!lg) meta = T.trends.nothingLogged;
+                        else if (v == null) meta = T.trends.notRecorded;
+                        else if (!m.hasGoal) meta = T.trends.noGoal;
+                        else if (isOv(m, v)) {
+                            meta = tpl(
+                                m.limitLike
+                                    ? T.trends.amountOverLimit
+                                    : T.trends.amountOverGoal,
+                                { amount: withU(m.u, v - m.g) },
+                            );
+                            metaCls = " over";
+                        } else if (pct == null) meta = T.trends.noGoal;
+                        else if (!m.limitLike && Math.abs(v - m.g) <= 0.1 * m.g)
+                            meta = tpl(T.trends.onTargetPct, {
+                                pct: pctF(pct),
+                            });
+                        else
+                            meta = tpl(
+                                m.limitLike
+                                    ? T.trends.pctOfLimit
+                                    : T.trends.pctOfGoal,
+                                { pct: pctF(pct) },
+                            );
+                        if (td && lg) meta += " · " + T.trends.soFar;
+                        const ring =
+                            v == null
+                                ? 0
+                                : Math.min(
+                                      m.hasGoal && m.g > 0
+                                          ? (v / m.g) * 100
+                                          : 100,
+                                      100,
+                                  );
+                        const cls =
+                            (lg ? "" : " unl") +
+                            (td ? " cur" : "") +
+                            (isOv(m, v) ? " ov" : "");
+                        const inner = `<span class="nmf">${esc(dayName(W, i))}<span class="mmeta${metaCls}">${esc(meta)}</span></span><span class="mring" aria-hidden="true"><svg viewBox="0 0 24 24"><circle class="rt" cx="12" cy="12" r="9" style="fill: none; stroke-width: 5"></circle><circle class="ra" cx="12" cy="12" r="9" pathLength="100" transform="rotate(-90 12 12)" style="fill: none; stroke-linecap: round; stroke-dasharray: ${ring.toFixed(1)} 100; stroke-width: ${v ? 5 : 0}"></circle></svg></span><b class="num">${esc(fmtU(m.u, v))} <span>${v == null ? "" : esc(unitOf(m.u))}</span></b><svg class="mc${lg ? (open ? " open" : "") : " hide"}" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round"><path d="M9 6l6 6-6 6"></path></svg>`;
+                        // A day with nothing logged has nothing to open.
+                        if (!lg) return `<div class="mlg${cls}">${inner}</div>`;
+                        let panel = "";
+                        if (open) {
+                            const items = OTHERS.filter(
+                                (k) => k !== m.key && STATE.model.series[k],
+                            )
+                                .map((k) => {
+                                    const def = DEF.find((d) => d[0] === k);
+                                    const o = statOf(def, W);
+                                    const ov = o.vals[i];
+                                    const p = pctOf(o, ov);
+                                    const im =
+                                        ov == null
+                                            ? T.trends.notRecorded
+                                            : p == null
+                                              ? T.trends.noGoal
+                                              : tpl(T.trends.pctOfGoal, {
+                                                    pct: pctF(p),
+                                                });
+                                    return `<div class="itr"><span>${esc(o.label)}</span><span class="iv num">${esc(ov == null ? "—" : withU(o.u, ov))}</span><span class="im">${esc(im)}</span></div>`;
+                                })
+                                .join("");
+                            panel = `<div class="itl">${items}</div>`;
+                        }
+                        return `<button type="button" class="reset mlg${cls}" data-act="dayopen" data-i="${i}" data-fid="dayopen-${i}" aria-expanded="${open}">${inner}</button>${panel}`;
+                    })
+                    .join("");
+                const more =
+                    !STATE.all && n > 7
+                        ? `<button type="button" class="reset pmore" data-act="all" data-fid="all">${esc(tpl(T.trends.showAllDays, { n }))}<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round"><path d="M6 9l6 6 6-6"></path></svg></button>`
+                        : "";
+                return `<div class="mls">${rows}</div>${more}`;
+            }
+            function chipsOf(m, W) {
+                if (m.nr) return "";
+                let pairs = m.vals
+                    .map((v, i) => [v, i])
+                    .filter((p) => p[0] != null);
+                if (pairs.length > 1)
+                    pairs = pairs.filter(
+                        (p) => !(W.endsToday && p[1] === W.n - 1),
+                    );
+                const hi = pairs.reduce((a, b) => (b[0] > a[0] ? b : a));
+                const lo = pairs.reduce((a, b) => (b[0] < a[0] ? b : a));
+                const dayOf = (i) =>
+                    W.endsToday && i === W.n - 1
+                        ? T.trends.today
+                        : dShort(W.dates[i]);
+                const chip = (cls, s, vars) =>
+                    `<span class="${cls}">${tplHtml(s, vars)}</span>`;
+                const out = [
+                    chip(isOv(m, hi[0]) ? "bad" : "", T.trends.chipHigh, {
+                        value: `<b>${esc(withU(m.u, hi[0]))}</b>`,
+                        day: esc(dayOf(hi[1])),
+                    }),
+                ];
+                if (hi[1] !== lo[1])
+                    out.push(
+                        chip("", T.trends.chipLow, {
+                            value: `<b>${esc(withU(m.u, lo[0]))}</b>`,
+                            day: esc(dayOf(lo[1])),
+                        }),
+                    );
+                if (m.hasGoal) {
+                    const M = m.full.length;
+                    const k = m.limitLike ? m.overN : m.onT;
+                    const forms = m.limitLike
+                        ? T.trends.chipOverLimit
+                        : T.trends.chipOnTarget;
+                    out.push(
+                        chip(
+                            m.limitLike && m.overN ? "bad" : "",
+                            plural(forms, M, { value: "{value}" }),
+                            {
+                                value: `<b>${esc(nf(0).format(k) + " / " + nf(0).format(M))}</b>`,
+                            },
+                        ),
+                    );
                 }
-                STATE.mode = "days";
-                if (!anyLogged) {
-                    root.innerHTML = `
-            <div class="empty">
-              <div class="big">📈</div>
-              <div>${esc(T.trends.empty)}</div>
+                return out.join("");
+            }
+
+            function heroHtml(hm, W) {
+                const hU = hm.u;
+                const has = !hm.nr;
+                const hNum = has ? fmtU(hU, hm.avg) : "—";
+                const unitDay = tpl(T.trends.perDay, { unit: unitOf(hU) });
+                const pct = has ? pctOf(hm, hm.avg) : null;
+                const pctB = `<b>${esc(pct == null ? "—" : pctF(pct))}</b>`;
+                const goalTxt = hm.hasGoal ? esc(withU(hU, hm.g)) : "";
+                const goalLine = !hm.hasGoal
+                    ? esc(T.trends.heroNoGoal)
+                    : tplHtml(
+                          hm.limitLike
+                              ? T.trends.heroLimit
+                              : pct != null && pct > 100
+                                ? T.trends.heroGoalOver
+                                : T.trends.heroGoal,
+                          { goal: goalTxt, pct: pctB },
+                      );
+                const hd = hm.hasGoal ? hm.avg - hm.g : 0;
+                const word = !hm.hasGoal
+                    ? T.trends.noGoalSet
+                    : hm.limitLike
+                      ? hd > 0
+                          ? T.trends.overLimit
+                          : T.trends.underLimit
+                      : hd > 0
+                        ? T.trends.overGoal
+                        : T.trends.belowGoal;
+                const leftCls = hm.over ? "over" : hd > 0 ? "nt" : "";
+                const recWord =
+                    hm.mode === "rec"
+                        ? T.trends.daysRecordedWord
+                        : T.trends.daysLoggedWord;
+                const delta = `<div class="gdelta num"><b>${esc(tpl(T.trends.loggedOf, { a: nf(0).format(hm.rec.length), n: nf(0).format(W.n) }))}</b> ${esc(recWord)}<span class="dot">·</span>${hm.hasGoal ? `<b class="${leftCls}">${esc(withU(hU, Math.abs(hd)))}</b> ` : ""}${esc(word)}</div>`;
+                const frac = (a, b) =>
+                    `${nf(0).format(a)} / ${nf(0).format(b)}`;
+                const daysW = (n) => esc(plural(T.trends.daysUnit, n));
+                const statLabel = !hm.hasGoal
+                    ? T.trends.statNoGoal
+                    : hm.limitLike
+                      ? hd > 0
+                          ? T.trends.statOverLimit
+                          : T.trends.statUnderLimit
+                      : hd > 0
+                        ? T.trends.statOverGoal
+                        : T.trends.statBelowGoal;
+                const onLab = hm.limitLike
+                    ? T.trends.statDaysOverLimit
+                    : T.trends.statOnTarget;
+                const onN = hm.limitLike ? hm.overN : hm.onT;
+                const stats = `
+            <div class="gstats">
+              <div class="gs"><span class="gsl">${esc(hm.mode === "rec" ? T.trends.statDaysRecorded : T.trends.statDaysLogged)}</span><b class="num">${frac(hm.rec.length, W.n)} <small>${daysW(W.n)}</small></b></div>
+              <div class="gs"><span class="gsl">${esc(onLab)}</span><b class="num${hm.limitLike && hm.overN ? " over" : ""}">${hm.hasGoal ? frac(onN, hm.full.length) : "—"} ${hm.hasGoal ? `<small>${daysW(hm.full.length)}</small>` : ""}</b></div>
+              <div class="gs"><span class="gsl">${esc(statLabel)}</span><b class="num${hm.over ? " over" : ""}">${hm.hasGoal ? esc(fmtU(hU, Math.abs(hd))) : "—"} ${hm.hasGoal ? `<small>${esc(unitOf(hU))}</small>` : ""}</b></div>
             </div>`;
-                    return;
+                const aria = `${T.trends.avgWord} ${hNum} ${unitDay}`;
+                return {
+                    top: `
+          <div class="dnum">
+            <div class="dnL">
+              <div class="hnum${hm.over ? " over" : ""}"><span class="hp">${esc(T.trends.avgWord)}</span><span class="gnum num" role="img" aria-label="${esc(aria)}">${reelHtml(hNum)}</span><span class="hu num">${esc(unitDay)}</span></div>
+              <div class="hgoal num">${goalLine}</div>
+              ${hm.partEx ? `<div class="hnote">${esc(T.trends.todayNote)}</div>` : ""}
+            </div>${stats}
+          </div>`,
+                    delta,
+                };
+            }
+
+            function cardsHtml(visible, W) {
+                const selK = STATE.sel;
+                // Desktop grid balance: three cards a row, the trailing ones
+                // widened so no row is left with an orphan.
+                const unsel = visible
+                    .filter((m) => m.key !== selK)
+                    .map((m) => m.key);
+                const remR = unsel.length % 3;
+                const halfK =
+                    remR === 1 && unsel.length >= 4
+                        ? unsel.slice(-4)
+                        : remR === 2
+                          ? unsel.slice(-2)
+                          : [];
+                const n = W.n;
+                return visible
+                    .map((m) => {
+                        const sel = selK === m.key;
+                        const gauge =
+                            m.nr || !m.hasGoal || !(m.g > 0)
+                                ? 0
+                                : Math.max(0, Math.min(m.avg / m.g, 1)) * 100;
+                        const smx =
+                            Math.max(
+                                ...m.vals.map((v) => v || 0),
+                                m.hasGoal ? m.g : 0,
+                                0.0001,
+                            ) * 1.08;
+                        const pct = m.nr ? null : pctOf(m, m.avg);
+                        const stCls = m.nr ? "dim" : m.over ? "over" : "";
+                        const slash = m.nr
+                            ? " · " + T.trends.notRecorded
+                            : m.hasGoal
+                              ? " / " + withU(m.u, m.g)
+                              : " " + unitOf(m.u) + " · " + T.trends.noGoal;
+                        const spark = m.vals
+                            .map((v, i) => {
+                                const td = i === n - 1 ? " td" : "";
+                                const h =
+                                    v == null
+                                        ? 0
+                                        : Math.max(
+                                              (v / smx) * 100,
+                                              v > 0 ? 16 : 0,
+                                          ).toFixed(1);
+                                return `<span class="${td}${v == null ? " nr" : ""}${isOv(m, v) ? " ov" : ""}" style="height: ${h}%"></span>`;
+                            })
+                            .join("");
+                        let body = "";
+                        if (sel) {
+                            body = m.nr
+                                ? `<div class="accB"><div class="msg">${esc(tpl(T.trends.notRecordedInRange, { metric: m.label }))}</div></div>`
+                                : `<div class="accB"><div class="nwrap"><div class="nleft">${chartOf(m, W, "nut", selDay(W))}<div class="nstat num">${chipsOf(m, W)}</div></div><div class="nright">${dayList(m, W)}</div></div></div>`;
+                        }
+                        const cls =
+                            (sel ? " sel" : "") +
+                            (m.over ? " over" : "") +
+                            (halfK.includes(m.key) ? " half" : "");
+                        return `<div class="acc${cls}" data-key="${m.key}" style="${varsOf(m.key)}"><button type="button" class="reset accH" data-act="acc" data-k="${m.key}" data-fid="acc-${m.key}" aria-expanded="${sel}"><span class="em" aria-hidden="true">${m.emoji}</span><span class="ab"><span class="lb"><span class="lbn">${esc(m.label)}</span><span class="dl num ${m.dCls}">${esc(m.dTxt)}</span></span><span class="vl num"><b class="${stCls}">${esc(m.nr ? "—" : fmtU(m.u, m.avg))}</b><span class="gl">${esc(slash)}</span></span></span><span class="mg"><svg viewBox="0 0 60 34" aria-hidden="true"><path class="mgt" d="M 6 30 A 24 24 0 0 1 54 30" pathLength="100" style="fill: none; stroke-width: 11; stroke-linecap: round"></path><path class="mga" d="M 6 30 A 24 24 0 0 1 54 30" pathLength="100" style="fill: none; stroke-width: ${gauge > 0 ? 7 : 0}; stroke-linecap: round; stroke-dasharray: ${gauge.toFixed(1)} 100"></path></svg><b class="num ${stCls}">${esc(pct == null ? "—" : pctF(pct))}</b></span><svg class="achev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round"><path d="M6 9l6 6 6-6"></path></svg><span class="spk" aria-hidden="true">${m.hasGoal ? `<i style="bottom: ${((m.g / smx) * 100).toFixed(1)}%"></i>` : ""}${spark}</span></button>${body}</div>`;
+                    })
+                    .join("");
+            }
+
+            function windowOf() {
+                const M = STATE.model;
+                const n = Math.min(STATE.range, M.days.length);
+                return {
+                    n,
+                    dates: M.dates.slice(-n),
+                    logged: M.logged.slice(-n),
+                    endsToday: M.endsToday,
+                };
+            }
+            const selDay = (W) =>
+                STATE.day == null ? W.n - 1 : Math.min(STATE.day, W.n - 1);
+
+            // The day view's card markup (without its own wrapper element).
+            function cardInner() {
+                const M = STATE.model;
+                const W = windowOf();
+                const ALL = DEF.map((d) => statOf(d, W));
+                // A nutrient with no data source at all (no `_meta`, alcohol
+                // tracking off) is never offered; trans fat, caffeine and
+                // alcohol also not when none of the 30 days recorded them.
+                const visible = ALL.filter(
+                    (m) =>
+                        M.series[m.key] &&
+                        !(m.never && HIDE_IF_NEVER.includes(m.key)),
+                );
+                const swList = visible.filter((m) => !m.nr);
+                const cal = ALL[0];
+                const hm = swList.find((m) => m.key === STATE.metric) || cal;
+                STATE.metric = hm.key;
+                const title = tpl(T.trends.titleMetric, {
+                    n: W.n,
+                    metric: hm.inTitle,
+                });
+                const L = STATE.level;
+                if (!M.anyLogged) {
+                    return {
+                        vars: varsOf("calories"),
+                        html: `
+          <div class="hrow"><div class="gtop"><span class="t">${esc(title)}</span></div></div>
+          <div class="tempty"><span class="big" aria-hidden="true">📈</span><b>${esc(T.trends.emptyTitle)}</b><span>${esc(T.trends.emptyBody)}</span></div>`,
+                    };
                 }
-                STATE.range = RANGES.includes(data.default_range)
-                    ? data.default_range
-                    : 30;
-                paint();
+                const eyebrow =
+                    tpl(W.endsToday ? T.trends.lastNDays : T.trends.nDays, {
+                        n: W.n,
+                    }) + " · ";
+                const span = spanOf(W.dates[0], W.dates[W.n - 1]).replace(
+                    / /g,
+                    " ",
+                );
+                const pills = RANGES.map((r) => {
+                    const on = r === STATE.range;
+                    return `<button type="button" class="reset rpill num${on ? " on" : ""}" data-act="range" data-r="${r}" data-fid="range-${r}" aria-pressed="${on}" aria-label="${esc(tpl(T.trends.pillAria, { n: r }))}">${esc(tpl(T.trends.pill, { n: r }))}</button>`;
+                }).join("");
+                const chips = swList
+                    .map((m) => {
+                        const on = m.key === hm.key;
+                        return `<button type="button" class="reset mchip${on ? " on" : ""}" style="${varsOf(m.key)}" data-act="metric" data-k="${m.key}" data-fid="metric-${m.key}" aria-pressed="${on}"><span class="e" aria-hidden="true">${m.emoji}</span><span>${esc(m.label)}</span></button>`;
+                    })
+                    .join("");
+                const chev = (dir) =>
+                    `<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round"><path d="${dir < 0 ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"}"></path></svg>`;
+                const hero = heroHtml(hm, W);
+                const swS = STATE.swS || "start";
+                const open = L >= 1;
+                const html = `
+          <div class="hrow"><button type="button" class="reset gtop" data-act="toggle" data-fid="gtop" aria-expanded="${open}"><span class="eyb2">${esc(eyebrow)}<span class="nw">${esc(span)}</span></span><span class="t">${esc(title)}</span></button><div class="rseg" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${pills}</div></div>
+          <div class="mswW" data-s="${swS}"><button type="button" class="reset msa l" data-act="swl" aria-label="${esc(T.trends.scrollLeft)}"${arrowOff(swS, "l") ? ARROW_OFF : ""}>${chev(-1)}</button><div class="msw" role="group" aria-label="${esc(T.trends.metricsAria)}">${chips}</div><button type="button" class="reset msa r" data-act="swr" aria-label="${esc(T.trends.scrollRight)}"${arrowOff(swS, "r") ? ARROW_OFF : ""}>${chev(1)}</button></div>
+          ${hero.top}
+          ${chartOf(hm, W, "hero", selDay(W))}
+          ${hero.delta}
+          <button type="button" class="reset bigchev" data-act="toggle" data-fid="bigchev" aria-expanded="${open}"><span>${esc(open ? T.trends.showLess : T.trends.showMore)}</span><svg class="nchev${open ? " open" : ""}" width="14" height="9" viewBox="0 0 34 22" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round"><path d="M5 5l12 12 12-12"></path></svg></button>
+          ${open ? `<div class="rows">${cardsHtml(visible, W)}</div><button type="button" class="reset collall" data-act="collapse" data-fid="collall"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true" style="fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round"><path d="M7 11l5-5 5 5"></path><path d="M7 18l5-5 5 5"></path></svg><span>${esc(T.trends.collapseAll)}</span></button>` : ""}`;
+                return { vars: varsOf(hm.key), html };
             }
 
-            function paint() {
-                if (STATE.periods && STATE.mode !== "days") paintPeriods();
-                else paintDays();
-            }
-
-            // The header seg of period mode: one button per granularity the
-            // payload carries, then Days. String ids throughout.
+            // ---- painting ------------------------------------------------------
             function periodSeg() {
                 const p = STATE.periods;
                 const label = {
@@ -364,17 +2466,15 @@
                     year: [T.trends.segYear, T.trends.segYearAria],
                     days: [T.trends.segDays, T.trends.segDaysAria],
                 };
-                return p.available
+                return `<div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${p.available
                     .concat(["days"])
                     .map((id) => {
                         const on = id === STATE.mode;
                         return `<button class="seg-btn${on ? " active" : ""}" data-mode="${id}" aria-pressed="${on}" aria-label="${esc(label[id][1])}">${esc(label[id][0])}</button>`;
                     })
-                    .join("");
+                    .join("")}</div>`;
             }
-
-            function paintPeriods() {
-                const root = document.getElementById("root");
+            function periodHtml() {
                 const p = STATE.periods;
                 const g = STATE.mode;
                 const title = {
@@ -383,156 +2483,422 @@
                     quarter: T.trends.periodTitleQuarter,
                     year: T.trends.periodTitleYear,
                 }[g];
-                root.innerHTML = `
+                return `
           <div class="panel">
             <div class="phead mid">
               <div class="ptitle">${esc(title)}</div>
-              <div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${periodSeg()}</div>
+              ${periodSeg()}
             </div>
             ${periodListHtml(p.periods[g], g, { targetsFrom: p.targetsFrom })}
           </div>`;
             }
-
-            function paintDays() {
-                const root = document.getElementById("root");
-                const data = STATE.data;
-                // Period mode can land here with nothing logged in the last
-                // 30 days (the periods reach further back): say so inside the
-                // panel and keep the seg, so the way back stays on screen.
-                if (
-                    STATE.periods &&
-                    !(Array.isArray(data.days) && data.days.some(dayHasData))
-                ) {
-                    root.innerHTML = `
-          <div class="panel">
-            <div class="phead mid">
-              <div class="ptitle">${esc(T.trends.title)}</div>
-              <div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${periodSeg()}</div>
-            </div>
-            <div class="pnone">${esc(T.trends.empty)}</div>
-          </div>`;
-                    return;
-                }
-                const all = data.days
-                    .slice()
-                    .sort((a, b) => (a.date < b.date ? -1 : 1));
-                const range = STATE.range;
-                const slice = all.slice(-range);
-
-                const avg = {};
-                for (const m of MACROS) avg[m.key] = avgOf(slice, m.key);
-                // No day bucket carries added sugar, so avgOf left it null and
-                // the cell hidden. With `_meta` it is re-averaged here for the
-                // same slice — over the days that recorded it, not every
-                // calendar day: an unrecorded day is unknown, not 0.
-                const merged = withAddedSugar(
-                    STATE.addedSugar,
-                    addedSugarFor(
-                        STATE.addedSugar,
-                        slice.map((d) => d.date),
-                    ),
-                    avg,
-                    data.goals,
-                    null,
-                );
-                // Saturated and trans fat, re-averaged over the same slice
-                // (withSaturatedFat), the way added sugar is above.
-                Object.assign(
-                    merged,
-                    withSaturatedFat(
-                        STATE.saturatedFat,
-                        slice.map((d) => d.date),
-                        merged.vals,
-                        merged.goal,
-                        merged.meals,
-                    ),
-                );
-
-                const logged = slice.filter(dayHasData).length;
-
-                const seg = RANGES.map(
-                    (r) =>
-                        `<button class="seg-btn${r === range ? " active" : ""}" data-range="${r}" aria-pressed="${r === range}" aria-label="${esc(tpl(T.trends.rangeDaysAriaLabel, { n: r }))}">${r}</button>`,
-                ).join("");
-                const rangeSeg = `<div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${seg}</div>`;
-
-                // No per-meal rows in a trends payload, so the strip is static
-                // — macroPanel only makes tiles tappable when meals are passed.
-                // `divided` gives it the leading hairline that separates it from
-                // the chart above. The floor-metric averaged wording uses its
-                // own dedicated string (T.trends.avgUnder) — distinct from
-                // macros.floorUnder's live "still left today" framing and
-                // macros.ceilingUnder's safety-margin framing, neither of which
-                // fits a historical average's shortfall. See macroBits'
-                // wording.under in shared/macros.js.
-                const panel = macroPanel(
-                    merged.vals,
-                    merged.goal,
-                    { under: T.trends.avgUnder },
-                    null,
-                    {
-                        drinkUnit: data.drink_unit,
-                        divided: true,
-                        // The one place the denominator is named: these are
-                        // averages over every calendar day in the window, skipped
-                        // days included.
-                        calLabel: tpl(T.trends.avgAllDays, { range }),
-                    },
-                );
-                const chart = trendChart(
-                    slice,
-                    data.goals?.calories ?? null,
-                    range,
-                    logged,
-                );
-
-                // Period mode's Days view: the period seg keeps the header
-                // (so the way back is where it was) and the 7/14/30 toggle
-                // gets a line of its own. Without periods: today's header.
-                const head = STATE.periods
-                    ? `
-            <div class="phead mid">
-              <div class="ptitle">${esc(T.trends.title)}</div>
-              <div class="seg seg-sm" role="group" aria-label="${esc(T.trends.windowAriaLabel)}">${periodSeg()}</div>
-            </div>
-            <div class="rangeline">${rangeSeg}</div>`
-                    : `
-            <div class="phead mid">
-              <div class="ptitle">${esc(T.trends.title)}</div>
-              ${rangeSeg}
-            </div>`;
-
-                root.innerHTML = `
-          <div class="panel">${head}
-            ${chart}
-            ${panel}
-          </div>`;
+            function cardHtml(flags) {
+                const c = cardInner();
+                const cls =
+                    "gcard" +
+                    (painted ? " calm" : "") +
+                    (STATE.closing ? " closing" : "") +
+                    flags.map((f) => " f-" + f).join("");
+                return `<div class="${cls}" id="tw" style="${c.vars}">${c.html}</div>`;
+            }
+            // The whole view: what render() writes into #root.
+            function viewHtml() {
+                if (STATE.periods && STATE.mode !== "days") return periodHtml();
+                const top = STATE.periods
+                    ? `<div class="pbar">${periodSeg()}</div>`
+                    : "";
+                return top + cardHtml([]);
             }
 
-            // Delegated on #root, which persists across paint()'s innerHTML
-            // rewrites, so it's attached once.
-            document.getElementById("root").addEventListener("click", (e) => {
-                const btn = e.target.closest(".seg-btn");
-                if (!btn || !STATE.data) return;
-                // String ids, never Number(): "week" … "days" are ids too, and
-                // the range buttons are matched against RANGES as strings.
-                const mode = btn.dataset.mode;
-                if (mode) {
-                    if (mode !== STATE.mode) {
-                        STATE.mode = mode;
-                        paint();
+            // Repaint after a tap: only the card, keeping the element (so
+            // --mc cross-fades), the chip strip's scroll and the focus.
+            function repaint(flags) {
+                const card = document.getElementById("tw");
+                if (!card || typeof card.querySelector !== "function") return;
+                const strip = card.querySelector(".msw");
+                const scroll = strip ? strip.scrollLeft : 0;
+                const active = document.activeElement;
+                const fid =
+                    active && active.dataset ? active.dataset.fid : null;
+                const c = cardInner();
+                card.className =
+                    "gcard calm" +
+                    (STATE.closing ? " closing" : "") +
+                    (flags || []).map((f) => " f-" + f).join("");
+                card.setAttribute("style", c.vars);
+                card.innerHTML = c.html;
+                const s2 = card.querySelector(".msw");
+                if (s2) {
+                    s2.style.scrollBehavior = "auto";
+                    s2.scrollLeft = scroll;
+                    s2.style.scrollBehavior = "";
+                }
+                if (fid) {
+                    const el = card.querySelector(`[data-fid="${fid}"]`);
+                    if (el) el.focus({ preventScroll: true });
+                }
+                measureStrip();
+            }
+
+            // Whether a strip arrow is hidden in a scroll state (matches the
+            // .mswW[data-s] rules in the CSS).
+            const arrowOff = (s, side) =>
+                s === "none" ||
+                (s === "start" && side === "l") ||
+                (s === "end" && side === "r");
+            const ARROW_OFF = ' tabindex="-1" aria-hidden="true"';
+            // Which ends of the chip strip have more chips (start | mid |
+            // end | none) — drives the fade mask and the arrows.
+            function measureStrip() {
+                const card = document.getElementById("tw");
+                if (!card || typeof card.querySelector !== "function") return;
+                const wrap = card.querySelector(".mswW");
+                const el = wrap && wrap.querySelector(".msw");
+                if (!el || typeof el.scrollWidth !== "number") return;
+                const max = el.scrollWidth - el.clientWidth;
+                const s =
+                    max <= 4
+                        ? "none"
+                        : el.scrollLeft <= 4
+                          ? "start"
+                          : el.scrollLeft >= max - 4
+                            ? "end"
+                            : "mid";
+                STATE.swS = s;
+                wrap.dataset.s = s;
+                // A hidden arrow leaves the tab order and the a11y tree too,
+                // not just the screen.
+                for (const side of ["l", "r"]) {
+                    const b = wrap.querySelector(".msa." + side);
+                    if (!b) continue;
+                    if (arrowOff(s, side)) {
+                        // Focus never stays on an arrow that just vanished:
+                        // it moves to the selected chip.
+                        if (document.activeElement === b) {
+                            const on = el.querySelector(".mchip.on");
+                            if (on) on.focus({ preventScroll: true });
+                        }
+                        b.setAttribute("tabindex", "-1");
+                        b.setAttribute("aria-hidden", "true");
+                    } else {
+                        b.removeAttribute("tabindex");
+                        b.removeAttribute("aria-hidden");
+                    }
+                }
+            }
+
+            const desktop = () => {
+                try {
+                    return (
+                        !!window.matchMedia &&
+                        window.matchMedia("(min-width: 640px)").matches
+                    );
+                } catch (_) {
+                    return false;
+                }
+            };
+            // Desktop only: cards slide to their new grid places when one
+            // opens or closes (FLIP), rather than jumping.
+            function flip(apply) {
+                const card = document.getElementById("tw");
+                if (
+                    !card ||
+                    reduced() ||
+                    !desktop() ||
+                    typeof Element === "undefined" ||
+                    !Element.prototype.animate
+                ) {
+                    apply();
+                    return;
+                }
+                const q = () =>
+                    Array.from(card.querySelectorAll(".rows .acc[data-key]"));
+                const first = new Map(
+                    q().map((e) => [e.dataset.key, e.getBoundingClientRect()]),
+                );
+                apply();
+                const go = () =>
+                    q().forEach((e) => {
+                        const f = first.get(e.dataset.key);
+                        if (!f) return;
+                        const l = e.getBoundingClientRect();
+                        const dx = f.left - l.left;
+                        const dy = f.top - l.top;
+                        const grow =
+                            l.width - f.width > 2 || l.height - f.height > 2;
+                        const shrink =
+                            f.width - l.width > 2 || f.height - l.height > 2;
+                        if (
+                            Math.abs(dx) < 1 &&
+                            Math.abs(dy) < 1 &&
+                            !grow &&
+                            !shrink
+                        )
+                            return;
+                        const kf = [
+                            { transform: `translate(${dx}px, ${dy}px)` },
+                            { transform: "translate(0, 0)" },
+                        ];
+                        if (grow) {
+                            kf[0].clipPath = `inset(0 ${Math.max(l.width - f.width, 0)}px ${Math.max(l.height - f.height, 0)}px 0 round 18px)`;
+                            kf[1].clipPath = "inset(0 0 0 0 round 18px)";
+                        }
+                        e.animate(kf, {
+                            duration: 560,
+                            easing: "cubic-bezier(.22,1,.36,1)",
+                        });
+                    });
+                requestAnimationFrame(() => requestAnimationFrame(go));
+            }
+
+            function collapse() {
+                if (STATE.closing) return;
+                const done = () => {
+                    STATE.closing = false;
+                    STATE.level = 0;
+                    STATE.sel = null;
+                    STATE.dayOpen = null;
+                    STATE.all = false;
+                    const lost =
+                        !document.activeElement ||
+                        document.activeElement === document.body;
+                    repaint([]);
+                    // The collapse button is gone: keep a keyboard user on
+                    // the expand button rather than at the top of the page.
+                    if (lost) {
+                        const b = document.querySelector(
+                            '[data-fid="bigchev"]',
+                        );
+                        if (b) b.focus({ preventScroll: true });
+                    }
+                };
+                if (reduced()) {
+                    done();
+                    return;
+                }
+                STATE.closing = true;
+                repaint([]);
+                setTimeout(done, 560);
+            }
+
+            function render(data, meta) {
+                STATE.data = data;
+                setLocaleFrom(data, __widgetApi);
+                STATE.periods = periodsFrom(meta);
+                STATE.model = buildModel(data, meta);
+                STATE.range = RANGES.includes(data && data.default_range)
+                    ? data.default_range
+                    : 30;
+                STATE.mode = STATE.periods ? STATE.periods.groupBy : "days";
+                STATE.metric = "calories";
+                STATE.level = 0;
+                STATE.sel = null;
+                STATE.day = null;
+                STATE.dayOpen = null;
+                STATE.all = false;
+                STATE.closing = false;
+                STATE.swS = "start";
+                painted = false;
+                const root = document.getElementById("root");
+                root.innerHTML = `<div id="tmode">${viewHtml()}</div>`;
+                painted = true;
+                measureStrip();
+                // Spin the hero figure in (a no-op without animation frames).
+                runReel(3000);
+            }
+
+            // Period mode switches repaint the whole view (not the card).
+            function paintMode() {
+                const box = document.getElementById("tmode");
+                if (!box) return;
+                painted = false;
+                box.innerHTML = viewHtml();
+                painted = true;
+                measureStrip();
+                if (STATE.mode === "days") runReel(1400);
+            }
+
+            // ---- interaction ---------------------------------------------------
+            // Delegated on #root, which persists across every repaint.
+            const rootEl = document.getElementById("root");
+            rootEl.addEventListener("click", (e) => {
+                if (!STATE.model) return;
+                const seg = e.target.closest(".seg-btn");
+                if (seg && seg.dataset.mode) {
+                    if (seg.dataset.mode !== STATE.mode) {
+                        STATE.mode = seg.dataset.mode;
+                        paintMode();
                     }
                     return;
                 }
-                const id = btn.dataset.range;
-                const r = RANGES.find((x) => String(x) === id);
-                if (r && r !== STATE.range) {
+                const b = e.target.closest("[data-act]");
+                if (!b || STATE.closing) return;
+                const act = b.dataset.act;
+                if (act === "range") {
+                    const r = RANGES.find((x) => String(x) === b.dataset.r);
+                    if (!r || r === STATE.range) return;
                     STATE.range = r;
-                    paint();
+                    STATE.day = null;
+                    STATE.dayOpen = null;
+                    STATE.all = false;
+                    repaint(["regrow"]);
+                    runReel(1600);
+                } else if (act === "metric") {
+                    const k = b.dataset.k;
+                    if (!k || k === STATE.metric) return;
+                    STATE.metric = k;
+                    STATE.day = null;
+                    repaint([]);
+                    runReel(1400);
+                } else if (act === "swl" || act === "swr") {
+                    const el = b.closest(".mswW").querySelector(".msw");
+                    const max = el.scrollWidth - el.clientWidth;
+                    if (max <= 4) return measureStrip();
+                    const dir = act === "swl" ? -1 : 1;
+                    const target =
+                        el.scrollLeft +
+                        dir * Math.max(el.clientWidth - 110, 140);
+                    el.scrollTo({ left: Math.max(0, Math.min(target, max)) });
+                } else if (act === "day") {
+                    const i = Number(b.dataset.i);
+                    if (i === STATE.day) return;
+                    STATE.day = i;
+                    repaint([]);
+                } else if (act === "toggle") {
+                    if (STATE.level === 0) {
+                        STATE.level = 1;
+                        repaint(["rows"]);
+                    } else collapse();
+                } else if (act === "collapse") {
+                    collapse();
+                } else if (act === "acc") {
+                    const k = b.dataset.k;
+                    flip(() => {
+                        STATE.dayOpen = null;
+                        STATE.all = false;
+                        if (STATE.sel === k) {
+                            STATE.sel = null;
+                            STATE.level = 1;
+                            repaint([]);
+                        } else {
+                            STATE.sel = k;
+                            STATE.level = 2;
+                            repaint(["body"]);
+                        }
+                    });
+                } else if (act === "dayopen") {
+                    const i = Number(b.dataset.i);
+                    STATE.dayOpen = STATE.dayOpen === i ? null : i;
+                    repaint(STATE.dayOpen == null ? [] : ["itl"]);
+                } else if (act === "all") {
+                    STATE.all = true;
+                    repaint([]);
                 }
             });
+            // scroll does not bubble: capture it, for the strip's arrows.
+            rootEl.addEventListener(
+                "scroll",
+                (e) => {
+                    if (
+                        e.target &&
+                        e.target.classList &&
+                        e.target.classList.contains("msw")
+                    )
+                        measureStrip();
+                },
+                true,
+            );
+            try {
+                window.addEventListener("resize", () => measureStrip());
+            } catch (_) {}
 
-            // ---- Rendering intake ----------------------------------------------
+            // ---- sample (standalone preview) ----------------------------------
+            // 30 days ending today-ish with a few unlogged days, fiber/sugar
+            // missing on some, caffeine most days, alcohol on a weekly cycle.
+            function buildSample() {
+                const days = [];
+                const added = {};
+                const sat = {};
+                const trans = {};
+                const sod = {};
+                const end = new Date("2026-10-24T12:00:00Z");
+                const r1 = (n) => Math.round(n * 10) / 10;
+                for (let i = 29; i >= 0; i--) {
+                    const d = new Date(end.getTime() - i * 864e5);
+                    const date = d.toISOString().slice(0, 10);
+                    const w = Math.sin(i / 2.2 + 1) * 0.55;
+                    const skip = i === 4 || i === 11 || i === 19;
+                    const nofs = !skip && (i === 2 || i === 9 || i === 23);
+                    const part = i === 0 ? 0.64 : 1;
+                    days.push({
+                        date,
+                        calories: skip
+                            ? 0
+                            : Math.round((2060 + w * 260) * part),
+                        protein_g: skip ? 0 : Math.round((146 + w * 24) * part),
+                        carbs_g: skip ? 0 : Math.round((214 + w * 34) * part),
+                        fat_g: skip ? 0 : Math.round((68 + w * 11) * part),
+                        fiber_g: skip || nofs ? null : r1((24 + w * 7) * part),
+                        sugar_g: skip || nofs ? null : r1((41 + w * 13) * part),
+                        alcohol_g: skip
+                            ? null
+                            : i % 6 === 1
+                              ? r1(12 + w * 6)
+                              : 0,
+                        caffeine_mg:
+                            skip || i % 5 === 3
+                                ? null
+                                : Math.round(190 + w * 70),
+                        water_ml: skip
+                            ? 0
+                            : Math.round((2100 + w * 380) * part),
+                    });
+                    added[date] = skip || nofs ? null : r1((17 + w * 8) * part);
+                    sat[date] = skip ? null : r1((17 + w * 5) * part);
+                    trans[date] = skip ? null : r1(0.4 + w * 0.2);
+                    sod[date] =
+                        skip || i === 1 || i === 8
+                            ? null
+                            : Math.round((2080 + w * 380) * part);
+                }
+                return {
+                    data: {
+                        end_date: days[days.length - 1].date,
+                        default_range: 14,
+                        drink_unit: "us",
+                        locale: "en",
+                        goals: {
+                            calories: 2200,
+                            protein_g: 160,
+                            carbs_g: 220,
+                            fat_g: 70,
+                            fiber_g: 30,
+                            sugar_g: 45,
+                            alcohol_g: 20,
+                            caffeine_mg: 400,
+                            water_ml: 2500,
+                        },
+                        days,
+                    },
+                    meta: {
+                        [ADDED_SUGAR_META_KEY]: { v: 1, goal: 25, days: added },
+                        [SATURATED_FAT_META_KEY]: {
+                            v: 1,
+                            goal: 20,
+                            days: sat,
+                            trans: { goal: null, days: trans },
+                        },
+                        [SODIUM_META_KEY]: { v: 1, goal: 2300, days: sod },
+                        [LOCAL_TODAY_META_KEY]: {
+                            v: 1,
+                            today: days[days.length - 1].date,
+                        },
+                    },
+                };
+            }
+            const SAMPLE = buildSample();
+
+            // ---- rendering intake ----------------------------------------------
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
                 if (Array.isArray(payload.days)) return payload;
@@ -550,7 +2916,8 @@
                     "</div></div>",
                 coerce,
                 render,
-                sample: SAMPLE,
+                sample: SAMPLE.data,
+                sampleMeta: SAMPLE.meta,
                 onReady(api) {
                     __widgetApi = api;
                 },

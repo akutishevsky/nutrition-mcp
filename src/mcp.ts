@@ -113,6 +113,11 @@ import {
 } from "./insights.js";
 import { analyzeWeightHistory, defaultRangeFor } from "./weight-trend.js";
 import {
+    buildBodyMeasurementsMeta,
+    buildWeightEntriesMeta,
+    WIDGET_HISTORY_DAYS,
+} from "./weight-widget.js";
+import {
     toGrams,
     formatWeight,
     fromGrams,
@@ -145,6 +150,7 @@ import {
     MAX_MACRO_G,
     MAX_ALCOHOL_G,
     MAX_CAFFEINE_MG,
+    MAX_SODIUM_MG,
     type BulkImportArgs,
 } from "./import.js";
 import { normalizeBarcode, lookupBarcode, formatFoodResult } from "./foods.js";
@@ -200,13 +206,32 @@ import {
     getWidgetHtml,
     MEAL_CONTRIBUTORS_META_KEY,
     WEIGHT_SERIES_META_KEY,
+    WEIGHT_ENTRIES_META_KEY,
+    BODY_MEASUREMENTS_META_KEY,
     PERIOD_AVERAGES_META_KEY,
     ADDED_SUGAR_META_KEY,
     SATURATED_FAT_META_KEY,
+    SODIUM_META_KEY,
+    LOCAL_TODAY_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_ITEMS_META_KEY,
+    MEAL_TIMES_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
+    GOAL_DAY_META_KEY,
+    DIGEST_META_KEY,
 } from "./widgets.js";
+import {
+    buildGoalDayMeta,
+    GOAL_DAY_HISTORY_DAYS,
+    historyFoods,
+    type GoalDayFood,
+} from "./goal-day.js";
+import {
+    computeDigest,
+    digestText,
+    DIGEST_HISTORY_DAYS,
+    DIGEST_PERIODS,
+} from "./digest.js";
 import {
     assertFoodRefPlacement,
     buildNutrientSourcesMeta,
@@ -231,6 +256,8 @@ import {
     transFatExtra,
     saturatedAboveFatNote,
 } from "./saturated-fat.js";
+import { buildSodiumMeta, sodiumExtra } from "./sodium.js";
+import { buildMealTimesMeta } from "./meal-times.js";
 import {
     GRANULARITIES,
     buildPeriodAveragesMeta,
@@ -264,6 +291,7 @@ const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 const TRENDS_WIDGET_URI = "ui://widget/trends.html";
 const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
 const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
+const DIGEST_WIDGET_URI = "ui://widget/digest.html";
 
 // The completeness rule for the three nutrients the model routinely forgets,
 // declared once and spliced into SERVER_INSTRUCTIONS, log_meal and update_meal
@@ -284,8 +312,9 @@ const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
 // zero, it excludes the entire DAY from that nutrient's averages and goal lines
 // (dayCarries in insights.ts), so one forgotten fiber figure silently deletes a
 // day from the user's fiber trend rather than making it slightly wrong.
-const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar, saturated fat, trans fat and caffeine are tracked alongside the headline macros.
+const NUTRIENT_COVERAGE = `Fiber, sugar, added sugar, saturated fat, trans fat, sodium and caffeine are tracked alongside the headline macros.
 - saturated_fat_g and trans_fat_g are optional on every meal. saturated_fat_g is part of fat_g, never more than it; trans_fat_g is a separate fat type, stored as given and not checked against fat_g. A missing value is stored as "not measured" and leaves that day out of the saturated-fat average and limit; trans fat has no limit and is shown only where it was recorded. A figure comes from a nutrition label, the product's published nutrition or an estimate; 0 is the correct value for a food with none. On an itemized meal saturated_fat_g is all-or-none across the items, like fiber_g's sugar pair: a list that gives it on some items and not others is refused with nothing saved. trans_fat_g may be given on some items and not others; the meal's trans fat is the sum of the items that carry it.
+- sodium_mg is optional on every meal: sodium in milligrams, not salt (1 g of salt holds about 400 mg of sodium). A missing value is stored as "not measured" and leaves that day out of the sodium average and limit. A figure comes from a nutrition label, the product's published nutrition or an estimate; 0 is the correct value for a food with none. On an itemized meal sodium_mg is all-or-none across the items, like saturated_fat_g: a list that gives it on some items and not others is refused with nothing saved.
 - fiber_g and sugar_g are read on every meal, like protein, carbs and fat. A missing value is stored as "not measured", not as zero, and leaves that whole day out of the user's fiber and sugar averages, goal lines and charts; an estimate keeps the day in. In order of accuracy, a figure comes from a nutrition label, a barcode lookup, the chain's or product's published per-item nutrition, or an estimate from the ingredients and the portion — an exact figure is no more required here than it is for protein. 0 is the correct value for food that has none (a steak, eggs, oil, black coffee).
 - added_sugar_g is read on every meal too, like sugar_g: the part of sugar_g added during processing or preparation, never more than sugar_g. It accompanies sugar_g: a call that gives sugar_g without added_sugar_g may be refused, with nothing saved. It is a classification more than a measurement — whole fruit, vegetables, plain milk, meat and rice are 0, and a soft drink's sugar is all added. A missing value is stored as "not recorded" and leaves that day out of the added-sugar average and limit.
 - caffeine_mg applies only to caffeine sources: coffee of any kind (decaf included, about 2-5 mg), tea, matcha, yerba mate, cola and many other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets. A label or a chain's published nutrition gives the figure where available; the field description lists typical amounts otherwise. For anything that is not a caffeine source the field is left out: an explicit 0 means "measured, and it was none", and it shows a caffeine row to a user who never consumes any.`;
@@ -361,13 +390,19 @@ Importing history from another app (MyFitnessPal, Cronometer, Lose It!, MacroFac
 // the same figure is accepted whichever way a meal arrives. They were briefly
 // duplicated with a test that grepped the other file to catch drift; sharing
 // one declaration removes the drift instead of detecting it.
-export { MAX_CALORIES, MAX_MACRO_G, MAX_ALCOHOL_G, MAX_CAFFEINE_MG };
+export {
+    MAX_CALORIES,
+    MAX_MACRO_G,
+    MAX_ALCOHOL_G,
+    MAX_CAFFEINE_MG,
+    MAX_SODIUM_MG,
+};
 // nutrition_goals stores every gram target as numeric(6,2), so anything from
 // 10000 up is a Postgres "numeric field overflow" rather than a saved goal.
 export const MAX_GOAL_G = 9_999.99;
-// daily_caffeine_mg is the one goal column that is numeric(7,2) — milligram
-// figures run three orders larger than the gram targets, so it gets its own
-// ceiling for the same overflow reason.
+// daily_caffeine_mg and daily_sodium_mg are the goal columns that are
+// numeric(7,2) — milligram figures run three orders larger than the gram
+// targets, so they get their own ceiling for the same overflow reason.
 export const MAX_GOAL_MG = 99_999.99;
 
 interface DailyTotals {
@@ -390,6 +425,9 @@ interface DailyTotals {
     // unit differs from its siblings. It carries no energy, so it never enters
     // a kcal derivation.
     caffeine_mg: number;
+    // Milligrams like caffeine; text only, like added_sugar_g (the widgets get
+    // it from SODIUM_META_KEY).
+    sodium_mg: number;
     water_ml: number;
 }
 
@@ -406,6 +444,7 @@ function emptyTotals(): DailyTotals {
         added_sugar_g: 0,
         alcohol_g: 0,
         caffeine_mg: 0,
+        sodium_mg: 0,
         water_ml: 0,
     };
 }
@@ -429,6 +468,7 @@ export function sumMeals(meals: Meal[]): DailyTotals {
         totals.added_sugar_g += m.added_sugar_g ?? 0;
         totals.alcohol_g += m.alcohol_g ?? 0;
         totals.caffeine_mg += m.caffeine_mg ?? 0;
+        totals.sodium_mg += m.sodium_mg ?? 0;
     }
     return totals;
 }
@@ -453,6 +493,7 @@ export interface NutrientPresence {
     added_sugar_g: boolean;
     alcohol_g: boolean;
     caffeine_mg: boolean;
+    sodium_mg: boolean;
 }
 
 export function nutrientPresence(meals: Meal[]): NutrientPresence {
@@ -464,6 +505,7 @@ export function nutrientPresence(meals: Meal[]): NutrientPresence {
         added_sugar_g: dayCarries(meals, "added_sugar_g"),
         alcohol_g: dayCarries(meals, "alcohol_g"),
         caffeine_mg: dayCarries(meals, "caffeine_mg"),
+        sodium_mg: dayCarries(meals, "sodium_mg"),
     };
 }
 
@@ -499,6 +541,7 @@ export function rangeAverages(
         added_sugar_g: number;
         alcohol_g: number;
         caffeine_mg: number;
+        sodium_mg: number;
     };
 } {
     const sum = emptyTotals();
@@ -517,6 +560,7 @@ export function rangeAverages(
     const saturated = coveredDailyAverage(mealsByDay, "saturated_fat_g");
     const alcohol = coveredDailyAverage(mealsByDay, "alcohol_g");
     const caffeine = coveredDailyAverage(mealsByDay, "caffeine_mg");
+    const sodium = coveredDailyAverage(mealsByDay, "sodium_mg");
     const n = perDay.length || 1;
     return {
         averages: {
@@ -530,6 +574,7 @@ export function rangeAverages(
             added_sugar_g: addedSugar.avg ?? 0,
             alcohol_g: alcohol.avg ?? 0,
             caffeine_mg: caffeine.avg ?? 0,
+            sodium_mg: sodium.avg ?? 0,
             water_ml: Math.round(sum.water_ml / n),
         },
         recordedDays: {
@@ -539,12 +584,14 @@ export function rangeAverages(
             saturated_fat_g: saturated.days,
             alcohol_g: alcohol.days,
             caffeine_mg: caffeine.days,
+            sodium_mg: sodium.days,
         },
     };
 }
 
 // The summary's daily-average line for a limited partial nutrient (added sugar,
-// saturated fat): the same rule for both, so only the label differs. Text,
+// saturated fat, sodium): the same rule for each, so only the label and unit
+// differ. Text,
 // because no structuredContent shape may carry it (the summary's `averages`
 // schema is frozen). Covered days only, like sugar (rangeAverages), against the
 // limit when one is set. Empty for a single day, whose section already prints
@@ -556,18 +603,19 @@ export function ceilingAverageLine(
     recordedDays: number,
     loggedDays: number,
     limit: number | null,
+    unit: "g" | " mg" = "g",
 ): string {
     if (loggedDays < 2) return "";
     if (recordedDays === 0) {
         // With a limit set, the gap is stated rather than dropped (see
         // limitNotRecorded); without one there is nothing to report.
         return hasActiveTarget(limit, "ceiling")
-            ? `\n\n${label}, daily average: ${limitNotRecorded("period", limit)}`
+            ? `\n\n${label}, daily average: ${limitNotRecorded("period", limit, unit)}`
             : "";
     }
     return `\n\n${formatGoalLine(
         `${label}, daily average`,
-        "g",
+        unit,
         average,
         limit,
         "ceiling",
@@ -703,10 +751,16 @@ export { WEIGHT_SERIES_META_KEY };
 export { PERIOD_AVERAGES_META_KEY };
 // And for the added-sugar figures (AddedSugarMeta) that five tools carry
 // beside their frozen structuredContent.
-export { ADDED_SUGAR_META_KEY, SATURATED_FAT_META_KEY };
+export { ADDED_SUGAR_META_KEY, SATURATED_FAT_META_KEY, SODIUM_META_KEY };
+// And get_trends' local "today" (the trends widget's still-running-day rule).
+export { LOCAL_TODAY_META_KEY };
 // And for the ingredients behind the breakdown rows (MealItemsMeta, built in
 // src/meal-items.ts), present only when some row has items.
 export { MEAL_ITEMS_META_KEY };
+// And for each row's local clock time (MealTimesMeta, built in
+// src/meal-times.ts), plus the written meal's position on the meal-progress
+// tools.
+export { MEAL_TIMES_META_KEY };
 
 /** Zero contributors, for a window with no meals at all. `.nullable()` is not
  *  optional: the alcohol key is always present, null when tracking is off. */
@@ -883,9 +937,10 @@ export function goalsPayloadOf(
  *  has to answer the question; a caller that forgets it gets null, which is the
  *  safe answer (a hidden stat line) rather than an invented zero. */
 export function totalsPayloadOf(
-    // Trans fat is optional here: no payload built from these totals emits it.
-    totals: Omit<DailyTotals, "trans_fat_g"> &
-        Partial<Pick<DailyTotals, "trans_fat_g">>,
+    // Trans fat and sodium are optional here: no payload built from these
+    // totals emits them.
+    totals: Omit<DailyTotals, "trans_fat_g" | "sodium_mg"> &
+        Partial<Pick<DailyTotals, "trans_fat_g" | "sodium_mg">>,
     alcohol: AlcoholDisplay,
     caffeineRecorded: boolean,
 ) {
@@ -1036,11 +1091,17 @@ const IMPORT_ROW_SCHEMA = z.object({
         .describe(
             "Caffeine in MILLIGRAMS, not grams. Every export, label and guideline states caffeine in mg (a brewed coffee is about 95 mg, i.e. 0.095 g), so map an mg column straight across — and multiply by 1000 first if the source header says grams, or the whole history imports a thousand times too small. Omit when the source has no caffeine column.",
         ),
+    sodium_mg: z.coerce
+        .number()
+        .optional()
+        .describe(
+            "Sodium in MILLIGRAMS — sodium, not salt. Cronometer's 'Sodium (mg)' and MyFitnessPal's 'Sodium' columns are both mg and map straight across. A column of salt in grams is a different figure (sodium mg = salt g x 400). Omit when the source has no sodium column; a missing value is not measured, not zero.",
+        ),
     notes: z
         .string()
         .optional()
         .describe(
-            "Anything from the source worth keeping that has no column here (micronutrients, the original row text).",
+            "Anything from the source worth keeping that has no column here (other micronutrients, the original row text).",
         ),
     client_row_id: z
         .string()
@@ -1163,11 +1224,14 @@ export function startImportPayload(opts: {
 // widget simply shows no expanders.
 //
 // The same read carries each row's nutrient labels (NUTRIENT_SOURCES_META_KEY),
-// with the same gate and the same drop-the-key behaviour.
+// with the same gate and the same drop-the-key behaviour. `itemsRead` is an
+// items read for exactly `rowMeals` already in flight, for a caller that
+// shares it with another consumer (get_goal_progress's goal-day entry).
 async function mealItemsMetaEntry(
     userId: string,
     rowMeals: readonly Meal[],
     alcohol: AlcoholDisplay,
+    itemsRead?: Promise<Map<string, MealItemValues[]>>,
 ): Promise<{
     [MEAL_ITEMS_META_KEY]?: MealItemsMeta;
     [NUTRIENT_SOURCES_META_KEY]?: NutrientSourcesMeta;
@@ -1175,10 +1239,11 @@ async function mealItemsMetaEntry(
     if (rowMeals.length === 0) return {};
     let items: Map<string, MealItemValues[]>;
     try {
-        items = await getMealItems(
-            userId,
-            rowMeals.map((m) => m.id),
-        );
+        items = await (itemsRead ??
+            getMealItems(
+                userId,
+                rowMeals.map((m) => m.id),
+            ));
     } catch (err) {
         const ref = newErrorRef();
         console.warn(
@@ -1205,6 +1270,66 @@ async function mealItemsMetaEntry(
     return {
         ...(payload ? { [MEAL_ITEMS_META_KEY]: payload } : {}),
         ...(sources ? { [NUTRIENT_SOURCES_META_KEY]: sources } : {}),
+    };
+}
+
+// get_goal_progress's GOAL_DAY_META_KEY entry (src/goal-day.ts), with the rows'
+// MEAL_TIMES_META_KEY beside it (src/meal-times.ts). On today it
+// also reads the GOAL_DAY_HISTORY_DAYS before the date, and their ingredients,
+// for the foods the widget may name; a failed read drops only `foods` (logged
+// with a ref, never a user id), so the tool and the rest of the day detail
+// still go out. `todayItems` is the items read for `meals` that
+// mealItemsMetaEntry also awaits, so today's ingredients are read once; only
+// the past days' items are read here.
+async function goalDayMetaEntry(
+    userId: string,
+    targetDate: string,
+    tz: string,
+    meals: Meal[],
+    water: WaterEntry[],
+    isToday: boolean,
+    todayItems: Promise<Map<string, MealItemValues[]>>,
+) {
+    let foods: GoalDayFood[] | undefined;
+    if (isToday) {
+        try {
+            const past = await getMealsInRange(
+                userId,
+                shiftLocalDate(targetDate, -GOAL_DAY_HISTORY_DAYS),
+                shiftLocalDate(targetDate, -1),
+                tz,
+            );
+            const [pastItems, dayItems] = await Promise.all([
+                past.length
+                    ? getMealItems(
+                          userId,
+                          past.map((m) => m.id),
+                      )
+                    : new Map<string, MealItemValues[]>(),
+                todayItems,
+            ]);
+            foods = historyFoods(
+                [...past, ...meals],
+                new Map([...pastItems, ...dayItems]),
+            );
+        } catch (err) {
+            const ref = newErrorRef();
+            console.warn(
+                `[widget] goal-day history read error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+            );
+        }
+    }
+    return {
+        // Row times ride under the shared MEAL_TIMES_META_KEY, as on the other
+        // meal tools; GOAL_DAY_META_KEY carries only what is goal-progress's own.
+        [MEAL_TIMES_META_KEY]: buildMealTimesMeta(meals, tz),
+        [GOAL_DAY_META_KEY]: buildGoalDayMeta({
+            meals,
+            water,
+            tz,
+            now: isToday ? new Date() : null,
+            foods,
+        }),
     };
 }
 
@@ -1277,6 +1402,14 @@ async function buildMealProgress(
             days: { [mealDate]: meals },
             meals,
         }),
+        [SODIUM_META_KEY]: buildSodiumMeta({
+            goal: goals?.daily_sodium_mg,
+            days: { [mealDate]: meals },
+            meals,
+        }),
+        // Each row's local time, and which row is the meal this call wrote
+        // (a backdated or edited meal is not necessarily the last one).
+        [MEAL_TIMES_META_KEY]: buildMealTimesMeta(meals, tz, meal.id),
         ...(await mealItemsMetaEntry(userId, meals, alcohol)),
     };
 
@@ -1382,6 +1515,7 @@ const ALL_RECORDED: NutrientPresence = {
     added_sugar_g: true,
     alcohol_g: true,
     caffeine_mg: true,
+    sodium_mg: true,
 };
 
 // `present` says which of the post-launch nutrients these meals actually carry,
@@ -1499,6 +1633,22 @@ export function formatProgress(
             "ceiling",
         ),
     );
+    // Sodium: a ceiling, gated on presence like saturated fat, with the shared
+    // not-recorded wording when a limit is set and the day recorded none. Whole
+    // milligrams, like caffeine above.
+    lines.push(
+        present.sodium_mg
+            ? formatGoalLine(
+                  "Sodium",
+                  " mg",
+                  Math.round(totals.sodium_mg),
+                  goals?.daily_sodium_mg ?? null,
+                  "ceiling",
+              )
+            : hasActiveTarget(goals?.daily_sodium_mg, "ceiling")
+              ? `Sodium: ${limitNotRecorded("day", goals.daily_sodium_mg, " mg")}`
+              : null,
+    );
     lines.push(
         formatGoalLine(
             "Water",
@@ -1555,6 +1705,9 @@ export function formatGoals(
     // list of targets the user could set.
     parts.push(
         `- Caffeine (max): ${ceiling(goals.daily_caffeine_mg, formatMg)}`,
+    );
+    parts.push(
+        `- Sodium (max): ${ceiling(goals.daily_sodium_mg ?? null, formatMg)}`,
     );
     parts.push(`- Water: ${floor(goals.daily_water_ml, (n) => `${n} ml`)}`);
     parts.push(
@@ -1946,6 +2099,14 @@ const MEAL_ITEM_INPUT = z.object({
         .describe(
             "Caffeine of this item in milligrams, as log_meal's caffeine_mg.",
         ),
+    sodium_mg: z.coerce
+        .number()
+        .min(0)
+        .max(MAX_SODIUM_MG)
+        .optional()
+        .describe(
+            "Sodium of this item in milligrams, as log_meal's sodium_mg. Give it on every item or on none.",
+        ),
     food_ref: FOOD_REF_INPUT.optional().describe(
         `${FOOD_REF_DESCRIPTION} Give it on the item it describes.`,
     ),
@@ -2277,6 +2438,10 @@ function perServingLine(t: NutrientValues, alcohol: AlcoholDisplay): string {
         t.protein_g !== null ? `P ${t.protein_g} g` : null,
         t.carbs_g !== null ? `C ${t.carbs_g} g` : null,
         t.fat_g !== null ? `F ${t.fat_g} g` : null,
+        t.saturated_fat_g != null
+            ? `saturated fat ${t.saturated_fat_g} g`
+            : null,
+        t.trans_fat_g != null ? `trans fat ${t.trans_fat_g} g` : null,
         t.fiber_g !== null ? `fiber ${t.fiber_g} g` : null,
         // Added sugar rides on the sugar figure, as in every listing, so the
         // two never read as separate amounts.
@@ -2285,6 +2450,7 @@ function perServingLine(t: NutrientValues, alcohol: AlcoholDisplay): string {
             ? `alcohol ${formatAlcohol(t.alcohol_g, alcohol)}`
             : null,
         t.caffeine_mg !== null ? `caffeine ${formatMg(t.caffeine_mg)}` : null,
+        t.sodium_mg != null ? `sodium ${formatMg(t.sodium_mg)}` : null,
     ].filter((x): x is string => x !== null);
     return parts.length > 0
         ? `Per serving: ${parts.join(" · ")}`
@@ -2750,7 +2916,7 @@ export function registerTools(
     usda: Partial<UsdaDeps> = {},
 ) {
     const usdaOverrides: Partial<UsdaDeps> = usda;
-    // One context for all 48 tools. clientInfo is a getter, not a value: at
+    // One context for all 49 tools. clientInfo is a getter, not a value: at
     // registration time the SDK has not yet resolved who is calling, and on the
     // modern leg it backfills the identity per request before dispatch.
     const analytics = {
@@ -2889,6 +3055,14 @@ export function registerTools(
                     .optional()
                     .describe(
                         "Caffeine in MILLIGRAMS (mg) — this field is the one that is not in grams, and a value under 1 almost certainly means grams were sent by mistake. Typical amounts: a 240 ml brewed coffee 95 mg, a single espresso 63 mg, instant coffee 62 mg, black tea 47 mg, green tea 28 mg, a 355 ml cola 34 mg, a 250 ml energy drink 80 mg, decaf 2 mg. Scale them to what was actually drunk (a double espresso is 126 mg), and for a branded drink prefer the figure on the label or the chain's published nutrition. Caffeine adds no calories, so it never changes the kcal figure. Unlike fiber_g, sugar_g and added_sugar_g, this field is conditional, so decide it on every entry rather than skipping it by default: if the item is a caffeine source at all — coffee including decaf, tea, matcha, yerba mate, cola and other soft drinks, energy drinks, pre-workout, chocolate and cocoa, coffee ice cream, caffeine tablets — send a figure, from the label or published nutrition where available and otherwise from the amounts above. Omit the field for anything that is not a caffeine source rather than sending 0 — a 0 records 'measured, and it was none', and one on a sandwich puts a caffeine row on the dashboard of a user who never drinks any.",
+                    ),
+                sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_SODIUM_MG)
+                    .optional()
+                    .describe(
+                        "Sodium in MILLIGRAMS: sodium, not salt (1 g of salt holds about 400 mg of sodium; a label giving salt in grams converts as salt g x 400). Optional, with a daily limit set in set_nutrition_goals. On an itemized meal it is all-or-none across the items: a list that gives it on some items and not others is refused. A missing value is stored as not measured and leaves that day out of the sodium average and limit. 0 is the correct value for a food with none.",
                     ),
                 logged_at: z
                     .string()
@@ -3313,7 +3487,7 @@ export function registerTools(
         {
             title: "Look Up Barcode",
             description:
-                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures are transcribed from the product's own label by the Open Food Facts community. This server does not verify them, and they can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or they can be read from a photo of the package: the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which log_meal accepts once scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is); they are omitted, not \"n/a\", when no value has been computed for that product. A fiber, sugar, added-sugar or saturated-fat figure shown as n/a is missing data, not a zero: any value passed for it later is an estimate. A saturated-fat or trans-fat figure shown as n/a is left out rather than sent as 0. Open Food Facts carries no caffeine, so caffeine_mg for a coffee, tea, cola, energy drink or other caffeinated product comes from the label where available, otherwise from typical amounts. When no product is found, the result says so; the product description, or a label the user shares, can supply the figures instead.",
+                "Look up a packaged product's label nutrition by barcode via Open Food Facts. The figures are transcribed from the product's own label by the Open Food Facts community. This server does not verify them, and they can be wrong, stale, or missing entirely. Pass the barcode digits (EAN/UPC, 8–14 digits). The user can type them, or they can be read from a photo of the package: the human-readable digits printed beneath the barcode. Returns the product name, serving, and macros, which log_meal accepts once scaled to the amount eaten. When Open Food Facts has computed them, it also returns the Nutri-Score (A–E, a nutritional-quality grade) and NOVA group (1–4, how processed the product is); they are omitted, not \"n/a\", when no value has been computed for that product. A fiber, sugar, added-sugar or saturated-fat figure shown as n/a is missing data, not a zero: any value passed for it later is an estimate. A saturated-fat, trans-fat or sodium figure shown as n/a is left out rather than sent as 0. Sodium is shown in milligrams of sodium, not salt. Open Food Facts carries no caffeine, so caffeine_mg for a coffee, tea, cola, energy drink or other caffeinated product comes from the label where available, otherwise from typical amounts. When no product is found, the result says so; the product description, or a label the user shares, can supply the figures instead.",
             annotations: {
                 title: "Look Up Barcode",
                 readOnlyHint: true,
@@ -3902,7 +4076,7 @@ export function registerTools(
         {
             title: "Goal Progress",
             description:
-                "Interactive UI for get_goal_progress: intake-vs-goal rings for a single day plus body-weight progress, with automatic light/dark theming.",
+                "Interactive UI for get_goal_progress: a single day's goals grouped by status (over, near the limit, still to go, on track) with per-meal sources and the latest weight, with automatic light/dark theming.",
             mimeType: APP_UI_MIME_TYPE,
         },
         async (uri) => {
@@ -3952,7 +4126,7 @@ export function registerTools(
         {
             title: "Trends",
             description:
-                "Interactive UI for get_trends: a 7/14/30-day toggle over a daily calories chart and trailing-average-vs-goal rings, with automatic light/dark theming.",
+                "Interactive UI for get_trends: a 7/14/30-day toggle and a nutrient switcher over a daily bar chart, with each nutrient's average against its goal or limit, with automatic light/dark theming.",
             mimeType: APP_UI_MIME_TYPE,
         },
         async (uri) => {
@@ -3969,6 +4143,31 @@ export function registerTools(
         },
     );
 
+    // UI resource for the get_digest widget (one period: calories, goals,
+    // trends, nutrients, water and weight, meals or habits, highlights).
+    server.registerResource(
+        "digest-widget",
+        DIGEST_WIDGET_URI,
+        {
+            title: "Nutrition Digest",
+            description:
+                "Interactive UI for get_digest: a collapsible card for one period with a calorie gauge (day) or daily bars (range), goals at a glance, trend charts, a nutrient table, water and weight, meals or logging habits, and highlights, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await getWidgetHtml("digest"),
+                        _meta: { ui: { prefersBorder: true } },
+                    },
+                ],
+            };
+        },
+    );
+
     // UI resource for the get_weight_trends widget (weight-over-time chart with
     // a trend line, a range toggle and target line). Same contract as above.
     server.registerResource(
@@ -3977,7 +4176,7 @@ export function registerTools(
         {
             title: "Weight Trends",
             description:
-                "Interactive UI for get_weight_trends: a range toggle (up to the whole history) over a weight-over-time chart (daily weigh-ins, smoothed trend line, data-scaled axis, target line) plus trend weight, weekly rate, change and target stats, with automatic light/dark theming.",
+                "Interactive UI for get_weight_trends: the latest weigh-in, its change over a selectable range (up to the whole history) and a weight-over-time chart (daily weigh-ins, smoothed trend line, data-scaled axis, target line), the weekly rate and goal projection, plus expandable lists of the weigh-ins by week and of body measurements by site, with automatic light/dark theming.",
             mimeType: APP_UI_MIME_TYPE,
         },
         async (uri) => {
@@ -4143,6 +4342,15 @@ export function registerTools(
                                         meals: [],
                                     },
                                 ),
+                                [SODIUM_META_KEY]: buildSodiumMeta({
+                                    goal: goals?.daily_sodium_mg,
+                                    days: {},
+                                    meals: [],
+                                }),
+                                [MEAL_TIMES_META_KEY]: buildMealTimesMeta(
+                                    [],
+                                    tz,
+                                ),
                             },
                         };
                     }
@@ -4246,6 +4454,10 @@ export function registerTools(
                         recordedDays.caffeine_mg < days.length
                             ? `caffeine ${recordedDays.caffeine_mg}`
                             : null,
+                        recordedDays.sodium_mg > 0 &&
+                        recordedDays.sodium_mg < days.length
+                            ? `sodium ${recordedDays.sodium_mg}`
+                            : null,
                     ].filter((s): s is string => s !== null);
                     const coverageNote = partial.length
                         ? `\n\n(Averaged over the days that record each figure, not all ${days.length}: ${partial.join(", ")}.)`
@@ -4281,6 +4493,15 @@ export function registerTools(
                             recordedDays.saturated_fat_g,
                             days.length,
                             goals?.daily_saturated_fat_g ?? null,
+                        ) +
+                        // Whole milligrams, like every mg figure in the text.
+                        ceilingAverageLine(
+                            "Sodium",
+                            Math.round(rawAverages.sodium_mg),
+                            recordedDays.sodium_mg,
+                            days.length,
+                            goals?.daily_sodium_mg ?? null,
+                            " mg",
                         ) +
                         coverageNote +
                         loggedDayAverageNote(days.length, daysInRange) +
@@ -4356,12 +4577,156 @@ export function registerTools(
                                     MEAL_BREAKDOWN_TOP_N,
                                 ),
                             }),
+                            // Same arrangement as saturated fat.
+                            [SODIUM_META_KEY]: buildSodiumMeta({
+                                goal: goals?.daily_sodium_mg,
+                                days: Object.fromEntries(byDate),
+                                meals: keptMeals,
+                                contributorsOf: meals,
+                                extra: sodiumExtra(
+                                    meals,
+                                    rows,
+                                    breakdown.kept,
+                                    MEAL_BREAKDOWN_TOP_N,
+                                ),
+                            }),
+                            // The kept rows' local times, in row order.
+                            [MEAL_TIMES_META_KEY]: buildMealTimesMeta(
+                                keptMeals,
+                                tz,
+                            ),
                             ...itemsEntry,
                         },
                     };
                 },
                 analytics,
                 { start_date, end_date },
+            );
+        },
+    );
+
+    // One period at a glance: get_digest and its widget (digest.html). The
+    // computation is src/digest.ts (pure, unit-tested); this adapter reads one
+    // DIGEST_HISTORY_DAYS window, the goals and the profile's units. The
+    // structuredContent is deliberately minimal (it is frozen from the first
+    // deploy); everything the widget draws rides in _meta under
+    // DIGEST_META_KEY as codes and numbers.
+    const DIGEST_NUTRIENTS_ITEM = z.object({
+        calories: z.number().nullable(),
+        protein_g: z.number().nullable(),
+        carbs_g: z.number().nullable(),
+        fat_g: z.number().nullable(),
+        fiber_g: z.number().nullable(),
+        sugar_g: z.number().nullable(),
+        added_sugar_g: z.number().nullable(),
+        saturated_fat_g: z.number().nullable(),
+        trans_fat_g: z.number().nullable(),
+        sodium_mg: z.number().nullable(),
+        caffeine_mg: z.number().nullable(),
+        alcohol_g: z.number().nullable(),
+        water_ml: z.number().nullable(),
+    });
+    server.registerTool(
+        "get_digest",
+        {
+            title: "Get Nutrition Digest",
+            description: `A digest of one period: yesterday, today so far, the last 7 days or the last 30 days (both ranges end yesterday). Returns calories and every tracked nutrient against the user's goals (for a range, per logged day with the number of days each goal was met), the latest weight, and for a day the number of meals logged. In clients that support MCP Apps UI it also renders an interactive digest card, which adds a comparison with the previous period, trends, logging habits and highlights. Figures are estimates, not medical or dietary advice.`,
+            annotations: {
+                title: "Get Nutrition Digest",
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                period: z
+                    .enum(DIGEST_PERIODS)
+                    .optional()
+                    .describe(
+                        "yesterday (the default), today (so far), last_7_days or last_30_days. Both ranges end yesterday.",
+                    ),
+            }),
+            outputSchema: z.object({
+                period: z.enum(DIGEST_PERIODS),
+                start_date: z.string(),
+                end_date: z.string(),
+                days_in_range: z.number(),
+                logged_days: z.number(),
+                // The widget's UI language, as on get_nutrition_summary.
+                locale: z.string(),
+                // The day's totals, or per-day averages over the logged days
+                // that record each figure. Null = not recorded; alcohol is
+                // null when tracking is off.
+                averages: DIGEST_NUTRIENTS_ITEM,
+                goals: DIGEST_NUTRIENTS_ITEM.omit({
+                    trans_fat_g: true,
+                }).nullable(),
+            }),
+            ...uiMeta(DIGEST_WIDGET_URI),
+        },
+        async ({ period }) => {
+            const which = period ?? "yesterday";
+            return withAnalytics(
+                "get_digest",
+                async () => {
+                    const now = new Date();
+                    const profile = await getProfile(userId);
+                    const tz = timezoneFromProfile(profile) ?? "UTC";
+                    const today = dateInTz(now, tz);
+                    const start = shiftLocalDate(today, -DIGEST_HISTORY_DAYS);
+                    const [meals, water, weights, goals, latestWeight] =
+                        await Promise.all([
+                            getMealsInRange(userId, start, today, tz),
+                            getWaterInRange(userId, start, today, tz),
+                            getWeightInRange(userId, start, today, tz),
+                            getNutritionGoals(userId),
+                            getLatestWeight(userId),
+                        ]);
+                    // Ingredients for the reported day's meals only (the
+                    // meal list); a failed read drops them, never the tool.
+                    let items = new Map<string, MealItemValues[]>();
+                    if (which === "today" || which === "yesterday") {
+                        const day =
+                            which === "today"
+                                ? today
+                                : shiftLocalDate(today, -1);
+                        const ids = meals
+                            .filter((m) => dateInTz(m.logged_at, tz) === day)
+                            .map((m) => m.id);
+                        if (ids.length) {
+                            try {
+                                items = await getMealItems(userId, ids);
+                            } catch (err) {
+                                const ref = newErrorRef();
+                                console.warn(
+                                    `[widget] digest meal-items read error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+                                );
+                            }
+                        }
+                    }
+                    const result = computeDigest({
+                        period: which,
+                        now,
+                        tz,
+                        meals,
+                        water,
+                        weights,
+                        latestWeight,
+                        items,
+                        goals,
+                        alcohol,
+                        weightUnit:
+                            preferredWeightUnitFromProfile(profile) ?? "kg",
+                        locale: localeFromProfile(profile) ?? "en",
+                    });
+                    return {
+                        content: [{ type: "text", text: digestText(result) }],
+                        structuredContent: result.structured,
+                        _meta: { [DIGEST_META_KEY]: result.meta },
+                    };
+                },
+                analytics,
+                { period: which },
             );
         },
     );
@@ -4467,6 +4832,15 @@ export function registerTools(
                     .describe(
                         "Daily caffeine limit in MILLIGRAMS, treated as a maximum to stay under. Reference points to offer when the user has no figure in mind: the EFSA and FDA ceiling for healthy adults is 400 mg/day and 200 mg in pregnancy, and a 240 ml brewed coffee is about 95 mg — so 400 mg is roughly four cups. 0 is a real limit meaning none at all, not 'unset'. Null to clear.",
                     ),
+                daily_sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_GOAL_MG)
+                    .nullable()
+                    .optional()
+                    .describe(
+                        "Daily sodium limit in MILLIGRAMS (sodium, not salt), a maximum to stay under. For reference, the WHO figure for adults is under 2000 mg/day and the US Dietary Guidelines figure is under 2300 mg/day. 0 is a real limit, not 'unset'. Null to clear.",
+                    ),
                 daily_water_ml: z.coerce
                     .number()
                     .nullable()
@@ -4557,6 +4931,10 @@ export function registerTools(
                             args.daily_caffeine_mg === undefined
                                 ? (existing?.daily_caffeine_mg ?? null)
                                 : args.daily_caffeine_mg,
+                        daily_sodium_mg:
+                            args.daily_sodium_mg === undefined
+                                ? (existing?.daily_sodium_mg ?? null)
+                                : args.daily_sodium_mg,
                         daily_water_ml:
                             args.daily_water_ml === undefined
                                 ? (existing?.daily_water_ml ?? null)
@@ -4627,7 +5005,7 @@ export function registerTools(
         {
             title: "Get Goal Progress",
             description:
-                "Get progress against daily nutrition goals for a specific date (defaults to today). Renders intake-vs-goal rings plus body-weight progress in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
+                "Get progress against daily nutrition goals for a specific date (defaults to today). Renders a goal-status view (which goals are over, near the limit, still to go or on track, with per-meal sources and the latest weight) in clients that support MCP Apps UI, and returns the same data as text elsewhere. Figures are estimates, not medical or dietary advice.",
             annotations: {
                 title: "Get Goal Progress",
                 readOnlyHint: true,
@@ -4747,6 +5125,30 @@ export function registerTools(
                               }
                             : null;
 
+                    // Independent reads, so in parallel. Today's items are
+                    // read once and shared: both entries await this promise
+                    // (so a rejection is always handled), and each drops only
+                    // its own part when it fails.
+                    const todayItems: Promise<Map<string, MealItemValues[]>> =
+                        meals.length
+                            ? getMealItems(
+                                  userId,
+                                  meals.map((m) => m.id),
+                              )
+                            : Promise.resolve(new Map());
+                    const [itemsEntry, dayEntry] = await Promise.all([
+                        mealItemsMetaEntry(userId, meals, alcohol, todayItems),
+                        goalDayMetaEntry(
+                            userId,
+                            targetDate,
+                            tz,
+                            meals,
+                            water,
+                            targetDate === todayInTz(tz),
+                            todayItems,
+                        ),
+                    ]);
+
                     return {
                         content: [
                             {
@@ -4779,11 +5181,13 @@ export function registerTools(
                                 days: { [targetDate]: meals },
                                 meals,
                             }),
-                            ...(await mealItemsMetaEntry(
-                                userId,
+                            [SODIUM_META_KEY]: buildSodiumMeta({
+                                goal: goals?.daily_sodium_mg,
+                                days: { [targetDate]: meals },
                                 meals,
-                                alcohol,
-                            )),
+                            }),
+                            ...itemsEntry,
+                            ...dayEntry,
                         },
                     };
                 },
@@ -4942,6 +5346,14 @@ export function registerTools(
                     .optional()
                     .describe(
                         "Caffeine in MILLIGRAMS, not grams (a 240 ml brewed coffee is 95 mg, a single espresso 63 mg, black tea 47 mg, a 250 ml energy drink 80 mg). Adds no calories. Pass it only for a meal that is genuinely a caffeine source; a 0 here records 'measured, and it was none' and starts showing the user a caffeine row.",
+                    ),
+                sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_SODIUM_MG)
+                    .optional()
+                    .describe(
+                        "Sodium in MILLIGRAMS: sodium, not salt (1 g of salt holds about 400 mg of sodium; a label giving salt in grams converts as salt g x 400). Optional, with a daily limit set in set_nutrition_goals. On an itemized meal it is all-or-none across the items: a list that gives it on some items and not others is refused. A missing value is stored as not measured and leaves that day out of the sodium average and limit. 0 is the correct value for a food with none.",
                     ),
                 logged_at: z
                     .string()
@@ -5227,6 +5639,14 @@ export function registerTools(
                     .optional()
                     .describe(
                         "Caffeine per serving, in milligrams, as log_meal's caffeine_mg.",
+                    ),
+                sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_SODIUM_MG)
+                    .optional()
+                    .describe(
+                        "Sodium per serving, in milligrams (sodium, not salt), as log_meal's sodium_mg. Optional; not measured when not sent.",
                     ),
             }),
         },
@@ -5801,6 +6221,14 @@ export function registerTools(
                     .max(MAX_CAFFEINE_MG)
                     .optional()
                     .describe("Caffeine per serving, in milligrams."),
+                sodium_mg: z.coerce
+                    .number()
+                    .min(0)
+                    .max(MAX_SODIUM_MG)
+                    .optional()
+                    .describe(
+                        "Sodium per serving, in milligrams (sodium, not salt). Optional; not measured when not sent.",
+                    ),
             }),
         },
         async ({
@@ -6587,9 +7015,23 @@ export function registerTools(
                     // in _meta. getAllWeight pages and reconciles against an
                     // exact count, so a long history throws rather than
                     // silently starting the trend late.
-                    const [entries, goals] = await Promise.all([
+                    // Body measurements feed only the widget's details
+                    // view: a failed read drops that `_meta` key (the widget
+                    // then hides the section) instead of failing the tool.
+                    const [entries, goals, measurements] = await Promise.all([
                         getAllWeight(userId),
                         getNutritionGoals(userId),
+                        getBodyMeasurementsInRange(
+                            userId,
+                            shiftLocalDate(endDate, -(WIDGET_HISTORY_DAYS - 1)),
+                            endDate,
+                            tz,
+                        ).catch((err: unknown) => {
+                            console.warn(
+                                `[get_weight_trends] body-measurements read failed; widget key dropped (${err instanceof Error ? err.name : "error"})`,
+                            );
+                            return null;
+                        }),
                     ]);
                     const targetG = goals?.target_weight_g ?? null;
                     const analysis = analyzeWeightHistory(
@@ -6642,8 +7084,30 @@ export function registerTools(
                         // Trend, rate and the 90-day / weekly / monthly
                         // series: _meta, not structuredContent, because the
                         // output schema is frozen (see WEIGHT_SERIES_META_KEY).
+                        // The per-reading list and the measurements are
+                        // widget-only details for the same reason.
                         _meta: {
                             [WEIGHT_SERIES_META_KEY]: analysis.meta,
+                            [WEIGHT_ENTRIES_META_KEY]: buildWeightEntriesMeta(
+                                entries,
+                                tz,
+                                unit,
+                                endDate,
+                                todayInTz(tz),
+                            ),
+                            ...(measurements
+                                ? {
+                                      [BODY_MEASUREMENTS_META_KEY]:
+                                          buildBodyMeasurementsMeta(
+                                              measurements,
+                                              tz,
+                                              preferredLengthUnitFromProfile(
+                                                  profile,
+                                              ),
+                                              endDate,
+                                          ),
+                                  }
+                                : {}),
                         },
                     };
                 },
@@ -7469,7 +7933,8 @@ export function registerTools(
                     const profile = await getProfile(userId);
                     const tz = timezoneFromProfile(profile) ?? "UTC";
                     const locale = localeFromProfile(profile) ?? "en";
-                    const endDate = end_date ?? todayInTz(tz);
+                    const today = todayInTz(tz);
+                    const endDate = end_date ?? today;
                     const windowDays = days ?? 30;
                     // The widget's toggle always offers up to 30 days, so build
                     // at least 30 days of series regardless of the text window.
@@ -7572,6 +8037,14 @@ export function registerTools(
                                 goal: goals?.daily_saturated_fat_g,
                                 days: seriesMeals,
                             }),
+                            [SODIUM_META_KEY]: buildSodiumMeta({
+                                goal: goals?.daily_sodium_mg,
+                                days: seriesMeals,
+                            }),
+                            // Which day is still running in the profile
+                            // timezone, so the widget can tell a partial
+                            // today from a past window.
+                            [LOCAL_TODAY_META_KEY]: { v: 1, today },
                         },
                         structuredContent: {
                             end_date: endDate,

@@ -101,6 +101,11 @@ const CSV_COLUMNS = [
     // grams, so a bare "caffeine" header is exactly how a re-import — ours or
     // anyone else's — turns 180 mg into 180 g.
     "caffeine_mg",
+    // Sodium (not salt), milligrams like caffeine, and the header says so.
+    // Empty where nothing was recorded, never 0. Placed with the other mg
+    // column; the importer matches by header name, so an export written before
+    // this column existed still re-imports.
+    "sodium_mg",
     "notes",
     // The saved meal this entry was logged from, or empty. Appended after
     // notes rather than inserted, so the importer (which matches by header
@@ -209,6 +214,7 @@ export function buildMealsCsv(meals: Meal[], tz: string): string {
                 csvEscape(m.added_sugar_g),
                 csvEscape(m.alcohol_g),
                 csvEscape(m.caffeine_mg),
+                csvEscape(m.sodium_mg),
                 csvEscape(m.notes),
                 csvEscape(m.saved_meal_id),
                 ...provenanceCells(m.nutrient_sources, m.source_detail),
@@ -221,7 +227,7 @@ export function buildMealsCsv(meals: Meal[], tz: string): string {
 /**
  * The nutrient columns shared by meal_items.csv, saved_meals.csv and
  * saved_meal_items.csv, in the order `nutrientCells` writes them. Same units as
- * meals.csv: grams, with caffeine_mg in milligrams. Values are per ingredient as
+ * meals.csv: grams, with caffeine_mg and sodium_mg in milligrams. Values are per ingredient as
  * logged (items) or per serving (saved meals).
  */
 const NUTRIENT_CSV_COLUMNS = [
@@ -236,19 +242,24 @@ const NUTRIENT_CSV_COLUMNS = [
     "added_sugar_g",
     "alcohol_g",
     "caffeine_mg",
+    "sodium_mg",
 ] as const;
 
-// The two optional-in-the-row columns are optional here too, because the rows
-// they type come from the same optional NutrientValues the write path uses, so
-// a row read from a database that predates them is still a valid input.
+// The optional-in-the-row columns are optional here too, because the rows they
+// type come from the same optional NutrientValues the write path uses, so a row
+// read from a database that predates them is still a valid input.
 type ExportNutrients = {
     [
         K in Exclude<
             (typeof NUTRIENT_CSV_COLUMNS)[number],
-            "saturated_fat_g" | "trans_fat_g"
+            "saturated_fat_g" | "trans_fat_g" | "sodium_mg"
         >
     ]: number | null;
-} & { saturated_fat_g?: number | null; trans_fat_g?: number | null };
+} & {
+    saturated_fat_g?: number | null;
+    trans_fat_g?: number | null;
+    sodium_mg?: number | null;
+};
 
 /** A logged meal's ingredient row, as getAllMealItems returns it. */
 export interface MealItemExportRow extends ExportNutrients {
@@ -555,7 +566,8 @@ export function buildBodyMeasurementsCsv(
 /**
  * Column order for goals.csv. Parallel array with the row builder below.
  *
- * `daily_caffeine_mg` is milligrams while its neighbours are grams, and
+ * `daily_caffeine_mg` and `daily_sodium_mg` are milligrams while their
+ * neighbours are grams, and
  * `daily_water_ml` millilitres, and `target_weight_g` canonical grams — the
  * unit is in the name at every layer for the same reason it is in meals.csv.
  */
@@ -578,6 +590,8 @@ const GOALS_CSV_COLUMNS = [
     // data, which is the one thing it must not be.
     "daily_alcohol_g",
     "daily_caffeine_mg",
+    // The daily limit for sodium, milligrams like daily_caffeine_mg.
+    "daily_sodium_mg",
     "daily_water_ml",
     "target_weight_g",
     "updated_at",
@@ -621,6 +635,7 @@ export function buildGoalsHistoryCsv(
                 csvEscape(h.daily_added_sugar_g),
                 csvEscape(h.daily_alcohol_g),
                 csvEscape(h.daily_caffeine_mg),
+                csvEscape(h.daily_sodium_mg),
                 csvEscape(h.daily_water_ml),
                 csvEscape(h.target_weight_g),
             ].join(","),
@@ -652,6 +667,7 @@ export function buildGoalsCsv(
                 csvEscape(goals.daily_added_sugar_g),
                 csvEscape(goals.daily_alcohol_g),
                 csvEscape(goals.daily_caffeine_mg),
+                csvEscape(goals.daily_sodium_mg),
                 csvEscape(goals.daily_water_ml),
                 csvEscape(goals.target_weight_g),
                 csvEscape(formatLocalDateTime(goals.updated_at, tz)),
@@ -1080,6 +1096,7 @@ export function buildExportReadme(opts: {
         "  * added_sugar_g counts only sugars added during processing or preparation; it is part of sugar_g (total sugars), never more than it. daily_added_sugar_g is the daily limit for added sugars, separate from daily_sugar_g (total sugars).",
         "  * saturated_fat_g and trans_fat_g are parts of fat_g, in grams. daily_saturated_fat_g is the daily limit for saturated fat; trans fat has no daily limit.",
         "  * caffeine_mg and daily_caffeine_mg are MILLIGRAMS, unlike every gram column beside them. A cup of coffee is about 95 mg.",
+        "  * sodium_mg and daily_sodium_mg are MILLIGRAMS of sodium, not salt (1 g of salt holds about 400 mg of sodium). daily_sodium_mg is the daily limit for sodium.",
         "  * amount_ml, daily_water_ml and water_ml are millilitres.",
         `  * weight_g and target_weight_g are grams — the canonical form the server stores. weight.csv also gives weight_display in ${weightUnit}, with weight_unit naming it, so you do not have to divide anything by hand.`,
         "  * value_mm is millimetres, the canonical stored form; value_entered is the number as typed, in entered_unit.",

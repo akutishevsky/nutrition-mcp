@@ -39,6 +39,7 @@
 
 import vm from "node:vm";
 import { getWidgetHtml, WIDGET_TEMPLATES } from "../src/widgets.js";
+import { type DomElement, elementFrom } from "./widget-dom.js";
 
 const sources = new Map<string, string>();
 
@@ -142,7 +143,7 @@ function usedClasses(markup: string): Set<string> {
  *  only the selectors whose every class occurs in `markup` — the template's
  *  stylesheet covers every state and screen (the importer's form, an open
  *  meal drawer), and one static card needs a fraction of it. */
-function shadowCss(raw: string, markup: string): string {
+function shadowCss(raw: string, markup: string, extra = ""): string {
     const used = usedClasses(markup);
     used.add("nmw-body"); // the wrapper `body` maps to
     const live = (sel: string) =>
@@ -173,10 +174,16 @@ function shadowCss(raw: string, markup: string): string {
     };
     return minify(
         walk(stripComments(raw), false).join("") +
+            extra +
             // The page, not the iframe, owns the space around the card: no
-            // gutter, no backdrop, and a container for the width queries. A
-            // still card has nothing to hover.
-            `:host{display:block}.nmw-body{background:transparent;container:nmw/inline-size}.nmw-body>.wrap{padding:0;max-width:none}.interactive,.seg-btn{cursor:default}.interactive:hover{background:none}`,
+            // gutter, and a container for the width queries. A host draws a
+            // widget in its own frame; the card gets one in the widget's own
+            // panel tokens (so it follows the theme as the widget does), its
+            // left edge on the thread's, where the assistant's replies start,
+            // so it reads as a widget in the reply and not as page content.
+            // Widgets that bring no inset of their own get one (FRAME_PAD).
+            // A still card has nothing to hover.
+            `:host{display:block}.nmw-body{background:var(--panel);border:1px solid var(--panel-border);border-radius:20px;padding:6px 2px;container:nmw/inline-size}.nmw-body.nmw-pad{padding:16px}.nmw-body>.wrap{padding:0;max-width:none}.interactive,.seg-btn{cursor:default}.interactive:hover{background:none}`,
     );
 }
 
@@ -204,6 +211,37 @@ interface StubEl {
 }
 
 /** An object any wiring code can poke at without effect. */
+/** A node of `root`'s own markup, by id. Its innerHTML is written back into
+ * the root: the node is empty when the widget first draws it (render() writes
+ * the empty element), so the write replaces that empty body. */
+function innerNode(id: string, root: StubEl): unknown {
+    const node: Record<string, unknown> = {
+        className: "",
+        addEventListener() {},
+        removeEventListener() {},
+        setAttribute() {},
+        removeAttribute() {},
+        querySelector: () => null,
+        querySelectorAll: () => [],
+        contains: () => false,
+        focus() {},
+        getAttribute: () => null,
+        classList: inert(),
+        style: {},
+        dataset: {},
+    };
+    Object.defineProperty(node, "innerHTML", {
+        get: () => "",
+        set: (html: string) => {
+            root.innerHTML = root.innerHTML.replace(
+                `id="${id}"></div>`,
+                `id="${id}">${html}</div>`,
+            );
+        },
+    });
+    return node;
+}
+
 function inert(): unknown {
     const fn = function () {
         return proxy;
@@ -228,31 +266,43 @@ export interface RenderOptions {
     today: string;
     /** The tool result's `_meta`, handed to render() as its 2nd argument. */
     meta?: Record<string, unknown> | null;
+    /** A card whose widget has a Show more control: the expanded state is
+     * produced by clicking that control through the widget's own handler,
+     * then each `then` selector (resolved inside the widget's markup) is
+     * clicked once, in order, to open the default detail. */
+    expand?: { then: string[] };
 }
 
-/** Run `key`'s real render() against `payload` and return the markup it
- *  writes into its root (wrapped in the root's own element). */
+/** Marks a Show more / Show less pill in both states, so the page's toggle
+ * (public/site.js) can find it through the card's shadow root. */
+export const TOGGLE_CLASS = "nmw-tog";
+
+/** The `.bigchev` pill is the Show more control of every template that has
+ * one: nutrient summary, meal-logged, goal progress, trends and digest. */
+const SHOW_MORE = ".bigchev";
+
+/** Run `key`'s real render() against `payload`. Returns the widget's markup
+ * (its root's own element included) for the collapsed state and, with
+ * `opts.expand`, for the expanded state: the Show more control and the
+ * default detail are clicked through the widget's own delegated handler. */
 function renderMarkup(
     key: string,
     payload: unknown,
     opts: RenderOptions,
-): { css: string; markup: string } {
+): { css: string; states: string[] } {
     const html = widgetHtml(key);
     const { css, js, rootTag } = splitWidget(html);
 
-    const root: StubEl = {
-        innerHTML: "",
-        addEventListener() {},
-        querySelector: () => null,
-        querySelectorAll: () => [],
-        classList: inert(),
-        style: {},
-        dataset: {},
-    };
+    // The widget's #root, parsed from its own opening tag (class and all).
+    const root: DomElement = elementFrom("#holder", `${rootTag}</div>`)
+        .children[0] as unknown as DomElement;
     const documentStub = {
-        getElementById: (id: string) => (id === "root" ? root : inert()),
-        querySelector: () => null,
-        querySelectorAll: () => [],
+        // Lookups reach inside the widget's root, as a page's would reach its
+        // widget: goal progress repaints its own #gp container.
+        getElementById: (id: string) =>
+            id === "root" ? root : (root.querySelector(`#${id}`) ?? inert()),
+        querySelector: (sel: string) => root.querySelector(sel),
+        querySelectorAll: (sel: string) => root.querySelectorAll(sel),
         addEventListener() {},
         removeEventListener() {},
         createElement: () => inert(),
@@ -353,12 +403,30 @@ function renderMarkup(
         updateModelContext: () => Promise.resolve(),
     });
     config.render(payload, opts.meta ?? null);
+    const states = [paint(root, rootTag, key)];
+    if (opts.expand) {
+        const pill = root.querySelector(SHOW_MORE);
+        if (!pill) throw new Error(`${key}: no Show more control to expand`);
+        pill.dispatch("click");
+        for (const sel of opts.expand.then) {
+            const el = root.querySelector(sel);
+            if (!el) throw new Error(`${key}: no control matches ${sel}`);
+            el.dispatch("click");
+        }
+        states.push(paint(root, rootTag, key));
+    }
+    return { css, states };
+}
+
+/** The root's markup as one state, its Show more pill marked. */
+function paint(root: DomElement, rootTag: string, key: string): string {
+    // Every pill: a widget can carry one per layout (weight trends has a
+    // phone pill and a desktop footer pill), and each one is live.
+    for (const pill of root.querySelectorAll(SHOW_MORE))
+        pill.classList.add(TOGGLE_CLASS);
     const markup = root.innerHTML.replace(/\n\s*/g, "\n").trim();
     if (!markup) throw new Error(`${key}: render() produced no markup`);
-    return {
-        css,
-        markup: `${rootTag.replace(/\s*id="root"/, "")}${markup}</div>`,
-    };
+    return `${rootTag.replace(/\s*id="root"/, "")}${markup}</div>`;
 }
 
 /** The rendered markup made into a picture: the same elements and classes
@@ -372,6 +440,9 @@ function stillMarkup(markup: string): string {
         markup
             .replace(/<!--[\s\S]*?-->/g, "")
             .replace(/<div class="mhint"[^>]*>[\s\S]*?<\/div>\n?/g, "")
+            // The digest gauge's "tap a meal piece" hint: the still card has no
+            // popovers to open.
+            .replace(/<div class="ghint"[^>]*>[\s\S]*?<\/div>\n?/g, "")
             .replace(/<div class="macro-detail[^"]*"[^>]*><\/div>\n?/g, "")
             .replace(
                 /(<div class="[^"]*\binteractive\b[^"]*")([^>]*)>/g,
@@ -384,9 +455,21 @@ function stillMarkup(markup: string): string {
             )
             // Whatever controls remain (the importer's file picker and buttons)
             // stay visible but out of the tab order and the click path.
-            .replace(/<(button|input|select|textarea|label)\b/g, "<$1 inert")
+            // The Show more pill is the one live control (site.js toggles the
+            // card on it); every other control stays out of the click path.
+            .replace(
+                /<(button|input|select|textarea|label)\b([^>]*)>/g,
+                (tag, name: string, attrs: string) =>
+                    new RegExp(`\\b${TOGGLE_CLASS}\\b`).test(attrs)
+                        ? tag
+                        : `<${name} inert${attrs}>`,
+            )
     );
 }
+
+/** Widgets whose root has no horizontal inset of its own (the day view,
+ *  goal progress, trends and weight cards pad themselves 12–16px). */
+const FRAME_PAD = new Set(["digest", "import-meals"]);
 
 /** One card: the widget's real markup and CSS in a declarative shadow root.
  *  `shadowrootclonable` because the hero's replay clones its thread nodes. */
@@ -395,8 +478,57 @@ export function renderWidgetCard(
     payload: unknown,
     opts: RenderOptions,
 ): string {
-    const { css, markup } = renderMarkup(key, payload, opts);
-    const body = stillMarkup(markup);
-    const sheet = shadowCss(css, body);
-    return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="nmw-body">${body}</div></template></div>`;
+    const { css, states } = renderMarkup(key, payload, opts);
+    const bodies = states.map(stillMarkup);
+    const bodyClass = FRAME_PAD.has(key) ? "nmw-body nmw-pad" : "nmw-body";
+    if (bodies.length === 1) {
+        const sheet = shadowCss(css, bodies[0]!);
+        return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="${bodyClass}">${bodies[0]}</div></template></div>`;
+    }
+    // Both states ship; the host's data-open attribute (set by the page's
+    // toggle, site.js) shows the expanded one. The collapsed state is what a
+    // card shows until its Show more is pressed.
+    const sheet = shadowCss(css, bodies.join(""), EXPAND_CSS);
+    const expanded = suffixIds(bodies[1]!, "x-");
+    return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="${bodyClass}"><div class="nmw-s nmw-s-c">${bodies[0]}</div><div class="nmw-s nmw-s-x">${expanded}</div></div></template></div>`;
 }
+
+/** Give every id in an expanded body a prefix, and every reference to one of
+ * those ids inside the same body (aria-controls, aria-labelledby,
+ * aria-describedby, for, headers, list, href="#…", url(#…)) with it. The two
+ * states are serialised side by side in one shadow root, so without this an
+ * id such as `wt` would occur twice in the same tree. */
+export function suffixIds(markup: string, prefix: string): string {
+    const ids = [...markup.matchAll(/\sid="([^"]*)"/g)].map((m) => m[1]!);
+    let out = markup;
+    for (const id of ids) {
+        const q = id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const renamed = prefix + id;
+        out = out.replace(new RegExp(` id="${q}"`, "g"), ` id="${renamed}"`);
+        out = out.replace(
+            new RegExp(
+                `(\\s(?:aria-controls|aria-labelledby|aria-describedby|for|headers|list)=")([^"]*)"`,
+                "g",
+            ),
+            (_m, lead: string, val: string) =>
+                `${lead}${val
+                    .split(/\s+/)
+                    .map((t) => (t === id ? renamed : t))
+                    .join(" ")}"`,
+        );
+        out = out.replace(
+            new RegExp(`href="#${q}"`, "g"),
+            `href="#${renamed}"`,
+        );
+        out = out.replace(
+            new RegExp(`url\\(#${q}\\)`, "g"),
+            `url(#${renamed})`,
+        );
+    }
+    return out;
+}
+
+/** The two-state switch inside a card's shadow root (see renderWidgetCard).
+ * Motion is only the expanded state's reveal, and only without reduced
+ * motion. */
+const EXPAND_CSS = `.nmw-s-x{display:none}:host([data-open]) .nmw-s-x{display:block}:host([data-open]) .nmw-s-c{display:none}@media (prefers-reduced-motion:no-preference){:host([data-open]) .nmw-s-x{animation:nmw-reveal .32s ease both}}@keyframes nmw-reveal{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}`;

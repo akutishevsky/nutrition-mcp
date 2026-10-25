@@ -34,7 +34,7 @@ export const INDEX_FR: IndexDoc = {
 
     featureList: [
         "Repas décrits en langage courant, avec calories, macros, fibres, sucre et sucre ajouté",
-        "Suivi des graisses saturées et trans, avec limite facultative pour les graisses saturées",
+        "Suivi des graisses saturées et trans et du sodium, avec limites facultatives pour les graisses saturées et le sodium",
         "Valeurs USDA FoodData Central pour les aliments génériques, estimations sinon",
         "Recherche par code-barres pour les produits emballés via Open Food Facts",
         "Chaque valeur de nutriment indique sa source",
@@ -193,7 +193,7 @@ export const INDEX_FR: IndexDoc = {
         note: "Tout ça est facultatif. Tu peux le faire maintenant, plus tard ou jamais : commence simplement à enregistrer, et règle le reste quand tu veux.",
         toolsCta: {
             heading: "Envie de voir tout ce qu'il sait faire ?",
-            body: "Parcours les 48 outils (enregistrement, codes-barres, eau, poids et mensurations, objectifs et tendances), chacun avec sa description et un exemple de demande.",
+            body: "Parcours les 49 outils (enregistrement, codes-barres, eau, poids et mensurations, objectifs et tendances), chacun avec sa description et un exemple de demande.",
             arrow: "Explorer les outils",
         },
     },
@@ -437,7 +437,7 @@ export const INDEX_FR: IndexDoc = {
                 id: "goals-progress",
                 title: "Fixe tes objectifs, fais le point",
                 description:
-                    "Fixe des cibles à atteindre, comme les calories et les protéines, et des limites à ne pas dépasser pour les sucres ajoutés, les graisses saturées, les sucres totaux, l'alcool et la caféine ; seul ce que tu mentionnes change. Ensuite, demande-lui où tu en es pour n'importe quel jour : ce qu'il te reste pour chaque cible, et où tu te situes par rapport à chaque limite.",
+                    "Fixe des cibles à atteindre, comme les calories et les protéines, et des limites à ne pas dépasser pour les sucres ajoutés, les graisses saturées, le sodium, les sucres totaux, l'alcool et la caféine ; seul ce que tu mentionnes change. Ensuite, demande-lui où tu en es pour n'importe quel jour : ce qu'il te reste pour chaque cible, et où tu te situes par rapport à chaque limite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Enregistre les cibles de calories et de protéines, et une limite de caféine de 400 mg",
@@ -459,7 +459,7 @@ export const INDEX_FR: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "C'est fait : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Le reste ne change pas : 220 g de glucides, 70 g de lipides, 20 g d'acides gras saturés, 30 g de fibres, 2,5 L d'eau, ta limite de 25 g de sucres ajoutés et ton poids cible de 75 kg.",
+                        text: "C'est noté : 2 000 kcal et 160 g de protéines à atteindre, caféine sous 400 mg. Tout le reste reste inchangé : 220 g de glucides, 70 g de lipides, 20 g de graisses saturées, 30 g de fibres, 2,5 L d'eau, 2 300 mg de sodium, ta limite de 25 g de sucres ajoutés et ton poids cible de 75 kg.",
                     },
                     {
                         from: "user",
@@ -485,6 +485,8 @@ export const INDEX_FR: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Calcule tes moyennes sur 7, 14 et 30 jours et ouvre la carte des tendances",
+                    get_digest:
+                        "Résume tes 7 derniers jours avec objectifs et points forts dans une seule carte",
                 },
                 messages: [
                     {
@@ -507,6 +509,36 @@ export const INDEX_FR: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Fais le bilan d'une journée",
+                description:
+                    "Demande comment s'est passée ta journée d'hier, ou comment se passent aujourd'hui ou les 7 ou 30 derniers jours, et une carte bilan s'ouvre dans le chat : calories et chaque nutriment suivi face à tes objectifs, eau et poids, repas de la journée pour un seul jour ou tes habitudes de saisie pour une période, et quelques points forts tirés de ton propre journal.",
+                toolNotes: {
+                    get_digest:
+                        "Construit le bilan de la période demandée : la liste des repas pour un seul jour, les habitudes de saisie pour une période",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "ça a donné quoi hier ?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Hier tu as enregistré 3 repas : 1 150 kcal sur tes 2 000, et 76 g de protéines sur tes 160 g. Il te reste donc 850 kcal et 84 g de protéines à atteindre. Les sucres ajoutés sont à 23 g sur ta limite de 25 g, le sodium à 1 050 mg sur 2 300 mg, et tu as bu 500 ml d'eau sur 2 500 ml.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -640,6 +672,35 @@ export const INDEX_FR: IndexDoc = {
                 cardMeals: ["Lager, 4 % (1 pinte, 568 ml)"],
             },
             {
+                id: "track-sodium",
+                title: "Suis ton sodium",
+                description:
+                    "Le sodium se suit en milligrammes, pas en sel, sur chaque repas, face à une limite quotidienne que tu fixes. Afficher plus liste le sodium d'un repas à côté de cette limite, pour que tu voies la part de la journée qu'il occupe.",
+                toolNotes: {
+                    log_meal:
+                        "Enregistre le bol avec son sodium en milligrammes, pas en sel",
+                    set_nutrition_goals:
+                        "Fixe la limite quotidienne de sodium de 2 300 mg à laquelle chaque repas est comparé",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "ramen tonkotsu avec un œuf pour le dîner, un grand bol",
+                    },
+                    {
+                        from: "ai",
+                        text: "Dîner enregistré : environ 610 kcal, 28 g de protéines et 2 640 mg de sodium. Ce bol à lui seul dépasse de 340 mg ta limite quotidienne de sodium, fixée à 2 300 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Ramen tonkotsu avec œuf (1 grand bol)"],
+            },
+            {
                 id: "import-history",
                 title: "Importe ton historique",
                 description:
@@ -764,7 +825,7 @@ export const INDEX_FR: IndexDoc = {
         cards: [
             {
                 title: "Repas en langage courant",
-                body: "Décris ce que tu as mangé : pour les aliments génériques, les valeurs de USDA FoodData Central sont utilisées quand elles existent, et ton IA estime le reste : calories, protéines, glucides, lipides, graisses saturées et trans, fibres, sucre total, sucre ajouté et caféine en milligrammes. Le repas est enregistré et chaque valeur indique sa source.",
+                body: "Décris ce que tu as mangé : pour les aliments génériques, les valeurs de USDA FoodData Central sont utilisées quand elles existent, et ton IA estime le reste : calories, protéines, glucides, lipides, graisses saturées et trans, fibres, sucre total, sucre ajouté, sodium et caféine en milligrammes. Le repas est enregistré et chaque valeur indique sa source.",
             },
             {
                 title: "Scanne un code-barres",
@@ -772,7 +833,7 @@ export const INDEX_FR: IndexDoc = {
             },
             {
                 title: "Objectifs et progression",
-                body: "Fixe des objectifs quotidiens de calories, macros, fibres et eau, ainsi que des limites à ne pas dépasser pour le sucre ajouté, les graisses saturées, le sucre total, la caféine et l’alcool, puis suis tes progrès en direct.",
+                body: "Fixe des objectifs quotidiens de calories, macros, fibres et eau, ainsi que des limites à ne pas dépasser pour le sucre ajouté, les graisses saturées, le sodium, le sucre total, la caféine et l’alcool, puis suis tes progrès en direct.",
             },
             {
                 title: "Résumés et tendances",
@@ -885,7 +946,7 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Qu'est-ce que Nutrition MCP ?",
             visibleHtml:
-                "Nutrition MCP est un serveur MCP (Model Context Protocol) gratuit et open source qui transforme Claude, ChatGPT ou un autre client MCP en compteur de calories et de macros. Au lieu de chercher chaque aliment toi-même, tu dis à ton IA ce que tu as mangé, et elle enregistre dans ton journal alimentaire les calories, les macros, les fibres, le sucre, le sucre ajouté, les graisses saturées et trans et la caféine.",
+                "Nutrition MCP est un serveur MCP (Model Context Protocol) gratuit et open source qui transforme Claude, ChatGPT ou un autre client MCP en compteur de calories et de macros. Au lieu de chercher chaque aliment toi-même, tu dis à ton IA ce que tu as mangé, et elle enregistre dans ton journal alimentaire les calories, les macros, les fibres, le sucre, le sucre ajouté, les graisses saturées et trans, le sodium et la caféine.",
         },
         {
             question: "Qu'est-ce que le Model Context Protocol (MCP) ?",
@@ -927,7 +988,7 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Que puis-je suivre ?",
             visibleHtml:
-                "Calories, protéines, glucides, lipides, graisses saturées et trans, fibres, sucre total, sucre ajouté et eau pour chaque entrée : décrits en langage courant, recherchés comme aliment générique dans USDA FoodData Central, ou tirés d’un code-barres via Open Food Facts. Un repas peut être enregistré ingrédient par ingrédient, chacun avec sa quantité et ses nutriments, et un repas que tu manges souvent peut être gardé comme repas sauvegardé et ajouté de nouveau par son nom. La caféine est aussi suivie, en milligrammes, l’unité qu’utilise chaque étiquette, et elle n’apporte pas de calories. L’alcool peut être suivi en grammes d’éthanol pur ; il n’apparaît qu’une fois le suivi de l’alcool activé. Tu peux aussi enregistrer ton poids en kg ou en livres et suivre les tendances vers un poids cible. Les mensurations (tour de taille, de hanches, de cou, de poitrine, d’épaules, de bras, d’avant-bras, de cuisse et de mollet) peuvent être enregistrées en cm ou en pouces. Consulte les bilans quotidiens, interroge les repas par période, modifie ou supprime des entrées passées, fixe des objectifs et suis les tendances dans le temps.",
+                "Calories, protéines, glucides, lipides, graisses saturées et trans, fibres, sucre total, sucre ajouté, sodium et eau pour chaque entrée : décrits en langage courant, recherchés comme aliment générique dans USDA FoodData Central, ou tirés d’un code-barres via Open Food Facts. Un repas peut être enregistré ingrédient par ingrédient, chacun avec sa quantité et ses nutriments, et un repas que tu manges souvent peut être gardé comme repas sauvegardé et ajouté de nouveau par son nom. La caféine est aussi suivie, en milligrammes, l’unité qu’utilise chaque étiquette, et elle n’apporte pas de calories. L’alcool peut être suivi en grammes d’éthanol pur ; il n’apparaît qu’une fois le suivi de l’alcool activé. Tu peux aussi enregistrer ton poids en kg ou en livres et suivre les tendances vers un poids cible. Les mensurations (tour de taille, de hanches, de cou, de poitrine, d’épaules, de bras, d’avant-bras, de cuisse et de mollet) peuvent être enregistrées en cm ou en pouces. Consulte les bilans quotidiens, interroge les repas par période, modifie ou supprime des entrées passées, fixe des objectifs et suis les tendances dans le temps.",
         },
         {
             question:

@@ -8,8 +8,8 @@
 // time — unlike the day view's 7/14/30 figures, which divide by every calendar
 // day. Both views name their denominator on screen.
 //
-// Requires fmt + esc (the template) and T / tpl / plural / WIDGET_LOCALE
-// (shared/i18n.js) in scope. Pure string builders, no state: the trends
+// Requires fmt + esc (the template), T / tpl / plural / WIDGET_LOCALE
+// (shared/i18n.js) and dfmt / dateRange (shared/date.js) in scope. Pure string builders, no state: the trends
 // template owns the mode, the gallery calls periodListHtml() directly.
 
 // Repeated as a literal because a widget cannot import; src/mcp.test.ts
@@ -140,44 +140,20 @@ function periodTargetsFrom(p, periods) {
 }
 
 // ---- Labels ----------------------------------------------------------------
-function periodDateFmt(opts) {
-    try {
-        return new Intl.DateTimeFormat(
-            WIDGET_LOCALE,
-            Object.assign({ timeZone: "UTC" }, opts),
-        );
-    } catch (_) {
-        return null;
-    }
-}
-const periodUtc = (iso) => new Date(iso + "T00:00:00Z");
+// Labels go through shared/date.js (dfmt, dateRange, dateFmt), which format
+// through Intl in the widget's language.
 
-// "Mar 30 – Apr 5"; the year joins both ends when the week crosses one
-// ("Dec 29, 2025 – Jan 4, 2026"). formatRange localizes the dash and the order.
+// "30 Mar – 5 Apr" ("9–15 Jul" within a month); the year joins both ends when
+// the week crosses one ("29 Dec 2025 – 4 Jan 2026"). dateRange sets the
+// dash and the order per locale.
 function periodWeekLabel(start, end) {
     const crosses = start.slice(0, 4) !== end.slice(0, 4);
-    const f = periodDateFmt(
-        crosses
-            ? { month: "short", day: "numeric", year: "numeric" }
-            : { month: "short", day: "numeric" },
-    );
-    try {
-        if (f && f.formatRange)
-            return f.formatRange(periodUtc(start), periodUtc(end));
-        if (f)
-            return `${f.format(periodUtc(start))} – ${f.format(periodUtc(end))}`;
-    } catch (_) {}
-    return `${start} – ${end}`;
+    return dateRange(start, end, crosses ? "cross" : "none");
 }
 
-// "Mar 2026" — the monthLabel pattern of weight-trends.html.
+// "Mar 2026" in the widget's language.
 function periodMonthLabel(start) {
-    const f = periodDateFmt({ month: "short", year: "numeric" });
-    try {
-        if (f) return f.format(periodUtc(start));
-    } catch (_) {}
-    const m = Number(start.slice(5, 7));
-    return `${T.nutritionSummary.months[m - 1]} ${start.slice(0, 4)}`;
+    return dfmt(start, { month: "short", year: "numeric" });
 }
 
 function periodLabelOf(row, g) {
@@ -192,15 +168,7 @@ function periodLabelOf(row, g) {
 }
 
 function periodLongDate(iso) {
-    const f = periodDateFmt({
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-    });
-    try {
-        if (f) return f.format(periodUtc(iso));
-    } catch (_) {}
-    return iso;
+    return dfmt(iso, { day: "numeric", month: "short", year: "numeric" });
 }
 
 // ---- Rows ------------------------------------------------------------------

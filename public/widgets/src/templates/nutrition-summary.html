@@ -8,13 +8,21 @@
   requests — because the MCP Apps sandbox blocks external hosts. Styling follows
   public/widgets/STYLE_GUIDE.md so it matches the other widgets.
 
-  One card (`.panel`): a header line naming the range and how much of it was
-  logged, the compact calories-per-day chart, then the shared macro strip
-  averaged over the logged days.
+  The 2026-10 redesign (artboards W1 mobile / desktop), the same visual system
+  as meal-logged (shared/gauge.js, shared/nutrients.js): the period over a
+  half-gauge of calories. One day splits the arc into its meals (tap a piece
+  for that meal); a range draws the daily average over its peak day. Show more
+  opens the nutrients as an accordion, each with its meals (a range: its
+  by-day strip and its top meals) and their ingredients, and the centre of the
+  gauge opens calories by meal (a range: by day). Every average divides by the
+  days that recorded the figure, as the tool's text does.
 
   Data arrives as the `structuredContent` of the get_nutrition_summary tool
-  result; the shared bridge (shared/bridge.js) reads it across host conventions
-  and calls render(). Standalone preview uses the SAMPLE below.
+  result, with the figures its frozen schema cannot carry in `_meta` (counts,
+  added sugar, the fats, sodium, ingredients, sources, each meal's time), all
+  validated as untrusted and optional; the shared bridge (shared/bridge.js)
+  reads it across host conventions and calls render(). Standalone preview uses
+  the SAMPLE below.
 -->
 <html lang="en">
     <head>
@@ -26,21 +34,20 @@
 
             /*@include shared/base.css@*/
 
-            /*@include shared/ring.css@*/
+            /*@include shared/gauge.css@*/
 
-            /*@include shared/macros.css@*/
-
-            /*@include shared/trend.css@*/
+            /*@include shared/nutrients.css@*/
         </style>
     </head>
     <body>
-        <div class="wrap tight" id="root"></div>
+        <div class="wrap tight dayview" id="root"></div>
 
         <script>
             "use strict";
 
             /*@i18n@*/
             /*@include shared/i18n.js@*/
+            /*@include shared/date.js@*/
 
             /*@include shared/bridge.js@*/
 
@@ -60,8 +67,6 @@
                     fiber_g: 30,
                     sugar_g: 45,
                     alcohol_g: 20,
-                    // EFSA's 400 mg/day, the limit almost everyone who sets one
-                    // sets. A ceiling, like sugar and alcohol.
                     caffeine_mg: 400,
                     water_ml: 2500,
                 },
@@ -72,19 +77,20 @@
                     fat_g: 74,
                     fiber_g: 26.4,
                     sugar_g: 58.2,
-                    // Alcohol tracking ON in this sample. null here (the
-                    // opt-in's "off") drops the limit cell entirely.
                     alcohol_g: 12.5,
-                    // Averaged over the days that recorded caffeine, never over
-                    // all of them. null here (nothing ever recorded) drops the
-                    // cell rather than claiming a 0 mg day.
                     caffeine_mg: 187,
                     water_ml: 2100,
+                },
+                recorded_days: {
+                    fiber_g: 3,
+                    sugar_g: 3,
+                    alcohol_g: 3,
+                    caffeine_mg: 2,
                 },
                 days: [
                     {
                         date: "2026-07-05",
-                        meal_count: 4,
+                        meal_count: 3,
                         calories: 2180,
                         protein_g: 155,
                         carbs_g: 230,
@@ -105,15 +111,12 @@
                         fiber_g: 22.8,
                         sugar_g: 51.4,
                         alcohol_g: 0,
-                        // Nothing caffeinated logged this day — null, not 0,
-                        // so it drops out of the average instead of dragging
-                        // it down.
                         caffeine_mg: null,
                         water_ml: 1800,
                     },
                     {
                         date: "2026-07-07",
-                        meal_count: 4,
+                        meal_count: 2,
                         calories: 2035,
                         protein_g: 151,
                         carbs_g: 197,
@@ -153,17 +156,17 @@
                         caffeine_mg: null,
                     },
                     {
-                        description: "Overnight oats with berries",
-                        meal_type: "breakfast",
-                        date: "2026-07-06",
-                        calories: 430,
-                        protein_g: 19,
-                        carbs_g: 63,
-                        fat_g: 12,
-                        fiber_g: 9.4,
-                        sugar_g: 24.6,
+                        description: "Flat white",
+                        meal_type: "snack",
+                        date: "2026-07-05",
+                        calories: 120,
+                        protein_g: 7,
+                        carbs_g: 10,
+                        fat_g: 6,
+                        fiber_g: 0,
+                        sugar_g: 9.8,
                         alcohol_g: 0,
-                        caffeine_mg: null,
+                        caffeine_mg: 245,
                     },
                     {
                         description: "Steak burrito",
@@ -177,76 +180,6 @@
                         sugar_g: 7.9,
                         alcohol_g: 13.8,
                         caffeine_mg: null,
-                    },
-                    {
-                        description: "Protein shake",
-                        meal_type: "snack",
-                        date: "2026-07-06",
-                        calories: 210,
-                        protein_g: 40,
-                        carbs_g: 8,
-                        fat_g: 3,
-                        fiber_g: 0.8,
-                        sugar_g: 4.2,
-                        alcohol_g: 0,
-                        caffeine_mg: null,
-                    },
-                    {
-                        description: "Egg & avocado toast",
-                        meal_type: "breakfast",
-                        date: "2026-07-07",
-                        calories: 480,
-                        protein_g: 24,
-                        carbs_g: 42,
-                        fat_g: 26,
-                        fiber_g: 5.4,
-                        sugar_g: 3.1,
-                        alcohol_g: 0,
-                        caffeine_mg: null,
-                    },
-                    {
-                        description: "Turkey & hummus wrap",
-                        meal_type: "lunch",
-                        date: "2026-07-07",
-                        calories: 560,
-                        protein_g: 44,
-                        carbs_g: 58,
-                        fat_g: 18,
-                        fiber_g: 6.9,
-                        sugar_g: 11.2,
-                        alcohol_g: 0,
-                        caffeine_mg: null,
-                    },
-                    {
-                        description: "Greek yogurt & almonds",
-                        meal_type: "snack",
-                        date: "2026-07-07",
-                        calories: 260,
-                        protein_g: 22,
-                        carbs_g: 14,
-                        fat_g: 14,
-                        fiber_g: 1.1,
-                        sugar_g: 12.6,
-                        alcohol_g: 9.8,
-                        caffeine_mg: null,
-                    },
-                    {
-                        // The two rows the caffeine total comes from. Every
-                        // other row above carries null — a meal logged before
-                        // caffeine existed, or one nobody bothered to fill in —
-                        // which is exactly the partial-nutrient case the panel
-                        // must not average as zero.
-                        description: "Flat white",
-                        meal_type: "snack",
-                        date: "2026-07-05",
-                        calories: 120,
-                        protein_g: 7,
-                        carbs_g: 10,
-                        fat_g: 6,
-                        fiber_g: 0,
-                        sugar_g: 9.8,
-                        alcohol_g: 0,
-                        caffeine_mg: 245,
                     },
                     {
                         description: "Cold brew",
@@ -273,48 +206,28 @@
             // under ADDED_SUGAR_META_KEY in src/widgets.ts — the same `_meta`
             // object, for the same frozen-schema reason.
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
-            // Where the same result carries the saturated- and trans-fat figures
-            // (SaturatedFatMeta, src/saturated-fat.ts), under the same frozen-schema
-            // reasoning as added sugar. Must equal SATURATED_FAT_META_KEY in
-            // src/widgets.ts.
+            // Saturated and trans fat (SaturatedFatMeta, src/saturated-fat.ts).
+            // Must equal SATURATED_FAT_META_KEY in src/widgets.ts.
             const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
-            // Where the same result carries each listed meal's ingredients
-            // ({ v: 1, meals: [items | null, …] }, aligned with data.meals by
-            // position), for the breakdown's expandable rows. Must equal
+            // Sodium (SodiumMeta, src/sodium.ts), milligrams with an optional
+            // daily ceiling. Must equal SODIUM_META_KEY.
+            const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
+            // Each listed meal's ingredients ({ v: 1, meals: [items | null, …] },
+            // aligned with data.meals by position). Must equal
             // MEAL_ITEMS_META_KEY in src/widgets.ts.
             const MEAL_ITEMS_META_KEY = "nutrition-mcp.com/meal-items";
-            // Where the same result carries each value's source (a USDA or OFF
-            // record, the user's own figure, or an estimate), position-aligned
-            // with the meals and their items. Must equal NUTRIENT_SOURCES_META_KEY
-            // in src/widgets.ts.
+            // Each value's source, position-aligned with the meals and their
+            // items. Must equal NUTRIENT_SOURCES_META_KEY in src/widgets.ts.
             const NUTRIENT_SOURCES_META_KEY =
                 "nutrition-mcp.com/nutrient-sources";
-
-            // What the server sends in `_meta` beside a bounded `meals`: per
-            // metric, how many meals had a positive value. The days add up to
-            // 11 meals but only 10 are listed above — the 11th (say, cucumber
-            // slices: 16 kcal, 0.7 g protein, 3.8 g carbs, 0.1 g fat, 0.5 g
-            // fiber, 1.7 g sugar, no alcohol or caffeine) fell outside every
-            // metric's top 8, exactly as the server drops it. So each count is
-            // the listed rows plus one, except alcohol and caffeine; calories
-            // reads "3 more meals".
-            const SAMPLE_META = {
-                [CONTRIBUTORS_META_KEY]: {
-                    calories: 11,
-                    protein_g: 10,
-                    carbs_g: 11,
-                    fat_g: 10,
-                    fiber_g: 9,
-                    sugar_g: 10,
-                    alcohol_g: 3,
-                    caffeine_mg: 2,
-                },
-            };
+            // Each listed meal's local time ({ v: 1, times }, aligned with
+            // data.meals). Must equal MEAL_TIMES_META_KEY in src/widgets.ts.
+            const MEAL_TIMES_META_KEY = "nutrition-mcp.com/meal-times";
 
             function fmt(n, decimals) {
                 if (n == null || isNaN(n)) return "0";
                 const r = decimals ? n.toFixed(decimals) : Math.round(n);
-                return Number(r).toLocaleString();
+                return Number(r).toLocaleString(WIDGET_LOCALE);
             }
             function esc(s) {
                 return String(s).replace(
@@ -329,16 +242,21 @@
                 );
             }
 
+            // The `_meta` validators and merges (withAddedSugar & co.), and
+            // DRINK_GRAMS. Its strip is not drawn here, and its delegated
+            // click handlers only answer its own data attributes, which this
+            // card never uses.
             /*@include shared/macros.js@*/
 
-            // ---- Header dates -------------------------------------------------
-            // The header line is one nowrap run, so the range is written the way
-            // a person would say it ("5–7 Jul") rather than as two ISO strings.
-            // Parsed by hand rather than through Date: these are calendar dates
-            // in the USER's timezone, and new Date("2026-07-05") is UTC midnight,
-            // which formats as the 4th for anyone west of Greenwich.
-            // Month abbreviations come from T.nutritionSummary.months (set once
-            // the widget's locale is known), not a hardcoded MONTHS array.
+            /*@include shared/gauge.js@*/
+
+            /*@include shared/nutrients.js@*/
+
+            // ---- Dates --------------------------------------------------------
+            // Calendar dates in the USER's timezone, parsed by hand: new
+            // Date("2026-07-05") is UTC midnight, which formats as the 4th for
+            // anyone west of Greenwich. Formatting goes through Intl with
+            // timeZone UTC on a UTC-noon instant, which names the same day.
             function ymd(s) {
                 const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s ?? ""));
                 if (!m) return null;
@@ -346,120 +264,48 @@
                 if (mon < 1 || mon > 12) return null;
                 return { y: Number(m[1]), m: mon, d: Number(m[3]) };
             }
-            // Every supported locale except Japanese happens to share
-            // English's day-before-month order ("5 Jul"/"5 juillet"/"5
-            // Juli"...), so only `ja` gets a distinct branch here rather
-            // than a per-locale date-order field in WidgetStrings — Y-M-D
-            // with 年/月/日 particles, no separating spaces.
-            function dayLabel(s, withYear) {
+            function utcNoon(s) {
                 const p = ymd(s);
-                if (!p) return String(s ?? "");
-                const month = T.nutritionSummary.months[p.m - 1];
-                return WIDGET_LOCALE === "ja"
-                    ? `${withYear ? `${p.y}年` : ""}${month}${p.d}日`
-                    : `${p.d} ${month}${withYear ? ` ${p.y}` : ""}`;
+                return p ? new Date(Date.UTC(p.y, p.m - 1, p.d, 12)) : null;
             }
-            // "5–7 Jul" within a month, "28 Jun – 4 Jul" across two. The year
-            // shows when the range crosses one (where it is the whole point)
-            // and when the range is not in the current year — a summary of last
-            // autumn labelled "28 Jun – 4 Jul" names no year at all, and this
-            // tool is routinely asked for a past window.
+            // The day labels (dateText, dateRange, dfmt) come from
+            // shared/date.js, which formats through Intl in the widget's
+            // language. Kept as named wrappers so the call sites read the same.
+            function dayLabel(s, withYear) {
+                return dateText(s, withYear);
+            }
             function rangeLabel(start, end) {
-                const a = ymd(start),
-                    b = ymd(end);
-                if (!a || !b) return `${start} → ${end}`;
-                // The payload dates are already resolved in the user's
-                // timezone, and so is the local year here; a date-line
-                // disagreement at worst prints a year that did not need
-                // printing.
-                const thisYear = new Date().getFullYear();
-                if (a.y !== b.y)
-                    return `${dayLabel(start, true)} – ${dayLabel(end, true)}`;
-                const yr = b.y === thisYear ? "" : ` ${b.y}`;
-                if (a.m === b.m) {
-                    if (a.d === b.d) return `${dayLabel(end, false)}${yr}`;
-                    // "7月5日〜7日": every other branch above and below just
-                    // joins two dayLabel() calls, which is already
-                    // locale-correct — this is the one case where the month
-                    // is factored out once, and English's "day–day month"
-                    // order is backwards for Japanese's "month day〜day".
-                    if (WIDGET_LOCALE === "ja") {
-                        const yearPrefix = b.y === thisYear ? "" : `${b.y}年`;
-                        return `${yearPrefix}${T.nutritionSummary.months[b.m - 1]}${a.d}日〜${b.d}日`;
-                    }
-                    return `${a.d}–${b.d} ${T.nutritionSummary.months[b.m - 1]}${yr}`;
-                }
-                return `${dayLabel(start, false)} – ${dayLabel(end, false)}${yr}`;
+                return dateRange(start, end, "auto");
             }
-
-            // Calories-per-day trend: SVG area + line that scales to any range
-            // (3 days to a year), drawn at the compact 480×54 scale that sits
-            // inside the panel rather than on a card of its own. Uniform scaling
-            // — no preserveAspectRatio distortion — so it keeps its aspect ratio
-            // at any container width. No <text>: every label is HTML above it.
-            function trendChart(days, goal) {
-                const W = 480,
-                    H = 54,
-                    padL = 5,
-                    padR = 5,
-                    padT = 5,
-                    padB = 4;
-                const n = days.length;
-                const vals = days.map((d) => d.calories || 0);
-                const maxV = Math.max(...vals, goal || 0, 1) * 1.15;
-                const plotW = W - padL - padR;
-                const plotH = H - padT - padB;
-                const base = padT + plotH;
-                const x = (i) =>
-                    n === 1 ? padL + plotW / 2 : padL + (plotW * i) / (n - 1);
-                const y = (v) => padT + plotH - (v / maxV) * plotH;
-                const pts = vals.map((v, i) => [x(i), y(v)]);
-
-                const line = pts
-                    .map(
-                        (p, i) =>
-                            `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`,
-                    )
-                    .join(" ");
-                const area =
-                    `M${pts[0][0].toFixed(1)} ${base} ` +
-                    pts
-                        .map((p) => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
-                        .join(" ") +
-                    ` L${pts[n - 1][0].toFixed(1)} ${base} Z`;
-
-                const goalLine =
-                    goal && goal > 0
-                        ? `<line class="goalline" x1="${padL}" y1="${y(goal).toFixed(1)}" x2="${W - padR}" y2="${y(goal).toFixed(1)}"/>`
-                        : "";
-                // Dots only while they still read as individual days: at 10
-                // points they are ~52 units apart, at a fortnight they crowd the
-                // line into a beaded string and at a month they are noise.
-                const dots =
-                    n <= 10
-                        ? pts
-                              .map(
-                                  (p) =>
-                                      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6" fill="var(--calories)"/>`,
-                              )
-                              .join("")
-                        : "";
-                const avg = Math.round(vals.reduce((a, b) => a + b, 0) / n);
-
-                return `
-          <div class="chart">
-            <div class="chead">
-              <span class="ctitle">${esc(T.nutritionSummary.caloriesPerDay)}</span>
-              <span class="cmeta">${esc(T.nutritionSummary.avg)} ${fmt(avg, 0)}${goal && goal > 0 ? ` · ${esc(T.nutritionSummary.goal)} ${fmt(goal, 0)}` : ""}</span>
-            </div>
-            <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(T.nutritionSummary.chartAriaLabel)}">
-              <line class="axis" x1="${padL}" y1="${base}" x2="${W - padR}" y2="${base}"/>
-              ${goalLine}
-              <path d="${area}" fill="var(--calories)" opacity="0.16"/>
-              <path d="${line}" fill="none" stroke="var(--calories)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-              ${dots}
-            </svg>
-          </div>`;
+            function intlDate(s, opts) {
+                return dfmt(s, opts);
+            }
+            // "Saturday, 24 October" (the year when it is not this one).
+            function fullDayLabel(s) {
+                const p = ymd(s);
+                const opts = { weekday: "long", day: "numeric", month: "long" };
+                if (p && p.y !== new Date().getFullYear())
+                    opts.year = "numeric";
+                return intlDate(s, opts);
+            }
+            function isTodayIso(s) {
+                const now = new Date();
+                const iso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+                return s === iso;
+            }
+            // Every calendar date from start to end (at most a quarter).
+            function datesBetween(start, end) {
+                const a = utcNoon(start),
+                    b = utcNoon(end);
+                if (!a || !b || b < a) return [];
+                const out = [];
+                for (
+                    let t = a.getTime();
+                    t <= b.getTime() && out.length < 400;
+                    t += 86400000
+                )
+                    out.push(new Date(t).toISOString().slice(0, 10));
+                return out;
             }
 
             // "3 days logged", or "15 of 30 days logged" when the payload also
@@ -467,6 +313,22 @@
             // replaying a tool result from before it existed has no such field,
             // and older payloads must render exactly as they always did, so it
             // is only used when it is a real number larger than logged_days.
+            // Whether the card has anything to open. Meals count, and so does
+            // logged water: a water-only day arrives with meal_count 0, and its
+            // Water row lives in the accordion, so the card keeps its Show
+            // more pill rather than reading "No meals logged" with no way in.
+            function summaryHasData(days) {
+                const mealCount = days.every((d) =>
+                    Number.isFinite(d && d.meal_count),
+                )
+                    ? days.reduce((n, d) => n + d.meal_count, 0)
+                    : null;
+                const hasWater = days.some((d) => Number(d && d.water_ml) > 0);
+                return (
+                    (mealCount == null ? days.length > 0 : mealCount > 0) ||
+                    hasWater
+                );
+            }
             function loggedDaysCaption(data) {
                 const logged = data.logged_days;
                 const span = Number(data.days_in_range);
@@ -478,12 +340,33 @@
                     : plural(T.nutritionSummary.daysLogged, logged);
             }
 
+            // The nutrients whose per-day value comes from a `_meta` part
+            // (its `days` map), by payload key.
+            function metaDayParts(m) {
+                const as = addedSugarPayload(m[ADDED_SUGAR_META_KEY]);
+                const sf = saturatedFatPayload(m[SATURATED_FAT_META_KEY]);
+                const na = m[SODIUM_META_KEY];
+                const ok = (p) =>
+                    p &&
+                    typeof p === "object" &&
+                    p.days &&
+                    typeof p.days === "object"
+                        ? p
+                        : null;
+                return {
+                    added_sugar_g: ok(as),
+                    saturated_fat_g: ok(sf),
+                    trans_fat_g: ok(sf && sf.trans),
+                    sodium_mg: ok(na && na.v === 1 ? na : null),
+                };
+            }
+
             // `resultMeta` is the tool result's `_meta` (or null — see bridge.js).
             function render(data, resultMeta) {
                 const root = document.getElementById("root");
-                // structuredContent.locale (the user's saved get_language /
-                // set_language preference, resolved server-side) wins over
-                // the host's ambient hostContext.locale — see pickLocale in
+                // structuredContent.locale (the user's saved set_language
+                // preference, resolved server-side) wins over the host's
+                // ambient hostContext.locale — see pickLocale in
                 // shared/i18n.js.
                 setLocale(
                     pickLocale(
@@ -493,11 +376,7 @@
                             : null,
                     ),
                 );
-                if (
-                    !data ||
-                    !Array.isArray(data.days) ||
-                    data.days.length === 0
-                ) {
+                if (!data || !Array.isArray(data.days)) {
                     root.innerHTML = `
             <div class="empty">
               <div class="big">🍽️</div>
@@ -505,136 +384,380 @@
             </div>`;
                     return;
                 }
+                const S = T.nutritionSummary;
+                const m = resultMeta || {};
                 const days = data.days
                     .slice()
                     .sort((a, b) => (a.date < b.date ? -1 : 1));
-                const multi = days.length > 1;
-                // Name the denominator: this average divides by the days that
-                // actually have a log, while the trends widget's rings divide
-                // by every calendar day in the window. Same macros, different
-                // number — labelling both is the fix for issue #70.
-                const calLabel = multi
-                    ? T.nutritionSummary.dailyAvgLoggedDays
-                    : T.nutritionSummary.total;
-                const meta = multi
-                    ? `${rangeLabel(data.start_date, data.end_date)} · ${loggedDaysCaption(data)}`
-                    : dayLabel(days[0].date, false);
+                const isRange =
+                    data.start_date &&
+                    data.end_date &&
+                    data.start_date !== data.end_date;
+                const single = !isRange;
+                const theDay = data.start_date || (days[0] && days[0].date);
+                const today = single && isTodayIso(theDay);
+                const dates = days.map((d) => d.date);
+                const nLogged = days.length;
+                const mealCount = days.every((d) =>
+                    Number.isFinite(d && d.meal_count),
+                )
+                    ? days.reduce((n, d) => n + d.meal_count, 0)
+                    : null;
+                const hasData = summaryHasData(days);
+                const rec = data.recorded_days || {};
 
-                const trend =
-                    multi && days.length >= 2
-                        ? trendChart(days, data.goals?.calories ?? null)
-                        : "";
-
-                // Calorie ring + figure, the three macro bars, the limits row
-                // (sugar / alcohol / caffeine / fiber, whichever have data) and
-                // the water line. Tapping a tile reveals the meals behind it.
-                // Added sugar joins the strip only when `_meta` carries it.
-                // Its figure is the mean over the days that RECORDED it — a
-                // day with sugar but no added-sugar figure drops out, the same
-                // rule the tool's own text applies — so it is not divided by
-                // the logged days the other averages use. Without `_meta`
-                // these are the payload's own objects, untouched.
-                const as = addedSugarPayload(
-                    resultMeta && resultMeta[ADDED_SUGAR_META_KEY],
-                );
+                // The payload's own averages (one day: that day's totals), then
+                // added sugar, the fats and sodium from `_meta`, each the mean
+                // over the days that recorded it; then ingredients and sources.
+                const base = Object.assign({}, data.averages || {});
+                // Fiber and sugar read 0 on a day nothing recorded them; the
+                // count says whether any day did.
+                for (const k of ["fiber_g", "sugar_g"])
+                    if (rec[k] === 0) base[k] = null;
+                const as = addedSugarPayload(m[ADDED_SUGAR_META_KEY]);
                 const merged = withAddedSugar(
                     as,
-                    addedSugarFor(
-                        as,
-                        days.map((d) => d.date),
-                    ),
-                    data.averages,
+                    addedSugarFor(as, dates),
+                    base,
                     data.goals,
                     data.meals,
                 );
-                // Saturated and trans fat join the strip the same way, after added
-                // sugar (withSaturatedFat): each figure is the mean over the days that
-                // recorded it, and without `_meta` the strip is unchanged.
                 const sf = withSaturatedFat(
-                    resultMeta && resultMeta[SATURATED_FAT_META_KEY],
-                    days.map((d) => d.date),
+                    m[SATURATED_FAT_META_KEY],
+                    dates,
                     merged.vals,
                     merged.goal,
                     merged.meals,
                 );
-                merged.vals = sf.vals;
-                merged.goal = sf.goal;
-                merged.meals = sf.meals;
-                // The fats' own extra rows and counts join added sugar's (the
-                // summary's list and "N more" line read the union of both).
+                const na = withSodium(
+                    m[SODIUM_META_KEY],
+                    dates,
+                    sf.vals,
+                    sf.goal,
+                    sf.meals,
+                );
+                // The fats' and sodium's own extra rows join added sugar's (each
+                // nutrient's ranked list reads only its own).
                 merged.extraRows = Object.assign(
                     {},
                     merged.extraRows,
                     sf.extraRows,
+                    na.extraRows,
                 );
-                // Ingredients join the rows the same way, last;
-                // without `_meta` this is merged.meals itself.
-                const itemsMeta = mealItemsPayload(
-                    resultMeta && resultMeta[MEAL_ITEMS_META_KEY],
-                );
-                const rows = withNutrientSources(
-                    nutrientSourcesPayload(
-                        resultMeta && resultMeta[NUTRIENT_SOURCES_META_KEY],
-                    ),
-                    withMealItems(itemsMeta, merged.meals),
+                const itemsMeta = mealItemsPayload(m[MEAL_ITEMS_META_KEY]);
+                const rows = withItemSodium(
                     itemsMeta,
+                    withNutrientSources(
+                        nutrientSourcesPayload(m[NUTRIENT_SOURCES_META_KEY]),
+                        withMealItems(itemsMeta, na.meals),
+                        itemsMeta,
+                    ),
                 );
-                const panel = macroPanel(
-                    merged.vals,
-                    merged.goal,
-                    undefined,
-                    rows,
-                    {
-                        // "us" | "uk" for a user who tracks alcohol, null for
-                        // one who does not — and null is also the case in which
-                        // no alcohol figure reaches the strip at all.
-                        drinkUnit: data.drink_unit,
-                        calLabel,
-                        // Only the chart sits between the header line and the
-                        // strip; a single-day summary has nothing there and
-                        // needs no hairline above it.
-                        divided: !!trend,
-                        // data.meals is bounded to each metric's top 8, so
-                        // "N more meals" counts against the true per-metric
-                        // counts from `_meta`, and — when a host dropped
-                        // `_meta` — says "N or more" instead of guessing.
-                        contributors: Object.assign(
-                            {},
-                            withAddedSugarContributors(
-                                as,
-                                (resultMeta &&
-                                    resultMeta[CONTRIBUTORS_META_KEY]) ||
-                                    null,
-                            ),
-                            sf.contributors,
-                        ),
-                        bounded: true,
-                        // Every meal in the window, so a list the server did
-                        // not actually trim still counts exactly without _meta.
-                        // null (not 0) if any day lacks a count: 0 would read
-                        // as "nothing was trimmed".
-                        mealTotal: data.days.every((d) =>
-                            Number.isFinite(d && d.meal_count),
-                        )
-                            ? data.days.reduce((n, d) => n + d.meal_count, 0)
+                const times = mealTimesPayload(
+                    m[MEAL_TIMES_META_KEY],
+                    Array.isArray(rows) ? rows.length : 0,
+                );
+                const contributors = Object.assign(
+                    {},
+                    withAddedSugarContributors(
+                        as,
+                        m[CONTRIBUTORS_META_KEY] &&
+                            typeof m[CONTRIBUTORS_META_KEY] === "object"
+                            ? m[CONTRIBUTORS_META_KEY]
                             : null,
-                        // Added sugar ranks no rows into data.meals (that
-                        // schema is frozen), so `_meta` sends the meals among
-                        // its top 8 that the other metrics left out; they join
-                        // the added-sugar list only. null without them.
-                        extraRows: merged.extraRows,
-                    },
+                    ),
+                    sf.contributors,
+                    na.contributors,
                 );
 
-                root.innerHTML = `
-          <div class="panel">
-            <div class="phead">
-              <div class="ptitle">${esc(T.nutritionSummary.title)}</div>
-              <div class="pmeta">${esc(meta)}</div>
-            </div>
-            ${trend}
-            ${panel}
-          </div>`;
+                // Per-day values (a range's strip and peaks), the `_meta`
+                // nutrients from their own day maps.
+                const parts = metaDayParts(m);
+                const byDate = new Map(days.map((d) => [d.date, d]));
+                const dayVals = (date) => {
+                    const d = byDate.get(date);
+                    if (!d) return null;
+                    const v = Object.assign({}, d);
+                    for (const [k, p] of Object.entries(parts)) {
+                        const x = p ? p.days[date] : undefined;
+                        v[k] = Number.isFinite(x) ? x : null;
+                    }
+                    return v;
+                };
+                const peak = {};
+                const recCount = {};
+                for (const def of NV_DEFS.concat([{ key: "calories" }])) {
+                    const xs = dates
+                        .map((dt) => {
+                            const v = dayVals(dt);
+                            return v ? v[def.key] : null;
+                        })
+                        .filter((x) => Number.isFinite(x));
+                    peak[def.key] = xs.length ? Math.max(...xs) : null;
+                    recCount[def.key] = Number.isFinite(rec[def.key])
+                        ? rec[def.key]
+                        : parts[def.key] !== undefined
+                          ? xs.length
+                          : nLogged;
+                }
+
+                const goal = na.goal || {};
+                const t = Number(base.calories) || 0;
+                const g = Number(goal.calories) || 0;
+                const over = g > 0 && t > g;
+                const leftN = Math.abs(g - t);
+                const kcalTxt = (n) => nvWithUnit("kcal", n);
+                const peakKcal = peak.calories || 0;
+                const peakDay = isRange
+                    ? days.reduce(
+                          (b, d) => (!b || d.calories > b.calories ? d : b),
+                          null,
+                      )
+                    : null;
+
+                const meals = nvMealsFrom(
+                    rows,
+                    (r, i) =>
+                        isRange
+                            ? r.date
+                                ? dayLabel(r.date, false)
+                                : ""
+                            : times
+                              ? times.times[i]
+                              : "",
+                    -1,
+                );
+
+                // One day: the arc split into its meals, when every meal of
+                // the day is listed (the server trims only past 8 per metric).
+                let segs = null;
+                if (
+                    single &&
+                    hasData &&
+                    g > 0 &&
+                    mealCount != null &&
+                    meals.length === mealCount
+                ) {
+                    segs = gaugeSegments(
+                        meals.map((x) => ({ kcal: x.kcal || 0, name: x.name })),
+                        g,
+                    );
+                    if (segs)
+                        for (const s of segs)
+                            s.tip = `${s.names.join(" + ")} · ${kcalTxt(s.kcal)}`;
+                }
+                const pct = g > 0 ? Math.round((t / g) * 100) : null;
+                const status =
+                    g > 0
+                        ? tpl(
+                              isRange
+                                  ? over
+                                      ? S.overGoal
+                                      : S.underGoal
+                                  : over
+                                    ? S.over
+                                    : S.left,
+                              { amount: kcalTxt(leftN) },
+                          )
+                        : "";
+                let aria =
+                    g > 0
+                        ? tpl(
+                              isRange
+                                  ? S.gaugeAriaRange
+                                  : today
+                                    ? S.gaugeAriaToday
+                                    : S.gaugeAriaThatDay,
+                              {
+                                  eaten: nvFmt("kcal", t),
+                                  goal: nvFmt("kcal", g),
+                                  pct: nvNum(pct, 0),
+                                  status,
+                              },
+                          )
+                        : tpl(S.gaugeAriaNoGoal, { eaten: nvFmt("kcal", t) });
+                if (single && meals.length)
+                    aria +=
+                        " " +
+                        tpl(S.gaugeAriaMeals, {
+                            list: meals
+                                .map((x) => `${x.name} ${kcalTxt(x.kcal || 0)}`)
+                                .join(", "),
+                        });
+
+                const dayWord = isRange ? "range" : today ? "today" : "thatDay";
+                const eyebrow = `${S.title} · ${
+                    isRange
+                        ? loggedDaysCaption(data)
+                        : today
+                          ? S.periodToday
+                          : S.periodPastDay
+                }`;
+                const title = isRange
+                    ? rangeLabel(data.start_date, data.end_date)
+                    : fullDayLabel(theDay);
+                const dot = `<span class="dot" aria-hidden="true">·</span>`;
+                let deltaHtml = "";
+                if (isRange) {
+                    deltaHtml =
+                        (g > 0
+                            ? `<b class="${over ? "over" : ""}">${esc(status)}</b>${dot}`
+                            : "") +
+                        esc(tpl(S.peak, { amount: kcalTxt(peakKcal) }));
+                } else {
+                    const leftKey = over
+                        ? today
+                            ? "overToday"
+                            : "overThatDay"
+                        : today
+                          ? "leftToday"
+                          : "leftThatDay";
+                    deltaHtml =
+                        `<b>${esc(plural(S.mealsCount, mealCount ?? meals.length))}</b>` +
+                        (g > 0
+                            ? `${dot}<b class="${over ? "over" : ""}">${esc(tpl(S[leftKey], { amount: kcalTxt(leftN) }))}</b>`
+                            : "");
+                }
+                const stats = isRange
+                    ? [
+                          {
+                              label: S.statAvgDay,
+                              value: nvFmt("kcal", t),
+                              small: g > 0 ? `/ ${nvFmt("kcal", g)}` : "",
+                              over,
+                          },
+                          {
+                              label: S.statPeakDay,
+                              value: nvFmt("kcal", peakKcal),
+                              small: peakDay
+                                  ? dayLabel(peakDay.date, false)
+                                  : "",
+                          },
+                          {
+                              label: S.statLoggedDays,
+                              value: nvNum(nLogged, 0),
+                              small: tpl(S.statOfDays, {
+                                  n: nvNum(
+                                      Number(data.days_in_range) ||
+                                          datesBetween(
+                                              data.start_date,
+                                              data.end_date,
+                                          ).length ||
+                                          nLogged,
+                                      0,
+                                  ),
+                              }),
+                          },
+                      ]
+                    : [
+                          {
+                              label: today ? S.statEatenSoFar : S.statEaten,
+                              value: nvFmt("kcal", t),
+                              small: g > 0 ? `/ ${nvFmt("kcal", g)}` : "",
+                              over,
+                          },
+                          ...(g > 0
+                              ? [
+                                    {
+                                        label: over
+                                            ? S.statOverGoal
+                                            : S.statRemaining,
+                                        value: nvFmt("kcal", leftN),
+                                        small: nvUnitLabel("kcal"),
+                                        over,
+                                    },
+                                ]
+                              : []),
+                          {
+                              label: S.statMeals,
+                              value: nvNum(mealCount ?? meals.length, 0),
+                              small: S.statLogged,
+                          },
+                      ];
+
+                const stripDates = isRange
+                    ? datesBetween(data.start_date, data.end_date)
+                    : [];
+                const V = {
+                    mode: isRange ? "range" : "day",
+                    dayWord,
+                    hasData,
+                    // "us" | "uk" for a user who tracks alcohol, null for one
+                    // who does not — and null is also the case in which every
+                    // alcohol figure is null and the row is left out.
+                    drinkUnit: data.drink_unit,
+                    alcoholOn:
+                        data.drink_unit != null ||
+                        Number.isFinite(base.alcohol_g),
+                    vals: na.vals,
+                    goal,
+                    delta: null,
+                    peak: isRange ? peak : null,
+                    rec: recCount,
+                    nLogged,
+                    zeroMeansUnknown: [],
+                    cal: { t, g, peak: peakKcal },
+                    meals,
+                    // Added sugar's, the fats' and sodium's own top meals that
+                    // the kept rows miss; each joins only its nutrient's list.
+                    extraRows: merged.extraRows,
+                    extraSub: (r) => (r.date ? dayLabel(r.date, false) : ""),
+                    days: stripDates.map((dt) => ({
+                        date: dt,
+                        short: intlDate(dt, { weekday: "narrow" }),
+                        label: dayLabel(dt, false),
+                        logged: byDate.has(dt),
+                        vals: dayVals(dt),
+                    })),
+                    contributors,
+                    // data.meals is bounded to each metric's top 8, so a ranked
+                    // list's "N more" counts against `_meta`'s true counts and
+                    // — when a host dropped them — hedges.
+                    bounded: true,
+                    mealTotal: mealCount,
+                    hero: {
+                        eyebrow,
+                        title,
+                        deltaHtml,
+                        emptyText: isRange
+                            ? S.emptyRange
+                            : today
+                              ? S.emptyToday
+                              : S.emptyThatDay,
+                        stats,
+                        gauge: {
+                            over,
+                            pre:
+                                isRange && g > 0
+                                    ? gaugeClamp01(peakKcal / g) * 100
+                                    : 0,
+                            add:
+                                g > 0
+                                    ? Math.max(
+                                          gaugeClamp01(t / g) * 100,
+                                          t > 0 ? 0.8 : 0,
+                                      )
+                                    : 0,
+                            addOff: null,
+                            segs,
+                            pctTxt: pct == null ? null : `${nvNum(pct, 0)}%`,
+                            numTxt: nvFmt("kcal", t),
+                            glab:
+                                g > 0
+                                    ? tpl(isRange ? S.avgOfGoal : S.ofGoal, {
+                                          goal: nvFmt("kcal", g),
+                                      })
+                                    : nvUnitLabel("kcal"),
+                            aria,
+                            btnLabel: isRange
+                                ? S.caloriesByDay
+                                : tpl(T.macros.byMealTitle, {
+                                      label: nvLabel("calories"),
+                                  }),
+                        },
+                    },
+                };
+                nvMount(root, V);
             }
 
             // Pull the summary out of whatever wrapper the host used.
@@ -649,11 +772,7 @@
 
             // Stashed by onReady so render() can fall back to the host's
             // ambient locale (hostContext.locale) when structuredContent
-            // carries none. Not used for the initial "Loading…" text below:
-            // that is set synchronously before the ui/initialize handshake
-            // (and so before hostContext is known at all) and is shown only
-            // briefly — see shared/i18n.js's doc comment for the full
-            // locale-resolution order.
+            // carries none.
             let __widgetApi = null;
 
             initWidget({
@@ -667,7 +786,6 @@
                 coerce,
                 render,
                 sample: SAMPLE,
-                sampleMeta: SAMPLE_META,
                 onReady(api) {
                     __widgetApi = api;
                 },

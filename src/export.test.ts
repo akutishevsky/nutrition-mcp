@@ -73,6 +73,7 @@ function meal(overrides: Partial<Meal> = {}): Meal {
         added_sugar_g: 9,
         alcohol_g: 3,
         caffeine_mg: 95,
+        sodium_mg: 640,
         notes: null,
         idempotency_key: null,
         saved_meal_id: null,
@@ -81,7 +82,7 @@ function meal(overrides: Partial<Meal> = {}): Meal {
 }
 
 const HEADER =
-    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,notes,saved_meal_id,provenance_version,nutrient_sources,source_detail";
+    "id,logged_at,timezone,meal_type,description,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,sodium_mg,notes,saved_meal_id,provenance_version,nutrient_sources,source_detail";
 
 /**
  * Minimal RFC-4180 reader: splits a CSV document into rows of fields, honouring
@@ -223,6 +224,7 @@ test("every value lands under its own header name", () => {
         added_sugar_g: "9",
         alcohol_g: "3",
         caffeine_mg: "95",
+        sodium_mg: "640",
         notes: "post-run",
         saved_meal_id: "33333333-3333-4333-8333-333333333333",
         provenance_version: "1",
@@ -281,6 +283,7 @@ function mealItem(
         added_sugar_g: 0.2,
         alcohol_g: null,
         caffeine_mg: null,
+        sodium_mg: 780,
         ...overrides,
     };
 }
@@ -305,6 +308,7 @@ function savedMeal(
         added_sugar_g: 0,
         alcohol_g: null,
         caffeine_mg: null,
+        sodium_mg: 150,
         created_at: "2026-06-20T14:30:00.000Z",
         updated_at: "2026-06-21T09:00:00.000Z",
         ...overrides,
@@ -338,11 +342,11 @@ function savedMealItem(
 }
 
 const MEAL_ITEMS_HEADER =
-    "meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,provenance_version,nutrient_sources,source_detail";
+    "meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,sodium_mg,provenance_version,nutrient_sources,source_detail";
 const SAVED_MEALS_HEADER =
-    "id,name,description,meal_type,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,created_at,updated_at,timezone,provenance_version,nutrient_sources,source_detail";
+    "id,name,description,meal_type,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,sodium_mg,created_at,updated_at,timezone,provenance_version,nutrient_sources,source_detail";
 const SAVED_MEAL_ITEMS_HEADER =
-    "saved_meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,provenance_version,nutrient_sources,source_detail";
+    "saved_meal_id,position,name,amount,unit,calories,protein_g,carbs_g,fat_g,saturated_fat_g,trans_fat_g,fiber_g,sugar_g,added_sugar_g,alcohol_g,caffeine_mg,sodium_mg,provenance_version,nutrient_sources,source_detail";
 
 test("meal_items.csv, saved_meals.csv and saved_meal_items.csv are header-only when empty", () => {
     expect(buildMealItemsCsv([])).toBe(MEAL_ITEMS_HEADER);
@@ -383,6 +387,7 @@ test("every meal item value lands under its own header name", () => {
         added_sugar_g: "0.2",
         alcohol_g: "",
         caffeine_mg: "",
+        sodium_mg: "780",
         provenance_version: "1",
         nutrient_sources: "",
         source_detail: "",
@@ -439,6 +444,7 @@ test("every saved meal value lands under its own header name, timestamps in the 
         added_sugar_g: "0",
         alcohol_g: "",
         caffeine_mg: "",
+        sodium_mg: "150",
         created_at: "2026-06-20 16:30:00",
         updated_at: "2026-06-21 11:00:00",
         timezone: "Europe/Berlin",
@@ -539,6 +545,7 @@ test("every saved meal ingredient value lands under its own header name", () => 
         added_sugar_g: "",
         alcohol_g: "",
         caffeine_mg: "",
+        sodium_mg: "",
         provenance_version: "1",
         nutrient_sources: "",
         source_detail: "",
@@ -570,6 +577,9 @@ test("header column order is stable and importer-compatible", () => {
         // matches on this exact string, and "caffeine" alone would let a grams
         // column bind to a milligram field.
         "caffeine_mg",
+        // Milligrams too, beside caffeine, spelled with its unit for the same
+        // reason.
+        "sodium_mg",
         "notes",
         // Appended last: the importer matches by name, and a reader that
         // mapped the earlier columns by position is unaffected.
@@ -743,6 +753,7 @@ function goals(overrides: Partial<NutritionGoals> = {}): NutritionGoals {
         daily_added_sugar_g: 25,
         daily_alcohol_g: 14,
         daily_caffeine_mg: 400,
+        daily_sodium_mg: 2300,
         daily_water_ml: 2500,
         target_weight_g: 72000,
         updated_at: "2026-06-20T14:30:00.000Z",
@@ -765,6 +776,7 @@ function goalsHistoryRow(
         daily_added_sugar_g: 25,
         daily_alcohol_g: 14,
         daily_caffeine_mg: 400,
+        daily_sodium_mg: 2300,
         daily_water_ml: 2500,
         target_weight_g: 72000,
         ...overrides,
@@ -791,9 +803,9 @@ const WATER_HEADER = "id,logged_at,timezone,amount_ml,notes,created_at";
 const WEIGHT_HEADER =
     "id,logged_at,timezone,weight_g,weight_display,weight_unit,notes,created_at";
 const GOALS_HEADER =
-    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
+    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_sodium_mg,daily_water_ml,target_weight_g,updated_at,timezone";
 const GOALS_HISTORY_HEADER =
-    "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g";
+    "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_sodium_mg,daily_water_ml,target_weight_g";
 const PROFILE_HEADER =
     "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit";
 const BODY_MEASUREMENT_HEADER =
@@ -1035,6 +1047,7 @@ test("every goal value lands under its own header name", () => {
         daily_alcohol_g: "14",
         // Milligrams next to nine gram/ml columns, spelled so in the header.
         daily_caffeine_mg: "400",
+        daily_sodium_mg: "2300",
         daily_water_ml: "2500",
         target_weight_g: "72000",
         updated_at: "2026-06-20 16:30:00",
@@ -1066,6 +1079,7 @@ test("goals.csv leaves unset targets as empty fields", () => {
             daily_added_sugar_g: null,
             daily_alcohol_g: null,
             daily_caffeine_mg: null,
+            daily_sodium_mg: null,
             daily_water_ml: null,
             target_weight_g: null,
         }),
@@ -1112,8 +1126,8 @@ test("goals_history.csv is byte-for-byte what its rows and zone determine", () =
     expect(csv).toBe(
         [
             GOALS_HISTORY_HEADER,
-            "2026-01-05 09:00:00,Europe/Berlin,2200,150,220,70,20,30,40,25,14,400,2500,72000",
-            "2026-06-20 16:30:00,Europe/Berlin,2000,150,220,70,20,30,,,,400,2500,",
+            "2026-01-05 09:00:00,Europe/Berlin,2200,150,220,70,20,30,40,25,14,400,2300,2500,72000",
+            "2026-06-20 16:30:00,Europe/Berlin,2000,150,220,70,20,30,,,,400,2300,2500,",
         ].join("\n"),
     );
     // Same inputs, same bytes: nothing in it depends on the clock or the host.
@@ -1158,6 +1172,7 @@ test("every goals history value lands under its own header name", () => {
         // Not gated on the alcohol display opt-in, exactly like goals.csv.
         daily_alcohol_g: "14",
         daily_caffeine_mg: "400",
+        daily_sodium_mg: "2300",
         daily_water_ml: "2500",
         // Canonical grams, as in goals.csv — no weight-unit conversion.
         target_weight_g: "72000",
@@ -1313,6 +1328,10 @@ test("the README spells out the mixed units", () => {
     // Added sugar is a part of sugar_g, not a sibling to sum with it.
     expect(readme).toMatch(
         /added_sugar_g counts only sugars added[^\n]*part of sugar_g[^\n]*daily_added_sugar_g is the daily limit for added sugars, separate from daily_sugar_g/,
+    );
+    // Sodium is milligrams, and is sodium rather than salt.
+    expect(readme).toMatch(
+        /sodium_mg and daily_sodium_mg are MILLIGRAMS of sodium, not salt[^\n]*daily_sodium_mg is the daily limit for sodium/,
     );
 });
 

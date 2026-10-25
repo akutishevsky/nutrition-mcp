@@ -23,6 +23,7 @@ import {
     type MealItemValues,
 } from "./meal-items.js";
 import { ToolError } from "./errors.js";
+import { MAX_SODIUM_MG } from "./import.js";
 
 const GATE_OFF = { addedSugarRequired: false };
 const GATE_ON = { addedSugarRequired: true };
@@ -402,6 +403,101 @@ describe("validateItems: saturated and trans fat", () => {
         const without = formatItemLine(items[1]!, false);
         expect(without).toContain("saturated fat 0 g");
         expect(without).not.toContain("trans fat");
+    });
+});
+
+describe("validateItems: sodium", () => {
+    test("sodium_mg must be on every item or none (meal_items_invalid)", () => {
+        const err = refuses(
+            () => validateItems([item({ sodium_mg: 400 }), item()], GATE_OFF),
+            /sodium_mg is given for some items but not for item 2/,
+        );
+        expect(err.category).toBe("meal_items_invalid");
+    });
+
+    test("sodium on every item is accepted and summed to two decimals", () => {
+        const { items, totals } = validateItems(
+            [item({ sodium_mg: 410.11 }), item({ sodium_mg: 90.22 })],
+            GATE_OFF,
+        );
+        expect(items[0]!.sodium_mg).toBe(410.11);
+        expect(totals.sodium_mg).toBe(500.33);
+    });
+
+    test("sodium on no item is null in the items and the totals, never 0", () => {
+        const { items, totals } = validateItems([item(), item()], GATE_OFF);
+        expect(items[0]!.sodium_mg).toBeNull();
+        expect(totals.sodium_mg).toBeNull();
+    });
+
+    test("sodium outside 0..MAX_SODIUM_MG is refused by name", () => {
+        refuses(
+            () => validateItems([item({ sodium_mg: -1 })], GATE_OFF),
+            /item 1 \("Chicken"\) has sodium_mg -1/,
+        );
+        refuses(
+            () =>
+                validateItems(
+                    [item({ sodium_mg: MAX_SODIUM_MG + 1 })],
+                    GATE_OFF,
+                ),
+            new RegExp(
+                `has sodium_mg ${MAX_SODIUM_MG + 1}; it must be between 0 and ${MAX_SODIUM_MG}`,
+            ),
+        );
+    });
+
+    test("a meal whose summed sodium is above the per-meal bound is refused", () => {
+        refuses(
+            () =>
+                validateItems(
+                    [
+                        item({ sodium_mg: MAX_SODIUM_MG }),
+                        item({ sodium_mg: 1 }),
+                    ],
+                    GATE_OFF,
+                ),
+            /This meal comes to sodium_mg 20001, above the most a single meal can hold \(20000\)/,
+        );
+    });
+
+    test("MEAL_NUTRIENT_KEYS carries sodium", () => {
+        expect(MEAL_NUTRIENT_KEYS).toContain("sodium_mg");
+    });
+
+    test("scaling scales sodium; a null sodium stays null", () => {
+        const { items } = validateItems(
+            [item({ amount: 100, sodium_mg: 300 })],
+            GATE_OFF,
+        );
+        expect(scaleItems(items, 2)[0]!.sodium_mg).toBe(600);
+        expect(scaleTotals(sumItems(items), 0.5).sodium_mg).toBe(150);
+        const none = validateItems([item({ amount: 100 })], GATE_OFF).items;
+        expect(scaleItems(none, 2)[0]!.sodium_mg).toBeNull();
+    });
+
+    test("the item summary line names sodium in whole mg only when recorded", () => {
+        const { items } = validateItems(
+            [item({ sodium_mg: 412.6 }), item({ sodium_mg: 0 })],
+            GATE_OFF,
+        );
+        expect(formatItemLine(items[0]!, false)).toContain("sodium 413 mg");
+        expect(formatItemLine(items[1]!, false)).toContain("sodium 0 mg");
+        const none = validateItems([item()], GATE_OFF).items;
+        expect(formatItemLine(none[0]!, false)).not.toContain("sodium");
+    });
+
+    test("buildMealItemsMeta carries sodium rounded to a tenth", () => {
+        const { items } = validateItems(
+            [item({ sodium_mg: 412.66 })],
+            GATE_OFF,
+        );
+        const meta = buildMealItemsMeta(
+            [{ id: "a" }],
+            new Map([["a", items]]),
+            true,
+        )!;
+        expect(meta.meals[0]![0]!.sodium_mg).toBe(412.7);
     });
 });
 
@@ -1142,6 +1238,7 @@ describe("buildMealItemsMeta", () => {
             added_sugar_g: null,
             alcohol_g: null,
             caffeine_mg: 80.3,
+            sodium_mg: null,
         });
     });
 

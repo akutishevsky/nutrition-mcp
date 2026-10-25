@@ -8,7 +8,7 @@
 // Locale notes: numbers follow Spanish conventions as CLDR has them — no
 // separator in a four-digit figure ("2000", "1830"), a decimal comma
 // ("78,4 kg") — the same formatting the cards on the page get from
-// toLocaleString("es"). The tool count ("48") is hand-typed here exactly as
+// toLocaleString("es"). The tool count ("49") is hand-typed here exactly as
 // in index.ts — see CLAUDE.md's "Registered tool set".
 
 import type { IndexDoc } from "./index.js";
@@ -24,7 +24,7 @@ export const INDEX_ES: IndexDoc = {
 
     featureList: [
         "Registro de comidas en lenguaje natural, con calorías, macros, fibra, azúcar y azúcar añadido",
-        "Seguimiento de grasas saturadas y trans, con límite opcional de grasa saturada",
+        "Seguimiento de grasas saturadas y trans y de sodio, con límites opcionales de grasa saturada y sodio",
         "Valores de USDA FoodData Central para alimentos genéricos; si no, estimaciones",
         "Búsqueda por código de barras para productos envasados con Open Food Facts",
         "Cada valor de nutriente con la indicación de su origen",
@@ -182,7 +182,7 @@ export const INDEX_ES: IndexDoc = {
         note: "Todo esto es opcional. Puedes hacerlo ahora, más tarde o nunca: empieza a registrar y ajústalo cuando quieras.",
         toolsCta: {
             heading: "¿Te preguntas qué puede hacer de verdad?",
-            body: "Explora las 48 herramientas (registro, códigos de barras, agua, peso y medidas corporales, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
+            body: "Explora las 49 herramientas (registro, códigos de barras, agua, peso y medidas corporales, objetivos y tendencias) con una descripción y una frase de ejemplo para cada una.",
             arrow: "Ver las herramientas",
         },
     },
@@ -426,7 +426,7 @@ export const INDEX_ES: IndexDoc = {
                 id: "goals-progress",
                 title: "Fija objetivos y revisa tu día",
                 description:
-                    "Define objetivos por alcanzar, como las calorías y la proteína, y límites que no superar para el azúcar añadido, las grasas saturadas, el azúcar total, el alcohol y la cafeína; solo cambia lo que mencionas. Luego pregunta por cualquier día y verás lo que te falta para cada objetivo y cómo vas frente a cada límite.",
+                    "Define objetivos por alcanzar, como las calorías y la proteína, y límites que no superar para el azúcar añadido, las grasas saturadas, el sodio, el azúcar total, el alcohol y la cafeína; solo cambia lo que mencionas. Luego pregunta por cualquier día y verás lo que te falta para cada objetivo y cómo vas frente a cada límite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Guarda objetivos de calorías y proteína y un límite de cafeína de 400 mg",
@@ -448,7 +448,7 @@ export const INDEX_ES: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Hecho: 2000 kcal y 160 g de proteína por alcanzar, y la cafeína por debajo de 400 mg. Lo demás sigue igual: 220 g de carbohidratos, 70 g de grasa, 20 g de grasa saturada, 30 g de fibra, 2,5 L de agua, tu límite de 25 g de azúcar añadido y tu peso objetivo de 75 kg.",
+                        text: "Listo: te faltan 2000 kcal y 160 g de proteína para llegar, y la cafeína se queda por debajo de 400 mg. Lo demás sigue como estaba: 220 g de carbohidratos, 70 g de grasa, 20 g de grasa saturada, 30 g de fibra, 2,5 L de agua, 2300 mg de sodio, tu límite de 25 g de azúcar añadido y tu peso objetivo de 75 kg.",
                     },
                     {
                         from: "user",
@@ -474,6 +474,8 @@ export const INDEX_ES: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Calcula tus medias de los últimos 7, 14 y 30 días y abre la tarjeta de tendencias",
+                    get_digest:
+                        "Resume tus últimos 7 días con objetivos y destacados en una sola tarjeta",
                 },
                 messages: [
                     {
@@ -496,6 +498,36 @@ export const INDEX_ES: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Revisa cómo fue un día",
+                description:
+                    "Pregunta cómo fue ayer, o cómo van hoy o los últimos 7 o 30 días, y se abre en el chat una tarjeta de resumen: calorías y cada nutriente que registras frente a tus objetivos, agua y peso, las comidas del día en un solo día o tus hábitos de registro en un periodo, y algunos destacados sacados de tu propio registro.",
+                toolNotes: {
+                    get_digest:
+                        "Genera el resumen del periodo que pidas: las comidas del día para un solo día, los hábitos de registro para un periodo",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "¿qué tal fue ayer?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Ayer registraste 3 comidas: 1150 de tus 2000 kcal y 76 de tus 160 g de proteína, así que te faltan 850 kcal y 84 g de proteína. El azúcar añadido fue de 23 g frente a tu límite de 25 g, el sodio de 1050 mg frente a 2300 mg, y registraste 500 ml de agua de los 2500 ml previstos.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -625,6 +657,35 @@ export const INDEX_ES: IndexDoc = {
                 cardMeals: ["Lager, 4 % (1 pinta, 568 ml)"],
             },
             {
+                id: "track-sodium",
+                title: "Controla el sodio",
+                description:
+                    "El sodio se registra en miligramos, no en sal, en cada comida, frente a un límite diario que tú fijas. Mostrar más enumera el sodio de una comida junto a ese límite, para que veas cuánto del día ha consumido.",
+                toolNotes: {
+                    log_meal:
+                        "Registra el cuenco con su sodio en miligramos, no en sal",
+                    set_nutrition_goals:
+                        "Fija el límite diario de sodio de 2300 mg con el que se compara cada comida",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "ramen tonkotsu con un huevo para cenar, un cuenco grande",
+                    },
+                    {
+                        from: "ai",
+                        text: "Cena registrada: unas 610 kcal, 28 g de proteína y 2640 mg de sodio. Ese cuenco por sí solo supera tu límite diario de sodio de 2300 mg en 340 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Ramen tonkotsu con huevo (1 cuenco grande)"],
+            },
+            {
                 id: "import-history",
                 title: "Trae tu historial",
                 description:
@@ -748,7 +809,7 @@ export const INDEX_ES: IndexDoc = {
         cards: [
             {
                 title: "Comidas en lenguaje natural",
-                body: "Describe lo que comiste: para los alimentos genéricos se usan valores de USDA FoodData Central cuando existen, y tu IA estima el resto: calorías, proteína, carbohidratos, grasa, grasas saturadas y trans, fibra, azúcar total, azúcar añadido y cafeína en miligramos. Se registra y cada valor muestra su origen.",
+                body: "Describe lo que comiste: para los alimentos genéricos se usan valores de USDA FoodData Central cuando existen, y tu IA estima el resto: calorías, proteína, carbohidratos, grasa, grasas saturadas y trans, fibra, azúcar total, azúcar añadido, sodio y cafeína en miligramos. Se registra y cada valor muestra su origen.",
             },
             {
                 title: "Escanea un código de barras",
@@ -756,7 +817,7 @@ export const INDEX_ES: IndexDoc = {
             },
             {
                 title: "Objetivos y progreso",
-                body: "Fija objetivos diarios de calorías, macros, fibra y agua, además de límites de azúcar añadido, grasa saturada, azúcar total, cafeína y alcohol que no quieres superar, y consulta tu progreso en directo.",
+                body: "Fija objetivos diarios de calorías, macros, fibra y agua, además de límites de azúcar añadido, grasa saturada, sodio, azúcar total, cafeína y alcohol que no quieres superar, y consulta tu progreso en directo.",
             },
             {
                 title: "Resúmenes y tendencias",
@@ -869,7 +930,7 @@ export const INDEX_ES: IndexDoc = {
         {
             question: "¿Qué es Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP es un servidor MCP (Model Context Protocol) gratuito y de código abierto que convierte Claude, ChatGPT u otro cliente MCP en un contador de calorías y macros. En lugar de buscar cada alimento tú mismo, le cuentas a tu IA lo que comiste y ella registra en tu diario de alimentación las calorías, los macros, la fibra, el azúcar, el azúcar añadido, las grasas saturadas y trans y la cafeína.",
+                "Nutrition MCP es un servidor MCP (Model Context Protocol) gratuito y de código abierto que convierte Claude, ChatGPT u otro cliente MCP en un contador de calorías y macros. En lugar de buscar cada alimento tú mismo, le cuentas a tu IA lo que comiste y ella registra en tu diario de alimentación las calorías, los macros, la fibra, el azúcar, el azúcar añadido, las grasas saturadas y trans, el sodio y la cafeína.",
         },
         {
             question: "¿Qué es el Model Context Protocol (MCP)?",
@@ -912,7 +973,7 @@ export const INDEX_ES: IndexDoc = {
         {
             question: "¿Qué puedo registrar?",
             visibleHtml:
-                "Calorías, proteína, carbohidratos, grasa, grasas saturadas y trans, fibra, azúcar total, azúcar añadido y agua en cada registro: descritos con tus palabras, buscados como alimento genérico en USDA FoodData Central o tomados de un código de barras mediante Open Food Facts. Una comida se puede registrar ingrediente por ingrediente, cada uno con su propia cantidad y nutrientes, y una comida que comes a menudo se puede guardar como comida guardada y registrar de nuevo por su nombre. La cafeína también se registra, en miligramos, la unidad que usa cada etiqueta, y no aporta calorías. El alcohol se puede registrar en gramos de etanol puro; se muestra cuando activas su registro. También puedes registrar tu peso en kg o lb y seguir las tendencias hacia un peso objetivo. Las medidas corporales (cintura, cadera, cuello, pecho, hombros, brazo, antebrazo, muslo y pantorrilla) se pueden registrar en cm o pulgadas. Consulta resúmenes diarios, busca comidas por rango de fechas, edita o borra registros pasados, define objetivos y sigue las tendencias a lo largo del tiempo.",
+                "Calorías, proteína, carbohidratos, grasa, grasas saturadas y trans, fibra, azúcar total, azúcar añadido, sodio y agua en cada registro: descritos con tus palabras, buscados como alimento genérico en USDA FoodData Central o tomados de un código de barras mediante Open Food Facts. Una comida se puede registrar ingrediente por ingrediente, cada uno con su propia cantidad y nutrientes, y una comida que comes a menudo se puede guardar como comida guardada y registrar de nuevo por su nombre. La cafeína también se registra, en miligramos, la unidad que usa cada etiqueta, y no aporta calorías. El alcohol se puede registrar en gramos de etanol puro; se muestra cuando activas su registro. También puedes registrar tu peso en kg o lb y seguir las tendencias hacia un peso objetivo. Las medidas corporales (cintura, cadera, cuello, pecho, hombros, brazo, antebrazo, muslo y pantorrilla) se pueden registrar en cm o pulgadas. Consulta resúmenes diarios, busca comidas por rango de fechas, edita o borra registros pasados, define objetivos y sigue las tendencias a lo largo del tiempo.",
         },
         {
             question:

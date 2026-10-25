@@ -44,7 +44,7 @@
 //   hostCapabilities: object     // as reported by the host
 //   hostContext: object          // theme, containerDimensions, ...
 //   hostInfo: object             // { name, version } of the host
-//   updateModelContext(text)     // push a short summary into the model's context
+//   updateModelContext(text)     // push a short summary into the model's context; resolves true/false
 // }
 function initWidget(config) {
     const rootId = config.rootId || "root";
@@ -182,6 +182,14 @@ function initWidget(config) {
         if (!host) return;
         const el = document.documentElement;
         const prev = el.style.height;
+        // Measure at the width the content is actually laid out at. A classic
+        // scrollbar appears only when the iframe is shorter than the content and
+        // takes ~15px from the layout width, so a measure taken before it shows
+        // (wider, fewer wrapped lines) reports a height too short for the
+        // narrower layout; the host then grows the iframe, the scrollbar goes
+        // away, and the next measure is short again — the 604 <-> 585 seesaw
+        // that clipped the import widget's footer. The gutter is reserved in
+        // ensureStableGutter(), so the layout width never changes.
         el.style.height = "max-content";
         const height = Math.ceil(el.getBoundingClientRect().height);
         el.style.height = prev;
@@ -190,6 +198,14 @@ function initWidget(config) {
             height,
         });
     }
+    // Reserve the scrollbar gutter in the host iframe so the scrollbar's
+    // presence never changes the layout width (see sendSize). Host only: the
+    // standalone preview keeps the browser's default.
+    function ensureStableGutter() {
+        if (!host) return;
+        document.documentElement.style.scrollbarGutter = "stable";
+    }
+    ensureStableGutter();
     if (host && typeof ResizeObserver !== "undefined") {
         let scheduled = false;
         const ro = new ResizeObserver(() => {
@@ -244,14 +260,21 @@ function initWidget(config) {
                 "ui/update-model-context",
                 { content: [{ type: "text", text: String(text) }] },
                 15000,
-            ).catch((e) => {
-                try {
-                    console.warn(
-                        "[widget] ui/update-model-context failed:",
-                        e.message,
-                    );
-                } catch (_) {}
-            });
+            ).then(
+                // Resolves true once the host accepted the context and false
+                // when it refused or never answered, so a caller can tell
+                // the user only what actually reached the model.
+                () => true,
+                (e) => {
+                    try {
+                        console.warn(
+                            "[widget] ui/update-model-context failed:",
+                            e.message,
+                        );
+                    } catch (_) {}
+                    return false;
+                },
+            );
         },
         canCallTools: false,
         hostCapabilities,

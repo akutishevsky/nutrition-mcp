@@ -28,7 +28,7 @@ export const INDEX_PL: IndexDoc = {
 
     featureList: [
         "Posiłki zapisywane zwykłym językiem, z kaloriami, makroskładnikami, błonnikiem, cukrem i cukrem dodanym",
-        "Śledzenie tłuszczów nasyconych i trans, z opcjonalnym limitem tłuszczów nasyconych",
+        "Śledzenie tłuszczów nasyconych i trans oraz sodu, z opcjonalnymi limitami tłuszczów nasyconych i sodu",
         "Wartości USDA FoodData Central dla produktów ogólnych, w pozostałych przypadkach szacunki",
         "Wyszukiwanie produktów pakowanych po kodzie kreskowym przez Open Food Facts",
         "Każda wartość składnika odżywczego z oznaczeniem źródła",
@@ -186,7 +186,7 @@ export const INDEX_PL: IndexDoc = {
         note: "Wszystko tu jest opcjonalne. Możesz to zrobić teraz, później albo wcale: po prostu zacznij zapisywać, a ustawienia zmień, kiedy zechcesz.",
         toolsCta: {
             heading: "Ciekawi Cię, co naprawdę potrafi?",
-            body: "Przejrzyj wszystkie 48 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
+            body: "Przejrzyj wszystkie 49 narzędzi — zapisywanie, kody kreskowe, woda, waga i wymiary ciała, cele i trendy — z opisem i przykładowym poleceniem dla każdego.",
             arrow: "Zobacz narzędzia",
         },
     },
@@ -432,7 +432,7 @@ export const INDEX_PL: IndexDoc = {
                 id: "goals-progress",
                 title: "Ustaw cele, sprawdzaj postępy",
                 description:
-                    "Ustaw cele do osiągnięcia, np. kalorie i białko, oraz limity cukru dodanego, tłuszczu nasyconego, cukrów ogółem, alkoholu i kofeiny, których nie chcesz przekraczać; zmienia się tylko to, co wymienisz. Potem zapytaj o dowolny dzień, żeby zobaczyć, ile brakuje do każdego celu i jak wypadasz względem każdego limitu.",
+                    "Ustaw cele do osiągnięcia, np. kalorie i białko, oraz limity cukru dodanego, tłuszczu nasyconego, sodu, cukrów ogółem, alkoholu i kofeiny, których nie chcesz przekraczać; zmienia się tylko to, co wymienisz. Potem zapytaj o dowolny dzień, żeby zobaczyć, ile brakuje do każdego celu i jak wypadasz względem każdego limitu.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Zapisuje cele kalorii i białka oraz limit kofeiny 400 mg",
@@ -454,7 +454,7 @@ export const INDEX_PL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Gotowe: 2000 kcal i 160 g białka do osiągnięcia, kofeina poniżej 400 mg. Reszta bez zmian: 220 g węglowodanów, 70 g tłuszczu, 20 g tłuszczu nasyconego, 30 g błonnika, 2,5 l wody, limit cukru dodanego 25 g i waga docelowa 75 kg.",
+                        text: "Gotowe. Do osiągnięcia zostaje 2000 kcal i 160 g białka, kofeina poniżej 400 mg. Reszta bez zmian: 220 g węglowodanów, 70 g tłuszczu, 20 g tłuszczu nasyconego, 30 g błonnika, 2,5 l wody, 2300 mg sodu, Twój limit 25 g cukru dodanego i Twoja waga docelowa 75 kg.",
                     },
                     {
                         from: "user",
@@ -480,6 +480,8 @@ export const INDEX_PL: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Liczy średnie z ostatnich 7, 14 i 30 dni i otwiera widżet trendów",
+                    get_digest:
+                        "Podsumowuje ostatnie 7 dni z celami i najważniejszymi punktami w jednej karcie",
                 },
                 messages: [
                     {
@@ -502,6 +504,36 @@ export const INDEX_PL: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Sprawdź, jak minął dzień",
+                description:
+                    "Zapytaj, jak minął wczoraj, dziś albo ostatnie 7 lub 30 dni, a w czacie otworzy się karta podsumowania: kalorie i każdy śledzony składnik odżywczy na tle Twoich celów, woda i waga, posiłki z dnia przy jednym dniu albo nawyki zapisywania przy okresie oraz kilka najważniejszych punktów z Twojego własnego dziennika.",
+                toolNotes: {
+                    get_digest:
+                        "Buduje podsumowanie za wybrany okres: posiłki z dnia dla jednego dnia, nawyki zapisywania dla okresu",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "jak wczoraj poszło?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Wczoraj zapisano 3 posiłki: 1150 z 2000 kcal i 76 z 160 g białka, więc do celu zostało 850 kcal i 84 g białka. Cukier dodany: 23 g z limitu 25 g, sód: 1050 mg z 2300 mg, woda: 500 ml z 2500 ml.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -634,6 +666,35 @@ export const INDEX_PL: IndexDoc = {
                 cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
             },
             {
+                id: "track-sodium",
+                title: "Śledź sód",
+                description:
+                    "Sód śledzi się w miligramach, nie w soli, przy każdym posiłku i względem dziennego limitu, który sam ustawiasz. Pokaż więcej wyświetla sód posiłku obok tego limitu, więc widać, jaką część dnia zajął.",
+                toolNotes: {
+                    log_meal:
+                        "Zapisuje miskę z sodem w miligramach, nie w soli",
+                    set_nutrition_goals:
+                        "Ustawia dzienny limit sodu 2300 mg, z którym sprawdzany jest każdy posiłek",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "tonkotsu ramen z jajkiem na kolację, jedna duża miska",
+                    },
+                    {
+                        from: "ai",
+                        text: "Zapisano kolację: około 610 kcal, 28 g białka i 2640 mg sodu. Sama ta miska przekracza Twój dzienny limit sodu 2300 mg o 340 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Tonkotsu ramen z jajkiem (1 duża miska)"],
+            },
+            {
                 id: "import-history",
                 title: "Przenieś swoją historię",
                 description:
@@ -762,7 +823,7 @@ export const INDEX_PL: IndexDoc = {
         cards: [
             {
                 title: "Posiłki opisane własnymi słowami",
-                body: "Opisz, co jadłeś: dla produktów ogólnych wartości pochodzą z USDA FoodData Central, gdy są dostępne, a resztę szacuje Twoja AI: kalorie, białko, węglowodany, tłuszcz, tłuszcze nasycone i trans, błonnik, cukry ogółem, cukier dodany i kofeinę w miligramach. Posiłek zostaje zapisany, a każda wartość pokazuje swoje źródło.",
+                body: "Opisz, co jadłeś: dla produktów ogólnych wartości pochodzą z USDA FoodData Central, gdy są dostępne, a resztę szacuje Twoja AI: kalorie, białko, węglowodany, tłuszcz, tłuszcze nasycone i trans, błonnik, cukry ogółem, cukier dodany oraz sód i kofeinę w miligramach. Posiłek zostaje zapisany, a każda wartość pokazuje swoje źródło.",
             },
             {
                 title: "Zeskanuj kod kreskowy",
@@ -770,7 +831,7 @@ export const INDEX_PL: IndexDoc = {
             },
             {
                 title: "Cele i postępy",
-                body: "Ustaw dzienne cele kalorii, makroskładników, błonnika i wody oraz limity cukru dodanego, tłuszczów nasyconych, cukrów ogółem, kofeiny i alkoholu, których nie chcesz przekraczać, i śledź postępy na bieżąco.",
+                body: "Ustaw dzienne cele kalorii, makroskładników, błonnika i wody oraz limity cukru dodanego, tłuszczów nasyconych, sodu, cukrów ogółem, kofeiny i alkoholu, których nie chcesz przekraczać, i śledź postępy na bieżąco.",
             },
             {
                 title: "Podsumowania i trendy",
@@ -880,7 +941,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Czym jest Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP to darmowy, open-source serwer MCP (Model Context Protocol), który zamienia Claude, ChatGPT lub innego klienta MCP w licznik kalorii i makroskładników. Zamiast szukać każdego produktu samodzielnie, mówisz swojej AI, co jadłeś, a ona zapisuje w Twoim dzienniku kalorie, makroskładniki, błonnik, cukier, cukier dodany, tłuszcze nasycone i trans oraz kofeinę.",
+                "Nutrition MCP to darmowy, open-source serwer MCP (Model Context Protocol), który zamienia Claude, ChatGPT lub innego klienta MCP w licznik kalorii i makroskładników. Zamiast szukać każdego produktu samodzielnie, mówisz swojej AI, co jadłeś, a ona zapisuje w Twoim dzienniku kalorie, makroskładniki, błonnik, cukier, cukier dodany, tłuszcze nasycone i trans, sód oraz kofeinę.",
         },
         {
             question: "Czym jest Model Context Protocol (MCP)?",
@@ -921,7 +982,7 @@ export const INDEX_PL: IndexDoc = {
         {
             question: "Co mogę śledzić?",
             visibleHtml:
-                "Kalorie, białko, węglowodany, tłuszcz, tłuszcze nasycone i trans, błonnik, cukry ogółem, cukier dodany i woda w każdym wpisie – opisane zwykłym językiem, wyszukane jako produkt ogólny w USDA FoodData Central albo pobrane z kodu kreskowego przez Open Food Facts. Posiłek można zapisać składnik po składniku, każdy z własną ilością i składnikami odżywczymi, a posiłek, który jesz często, można zachować jako zapisany posiłek i dodać ponownie po nazwie. Kofeina też jest śledzona, w miligramach – jednostce używanej na każdej etykiecie – i nie dodaje kalorii. Alkohol także można śledzić, w gramach czystego etanolu; jest pokazywany po włączeniu jego śledzenia. Możesz też zapisywać masę ciała w kg lub funtach i śledzić trendy w kierunku docelowej wagi. Pomiary ciała (talia, biodra, szyja, klatka piersiowa, ramiona, ramię, przedramię, udo i łydka) można zapisywać w cm lub calach. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, edytuj lub usuwaj wcześniejsze wpisy, ustawiaj cele i śledź trendy w czasie.",
+                "Kalorie, białko, węglowodany, tłuszcz, tłuszcze nasycone i trans, błonnik, cukry ogółem, cukier dodany, sód i woda w każdym wpisie – opisane zwykłym językiem, wyszukane jako produkt ogólny w USDA FoodData Central albo pobrane z kodu kreskowego przez Open Food Facts. Posiłek można zapisać składnik po składniku, każdy z własną ilością i składnikami odżywczymi, a posiłek, który jesz często, można zachować jako zapisany posiłek i dodać ponownie po nazwie. Kofeina też jest śledzona, w miligramach – jednostce używanej na każdej etykiecie – i nie dodaje kalorii. Alkohol także można śledzić, w gramach czystego etanolu; jest pokazywany po włączeniu jego śledzenia. Możesz też zapisywać masę ciała w kg lub funtach i śledzić trendy w kierunku docelowej wagi. Pomiary ciała (talia, biodra, szyja, klatka piersiowa, ramiona, ramię, przedramię, udo i łydka) można zapisywać w cm lub calach. Przeglądaj dzienne podsumowania, wyszukuj posiłki z wybranego zakresu dat, edytuj lub usuwaj wcześniejsze wpisy, ustawiaj cele i śledź trendy w czasie.",
         },
         {
             question:

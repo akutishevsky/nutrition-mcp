@@ -26,7 +26,7 @@ export const INDEX_NL: IndexDoc = {
 
     featureList: [
         "Maaltijden in gewone taal registreren, met calorieën, macro’s, vezels, suiker en toegevoegde suiker",
-        "Bijhouden van verzadigd en transvet, met optionele limiet voor verzadigd vet",
+        "Bijhouden van verzadigd vet, transvet en natrium, met optionele limieten voor verzadigd vet en natrium",
         "waarden uit USDA FoodData Central voor generieke voedingsmiddelen, anders schattingen",
         "Barcodezoeken voor verpakte producten via Open Food Facts",
         "Elke voedingswaarde met de bron erbij",
@@ -185,7 +185,7 @@ export const INDEX_NL: IndexDoc = {
         note: "Dit is allemaal optioneel. Doe het nu, later of nooit: begin met loggen en stel het in wanneer het jou uitkomt.",
         toolsCta: {
             heading: "Benieuwd wat het écht allemaal kan?",
-            body: "Bekijk alle 48 tools (loggen, barcodes, water, gewicht en lichaamsmaten, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
+            body: "Bekijk alle 49 tools (loggen, barcodes, water, gewicht en lichaamsmaten, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
             arrow: "Bekijk de tools",
         },
     },
@@ -428,7 +428,7 @@ export const INDEX_NL: IndexDoc = {
                 id: "goals-progress",
                 title: "Doelen stellen, stand checken",
                 description:
-                    "Stel doelen in om te halen, zoals calorieën en eiwit, en limieten om onder te blijven, voor toegevoegde suiker, verzadigd vet, totale suiker, alcohol en cafeïne; alleen wat je noemt, verandert. Vraag daarna naar een willekeurige dag en zie wat er nog over is tot elk doel en waar je staat ten opzichte van elke limiet.",
+                    "Stel doelen in om te halen, zoals calorieën en eiwit, en limieten om onder te blijven, voor toegevoegde suiker, verzadigd vet, natrium, totale suiker, alcohol en cafeïne; alleen wat je noemt, verandert. Vraag daarna naar een willekeurige dag en zie wat er nog over is tot elk doel en waar je staat ten opzichte van elke limiet.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Slaat het calorie- en eiwitdoel op, plus een cafeïnelimiet van 400 mg",
@@ -450,7 +450,7 @@ export const INDEX_NL: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Klaar: 2.000 kcal en 160 g eiwit om te halen, cafeïne onder de 400 mg. De rest blijft zoals het was: 220 g koolhydraten, 70 g vet, 20 g verzadigd vet, 30 g vezels, 2,5 L water, je limiet van 25 g toegevoegde suiker en je streefgewicht van 75 kg.",
+                        text: "Klaar: nog 2.000 kcal en 160 g eiwit te halen, cafeïne onder 400 mg. Verder blijft alles zoals het was: 220 g koolhydraten, 70 g vet, 20 g verzadigd vet, 30 g vezels, 2,5 L water, 2.300 mg natrium, je limiet van 25 g toegevoegde suiker en je streefgewicht van 75 kg.",
                     },
                     {
                         from: "user",
@@ -476,6 +476,8 @@ export const INDEX_NL: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Berekent je gemiddelden over de laatste 7, 14 en 30 dagen en opent de trendkaart",
+                    get_digest:
+                        "Vat je afgelopen 7 dagen samen met doelen en highlights in één kaart",
                 },
                 messages: [
                     {
@@ -498,6 +500,36 @@ export const INDEX_NL: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Bekijk hoe een dag ging",
+                description:
+                    "Vraag hoe gisteren ging, of hoe vandaag of de afgelopen 7 of 30 dagen gaan, en er opent een samenvattingskaart in de chat: calorieën en elke bijgehouden voedingsstof tegen je doelen, water en gewicht, de maaltijden van de dag voor één dag of je loggewoonten voor een periode en een paar highlights uit je eigen dagboek.",
+                toolNotes: {
+                    get_digest:
+                        "Stelt de samenvatting op voor de periode die je vraagt: de maaltijden van de dag voor één dag, loggewoonten voor een periode",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "hoe ging gisteren?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Gisteren heb je 3 maaltijden gelogd: 1.150 van je 2.000 kcal en 76 van je 160 g eiwit, dus nog 850 kcal en 84 g eiwit te gaan. Toegevoegde suiker zat op 23 g van je limiet van 25 g, natrium op 1.050 mg van 2.300 mg, en je kwam op 500 ml water van de 2.500 ml.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -630,6 +662,35 @@ export const INDEX_NL: IndexDoc = {
                 cardMeals: ["Pils, 4% (1 pint, 568 ml)"],
             },
             {
+                id: "track-sodium",
+                title: "Natrium bijhouden",
+                description:
+                    "Natrium wordt bijgehouden in milligram, niet als zout, bij elke maaltijd, tegen een dagelijkse limiet die je zelf instelt. Meer tonen toont het natrium van een maaltijd naast die limiet, zodat je ziet hoeveel van de dag hij opgebruikte.",
+                toolNotes: {
+                    log_meal:
+                        "Logt de kom met het natrium in milligram, niet als zout",
+                    set_nutrition_goals:
+                        "Zet de dagelijkse natriumlimiet van 2.300 mg, waartegen elke maaltijd wordt gecontroleerd",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "tonkotsu ramen met ei voor het avondeten, één grote kom",
+                    },
+                    {
+                        from: "ai",
+                        text: "Gelogd als avondeten: ongeveer 610 kcal, 28 g eiwit en 2.640 mg natrium. Die kom alleen al is 340 mg boven je dagelijkse natriumlimiet van 2.300 mg.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Tonkotsu ramen met ei (1 grote kom)"],
+            },
+            {
                 id: "import-history",
                 title: "Neem je geschiedenis mee",
                 description:
@@ -753,7 +814,7 @@ export const INDEX_NL: IndexDoc = {
         cards: [
             {
                 title: "Maaltijden in gewone taal",
-                body: "Beschrijf wat je at: voor generieke voedingsmiddelen komen de waarden uit USDA FoodData Central wanneer die er zijn, en je AI schat de rest: calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker en cafeïne in milligram. Het wordt geregistreerd en elke waarde toont waar hij vandaan komt.",
+                body: "Beschrijf wat je at: voor generieke voedingsmiddelen komen de waarden uit USDA FoodData Central wanneer die er zijn, en je AI schat de rest: calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker, natrium en cafeïne in milligram. Het wordt geregistreerd en elke waarde toont waar hij vandaan komt.",
             },
             {
                 title: "Scan een barcode",
@@ -761,7 +822,7 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 title: "Doelen & voortgang",
-                body: "Stel dagelijkse doelen in voor calorieën, macro’s, vezels en water, plus limieten voor toegevoegde suiker, verzadigd vet, totale suiker, cafeïne en alcohol waaronder je wilt blijven, en volg de voortgang live.",
+                body: "Stel dagelijkse doelen in voor calorieën, macro’s, vezels en water, plus limieten voor toegevoegde suiker, verzadigd vet, natrium, totale suiker, cafeïne en alcohol waaronder je wilt blijven, en volg de voortgang live.",
             },
             {
                 title: "Overzichten & trends",
@@ -871,7 +932,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is een gratis, open-source MCP-server (Model Context Protocol) die Claude, ChatGPT of een andere MCP-client verandert in een calorie- en macrotracker. In plaats van zelf elk product op te zoeken, vertel je je AI wat je at, en die registreert de calorieën, macro’s, vezels, suiker, toegevoegde suiker, verzadigd en transvet en cafeïne in je eigen voedingsdagboek.",
+                "Nutrition MCP is een gratis, open-source MCP-server (Model Context Protocol) die Claude, ChatGPT of een andere MCP-client verandert in een calorie- en macrotracker. In plaats van zelf elk product op te zoeken, vertel je je AI wat je at, en die registreert de calorieën, macro’s, vezels, suiker, toegevoegde suiker, verzadigd en transvet, natrium en cafeïne in je eigen voedingsdagboek.",
         },
         {
             question: "Wat is het Model Context Protocol (MCP)?",
@@ -913,7 +974,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat kan ik bijhouden?",
             visibleHtml:
-                "Calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker en water voor elk item: in gewone taal beschreven, opgezocht als generiek voedingsmiddel in USDA FoodData Central, of uit een productbarcode via Open Food Facts. Een maaltijd kun je ingrediënt voor ingrediënt registreren, elk met een eigen hoeveelheid en voedingsstoffen, en een maaltijd die je vaak eet kun je bewaren als opgeslagen maaltijd en op naam opnieuw registreren. Cafeïne wordt ook bijgehouden, in milligram, de eenheid die elk etiket gebruikt, en het levert geen calorieën op. Alcohol kun je ook bijhouden, in gram zuivere ethanol; die wordt pas getoond als je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht in kg of lb registreren en trends richting een streefgewicht volgen. Lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, bovenbeen en kuit) kun je ook in cm of inches registreren. Bekijk dagelijkse overzichten, vraag maaltijden per periode op, wijzig of verwijder eerdere items, stel doelen in en volg trends in de tijd.",
+                "Calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker, natrium en water voor elk item: in gewone taal beschreven, opgezocht als generiek voedingsmiddel in USDA FoodData Central, of uit een productbarcode via Open Food Facts. Een maaltijd kun je ingrediënt voor ingrediënt registreren, elk met een eigen hoeveelheid en voedingsstoffen, en een maaltijd die je vaak eet kun je bewaren als opgeslagen maaltijd en op naam opnieuw registreren. Cafeïne wordt ook bijgehouden, in milligram, de eenheid die elk etiket gebruikt, en het levert geen calorieën op. Alcohol kun je ook bijhouden, in gram zuivere ethanol; die wordt pas getoond als je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht in kg of lb registreren en trends richting een streefgewicht volgen. Lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, bovenbeen en kuit) kun je ook in cm of inches registreren. Bekijk dagelijkse overzichten, vraag maaltijden per periode op, wijzig of verwijder eerdere items, stel doelen in en volg trends in de tijd.",
         },
         {
             question:

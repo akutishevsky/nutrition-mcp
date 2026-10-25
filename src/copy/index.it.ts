@@ -32,7 +32,7 @@ export const INDEX_IT: IndexDoc = {
 
     featureList: [
         "Pasti registrati con parole semplici, con calorie, macronutrienti, fibre, zuccheri e zuccheri aggiunti",
-        "Monitoraggio di grassi saturi e trans, con limite facoltativo per i grassi saturi",
+        "Monitoraggio di grassi saturi e trans e del sodio, con limiti facoltativi per grassi saturi e sodio",
         "Valori USDA FoodData Central per gli alimenti generici, stime per il resto",
         "Ricerca tramite codice a barre per i prodotti confezionati con Open Food Facts",
         "Ogni valore nutrizionale con l’indicazione della sua fonte",
@@ -191,7 +191,7 @@ export const INDEX_IT: IndexDoc = {
         note: "È tutto facoltativo. Puoi farlo ora, più tardi o mai: inizia pure a registrare e imposta queste opzioni quando vuoi.",
         toolsCta: {
             heading: "Vuoi sapere cosa sa fare davvero?",
-            body: "Sfoglia tutti i 48 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
+            body: "Sfoglia tutti i 49 strumenti (registrazione, codici a barre, acqua, peso e misure corporee, obiettivi e andamenti), ciascuno con una descrizione e una richiesta di esempio.",
             arrow: "Esplora gli strumenti",
         },
     },
@@ -435,7 +435,7 @@ export const INDEX_IT: IndexDoc = {
                 id: "goals-progress",
                 title: "Fissa obiettivi, fai il punto",
                 description:
-                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri aggiunti, grassi saturi, zuccheri totali, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
+                    "Imposta obiettivi da raggiungere, come calorie e proteine, e limiti da non superare per zuccheri aggiunti, grassi saturi, sodio, zuccheri totali, alcol e caffeina; cambia solo ciò che nomini. Poi chiedi di un giorno qualsiasi per vedere quanto ti manca per ogni obiettivo e a che punto sei con ogni limite.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Salva gli obiettivi di calorie e proteine e un limite di caffeina di 400 mg",
@@ -457,7 +457,7 @@ export const INDEX_IT: IndexDoc = {
                     },
                     {
                         from: "ai",
-                        text: "Fatto: 2000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto rimane com'era: 220 g di carboidrati, 70 g di grassi, 20 g di grassi saturi, 30 g di fibre, 2,5 L d'acqua, il tuo limite di 25 g di zuccheri aggiunti e il tuo peso obiettivo di 75 kg.",
+                        text: "Fatto: 2.000 kcal e 160 g di proteine da raggiungere, caffeina sotto i 400 mg. Il resto resta com'era: 220 g di carboidrati, 70 g di grassi, 20 g di grassi saturi, 30 g di fibre, 2,5 L di acqua, 2.300 mg di sodio, il tuo limite di 25 g di zuccheri aggiunti e il peso obiettivo di 75 kg.",
                     },
                     {
                         from: "user",
@@ -483,6 +483,8 @@ export const INDEX_IT: IndexDoc = {
                 toolNotes: {
                     get_trends:
                         "Calcola le medie degli ultimi 7, 14 e 30 giorni e apre il widget degli andamenti",
+                    get_digest:
+                        "Riassume gli ultimi 7 giorni con obiettivi e punti salienti in un'unica scheda",
                 },
                 messages: [
                     {
@@ -505,6 +507,36 @@ export const INDEX_IT: IndexDoc = {
                 cards: [
                     {
                         kind: "trends",
+                        after: 0,
+                    },
+                    {
+                        kind: "digest",
+                        after: 0,
+                    },
+                ],
+            },
+            {
+                id: "daily-digest",
+                title: "Vedi com'è andata una giornata",
+                description:
+                    "Chiedi com'è andata ieri, o come procedono oggi o gli ultimi 7 o 30 giorni: in chat si apre una scheda di riepilogo con calorie e ogni nutriente tracciato rispetto ai tuoi obiettivi, acqua e peso, i pasti della giornata per un singolo giorno o le tue abitudini di registrazione per un periodo, e qualche spunto tratto dal tuo diario.",
+                toolNotes: {
+                    get_digest:
+                        "Crea il riepilogo del periodo richiesto: i pasti della giornata per un singolo giorno, le abitudini di registrazione per un periodo",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "com'è andata ieri?",
+                    },
+                    {
+                        from: "ai",
+                        text: "Ieri hai registrato 3 pasti: 1.150 dei tuoi 2.000 kcal e 76 dei tuoi 160 g di proteine, quindi ti mancano ancora 850 kcal e 84 g di proteine. Gli zuccheri aggiunti sono a 23 g sul limite di 25 g, il sodio a 1.050 mg su 2.300 mg e hai bevuto 500 ml d'acqua su 2.500 ml.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "digest",
                         after: 0,
                     },
                 ],
@@ -638,6 +670,35 @@ export const INDEX_IT: IndexDoc = {
                 cardMeals: ["Lager, 4% (1 pinta, 568 ml)"],
             },
             {
+                id: "track-sodium",
+                title: "Tieni sotto controllo il sodio",
+                description:
+                    "Il sodio si registra in milligrammi, non in sale, su ogni pasto, rispetto a un limite giornaliero che imposti tu. Mostra di più elenca il sodio di un pasto accanto a quel limite, così vedi quanta parte della giornata ha già usato.",
+                toolNotes: {
+                    log_meal:
+                        "Registra la ciotola con il suo sodio in milligrammi, non in sale",
+                    set_nutrition_goals:
+                        "Imposta il limite giornaliero di sodio di 2.300 mg con cui viene confrontato ogni pasto",
+                },
+                messages: [
+                    {
+                        from: "user",
+                        text: "ramen tonkotsu con un uovo per cena, una ciotola grande",
+                    },
+                    {
+                        from: "ai",
+                        text: "Registrata la cena: circa 610 kcal, 28 g di proteine e 2.640 mg di sodio. Quella sola ciotola supera di 340 mg il tuo limite giornaliero di 2.300 mg di sodio.",
+                    },
+                ],
+                cards: [
+                    {
+                        kind: "meal-logged",
+                        after: 0,
+                    },
+                ],
+                cardMeals: ["Ramen tonkotsu con uovo (1 ciotola grande)"],
+            },
+            {
                 id: "import-history",
                 title: "Porta qui il tuo storico",
                 description:
@@ -761,7 +822,7 @@ export const INDEX_IT: IndexDoc = {
         cards: [
             {
                 title: "Pasti a parole tue",
-                body: "Descrivi cosa hai mangiato: per gli alimenti generici si usano i valori di USDA FoodData Central quando disponibili, e la tua IA stima il resto: calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti e caffeina in milligrammi. Il pasto viene registrato e ogni valore mostra la sua fonte.",
+                body: "Descrivi cosa hai mangiato: per gli alimenti generici si usano i valori di USDA FoodData Central quando disponibili, e la tua IA stima il resto: calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti, sodio e caffeina in milligrammi. Il pasto viene registrato e ogni valore mostra la sua fonte.",
             },
             {
                 title: "Scansiona un codice a barre",
@@ -769,7 +830,7 @@ export const INDEX_IT: IndexDoc = {
             },
             {
                 title: "Obiettivi e progressi",
-                body: "Imposta obiettivi giornalieri di calorie, macronutrienti, fibre e acqua, più i limiti di zuccheri aggiunti, grassi saturi, zuccheri totali, caffeina e alcol da non superare, e controlla i progressi in tempo reale.",
+                body: "Imposta obiettivi giornalieri di calorie, macronutrienti, fibre e acqua, più i limiti di zuccheri aggiunti, grassi saturi, sodio, zuccheri totali, caffeina e alcol da non superare, e controlla i progressi in tempo reale.",
             },
             {
                 title: "Riepiloghi e andamenti",
@@ -876,7 +937,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cos'è Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP è un server MCP (Model Context Protocol) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contatore di calorie e macronutrienti. Invece di cercare ogni alimento da solo, dici alla tua IA cosa hai mangiato, ed essa registra nel tuo diario alimentare calorie, macronutrienti, fibre, zuccheri, zuccheri aggiunti, grassi saturi e trans e caffeina.",
+                "Nutrition MCP è un server MCP (Model Context Protocol) gratuito e open source che trasforma Claude, ChatGPT o un altro client MCP in un contatore di calorie e macronutrienti. Invece di cercare ogni alimento da solo, dici alla tua IA cosa hai mangiato, ed essa registra nel tuo diario alimentare calorie, macronutrienti, fibre, zuccheri, zuccheri aggiunti, grassi saturi e trans, sodio e caffeina.",
         },
         {
             question: "Cos'è il Model Context Protocol (MCP)?",
@@ -913,7 +974,7 @@ export const INDEX_IT: IndexDoc = {
         {
             question: "Cosa posso monitorare?",
             visibleHtml:
-                "Calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti e acqua per ogni voce: descritti con parole semplici, cercati come alimento generico in USDA FoodData Central oppure ricavati da un codice a barre tramite Open Food Facts. Un pasto si può registrare ingrediente per ingrediente, ciascuno con la sua quantità e i suoi nutrienti, e un pasto che mangi spesso si può salvare come pasto salvato e registrare di nuovo con il suo nome. Anche la caffeina viene registrata, in milligrammi, l’unità usata su ogni etichetta, e non apporta calorie. Anche l’alcol si può registrare, in grammi di etanolo puro; viene mostrato quando attivi il suo tracciamento. Puoi inoltre registrare il peso corporeo in kg o lb e seguire le tendenze verso un peso obiettivo. Le misure corporee (vita, fianchi, collo, petto, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Consulta i riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui le tendenze nel tempo.",
+                "Calorie, proteine, carboidrati, grassi, grassi saturi e trans, fibre, zuccheri totali, zuccheri aggiunti, sodio e acqua per ogni voce: descritti con parole semplici, cercati come alimento generico in USDA FoodData Central oppure ricavati da un codice a barre tramite Open Food Facts. Un pasto si può registrare ingrediente per ingrediente, ciascuno con la sua quantità e i suoi nutrienti, e un pasto che mangi spesso si può salvare come pasto salvato e registrare di nuovo con il suo nome. Anche la caffeina viene registrata, in milligrammi, l’unità usata su ogni etichetta, e non apporta calorie. Anche l’alcol si può registrare, in grammi di etanolo puro; viene mostrato quando attivi il suo tracciamento. Puoi inoltre registrare il peso corporeo in kg o lb e seguire le tendenze verso un peso obiettivo. Le misure corporee (vita, fianchi, collo, petto, spalle, braccio, avambraccio, coscia e polpaccio) si possono registrare in cm o pollici. Consulta i riepiloghi giornalieri, cerca i pasti per intervallo di date, modifica o elimina voci passate, imposta obiettivi e segui le tendenze nel tempo.",
         },
         {
             question:
