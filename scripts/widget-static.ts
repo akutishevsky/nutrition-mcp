@@ -176,9 +176,14 @@ function shadowCss(raw: string, markup: string, extra = ""): string {
         walk(stripComments(raw), false).join("") +
             extra +
             // The page, not the iframe, owns the space around the card: no
-            // gutter, no backdrop, and a container for the width queries. A
-            // still card has nothing to hover.
-            `:host{display:block}.nmw-body{background:transparent;container:nmw/inline-size}.nmw-body>.wrap{padding:0;max-width:none}.interactive,.seg-btn{cursor:default}.interactive:hover{background:none}`,
+            // gutter, and a container for the width queries. A host draws a
+            // widget in its own frame; the card gets one in the widget's own
+            // panel tokens (so it follows the theme as the widget does), its
+            // left edge on the thread's, where the assistant's replies start,
+            // so it reads as a widget in the reply and not as page content.
+            // Widgets that bring no inset of their own get one (FRAME_PAD).
+            // A still card has nothing to hover.
+            `:host{display:block}.nmw-body{background:var(--panel);border:1px solid var(--panel-border);border-radius:20px;padding:6px 2px;container:nmw/inline-size}.nmw-body.nmw-pad{padding:16px}.nmw-body>.wrap{padding:0;max-width:none}.interactive,.seg-btn{cursor:default}.interactive:hover{background:none}`,
     );
 }
 
@@ -462,6 +467,10 @@ function stillMarkup(markup: string): string {
     );
 }
 
+/** Widgets whose root has no horizontal inset of its own (the day view,
+ *  goal progress, trends and weight cards pad themselves 12–16px). */
+const FRAME_PAD = new Set(["digest", "import-meals"]);
+
 /** One card: the widget's real markup and CSS in a declarative shadow root.
  *  `shadowrootclonable` because the hero's replay clones its thread nodes. */
 export function renderWidgetCard(
@@ -471,16 +480,17 @@ export function renderWidgetCard(
 ): string {
     const { css, states } = renderMarkup(key, payload, opts);
     const bodies = states.map(stillMarkup);
+    const bodyClass = FRAME_PAD.has(key) ? "nmw-body nmw-pad" : "nmw-body";
     if (bodies.length === 1) {
         const sheet = shadowCss(css, bodies[0]!);
-        return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="nmw-body">${bodies[0]}</div></template></div>`;
+        return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="${bodyClass}">${bodies[0]}</div></template></div>`;
     }
     // Both states ship; the host's data-open attribute (set by the page's
     // toggle, site.js) shows the expanded one. The collapsed state is what a
     // card shows until its Show more is pressed.
     const sheet = shadowCss(css, bodies.join(""), EXPAND_CSS);
     const expanded = suffixIds(bodies[1]!, "x-");
-    return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="nmw-body"><div class="nmw-s nmw-s-c">${bodies[0]}</div><div class="nmw-s nmw-s-x">${expanded}</div></div></template></div>`;
+    return `<div class="${HOST_CLASS}"><template shadowrootmode="open" shadowrootclonable><style>${sheet}</style><div class="${bodyClass}"><div class="nmw-s nmw-s-c">${bodies[0]}</div><div class="nmw-s nmw-s-x">${expanded}</div></div></template></div>`;
 }
 
 /** Give every id in an expanded body a prefix, and every reference to one of

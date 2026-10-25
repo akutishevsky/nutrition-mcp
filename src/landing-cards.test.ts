@@ -353,3 +353,25 @@ test("the english goals reply names the sodium limit", () => {
     )!;
     expect(slide.messages[3]!.text).toContain("2,300 mg sodium");
 });
+
+// Without a frame a card read as page content rather than a widget in the
+// reply. Every card draws one in the widget's own panel tokens, and the
+// widgets with no inset of their own (digest, import) get padding inside it.
+test("every card is framed as a widget, padded where the widget has no inset", () => {
+    const ids: DemoCardId[] = [
+        ...DAY_VIEW_CARDS,
+        "goals-progress",
+        "review-week",
+        "weight-trend",
+        "import-file",
+        "daily-digest",
+    ];
+    for (const id of ids) {
+        const html = renderCard(id, "en", "Meal", DAY_MEALS);
+        expect(html).toContain(
+            ".nmw-body{background:var(--panel);border:1px solid var(--panel-border);border-radius:20px",
+        );
+        const padded = id === "import-file" || id === "daily-digest";
+        expect(html.includes('class="nmw-body nmw-pad"')).toBe(padded);
+    }
+});
