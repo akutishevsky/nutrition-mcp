@@ -435,6 +435,9 @@ function stillMarkup(markup: string): string {
         markup
             .replace(/<!--[\s\S]*?-->/g, "")
             .replace(/<div class="mhint"[^>]*>[\s\S]*?<\/div>\n?/g, "")
+            // The digest gauge's "tap a meal piece" hint: the still card has no
+            // popovers to open.
+            .replace(/<div class="ghint"[^>]*>[\s\S]*?<\/div>\n?/g, "")
             .replace(/<div class="macro-detail[^"]*"[^>]*><\/div>\n?/g, "")
             .replace(
                 /(<div class="[^"]*\binteractive\b[^"]*")([^>]*)>/g,

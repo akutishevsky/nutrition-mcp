@@ -1007,12 +1007,16 @@ export function digestMeta(locale: string, dayMeals: HeroMeal[]) {
         created_at: "",
         idempotency_key: null,
     };
+    // The 14 days before it are the review-week account's (22 Feb – 7 Mar,
+    // TRENDS_DAYS), so the day digest has the history its trends read and
+    // agrees with the trends card.
+    const history = trendsHistory();
     return computeDigest({
         period: "yesterday",
         now: DIGEST_NOW,
         tz: DIGEST_TZ,
-        meals,
-        water,
+        meals: [...history.meals, ...meals],
+        water: [...history.water, ...water],
         weights: [weight],
         latestWeight: weight,
         items: new Map(),
@@ -1060,10 +1064,10 @@ const WEEK_DIGEST_GOALS = {
     daily_water_ml: GOALS.water,
 } as unknown as NutritionGoals;
 
-/** The digest of the review-week account, built by the server's own
- * computeDigest from the same days the trends card shows: one meal and one
- * water entry per logged day, so its averages come from the same figures. */
-function digestWeek(locale: string): DigestResult {
+/** The review-week account's logged days as rows: one meal and one water
+ * entry per logged day of TRENDS_DAYS, so a digest built from them averages
+ * the same figures the trends card shows. */
+function trendsHistory(): { meals: Meal[]; water: WaterEntry[] } {
     const meals: Meal[] = [];
     const water: WaterEntry[] = [];
     TRENDS_DAYS.forEach(
@@ -1098,6 +1102,13 @@ function digestWeek(locale: string): DigestResult {
             });
         },
     );
+    return { meals, water };
+}
+
+/** The digest of the review-week account, built by the server's own
+ * computeDigest from the same days the trends card shows. */
+function digestWeek(locale: string): DigestResult {
+    const { meals, water } = trendsHistory();
     return computeDigest({
         period: "last_7_days",
         now: WEEK_DIGEST_NOW,

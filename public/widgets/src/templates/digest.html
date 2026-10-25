@@ -1559,6 +1559,12 @@
                 white-space: nowrap;
                 max-width: 100%;
                 overflow: hidden;
+            }
+            /* A flex item: text-overflow does nothing on the chip itself, so
+               a long meal name was cut mid-word with no ellipsis. */
+            .fact .ft {
+                min-width: 0;
+                overflow: hidden;
                 text-overflow: ellipsis;
             }
             .digest .bigchev {
@@ -4573,9 +4579,9 @@
                             (f) =>
                                 '<span class="fact num"><span aria-hidden="true">' +
                                 f.em +
-                                "</span>" +
+                                '</span><span class="ft">' +
                                 esc(f.t) +
-                                "</span>",
+                                "</span></span>",
                         )
                         .join("") +
                     "</div>"
