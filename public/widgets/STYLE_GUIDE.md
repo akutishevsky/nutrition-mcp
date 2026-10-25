@@ -22,8 +22,9 @@ warmed in `src/index.ts`). Nothing generated is committed.
 
 - **Sources** live in `public/widgets/src/`: shared partials in `shared/`
   (`tokens.css`, `base.css`, `ring.css`, `macros.css`, `trend.css`, `seg.css`,
-  `form.css`, `table.css`, `period.css`, `macros.js`, `period.js`, `bridge.js`,
-  `i18n.js`, `date.js`) and one template per widget
+  `form.css`, `table.css`, `period.css`, `gauge.css`, `nutrients.css`,
+  `macros.js`, `period.js`, `gauge.js`, `nutrients.js`, `bridge.js`, `i18n.js`,
+  `date.js`) and one template per widget
   in `templates/`.
 - **Include marker** — a partial is inlined with a comment that is valid CSS _and_
   JS, so a template still parses on its own:
@@ -1494,3 +1495,73 @@ behind "Show more" one card per nutrient (`.acc`: mini gauge `.mg`, sparkline
 - **Unrecorded is a dot.** A day with no value is a 6px dot in the charts, a
   3px stub in the sparkline and "not recorded" / "nothing logged" in text,
   never a zero bar.
+
+## 12. The day view: half-gauge and nutrient accordion (`shared/gauge.*`, `shared/nutrients.*`)
+
+`meal-logged` and `nutrition-summary` (artboards MG1/MG2, W1) no longer draw
+the macro strip. They include `shared/macros.js` only for its `_meta`
+validators and merges (`withAddedSugar`, `withSaturatedFat`, `withSodium`,
+`withItemSodium`, `withMealItems`, `withNutrientSources`, `mealTimesPayload`)
+and `DRINK_GRAMS`; its strip and its click handlers are never used.
+
+- **`shared/gauge.js` is pure markup.** No DOM access and no listeners at
+  load, so a test can evaluate it. The geometry is the artboards' own: a
+  120-unit half arc centred on (150, 146) in a 278 × 160 viewBox, every path
+  `pathLength="100"`, so every dash is a percentage of the arc.
+  `gaugeSegments(meals, goal)` cuts a one-day arc at meal boundaries, keeping
+  a boundary only when it is two corner-widths from its neighbours (a small
+  snack merges rather than drawing a sliver) and giving up past 8 segments.
+  meal-logged draws what was eaten before the meal light (`pre`) and the meal
+  itself strong (`add`); a range draws the average against its peak day.
+- **`shared/nutrients.js` owns the rules both widgets share.** A template
+  builds one view object `V` from its payload and `_meta` and calls
+  `nvMount(root, V)`. The controller keeps its state on `root.__nv` and binds
+  one delegated click listener once (`root.__nvBound`), so a repaint never
+  stacks handlers; every control is a `[data-act]` button. Row order is fixed
+  (`NV_DEFS`), never sorted by status. `NV_CORE` (the three macros and water)
+  is always a row; the `NV_SPARSE` nutrients appear only when the day carries
+  them or a goal is set. A ceiling of 0 is a real goal, a floor or target of
+  0 is unset (`nvGoalActive`, mirroring `hasActiveTarget` in `src/mcp.ts`).
+- **One number rule** (`nvFmt`): kcal and mg whole, litres and drinks to one
+  decimal, grams to one decimal below 10 when not whole, else whole, all
+  through `Intl.NumberFormat(WIDGET_LOCALE)`; a missing value is "—", never 0.
+- **Width, not a constant.** Below 640px of iframe width it is one column;
+  from 640px the desktop artboard's two-column hero (`.ghero` + `.gstats`) and
+  three-column rows, with `.wrap.dayview` widening the cap to 920px. The
+  landing cards turn the media query into a container query.
+- **Degrade without `_meta`.** No times (rows show no clock), the written
+  meal guessed from its description, sodium and ingredients absent; nothing
+  invents a figure. Check with `?noMeta=1` and `?scenario=` (scripts/harness-day-view.ts).
+
+## 13. Goal progress, weight trends, import, digest (2026-10 redesign)
+
+Each is its own borderless card rather than the shared strip, and each repeats
+the `_meta` key literals it reads (pinned by `src/mcp.test.ts`).
+
+- **`goal-progress`** reads `GOAL_DAY_META_KEY` (`buildGoalDayMeta`,
+  `src/goal-day.ts`) plus the shared `MEAL_TIMES_META_KEY`, sodium, added sugar,
+  saturated fat, items and sources. Level 0 is status counters
+  (`--status-{over,near,togo,ok,nr}` with their `-ink` text pairs) over the
+  card; level 1 is the goals list, filterable by status, one goal open at a
+  time. Without `GOAL_DAY_META_KEY` "today" falls back to the device's
+  calendar day. Harness: `?gp=typical|long|over|past|sparse|small|weight|empty|nogoals|nohistory`.
+- **`weight-trends`** reads the series, entries and body-measurement keys.
+  Every weight carries exactly one decimal; changes use a real minus (U+2212)
+  and ± when they round to zero; long-range axis labels add an apostrophe to a
+  two-digit year where the locale puts the month first. A bucketed range ends
+  on the latest logged day, so the end dot, "Today" and the change chip agree
+  with the big number. It keeps the base `.wrap.tight` 760px cap. Harness:
+  `?sample=`, `?meas=`, `?unit=lb`, `?target=0`, `?days=`.
+- **`import-meals`** keeps its local `.imp` grid and `shared/form.css` /
+  `shared/table.css`. The preview maps sodium (the "Na mg" column) and keeps
+  the alcohol column off unless `drink_unit` is exactly `"us"` or `"uk"`.
+- **`digest`** reads only `DIGEST_META_KEY`: codes and numbers, so every
+  sentence is built from `WIDGET_STRINGS.digest` and translated. It draws its
+  own half-donut and charts. Without `_meta` it draws only what the frozen
+  `structuredContent` backs (header, calories, the nutrient table, water),
+  never goals, trends, weight, meals or highlights, whose empty defaults would
+  read as facts. Harness: `?period=yesterday|today|last_7_days|last_30_days`,
+  `?scenario=typical|great|rough|sparse|empty|long|nogoals|nosodium`.
+- **Plurals.** `PluralForms` may carry `zero`, `two`, `few` and `many` beside
+  `one` / `other`; `plural()` uses the `Intl.PluralRules` category when the
+  entry has it, otherwise `other`. Polish and Ukrainian need `few` and `many`.
