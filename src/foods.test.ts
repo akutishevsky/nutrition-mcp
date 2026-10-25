@@ -974,3 +974,115 @@ describe("saturated and trans fat in cached rows and text", () => {
         expect(text).toContain("Trans fat: n/a");
     });
 });
+
+describe("fetchProductFromOFF sodium", () => {
+    test("reads sodium_serving in grams and returns milligrams", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Instant Noodles",
+                    serving_size: "85 g",
+                    nutriments: {
+                        "energy-kcal_serving": 380,
+                        sodium_serving: 1.44,
+                        sodium_100g: 1.69,
+                        salt_serving: 3.6,
+                    },
+                },
+            }),
+        );
+        const food = await fetchProductFromOFF("3017620422003");
+        // Converted before rounding: 1.44 g is 1440 mg, not 1400.
+        expect(food!.sodium_mg).toBe(1440);
+    });
+
+    test("falls back to the per-100 g basis, like every other nutrient", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Crisps",
+                    nutriments: {
+                        "energy-kcal_100g": 530,
+                        sodium_100g: "0.484",
+                    },
+                },
+            }),
+        );
+        const food = await fetchProductFromOFF("3017620422003");
+        expect(food!.serving).toBe("100 g");
+        expect(food!.sodium_mg).toBe(484);
+    });
+
+    test("salt alone is not turned into sodium, and no figure reads as not recorded", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Sea Salt Crackers",
+                    nutriments: { "energy-kcal_100g": 450, salt_100g: 1.5 },
+                },
+            }),
+        );
+        const food = await fetchProductFromOFF("3017620422003");
+        expect(food!.sodium_mg).toBeNull();
+    });
+
+    test("an explicit 0 is kept as 0", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Still Water",
+                    nutriments: { "energy-kcal_100g": 0, sodium_100g: 0 },
+                },
+            }),
+        );
+        const food = await fetchProductFromOFF("3017620422003");
+        expect(food!.sodium_mg).toBe(0);
+    });
+});
+
+describe("sodium in cached rows and text", () => {
+    const cached: FoodResult = {
+        name: "Soy Sauce",
+        brand: null,
+        serving: "100 g",
+        calories: 53,
+        protein_g: 8,
+        carbs_g: 5,
+        fat_g: 0.6,
+        saturated_fat_g: 0.1,
+        trans_fat_g: 0,
+        fiber_g: 0.8,
+        sugar_g: 0.4,
+        added_sugar_g: null,
+        added_sugar_estimated: false,
+        alcohol_g: null,
+        sodium_mg: 5493,
+        nutriscore_grade: null,
+        nova_group: null,
+        source: "off:737628064502",
+        source_name: "openfoodfacts",
+        barcode: "737628064502",
+    };
+
+    test("a cached row from before sodium shipped is backfilled null, not refetched", () => {
+        const { sodium_mg: _n, ...old } = cached;
+        const hit = fromCachedPayload(old as FoodResult);
+        expect(hit!.stale).toBe(false);
+        expect(hit!.food.sodium_mg).toBeNull();
+    });
+
+    test("a cached row that carries it keeps it", () => {
+        expect(fromCachedPayload(cached)!.food.sodium_mg).toBe(5493);
+    });
+
+    test("the lookup text names sodium in mg, and n/a when not recorded", () => {
+        expect(formatFoodResult(cached)).toContain("Sodium: 5493 mg");
+        expect(formatFoodResult({ ...cached, sodium_mg: null })).toContain(
+            "Sodium: n/a",
+        );
+    });
+});

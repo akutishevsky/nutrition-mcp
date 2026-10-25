@@ -17,23 +17,40 @@
 //   ?maxHeight=600      impose hostContext.containerDimensions.maxHeight
 //   ?fail=1             answer tools/call with a JSON-RPC error
 //   ?drinkUnit=us       alcohol tracking ON for import-meals (default: off/null)
+//   ?csv=clean          import-meals: open on that export as if the user had
+//                       dropped it (scripts/import-fixtures.ts): clean,
+//                       attention, kj, nocalories, long, single, large, errors,
+//                       dryfail, own, alcohol (with ?drinkUnit=us), xlsx, empty
+//   ?tz=0               import-meals: the user never set a timezone
 //   ?noMeta=1           deliver the tool result WITHOUT its _meta, as a host that
 //                       drops it would (nutrition-summary then shows "N or more",
 //                       weight-trends falls back to its legacy 7/14/30 chart,
 //                       and every macro strip loses its added-sugar cell and
 //                       its ingredient expanders — exactly the strip from
 //                       before those fields existed)
-//   ?meals=0            goal-progress: no per-meal rows, so the strip takes its
-//                       static path (no tile is a button, no hint)
-//   ?sample=sparse      weight-trends: a 3-weigh-in user instead of 3 years of
-//                       history (the degraded states: no rate chip, no 1y/All)
+//   ?gp=over            goal-progress: a scenario from
+//                       scripts/goal-progress-fixtures.ts (typical, long, over,
+//                       past, sparse, small, weight, empty, nogoals, nohistory)
+//   ?sample=sparse      weight-trends: nine weigh-in days over 148 days instead
+//                       of 3 years of history; also single, offtrack, reached,
+//                       gain (lb), stale — see weightTrendsFixture
+//   ?meas=0 / =empty    weight-trends: no measurements `_meta` / one with no site
+//   ?past=1             weight-trends: end_date 40 days before today
 //   ?days=90            weight-trends: the tool's `days` argument, which picks
 //                       structuredContent.default_range (7/14/30/90/365, else 30)
 //   ?unit=lb            weight-trends: display unit (default kg)
 //   ?target=0           weight-trends: no target weight set
-//   ?groupBy=week       trends: the `group_by` the period view opens on
-//                       (week/month/quarter/year, default month); ?noMeta=1
-//                       shows the plain 7/14/30 day view, as without group_by
+//   ?trends=typical     trends: a redesign scenario (typical, over, long (de),
+//                       past, sparse, tiny, empty, nogoals), built with the
+//                       real _meta builders (scripts/trends-scenarios.ts);
+//                       ?drinkUnit=off turns alcohol tracking off
+//   ?groupBy=week       trends: the period fixture instead, opening on that
+//                       `group_by` (week/month/quarter/year); ?noMeta=1
+//                       shows its plain 7/14/30 day view, as without group_by
+//   ?period=today       digest: yesterday (default), today, last_7_days,
+//                       last_30_days
+//   ?scenario=rough     digest: typical (default), great, rough, sparse,
+//                       empty, long, nogoals, nosodium
 //   ?goals=0            trends: no goals history at all (averages only)
 //   ?locale=pl          structuredContent.locale (and hostContext.locale)
 //   ?addedSugar=unrecorded  a 29 g added-sugar limit and NO recorded figure:
@@ -57,10 +74,19 @@
 //                       null value that gets no tag, and an alcohol tag that
 //                       meal-logged (tracking off) drops. Ignored with
 //                       ?addedSugar= edge rows, which have no ingredients.
+//   ?scenario=typical   meal-logged / nutrition-summary: one of the redesign
+//                       artboards' scenarios (scripts/harness-day-view.ts),
+//                       with sodium, meal times, ingredients and sources in
+//                       _meta. meal-logged: typical, long-names, over-goal,
+//                       tiny, edited-past, sparse, busy, no-goals, no-limits;
+//                       summary: today, past-over, long-names, sparse,
+//                       nothing, no-goals, trimmed (12 meals, one row
+//                       dropped as the server drops it), week, month-over
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
 
 import { addedSugarExtra, buildAddedSugarMeta } from "../src/added-sugar.js";
+import { IMPORT_FIXTURE_NAMES, importFixture } from "./import-fixtures.js";
 import { buildMealItemsMeta, type MealItemValues } from "../src/meal-items.js";
 import {
     buildSaturatedFatMeta,
@@ -77,6 +103,8 @@ import {
     PERIOD_AVERAGES_META_KEY,
     SATURATED_FAT_META_KEY,
     WEIGHT_SERIES_META_KEY,
+    WEIGHT_ENTRIES_META_KEY,
+    BODY_MEASUREMENTS_META_KEY,
     WIDGET_TEMPLATES,
 } from "../src/widgets.js";
 import {
@@ -85,6 +113,14 @@ import {
     type SourceDetail,
 } from "../src/provenance.js";
 import { runImport } from "../src/import.js";
+import { mealLoggedScenario, summaryScenario } from "./harness-day-view.js";
+import { goalProgressFixture } from "./goal-progress-fixtures.js";
+import {
+    TRENDS_SCENARIOS,
+    trendsScenario,
+    type TrendsScenario,
+} from "./trends-scenarios.js";
+import { digestFixture } from "./digest-fixture.js";
 import { buildDailyBuckets } from "../src/insights.js";
 import {
     buildPeriodAveragesMeta,
@@ -105,11 +141,13 @@ import type {
 } from "../src/supabase.js";
 import { shiftLocalDate } from "../src/tz.js";
 import { fromGrams, type WeightUnit } from "../src/units.js";
+import { analyzeWeightHistory, defaultRangeFor } from "../src/weight-trend.js";
 import {
-    analyzeWeightHistory,
-    defaultRangeFor,
-    type WeightRow,
-} from "../src/weight-trend.js";
+    buildBodyMeasurementsMeta,
+    buildWeightEntriesMeta,
+    type MeasurementRow,
+    type WeightEntryRow,
+} from "../src/weight-widget.js";
 
 // In-memory stand-in for insertMeal, mirroring its dedup contract, so the harness
 // can execute the REAL bulk_import_meals logic instead of returning canned data.
@@ -133,77 +171,333 @@ async function fakeInsert(input: MealInput): Promise<MealInsertResult> {
     return { meal: meal as never, deduplicated: false };
 }
 
-// get_weight_trends' tool result, built with the REAL src/weight-trend.ts the
-// handler uses (EWMA, buckets, rate), so what the widget draws here is what a
-// client would get for the same weigh-ins — not a hand-typed approximation.
-// "full" is ~3 years losing 92 → 80 kg with a plateau, day-to-day noise, a
-// three-week break and a few double weigh-ins; "sparse" is 3 weigh-ins in a
-// month, which is too few for a rate and too short for 1y/All.
+// get_weight_trends' tool result, built with the REAL src/weight-trend.ts and
+// src/weight-widget.ts the handler uses (EWMA, buckets, rate, the per-reading
+// list and the measurements), so what the widget draws here is what a client
+// would get for the same rows — not a hand-typed approximation.
+//
+//   ?sample=full      ~3 years losing 92 → 80 kg, a break, double weigh-ins,
+//                     notes (one very long), six measured sites (default)
+//   ?sample=sparse    nine weigh-in days over 148 days, one two-reading day
+//   ?sample=single    one weigh-in ever, today
+//   ?sample=offtrack  regaining toward the end, goal 75 kg
+//   ?sample=reached   at 64.6 kg, goal 65 kg crossed a month ago
+//   ?sample=gain      gaining in lb (goal 165 lb), measurements in inches
+//   ?sample=stale     last weigh-in three weeks ago (try ?days=7: empty range)
+//   ?target=0         no goal          ?unit=lb     display in pounds
+//   ?meas=0           no measurements `_meta` (section hidden)
+//   ?meas=empty       measurements `_meta` with no site (the "none" line)
+//   ?past=1           end_date 40 days before today (a past window)
 const WEIGHT_END = "2026-07-15";
 const WEIGHT_TZ = "Europe/Kyiv";
-function weightRows(sample: "full" | "sparse"): WeightRow[] {
-    const at = (date: string, hh = "07:30") => `${date}T${hh}:00+03:00`;
-    if (sample === "sparse") {
-        return [
-            {
-                logged_at: at(shiftLocalDate(WEIGHT_END, -24)),
-                weight_g: 84_300,
-            },
-            {
-                logged_at: at(shiftLocalDate(WEIGHT_END, -11)),
-                weight_g: 83_600,
-            },
-            { logged_at: at(shiftLocalDate(WEIGHT_END, -2)), weight_g: 83_900 },
-        ];
-    }
-    // Deterministic noise (mulberry32), so every reload draws the same chart.
-    let seed = 20261004;
-    const rand = () => {
+type WeightSample =
+    "full" | "sparse" | "single" | "offtrack" | "reached" | "gain" | "stale";
+
+function harnessRand(seed0: number) {
+    let seed = seed0;
+    return () => {
         seed = (seed + 0x6d2b79f5) | 0;
         let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
         t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
-    const total = 3 * 365;
-    const rows: WeightRow[] = [];
-    for (let i = total; i >= 0; i--) {
-        const date = shiftLocalDate(WEIGHT_END, -i);
-        const p = (total - i) / total; // 0 → 1 over the history
-        // Loses fast, plateaus through the middle, then a slower second leg.
-        const base =
-            p < 0.35
-                ? 92 - (p / 0.35) * 7
-                : p < 0.6
-                  ? 85 + Math.sin(p * 40) * 0.4
-                  : 85 - ((p - 0.6) / 0.4) * 5;
-        if (i > 200 && i < 222) continue; // a three-week break
-        if (rand() < 0.3) continue; // skipped mornings
-        const kg = base + (rand() - 0.5) * 1.6;
-        rows.push({ logged_at: at(date), weight_g: Math.round(kg * 1000) });
-        if (rand() < 0.05) {
+}
+const at = (date: string, hh = "07:30") => `${date}T${hh}:00+03:00`;
+const LONG_NOTE =
+    "Weighed at the gym after a long weekend away — the scale there reads a bit higher than the one at home, so this one is probably half a kilo heavy";
+
+/** Weigh-ins from keyframes [daysAgo, kg], oldest first, with skipped days,
+ *  noise and the odd evening reading, ending `end`. */
+function keyframeRows(
+    end: string,
+    kf: [number, number][],
+    seed: number,
+    notes: Record<number, string> = {},
+    lb = false,
+): WeightEntryRow[] {
+    const rand = harnessRand(seed);
+    const ip = (ago: number) => {
+        for (let i = 0; i < kf.length - 1; i++) {
+            const [a1, w1] = kf[i]!;
+            const [a2, w2] = kf[i + 1]!;
+            if (ago <= a1 && ago >= a2)
+                return w1 + ((w2 - w1) * (a1 - ago)) / (a1 - a2 || 1);
+        }
+        return kf[kf.length - 1]![1];
+    };
+    const g = lb ? 453.59237 : 1000;
+    const rows: WeightEntryRow[] = [];
+    for (let ago = kf[0]![0]; ago >= 0; ago--) {
+        const note = notes[ago];
+        if (rand() < 0.25 && ago !== 0 && !note) continue;
+        const v = ip(ago) + (rand() - 0.5) * (lb ? 1.4 : 0.7);
+        const date = shiftLocalDate(end, -ago);
+        rows.push({
+            logged_at: at(
+                date,
+                `0${6 + Math.floor(rand() * 3)}:${String(Math.floor(rand() * 60)).padStart(2, "0")}`,
+            ),
+            weight_g: Math.round(v * g),
+            notes: note ?? null,
+        });
+        if (rand() < 0.08)
             rows.push({
                 logged_at: at(date, "21:10"),
-                weight_g: Math.round((kg + 0.6) * 1000),
+                weight_g: Math.round((v + (lb ? 1.2 : 0.5)) * g),
+                notes: "Evening",
             });
-        }
     }
     return rows;
 }
+
+function weightRows(sample: WeightSample, end: string): WeightEntryRow[] {
+    const ago = (n: number, hh = "07:30") => at(shiftLocalDate(end, -n), hh);
+    switch (sample) {
+        case "single":
+            return [
+                {
+                    logged_at: ago(0, "07:40"),
+                    weight_g: 76_400,
+                    notes: "First weigh-in",
+                },
+            ];
+        case "sparse":
+            return [
+                [148, "08:10", 91.2, null],
+                [131, "07:55", 90.6, null],
+                [103, "08:20", 89.9, null],
+                [88, "09:05", 89.4, null],
+                [61, "07:30", 88.1, LONG_NOTE],
+                [44, "08:00", 87.6, null],
+                [44, "21:40", 88.5, "Evening, after dinner"],
+                [29, "07:45", 87.0, null],
+                [19, "08:15", 86.4, null],
+                [12, "07:50", 86.1, "Fasted, before coffee"],
+            ].map(([n, hh, kg, note]) => ({
+                logged_at: ago(n as number, hh as string),
+                weight_g: Math.round((kg as number) * 1000),
+                notes: note as string | null,
+            }));
+        case "offtrack":
+            return keyframeRows(
+                end,
+                [
+                    [150, 80],
+                    [90, 78.1],
+                    [35, 77.4],
+                    [15, 78.3],
+                    [0, 78.9],
+                ],
+                31,
+                { 4: "After a week of travel" },
+            );
+        case "reached":
+            return keyframeRows(
+                end,
+                [
+                    [240, 72.3],
+                    [160, 69.8],
+                    [80, 67],
+                    [30, 65.5],
+                    [0, 64.6],
+                ],
+                47,
+                { 0: "Goal weight!" },
+            );
+        case "gain":
+            return keyframeRows(
+                end,
+                [
+                    [420, 146],
+                    [300, 148.4],
+                    [180, 151],
+                    [90, 153.2],
+                    [30, 154.9],
+                    [0, 156.4],
+                ],
+                5,
+                { 0: "Post-workout", 13: "Travel day, different scale" },
+                true,
+            );
+        case "stale":
+            return keyframeRows(
+                end,
+                [
+                    [200, 88.6],
+                    [95, 85.2],
+                    [21, 83.6],
+                ],
+                11,
+            ).filter((r) => r.logged_at < ago(20));
+        default: {
+            // ~3 years: loses fast, plateaus, then a slower second leg, with
+            // a three-week break, skipped mornings and double weigh-ins.
+            const rand = harnessRand(20261004);
+            const total = 3 * 365;
+            const rows: WeightEntryRow[] = [];
+            const notes: Record<number, string> = {
+                0: "Morning, after run",
+                9: "Late dinner the night before",
+                23: "New scale battery",
+                40: LONG_NOTE,
+            };
+            for (let i = total; i >= 0; i--) {
+                const date = shiftLocalDate(end, -i);
+                const p = (total - i) / total;
+                const base =
+                    p < 0.35
+                        ? 92 - (p / 0.35) * 7
+                        : p < 0.6
+                          ? 85 + Math.sin(p * 40) * 0.4
+                          : 85 - ((p - 0.6) / 0.4) * 5;
+                if (i > 200 && i < 222) continue;
+                if (rand() < 0.3 && !notes[i] && i !== 0) continue;
+                const kg = base + (rand() - 0.5) * 1.6;
+                rows.push({
+                    logged_at: at(date),
+                    weight_g: Math.round(kg * 1000),
+                    notes: notes[i] ?? null,
+                });
+                if (rand() < 0.05 || i === 2) {
+                    rows.push({
+                        logged_at: at(date, "21:10"),
+                        weight_g: Math.round((kg + 0.6) * 1000),
+                        notes: i === 2 ? "Evening, after a salty dinner" : null,
+                    });
+                }
+            }
+            return rows;
+        }
+    }
+}
+
+/** Measurement rows: site → [from, to, everyNDays, startAgo, lastAgo]. */
+function measurementRows(sample: WeightSample, end: string): MeasurementRow[] {
+    const rand = harnessRand(7);
+    const plan: Record<string, [number, number, number, number, number]> =
+        sample === "gain"
+            ? {
+                  chest: [38, 40.6, 14, 300, 2],
+                  shoulders: [45, 47.1, 28, 300, 2],
+                  upper_arm: [12.6, 13.8, 14, 300, 2],
+                  waist: [31, 31.6, 14, 300, 2],
+                  thigh: [21.5, 22.6, 28, 300, 9],
+                  calf: [14.2, 14.6, 56, 300, 120],
+              }
+            : sample === "offtrack"
+              ? {
+                    waist: [91, 88.4, 14, 140, 30],
+                    hips: [101, 99.6, 28, 140, 30],
+                }
+              : sample === "reached"
+                ? {
+                      waist: [82, 74.5, 14, 230, 0],
+                      hips: [100, 95.2, 14, 230, 0],
+                      upper_arm: [29.5, 27.8, 28, 230, 0],
+                  }
+                : sample === "single"
+                  ? {}
+                  : sample === "sparse"
+                    ? {}
+                    : {
+                          waist: [96, 89.5, 7, 196, 1],
+                          hips: [104, 100.8, 14, 196, 1],
+                          chest: [104, 101.5, 14, 196, 1],
+                          neck: [39.5, 38.6, 28, 190, 5],
+                          upper_arm: [34.5, 33.9, 14, 190, 5],
+                          thigh: [60, 58.2, 14, 190, 45],
+                      };
+    const unit: "cm" | "in" = sample === "gain" ? "in" : "cm";
+    const mmPer = unit === "in" ? 25.4 : 10;
+    const rows: MeasurementRow[] = [];
+    const push = (kind: string, ago: number, v: number) =>
+        rows.push({
+            kind: kind as MeasurementRow["kind"],
+            value_mm: Math.round(v * mmPer),
+            value_entered: v,
+            entered_unit: unit,
+            logged_at: at(shiftLocalDate(end, -ago), "08:00"),
+        });
+    if (sample === "sparse") {
+        push("waist", 61, 99.5);
+        push("waist", 19, 97.0);
+        push("neck", 19, 41.0);
+        return rows;
+    }
+    for (const [kind, [a, b, every, from, last]] of Object.entries(plan)) {
+        const agos: number[] = [];
+        for (let x = from; x >= last; x -= every) agos.push(x);
+        if (agos[agos.length - 1] !== last) agos.push(last);
+        agos.forEach((x, i) => {
+            const v =
+                i === agos.length - 1
+                    ? b
+                    : Math.round(
+                          (a +
+                              ((b - a) * (from - x)) / (from - last || 1) +
+                              (rand() - 0.5) * (unit === "in" ? 0.25 : 0.6)) *
+                              10,
+                      ) / 10;
+            push(kind, x, v);
+        });
+    }
+    return rows;
+}
+
 function weightTrendsFixture(params: URLSearchParams) {
-    const sample = params.get("sample") === "sparse" ? "sparse" : "full";
-    const unit: WeightUnit = params.get("unit") === "lb" ? "lb" : "kg";
+    const raw = params.get("sample") ?? "full";
+    const sample = (
+        [
+            "full",
+            "sparse",
+            "single",
+            "offtrack",
+            "reached",
+            "gain",
+            "stale",
+        ].includes(raw)
+            ? raw
+            : "full"
+    ) as WeightSample;
+    const unit: WeightUnit =
+        params.get("unit") === "lb" || sample === "gain" ? "lb" : "kg";
     const days = Number(params.get("days") ?? 30) || 30;
-    const targetG = params.get("target") === "0" ? null : 78_000;
-    const a = analyzeWeightHistory(
-        weightRows(sample),
-        WEIGHT_TZ,
-        unit,
-        WEIGHT_END,
-    );
-    const cutoff = shiftLocalDate(WEIGHT_END, -29);
+    const goalKg: Record<WeightSample, number> = {
+        full: 78,
+        sparse: 82,
+        single: 70,
+        offtrack: 75,
+        reached: 65,
+        gain: 165 * 0.45359237,
+        stale: 80,
+    };
+    const targetG =
+        params.get("target") === "0" ? null : Math.round(goalKg[sample] * 1000);
+    const today = WEIGHT_END;
+    const end =
+        params.get("past") === "1"
+            ? shiftLocalDate(WEIGHT_END, -40)
+            : WEIGHT_END;
+    const rows = weightRows(sample, today);
+    const a = analyzeWeightHistory(rows, WEIGHT_TZ, unit, end);
+    const cutoff = shiftLocalDate(end, -29);
+    const measMode = params.get("meas");
+    const meas =
+        measMode === "0"
+            ? {}
+            : {
+                  [BODY_MEASUREMENTS_META_KEY]: buildBodyMeasurementsMeta(
+                      measMode === "empty"
+                          ? []
+                          : measurementRows(sample, today),
+                      WEIGHT_TZ,
+                      null,
+                      end,
+                  ),
+              };
     return {
         result: {
-            end_date: WEIGHT_END,
+            end_date: end,
             unit,
             target: targetG != null ? fromGrams(targetG, unit) : null,
             default_range: defaultRangeFor(days),
@@ -215,7 +509,17 @@ function weightTrendsFixture(params: URLSearchParams) {
                     weight: fromGrams(d.weight_g, unit),
                 })),
         },
-        meta: { [WEIGHT_SERIES_META_KEY]: a.meta },
+        meta: {
+            [WEIGHT_SERIES_META_KEY]: a.meta,
+            [WEIGHT_ENTRIES_META_KEY]: buildWeightEntriesMeta(
+                rows,
+                WEIGHT_TZ,
+                unit,
+                end,
+                today,
+            ),
+            ...meas,
+        },
     };
 }
 
@@ -443,10 +747,18 @@ function indexPage(): string {
      <code>?maxHeight=600</code>, <code>?fail=1</code>, <code>?drinkUnit=us</code>,
      <code>?noMeta=1</code>, <code>?theme=dark</code>, <code>?locale=pl</code>,
      <code>?addedSugar=unrecorded</code>, <code>?addedSugar=zero</code>;
-     goal-progress takes <code>?meals=0</code> (the static strip);
-     weight-trends also takes <code>?sample=sparse</code>, <code>?days=90</code>,
-     <code>?unit=lb</code>, <code>?target=0</code>; trends takes
-     <code>?groupBy=week</code> and <code>?goals=0</code>.</p>
+     goal-progress takes <code>?gp=typical|long|over|past|sparse|small|weight|empty|nogoals|nohistory</code>;
+     weight-trends also takes <code>?sample=sparse|single|offtrack|reached|gain|stale</code>,
+     <code>?days=90</code>, <code>?unit=lb</code>, <code>?target=0</code>,
+     <code>?meas=0|empty</code>, <code>?past=1</code>; trends takes
+     <code>?trends=typical|over|long|past|sparse|tiny|empty|nogoals</code>,
+     or <code>?groupBy=week</code> and <code>?goals=0</code> for the period
+     view; meal-logged and nutrition-summary take <code>?scenario=</code>
+     (see harness-day-view.ts); import-meals takes
+     <code>?csv=</code>${IMPORT_FIXTURE_NAMES.join(", ")} and <code>?tz=0</code>; digest takes
+     <code>?period=today|yesterday|last_7_days|last_30_days</code>,
+     <code>?scenario=typical|great|rough|sparse|empty|long|nogoals|nosodium</code>
+     and <code>?unit=lb</code>.</p>
   <ul>${links}</ul>
 </body></html>`;
 }
@@ -962,7 +1274,23 @@ function hostPage(widget: string, params: URLSearchParams): string {
 
     // Per-widget CallToolResult `_meta`, delivered beside structuredContent.
     const weight = weightTrendsFixture(params);
-    const trends = trendsFixture(params, macroDrinkUnit);
+    // trends: the period fixture when ?groupBy= is given, else one of the
+    // redesign's scenarios (?trends=typical|over|long|past|sparse|tiny|empty|
+    // nogoals, default typical). ?drinkUnit=off turns alcohol tracking off.
+    const trendsName = params.get("trends") as TrendsScenario | null;
+    const trends = params.has("groupBy")
+        ? trendsFixture(params, macroDrinkUnit)
+        : (() => {
+              const t = trendsScenario(
+                  trendsName && TRENDS_SCENARIOS.includes(trendsName)
+                      ? trendsName
+                      : "typical",
+                  params.get("drinkUnit") === "off" ? null : macroDrinkUnit,
+              );
+              const loc = params.get("locale");
+              if (loc) t.result.locale = loc;
+              return t;
+          })();
     const METAS: Record<string, unknown> = {
         "nutrition-summary": {
             ...summaryMeta,
@@ -1197,7 +1525,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
         // exercised here — which is exactly how the leak shipped.
         "import-meals": {
             tz: "Europe/Kyiv",
-            tz_configured: true,
+            tz_configured: params.get("tz") !== "0",
             today: "2026-07-15",
             max_rows_per_call: 50,
             import_tool_name: "bulk_import_meals",
@@ -1209,6 +1537,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
             ],
             widgets_enabled: true,
             drink_unit: drinkUnit,
+            locale: locale ?? "en",
         },
         "weight-trends": weight.result,
     };
@@ -1369,6 +1698,45 @@ function hostPage(widget: string, params: URLSearchParams): string {
         withSources("meal-logged", sourcesOf(dayMeals, false));
     }
 
+    // ?scenario= swaps meal-logged / nutrition-summary onto the redesign
+    // artboards' scenarios (scripts/harness-day-view.ts), built with the
+    // server's own `_meta` builders, sodium and meal times included.
+    const scenario = params.get("scenario");
+    if (scenario) {
+        const sc =
+            widget === "meal-logged"
+                ? mealLoggedScenario(scenario)
+                : widget === "nutrition-summary"
+                  ? summaryScenario(scenario)
+                  : null;
+        if (sc) {
+            RESULTS[widget] = sc.result;
+            METAS[widget] = sc.meta;
+        }
+    }
+
+    // goal-progress: the redesign's scenarios (?gp=typical|long|over|past|
+    // sparse|small|weight|empty|nogoals|nohistory), built with the server's own
+    // `_meta` builders in scripts/goal-progress-fixtures.ts. They replace the
+    // strip-era fixture above; ?noMeta=1 and ?drinkUnit=uk still apply.
+    if (widget === "goal-progress") {
+        const gp = goalProgressFixture(
+            params.get("gp") ?? "typical",
+            drinkUnit ?? "us",
+        );
+        RESULTS["goal-progress"] = gp.result;
+        METAS["goal-progress"] = gp.meta;
+    }
+
+    // The digest's own fixture: a 61-day log run through computeDigest
+    // (scripts/digest-fixture.ts; ?period=, ?scenario=, ?unit=lb,
+    // ?drinkUnit=us).
+    if (widget === "digest") {
+        const fx = digestFixture(params);
+        RESULTS.digest = fx.result;
+        METAS.digest = fx.meta;
+    }
+
     // Probe and gallery paint their own UI; anything non-null will do.
     const baseResult = RESULTS[widget] ?? { probe: true };
     // ?locale= reaches every widget through the field they all read first.
@@ -1390,7 +1758,7 @@ function hostPage(widget: string, params: URLSearchParams): string {
 <body>
   <strong>${widget}</strong>
   <span class="cfg">serverTools=${serverTools} answerTools=${answerTools} delay=${delay}ms${maxHeight ? " maxHeight=" + maxHeight : ""}${failCalls ? " fail=1" : ""}${noMeta ? " noMeta=1" : ""}${staticGoalProgress ? " meals=0" : ""} theme=${theme}${locale ? " locale=" + locale : ""} drinkUnit=${drinkUnit ?? "null (tracking off)"}</span>
-  <div style="margin-top:8px"><iframe id="frame" sandbox="allow-scripts" src="/widget/${encodeURIComponent(widget)}"></iframe></div>
+  <div style="margin-top:8px"><iframe id="frame" sandbox="allow-scripts" src="/widget/${encodeURIComponent(widget)}${widget === "import-meals" && params.get("csv") ? "?csv=" + encodeURIComponent(params.get("csv")!) : ""}"></iframe></div>
   <div style="margin-top:8px">
     <button onclick="hostRequest(1)">host req id=1</button>
     <button onclick="hostRequest(2)">host req id=2</button>
@@ -1605,9 +1973,37 @@ Bun.serve({
             if (!KEYS.includes(key)) {
                 return new Response(`unknown widget: ${key}`, { status: 404 });
             }
+            // ?csv=<fixture>: hand the importer an export file as if the user
+            // had dropped it, once the host has delivered its config. The
+            // script is appended here, in the harness only; the served
+            // widget is unchanged.
+            let html = await getWidgetHtml(key);
+            const fixture =
+                key === "import-meals"
+                    ? importFixture(url.searchParams.get("csv") ?? "")
+                    : null;
+            if (fixture) {
+                html = html.replace(
+                    /<\/body>/,
+                    `<script>
+(function () {
+  const bin = atob(${JSON.stringify(fixture.base64)});
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const file = new File([bytes], ${JSON.stringify(fixture.name)});
+  const t = setInterval(() => {
+    if (API && CFG.import_tool_name && document.querySelector(".drop")) {
+      clearInterval(t);
+      loadFile(file);
+    }
+  }, 50);
+})();
+</script></body>`,
+                );
+            }
             // Same CSP the MCP Apps sandbox applies, so a widget that reaches
             // for the network here fails here too.
-            return new Response(await getWidgetHtml(key), {
+            return new Response(html, {
                 headers: {
                     "content-type": "text/html; charset=utf-8",
                     "content-security-policy":

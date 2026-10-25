@@ -1,9 +1,10 @@
 // Behaviour test for the nutrition-summary widget's loggedDaysCaption() —
 // issue #70. The hero rings on this dashboard average over the days that carry
-// a log, while the get_trends rings average over every calendar day in the
-// window, so the same 15-of-30-days month legitimately reads 2000 kcal here and
-// 1000 kcal there. The caption is half of how a reader tells them apart, which
-// makes its exact wording load-bearing rather than cosmetic.
+// a log, while get_trends' text averages calories and macros over every
+// calendar day in the window, so the same 15-of-30-days month legitimately
+// reads 2000 kcal here and 1000 kcal there. The caption is half of how a reader
+// tells them apart, which makes its exact wording load-bearing rather than
+// cosmetic.
 //
 // The other half is that `days_in_range` is OPTIONAL: a host replaying a tool
 // result recorded before the field existed must render byte-identically to
@@ -24,14 +25,30 @@ async function freshSummaryWidget() {
     if (boot === -1) throw new Error("nutrition-summary bootstrap not found");
     const factory = new Function(
         `${script.slice(0, boot)}
-         return { loggedDaysCaption };`,
+         return { loggedDaysCaption, summaryHasData };`,
     );
     return factory() as {
         loggedDaysCaption: (data: Record<string, unknown>) => string;
+        summaryHasData: (days: Record<string, unknown>[]) => boolean;
     };
 }
 
-const { loggedDaysCaption } = await freshSummaryWidget();
+const { loggedDaysCaption, summaryHasData } = await freshSummaryWidget();
+
+// A day with only water logged arrives with meal_count 0; the card must still
+// open, since its Water row is the only place the water shows.
+test("a water-only day counts as data; an empty day does not", () => {
+    const day = (meal_count: number, water_ml: number) => ({
+        date: "2026-10-24",
+        meal_count,
+        calories: 0,
+        water_ml,
+    });
+    expect(summaryHasData([day(0, 1500)])).toBe(true);
+    expect(summaryHasData([day(0, 0), day(0, 250)])).toBe(true);
+    expect(summaryHasData([day(2, 0)])).toBe(true);
+    expect(summaryHasData([day(0, 0)])).toBe(false);
+});
 
 test("a window with gaps names both denominators", () => {
     expect(loggedDaysCaption({ logged_days: 15, days_in_range: 30 })).toBe(

@@ -1541,13 +1541,14 @@ test("nutrition-summary passes the added-sugar extra rows to the strip", async (
 });
 
 // Every template that draws the strip reads the key itself (a widget cannot
-// import src/widgets.ts), so each must spell it exactly.
+// import src/widgets.ts), so each must spell it exactly. trends no longer
+// draws the strip (its own nutrient cards read the series directly); its
+// literal is checked below and in src/mcp.test.ts.
 test("every macro template reads the added-sugar `_meta` key", async () => {
     for (const t of [
         "nutrition-summary",
         "goal-progress",
         "meal-logged",
-        "trends",
         "component-gallery",
     ]) {
         const html = await Bun.file(`${SRC}/templates/${t}.html`).text();
@@ -1556,11 +1557,57 @@ test("every macro template reads the added-sugar `_meta` key", async () => {
     }
 });
 
+test("trends reads the added-sugar, saturated-fat and sodium series itself", async () => {
+    const html = await Bun.file(`${SRC}/templates/trends.html`).text();
+    expect(html).toContain('"nutrition-mcp.com/added-sugar"');
+    expect(html).toContain('"nutrition-mcp.com/saturated-fat"');
+    expect(html).toContain('"nutrition-mcp.com/sodium"');
+});
+
 test("--added-sugar is defined in every token block", async () => {
     const css = await Bun.file(`${SRC}/shared/tokens.css`).text();
     expect(css.match(/--added-sugar:/g)?.length).toBe(
         css.match(/--sugar:/g)?.length,
     );
+});
+
+// The redesign palette (2026-10) added these; CLAUDE.md's rule is that a colour
+// is set in every theme block, so each must appear as often as --sugar does
+// (four blocks: :root, the dark media query and both [data-theme] overrides).
+test("every redesign token is defined in every token block", async () => {
+    const css = await Bun.file(`${SRC}/shared/tokens.css`).text();
+    const blocks = css.match(/--sugar:/g)?.length;
+    expect(blocks).toBe(4);
+    for (const token of [
+        "--sodium",
+        "--weight",
+        "--focus",
+        "--text-mute",
+        "--surface-soft",
+        "--surface-inset",
+        "--status-over",
+        "--status-over-ink",
+        "--status-near",
+        "--status-near-ink",
+        "--status-togo",
+        "--status-togo-ink",
+        "--status-ok",
+        "--status-ok-ink",
+        "--status-nr",
+        "--status-nr-ink",
+        "--gauge-track",
+        "--gauge-fill",
+        "--gauge-ink",
+        "--gauge-cap",
+        "--gauge-over-track",
+        "--gauge-over-fill",
+        "--gauge-over-ink",
+        "--pill-bg",
+        "--pill-bg-hover",
+    ])
+        expect(css.match(new RegExp(`${token}:`, "g"))?.length, token).toBe(
+            blocks,
+        );
 });
 
 // The payload is millilitres because that is what a glass is logged in; a
@@ -1810,7 +1857,7 @@ test("a milligram caffeine column auto-maps, with no opt-in to satisfy", () => {
         expect(html).toContain('data-field="caffeine_mg"');
         expect(importWidget.S.mapping.caffeine_mg).toBe(3);
         expect(html).toContain(
-            '<div class="map-src">Caffeine (mg)</div><div class="map-sample">e.g. 185</div>',
+            '<span class="ml"><span>Caffeine (mg)</span></span><span class="ms only-m">e.g. 185</span>',
         );
         expect(html).not.toContain("is in grams");
     }

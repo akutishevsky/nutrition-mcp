@@ -1105,3 +1105,122 @@ describe("saturated and trans fat", () => {
         );
     });
 });
+
+describe("sodium", () => {
+    const water: never[] = [];
+    const salty = (date: string, sodium: number | null): Meal[] => [
+        {
+            id: `m-${date}`,
+            user_id: "u1",
+            logged_at: `${date}T12:00:00.000Z`,
+            meal_type: "lunch",
+            description: "Lunch",
+            calories: 500,
+            sodium_mg: sodium,
+        } as unknown as Meal,
+    ];
+
+    test("limitNotRecorded states a milligram limit in whole mg", () => {
+        expect(limitNotRecorded("day", 2300, " mg")).toBe(
+            "not recorded on this day (limit 2300 mg)",
+        );
+        expect(limitNotRecorded("period", 1499.6, " mg")).toBe(
+            "not recorded in this period (limit 1500 mg)",
+        );
+        // The gram default is unchanged.
+        expect(limitNotRecorded("day", 29)).toBe(
+            "not recorded on this day (limit 29g)",
+        );
+    });
+
+    test("buckets sum sodium, and a day without it is not recorded", () => {
+        const buckets = buildDailyBuckets(
+            [...salty("2026-07-26", 800), ...salty("2026-07-26", 450)],
+            water,
+            "2026-07-26",
+            "2026-07-26",
+            "UTC",
+        );
+        expect(buckets[0]!.sodium_mg).toBe(1250);
+    });
+
+    test("a set ceiling with nothing recorded says so in the trends window", () => {
+        const buckets = buildDailyBuckets(
+            salty("2026-07-26", null),
+            water,
+            "2026-07-25",
+            "2026-07-26",
+            "UTC",
+        );
+        const out = computeTrends(buckets, {
+            daily_sodium_mg: 2300,
+        } as unknown as NutritionGoals);
+        expect(out).toContain(
+            `Sodium: ${limitNotRecorded("period", 2300, " mg")}`,
+        );
+    });
+
+    test("no limit and nothing recorded: no sodium block at all", () => {
+        const buckets = buildDailyBuckets(
+            salty("2026-07-26", null),
+            water,
+            "2026-07-26",
+            "2026-07-26",
+            "UTC",
+        );
+        expect(computeTrends(buckets, null)).not.toContain("Sodium");
+        expect(computeWeeklyDigest(buckets, null)).not.toContain("Sodium");
+    });
+
+    test("recorded sodium gets its limit line in whole mg, over covered days", () => {
+        const buckets = buildDailyBuckets(
+            [...salty("2026-07-25", 2600.4), ...salty("2026-07-26", null)],
+            water,
+            "2026-07-25",
+            "2026-07-26",
+            "UTC",
+        );
+        const out = computeTrends(buckets, {
+            daily_sodium_mg: 2300,
+        } as unknown as NutritionGoals);
+        expect(out).toContain("Sodium:");
+        expect(out).toContain("Limit: 2300 mg");
+        expect(out).toContain("Days over limit: 1/1 days with data");
+        expect(out).not.toContain("2600.4");
+    });
+
+    test("a recorded 0 mg is a real figure, not suppressed", () => {
+        const buckets = buildDailyBuckets(
+            salty("2026-07-26", 0),
+            water,
+            "2026-07-26",
+            "2026-07-26",
+            "UTC",
+        );
+        expect(computeTrends(buckets, null)).toContain("Sodium:");
+    });
+
+    test("the weekly digest reports sodium against its limit, or says not recorded", () => {
+        const recorded = buildDailyBuckets(
+            salty("2026-07-26", 1800),
+            water,
+            "2026-07-20",
+            "2026-07-26",
+            "UTC",
+        );
+        const goals = { daily_sodium_mg: 2300 } as unknown as NutritionGoals;
+        expect(computeWeeklyDigest(recorded, goals)).toContain(
+            "  Sodium: 1800 mg / 2300 mg limit (78%) — over 1 of 7 days with data",
+        );
+        const none = buildDailyBuckets(
+            salty("2026-07-26", null),
+            water,
+            "2026-07-20",
+            "2026-07-26",
+            "UTC",
+        );
+        expect(computeWeeklyDigest(none, goals)).toContain(
+            `  Sodium: ${limitNotRecorded("period", 2300, " mg")}`,
+        );
+    });
+});

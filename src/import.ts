@@ -67,6 +67,13 @@ export const MAX_ALCOHOL_G = 500;
  *  failure — 0.18 instead of 180 — and no ceiling can catch that, which is why
  *  the header must carry the unit (see CSV_COLUMNS in src/export.ts). */
 export const MAX_CAFFEINE_MG = 5_000;
+/** Milligrams, like caffeine. 20,000 mg (20 g of sodium, about 50 g of salt) is
+ *  far above any single real meal — a very salty restaurant meal or a bowl of
+ *  ramen with its broth is a few thousand mg — while catching the mistakes that
+ *  matter: a column holding grams of SALT read as mg of sodium is small, but a
+ *  sodium column in micrograms or a stray extra digit lands above it. Like
+ *  every other ceiling here it is a typo guard, not a health band. */
+export const MAX_SODIUM_MG = 20_000;
 const MAX_DESCRIPTION_CHARS = 2_000;
 const MAX_NOTES_CHARS = 4_000;
 const MAX_PAST_MS = 20 * 365.25 * 24 * 3600 * 1000;
@@ -140,6 +147,9 @@ export interface ImportRow {
      *  a caller reading "caffeine" off a column and sending grams is off by
      *  1000x, and no bound can distinguish that from a genuinely small dose. */
     caffeine_mg?: number;
+    /** MILLIGRAMS of sodium (not salt), like caffeine_mg. Optional and never a
+     *  gate: a row without it imports with sodium not recorded. */
+    sodium_mg?: number;
     notes?: string;
     /** Caller-chosen correlation label. Echoed back; never used as a key. */
     client_row_id?: string;
@@ -753,6 +763,7 @@ export function validateRow(
         // The one row whose unit is not "g". numberError renders this unit into
         // the message, so a caffeine bound must never report grams.
         ["caffeine_mg", row.caffeine_mg, MAX_CAFFEINE_MG, "mg"],
+        ["sodium_mg", row.sodium_mg, MAX_SODIUM_MG, "mg"],
     ] as const) {
         const err = checkMacro(field, value, max, unit);
         if (err) return fail(err);
@@ -803,6 +814,7 @@ export function validateRow(
     // meal that never carried caffeine stays NULL rather than becoming a 0 that
     // would drag every average down.
     if (row.caffeine_mg !== undefined) input.caffeine_mg = row.caffeine_mg;
+    if (row.sodium_mg !== undefined) input.sodium_mg = row.sodium_mg;
     if (row.notes !== undefined) input.notes = row.notes;
 
     return {
@@ -892,7 +904,7 @@ function sha256Hex(parts: (string | number | null | undefined)[]): string {
  *  a file with lines added or removed still dedupes against a prior import. */
 export function rowContentDigest(userId: string, input: MealInput): string {
     // DO NOT ADD saturated_fat_g, trans_fat_g, fiber_g, sugar_g, added_sugar_g,
-    // alcohol_g OR caffeine_mg TO THIS ARRAY.
+    // alcohol_g, caffeine_mg OR sodium_mg TO THIS ARRAY.
     //
     // The list below is not "the fields of a meal" — it is a frozen positional
     // hash input. Appending to it changes the digest of every row hashed from
@@ -903,7 +915,7 @@ export function rowContentDigest(userId: string, input: MealInput): string {
     // must stay in step with this one.
     //
     // The accepted cost: two meals differing ONLY in saturated or trans fat,
-    // fiber, sugar, alcohol or caffeine collapse to one. Dedup stability is worth more than that precision here,
+    // fiber, sugar, alcohol, caffeine or sodium collapse to one. Dedup stability is worth more than that precision here,
     // and a caller that needs the rows kept apart can pass an explicit
     // idempotency_key.
     return sha256Hex([

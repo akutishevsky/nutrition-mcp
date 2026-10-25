@@ -1,0 +1,482 @@
+/*
+ * Half-gauge hero (shared/gauge.js): the calorie arc, its per-meal segments,
+ * the percent pill, the centre button with its rolling figure, the title
+ * block, the mobile delta line, the desktop stat row and the Show more pill.
+ * Used by meal-logged and nutrition-summary (the 2026-10 redesign, artboards
+ * MG1/MG2 and W1). Every colour is a token from shared/tokens.css or a
+ * color-mix of tokens, so light and dark follow the host theme with no theme
+ * block of its own (a `:root[data-theme]` block here would also break the
+ * landing cards' theme rules, which read the widget's own two).
+ *
+ * Layout: one DOM for both sizes. Below 640px of iframe width the hero is a
+ * single centred column (title, gauge, delta line, pill); from 640px up it is
+ * the desktop artboard's two columns, gauge left and title / stats / pill
+ * right. A width media query, not a JS constant, so the iframe's own width
+ * decides (and the landing cards turn it into a container query).
+ */
+.gcard {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 2px 4px 0;
+    font-family:
+        -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto,
+        sans-serif;
+    color: var(--text);
+}
+.gcard .num {
+    font-variant-numeric: tabular-nums;
+}
+.gcard :where(button.reset) {
+    all: unset;
+    box-sizing: border-box;
+    cursor: pointer;
+    text-align: left;
+}
+.gcard button.reset:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+.gcard .vh {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ---- Hero grid ------------------------------------------------------- */
+.ghero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "top" "gauge" "delta" "stats" "pill";
+    justify-items: center;
+}
+.ghero .gtop {
+    grid-area: top;
+    justify-self: stretch;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.ghero .gw {
+    grid-area: gauge;
+}
+.ghero .gdelta,
+.ghero .gempty {
+    grid-area: delta;
+}
+.ghero .gstats {
+    grid-area: stats;
+    display: none;
+}
+.ghero .bigchev {
+    grid-area: pill;
+}
+
+.gtop .eyb2 {
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--text-dim);
+    margin-bottom: 1px;
+}
+.gtop .t {
+    font-size: 17px;
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+/* Collapsed, a long meal name keeps to two lines; expanded it is whole. */
+.gcard:not(.open) .gtop .t {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ---- The gauge ------------------------------------------------------- */
+.gw {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    margin: 16px auto 0;
+    aspect-ratio: 278 / 160;
+}
+.gw > svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+.gw path {
+    fill: none;
+    stroke-linecap: round;
+}
+.gw .gtrk {
+    stroke: var(--gauge-track);
+    stroke-width: 38;
+    pointer-events: none;
+}
+.gw .gpre {
+    stroke: color-mix(in oklab, var(--gauge-fill) 48%, var(--gauge-track));
+    stroke-width: 28;
+    pointer-events: none;
+}
+.gw .gadd {
+    stroke: var(--gauge-fill);
+    stroke-width: 28;
+}
+.gw .gseg {
+    fill: var(--gauge-fill);
+    stroke: none;
+    cursor: pointer;
+    transition:
+        opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+        filter 0.2s;
+}
+.gw .gseg:hover {
+    filter: brightness(1.12) saturate(1.1);
+}
+.gw.picked .gseg {
+    opacity: 0.38;
+}
+.gw.picked .gseg.on {
+    opacity: 1;
+    filter: drop-shadow(0 2px 4px rgba(10, 80, 40, 0.35));
+}
+.gw .gcap {
+    stroke: var(--gauge-cap);
+    stroke-width: 20;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 2px rgba(10, 80, 40, 0.35));
+}
+.gw.over .gtrk {
+    stroke: var(--gauge-over-track);
+}
+.gw.over .gpre {
+    stroke: color-mix(
+        in oklab,
+        var(--gauge-over-fill) 48%,
+        var(--gauge-over-track)
+    );
+}
+.gw.over .gadd {
+    stroke: var(--gauge-over-fill);
+}
+.gw.over .gseg {
+    fill: var(--gauge-over-fill);
+}
+
+.gpt2 {
+    position: absolute;
+    display: inline-flex;
+    height: 1em;
+    line-height: 1;
+    font-size: 12.5px;
+    font-weight: 800;
+    white-space: nowrap;
+    color: var(--gauge-ink);
+    pointer-events: none;
+    z-index: 2;
+}
+.gw.over .gpt2 {
+    color: var(--gauge-over-ink);
+}
+
+.gbtn {
+    position: absolute;
+    left: 26%;
+    right: 26%;
+    top: 24%;
+    bottom: 9%;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    border-radius: 50%;
+    text-align: center !important;
+}
+.gbtn .gemo {
+    font-size: 24px;
+    line-height: 1;
+    margin-bottom: 2px;
+    display: inline-block;
+}
+.gbtn .gnum {
+    display: inline-flex;
+    height: 1em;
+    line-height: 1;
+    font-size: 40px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--text);
+}
+.gw.over .gnum {
+    color: var(--over);
+}
+.gbtn .glab {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    white-space: nowrap;
+}
+
+/* Rolling digits: each digit is a column 0–9,0 shifted to its value. */
+.gcard .rl {
+    display: inline-block;
+    height: 1em;
+    line-height: 1;
+    overflow: hidden;
+    vertical-align: top;
+    clip-path: inset(0 -2px 0.1em -2px);
+}
+.gcard .rs {
+    display: flex;
+    flex-direction: column;
+}
+.gcard .rs span {
+    display: block;
+    height: 1em;
+    line-height: 1;
+    text-align: center;
+}
+
+/* ---- Lines under the gauge ------------------------------------------- */
+.gdelta {
+    text-align: center;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text-dim);
+    margin-top: 14px;
+}
+.gdelta b {
+    color: var(--text);
+    font-weight: 700;
+}
+.gdelta b.over {
+    color: var(--over);
+}
+.gdelta .dot {
+    margin: 0 6px;
+    color: color-mix(in oklab, var(--text-mute) 55%, var(--panel));
+}
+.gempty {
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--text-dim);
+    margin-top: 12px;
+}
+
+.gstats {
+    grid-template-columns: repeat(3, minmax(0, max-content));
+    gap: 10px 40px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--panel-border);
+    width: 100%;
+}
+.gstats .gs {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.gstats .gsl {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+.gstats b {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    white-space: nowrap;
+}
+.gstats b small {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+.gstats b.over {
+    color: var(--over);
+}
+
+.bigchev {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px 0 20px !important;
+    margin-top: 12px;
+    border-radius: 20px;
+    background: var(--pill-bg);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 800;
+    transition:
+        background-color 0.3s ease,
+        transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bigchev:hover {
+    background: var(--pill-bg-hover);
+}
+.bigchev:active {
+    transform: scale(0.94);
+}
+.bigchev svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 6.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.gcard.open .bigchev svg {
+    transform: rotate(180deg);
+}
+.gcard.closing .bigchev svg {
+    transform: none;
+}
+
+/* ---- Desktop: gauge left, title / stats / pill right ------------------ */
+@media (min-width: 640px) {
+    .ghero {
+        grid-template-columns: 320px minmax(0, 1fr);
+        grid-template-areas:
+            "gauge top"
+            "gauge stats"
+            "gauge pill"
+            "gauge delta";
+        grid-template-rows: auto auto auto 1fr;
+        column-gap: 36px;
+        align-content: center;
+        justify-items: start;
+    }
+    .ghero .gw {
+        margin: 0;
+        max-width: 320px;
+        align-self: center;
+    }
+    .ghero .gtop {
+        align-self: end;
+    }
+    .gtop .t {
+        font-size: 21px;
+        line-height: 1.25;
+    }
+    .ghero .gstats {
+        display: grid;
+    }
+    .ghero .gdelta {
+        display: none;
+    }
+    .ghero .gempty {
+        text-align: left;
+        margin-top: 14px;
+    }
+    .ghero .bigchev {
+        margin-top: 18px;
+    }
+    .bigchev:hover {
+        filter: brightness(0.97);
+    }
+}
+
+/* ---- Entrance ---------------------------------------------------------
+   Static markup, animated by CSS alone, so the final figures are in the DOM
+   from the first paint (and in the landing page's still cards). About 1.4 s
+   end to end rather than the artboards' 3 s: the card re-renders on every
+   meal logged in a chat. */
+@keyframes gSweep {
+    from {
+        stroke-dasharray: 0 100;
+    }
+}
+@keyframes gFadeIn {
+    from {
+        opacity: 0;
+    }
+}
+@keyframes gUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+}
+@keyframes gPop {
+    0% {
+        opacity: 0;
+        transform: scale(0.4) rotate(-12deg);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.15) rotate(4deg);
+    }
+    100% {
+        transform: none;
+    }
+}
+@keyframes gReel {
+    from {
+        transform: translateY(0);
+    }
+}
+.gcard.enter .gw .gadd {
+    animation: gSweep 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+.gcard.enter .gw .gseg {
+    animation: gFadeIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0.12s + var(--i, 0) * 0.08s);
+}
+.gcard.enter .gw .gpre {
+    animation: gFadeIn 0.5s ease both;
+}
+.gcard.enter .gw .gcap,
+.gcard.enter .gpt2 {
+    animation: gFadeIn 0.35s ease 0.75s both;
+}
+.gcard.enter .gemo {
+    animation: gPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+}
+.gcard.enter .glab {
+    animation: gUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
+}
+.gcard.enter .rs {
+    animation: gReel 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 0.07s);
+}
+.gcard.enter .gdelta,
+.gcard.enter .gempty,
+.gcard.enter .gs {
+    animation: gUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.8s both;
+}
+.gcard.enter .gs:nth-child(2) {
+    animation-delay: 0.9s;
+}
+.gcard.enter .gs:nth-child(3) {
+    animation-delay: 1s;
+}
+.gcard.enter .bigchev {
+    animation: gUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) 1s both;
+}
+@media (prefers-reduced-motion: reduce) {
+    .gcard *,
+    .gcard.enter * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

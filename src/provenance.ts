@@ -35,18 +35,19 @@ export const PROVENANCE_NUTRIENT_KEYS = [
     "added_sugar_g",
     "alcohol_g",
     "caffeine_mg",
+    "sodium_mg",
 ] as const satisfies readonly MealNutrientKey[];
 
 /** Tolerances for "the logged value matches the record for the amount given".
  * One formula per unit: the larger of the absolute figure and the relative
  * share of the expected value. Grams use 0.5 g, which is what a label rounds
- * to; calories and caffeine have their own absolute floors. */
+ * to; calories and the milligram nutrients have their own absolute floors. */
 export const TOLERANCE = {
     /** g: macros, fat parts, sugars, fiber, alcohol. */
     grams: 0.5,
     /** kcal. */
     kcal: 1,
-    /** mg: caffeine. */
+    /** mg: caffeine and sodium. */
     mg: 1,
     /** Share of the expected value, applied when it exceeds the absolute floor. */
     relative: 0.01,
@@ -282,6 +283,7 @@ export function referenceFromFood(
             sugar_g: food.sugar_g,
             added_sugar_g: food.added_sugar_g ?? null,
             alcohol_g: food.alcohol_g,
+            sodium_mg: food.sodium_mg ?? null,
         },
         added_sugar_estimated: food.added_sugar_estimated === true,
         fetched_at: fetchedAt,
@@ -312,7 +314,7 @@ export function toleranceFor(key: MealNutrientKey, expected: number): number {
     const floor =
         key === "calories"
             ? TOLERANCE.kcal
-            : key === "caffeine_mg"
+            : key === "caffeine_mg" || key === "sodium_mg"
               ? TOLERANCE.mg
               : TOLERANCE.grams;
     return Math.max(floor, TOLERANCE.relative * Math.abs(expected));
@@ -879,6 +881,7 @@ const NUTRIENT_WORDS: Record<MealNutrientKey, string> = {
     added_sugar_g: "added sugar",
     alcohol_g: "alcohol",
     caffeine_mg: "caffeine",
+    sodium_mg: "sodium",
 };
 
 /**

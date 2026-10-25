@@ -26,7 +26,7 @@ export const INDEX_NL: IndexDoc = {
 
     featureList: [
         "Maaltijden in gewone taal registreren, met calorieën, macro’s, vezels, suiker en toegevoegde suiker",
-        "Bijhouden van verzadigd en transvet, met optionele limiet voor verzadigd vet",
+        "Bijhouden van verzadigd vet, transvet en natrium, met optionele limieten voor verzadigd vet en natrium",
         "waarden uit USDA FoodData Central voor generieke voedingsmiddelen, anders schattingen",
         "Barcodezoeken voor verpakte producten via Open Food Facts",
         "Elke voedingswaarde met de bron erbij",
@@ -185,7 +185,7 @@ export const INDEX_NL: IndexDoc = {
         note: "Dit is allemaal optioneel. Doe het nu, later of nooit: begin met loggen en stel het in wanneer het jou uitkomt.",
         toolsCta: {
             heading: "Benieuwd wat het écht allemaal kan?",
-            body: "Bekijk alle 48 tools (loggen, barcodes, water, gewicht en lichaamsmaten, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
+            body: "Bekijk alle 49 tools (loggen, barcodes, water, gewicht en lichaamsmaten, doelen en trends), elk met een beschrijving en een voorbeeldzin.",
             arrow: "Bekijk de tools",
         },
     },
@@ -428,7 +428,7 @@ export const INDEX_NL: IndexDoc = {
                 id: "goals-progress",
                 title: "Doelen stellen, stand checken",
                 description:
-                    "Stel doelen in om te halen, zoals calorieën en eiwit, en limieten om onder te blijven, voor toegevoegde suiker, verzadigd vet, totale suiker, alcohol en cafeïne; alleen wat je noemt, verandert. Vraag daarna naar een willekeurige dag en zie wat er nog over is tot elk doel en waar je staat ten opzichte van elke limiet.",
+                    "Stel doelen in om te halen, zoals calorieën en eiwit, en limieten om onder te blijven, voor toegevoegde suiker, verzadigd vet, natrium, totale suiker, alcohol en cafeïne; alleen wat je noemt, verandert. Vraag daarna naar een willekeurige dag en zie wat er nog over is tot elk doel en waar je staat ten opzichte van elke limiet.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Slaat het calorie- en eiwitdoel op, plus een cafeïnelimiet van 400 mg",
@@ -753,7 +753,7 @@ export const INDEX_NL: IndexDoc = {
         cards: [
             {
                 title: "Maaltijden in gewone taal",
-                body: "Beschrijf wat je at: voor generieke voedingsmiddelen komen de waarden uit USDA FoodData Central wanneer die er zijn, en je AI schat de rest: calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker en cafeïne in milligram. Het wordt geregistreerd en elke waarde toont waar hij vandaan komt.",
+                body: "Beschrijf wat je at: voor generieke voedingsmiddelen komen de waarden uit USDA FoodData Central wanneer die er zijn, en je AI schat de rest: calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker, natrium en cafeïne in milligram. Het wordt geregistreerd en elke waarde toont waar hij vandaan komt.",
             },
             {
                 title: "Scan een barcode",
@@ -761,7 +761,7 @@ export const INDEX_NL: IndexDoc = {
             },
             {
                 title: "Doelen & voortgang",
-                body: "Stel dagelijkse doelen in voor calorieën, macro’s, vezels en water, plus limieten voor toegevoegde suiker, verzadigd vet, totale suiker, cafeïne en alcohol waaronder je wilt blijven, en volg de voortgang live.",
+                body: "Stel dagelijkse doelen in voor calorieën, macro’s, vezels en water, plus limieten voor toegevoegde suiker, verzadigd vet, natrium, totale suiker, cafeïne en alcohol waaronder je wilt blijven, en volg de voortgang live.",
             },
             {
                 title: "Overzichten & trends",
@@ -871,7 +871,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat is Nutrition MCP?",
             visibleHtml:
-                "Nutrition MCP is een gratis, open-source MCP-server (Model Context Protocol) die Claude, ChatGPT of een andere MCP-client verandert in een calorie- en macrotracker. In plaats van zelf elk product op te zoeken, vertel je je AI wat je at, en die registreert de calorieën, macro’s, vezels, suiker, toegevoegde suiker, verzadigd en transvet en cafeïne in je eigen voedingsdagboek.",
+                "Nutrition MCP is een gratis, open-source MCP-server (Model Context Protocol) die Claude, ChatGPT of een andere MCP-client verandert in een calorie- en macrotracker. In plaats van zelf elk product op te zoeken, vertel je je AI wat je at, en die registreert de calorieën, macro’s, vezels, suiker, toegevoegde suiker, verzadigd en transvet, natrium en cafeïne in je eigen voedingsdagboek.",
         },
         {
             question: "Wat is het Model Context Protocol (MCP)?",
@@ -913,7 +913,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Wat kan ik bijhouden?",
             visibleHtml:
-                "Calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker en water voor elk item: in gewone taal beschreven, opgezocht als generiek voedingsmiddel in USDA FoodData Central, of uit een productbarcode via Open Food Facts. Een maaltijd kun je ingrediënt voor ingrediënt registreren, elk met een eigen hoeveelheid en voedingsstoffen, en een maaltijd die je vaak eet kun je bewaren als opgeslagen maaltijd en op naam opnieuw registreren. Cafeïne wordt ook bijgehouden, in milligram, de eenheid die elk etiket gebruikt, en het levert geen calorieën op. Alcohol kun je ook bijhouden, in gram zuivere ethanol; die wordt pas getoond als je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht in kg of lb registreren en trends richting een streefgewicht volgen. Lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, bovenbeen en kuit) kun je ook in cm of inches registreren. Bekijk dagelijkse overzichten, vraag maaltijden per periode op, wijzig of verwijder eerdere items, stel doelen in en volg trends in de tijd.",
+                "Calorieën, eiwit, koolhydraten, vet, verzadigd en transvet, vezels, totale suiker, toegevoegde suiker, natrium en water voor elk item: in gewone taal beschreven, opgezocht als generiek voedingsmiddel in USDA FoodData Central, of uit een productbarcode via Open Food Facts. Een maaltijd kun je ingrediënt voor ingrediënt registreren, elk met een eigen hoeveelheid en voedingsstoffen, en een maaltijd die je vaak eet kun je bewaren als opgeslagen maaltijd en op naam opnieuw registreren. Cafeïne wordt ook bijgehouden, in milligram, de eenheid die elk etiket gebruikt, en het levert geen calorieën op. Alcohol kun je ook bijhouden, in gram zuivere ethanol; die wordt pas getoond als je alcoholregistratie aanzet. Je kunt ook je lichaamsgewicht in kg of lb registreren en trends richting een streefgewicht volgen. Lichaamsmaten (taille, heupen, nek, borst, schouders, bovenarm, onderarm, bovenbeen en kuit) kun je ook in cm of inches registreren. Bekijk dagelijkse overzichten, vraag maaltijden per periode op, wijzig of verwijder eerdere items, stel doelen in en volg trends in de tijd.",
         },
         {
             question:

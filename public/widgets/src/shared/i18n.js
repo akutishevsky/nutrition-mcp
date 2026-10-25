@@ -85,11 +85,11 @@ function tpl(s, vars) {
 }
 
 // Pick the right grammatical form of a PluralForms value ({ one, other,
-// few?, many? }) for count `n` in the current WIDGET_LOCALE, then fill {n}
-// (and any other placeholder in `vars`) into it. Uses whichever
-// Intl.PluralRules category the value carries (Polish/Ukrainian "few") and
-// falls back to "other" for one it doesn't — see PluralForms in
-// src/copy/widgets.ts.
+// zero?, two?, few?, many? }) for count `n` in the current WIDGET_LOCALE,
+// then fill {n} (and any other placeholder in `vars`) into it. Uses whichever
+// Intl.PluralRules category the value carries (Polish/Ukrainian "few" and
+// "many") and falls back to "other", then "one", for one it doesn't — see
+// PluralForms in src/copy/widgets.ts.
 function plural(forms, n, vars) {
     let category = "other";
     try {

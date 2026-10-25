@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_NL: ToolsDoc = {
     meta: {
-        title: "48 tools voor calorieën, macro's, water & gewicht",
+        title: "49 tools voor calorieën, macro's, water & gewicht",
         description:
-            "Alle 48 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
+            "Alle 49 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
         ogDescription:
-            "Alle 48 tools die de Nutrition MCP-server aan je AI geeft, van opgeslagen maaltijden tot een CSV-importer voor je geschiedenis uit een andere app. Met beschrijvingen en voorbeeldzinnen.",
+            "Alle 49 tools die de Nutrition MCP-server aan je AI geeft, van opgeslagen maaltijden tot een CSV-importer voor je geschiedenis uit een andere app. Met beschrijvingen en voorbeeldzinnen.",
     },
     hero: {
         eyebrow: "Naslag",
@@ -20,7 +20,7 @@ export const TOOLS_NL: ToolsDoc = {
         titleEm: "doen",
         titleAfterEm: "",
         lead: "Je roept deze tools nooit zelf aan: je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hieronder staat elke tool die de Nutrition MCP-server biedt voor maaltijden en opgeslagen maaltijden, calorieën en macro's, water en gewicht, met wat hij doet en een zin waarmee je hem aan het werk zet.",
-        countBold: "48 tools",
+        countBold: "49 tools",
         countTail: "verdeeld over 7 categorieën",
     },
     categories: {
@@ -86,7 +86,7 @@ export const TOOLS_NL: ToolsDoc = {
     tools: {
         log_meal: {
             description:
-                "Log wat je hebt gegeten, met calorieën en macro's, plus verzadigd en transvet, vezels, totale en toegevoegde suikers, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web. Je kunt ook de ingrediënten één voor één meegeven; de totalen zijn dan de som van die ingrediënten.",
+                "Log wat je hebt gegeten, met calorieën en macro's, plus verzadigd en transvet, vezels, totale en toegevoegde suikers, natrium, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web. Je kunt ook de ingrediënten één voor één meegeven; de totalen zijn dan de som van die ingrediënten.",
             params: {
                 description: "Wat er is gegeten",
                 meal_type: "ontbijt, lunch, diner of snack",
@@ -108,6 +108,8 @@ export const TOOLS_NL: ToolsDoc = {
                     "Gram <b>zuivere ethanol</b>, niet het volume van de drank en niet het alcoholpercentage. De AI rekent het uit op basis van de hoeveelheid en de sterkte (een flesje bier van 330 ml met 5% is 13 g)",
                 caffeine_mg:
                     "Cafeïne in <b>milligram</b>, niet in gram: het enige veld hier dat niet in gram is, omdat elk etiket en elke richtlijn het zo vermeldt (een kop filterkoffie bevat ongeveer 95 mg, een espresso 63 mg, een blikje cola 34 mg). Cafeïne levert geen calorieën. Anders dan vezels en suiker wordt dit alleen meegestuurd voor wat echt cafeïne bevat: een vastgelegde 0 zou op je dashboard een cafeïneregel zetten voor een stof die je nooit binnenkrijgt",
+                sodium_mg:
+                    "Optioneel. <b>Natrium</b> in milligram — natrium, geen zout (1 g zout bevat ongeveer 400 mg natrium). Een lege waarde wordt opgeslagen als niet gemeten en laat die dag weg uit je gemiddelde en limiet voor natrium; 0 is de juiste waarde voor een voedingsmiddel zonder.",
                 logged_at:
                     "Wanneer je het hebt gegeten, als dat niet nu was. Zo kun je iets achteraf loggen",
                 notes: "Extra notities",
@@ -145,7 +147,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         start_meal_import: {
             description:
-                "Open een importvenster in de chat om je geschiedenis uit een andere app over te zetten. Kies de CSV die je uit MyFitnessPal, Cronometer, Lose It!, MacroFactor of een andere tracker hebt geëxporteerd, koppel de kolommen aan calorieën, macro's, vezels, totale en toegevoegde suiker en cafeïne (plus alcohol als je alcoholregistratie hebt aangezet) en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je het voorbeeld goedkeurt, en hetzelfde bestand opnieuw importeren levert geen dubbele registraties op.",
+                "Open een importvenster in de chat om je geschiedenis uit een andere app over te zetten. Kies de CSV die je uit MyFitnessPal, Cronometer, Lose It!, MacroFactor of een andere tracker hebt geëxporteerd, koppel de kolommen aan calorieën, macro's, vezels, totale en toegevoegde suiker, cafeïne en natrium (plus alcohol als je alcoholregistratie hebt aangezet) en bekijk wat er wordt toegevoegd voordat je bevestigt. Het bestand wordt in je browser gelezen, er wordt niets opgeslagen tot je het voorbeeld goedkeurt, en hetzelfde bestand opnieuw importeren levert geen dubbele registraties op.",
             params: {},
             example: "Importeer mijn maaltijdgeschiedenis uit MyFitnessPal",
         },
@@ -153,7 +155,7 @@ export const TOOLS_NL: ToolsDoc = {
             description:
                 "Voeg een reeks eerdere maaltijden in één keer toe (tot 50 tegelijk) in plaats van ze één voor één te loggen. De importer hierboven schrijft via deze tool, en de AI kan hem ook zelf gebruiken voor maaltijdgegevens die je in de chat hebt geplakt. Elke rij wordt eerst gecontroleerd en wat niet klopt, wordt per rij gemeld. Dezelfde rijen opnieuw versturen is dus veilig en levert geen dubbele registraties op, zolang je tijdzone intussen niet is gewijzigd.",
             params: {
-                meals: "De rijen om te importeren, in de volgorde van het bronbestand (1–50 per aanroep). Elke rij kan een tijd, maaltijdtype, omschrijving, notities en dezelfde cijfers als een gelogde maaltijd bevatten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (totale suikers), <code>added_sugar_g</code> (toegevoegde suikers, onderdeel van het totaal), <code>alcohol_g</code> (gram zuivere ethanol) en <code>caffeine_mg</code> (milligram, niet gram)",
+                meals: "De rijen om te importeren, in de volgorde van het bronbestand (1–50 per aanroep). Elke rij kan een tijd, maaltijdtype, omschrijving, notities en dezelfde cijfers als een gelogde maaltijd bevatten: <code>calories</code>, <code>protein_g</code>, <code>carbs_g</code>, <code>fat_g</code>, <code>saturated_fat_g</code>, <code>trans_fat_g</code>, <code>fiber_g</code>, <code>sugar_g</code> (totale suikers), <code>added_sugar_g</code> (toegevoegde suikers, onderdeel van het totaal), <code>alcohol_g</code> (gram zuivere ethanol), <code>caffeine_mg</code> (milligram, niet gram) en <code>sodium_mg</code> (milligram natrium, geen zout)",
                 expected_row_count:
                     "Hoeveel rijen deze aanroep bevat, geteld in het bronbestand, zodat een ontbrekende rij opvalt",
                 expected_total_kcal:
@@ -168,7 +170,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         update_meal: {
             description:
-                "Wijzig een maaltijd die je al hebt gelogd: de omschrijving, een macro, vezels, totale of toegevoegde suiker, alcohol of cafeïne, de tijd of de notities. Zo wordt ook een ontbrekende waarde achteraf aangevuld: is een maaltijd zonder vezels, suiker of toegevoegde suiker gelogd, dan meldt de server dat en vult de AI die waarde hier aan als je akkoord gaat. Bij een maaltijd die met ingrediënten is gelogd, wijzigen de totalen via de ingrediëntenlijst.",
+                "Wijzig een maaltijd die je al hebt gelogd: de omschrijving, een macro, vezels, totale of toegevoegde suiker, natrium, alcohol of cafeïne, de tijd of de notities. Zo wordt ook een ontbrekende waarde achteraf aangevuld: is een maaltijd zonder vezels, suiker of toegevoegde suiker gelogd, dan meldt de server dat en vult de AI die waarde hier aan als je akkoord gaat. Bij een maaltijd die met ingrediënten is gelogd, wijzigen de totalen via de ingrediëntenlijst.",
             params: {
                 id: "UUID van de te wijzigen maaltijd",
                 description: "",
@@ -186,6 +188,7 @@ export const TOOLS_NL: ToolsDoc = {
                     "Alleen toegevoegde suikers, nooit meer dan de totale suikers. Hoort bij <code>sugar_g</code>: een wijziging van de totale suikers bij een maaltijd zonder vastgelegde toegevoegde suikers wordt zonder deze waarde mogelijk niet opgeslagen",
                 alcohol_g: "Gram zuivere ethanol, niet het volume van de drank",
                 caffeine_mg: "Milligram, niet gram",
+                sodium_mg: "Milligram natrium, geen zout",
                 logged_at: "",
                 notes: "",
                 items: "De volledige ingrediëntenlijst, die de bestaande vervangt. De totalen van de maaltijd worden de som van deze lijst, dus de totaalvelden kun je er niet naast sturen",
@@ -227,6 +230,7 @@ export const TOOLS_NL: ToolsDoc = {
                 alcohol_g:
                     "Gram zuivere ethanol voor één portie, niet het volume van de drank",
                 caffeine_mg: "Milligram cafeïne voor één portie, niet gram",
+                sodium_mg: "Milligram natrium voor één portie, geen zout",
             },
             example: "Bewaar dit als mijn vaste ontbijt",
         },
@@ -278,6 +282,7 @@ export const TOOLS_NL: ToolsDoc = {
                 alcohol_g:
                     "Gram zuivere ethanol voor één portie, niet het volume van de drank",
                 caffeine_mg: "Milligram cafeïne voor één portie, niet gram",
+                sodium_mg: "Milligram natrium voor één portie, geen zout",
             },
             example:
                 "Mijn vaste ontbijt heeft nu 350 calorieën per portie. Pas het aan",
@@ -486,7 +491,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         set_nutrition_goals: {
             description:
-                "Stel je dagelijkse doelen in voor calorieën, macro's, verzadigd vet, vezels, suiker, toegevoegde suiker, alcohol, cafeïne en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; verzadigd vet, totale suiker, toegevoegde suiker, alcohol en cafeïne zijn limieten om onder te blijven, en zo wordt de voortgang ook verwoord. Alleen de velden die je noemt, worden bijgewerkt; de rest blijft zoals het was.",
+                "Stel je dagelijkse doelen in voor calorieën, macro's, verzadigd vet, vezels, suiker, toegevoegde suiker, alcohol, cafeïne, natrium en water, plus een optioneel streefgewicht. Calorieën, eiwit, koolhydraten, vet, vezels en water zijn doelen om te halen; verzadigd vet, totale suiker, toegevoegde suiker, alcohol, cafeïne en natrium zijn limieten om onder te blijven, en zo wordt de voortgang ook verwoord. Alleen de velden die je noemt, worden bijgewerkt; de rest blijft zoals het was.",
             params: {
                 daily_calories:
                     "Dagelijks caloriedoel (kcal). Null om te wissen.",
@@ -507,6 +512,8 @@ export const TOOLS_NL: ToolsDoc = {
                     "Dagelijkse alcohollimiet in gram <b>zuivere ethanol</b>, een maximum om onder te blijven. Eén Amerikaans standaardglas is 14 g, één Britse eenheid 7,9 g. Null om te wissen.",
                 daily_caffeine_mg:
                     "Dagelijkse cafeïnelimiet in <b>milligram</b>, een maximum om onder te blijven. EFSA en de FDA houden voor gezonde volwassenen een bovengrens aan van 400 mg per dag (ongeveer vier koppen filterkoffie); tijdens de zwangerschap houdt EFSA 200 mg aan. 0 is een echte limiet en betekent: helemaal geen. Null om te wissen.",
+                daily_sodium_mg:
+                    "Dagelijkse natriumlimiet in <b>milligram</b>, een maximum om onder te blijven — natrium, geen zout. De WHO houdt voor volwassenen minder dan 2000 mg per dag aan; de Amerikaanse voedingsrichtlijnen minder dan 2300 mg. 0 is een echte limiet en betekent: helemaal geen. Null om te wissen.",
                 daily_water_ml: "",
                 target_weight: "",
             },
@@ -515,7 +522,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         get_nutrition_goals: {
             description:
-                "Bekijk je huidige dagelijkse doelen voor calorieën en macro's, een eventueel vezeldoel, eventuele limieten voor suiker of cafeïne en, als je alcohol bijhoudt, je alcohollimiet.",
+                "Bekijk je huidige dagelijkse doelen voor calorieën en macro's, een eventueel vezeldoel, eventuele limieten voor suiker, cafeïne of natrium en, als je alcohol bijhoudt, je alcohollimiet.",
             params: {},
             example: "Wat zijn mijn dagdoelen?",
         },
@@ -534,6 +541,14 @@ export const TOOLS_NL: ToolsDoc = {
                     "Einddatum (JJJJ-MM-DD), maximaal 92 dagen inclusief de startdatum",
             },
             example: "Geef me een overzicht van de afgelopen week",
+        },
+        get_digest: {
+            description:
+                "Een overzicht van één periode — gisteren, vandaag tot nu, of de laatste 7 of 30 dagen — als interactieve kaart: calorieën en elke voedingsstof tegenover je doelen, trends ten opzichte van de vorige periode, water en gewicht, je maaltijden of loggewoontes, en een paar highlights uit je eigen log.",
+            params: {
+                period: "<code>yesterday</code> (standaard), <code>today</code>, <code>last_7_days</code> of <code>last_30_days</code>. Beide periodes eindigen gisteren.",
+            },
+            example: "Hoe ging het gisteren?",
         },
         get_trends: {
             description:

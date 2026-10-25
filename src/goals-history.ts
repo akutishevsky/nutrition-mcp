@@ -8,7 +8,7 @@ import { dateInTz } from "./tz.js";
  * `withCurrentGoals`) and `upsertNutritionGoals` writes them.
  */
 
-/** The twelve goal columns, shared by `nutrition_goals` and its history. */
+/** The thirteen goal columns, shared by `nutrition_goals` and its history. */
 export const GOAL_COLUMNS = [
     "daily_calories",
     "daily_protein_g",
@@ -20,20 +20,21 @@ export const GOAL_COLUMNS = [
     "daily_added_sugar_g",
     "daily_alcohol_g",
     "daily_caffeine_mg",
+    "daily_sodium_mg",
     "daily_water_ml",
     "target_weight_g",
 ] as const;
 
 export type GoalColumn = (typeof GOAL_COLUMNS)[number];
 
-/** Every goal column. daily_saturated_fat_g is optional in the type so a goal
- * set written before the column existed still type-checks; pickGoals always
- * sets it (null when absent). */
+/** Every goal column. daily_saturated_fat_g and daily_sodium_mg are optional in
+ * the type so a goal set written before the column existed still type-checks;
+ * pickGoals always sets them (null when absent). */
 export type GoalValues = Record<
-    Exclude<GoalColumn, "daily_saturated_fat_g">,
+    Exclude<GoalColumn, "daily_saturated_fat_g" | "daily_sodium_mg">,
     number | null
 > &
-    Partial<Record<"daily_saturated_fat_g", number | null>>;
+    Partial<Record<"daily_saturated_fat_g" | "daily_sodium_mg", number | null>>;
 
 export interface NutritionGoalsHistoryRow extends GoalValues {
     /** ISO instant the values took effect. */

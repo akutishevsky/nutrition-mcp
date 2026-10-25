@@ -230,6 +230,10 @@ export interface Meal {
     // all stated in mg, so the unit rides in the name at every layer.
     // Contributes no energy: never feed this into a kcal derivation.
     caffeine_mg: number | null;
+    // Sodium (not salt), MILLIGRAMS like caffeine. NULL means not recorded,
+    // never 0: rows logged before the column existed stay NULL. Carries a
+    // daily ceiling (see NutritionGoals.daily_sodium_mg).
+    sodium_mg?: number | null;
     notes: string | null;
     idempotency_key: string | null;
     // The saved meal this row was logged from (log_saved_meal), or null. Set
@@ -260,6 +264,8 @@ export interface MealInput {
     alcohol_g?: number;
     // Milligrams — see Meal.caffeine_mg.
     caffeine_mg?: number;
+    // Milligrams — see Meal.sodium_mg.
+    sodium_mg?: number;
     logged_at?: string;
     notes?: string;
     idempotency_key?: string;
@@ -293,8 +299,8 @@ export function mealIdempotencyKey(
     loggedAt: string,
 ): string {
     // DO NOT ADD FIELDS TO THIS ARRAY. It is deliberately incomplete:
-    // saturated_fat_g, trans_fat_g, fiber_g, sugar_g, alcohol_g and caffeine_mg
-    // are EXCLUDED on purpose, and any future meal column must be too. The digest is positional over exactly
+    // saturated_fat_g, trans_fat_g, fiber_g, sugar_g, alcohol_g, caffeine_mg and
+    // sodium_mg are EXCLUDED on purpose, and any future meal column must be too. The digest is positional over exactly
     // these values, so appending one changes the derived key of every future
     // write — a user re-logging or re-importing something they already have
     // would get a duplicate row instead of a clean no-op, and every "auto:" key
@@ -303,7 +309,7 @@ export function mealIdempotencyKey(
     // rowContentDigest in src/import.ts, which carries the same warning.
     //
     // Accepted consequence: two meals identical except for their fat split (or
-    // fiber, sugar, alcohol, or caffeine) dedupe to one. Dedup stability beats
+    // fiber, sugar, alcohol, caffeine or sodium) dedupe to one. Dedup stability beats
     // precision here, and a caller who needs distinct rows can pass an explicit
     // idempotency_key.
     return deriveIdempotencyKey([
@@ -430,6 +436,7 @@ export async function insertMeal(
             added_sugar_g: meal.added_sugar_g ?? null,
             alcohol_g: meal.alcohol_g ?? null,
             caffeine_mg: meal.caffeine_mg ?? null,
+            sodium_mg: meal.sodium_mg ?? null,
             nutrient_sources: meal.nutrient_sources ?? null,
             source_detail: meal.source_detail ?? null,
             logged_at: loggedAt,
@@ -903,6 +910,7 @@ export async function updateMeal(
     if (fields.alcohol_g !== undefined) update.alcohol_g = fields.alcohol_g;
     if (fields.caffeine_mg !== undefined)
         update.caffeine_mg = fields.caffeine_mg;
+    if (fields.sodium_mg !== undefined) update.sodium_mg = fields.sodium_mg;
     if (fields.nutrient_sources !== undefined)
         update.nutrient_sources = fields.nutrient_sources;
     if (fields.source_detail !== undefined)
@@ -1058,6 +1066,7 @@ const NUTRIENT_KEYS: readonly MealNutrientKey[] = [
     "added_sugar_g",
     "alcohol_g",
     "caffeine_mg",
+    "sodium_mg",
 ];
 
 /** PostgREST hands numeric columns back as numbers today; coerce anyway so a
@@ -1131,6 +1140,7 @@ function itemPayload(item: MealItemValues): Record<string, unknown> {
         added_sugar_g: item.added_sugar_g ?? null,
         alcohol_g: item.alcohol_g ?? null,
         caffeine_mg: item.caffeine_mg ?? null,
+        sodium_mg: item.sodium_mg ?? null,
         nutrient_sources: item.nutrient_sources ?? null,
         source_detail: item.source_detail ?? null,
     };
@@ -1292,6 +1302,7 @@ async function insertMealWithItems(
             added_sugar_g: meal.added_sugar_g ?? null,
             alcohol_g: meal.alcohol_g ?? null,
             caffeine_mg: meal.caffeine_mg ?? null,
+            sodium_mg: meal.sodium_mg ?? null,
             nutrient_sources: meal.nutrient_sources ?? null,
             source_detail: meal.source_detail ?? null,
             logged_at: loggedAt,
@@ -2025,6 +2036,9 @@ export interface NutritionGoals {
     // Milligrams, and a ceiling too — 0 means "none". numeric(7,2) in the DB,
     // since mg targets run three orders larger than the gram ones above.
     daily_caffeine_mg: number | null;
+    // Milligrams, a ceiling like caffeine (0 is a real limit). numeric(7,2),
+    // like daily_caffeine_mg.
+    daily_sodium_mg?: number | null;
     daily_water_ml: number | null;
     target_weight_g: number | null;
     updated_at: string;
@@ -2041,6 +2055,7 @@ export interface NutritionGoalsInput {
     daily_added_sugar_g?: number | null;
     daily_alcohol_g?: number | null;
     daily_caffeine_mg?: number | null;
+    daily_sodium_mg?: number | null;
     daily_water_ml?: number | null;
     target_weight_g?: number | null;
 }
@@ -2081,6 +2096,7 @@ export async function upsertNutritionGoals(
                 daily_added_sugar_g: input.daily_added_sugar_g ?? null,
                 daily_alcohol_g: input.daily_alcohol_g ?? null,
                 daily_caffeine_mg: input.daily_caffeine_mg ?? null,
+                daily_sodium_mg: input.daily_sodium_mg ?? null,
                 daily_water_ml:
                     input.daily_water_ml == null
                         ? null

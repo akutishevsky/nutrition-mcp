@@ -32,7 +32,7 @@ export const INDEX_TR: IndexDoc = {
 
     featureList: [
         "Öğünleri doğal dille kaydet: kalori, makro, lif, şeker ve eklenen şeker dahil",
-        "Doymuş ve trans yağ takibi, doymuş yağ için isteğe bağlı sınır",
+        "Doymuş yağ, trans yağ ve sodyum takibi, doymuş yağ ve sodyum için isteğe bağlı sınırlar",
         "Genel gıdalarda USDA FoodData Central değerleri, diğerlerinde tahminler",
         "Paketli ürünler için Open Food Facts üzerinden barkod araması",
         "Her besin değeri kaynağıyla birlikte gösterilir",
@@ -191,7 +191,7 @@ export const INDEX_TR: IndexDoc = {
         note: "Buradaki her şey isteğe bağlı. Şimdi, sonra ya da hiç yapmayabilirsin — sadece kaydetmeye başla, bunları canın ne zaman isterse ayarla.",
         toolsCta: {
             heading: "Gerçekte neler yapabildiğini merak ettin mi?",
-            body: "48 aracın tamamına göz at — kaydetme, barkodlar, su, kilo ve vücut ölçüleri, hedefler ve eğilimler — her biri için bir açıklama ve örnek bir cümleyle.",
+            body: "49 aracın tamamına göz at — kaydetme, barkodlar, su, kilo ve vücut ölçüleri, hedefler ve eğilimler — her biri için bir açıklama ve örnek bir cümleyle.",
             arrow: "Araçları keşfet",
         },
     },
@@ -434,7 +434,7 @@ export const INDEX_TR: IndexDoc = {
                 id: "goals-progress",
                 title: "Hedef koy, durumunu gör",
                 description:
-                    "Kalori ve protein gibi ulaşılacak hedefler, ilave şeker, doymuş yağ, toplam şeker, alkol ve kafein için altında kalınacak sınırlar belirle; yalnızca söylediğin değişir. Sonra herhangi bir gün için her hedefe ne kaldığını ve her sınıra göre nerede durduğunu sor.",
+                    "Kalori ve protein gibi ulaşılacak hedefler, ilave şeker, doymuş yağ, sodyum, toplam şeker, alkol ve kafein için altında kalınacak sınırlar belirle; yalnızca söylediğin değişir. Sonra herhangi bir gün için her hedefe ne kaldığını ve her sınıra göre nerede durduğunu sor.",
                 toolNotes: {
                     set_nutrition_goals:
                         "Kalori ve protein hedeflerini ve 400 mg kafein sınırını kaydeder",
@@ -759,7 +759,7 @@ export const INDEX_TR: IndexDoc = {
         cards: [
             {
                 title: "Gündelik dille yemekler",
-                body: "Ne yediğini anlat: genel gıdalarda USDA FoodData Central değerleri mevcutsa kullanılır, kalanını yapay zekân tahmin eder: kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker ve kafein (miligram). Öğün kaydedilir ve her değer kaynağını gösterir.",
+                body: "Ne yediğini anlat: genel gıdalarda USDA FoodData Central değerleri mevcutsa kullanılır, kalanını yapay zekân tahmin eder: kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker, sodyum ve kafein (miligram). Öğün kaydedilir ve her değer kaynağını gösterir.",
             },
             {
                 title: "Barkod okut",
@@ -767,7 +767,7 @@ export const INDEX_TR: IndexDoc = {
             },
             {
                 title: "Hedefler ve ilerleme",
-                body: "Kalori, makro, lif ve su için günlük hedefler belirle; eklenen şeker, doymuş yağ, toplam şeker, kafein ve alkol için aşmak istemediğin sınırları da ekle ve ilerlemeni canlı izle.",
+                body: "Kalori, makro, lif ve su için günlük hedefler belirle; eklenen şeker, doymuş yağ, sodyum, toplam şeker, kafein ve alkol için aşmak istemediğin sınırları da ekle ve ilerlemeni canlı izle.",
             },
             {
                 title: "Özetler ve eğilimler",
@@ -877,7 +877,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Nutrition MCP nedir?",
             visibleHtml:
-                "Nutrition MCP, Claude, ChatGPT veya başka bir MCP istemcisini kalori ve makro takipçisine dönüştüren ücretsiz, açık kaynaklı bir Model Context Protocol (MCP) sunucusudur. Her gıdayı tek tek aramak yerine yediğini yapay zekâna söylersin; o da kalori, makro, lif, şeker, eklenen şeker, doymuş ve trans yağ ile kafeini kendi yemek günlüğüne kaydeder.",
+                "Nutrition MCP, Claude, ChatGPT veya başka bir MCP istemcisini kalori ve makro takipçisine dönüştüren ücretsiz, açık kaynaklı bir Model Context Protocol (MCP) sunucusudur. Her gıdayı tek tek aramak yerine yediğini yapay zekâna söylersin; o da kalori, makro, lif, şeker, eklenen şeker, doymuş ve trans yağ, sodyum ile kafeini kendi yemek günlüğüne kaydeder.",
         },
         {
             question: "Model Context Protocol (MCP) nedir?",
@@ -919,7 +919,7 @@ export const INDEX_TR: IndexDoc = {
         {
             question: "Neleri takip edebilirim?",
             visibleHtml:
-                "Her kayıt için kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker ve su: doğal dille anlatılan, genel bir gıda olarak USDA FoodData Central üzerinde aranan ya da Open Food Facts üzerinden bir ürün barkodundan alınan değerler. Bir öğün malzeme malzeme kaydedilebilir; her malzemenin kendi miktarı ve besinleri olur. Sık yediğin bir öğünü kayıtlı öğün olarak saklayıp adıyla yeniden kaydedebilirsin. Kafein de miligram cinsinden takip edilir; bu, her etiketin kullandığı birimdir ve kalori eklemez. Alkol de saf etanol gramı cinsinden takip edilebilir; alkol takibini açtığında görünür. Vücut ağırlığını kg ya da lb olarak kaydedip hedef kiloya giden eğilimleri izleyebilirsin. Vücut ölçüleri (bel, kalça, boyun, göğüs, omuz, üst kol, ön kol, uyluk ve baldır) cm ya da inç olarak kaydedilebilir. Günlük özetleri görebilir, öğünleri tarih aralığına göre sorgulayabilir, geçmiş kayıtları düzenleyebilir ya da silebilir, hedef belirleyebilir ve zaman içindeki eğilimleri takip edebilirsin.",
+                "Her kayıt için kalori, protein, karbonhidrat, yağ, doymuş ve trans yağ, lif, toplam şeker, eklenen şeker, sodyum ve su: doğal dille anlatılan, genel bir gıda olarak USDA FoodData Central üzerinde aranan ya da Open Food Facts üzerinden bir ürün barkodundan alınan değerler. Bir öğün malzeme malzeme kaydedilebilir; her malzemenin kendi miktarı ve besinleri olur. Sık yediğin bir öğünü kayıtlı öğün olarak saklayıp adıyla yeniden kaydedebilirsin. Kafein de miligram cinsinden takip edilir; bu, her etiketin kullandığı birimdir ve kalori eklemez. Alkol de saf etanol gramı cinsinden takip edilebilir; alkol takibini açtığında görünür. Vücut ağırlığını kg ya da lb olarak kaydedip hedef kiloya giden eğilimleri izleyebilirsin. Vücut ölçüleri (bel, kalça, boyun, göğüs, omuz, üst kol, ön kol, uyluk ve baldır) cm ya da inç olarak kaydedilebilir. Günlük özetleri görebilir, öğünleri tarih aralığına göre sorgulayabilir, geçmiş kayıtları düzenleyebilir ya da silebilir, hedef belirleyebilir ve zaman içindeki eğilimleri takip edebilirsin.",
         },
         {
             question:
