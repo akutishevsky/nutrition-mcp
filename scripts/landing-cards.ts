@@ -322,8 +322,11 @@ export const MEAL_CARDS: Partial<
             // Mostly the 30 g of cheese; the chicken adds a little.
             sat: 7.4,
             trans: 0.1,
-            // Rice, beans, cheese and salsa; the doubled chicken adds some, no sour cream.
-            na: 960,
+            // Salsa (~250 mg in a few spoonfuls), canned black beans
+            // (~300), 30 g of cheese (~190), seasoned rice (~150) and the
+            // 240 g of seasoned chicken (~490); the sour cream it left out
+            // carried little.
+            na: 1380,
             water: 0,
         },
     },
@@ -495,7 +498,9 @@ export const HERO_DAY_MEALS: [string, Totals][] = [
             caf: null,
             sat: 0.4,
             trans: 0,
-            na: 120,
+            // Six fast-food fries are about 16 g; USDA puts fast-food fries
+            // at roughly 210-280 mg per 100 g.
+            na: 40,
             water: 0,
         },
     ],
