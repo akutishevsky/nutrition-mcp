@@ -134,6 +134,11 @@ Cards follow the light or dark theme of the host and the language set with `set_
 
 ## Self-hosting
 
+For Cloudflare hosting options and an independent Workers reference, see
+[Cloudflare hosting and email authentication](docs/cloudflare-hosting.md). The guide
+distinguishes running this Bun/Supabase application in a container from adapting a
+smaller feature set to Workers and D1.
+
 ### 0. Get the code
 
 ```bash
