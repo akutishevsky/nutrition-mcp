@@ -195,7 +195,7 @@ export const TERMS_FR: LegalDoc = {
     lead: "Les conditions qui régissent l'utilisation de Nutrition MCP : outil de suivi nutritionnel gratuit et open source, et serveur MCP distant pour Claude et ChatGPT.",
     documentsLabel: "Documents juridiques",
     tocLabel: "Sur cette page",
-    lastUpdated: "10 octobre 2026",
+    lastUpdated: "25 octobre 2026",
     backToHome: "Retour à l'accueil",
     sections: [
         {
@@ -213,7 +213,7 @@ export const TERMS_FR: LegalDoc = {
             heading: "Le service",
             blocks: [
                 p(
-                    "Nutrition MCP est un outil de suivi nutritionnel gratuit et open source qui fonctionne comme un serveur MCP et permet à des assistants IA comme Claude et ChatGPT d'enregistrer tes repas, ton hydratation, ton poids corporel et tes mensurations en ton nom. Si tu le souhaites, un raccourci sur ton iPhone peut copier tes totaux journaliers dans Apple Health. Il n'y a ni offre payante, ni publicité, ni frais d'utilisation du service. Nous acceptons des dons volontaires sur Patreon pour aider à couvrir les frais d'hébergement et de base de données ; il s'agit de dons, pas d'achats, et ils ne donnent droit à aucune fonctionnalité, aucune offre ni aucune priorité, de quelque nature que ce soit. Le code source est publié sous licence MIT sur <a href=\"https://github.com/akutishevsky/nutrition-mcp\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a>, et tu es libre de l'auto-héberger.",
+                    "Nutrition MCP est un outil de suivi nutritionnel gratuit et open source qui fonctionne comme un serveur MCP et permet à des assistants IA comme Claude et ChatGPT d'enregistrer tes repas, ton hydratation, ton poids corporel et tes mensurations en ton nom. Si tu le souhaites, un raccourci sur ton iPhone peut copier tes totaux journaliers dans Apple Health. Il n'y a ni offre payante, ni publicité, ni frais d'utilisation du service. Nous acceptons des dons volontaires sur Patreon pour aider à couvrir les frais d'hébergement et de base de données ; il s'agit de dons, pas d'achats, et ils ne donnent droit à aucune fonctionnalité, aucune offre ni aucune priorité, de quelque nature que ce soit. Les soutiens payants ont également accès à une communauté sur Discord, qui ne fait pas partie du service. Le code source est publié sous licence MIT sur <a href=\"https://github.com/akutishevsky/nutrition-mcp\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub</a>, et tu es libre de l'auto-héberger.",
                 ),
             ],
         },

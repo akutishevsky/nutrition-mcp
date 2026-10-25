@@ -208,7 +208,7 @@ export const TERMS_NL: LegalDoc = {
     lead: "De voorwaarden voor het gebruik van Nutrition MCP, de gratis, open source voedingstracker en remote MCP-server voor Claude en ChatGPT.",
     documentsLabel: "Juridische documenten",
     tocLabel: "Op deze pagina",
-    lastUpdated: "10 oktober 2026",
+    lastUpdated: "25 oktober 2026",
     backToHome: "Terug naar de startpagina",
     sections: [
         {
@@ -229,7 +229,7 @@ export const TERMS_NL: LegalDoc = {
             blocks: [
                 {
                     type: "p",
-                    html: 'Nutrition MCP is een gratis, open source voedingstracker die als MCP-server draait, zodat AI-assistenten zoals Claude en ChatGPT namens jou maaltijden, water, lichaamsgewicht en lichaamsmaten kunnen loggen. Als je wilt, kan een opdracht op je iPhone je dagtotalen naar Apple Health kopiëren. Er is geen betaalde versie, er zijn geen advertenties en aan het gebruik van de dienst zijn geen kosten verbonden. We nemen vrijwillige donaties aan via Patreon om de kosten van hosting en de database te helpen dekken; dat zijn giften, geen aankopen, en je koopt er geen functies, geen andere versie en geen enkele vorm van voorrang mee. De broncode is onder de MIT-licentie gepubliceerd op <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a>, en je mag de dienst vrij zelf hosten.',
+                    html: 'Nutrition MCP is een gratis, open source voedingstracker die als MCP-server draait, zodat AI-assistenten zoals Claude en ChatGPT namens jou maaltijden, water, lichaamsgewicht en lichaamsmaten kunnen loggen. Als je wilt, kan een opdracht op je iPhone je dagtotalen naar Apple Health kopiëren. Er is geen betaalde versie, er zijn geen advertenties en aan het gebruik van de dienst zijn geen kosten verbonden. We nemen vrijwillige donaties aan via Patreon om de kosten van hosting en de database te helpen dekken; dat zijn giften, geen aankopen, en je koopt er geen functies, geen andere versie en geen enkele vorm van voorrang mee. Betalende supporters krijgen daarnaast toegang tot een community op Discord, die geen deel uitmaakt van de dienst. De broncode is onder de MIT-licentie gepubliceerd op <a href="https://github.com/akutishevsky/nutrition-mcp" target="_blank" rel="noopener noreferrer">GitHub</a>, en je mag de dienst vrij zelf hosten.',
                 },
             ],
         },

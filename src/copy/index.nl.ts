@@ -907,7 +907,7 @@ export const INDEX_NL: IndexDoc = {
         paid: {
             tier: "Betalend lid",
             price: "Betaal wat je wilt",
-            desc: "Heb je iets aan Nutrition MCP? Dan kun je helpen met de kosten voor hosting en database. Iedereen krijgt dezelfde functies, supporters ook, en het blijft gratis voor iedereen.",
+            desc: "Heb je iets aan Nutrition MCP? Dan kun je helpen met de kosten voor hosting en database. Iedereen krijgt dezelfde functies, supporters ook, en het blijft gratis voor iedereen. Betalende supporters krijgen ook toegang tot de community-Discord.",
             cta: "Word supporter",
         },
     },
@@ -969,7 +969,7 @@ export const INDEX_NL: IndexDoc = {
         {
             question: "Is Nutrition MCP gratis?",
             visibleHtml:
-                "Ja, het is volledig gratis: geen betaald abonnement, geen advertenties, geen verborgen kosten. Je hebt een AI-app nodig die MCP-connectors ondersteunt, zoals Claude of ChatGPT, en een gratis Nutrition MCP-account, dat je aanmaakt wanneer je voor het eerst verbinding maakt. Vrijwillige donaties op Patreon helpen de serverkosten te dekken en ontgrendelen niets.",
+                "Ja, het is volledig gratis: geen betaald abonnement, geen advertenties, geen verborgen kosten. Je hebt een AI-app nodig die MCP-connectors ondersteunt, zoals Claude of ChatGPT, en een gratis Nutrition MCP-account, dat je aanmaakt wanneer je voor het eerst verbinding maakt. Vrijwillige donaties op Patreon helpen de serverkosten te dekken en ontgrendelen geen functies; betalende supporters krijgen ook toegang tot de community-Discord.",
         },
         {
             question: "Wat kan ik bijhouden?",

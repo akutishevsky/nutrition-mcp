@@ -921,7 +921,7 @@ export const INDEX_FR: IndexDoc = {
         paid: {
             tier: "Membre payant",
             price: "Paie ce que tu veux",
-            desc: "Si Nutrition MCP t'est utile, tu peux aider à couvrir les frais d'hébergement et de base de données. Tout le monde, soutiens compris, a accès aux mêmes fonctionnalités, et l'outil reste gratuit pour tous.",
+            desc: "Si Nutrition MCP t'est utile, tu peux aider à couvrir les frais d'hébergement et de base de données. Tout le monde, soutiens compris, a accès aux mêmes fonctionnalités, et l'outil reste gratuit pour tous. Les soutiens payants ont aussi accès au Discord de la communauté.",
             cta: "Devenir soutien",
         },
     },
@@ -983,7 +983,7 @@ export const INDEX_FR: IndexDoc = {
         {
             question: "Nutrition MCP est-il gratuit ?",
             visibleHtml:
-                "Oui, c'est entièrement gratuit : pas de forfait payant, pas de publicité, pas de frais cachés. Il te faut une app d'IA compatible avec les connecteurs MCP, comme Claude ou ChatGPT, et un compte Nutrition MCP gratuit, que tu crées lors de ta première connexion. Les dons volontaires sur Patreon aident à couvrir les frais de serveur et ne débloquent rien.",
+                "Oui, c'est entièrement gratuit : pas de forfait payant, pas de publicité, pas de frais cachés. Il te faut une app d'IA compatible avec les connecteurs MCP, comme Claude ou ChatGPT, et un compte Nutrition MCP gratuit, que tu crées lors de ta première connexion. Les dons volontaires sur Patreon aident à couvrir les frais de serveur et ne débloquent aucune fonctionnalité ; les soutiens payants ont aussi accès au Discord de la communauté.",
         },
         {
             question: "Que puis-je suivre ?",
