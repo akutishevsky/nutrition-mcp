@@ -31,7 +31,12 @@ export function activeKcalError(kcal: number): string | null {
     if (!Number.isInteger(kcal)) {
         return `kcal must be a whole number of kilocalories, got ${kcal}.`;
     }
-    if (kcal < ACTIVE_KCAL_MIN || kcal > ACTIVE_KCAL_MAX) {
+    if (kcal < ACTIVE_KCAL_MIN) {
+        return `kcal must be between ${ACTIVE_KCAL_MIN} and ${ACTIVE_KCAL_MAX} (got ${kcal}).`;
+    }
+    if (kcal > ACTIVE_KCAL_MAX) {
+        // Only an over-maximum value suggests a merged period: a small or
+        // zero figure is just out of range.
         return `kcal must be between ${ACTIVE_KCAL_MIN} and ${ACTIVE_KCAL_MAX} (got ${kcal}). Log one workout or activity period per entry.`;
     }
     return null;
