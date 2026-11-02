@@ -7,7 +7,15 @@
 //   POST /api/v1/health-sync/claim     the shortcut trades it for a link token
 //   GET  /api/v1/health-sync/pending   closed days to log into Apple Health
 //   POST /api/v1/health-sync/ack       what the shortcut actually logged
-//   POST /api/v1/health-sync/revoke    disconnect
+//   POST /api/v1/health-sync/revoke    disconnect (either shortcut's link)
+//   POST /api/v1/health-sync/activity  the opt-in activity shortcut sends
+//                                      its Active Energy day totals
+//
+// Two shortcuts pair through the same flow. /start's `kind` ("health", the
+// default, or "activity") is kept on the pending row; the callback reopens
+// that kind's shortcut by name, and /claim makes that kind's link —
+// health_sync_links or health_activity_links. The two links are separate, so
+// a token is accepted only on its own kind's routes (/revoke takes either).
 //
 // Pairing makes this server an OAuth client of itself (HEALTH_SYNC_CLIENT in
 // src/oauth-store.ts): /connect sends the browser to the ordinary /authorize
@@ -55,7 +63,17 @@ import {
     type LedgerRow,
 } from "./health-sync.js";
 import {
+    HEALTH_ACTIVITY_SHORTCUT_NAME,
+    parseActivityBody,
+    planActivityWrites,
+    type ActivityWrite,
+} from "./health-activity-sync.js";
+import {
+    createSupabaseHealthActivityLinkStore,
     createSupabaseHealthSyncStore,
+    type HealthActivityLinkRow,
+    type HealthActivityLinkStore,
+    type HealthSyncConnectKind,
     type HealthSyncDayRow,
     type HealthSyncLinkRow,
     type HealthSyncStore,
@@ -82,9 +100,11 @@ import {
     type RateLimitResult,
 } from "./rate-limit.js";
 import {
+    activityCreditPctFromProfile,
     getMealsInRange,
     getProfile,
     getWaterInRange,
+    syncHealthActiveCalories,
     timezoneFromProfile,
 } from "./supabase.js";
 import {
@@ -176,8 +196,35 @@ export const supabaseHealthSyncData: HealthSyncData = {
     getWater: getWaterInRange,
 };
 
+/** What POST /activity reads and writes. Injectable like HealthSyncData. */
+export interface HealthActivityData {
+    /** The profile's timezone (null when never set) and its current credit
+     *  share, from one profile read. */
+    getActivityProfile(
+        userId: string,
+    ): Promise<{ tz: string | null; creditPct: number }>;
+    /** Insert or replace the day totals; returns rows inserted or changed. */
+    writeActivityDays(
+        userId: string,
+        days: readonly ActivityWrite[],
+    ): Promise<number>;
+}
+
+export const supabaseHealthActivityData: HealthActivityData = {
+    async getActivityProfile(userId) {
+        const profile = await getProfile(userId);
+        return {
+            tz: timezoneFromProfile(profile),
+            creditPct: activityCreditPctFromProfile(profile),
+        };
+    },
+    writeActivityDays: syncHealthActiveCalories,
+};
+
 export interface HealthSyncRouterDeps {
     store?: HealthSyncStore;
+    activityStore?: HealthActivityLinkStore;
+    activityData?: HealthActivityData;
     /** Only consumeAuthCode is used: the callback redeems its own codes. */
     oauthStore?: Pick<OAuthStore, "consumeAuthCode">;
     data?: HealthSyncData;
@@ -206,6 +253,7 @@ type Route =
     | "pending"
     | "ack"
     | "revoke"
+    | "activity"
     | "unknown";
 
 /** What a handler reports for its one log line. */
@@ -224,6 +272,9 @@ interface CallNote {
 type Env = {
     Variables: {
         hsLink: HealthSyncLinkRow;
+        haLink: HealthActivityLinkRow;
+        /** Which link authenticated the call. */
+        hsKind: HealthSyncConnectKind;
         hsNote: CallNote;
     };
 };
@@ -262,16 +313,22 @@ function logLine(route: Route, note: CallNote): string {
 
 const API_HEADERS = { "Cache-Control": "private, no-store" } as const;
 
+/** invalid_token for the activity shortcut's own routes. */
+const ACTIVITY_INVALID_TOKEN =
+    "This shortcut is no longer connected to Nutrition MCP. Run the Nutrition MCP Activity shortcut again to reconnect.";
+
 const MESSAGES: Record<
     Exclude<HealthSyncErrorCode, "bad_request" | "rate_limited">,
     string
 > = {
     invalid_token:
         "This shortcut is no longer connected to Nutrition MCP. Run the Nutrition MCP Health shortcut again to reconnect.",
+    // /claim cannot tell which shortcut sent a code it does not recognise, so
+    // these two name neither.
     invalid_code:
-        "This sign-in could not be matched to the shortcut that started it, or it was already used. Run the Nutrition MCP Health shortcut again to connect.",
+        "This sign-in could not be matched to the shortcut that started it, or it was already used. Run the shortcut again to connect.",
     expired:
-        "This connect request has expired. Run the Nutrition MCP Health shortcut again to connect.",
+        "This connect request has expired. Run the shortcut again to connect.",
     busy: "Another sync is already running for this account. Try again in a couple of minutes.",
     unavailable:
         "Nutrition MCP could not reach its database, so nothing was read or changed. Try again in a few minutes.",
@@ -455,9 +512,32 @@ function errorPage(
     return c.html(renderPage(locale, msg), status, PAGE_HEADERS);
 }
 
+/** The exact name of the shortcut a connect of `kind` reopens. */
+export function shortcutNameFor(kind: HealthSyncConnectKind): string {
+    return kind === "activity"
+        ? HEALTH_ACTIVITY_SHORTCUT_NAME
+        : HEALTH_SYNC_SHORTCUT_NAME;
+}
+
 /** The URL that runs the shortcut with the claim code as its text input. */
-export function shortcutRunUrl(claimCode: string): string {
-    return `shortcuts://run-shortcut?name=${encodeURIComponent(HEALTH_SYNC_SHORTCUT_NAME)}&input=text&text=${encodeURIComponent(claimCode)}`;
+export function shortcutRunUrl(
+    claimCode: string,
+    kind: HealthSyncConnectKind = "health",
+): string {
+    return `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutNameFor(kind))}&input=text&text=${encodeURIComponent(claimCode)}`;
+}
+
+/** /start's `kind`: absent or null is "health"; anything else is refused, so
+ *  a shortcut newer than the server is told so instead of silently getting
+ *  the other kind's pairing. */
+export function parseConnectKind(body: unknown): HealthSyncConnectKind | null {
+    if (typeof body !== "object" || body === null || Array.isArray(body))
+        return "health";
+    const kind = (body as Record<string, unknown>).kind;
+    if (kind === undefined || kind === null || kind === "health")
+        return "health";
+    if (kind === "activity") return "activity";
+    return null;
 }
 
 // ---------- router ----------
@@ -544,6 +624,9 @@ async function recordOffers(
 export function createHealthSyncRouter(deps: HealthSyncRouterDeps = {}) {
     const router = new Hono<Env>();
     const store = deps.store ?? createSupabaseHealthSyncStore();
+    const activityStore =
+        deps.activityStore ?? createSupabaseHealthActivityLinkStore();
+    const activityData = deps.activityData ?? supabaseHealthActivityData;
     const oauthStore = deps.oauthStore ?? createSupabaseOAuthStore();
     const data = deps.data ?? supabaseHealthSyncData;
     const now = deps.now ?? Date.now;
@@ -599,72 +682,124 @@ export function createHealthSyncRouter(deps: HealthSyncRouterDeps = {}) {
         await next();
     };
 
-    // Link-token auth for /pending, /ack and /revoke. Three outcomes, like
-    // authenticateBearer: unavailable (we could not check) is a 503 with no
-    // strike, so a database outage never bans a phone; invalid is a 401 and a
-    // strike. Anything without the nmhs_ shape — an OAuth access token
-    // included — is refused without a database call, and still strikes.
-    const linkAuth = async (c: Context<Env>, next: Next) => {
-        const header = c.req.header("Authorization") ?? "";
-        const token = header.startsWith("Bearer ") ? header.slice(7) : "";
-        const invalid = () => {
-            recordAuthFailure(c);
-            return fail(c, 401, "invalid_token", MESSAGES.invalid_token, {
-                headers: {
-                    "WWW-Authenticate":
-                        'Bearer realm="nutrition-mcp", error="invalid_token"',
-                },
-            });
+    // Link-token auth. Three outcomes, like authenticateBearer: unavailable
+    // (we could not check) is a 503 with no strike, so a database outage
+    // never bans a phone; invalid is a 401 and a strike. Anything without the
+    // nmhs_ shape — an OAuth access token included — is refused without a
+    // database call, and still strikes. `kinds` lists the links a route
+    // accepts, looked up in that order: the Apple Health link for /pending
+    // and /ack, the activity link for /activity, either for /revoke.
+    const tokenAuth =
+        (kinds: readonly HealthSyncConnectKind[]) =>
+        async (c: Context<Env>, next: Next) => {
+            const header = c.req.header("Authorization") ?? "";
+            const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+            const invalid = () => {
+                recordAuthFailure(c);
+                return fail(
+                    c,
+                    401,
+                    "invalid_token",
+                    kinds[0] === "activity"
+                        ? ACTIVITY_INVALID_TOKEN
+                        : MESSAGES.invalid_token,
+                    {
+                        headers: {
+                            "WWW-Authenticate":
+                                'Bearer realm="nutrition-mcp", error="invalid_token"',
+                        },
+                    },
+                );
+            };
+            if (
+                !token.startsWith(HEALTH_SYNC_TOKEN_PREFIX) ||
+                !looksLikeHealthSyncToken(token)
+            ) {
+                return invalid();
+            }
+            const at = new Date(now());
+            let found:
+                | { kind: "health"; link: HealthSyncLinkRow }
+                | { kind: "activity"; link: HealthActivityLinkRow }
+                | null = null;
+            for (const kind of kinds) {
+                // The stores answer "unavailable" rather than throwing; a
+                // throw is treated the same, since it equally means we could
+                // not check.
+                const lookup =
+                    kind === "health"
+                        ? await store
+                              .lookupLink(token, at)
+                              .catch(() => ({ status: "unavailable" }) as const)
+                        : await activityStore
+                              .lookupActivityLink(token, at)
+                              .catch(
+                                  () => ({ status: "unavailable" }) as const,
+                              );
+                if (lookup.status === "unavailable") {
+                    const ref = newErrorRef();
+                    c.get("hsNote").ref = ref;
+                    return fail(
+                        c,
+                        503,
+                        "unavailable",
+                        `${MESSAGES.unavailable} (ref ${ref})`,
+                        { ref, headers: { "Retry-After": "60" } },
+                    );
+                }
+                if (lookup.status === "valid") {
+                    found =
+                        kind === "health"
+                            ? {
+                                  kind,
+                                  link: lookup.link as HealthSyncLinkRow,
+                              }
+                            : {
+                                  kind,
+                                  link: lookup.link as HealthActivityLinkRow,
+                              };
+                    break;
+                }
+            }
+            if (!found) return invalid();
+
+            clearAuthFailures(getClientIp(c));
+            const link = found.link;
+
+            const limit = checkHealthSyncRateLimit(link.user_id);
+            if (!limit.allowed) return rateLimited(c, limit);
+
+            // Slide the expiry at most once an hour, against the value just
+            // read. Fire-and-forget: a missed touch only means the next call
+            // tries again, and must not fail or slow the sync.
+            const lastUsed = link.last_used_at
+                ? new Date(link.last_used_at)
+                : null;
+            if (shouldTouchLink(lastUsed, at)) {
+                const expires = linkExpiresAt(new Date(link.created_at), at);
+                const touch =
+                    found.kind === "health"
+                        ? store.touchLink(
+                              link.user_id,
+                              at.toISOString(),
+                              expires.toISOString(),
+                          )
+                        : activityStore.touchActivityLink(
+                              link.user_id,
+                              at.toISOString(),
+                              expires.toISOString(),
+                          );
+                void touch.catch(() => {});
+            }
+
+            c.set("hsKind", found.kind);
+            if (found.kind === "health") c.set("hsLink", found.link);
+            else c.set("haLink", found.link);
+            await next();
         };
-        if (
-            !token.startsWith(HEALTH_SYNC_TOKEN_PREFIX) ||
-            !looksLikeHealthSyncToken(token)
-        ) {
-            return invalid();
-        }
-        const at = new Date(now());
-        // The store answers "unavailable" rather than throwing; a throw is
-        // treated the same, since it equally means we could not check.
-        const lookup = await store
-            .lookupLink(token, at)
-            .catch(() => ({ status: "unavailable" }) as const);
-        if (lookup.status === "unavailable") {
-            const ref = newErrorRef();
-            c.get("hsNote").ref = ref;
-            return fail(
-                c,
-                503,
-                "unavailable",
-                `${MESSAGES.unavailable} (ref ${ref})`,
-                { ref, headers: { "Retry-After": "60" } },
-            );
-        }
-        if (lookup.status === "invalid") return invalid();
-
-        clearAuthFailures(getClientIp(c));
-        const link = lookup.link;
-
-        const limit = checkHealthSyncRateLimit(link.user_id);
-        if (!limit.allowed) return rateLimited(c, limit);
-
-        // Slide the expiry at most once an hour, against the value just
-        // read. Fire-and-forget: a missed touch only means the next call
-        // tries again, and must not fail or slow the sync.
-        const lastUsed = link.last_used_at ? new Date(link.last_used_at) : null;
-        if (shouldTouchLink(lastUsed, at)) {
-            const expires = linkExpiresAt(new Date(link.created_at), at);
-            void store
-                .touchLink(
-                    link.user_id,
-                    at.toISOString(),
-                    expires.toISOString(),
-                )
-                .catch(() => {});
-        }
-
-        c.set("hsLink", link);
-        await next();
-    };
+    const linkAuth = tokenAuth(["health"]);
+    const activityAuth = tokenAuth(["activity"]);
+    const anyLinkAuth = tokenAuth(["health", "activity"]);
 
     // ---- POST /start ----
     //
@@ -688,6 +823,15 @@ export function createHealthSyncRouter(deps: HealthSyncRouterDeps = {}) {
                     "The request body must be JSON.",
                 );
             }
+            const kind = parseConnectKind(json.value);
+            if (kind === null) {
+                return fail(
+                    c,
+                    400,
+                    "bad_request",
+                    'kind must be "health" or "activity". This shortcut may be newer than the server; try again later.',
+                );
+            }
             const parsed = parseStartBody(json.value);
             if (!parsed.ok) {
                 return fail(c, 400, "bad_request", parsed.message);
@@ -703,12 +847,16 @@ export function createHealthSyncRouter(deps: HealthSyncRouterDeps = {}) {
             const ttlSeconds = HEALTH_SYNC_CONNECT_TTL_MINUTES * 60;
             await io(
                 store.createPending({
+                    kind,
                     connectId,
                     deviceSecret,
                     pkceVerifier,
-                    fields: parsed.value.fields,
+                    // The activity shortcut writes nothing to Apple Health,
+                    // so it carries no fields and no backfill.
+                    fields: kind === "activity" ? [] : parsed.value.fields,
                     tz: parsed.value.tz,
-                    backfillDays: parsed.value.backfill_days,
+                    backfillDays:
+                        kind === "activity" ? 0 : parsed.value.backfill_days,
                     expiresAt: new Date(
                         now() + ttlSeconds * 1000,
                     ).toISOString(),
@@ -872,7 +1020,7 @@ export function createHealthSyncRouter(deps: HealthSyncRouterDeps = {}) {
                         heading: copy.heading,
                         body: copy.body,
                         go: {
-                            href: shortcutRunUrl(claimCode),
+                            href: shortcutRunUrl(claimCode, pending.kind),
                             label: copy.button,
                             note: copy.note,
                         },
@@ -943,6 +1091,21 @@ export function createHealthSyncRouter(deps: HealthSyncRouterDeps = {}) {
                 }
                 clearAuthFailures(getClientIp(c));
                 const userId = pending.user_id;
+
+                if (pending.kind === "activity") {
+                    const token = `${HEALTH_SYNC_TOKEN_PREFIX}${newOpaqueToken()}`;
+                    await io(
+                        activityStore.replaceActivityLink(
+                            userId,
+                            {
+                                fallbackTz: pending.tz,
+                                expiresAt: linkExpiresAt(at, at).toISOString(),
+                            },
+                            token,
+                        ),
+                    );
+                    return ok(c, { token, site });
+                }
 
                 // The start date only: which zone each day is bucketed in is
                 // decided again on every /pending. A profile read failing
@@ -1209,15 +1372,96 @@ export function createHealthSyncRouter(deps: HealthSyncRouterDeps = {}) {
     });
 
     // ---- POST /revoke ----
+    // Either shortcut's token, and only that shortcut's link goes: the other
+    // one keeps syncing.
     router.post(
         `${API}/revoke`,
         logged("revoke"),
         banGuard,
-        linkAuth,
+        anyLinkAuth,
         async (c) => {
             try {
-                await io(store.deleteLink(c.get("hsLink").user_id));
+                if (c.get("hsKind") === "activity") {
+                    await io(
+                        activityStore.deleteActivityLink(
+                            c.get("haLink").user_id,
+                        ),
+                    );
+                } else {
+                    await io(store.deleteLink(c.get("hsLink").user_id));
+                }
                 return ok(c, {});
+            } catch (err) {
+                return failFromError(c, err);
+            }
+        },
+    );
+
+    // ---- POST /activity ----
+    //
+    // The activity shortcut's day totals (see src/health-activity-sync.ts for
+    // the rules). Each accepted day replaces that day's Apple Health row in
+    // active_calories_log; nothing here touches hand-logged entries, Apple
+    // Health itself, or the Apple Health sync's ledger.
+    router.post(
+        `${API}/activity`,
+        logged("activity"),
+        banGuard,
+        activityAuth,
+        async (c) => {
+            const link = c.get("haLink");
+            const userId = link.user_id;
+            try {
+                const json = await readJson(c);
+                if (!json) {
+                    return fail(
+                        c,
+                        400,
+                        "bad_request",
+                        "The request body must be JSON. Check the shortcut's Text action before Get Contents of URL.",
+                    );
+                }
+                const parsed = parseActivityBody(json.value);
+                if (!parsed.ok) {
+                    return fail(c, 400, "bad_request", parsed.message);
+                }
+                const at = new Date(now());
+                const profile = await io(
+                    activityData.getActivityProfile(userId),
+                );
+                // The account's zone decides the dates, as every reader
+                // buckets by it; the phone's only stands in when none is set.
+                const { tz, source } = effectiveTimezone(
+                    profile.tz,
+                    parsed.value.tz ?? link.fallback_tz,
+                );
+                const plan = planActivityWrites({
+                    days: parsed.value.days,
+                    now: at,
+                    tz,
+                    creditPct: profile.creditPct,
+                });
+                const changed = await io(
+                    activityData.writeActivityDays(userId, plan.writes),
+                );
+                await io(
+                    activityStore.setActivitySynced(
+                        userId,
+                        at.toISOString(),
+                        parsed.value.tz,
+                    ),
+                );
+                const note = c.get("hsNote");
+                note.entries = plan.writes.length;
+                return ok(c, {
+                    version: 1,
+                    timezone: tz,
+                    timezone_source: source,
+                    written: plan.writes.length,
+                    changed,
+                    skipped: plan.skipped,
+                    status: { through: plan.through },
+                });
             } catch (err) {
                 return failFromError(c, err);
             }
@@ -1254,4 +1498,5 @@ const API_METHODS: Record<string, string> = {
     [`${API}/pending`]: "GET",
     [`${API}/ack`]: "POST",
     [`${API}/revoke`]: "POST",
+    [`${API}/activity`]: "POST",
 };

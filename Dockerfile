@@ -10,6 +10,8 @@ ARG NOINDEX
 # Same for the /apple-health install button: the iCloud link of the shortcut
 # built for this deploy. Unset means the page says the link is coming.
 ARG HEALTH_SYNC_SHORTCUT_URL
+# And the optional activity shortcut's link (Nutrition MCP Activity).
+ARG HEALTH_ACTIVITY_SHORTCUT_URL
 RUN bun run gen:all
 USER bun
 EXPOSE 8080

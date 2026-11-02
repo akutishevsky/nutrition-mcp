@@ -13,6 +13,7 @@ import {
     activityIdempotencyKey,
     activityMetaFromDays,
     buildActivityMeta,
+    countedActivity,
     creditPctError,
     creditedKcal,
     deficitVsGoal,
@@ -329,5 +330,55 @@ describe("read-path activity lines", () => {
         expect(formatKcal(1780.4)).toBe("1,780");
         expect(formatKcal(12345.6)).toBe("12,346");
         expect(formatKcal(0)).toBe("0");
+    });
+});
+
+describe("countedActivity", () => {
+    const tz = "Europe/Kyiv";
+    const manual = (logged_at: string, kcal: number) => ({
+        logged_at,
+        kcal,
+        credit_pct: 100,
+        source: null,
+    });
+    const health = (logged_at: string, kcal: number) => ({
+        logged_at,
+        kcal,
+        credit_pct: 100,
+        source: "apple_health",
+    });
+
+    test("an Apple Health day total stands for its whole local day", () => {
+        const rows = [
+            manual("2026-11-01T06:00:00Z", 300),
+            health("2026-11-01T10:00:00Z", 520),
+            manual("2026-11-01T18:00:00Z", 120),
+            manual("2026-11-02T06:00:00Z", 250),
+        ];
+        const counted = countedActivity(rows, tz);
+        expect(counted).toEqual([rows[1]!, rows[3]!]);
+        expect(activityByDate(counted, tz)).toEqual(
+            new Map([
+                ["2026-11-01", { burned_kcal: 520, credited_kcal: 520 }],
+                ["2026-11-02", { burned_kcal: 250, credited_kcal: 250 }],
+            ]),
+        );
+    });
+
+    test("days are local: a manual entry late on the day before still counts", () => {
+        // 23:30 on 2026-10-31 in Kyiv is 21:30Z.
+        const rows = [
+            manual("2026-10-31T21:30:00Z", 200),
+            health("2026-11-01T10:00:00Z", 400),
+        ];
+        expect(countedActivity(rows, tz)).toEqual(rows);
+    });
+
+    test("without Health rows everything counts, and rows without source too", () => {
+        const rows = [
+            manual("2026-11-01T06:00:00Z", 300),
+            { logged_at: "2026-11-01T07:00:00Z", kcal: 5, credit_pct: 50 },
+        ];
+        expect(countedActivity(rows, tz)).toEqual(rows);
     });
 });

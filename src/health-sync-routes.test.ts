@@ -6,10 +6,16 @@ import {
     createHealthSyncRouter,
     isHealthSyncPath,
     localeFromAcceptLanguage,
+    parseConnectKind,
     shortcutRunUrl,
+    type HealthActivityData,
     type HealthSyncData,
 } from "./health-sync-routes.js";
+import type { ActivityWrite } from "./health-activity-sync.js";
+import { HEALTH_ACTIVITY_SHORTCUT_NAME } from "./health-activity-sync.js";
 import type {
+    HealthActivityLinkRow,
+    HealthActivityLinkStore,
     HealthSyncDayRow,
     HealthSyncLinkRow,
     HealthSyncPendingRow,
@@ -64,6 +70,7 @@ function fakeStore() {
                 claimCode: null,
                 row: {
                     id: crypto.randomUUID(),
+                    kind: input.kind,
                     fields: input.fields,
                     tz: input.tz,
                     backfill_days: input.backfillDays,
@@ -284,12 +291,97 @@ function fakeData(
     return { data, fail, reads };
 }
 
-function setup(dataOpts: Parameters<typeof fakeData>[0] = {}) {
+/** The activity link table and the active-calories writes, in memory. */
+function fakeActivity(opts: { tz?: string | null; creditPct?: number } = {}) {
+    const links = new Map<
+        string,
+        { row: HealthActivityLinkRow; token: string }
+    >();
+    const writes: { userId: string; days: ActivityWrite[] }[] = [];
+    const fail = new Set<string>();
+    const activityStore: HealthActivityLinkStore = {
+        async replaceActivityLink(userId, link, token) {
+            if (fail.has("replaceActivityLink")) throw new Error("down");
+            links.set(userId, {
+                token,
+                row: {
+                    id: crypto.randomUUID(),
+                    user_id: userId,
+                    fallback_tz: link.fallbackTz,
+                    created_at: new Date(NOW).toISOString(),
+                    last_used_at: null,
+                    last_sync_at: null,
+                    expires_at: link.expiresAt,
+                },
+            });
+        },
+        async lookupActivityLink(token, now) {
+            const at = now ?? new Date();
+            for (const l of links.values()) {
+                if (
+                    l.token === token &&
+                    Date.parse(l.row.expires_at) > at.getTime()
+                )
+                    return { status: "valid", link: { ...l.row } };
+            }
+            return { status: "invalid" };
+        },
+        async touchActivityLink(userId, lastUsedAt, expiresAt) {
+            const l = links.get(userId);
+            if (l) {
+                l.row.last_used_at = lastUsedAt;
+                l.row.expires_at = expiresAt;
+            }
+        },
+        async setActivitySynced(userId, at, fallbackTz) {
+            const l = links.get(userId);
+            if (l) {
+                l.row.last_sync_at = at;
+                if (fallbackTz !== null) l.row.fallback_tz = fallbackTz;
+            }
+        },
+        async deleteActivityLink(userId) {
+            links.delete(userId);
+        },
+        async getActivityLinkStatus() {
+            return null;
+        },
+    };
+    const activityData: HealthActivityData = {
+        async getActivityProfile() {
+            if (fail.has("profile")) throw new Error("profile down");
+            return {
+                tz: opts.tz === undefined ? KYIV : opts.tz,
+                creditPct: opts.creditPct ?? 100,
+            };
+        },
+        async writeActivityDays(userId, days) {
+            if (fail.has("write")) throw new Error("write down");
+            writes.push({ userId, days: [...days] });
+            return days.length;
+        },
+    };
+    return {
+        activityStore,
+        activityData,
+        activityLinks: links,
+        writes,
+        activityFail: fail,
+    };
+}
+
+function setup(
+    dataOpts: Parameters<typeof fakeData>[0] = {},
+    activityOpts: Parameters<typeof fakeActivity>[0] = {},
+) {
     const s = fakeStore();
     const o = fakeOAuth();
     const d = fakeData(dataOpts);
+    const a = fakeActivity(activityOpts);
     let clock = NOW;
     const router = createHealthSyncRouter({
+        activityStore: a.activityStore,
+        activityData: a.activityData,
         store: s.store,
         oauthStore: o.oauthStore,
         data: d.data,
@@ -337,6 +429,7 @@ function setup(dataOpts: Parameters<typeof fakeData>[0] = {}) {
     return {
         ...s,
         ...o,
+        ...a,
         dataFail: d.fail,
         reads: d.reads,
         req,
@@ -1897,5 +1990,315 @@ describe("logging", () => {
                 expect(l).not.toContain(secret);
             }
         }
+    });
+});
+
+describe("activity shortcut", () => {
+    const ACTIVITY_TOKEN = `nmhs_${"z".repeat(43)}`;
+
+    function seedActivityLink(ctx: Ctx, token = ACTIVITY_TOKEN) {
+        ctx.activityLinks.set(USER, {
+            token,
+            row: {
+                id: "activity-link-1",
+                user_id: USER,
+                fallback_tz: null,
+                created_at: "2026-09-25T10:00:00.000Z",
+                last_used_at: null,
+                last_sync_at: null,
+                expires_at: "2026-12-25T10:00:00.000Z",
+            },
+        });
+        return token;
+    }
+
+    test("parseConnectKind: absent is health, unknown is refused", () => {
+        expect(parseConnectKind(undefined)).toBe("health");
+        expect(parseConnectKind({})).toBe("health");
+        expect(parseConnectKind({ kind: null })).toBe("health");
+        expect(parseConnectKind({ kind: "health" })).toBe("health");
+        expect(parseConnectKind({ kind: "activity" })).toBe("activity");
+        expect(parseConnectKind({ kind: "sleep" })).toBeNull();
+        expect(parseConnectKind({ kind: 1 })).toBeNull();
+    });
+
+    test("/start refuses an unknown kind instead of pairing the other one", async () => {
+        const ctx = setup();
+        const r = await ctx.req("/api/v1/health-sync/start", {
+            method: "POST",
+            body: { kind: "sleep", tz: KYIV },
+        });
+        expect(r.status).toBe(400);
+        expect(await r.json()).toMatchObject({
+            ok: false,
+            error: "bad_request",
+        });
+        expect(ctx.pending).toHaveLength(0);
+    });
+
+    test("pairs end to end: reopens the Activity shortcut and makes only an activity link", async () => {
+        const ctx = setup();
+        const p = await pairToClaimCode(ctx, {
+            kind: "activity",
+            tz: KYIV,
+            include_water: true,
+            backfill_days: 3,
+        });
+        // The callback reopens the shortcut that started the connect.
+        expect(p.html).toContain(
+            `name=${encodeURIComponent(HEALTH_ACTIVITY_SHORTCUT_NAME)}`,
+        );
+        expect(p.html).not.toContain(
+            `name=${encodeURIComponent(HEALTH_SYNC_SHORTCUT_NAME)}&`,
+        );
+        const claim = await ctx.req("/api/v1/health-sync/claim", {
+            method: "POST",
+            body: { claim_code: p.claimCode, device_secret: p.deviceSecret },
+        });
+        expect(claim.status).toBe(200);
+        const b = (await claim.json()) as { token: string; site: string };
+        expect(b.site).toBe(BASE);
+        expect(ctx.activityLinks.get(USER)!.token).toBe(b.token);
+        expect(ctx.activityLinks.get(USER)!.row.fallback_tz).toBe(KYIV);
+        // The Apple Health link is untouched (none was there).
+        expect(ctx.links.size).toBe(0);
+    });
+
+    test("an existing Apple Health link survives an activity pairing", async () => {
+        const ctx = setup();
+        const healthToken = seedLink(ctx);
+        const p = await pairToClaimCode(ctx, { kind: "activity", tz: KYIV });
+        const claim = await ctx.req("/api/v1/health-sync/claim", {
+            method: "POST",
+            body: { claim_code: p.claimCode, device_secret: p.deviceSecret },
+        });
+        expect(claim.status).toBe(200);
+        expect(ctx.links.get(USER)!.token).toBe(healthToken);
+        const pending = await ctx.req("/api/v1/health-sync/pending", {
+            token: healthToken,
+        });
+        expect(pending.status).toBe(200);
+    });
+
+    test("an Apple Health pairing still reopens the Health shortcut", async () => {
+        const ctx = setup();
+        const p = await pairToClaimCode(ctx);
+        expect(p.html).toContain(
+            `name=${encodeURIComponent(HEALTH_SYNC_SHORTCUT_NAME)}&`,
+        );
+    });
+
+    test("each token works only on its own routes", async () => {
+        const ctx = setup();
+        const healthToken = seedLink(ctx);
+        const activityToken = seedActivityLink(ctx);
+        const body = {
+            tz: KYIV,
+            days: [{ date: "2026-10-03", active_kcal: 1 }],
+        };
+
+        const a = await ctx.req("/api/v1/health-sync/activity", {
+            method: "POST",
+            body,
+            token: healthToken,
+        });
+        expect(a.status).toBe(401);
+        const aj = (await a.json()) as { error: string; message: string };
+        expect(aj.error).toBe("invalid_token");
+        expect(aj.message).toContain(HEALTH_ACTIVITY_SHORTCUT_NAME);
+
+        const p = await ctx.req("/api/v1/health-sync/pending", {
+            token: activityToken,
+        });
+        expect(p.status).toBe(401);
+        const ack = await ctx.req("/api/v1/health-sync/ack", {
+            method: "POST",
+            body: { entries: [], done: true },
+            token: activityToken,
+        });
+        expect(ack.status).toBe(401);
+        expect(ctx.writes).toHaveLength(0);
+    });
+
+    test("writes today and the days before as day totals, skipping 0", async () => {
+        const ctx = setup({}, { creditPct: 50 });
+        const token = seedActivityLink(ctx);
+        // NOW is 15:00 on 2026-10-03 in Kyiv.
+        const r = await ctx.req("/api/v1/health-sync/activity", {
+            method: "POST",
+            token,
+            body: {
+                tz: "Europe/Berlin",
+                days: [
+                    { date: "2026-10-03", active_kcal: 412.4 },
+                    { date: "2026-10-02", active_kcal: "380" },
+                    { date: "2026-10-01", active_kcal: 0 },
+                ],
+            },
+        });
+        expect(r.status).toBe(200);
+        const b = (await r.json()) as Record<string, unknown>;
+        expect(b).toMatchObject({
+            ok: true,
+            timezone: KYIV,
+            timezone_source: "profile",
+            written: 2,
+            changed: 2,
+            skipped: [{ date: "2026-10-01", reason: "zero" }],
+            status: { through: "2026-10-03" },
+        });
+        expect(ctx.writes).toEqual([
+            {
+                userId: USER,
+                days: [
+                    {
+                        date: "2026-10-02",
+                        kcal: 380,
+                        // Local noon in Kyiv (UTC+3).
+                        logged_at: "2026-10-02T09:00:00.000Z",
+                        credit_pct: 50,
+                    },
+                    {
+                        date: "2026-10-03",
+                        kcal: 412,
+                        logged_at: "2026-10-03T09:00:00.000Z",
+                        credit_pct: 50,
+                    },
+                ],
+            },
+        ]);
+        const link = ctx.activityLinks.get(USER)!.row;
+        expect(link.last_sync_at).toBe(new Date(NOW).toISOString());
+        expect(link.fallback_tz).toBe("Europe/Berlin");
+        expect(lines()).toContain(
+            "[health-sync] route=activity result=ok entries=2",
+        );
+    });
+
+    test("without a profile zone the phone's zone decides the dates", async () => {
+        const ctx = setup({}, { tz: null });
+        const token = seedActivityLink(ctx);
+        const r = await ctx.req("/api/v1/health-sync/activity", {
+            method: "POST",
+            token,
+            body: {
+                tz: "America/Los_Angeles",
+                days: [{ date: "2026-10-03", active_kcal: 100 }],
+            },
+        });
+        const b = (await r.json()) as Record<string, unknown>;
+        expect(b).toMatchObject({
+            timezone: "America/Los_Angeles",
+            timezone_source: "phone",
+        });
+        // 05:00 in Los Angeles: 2026-10-03 is today there.
+        expect(ctx.writes[0]!.days[0]!.logged_at).toBe(
+            "2026-10-03T19:00:00.000Z",
+        );
+    });
+
+    test("future, too old and implausible days are skipped, not refused", async () => {
+        const ctx = setup();
+        const token = seedActivityLink(ctx);
+        const r = await ctx.req("/api/v1/health-sync/activity", {
+            method: "POST",
+            token,
+            body: {
+                tz: KYIV,
+                days: [
+                    { date: "2026-10-04", active_kcal: 10 },
+                    { date: "2026-09-26", active_kcal: 10 },
+                    { date: "2026-09-27", active_kcal: 10 },
+                    { date: "2026-10-03", active_kcal: 10001 },
+                ],
+            },
+        });
+        expect(r.status).toBe(200);
+        const b = (await r.json()) as {
+            skipped: unknown;
+            written: number;
+            status: unknown;
+        };
+        expect(b.written).toBe(1);
+        expect(ctx.writes[0]!.days.map((d) => d.date)).toEqual(["2026-09-27"]);
+        expect(b.skipped).toEqual([
+            { date: "2026-09-26", reason: "outside_window" },
+            { date: "2026-10-03", reason: "too_high" },
+            { date: "2026-10-04", reason: "outside_window" },
+        ]);
+        expect(b.status).toEqual({ through: "2026-10-03" });
+    });
+
+    test("a malformed body is a 400 with a message the shortcut can show", async () => {
+        const ctx = setup();
+        const token = seedActivityLink(ctx);
+        for (const body of [
+            '{"tz":Europe/Kyiv}',
+            { tz: KYIV },
+            { tz: KYIV, days: [] },
+            { tz: KYIV, days: [{ date: "02.10.2026", active_kcal: 1 }] },
+            { tz: KYIV, days: [{ date: "2026-10-02", active_kcal: "1,234" }] },
+            { tz: KYIV, days: [{ date: "2026-10-02", active_kcal: -1 }] },
+            {
+                tz: KYIV,
+                days: Array.from({ length: 9 }, (_, i) => ({
+                    date: `2026-10-0${(i % 3) + 1}`,
+                    active_kcal: 1,
+                })),
+            },
+        ]) {
+            const r = await ctx.req("/api/v1/health-sync/activity", {
+                method: "POST",
+                token,
+                body,
+            });
+            expect(r.status).toBe(400);
+            const b = (await r.json()) as { ok: boolean; message: string };
+            expect(b.ok).toBe(false);
+            expect(b.message.length).toBeGreaterThan(10);
+        }
+        expect(ctx.writes).toHaveLength(0);
+    });
+
+    test("a write failure is unavailable with a ref", async () => {
+        const ctx = setup();
+        const token = seedActivityLink(ctx);
+        ctx.activityFail.add("write");
+        const r = await ctx.req("/api/v1/health-sync/activity", {
+            method: "POST",
+            token,
+            body: { tz: KYIV, days: [{ date: "2026-10-03", active_kcal: 5 }] },
+        });
+        expect(r.status).toBe(503);
+        const b = (await r.json()) as { error: string; ref: string };
+        expect(b.error).toBe("unavailable");
+        expect(b.ref).toMatch(/^[0-9a-f]{8}$/);
+    });
+
+    test("/revoke with the activity token removes only the activity link", async () => {
+        const ctx = setup();
+        const healthToken = seedLink(ctx);
+        const activityToken = seedActivityLink(ctx);
+        const r = await ctx.req("/api/v1/health-sync/revoke", {
+            method: "POST",
+            token: activityToken,
+        });
+        expect(r.status).toBe(200);
+        expect(ctx.activityLinks.size).toBe(0);
+        expect(ctx.links.get(USER)!.token).toBe(healthToken);
+
+        const h = await ctx.req("/api/v1/health-sync/revoke", {
+            method: "POST",
+            token: healthToken,
+        });
+        expect(h.status).toBe(200);
+        expect(ctx.links.size).toBe(0);
+    });
+
+    test("the wrong method on /activity is a 405 in the envelope", async () => {
+        const ctx = setup();
+        const r = await ctx.req("/api/v1/health-sync/activity");
+        expect(r.status).toBe(405);
+        expect(r.headers.get("allow")).toBe("POST");
     });
 });

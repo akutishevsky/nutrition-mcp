@@ -118,12 +118,27 @@ export const APPLE_HEALTH_ES: AppleHealthDoc = {
             },
         ],
     },
+    activity: {
+        title: "Opcional: calorías activas desde Apple Health",
+        lead: "Un segundo atajo, independiente, <strong>Nutrition MCP Activity</strong>, funciona en sentido contrario: lee tu total de <strong>Energía activa</strong> de hoy y de los 2 días anteriores desde Apple Health y envía solo esos totales diarios a Nutrition MCP, donde aparecen como tus calorías activas junto a lo que comiste. No lee nada más de Salud y nunca cambia tu objetivo calórico. Es opcional, y funciona con o sin el atajo de arriba.",
+        items: [
+            "Cada día es una entrada, el total de Energía activa de ese día completo, y cada sincronización la sustituye, así que ejecutarlo a menudo nunca cuenta un día dos veces.",
+            "En un día que ya ha enviado, los entrenamientos que registraste en el chat se quedan en tu registro pero no se suman encima: la Energía activa de tu reloj ya los incluye.",
+            "Un día sin Energía activa, o uno que Salud no le dejó leer, no envía nada y no elimina nada.",
+            "Desconectarlo, desde su propio menú, deja conectado el atajo <strong>Nutrition MCP Health</strong>, y viceversa.",
+        ],
+        button: "Obtener el atajo de actividad",
+        pending:
+            "El enlace al atajo de actividad se publicará aquí muy pronto.",
+        setup: "Ejecuta <strong>Nutrition MCP Activity</strong> una vez e inicia sesión con la misma cuenta, exactamente como arriba; la primera sincronización pide permiso para leer <strong>Energía activa</strong>. Mantén su nombre exactamente como <strong>Nutrition MCP Activity</strong>. Para mantenerlo al día, añade automatizaciones que lo ejecuten con el texto <code>auto</code> como entrada, por ejemplo al abrir Salud o Fitness, o a algunas horas del día. Su menú tiene <strong>Sync now</strong>, <strong>Status</strong> y <strong>Disconnect</strong>.",
+    },
     privacy: {
         title: "Privacidad y límites",
         items: [
             "Nuestro servidor guarda la conexión y, durante 8 días, un registro de los totales que ha enviado, para que cada día se envíe una vez y después solo se complete. Ambos están en tu exportación de datos.",
             "El atajo guarda su token de acceso en su propio almacenamiento dentro de la app Atajos de tu iPhone, no en un archivo, y la app Atajos puede sincronizarlo con tus otros dispositivos a través de iCloud. Quien pueda ejecutar el atajo en tus dispositivos puede usar la sincronización hasta que la desconectes, así que mantenlo solo en dispositivos que uses tú.",
             "No enviamos nada a Apple. El atajo pide tus totales a nuestro servidor y los escribe en Salud en tu iPhone; a partir de ahí, se aplican tus propios ajustes de Apple.",
+            "Solo el atajo opcional <strong>Nutrition MCP Activity</strong> lee de Apple Health, y solo el total diario de Energía activa. Nuestro servidor guarda esos totales como tus calorías activas, en tu exportación de datos y eliminados con tu cuenta, igual que los que registras en el chat.",
             "Elige <strong>Disconnect</strong> cuando quieras y la conexión y su registro se eliminan al instante. También termina sola tras 90 días sin sincronizar y 365 días después de conectarla. Lo que ya está en Apple Health se queda allí hasta que lo borres.",
         ],
         policyLink: "Leer la política de privacidad",

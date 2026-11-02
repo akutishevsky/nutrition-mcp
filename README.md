@@ -263,6 +263,14 @@ An optional iOS Shortcut, **Nutrition MCP Health**, copies your daily totals int
 - **What the server keeps:** the connection, and for 8 days what it sent, so a day is sent once and afterwards only topped up. Both are in your data export (`health_sync.csv`, and a `health_sync` row in `connections.csv`). The connection ends after 90 days without a sync and 365 days after connecting at the latest; **Disconnect** in the shortcut, or deleting your account, removes it at once. Nothing is ever removed from Apple Health — that data is on your iPhone.
 - **Your profile timezone** decides where one day ends. If you never set one, the timezone your iPhone reported when connecting is used. `get_profile` shows whether the sync is connected and which day it has sent through.
 
+### Active calories from Apple Health (optional)
+
+A second, separate shortcut, **Nutrition MCP Activity**, works the other way round: it reads your **Active Energy** total for today and the 2 days before from Apple Health and sends only those daily totals, which become your active calories beside what you ate. It reads nothing else from Health and never changes the calorie goal. It pairs through the same sign-in, has its own connection (so disconnecting one shortcut leaves the other connected), and is built step by step in [docs/apple-health-activity-shortcut.md](docs/apple-health-activity-shortcut.md).
+
+- **One entry per day:** each day is that day's whole Active Energy total, replaced on every sync, so syncing often never counts a day twice. A 0 sends and removes nothing.
+- **Hand-logged workouts:** on a day it has sent, active calories logged in chat stay listed but aren't added on top, because the watch's total already includes them.
+- **Your data:** those days are rows with `source` `apple_health` in `active_calories.csv`, and the connection is a `health_activity_sync` row in `connections.csv`.
+
 ## Your data
 
 `export_all_data` returns everything stored about the account as one ZIP, behind a link that expires after 60 minutes. Each export replaces the last. The ZIP holds:
@@ -328,6 +336,7 @@ The full version, in 10 languages, is at [nutrition-mcp.com/tools#troubleshootin
 | `GET /api/v1/health-sync/pending`             | Apple Health sync: closed-day totals to log (Bearer `nmhs_…` token)            |
 | `POST /api/v1/health-sync/ack`                | Apple Health sync: record what the shortcut logged (Bearer token)              |
 | `POST /api/v1/health-sync/revoke`             | Apple Health sync: disconnect (Bearer token)                                   |
+| `POST /api/v1/health-sync/activity`           | Activity shortcut: daily Active Energy totals (Bearer `nmhs_…` token)          |
 | `ALL /mcp`                                    | MCP endpoint (authenticated)                                                   |
 
 ## Deploy

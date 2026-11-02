@@ -146,6 +146,8 @@ import {
     ACTIVE_KCAL_MIN,
     activeKcalError,
     activityByDate,
+    countedActivity,
+    isHealthDayTotal,
     activityDayLine,
     activityRangeLine,
     activityMetaFromDays,
@@ -162,7 +164,9 @@ import {
 } from "./goals-history.js";
 import { exportAllData } from "./export.js";
 import {
+    createSupabaseHealthActivityLinkStore,
     createSupabaseHealthSyncStore,
+    type HealthActivityLinkStatus,
     type HealthSyncLinkStatus,
 } from "./health-sync-store.js";
 import {
@@ -2993,6 +2997,23 @@ export function healthSyncProfileLine(
     return `Apple Health sync: connected ${connected}, sent through ${sentThrough}, last sync ${lastSync}.`;
 }
 
+/**
+ * get_profile's line for the opt-in activity shortcut, or null when it is not
+ * connected or its status could not be read: the profile then reads exactly
+ * as it did before the activity shortcut existed.
+ */
+export function healthActivityProfileLine(
+    status: HealthActivityLinkStatus | null | undefined,
+    tz: string,
+): string | null {
+    if (!status) return null;
+    const connected = dateInTz(status.created_at, tz);
+    const lastSync = status.last_sync_at
+        ? formatLocalDateTime(status.last_sync_at, tz).slice(0, 16)
+        : "never";
+    return `Apple Health activity sync: connected ${connected}, reads the daily Active Energy total, last sync ${lastSync}.`;
+}
+
 // Exported for tests: the only way to exercise a tool handler end-to-end
 // (schema coercion, handler, response text) is to register the tools on a real
 // McpServer and call them through a client. Production still reaches this only
@@ -4392,7 +4413,7 @@ export function registerTools(
                                 start_date,
                                 end_date,
                                 tz,
-                            ),
+                            ).then((rows) => countedActivity(rows, tz)),
                             getNutritionGoals(userId),
                             pastDayGoalHistory(
                                 userId,
@@ -5238,7 +5259,12 @@ export function registerTools(
                     ] = await Promise.all([
                         getMealsByDate(userId, targetDate, tz),
                         getWaterByDate(userId, targetDate, tz),
-                        getActivityInRange(userId, targetDate, targetDate, tz),
+                        getActivityInRange(
+                            userId,
+                            targetDate,
+                            targetDate,
+                            tz,
+                        ).then((rows) => countedActivity(rows, tz)),
                         getNutritionGoals(userId),
                         getLatestWeight(userId),
                         pastDayGoalHistory(userId, targetDate, tz),
@@ -6930,9 +6956,19 @@ export function registerTools(
                         },
                     );
                     const day = dateInTz(entry.logged_at, tz);
-                    const dayTotals = sumActivity(
-                        await getActivityInRange(userId, day, day, tz),
+                    const dayRows = await getActivityInRange(
+                        userId,
+                        day,
+                        day,
+                        tz,
                     );
+                    const dayTotals = sumActivity(countedActivity(dayRows, tz));
+                    // A day the Apple Health activity sync totals already
+                    // includes this burn, so the entry is kept but not added.
+                    const healthDay = dayRows.find(isHealthDayTotal);
+                    const healthNote = healthDay
+                        ? ` ${day} has an Apple Health day total (${healthDay.kcal} kcal), which already includes the day's workouts, so this entry is kept but not added to the day's total.`
+                        : "";
                     const prefix = deduplicated
                         ? "Already logged — this matched an existing entry, so nothing new was added"
                         : "Active calories logged";
@@ -6941,7 +6977,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${prefix}: ${entry.kcal} kcal burned at ${localTimeOf(entry.logged_at, tz, true)} (${tz})${entry.notes ? ` (${entry.notes})` : ""}. ${counted} kcal of it counts against intake at ${entry.credit_pct}%. Day ${day}: ${dayTotals.burned_kcal} kcal burned, ${dayTotals.credited_kcal} kcal counted against intake. The calorie goal is unchanged. ID: ${entry.id}${note}`,
+                                text: `${prefix}: ${entry.kcal} kcal burned at ${localTimeOf(entry.logged_at, tz, true)} (${tz})${entry.notes ? ` (${entry.notes})` : ""}. ${counted} kcal of it counts against intake at ${entry.credit_pct}%. Day ${day}: ${dayTotals.burned_kcal} kcal burned, ${dayTotals.credited_kcal} kcal counted against intake. The calorie goal is unchanged.${healthNote} ID: ${entry.id}${note}`,
                             },
                         ],
                     };
@@ -7044,10 +7080,13 @@ export function registerTools(
                     }
                     const blocks: string[] = [];
                     for (const [day, list] of byDay) {
-                        const totals = sumActivity(list);
-                        const lines = list.map(
-                            (e) =>
-                                `- ${localTimeOf(e.logged_at, tz, false)} · ${e.kcal} kcal · ${e.credit_pct}% counted${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`,
+                        const counted = countedActivity(list, tz);
+                        const totals = sumActivity(counted);
+                        const hasHealth = list.some(isHealthDayTotal);
+                        const lines = list.map((e) =>
+                            isHealthDayTotal(e)
+                                ? `- Apple Health day total · ${e.kcal} kcal · ${e.credit_pct}% counted [id: ${e.id}]`
+                                : `- ${localTimeOf(e.logged_at, tz, false)} · ${e.kcal} kcal · ${e.credit_pct}% counted${e.notes ? ` (${e.notes})` : ""}${hasHealth ? " · not added: the Apple Health total includes it" : ""} [id: ${e.id}]`,
                         );
                         blocks.push(
                             `${day}: ${totals.burned_kcal} kcal burned, ${totals.credited_kcal} kcal counted against intake (${list.length} entr${list.length === 1 ? "y" : "ies"})\n${lines.join("\n")}`,
@@ -7082,7 +7121,7 @@ export function registerTools(
         {
             title: "Delete Active Calories Entry",
             description:
-                "Delete one active-calories entry by ID. It is removed from its day's totals; intake and the calorie goal are not affected.",
+                "Delete one active-calories entry by ID. It is removed from its day's totals; intake and the calorie goal are not affected. An Apple Health day total is written again by the next activity sync while the Nutrition MCP Activity shortcut is connected.",
             annotations: {
                 title: "Delete Active Calories Entry",
                 readOnlyHint: false,
@@ -8495,7 +8534,9 @@ export function registerTools(
                         getWaterInRange(userId, startDate, endDate, tz),
                         // max(days, 30) back: the text reads its own window
                         // out of it, and _meta only the last 30 days.
-                        getActivityInRange(userId, startDate, endDate, tz),
+                        getActivityInRange(userId, startDate, endDate, tz).then(
+                            (rows) => countedActivity(rows, tz),
+                        ),
                         getNutritionGoals(userId),
                         group_by
                             ? getNutritionGoalsHistory(userId)
@@ -8838,21 +8879,25 @@ export function registerTools(
             return withAnalytics(
                 "get_profile",
                 async () => {
-                    const [profile, healthSync] = await Promise.all([
-                        getProfile(userId),
-                        // Read beside the profile, and never allowed to fail
-                        // it: the sync status is one line of many, and the
-                        // rest of the profile is what this tool is for.
-                        createSupabaseHealthSyncStore()
-                            .getLinkStatus(userId)
-                            .catch((err: unknown) => {
-                                const ref = newErrorRef();
-                                console.warn(
-                                    `[get_profile] health-sync status error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
-                                );
-                                return undefined;
-                            }),
-                    ]);
+                    const [profile, healthSync, activitySync] =
+                        await Promise.all([
+                            getProfile(userId),
+                            // Read beside the profile, and never allowed to fail
+                            // it: the sync status is one line of many, and the
+                            // rest of the profile is what this tool is for.
+                            createSupabaseHealthSyncStore()
+                                .getLinkStatus(userId)
+                                .catch((err: unknown) => {
+                                    const ref = newErrorRef();
+                                    console.warn(
+                                        `[get_profile] health-sync status error ref=${ref}: ${JSON.stringify(err instanceof Error ? err.message : String(err))}`,
+                                    );
+                                    return undefined;
+                                }),
+                            createSupabaseHealthActivityLinkStore()
+                                .getActivityLinkStatus(userId)
+                                .catch(() => undefined),
+                        ]);
                     const tz = timezoneFromProfile(profile);
                     const locale = localeFromProfile(profile);
                     const weightUnit = preferredWeightUnitFromProfile(profile);
@@ -8884,7 +8929,8 @@ export function registerTools(
                             : "Alcohol tracking: disabled, so alcohol is hidden from meals, goals and progress. Alcohol already stored is kept, and anything logged with alcohol_g while it is off is still stored. The exception is the file importer, which skips a file's alcohol column while tracking is off and will not backfill it on a later re-import — so tracking has to be on before importing an export whose alcohol the user wants to keep. The user can enable it with set_alcohol_tracking.",
                         activityCreditLine(profile),
                         healthSyncProfileLine(healthSync, tz ?? "UTC"),
-                    ];
+                        healthActivityProfileLine(activitySync, tz ?? "UTC"),
+                    ].filter((l): l is string => l !== null);
 
                     return {
                         content: [

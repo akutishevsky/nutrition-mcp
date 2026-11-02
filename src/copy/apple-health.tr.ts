@@ -116,12 +116,26 @@ export const APPLE_HEALTH_TR: AppleHealthDoc = {
             },
         ],
     },
+    activity: {
+        title: "İsteğe bağlı: Apple Health içinden aktif kaloriler",
+        lead: "İkinci, ayrı bir kısayol olan <strong>Nutrition MCP Activity</strong> işi tersine çevirir: bugün ve önceki 2 gün için <strong>Aktif Enerji</strong> toplamını Apple Health içinden okur ve yalnızca bu günlük toplamları Nutrition MCP sunucusuna gönderir; orada aktif kalorilerin olarak, yediklerinin yanında görünürler. Sağlık uygulamasından başka hiçbir şey okumaz ve kalori hedefini asla değiştirmez. İsteğe bağlıdır; yukarıdaki kısayolla birlikte ya da onsuz çalışır.",
+        items: [
+            "Her gün tek bir kayıttır: o günün tüm Aktif Enerji toplamı ve her eşitleme bunu değiştirir; bu yüzden sık çalıştırmak bir günü iki kez saymaz.",
+            "Gönderdiği bir günde, sohbette kaydettiğin antrenmanlar kayıtlarında kalır ama üstüne eklenmez: saatinin Aktif Enerji değeri bunları zaten içerir.",
+            "Aktif Enerji değeri olmayan ya da Sağlık uygulamasının okumasına izin vermediği bir gün hiçbir şey göndermez ve hiçbir şeyi silmez.",
+            "Bu kısayolun kendi menüsünden bağlantısını kesmek, <strong>Nutrition MCP Health</strong> kısayolunu bağlı bırakır; tersi de geçerlidir.",
+        ],
+        button: "Etkinlik kısayolunu al",
+        pending: "Etkinlik kısayolu bağlantısı yakında burada yayınlanacak.",
+        setup: "<strong>Nutrition MCP Activity</strong> kısayolunu bir kez çalıştır ve yukarıdaki gibi aynı hesapla giriş yap; ilk eşitleme <strong>Aktif Enerji</strong> okuma izni ister. Adını tam olarak <strong>Nutrition MCP Activity</strong> bırak. Güncel kalması için, girdisi <code>auto</code> metni olan otomasyonlar ekle; örneğin Sağlık ya da Fitness açıldığında ya da günün birkaç saatinde. Menüsünde <strong>Sync now</strong>, <strong>Status</strong> ve <strong>Disconnect</strong> bulunur.",
+    },
     privacy: {
         title: "Gizlilik ve sınırlar",
         items: [
             "Sunucumuz bağlantıyı ve 8 gün boyunca gönderdiği toplamların kaydını tutar; böylece her gün bir kez gönderilir, sonrasında yalnızca tamamlanır. İkisi de veri dışa aktarmanda yer alır.",
             "Kısayol, erişim jetonunu bir dosyada değil, iPhone cihazındaki Kısayollar uygulamasının kendi deposunda tutar ve Kısayollar uygulaması bunu iCloud üzerinden diğer cihazlarına eşitleyebilir. Cihazlarında kısayolu çalıştırabilen herkes, sen bağlantıyı kesene kadar eşitlemeyi kullanabilir; bu yüzden kısayolu yalnızca kendi kullandığın cihazlarda tut.",
             "Apple tarafına hiçbir şey göndermiyoruz. Kısayol toplamlarını sunucumuzdan ister ve onları iPhone cihazındaki Sağlık uygulamasına yazar; oradan sonra kendi Apple ayarların geçerlidir.",
+            "Apple Health içinden yalnızca isteğe bağlı <strong>Nutrition MCP Activity</strong> kısayolu okur ve yalnızca günlük Aktif Enerji toplamını. Sunucumuz bu toplamları aktif kalori olarak saklar; veri dışa aktarmanda yer alır ve hesabınla birlikte silinir, tıpkı sohbette kaydettiklerin gibi.",
             "Dilediğin zaman <strong>Disconnect</strong> seçeneğini kullan; bağlantı ve kaydı hemen silinir. Ayrıca eşitleme olmadan geçen 90 günün ardından ve bağlandıktan 365 gün sonra kendiliğinden sona erer. Apple Health içinde zaten bulunanlar, sen silene kadar orada kalır.",
         ],
         policyLink: "Gizlilik politikasını oku",

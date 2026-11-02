@@ -35,6 +35,10 @@ import {
     OG_IMAGE_META,
 } from "./site-partials.js";
 import { APPLE_HEALTH, type AppleHealthDoc } from "../src/copy/apple-health.js";
+import {
+    HEALTH_ACTIVITY_SHORTCUT_NAME,
+    HEALTH_ACTIVITY_SHORTCUT_URL,
+} from "../src/health-activity-sync.js";
 import { TOOLS_COPY } from "../src/copy/tools.js";
 import {
     HEALTH_SYNC_FIELDS,
@@ -77,6 +81,7 @@ const SECTIONS = {
     connect: { icon: "fa-link", tint: "pro" },
     automate: { icon: "fa-wand-magic-sparkles", tint: "cal" },
     everyday: { icon: "fa-arrows-rotate", tint: "car" },
+    activity: { icon: "fa-person-running", tint: "pro" },
     privacy: { icon: "fa-shield-halved", tint: "fib" },
     troubleshooting: { icon: "fa-life-ring", tint: "fat" },
 } as const;
@@ -502,6 +507,7 @@ function titles(doc: AppleHealthDoc): Record<SectionId, string> {
         connect: doc.connect.title,
         automate: doc.automate.title,
         everyday: doc.everyday.title,
+        activity: doc.activity.title,
         privacy: doc.privacy.title,
         troubleshooting: doc.troubleshooting.title,
     };
@@ -545,6 +551,10 @@ function renderPage(doc: AppleHealthDoc, locale: SiteLocale): string {
     const install = HEALTH_SYNC_SHORTCUT_URL
         ? `<a class="nm-btn nm-btn-acc nm-btn-fw" href="${esc(HEALTH_SYNC_SHORTCUT_URL)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-download" aria-hidden="true"></i>${esc(doc.install.button)}</a>`
         : `<p class="ah-pending" role="note"><span class="nm-pulse-dot" aria-hidden="true"></span>${esc(doc.install.pending)}</p>`;
+
+    const activityInstall = HEALTH_ACTIVITY_SHORTCUT_URL
+        ? `<a class="nm-btn nm-btn-acc nm-btn-fw" href="${esc(HEALTH_ACTIVITY_SHORTCUT_URL)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-download" aria-hidden="true"></i>${esc(doc.activity.button)}</a>`
+        : `<p class="ah-pending" role="note"><span class="nm-pulse-dot" aria-hidden="true"></span>${esc(doc.activity.pending)}</p>`;
 
     const triggers = doc.automate.triggers
         .map(
@@ -618,6 +628,17 @@ ${I}<p class="ah-note">${doc.automate.note}</p>`,
             `${I}<div class="ah-grid">
 ${everyday}
 ${I}</div>`,
+        ),
+        section(
+            "activity",
+            t.activity,
+            `${I}<p class="ah-p">${doc.activity.lead}</p>
+${list(doc.activity.items, I)}
+${I}<div class="ah-install">
+${I}    <span class="ah-shortcut">${tile("fa-person-running", "pro", true)}${esc(HEALTH_ACTIVITY_SHORTCUT_NAME)}</span>
+${I}    ${activityInstall}
+${I}</div>
+${I}<p class="ah-note">${doc.activity.setup}</p>`,
         ),
         section(
             "privacy",

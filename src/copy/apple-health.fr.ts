@@ -111,12 +111,26 @@ export const APPLE_HEALTH_FR: AppleHealthDoc = {
             },
         ],
     },
+    activity: {
+        title: "Facultatif : les calories actives depuis Apple Health",
+        lead: "Un second raccourci, distinct, <strong>Nutrition MCP Activity</strong>, fonctionne dans l'autre sens : il lit ton total <strong>Énergie active</strong> pour aujourd'hui et les 2 jours précédents dans Apple Health, et n'envoie que ces totaux journaliers à Nutrition MCP, où ils apparaissent comme tes calories actives à côté de ce que tu as mangé. Il ne lit rien d'autre dans Santé et ne modifie jamais ton objectif calorique. Il est facultatif et fonctionne avec ou sans le raccourci ci-dessus.",
+        items: [
+            "Chaque jour correspond à une seule entrée, le total d'Énergie active de la journée entière, et chaque synchronisation le remplace : la lancer souvent ne compte donc jamais une journée deux fois.",
+            "Pour une journée qu'il a envoyée, les entraînements que tu as enregistrés dans le chat restent dans ton journal mais ne sont pas ajoutés en plus : l'Énergie active de ta montre les inclut déjà.",
+            "Un jour sans Énergie active, ou que Santé ne lui a pas permis de lire, n'envoie rien et ne supprime rien.",
+            "Se déconnecter depuis son propre menu laisse le raccourci <strong>Nutrition MCP Health</strong> connecté, et inversement.",
+        ],
+        button: "Obtenir le raccourci d'activité",
+        pending: "Le lien du raccourci d'activité sera bientôt publié ici.",
+        setup: "Lance <strong>Nutrition MCP Activity</strong> une fois et connecte-toi avec le même compte, exactement comme ci-dessus ; la première synchronisation demande l'autorisation de lire <strong>Énergie active</strong>. Garde exactement le nom <strong>Nutrition MCP Activity</strong>. Pour qu'il reste à jour, ajoute des automatisations qui l'exécutent avec le texte <code>auto</code> comme entrée, par exemple à l'ouverture de Santé ou de Fitness, ou à quelques moments de la journée. Son menu propose <strong>Sync now</strong>, <strong>Status</strong> et <strong>Disconnect</strong>.",
+    },
     privacy: {
         title: "Confidentialité et limites",
         items: [
             "Notre serveur conserve la connexion et, pendant 8 jours, un historique des totaux envoyés, afin que chaque journée soit envoyée une fois puis seulement complétée. Les deux figurent dans ton export de données.",
             "Le raccourci conserve son jeton d'accès dans son propre stockage au sein de l'app Raccourcis sur ton iPhone, et non dans un fichier, et l'app Raccourcis peut le synchroniser avec tes autres appareils via iCloud. Toute personne pouvant exécuter le raccourci sur tes appareils peut utiliser la synchronisation jusqu'à ce que tu la déconnectes : garde-le donc sur des appareils que toi seul utilises.",
             "Nous n'envoyons rien à Apple. Le raccourci demande tes totaux à notre serveur et les écrit dans Santé sur ton iPhone ; à partir de là, ce sont tes propres réglages Apple qui s'appliquent.",
+            "Seul le raccourci facultatif <strong>Nutrition MCP Activity</strong> lit dans Apple Health, et uniquement le total quotidien d'Énergie active. Notre serveur conserve ces totaux comme tes calories actives, dans ton export de données et supprimés avec ton compte, comme celles que tu enregistres dans le chat.",
             "Choisis <strong>Disconnect</strong> à tout moment : la connexion et son historique sont supprimés immédiatement. Elle prend aussi fin d'elle-même après 90 jours sans synchronisation, et 365 jours après la connexion. Ce qui est déjà dans Apple Health y reste jusqu'à ce que tu le supprimes.",
         ],
         policyLink: "Lire la politique de confidentialité",

@@ -116,12 +116,27 @@ export const APPLE_HEALTH_DE: AppleHealthDoc = {
             },
         ],
     },
+    activity: {
+        title: "Optional: Aktivkalorien aus Apple Health",
+        lead: "Ein zweiter, eigenständiger Kurzbefehl, <strong>Nutrition MCP Activity</strong>, arbeitet in die andere Richtung: Er liest deine <strong>Aktive Energie</strong> für heute und die 2 Tage davor aus Apple Health und sendet nur diese Tagessummen an Nutrition MCP, wo sie neben dem, was du gegessen hast, als deine Aktivkalorien erscheinen. Er liest nichts anderes aus Health und verändert nie dein Kalorienziel. Er ist optional und funktioniert mit oder ohne den Kurzbefehl oben.",
+        items: [
+            "Jeder Tag ist ein Eintrag, nämlich die gesamte Summe der Aktiven Energie dieses Tages, und jede Synchronisierung ersetzt ihn. So wird ein Tag auch dann nie doppelt gezählt, wenn du den Kurzbefehl oft laufen lässt.",
+            "An einem Tag, den er gesendet hat, bleiben Trainings, die du im Chat erfasst hast, in deinem Protokoll, werden aber nicht obendrauf addiert: Die Aktive Energie deiner Uhr enthält sie bereits.",
+            "Ein Tag ohne Aktive Energie oder einer, den Health ihm nicht zu lesen erlaubt hat, sendet nichts und entfernt nichts.",
+            "Wählst du in seinem eigenen Menü <strong>Disconnect</strong>, bleibt der Kurzbefehl <strong>Nutrition MCP Health</strong> verbunden, und umgekehrt.",
+        ],
+        button: "Aktivitäts-Kurzbefehl laden",
+        pending:
+            "Der Link zum Aktivitäts-Kurzbefehl wird bald hier veröffentlicht.",
+        setup: "Führe <strong>Nutrition MCP Activity</strong> einmal aus und melde dich mit demselben Konto an, genau wie oben; bei der ersten Synchronisierung fragt er, ob er <strong>Aktive Energie</strong> lesen darf. Behalte seinen Namen genau so: <strong>Nutrition MCP Activity</strong>. Damit er auf dem neuesten Stand bleibt, lege Automationen an, die ihn mit dem Text <code>auto</code> als Eingabe ausführen, zum Beispiel wenn Health oder Fitness geöffnet wird oder zu einigen Tageszeiten. Sein Menü hat <strong>Sync now</strong>, <strong>Status</strong> und <strong>Disconnect</strong>.",
+    },
     privacy: {
         title: "Datenschutz und Grenzen",
         items: [
             "Unser Server speichert die Verbindung und 8 Tage lang eine Aufzeichnung der gesendeten Summen, damit jeder Tag einmal gesendet und danach nur noch ergänzt wird. Beides ist in deinem Datenexport enthalten.",
             "Der Kurzbefehl bewahrt sein Zugriffstoken in seinem eigenen Speicher in der Kurzbefehle-App auf deinem iPhone auf, nicht in einer Datei, und die Kurzbefehle-App synchronisiert es eventuell über iCloud auf deine anderen Geräte. Wer den Kurzbefehl auf deinen Geräten ausführen kann, kann die Synchronisierung nutzen, bis du sie trennst. Halte ihn also auf Geräten, die nur du nutzt.",
             "Wir senden nichts an Apple. Der Kurzbefehl fragt unseren Server nach deinen Summen und schreibt sie auf deinem iPhone in Health; ab dort gelten deine eigenen Apple-Einstellungen.",
+            "Nur der optionale Kurzbefehl <strong>Nutrition MCP Activity</strong> liest aus Apple Health, und zwar nur die tägliche Summe der Aktiven Energie. Unser Server speichert diese Summen als deine Aktivkalorien, in deinem Datenexport und gelöscht mit deinem Konto, wie die, die du im Chat erfasst.",
             "Wähle jederzeit <strong>Disconnect</strong>, und die Verbindung samt Aufzeichnung wird sofort gelöscht. Sie endet außerdem von selbst nach 90 Tagen ohne Synchronisierung und 365 Tage nach dem Verbinden. Was schon in Apple Health ist, bleibt dort, bis du es löschst.",
         ],
         policyLink: "Datenschutzerklärung lesen",
