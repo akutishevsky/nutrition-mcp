@@ -27,6 +27,7 @@ import {
     MEAL_TIMES_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
     SATURATED_FAT_META_KEY,
+    ACTIVITY_META_KEY,
     SODIUM_META_KEY,
 } from "../src/widgets.js";
 
@@ -729,6 +730,19 @@ function monthDays(): (DayFx | [string])[] {
     return out;
 }
 
+// A deterministic active-calories sample for the summary fixtures: 400 kcal
+// burned, 80% credited, on the given dates, so the widget has a row to draw.
+function activitySample(dates: string[]) {
+    return {
+        v: 1 as const,
+        days: dates.map((date) => ({
+            date,
+            burned_kcal: 400,
+            credited_kcal: 320,
+        })),
+    };
+}
+
 function summaryDay(name: string) {
     const dayLists: Record<
         string,
@@ -893,7 +907,10 @@ function summaryDay(name: string) {
         [MEAL_TIMES_META_KEY]: buildMealTimesMeta(keptMeals, TZ),
         ...itemsAndSources(keptMeals, items, alcohol),
     };
-    return { result, meta };
+    return {
+        result,
+        meta: { ...meta, [ACTIVITY_META_KEY]: activitySample([date]) },
+    };
 }
 
 // topMealBreakdown's rule (src/mcp.ts, not importable here: it pulls in
@@ -1078,7 +1095,16 @@ function summaryRange(name: string) {
         [MEAL_TIMES_META_KEY]: buildMealTimesMeta(meals, TZ),
         ...itemsAndSources(meals, items, alcohol),
     };
-    return { result, meta };
+    return {
+        result,
+        meta: {
+            ...meta,
+            // Every third logged day, so the range has a gap to show.
+            [ACTIVITY_META_KEY]: activitySample(
+                days.filter((_, i) => i % 3 === 0).map((d) => d.date),
+            ),
+        },
+    };
 }
 
 export const SUMMARY_SCENARIO_NAMES = [

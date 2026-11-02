@@ -123,6 +123,10 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
         statPeakDay: "En yüksek gün",
         statLoggedDays: "Kayıtlı",
         statOfDays: "/ {n} gün",
+        activityBurned: "Yakılan {v}",
+        activityCredited: "düşülen {v}",
+        activityNet: "net {v}",
+        activityAvg: "günlük ort.: {line}",
         gaugeAriaToday:
             "Bugün {eaten} / {goal} kcal, hedefin %{pct} kadarı, {status}.",
         gaugeAriaThatDay:
@@ -470,6 +474,8 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
             caffeine: "Kafein",
             water: "Su",
             alcohol: "Alkol",
+            burned: "Aktif kalori",
+            net: "Net alım",
         },
         metricInTitle: {
             calories: "kalori",
@@ -485,6 +491,8 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
             caffeine: "kafein",
             water: "su",
             alcohol: "alkol",
+            burned: "aktif kalori",
+            net: "net alım",
         },
         pill: "{n} g",
         pillAria: "{n} günü göster",

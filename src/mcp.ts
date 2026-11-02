@@ -29,6 +29,10 @@ import {
     getWaterByDate,
     getWaterInRange,
     deleteWater,
+    insertActiveCalories,
+    getActivityInRange,
+    deleteActiveCalories,
+    activityCreditPctFromProfile,
     insertWeight,
     getWeightByDate,
     getWeightInRange,
@@ -79,6 +83,8 @@ import {
     type MealInput,
     type NutritionGoals,
     type WaterEntry,
+    type ActiveCaloriesEntry,
+    type Profile,
     type WeightEntry,
     type BodyMeasurementEntry,
 } from "./supabase.js";
@@ -135,6 +141,25 @@ import {
     measurementLabel,
 } from "./units.js";
 import { formatAlcohol, isDrinkUnit, type DrinkUnit } from "./alcohol.js";
+import {
+    ACTIVE_KCAL_MAX,
+    ACTIVE_KCAL_MIN,
+    activeKcalError,
+    activityByDate,
+    activityDayLine,
+    activityRangeLine,
+    activityMetaFromDays,
+    activityTrendsLine,
+    type ActivityTotals,
+    creditedKcal,
+    creditPctError,
+    sumActivity,
+} from "./activity.js";
+import {
+    goalsOnDate,
+    type GoalValues,
+    type NutritionGoalsHistoryRow,
+} from "./goals-history.js";
 import { exportAllData } from "./export.js";
 import {
     createSupabaseHealthSyncStore,
@@ -212,6 +237,7 @@ import {
     ADDED_SUGAR_META_KEY,
     SATURATED_FAT_META_KEY,
     SODIUM_META_KEY,
+    ACTIVITY_META_KEY,
     LOCAL_TODAY_META_KEY,
     MEAL_BREAKDOWN_TOP_N,
     MEAL_ITEMS_META_KEY,
@@ -660,6 +686,65 @@ function sumWater(entries: WaterEntry[]): number {
     return total;
 }
 
+// Inclusive day count of a range the caller has already validated.
+function dayCountOf(start: string, end: string): number {
+    return dateDiffDays(start, end) + 1;
+}
+
+// The goal history a single past day is judged against, read inside the
+// caller's Promise.all so it runs alongside the day's other reads. `date` is
+// null when no single past day is in play (a range, today, a future date), and
+// then nothing is read and goalsForDate keeps the current row.
+function pastDayGoalHistory(
+    userId: string,
+    date: string | null,
+    tz: string,
+): Promise<NutritionGoalsHistoryRow[] | null> {
+    if (date === null || date >= todayInTz(tz)) return Promise.resolve(null);
+    return getNutritionGoalsHistory(userId);
+}
+
+// The calorie goal a single date is judged against. Today, a future date and a
+// range keep the current row (history is null). A past single date gets the
+// goal in effect on that date from the history pastDayGoalHistory read, so
+// changing the goal today does not re-judge last week. The result has the
+// shape of the current row; only the goal columns come from history.
+function goalsForDate(
+    userId: string,
+    date: string,
+    tz: string,
+    current: NutritionGoals | null,
+    history: NutritionGoalsHistoryRow[] | null,
+): NutritionGoals | null {
+    if (history === null) return current;
+    const on = goalsOnDate(history, date, tz);
+    if (!on) return current;
+    const values: GoalValues = on.goals;
+    return {
+        ...values,
+        user_id: userId,
+        updated_at: current?.updated_at ?? "",
+    };
+}
+
+// The `_meta` entry for active calories, from per-day totals; present only when
+// the period has any. Callers pass the map they already grouped the period into.
+function activityMetaEntry(
+    byDay: ReadonlyMap<string, ActivityTotals>,
+): Record<string, unknown> {
+    const meta = activityMetaFromDays(byDay);
+    return meta ? { [ACTIVITY_META_KEY]: meta } : {};
+}
+
+// get_profile's line for the share of active calories that counts against
+// intake. Descriptive, like the other setting lines: it names the default when
+// nothing was ever chosen, and says the calorie goal is untouched.
+function activityCreditLine(profile: Profile | null): string {
+    const pct = activityCreditPctFromProfile(profile);
+    const chosen = profile?.activity_credit_pct != null;
+    return `Active calories: ${pct}% counts against intake for entries logged from now on${chosen ? "" : " (the default; never set)"}. Burned energy is shown beside intake and never changes the calorie goal. Entries already logged keep the share they were logged with. The user can change it with set_activity_credit.`;
+}
+
 // Per-meal macro breakdown handed to the widgets so tapping a macro ring can
 // reveal which meals contributed to it. `date` is null for single-day views
 // (the widget labels each row by meal type instead) and set to YYYY-MM-DD for
@@ -751,7 +836,12 @@ export { WEIGHT_SERIES_META_KEY };
 export { PERIOD_AVERAGES_META_KEY };
 // And for the added-sugar figures (AddedSugarMeta) that five tools carry
 // beside their frozen structuredContent.
-export { ADDED_SUGAR_META_KEY, SATURATED_FAT_META_KEY, SODIUM_META_KEY };
+export {
+    ADDED_SUGAR_META_KEY,
+    ACTIVITY_META_KEY,
+    SATURATED_FAT_META_KEY,
+    SODIUM_META_KEY,
+};
 // And get_trends' local "today" (the trends widget's still-running-day rule).
 export { LOCAL_TODAY_META_KEY };
 // And for the ingredients behind the breakdown rows (MealItemsMeta, built in
@@ -2702,6 +2792,7 @@ function assertDateRange(
 const MEAL_ID_SOURCES =
     "get_meals_today, get_meals_by_date, get_meals_by_date_range or search_meals";
 const WATER_ID_SOURCES = "get_water_today or get_water_by_date";
+const ACTIVE_ID_SOURCES = "get_active_calories or log_active_calories";
 const WEIGHT_ID_SOURCES =
     "get_weight_today, get_weight_by_date or get_weight_by_date_range";
 const MEASUREMENT_ID_SOURCES = "get_body_measurements";
@@ -4286,15 +4377,41 @@ export function registerTools(
                     const daysInRange = dateDiffDays(start_date, end_date) + 1;
                     const tz = await getUserTimezone(userId);
                     const locale = await getUserLocale(userId);
-                    const [meals, water, goals] = await Promise.all([
-                        getMealsInRange(userId, start_date, end_date, tz),
-                        getWaterInRange(userId, start_date, end_date, tz),
-                        getNutritionGoals(userId),
-                    ]);
+                    const [meals, water, activity, currentGoals, goalHistory] =
+                        await Promise.all([
+                            getMealsInRange(userId, start_date, end_date, tz),
+                            getWaterInRange(userId, start_date, end_date, tz),
+                            getActivityInRange(
+                                userId,
+                                start_date,
+                                end_date,
+                                tz,
+                            ),
+                            getNutritionGoals(userId),
+                            pastDayGoalHistory(
+                                userId,
+                                start_date === end_date ? start_date : null,
+                                tz,
+                            ),
+                        ]);
+                    // A single past day is judged against the goal in effect on
+                    // that day; a range keeps the current goal, as it always has.
+                    const goals = goalsForDate(
+                        userId,
+                        start_date,
+                        tz,
+                        currentGoals,
+                        goalHistory,
+                    );
+                    const activityByDay = activityByDate(activity, tz);
 
                     const goalsPayload = goalsPayloadOf(goals, alcohol);
 
-                    if (meals.length === 0 && water.length === 0) {
+                    if (
+                        meals.length === 0 &&
+                        water.length === 0 &&
+                        activity.length === 0
+                    ) {
                         return {
                             content: [
                                 {
@@ -4351,6 +4468,9 @@ export function registerTools(
                                     [],
                                     tz,
                                 ),
+                                // No activity can reach this path, so this is
+                                // empty; it keeps every return path alike.
+                                ...activityMetaEntry(activityByDay),
                             },
                         };
                     }
@@ -4370,6 +4490,11 @@ export function registerTools(
                             date,
                             (waterByDate.get(date) ?? 0) + entry.amount_ml,
                         );
+                        if (!byDate.has(date)) byDate.set(date, []);
+                    }
+                    // A day with activity but no meals or water still gets its
+                    // section, as a water-only day does: it is not dropped.
+                    for (const date of activityByDay.keys()) {
                         if (!byDate.has(date)) byDate.set(date, []);
                     }
 
@@ -4394,8 +4519,19 @@ export function registerTools(
                         // the range average down towards zero.
                         const present = nutrientPresence(dateMeals);
                         const header = `## ${date} (${dateMeals.length} meal${dateMeals.length === 1 ? "" : "s"})`;
+                        const dayActivity = activityByDay.get(date);
+                        const activityText = dayActivity
+                            ? `\n${activityDayLine({
+                                  totals: dayActivity,
+                                  intakeKcal:
+                                      dateMeals.length > 0
+                                          ? totals.calories
+                                          : null,
+                                  goalKcal: goals?.daily_calories ?? null,
+                              })}`
+                            : "";
                         sections.push(
-                            `${header}\n${formatProgress(totals, goals, alcohol, present)}`,
+                            `${header}\n${formatProgress(totals, goals, alcohol, present)}${activityText}`,
                         );
                         days.push({
                             date,
@@ -4509,11 +4645,25 @@ export function registerTools(
                             ? ""
                             : "\n\n(Tip: set daily targets with set_nutrition_goals to see progress percentages.)");
 
+                    // Across a range, the window's activity totals and the daily
+                    // average; a single day already has its own line above.
+                    const activityNote =
+                        activity.length > 0 && start_date !== end_date
+                            ? `\n\n${activityRangeLine({
+                                  totals: sumActivity(activity),
+                                  activeDays: activityByDay.size,
+                                  daysInRange,
+                              })}`
+                            : "";
+
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: sections.join("\n\n") + footer,
+                                text:
+                                    sections.join("\n\n") +
+                                    activityNote +
+                                    footer,
                             },
                         ],
                         structuredContent: {
@@ -4596,6 +4746,8 @@ export function registerTools(
                                 tz,
                             ),
                             ...itemsEntry,
+                            // Only the days that carry activity; omitted when none.
+                            ...activityMetaEntry(activityByDay),
                         },
                     };
                 },
@@ -5051,13 +5203,29 @@ export function registerTools(
                     const profile = await getProfile(userId);
                     const tz = timezoneFromProfile(profile) ?? "UTC";
                     const targetDate = date ?? todayInTz(tz);
-                    const [meals, water, goals, latestWeight] =
-                        await Promise.all([
-                            getMealsByDate(userId, targetDate, tz),
-                            getWaterByDate(userId, targetDate, tz),
-                            getNutritionGoals(userId),
-                            getLatestWeight(userId),
-                        ]);
+                    const [
+                        meals,
+                        water,
+                        activity,
+                        currentGoals,
+                        latestWeight,
+                        goalHistory,
+                    ] = await Promise.all([
+                        getMealsByDate(userId, targetDate, tz),
+                        getWaterByDate(userId, targetDate, tz),
+                        getActivityInRange(userId, targetDate, targetDate, tz),
+                        getNutritionGoals(userId),
+                        getLatestWeight(userId),
+                        pastDayGoalHistory(userId, targetDate, tz),
+                    ]);
+                    // The goal in effect on targetDate (today: the current row).
+                    const goals = goalsForDate(
+                        userId,
+                        targetDate,
+                        tz,
+                        currentGoals,
+                        goalHistory,
+                    );
                     const unit =
                         preferredWeightUnitFromProfile(profile) ?? "kg";
                     const locale = localeFromProfile(profile) ?? "en";
@@ -5071,6 +5239,17 @@ export function registerTools(
                         alcohol,
                         present,
                     );
+                    // One line for the day's activity, beside intake and the
+                    // goal; absent when the day has none.
+                    const activityText =
+                        activity.length > 0
+                            ? `\n${activityDayLine({
+                                  totals: sumActivity(activity),
+                                  intakeKcal:
+                                      meals.length > 0 ? totals.calories : null,
+                                  goalKcal: goals?.daily_calories ?? null,
+                              })}`
+                            : "";
 
                     // Weight is a standing metric (latest overall), not per-date.
                     let weightLine = "";
@@ -5153,7 +5332,7 @@ export function registerTools(
                         content: [
                             {
                                 type: "text",
-                                text: `${header}\n${body}${weightLine}${footer}`,
+                                text: `${header}\n${body}${activityText}${weightLine}${footer}`,
                             },
                         ],
                         structuredContent: {
@@ -6657,6 +6836,329 @@ export function registerTools(
     );
 
     server.registerTool(
+        "log_active_calories",
+        {
+            title: "Log Active Calories",
+            description:
+                "Log energy burned in exercise, in kilocalories (kcal), as reported by a watch or fitness app (the 'active calories' figure is the usual source). It is shown beside calorie intake and never changes the calorie goal. Only the share set with set_activity_credit counts against intake, and each entry keeps the share in effect when it is logged. Entries are energy totals, not workout details: no sets, durations or exercise types are stored, and a short note is the only extra field. Burned energy is not food and does not add to intake.",
+            annotations: {
+                title: "Log Active Calories",
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: false,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                kcal: z.coerce
+                    .number()
+                    .describe(
+                        `Energy burned in kilocalories: a whole number from ${ACTIVE_KCAL_MIN} to ${ACTIVE_KCAL_MAX}.`,
+                    ),
+                logged_at: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "When the activity happened (defaults to now). " +
+                            LOGGED_AT_FORMS +
+                            LOGGED_AT_OMIT_IF_NOW,
+                    ),
+                notes: z
+                    .string()
+                    .optional()
+                    .describe("Optional short note (e.g. 'morning run')."),
+                idempotency_key: z
+                    .string()
+                    .min(1)
+                    .max(255)
+                    .optional()
+                    .describe(
+                        idempotencyKeyDescription(
+                            "entry",
+                            "log them as one combined total (two walks as one figure) or give each its own key",
+                        ),
+                    ),
+            }),
+        },
+        async (args) => {
+            return withAnalytics(
+                "log_active_calories",
+                async () => {
+                    const problem = activeKcalError(args.kcal);
+                    if (problem !== null) throw new ToolError(problem);
+                    const { iso, note, tz } = await resolveWriteTimestamp(
+                        userId,
+                        args.logged_at,
+                    );
+                    // The credit share is snapshotted onto the row now, so a
+                    // later set_activity_credit leaves this entry as it was.
+                    const creditPct = activityCreditPctFromProfile(
+                        await getProfile(userId),
+                    );
+                    const { entry, deduplicated } = await insertActiveCalories(
+                        userId,
+                        {
+                            kcal: args.kcal,
+                            credit_pct: creditPct,
+                            logged_at: iso,
+                            notes: args.notes,
+                            idempotency_key: args.idempotency_key,
+                        },
+                    );
+                    const day = dateInTz(entry.logged_at, tz);
+                    const dayTotals = sumActivity(
+                        await getActivityInRange(userId, day, day, tz),
+                    );
+                    const prefix = deduplicated
+                        ? "Already logged — this matched an existing entry, so nothing new was added"
+                        : "Active calories logged";
+                    const counted = creditedKcal(entry.kcal, entry.credit_pct);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${prefix}: ${entry.kcal} kcal burned at ${localTimeOf(entry.logged_at, tz, true)} (${tz})${entry.notes ? ` (${entry.notes})` : ""}. ${counted} kcal of it counts against intake at ${entry.credit_pct}%. Day ${day}: ${dayTotals.burned_kcal} kcal burned, ${dayTotals.credited_kcal} kcal counted against intake. The calorie goal is unchanged. ID: ${entry.id}${note}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "get_active_calories",
+        {
+            title: "Get Active Calories",
+            description:
+                "List energy burned in exercise (active calories) for one date or a date range, with each entry's local time, kcal, the share that counted against intake, and its id, plus the burned and counted-against-intake totals for each day. Defaults to today when no date is given. A range spans at most 31 days; get_trends covers longer periods with daily averages.",
+            annotations: {
+                title: "Get Active Calories",
+                readOnlyHint: true,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                date: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "One date (YYYY-MM-DD). Pass this, or start_date and end_date, not both.",
+                    ),
+                start_date: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "First date of the range (YYYY-MM-DD), inclusive.",
+                    ),
+                end_date: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "Last date of the range (YYYY-MM-DD), inclusive.",
+                    ),
+            }),
+        },
+        async ({ date, start_date, end_date }) => {
+            return withAnalytics(
+                "get_active_calories",
+                async () => {
+                    const rangeGiven =
+                        start_date !== undefined || end_date !== undefined;
+                    if (date !== undefined && rangeGiven) {
+                        throw new ToolError(
+                            "Pass either date, or start_date and end_date, not both.",
+                        );
+                    }
+                    if (
+                        rangeGiven &&
+                        (start_date === undefined || end_date === undefined)
+                    ) {
+                        throw new ToolError(
+                            "A date range needs both start_date and end_date.",
+                        );
+                    }
+                    const tz = await getUserTimezone(userId);
+                    const startDate = start_date ?? date ?? todayInTz(tz);
+                    const endDate = end_date ?? date ?? todayInTz(tz);
+                    assertDateRange(
+                        startDate,
+                        endDate,
+                        MEALS_RANGE_MAX_DAYS,
+                        "get_trends covers longer periods with daily averages.",
+                    );
+                    const entries = await getActivityInRange(
+                        userId,
+                        startDate,
+                        endDate,
+                        tz,
+                    );
+                    if (entries.length === 0) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text:
+                                        startDate === endDate
+                                            ? `No active calories logged on ${startDate}.`
+                                            : `No active calories logged between ${startDate} and ${endDate}.`,
+                                },
+                            ],
+                        };
+                    }
+
+                    // selectLoggedWindow returns oldest first, so grouping by
+                    // first appearance keeps the days in order.
+                    const byDay = new Map<string, ActiveCaloriesEntry[]>();
+                    for (const e of entries) {
+                        const day = dateInTz(e.logged_at, tz);
+                        const bucket = byDay.get(day);
+                        if (bucket) bucket.push(e);
+                        else byDay.set(day, [e]);
+                    }
+                    const blocks: string[] = [];
+                    for (const [day, list] of byDay) {
+                        const totals = sumActivity(list);
+                        const lines = list.map(
+                            (e) =>
+                                `- ${localTimeOf(e.logged_at, tz, false)} · ${e.kcal} kcal · ${e.credit_pct}% counted${e.notes ? ` (${e.notes})` : ""} [id: ${e.id}]`,
+                        );
+                        blocks.push(
+                            `${day}: ${totals.burned_kcal} kcal burned, ${totals.credited_kcal} kcal counted against intake (${list.length} entr${list.length === 1 ? "y" : "ies"})\n${lines.join("\n")}`,
+                        );
+                    }
+                    const header =
+                        startDate === endDate
+                            ? timesAreLocal(tz)
+                            : `${timesAreLocal(tz)} ${byDay.size} of ${dayCountOf(startDate, endDate)} days have entries.`;
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: `${header}\n\n${blocks.join("\n\n")}`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+                date !== undefined
+                    ? { date }
+                    : {
+                          start_date: start_date ?? null,
+                          end_date: end_date ?? null,
+                      },
+            );
+        },
+    );
+
+    server.registerTool(
+        "delete_active_calories",
+        {
+            title: "Delete Active Calories Entry",
+            description:
+                "Delete one active-calories entry by ID. It is removed from its day's totals; intake and the calorie goal are not affected.",
+            annotations: {
+                title: "Delete Active Calories Entry",
+                readOnlyHint: false,
+                destructiveHint: true,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                id: z
+                    .string()
+                    .describe(
+                        `UUID of the active-calories entry to delete, from ${ACTIVE_ID_SOURCES}.`,
+                    ),
+            }),
+        },
+        async ({ id }) => {
+            return withAnalytics(
+                "delete_active_calories",
+                async () => {
+                    if (!isUuid(id)) {
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: notUuidText(
+                                        "active-calories entry",
+                                        id,
+                                        ACTIVE_ID_SOURCES,
+                                    ),
+                                },
+                            ],
+                        };
+                    }
+                    const deleted = await deleteActiveCalories(userId, id);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text: deleted
+                                    ? `Active calories entry ${id} deleted.`
+                                    : `No active calories entry found with id ${id}.`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
+        "set_activity_credit",
+        {
+            title: "Set Activity Credit",
+            description:
+                "Choose what share of active calories (energy burned in exercise) counts against calorie intake, from 0 to 100 percent, or pass null to reset to the default of 100 percent. The share applies to active-calories entries logged from now on; entries already logged keep the share they were logged with, so changing it never rewrites past days. It changes only how burned energy is netted against intake in the display: the calorie goal is never changed by activity.",
+            annotations: {
+                title: "Set Activity Credit",
+                readOnlyHint: false,
+                destructiveHint: false,
+                idempotentHint: true,
+                openWorldHint: false,
+            },
+            inputSchema: z.object({
+                percent: z
+                    .union([z.null(), z.coerce.number()])
+                    .describe(
+                        "Share of active calories that counts against intake, a whole number from 0 to 100; null resets it to the default of 100.",
+                    ),
+            }),
+        },
+        async ({ percent }) => {
+            return withAnalytics(
+                "set_activity_credit",
+                async () => {
+                    if (percent !== null) {
+                        const problem = creditPctError(percent);
+                        if (problem !== null) throw new ToolError(problem);
+                    }
+                    const profile = await upsertProfile(userId, {
+                        activity_credit_pct: percent,
+                    });
+                    const pct = activityCreditPctFromProfile(profile);
+                    return {
+                        content: [
+                            {
+                                type: "text",
+                                text:
+                                    percent === null
+                                        ? "Activity credit reset to the default of 100%. Active calories logged from now on count fully against intake; entries logged before keep the share they were logged with. The calorie goal is unchanged."
+                                        : `Activity credit set to ${pct}%. Active calories logged from now on count ${pct}% against intake; entries logged before keep the share they were logged with. The calorie goal is unchanged.`,
+                            },
+                        ],
+                    };
+                },
+                analytics,
+            );
+        },
+    );
+
+    server.registerTool(
         "log_weight",
         {
             title: "Log Weight",
@@ -7956,22 +8458,27 @@ export function registerTools(
                     // hasMealsBefore: meals before the span make its empty
                     // early periods inner gaps (kept), not a lead-in
                     // (dropped).
-                    const [meals, water, goals, history, loggedBefore] =
-                        await Promise.all([
-                            getMealsInRange(userId, mealStart, endDate, tz),
-                            getWaterInRange(userId, startDate, endDate, tz),
-                            getNutritionGoals(userId),
-                            group_by
-                                ? getNutritionGoalsHistory(userId)
-                                : Promise.resolve(null),
-                            group_by
-                                ? hasMealsBefore(
-                                      userId,
-                                      yearSpanStart(endDate),
-                                      tz,
-                                  )
-                                : Promise.resolve(false),
-                        ]);
+                    const [
+                        meals,
+                        water,
+                        activity,
+                        goals,
+                        history,
+                        loggedBefore,
+                    ] = await Promise.all([
+                        getMealsInRange(userId, mealStart, endDate, tz),
+                        getWaterInRange(userId, startDate, endDate, tz),
+                        // max(days, 30) back: the text reads its own window
+                        // out of it, and _meta only the last 30 days.
+                        getActivityInRange(userId, startDate, endDate, tz),
+                        getNutritionGoals(userId),
+                        group_by
+                            ? getNutritionGoalsHistory(userId)
+                            : Promise.resolve(null),
+                        group_by
+                            ? hasMealsBefore(userId, yearSpanStart(endDate), tz)
+                            : Promise.resolve(false),
+                    ]);
                     const allBuckets = buildDailyBuckets(
                         meals,
                         water,
@@ -7990,6 +8497,28 @@ export function registerTools(
                         gateAlcohol(textBuckets, alcohol),
                         goals,
                     );
+                    // Activity over the text's own window. Burned and credited
+                    // are averaged over every calendar day of it; net intake is
+                    // averaged over the days that have a meal only.
+                    const textStart = textBuckets[0]?.date ?? startDate;
+                    const textActivity = activity.filter(
+                        (e) => dateInTz(e.logged_at, tz) >= textStart,
+                    );
+                    if (textActivity.length > 0) {
+                        const creditedByDay = activityByDate(textActivity, tz);
+                        text += `\n\n${activityTrendsLine({
+                            totals: sumActivity(textActivity),
+                            windowDays: textBuckets.length,
+                            mealDays: textBuckets
+                                .filter((b) => b.meals.length > 0)
+                                .map((b) => ({
+                                    intakeKcal: b.calories,
+                                    creditedKcal:
+                                        creditedByDay.get(b.date)
+                                            ?.credited_kcal ?? 0,
+                                })),
+                        })}`;
+                    }
                     // Per-period averages: only with group_by, and then in
                     // `content` and the result's `_meta`, never in
                     // structuredContent — the output schema is frozen (see
@@ -8019,6 +8548,12 @@ export function registerTools(
                     // here rather than read off the buckets, and only the
                     // series' dates are keyed (with group_by the meal read
                     // reaches years further back).
+                    // Activity over the same 30-day series, for _meta. The text
+                    // above reads its own shorter window out of `activity`.
+                    const seriesStart = seriesBuckets[0]?.date ?? startDate;
+                    const seriesActivity = activity.filter(
+                        (e) => dateInTz(e.logged_at, tz) >= seriesStart,
+                    );
                     const seriesMeals: Record<string, Meal[]> = {};
                     for (const b of seriesBuckets) seriesMeals[b.date] = [];
                     for (const meal of meals) {
@@ -8045,6 +8580,11 @@ export function registerTools(
                             // timezone, so the widget can tell a partial
                             // today from a past window.
                             [LOCAL_TODAY_META_KEY]: { v: 1, today },
+                            // The series' days that carry activity (the same
+                            // 30-day window the widget re-averages), ascending.
+                            ...activityMetaEntry(
+                                activityByDate(seriesActivity, tz),
+                            ),
                         },
                         structuredContent: {
                             end_date: endDate,
@@ -8144,7 +8684,7 @@ export function registerTools(
         {
             title: "Export All Data",
             description:
-                "Export EVERYTHING this server stores about the user — meals with their ingredients and the source of each nutrient value (a food record, a value the user gave, or an estimate), saved meals with their ingredients, water, weight, body measurements, nutrition goals and every dated change to them, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, meal_items.csv, saved_meals.csv, saved_meal_items.csv, water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path: it covers a full backup, an account takeout, and a request for the meal history alone, which is meals.csv inside the archive. The link is for the user to download the archive.",
+                "Export EVERYTHING this server stores about the user — meals with their ingredients and the source of each nutrient value (a food record, a value the user gave, or an estimate), saved meals with their ingredients, water, active calories, weight, body measurements, nutrition goals and every dated change to them, profile settings, the sign-in account (email, sign-in methods and dates), tool-usage telemetry, the AI-app connections (OAuth grants, without the tokens) and the Apple Health sync connection with its 8-day record of what was sent — as a single ZIP archive (meals.csv, meal_items.csv, saved_meals.csv, saved_meal_items.csv, water.csv, active_calories.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv, profile.csv, account.csv, telemetry.csv, connections.csv, health_sync.csv, plus a README.txt describing the columns, the units they are in, and what is not included) and return a private, time-limited download link (valid 60 minutes). Timestamps use the user's timezone if set, otherwise UTC; health_sync.csv rows use the timezone each day was counted in. Only meals.csv can be read back in; every other file is export-only. This is the server's only export path: it covers a full backup, an account takeout, and a request for the meal history alone, which is meals.csv inside the archive. The link is for the user to download the archive.",
             annotations: {
                 title: "Export All Data",
                 readOnlyHint: false,
@@ -8260,7 +8800,7 @@ export function registerTools(
         {
             title: "Get Profile",
             description:
-                "Get the user's current settings in one call: timezone (plus local date and time), widget language, preferred weight unit, preferred length unit, whether in-chat widgets are shown, and whether alcohol tracking is on — everything set_timezone, set_language, set_weight_unit, set_length_unit, set_widget_display and set_alcohol_tracking each control. Prefer this over guessing a setting from context, and use it once instead of calling several separate settings tools when you need more than one.",
+                "Get the user's current settings in one call: timezone (plus local date and time), widget language, preferred weight unit, preferred length unit, whether in-chat widgets are shown, and whether alcohol tracking is on and what share of active calories counts against intake — everything set_timezone, set_language, set_weight_unit, set_length_unit, set_widget_display, set_alcohol_tracking and set_activity_credit each control. Prefer this over guessing a setting from context, and use it once instead of calling several separate settings tools when you need more than one.",
             annotations: {
                 title: "Get Profile",
                 readOnlyHint: true,
@@ -8317,6 +8857,7 @@ export function registerTools(
                         alcoholEnabled
                             ? `Alcohol tracking: enabled, displayed in grams alongside ${drinkUnitLabel(drinkUnit)}${preferredDrinkUnitFromProfile(profile) ? "" : " (the default — no preference saved)"}.`
                             : "Alcohol tracking: disabled, so alcohol is hidden from meals, goals and progress. Alcohol already stored is kept, and anything logged with alcohol_g while it is off is still stored. The exception is the file importer, which skips a file's alcohol column while tracking is off and will not backfill it on a later re-import — so tracking has to be on before importing an export whose alcohol the user wants to keep. The user can enable it with set_alcohol_tracking.",
+                        activityCreditLine(profile),
                         healthSyncProfileLine(healthSync, tz ?? "UTC"),
                     ];
 
@@ -8339,7 +8880,7 @@ export function registerTools(
         {
             title: "Set Timezone",
             description:
-                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). It decides which calendar day meals, water, weight and body measurements are grouped into when they are read — a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and how a logged_at with no UTC offset is turned into an exact moment when it is written. That second part is permanent: an entry keeps the moment it was resolved to, so correcting the timezone later regroups existing entries under the new zone's days but does not re-read their original local times (a meal entered as 21:00 while the account was on UTC shows as 00:00 the next day once Europe/Kyiv is set in summer). Until one is set, the account uses UTC.",
+                "Set the user's IANA timezone (e.g. 'America/Los_Angeles', 'Europe/Berlin', 'Asia/Tokyo'). It decides which calendar day meals, water, active calories, weight and body measurements are grouped into when they are read — a meal logged at 11pm in LA counts on that LA day, not the next UTC day — and how a logged_at with no UTC offset is turned into an exact moment when it is written. That second part is permanent: an entry keeps the moment it was resolved to, so correcting the timezone later regroups existing entries under the new zone's days but does not re-read their original local times (a meal entered as 21:00 while the account was on UTC shows as 00:00 the next day once Europe/Kyiv is set in summer). Until one is set, the account uses UTC.",
             annotations: {
                 title: "Set Timezone",
                 readOnlyHint: false,
@@ -8473,7 +9014,7 @@ export function registerTools(
         {
             title: "Delete Nutrition Account",
             description:
-                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals and their ingredients, saved meals and their ingredients, water, weight, body measurements, goals, settings, exports, usage records, sign-in tokens, and the Apple Health sync connection with its record of values sent). Totals already written to Apple Health stay on the user's iPhone. Irreversible. Always confirm with the user before calling this tool.",
+                "Permanently delete the user's Nutrition MCP account and all data this service stores about them (meals and their ingredients, saved meals and their ingredients, water, active calories, weight, body measurements, goals, settings, exports, usage records, sign-in tokens, and the Apple Health sync connection with its record of values sent). Totals already written to Apple Health stay on the user's iPhone. Irreversible. Always confirm with the user before calling this tool.",
             annotations: {
                 title: "Delete Nutrition Account",
                 readOnlyHint: false,

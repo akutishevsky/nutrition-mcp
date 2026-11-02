@@ -123,6 +123,10 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         statPeakDay: "Piekdag",
         statLoggedDays: "Gelogd",
         statOfDays: "van {n} dagen",
+        activityBurned: "Verbrand {v}",
+        activityCredited: "verrekend {v}",
+        activityNet: "netto {v}",
+        activityAvg: "gem. per dag: {line}",
         gaugeAriaToday:
             "{eaten} van {goal} kcal vandaag, {pct}% van het doel, {status}.",
         gaugeAriaThatDay:
@@ -483,6 +487,8 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             caffeine: "Cafeïne",
             water: "Water",
             alcohol: "Alcohol",
+            burned: "Actieve calorieën",
+            net: "Netto inname",
         },
         metricInTitle: {
             calories: "Calorieën",
@@ -498,6 +504,8 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
             caffeine: "Cafeïne",
             water: "Water",
             alcohol: "Alcohol",
+            burned: "actieve calorieën",
+            net: "netto inname",
         },
         pill: "{n} d",
         pillAria: "{n} dagen tonen",

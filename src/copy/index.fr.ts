@@ -193,7 +193,7 @@ export const INDEX_FR: IndexDoc = {
         note: "Tout ça est facultatif. Tu peux le faire maintenant, plus tard ou jamais : commence simplement à enregistrer, et règle le reste quand tu veux.",
         toolsCta: {
             heading: "Envie de voir tout ce qu'il sait faire ?",
-            body: "Parcours les 49 outils (enregistrement, codes-barres, eau, poids et mensurations, objectifs et tendances), chacun avec sa description et un exemple de demande.",
+            body: "Parcours les 53 outils (enregistrement, codes-barres, eau, calories actives, poids et mensurations, objectifs et tendances), chacun avec sa description et un exemple de demande.",
             arrow: "Explorer les outils",
         },
     },

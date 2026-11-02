@@ -164,12 +164,14 @@
         "additionalProperties": false
     },
     "delete_account": null,
+    "delete_active_calories": null,
     "delete_body_measurement": null,
     "delete_meal": null,
     "delete_saved_meal": null,
     "delete_water": null,
     "delete_weight": null,
     "export_all_data": null,
+    "get_active_calories": null,
     "get_body_measurements": null,
     "get_current_time": null,
     "get_digest": {
@@ -1014,6 +1016,7 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false
     },
+    "log_active_calories": null,
     "log_body_measurement": null,
     "log_meal": {
         "type": "object",
@@ -1501,6 +1504,7 @@
     "save_meal": null,
     "search_foods": null,
     "search_meals": null,
+    "set_activity_credit": null,
     "set_alcohol_tracking": null,
     "set_language": null,
     "set_length_unit": null,

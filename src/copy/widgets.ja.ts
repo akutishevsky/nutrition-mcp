@@ -123,6 +123,10 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         statPeakDay: "最大の日",
         statLoggedDays: "記録日",
         statOfDays: "/ {n}日",
+        activityBurned: "消費 {v}",
+        activityCredited: "相殺 {v}",
+        activityNet: "正味 {v}",
+        activityAvg: "1日平均: {line}",
         gaugeAriaToday: "今日 {eaten} / {goal} kcal、目標の{pct}%、{status}。",
         gaugeAriaThatDay:
             "この日 {eaten} / {goal} kcal、目標の{pct}%、{status}。",
@@ -463,6 +467,8 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             caffeine: "カフェイン",
             water: "水分",
             alcohol: "アルコール",
+            burned: "活動カロリー",
+            net: "正味摂取",
         },
         metricInTitle: {
             calories: "カロリー",
@@ -478,6 +484,8 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
             caffeine: "カフェイン",
             water: "水分",
             alcohol: "アルコール",
+            burned: "活動カロリー",
+            net: "正味摂取",
         },
         pill: "{n}日",
         pillAria: "{n}日間を表示",

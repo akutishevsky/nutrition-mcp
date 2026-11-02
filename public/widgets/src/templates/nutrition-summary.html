@@ -19,10 +19,10 @@
 
   Data arrives as the `structuredContent` of the get_nutrition_summary tool
   result, with the figures its frozen schema cannot carry in `_meta` (counts,
-  added sugar, the fats, sodium, ingredients, sources, each meal's time), all
-  validated as untrusted and optional; the shared bridge (shared/bridge.js)
-  reads it across host conventions and calls render(). Standalone preview uses
-  the SAMPLE below.
+  added sugar, the fats, sodium, active calories, ingredients, sources, each
+  meal's time), all validated as untrusted and optional; the shared bridge
+  (shared/bridge.js) reads it across host conventions and calls render().
+  Standalone preview uses the SAMPLE below.
 -->
 <html lang="en">
     <head>
@@ -37,6 +37,44 @@
             /*@include shared/gauge.css@*/
 
             /*@include shared/nutrients.css@*/
+
+            /* Active calories under the gauge (ACTIVITY_META_KEY). The shared
+               hero grid gets one more row for it: mobile, between the gauge
+               and its delta line; desktop, under the gauge in its left column
+               (the delta line is hidden there). Scoped to #root.with-act, which
+               render() sets only when the payload carries activity, so a
+               summary without it keeps the shared grid untouched. */
+            #root.with-act .ghero {
+                grid-template-areas:
+                    "top"
+                    "gauge"
+                    "act"
+                    "delta"
+                    "stats"
+                    "pill";
+            }
+            #root.with-act .ghero .gact {
+                grid-area: act;
+                text-align: center;
+                font-size: 13.5px;
+                line-height: 1.5;
+                color: var(--text-dim);
+                margin-top: 10px;
+                font-variant-numeric: tabular-nums;
+            }
+            @media (min-width: 640px) {
+                #root.with-act .ghero {
+                    grid-template-areas:
+                        "gauge top"
+                        "gauge stats"
+                        "gauge pill"
+                        "act delta";
+                }
+                #root.with-act .ghero .gact {
+                    text-align: left;
+                    margin-top: 6px;
+                }
+            }
         </style>
     </head>
     <body>
@@ -212,6 +250,10 @@
             // Sodium (SodiumMeta, src/sodium.ts), milligrams with an optional
             // daily ceiling. Must equal SODIUM_META_KEY.
             const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
+            // Active calories per day (ActivityMeta, src/activity.ts): kcal
+            // burned in exercise and the share credited against intake. Must
+            // equal ACTIVITY_META_KEY in src/widgets.ts.
+            const ACTIVITY_META_KEY = "nutrition-mcp.com/activity";
             // Each listed meal's ingredients ({ v: 1, meals: [items | null, …] },
             // aligned with data.meals by position). Must equal
             // MEAL_ITEMS_META_KEY in src/widgets.ts.
@@ -361,9 +403,69 @@
                 };
             }
 
+            // The activity `_meta` payload, untrusted: { v: 1, days: [{ date,
+            // burned_kcal, credited_kcal }] }. Each day is rebuilt from its own
+            // fields and kept only with a real date and finite, non-negative
+            // figures. Null when nothing usable is left.
+            function activityPayload(raw) {
+                if (!raw || typeof raw !== "object" || raw.v !== 1) return null;
+                if (!Array.isArray(raw.days)) return null;
+                const out = [];
+                for (const d of raw.days) {
+                    if (!d || typeof d !== "object" || !ymd(d.date)) continue;
+                    const b = d.burned_kcal;
+                    const c = d.credited_kcal;
+                    if (!Number.isFinite(b) || b < 0) continue;
+                    if (!Number.isFinite(c) || c < 0) continue;
+                    out.push({ date: d.date, burned: b, credited: c });
+                }
+                return out.length ? out : null;
+            }
+
+            // "Burned 400 · credited 320 · net 1,780". Credited is left out when
+            // it equals burned, and net when there is no intake to net against
+            // (no meal logged that day).
+            function activityText(S, burned, credited, net) {
+                const n = (x) => nvNum(Math.round(x), 0);
+                const parts = [tpl(S.activityBurned, { v: n(burned) })];
+                if (Math.round(credited) !== Math.round(burned))
+                    parts.push(tpl(S.activityCredited, { v: n(credited) }));
+                if (net != null) parts.push(tpl(S.activityNet, { v: n(net) }));
+                return parts.join(" · ");
+            }
+
+            // The line under the calorie gauge, or null when the period has no
+            // activity. A range shows its daily average over the span, the
+            // same denominator as the tool's own text; net is the average
+            // intake the gauge shows, less the average credited.
+            function activityRowText(S, act, ctx) {
+                if (!act) return null;
+                if (ctx.isRange) {
+                    const inRange = act.filter(
+                        (d) => d.date >= ctx.start && d.date <= ctx.end,
+                    );
+                    if (!inRange.length) return null;
+                    const burned = inRange.reduce((a, d) => a + d.burned, 0);
+                    const credited = inRange.reduce(
+                        (a, d) => a + d.credited,
+                        0,
+                    );
+                    const avgC = credited / ctx.span;
+                    const net = ctx.hasIntake ? ctx.t - avgC : null;
+                    return tpl(S.activityAvg, {
+                        line: activityText(S, burned / ctx.span, avgC, net),
+                    });
+                }
+                const day = act.find((d) => d.date === ctx.theDay);
+                if (!day) return null;
+                const net = ctx.hasIntake ? ctx.t - day.credited : null;
+                return activityText(S, day.burned, day.credited, net);
+            }
+
             // `resultMeta` is the tool result's `_meta` (or null — see bridge.js).
             function render(data, resultMeta) {
                 const root = document.getElementById("root");
+                root.classList.remove("with-act");
                 // structuredContent.locale (the user's saved set_language
                 // preference, resolved server-side) wins over the host's
                 // ambient hostContext.locale — see pickLocale in
@@ -758,6 +860,33 @@
                     },
                 };
                 nvMount(root, V);
+                // The activity line sits directly under the gauge (the grid
+                // areas above place it). Text is set, never HTML.
+                const actText = activityRowText(
+                    S,
+                    activityPayload(m[ACTIVITY_META_KEY]),
+                    {
+                        isRange,
+                        start: data.start_date,
+                        end: data.end_date,
+                        theDay,
+                        span:
+                            Number(data.days_in_range) ||
+                            datesBetween(data.start_date, data.end_date)
+                                .length ||
+                            nLogged,
+                        t,
+                        hasIntake: mealCount != null ? mealCount > 0 : t > 0,
+                    },
+                );
+                const gw = root.querySelector(".ghero .gw");
+                root.classList.toggle("with-act", !!(actText && gw));
+                if (actText && gw) {
+                    const row = document.createElement("div");
+                    row.className = "gact";
+                    row.textContent = actText;
+                    gw.insertAdjacentElement("afterend", row);
+                }
             }
 
             // Pull the summary out of whatever wrapper the host used.

@@ -4,6 +4,7 @@ import {
     describe,
     mock,
     beforeEach,
+    afterEach,
     afterAll,
     spyOn,
 } from "bun:test";
@@ -95,6 +96,7 @@ import searchBananaFx from "./__fixtures__/usda/search-banana.json";
 import usdaSrBananaFx from "./__fixtures__/usda/detail-SR_Legacy-173944-full.json";
 import usdaFoundationBananaFx from "./__fixtures__/usda/detail-Foundation-1105073-filtered.json";
 import {
+    ACTIVITY_META_KEY,
     BODY_MEASUREMENTS_META_KEY,
     DIGEST_META_KEY,
     GOAL_DAY_META_KEY,
@@ -159,6 +161,8 @@ import type { NutritionGoalsHistoryRow } from "./goals-history.js";
 const MEAL_ID = "00000000-0000-4000-8000-000000000001";
 const WATER_ID = "00000000-0000-4000-8000-000000000002";
 const WEIGHT_ID = "00000000-0000-4000-8000-000000000003";
+const ACTIVE_ID = "00000000-0000-4000-8000-000000000009";
+const OTHER_ACTIVE_ID = "00000000-0000-4000-8000-00000000000a";
 const MEASUREMENT_ID = "00000000-0000-4000-8000-000000000004";
 
 function meal(over: Partial<Meal> = {}): Meal {
@@ -1599,6 +1603,7 @@ const PROFILE_BASE: actualSupabase.Profile = {
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
     preferred_length_unit: null,
+    activity_credit_pct: null,
 };
 
 /** A stored body measurement: waist 84.5 cm unless overridden. */
@@ -1701,6 +1706,10 @@ const db = {
     // resolves logged_at independently, so each needs its own witness.
     mealUpdates: [] as Record<string, unknown>[],
     waterInserted: [] as Record<string, unknown>[],
+    // Active calories: the rows getActivityInRange and getAllActiveCalories
+    // return, and the writes insertActiveCalories saw (with their credit share).
+    activeEntries: [] as actualSupabase.ActiveCaloriesEntry[],
+    activeInserted: [] as Record<string, unknown>[],
     weightInserted: [] as Record<string, unknown>[],
     weightUpdates: [] as Record<string, unknown>[],
     // Body measurements: the rows getBodyMeasurementsInRange and
@@ -1977,6 +1986,35 @@ mock.module("./supabase.js", () => ({
         db.deleteCalls += 1;
         return db.rowIds.delete(id);
     },
+    insertActiveCalories: async (
+        _userId: string,
+        input: Record<string, unknown>,
+    ) => {
+        db.activeInserted.push(input);
+        return {
+            entry: {
+                id: ACTIVE_ID,
+                user_id: "u1",
+                kcal: input.kcal as number,
+                credit_pct: input.credit_pct as number,
+                logged_at:
+                    (input.logged_at as string | undefined) ??
+                    "2026-08-07T00:00:00.000Z",
+                notes: (input.notes as string | undefined) ?? null,
+                created_at: "2026-08-07T00:00:00.000Z",
+                idempotency_key: null,
+            } as actualSupabase.ActiveCaloriesEntry,
+            deduplicated: db.dedupe,
+        };
+    },
+    getActivityInRange: async () => db.activeEntries,
+    getAllActiveCalories: async () => db.activeEntries,
+    deleteActiveCalories: async (_userId: string, id: string) => {
+        db.deleteCalls += 1;
+        return db.rowIds.delete(id);
+    },
+    activityCreditPctFromProfile: (profile: actualSupabase.Profile | null) =>
+        realSupabase.activityCreditPctFromProfile(profile),
     deleteWeight: async (_userId: string, id: string) => {
         db.deleteCalls += 1;
         return db.rowIds.delete(id);
@@ -2250,6 +2288,8 @@ beforeEach(() => {
     db.inserted = [];
     db.mealUpdates = [];
     db.waterInserted = [];
+    db.activeEntries = [];
+    db.activeInserted = [];
     db.weightInserted = [];
     db.weightUpdates = [];
     db.measurements = [];
@@ -6733,6 +6773,7 @@ describe("every tool carries directory-ready annotations", () => {
         const DESTRUCTIVE = new Set([
             "delete_meal",
             "delete_water",
+            "delete_active_calories",
             "delete_weight",
             "delete_body_measurement",
             "delete_account",
@@ -6748,7 +6789,7 @@ describe("every tool carries directory-ready annotations", () => {
             "search_foods",
             "get_food_macros",
         ]);
-        expect(tools.length).toBe(49);
+        expect(tools.length).toBe(53);
         for (const t of tools) {
             const a = t.annotations;
             expect(a?.title, t.name).toBeTruthy();
@@ -11175,6 +11216,20 @@ describe("meal times ride in _meta beside the breakdown rows", () => {
             expect(html).toContain(JSON.stringify(SODIUM_META_KEY));
         },
     );
+
+    // The same literal rule for the activity key (the summary's gauge line and
+    // the trends' Burned / Net options).
+    test.each(["nutrition-summary", "trends"])(
+        "the %s template reads the activity key",
+        async (key) => {
+            const tpl = await Bun.file(
+                `./public/widgets/src/templates/${key}.html`,
+            ).text();
+            expect(tpl).toContain(JSON.stringify(ACTIVITY_META_KEY));
+            const html = await getWidgetHtml(key);
+            expect(html).toContain(JSON.stringify(ACTIVITY_META_KEY));
+        },
+    );
 });
 
 describe("sodium in the model-facing text", () => {
@@ -12906,5 +12961,488 @@ describe("get_goal_progress carries the day detail in _meta", () => {
         ]) {
             expect(html).toContain(JSON.stringify(key));
         }
+    });
+});
+
+// ---------- active calories (issue #220) ----------
+
+describe("active calories tools", () => {
+    const ACTIVE_ENTRY = (
+        over: Partial<actualSupabase.ActiveCaloriesEntry> = {},
+    ): actualSupabase.ActiveCaloriesEntry => ({
+        id: ACTIVE_ID,
+        user_id: "u1",
+        kcal: 400,
+        credit_pct: 80,
+        logged_at: "2026-01-15T19:05:00.000Z",
+        notes: null,
+        created_at: "2026-01-15T19:05:00.000Z",
+        idempotency_key: null,
+        ...over,
+    });
+
+    test("log_active_calories snapshots the profile's credit share onto the row", async () => {
+        db.profile = { ...PROFILE_BASE, activity_credit_pct: 80 };
+        db.activeEntries = [ACTIVE_ENTRY()];
+        await withTools(null, async (call) => {
+            const r = await call("log_active_calories", { kcal: 400 });
+            expect(r.isError).toBeFalsy();
+            expect(db.activeInserted[0]!.kcal).toBe(400);
+            expect(db.activeInserted[0]!.credit_pct).toBe(80);
+            const text = textOf(r);
+            expect(text).toContain("400 kcal burned");
+            expect(text).toContain(
+                "320 kcal of it counts against intake at 80%",
+            );
+            expect(text).toContain("The calorie goal is unchanged.");
+            expect(text).not.toMatch(/earned/i);
+        });
+    });
+
+    test("log_active_calories counts 100% when the share was never set", async () => {
+        db.profile = { ...PROFILE_BASE };
+        await withTools(null, async (call) => {
+            await call("log_active_calories", { kcal: 250 });
+            expect(db.activeInserted[0]!.credit_pct).toBe(100);
+        });
+    });
+
+    test("log_active_calories refuses an out-of-range kcal before any write", async () => {
+        await withTools(null, async (call) => {
+            for (const kcal of [0, -5, 10_001, 1.5]) {
+                const r = await call("log_active_calories", { kcal });
+                expect(r.isError, String(kcal)).toBe(true);
+            }
+            expect(db.activeInserted).toHaveLength(0);
+        });
+    });
+
+    test("log_active_calories resolves logged_at in the profile timezone like log_water", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        await withTools(null, async (call) => {
+            await call("log_active_calories", {
+                kcal: 300,
+                logged_at: "2026-01-15T21:05",
+            });
+            expect(db.activeInserted[0]!.logged_at).toBe(
+                "2026-01-15T19:05:00.000Z",
+            );
+        });
+    });
+
+    test("get_active_calories lists local times, the share and the day totals", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.activeEntries = [
+            ACTIVE_ENTRY({
+                kcal: 300,
+                credit_pct: 50,
+                logged_at: "2026-01-15T19:05:00.000Z",
+                notes: "evening run",
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_active_calories", { date: "2026-01-15" }),
+            );
+            expect(text).toContain("Times are local (Europe/Kyiv)");
+            expect(text).toContain(
+                "- 21:05 · 300 kcal · 50% counted (evening run)",
+            );
+            expect(text).toContain(`[id: ${ACTIVE_ID}]`);
+            expect(text).toContain(
+                "300 kcal burned, 150 kcal counted against intake",
+            );
+        });
+    });
+
+    test("get_active_calories says so when nothing is logged", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("get_active_calories", { date: "2026-01-15" });
+            expect(textOf(r)).toContain(
+                "No active calories logged on 2026-01-15.",
+            );
+        });
+    });
+
+    test("get_active_calories refuses a range over 31 days and a half range", async () => {
+        await withTools(null, async (call) => {
+            const long = await call("get_active_calories", {
+                start_date: "2026-01-01",
+                end_date: "2026-03-01",
+            });
+            expect(long.isError).toBe(true);
+            expect(textOf(long)).toContain("Date range too long");
+            const half = await call("get_active_calories", {
+                start_date: "2026-01-01",
+            });
+            expect(half.isError).toBe(true);
+        });
+    });
+
+    test("delete_active_calories reports deleted, then not found", async () => {
+        db.rowIds.add(ACTIVE_ID);
+        await withTools(null, async (call) => {
+            expect(
+                textOf(await call("delete_active_calories", { id: ACTIVE_ID })),
+            ).toBe(`Active calories entry ${ACTIVE_ID} deleted.`);
+            expect(
+                textOf(await call("delete_active_calories", { id: ACTIVE_ID })),
+            ).toContain("No active calories entry found");
+        });
+    });
+
+    test("delete_active_calories answers a non-uuid id before the database", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("delete_active_calories", { id: "nope" });
+            expect(textOf(r)).toContain("ids are UUIDs");
+            expect(db.deleteCalls).toBe(0);
+        });
+    });
+
+    test("set_activity_credit writes the share, null resets it, out of range is refused", async () => {
+        await withTools(null, async (call) => {
+            const set = await call("set_activity_credit", { percent: 80 });
+            expect(db.profilePatches.at(-1)!.activity_credit_pct).toBe(80);
+            expect(textOf(set)).toContain("Activity credit set to 80%");
+            expect(textOf(set)).toContain("entries logged before keep");
+
+            const reset = await call("set_activity_credit", { percent: null });
+            expect(db.profilePatches.at(-1)!.activity_credit_pct).toBeNull();
+            expect(textOf(reset)).toContain("reset to the default of 100%");
+
+            const before = db.profilePatches.length;
+            const bad = await call("set_activity_credit", { percent: 101 });
+            expect(bad.isError).toBe(true);
+            expect(db.profilePatches.length).toBe(before);
+        });
+    });
+
+    test("get_profile reports the activity credit share in one line", async () => {
+        db.profile = { ...PROFILE_BASE, activity_credit_pct: 60 };
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_profile"));
+            expect(text).toContain(
+                "Active calories: 60% counts against intake",
+            );
+        });
+        db.profile = { ...PROFILE_BASE };
+        await withTools(null, async (call) => {
+            const text = textOf(await call("get_profile"));
+            expect(text).toContain(
+                "Active calories: 100% counts against intake",
+            );
+            expect(text).toContain("the default; never set");
+        });
+    });
+});
+
+// ---------- active calories on the read tools ----------
+// get_nutrition_summary, get_goal_progress and get_trends read the period's
+// activity rows and say so beside intake. With no rows, nothing changes: no
+// line, no _meta key. Dates are fixed past days, so "today" is only ever
+// computed from the clock where a test needs it.
+describe("active calories on the read tools", () => {
+    const DAY = "2026-07-26";
+    const ACTIVE_ROW = (
+        over: Partial<actualSupabase.ActiveCaloriesEntry> = {},
+    ): actualSupabase.ActiveCaloriesEntry => ({
+        id: ACTIVE_ID,
+        user_id: "u1",
+        kcal: 400,
+        credit_pct: 80,
+        logged_at: `${DAY}T19:00:00.000Z`,
+        notes: null,
+        created_at: `${DAY}T19:00:00.000Z`,
+        idempotency_key: null,
+        ...over,
+    });
+
+    beforeEach(() => {
+        db.activeEntries = [];
+        db.goalsHistory = [];
+        db.profile = { ...PROFILE_BASE };
+    });
+    afterEach(() => {
+        db.activeEntries = [];
+        db.goalsHistory = [];
+    });
+
+    test("with no activity, the read tools add no line and no _meta key", async () => {
+        db.meals = [meal({ calories: 2100 })];
+        db.goals = goals({ daily_calories: 2000 });
+        await withTools(null, async (call) => {
+            const summary = await call("get_nutrition_summary", {
+                start_date: DAY,
+                end_date: DAY,
+            });
+            const range = await call("get_nutrition_summary", {
+                start_date: "2026-07-25",
+                end_date: "2026-07-27",
+            });
+            const progress = await call("get_goal_progress", { date: DAY });
+            const trends = await call("get_trends", {
+                days: 7,
+                end_date: DAY,
+            });
+            for (const r of [summary, range, progress, trends]) {
+                expect(r.isError).toBeFalsy();
+                expect(textOf(r)).not.toContain("Active calories");
+                expect(r._meta ?? {}).not.toHaveProperty(ACTIVITY_META_KEY);
+            }
+        });
+    });
+
+    test("a single day's summary line sits beside intake and the goal, with _meta days", async () => {
+        db.meals = [meal({ calories: 2100 })];
+        db.goals = goals({ daily_calories: 2000 });
+        db.activeEntries = [ACTIVE_ROW()];
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: DAY,
+                end_date: DAY,
+            });
+            expect(textOf(r)).toContain(
+                "Active calories: burned 400 kcal, credited 320 (80%). Net intake 1,780 kcal (220 under the 2,000 goal).",
+            );
+            expect(r._meta?.[ACTIVITY_META_KEY]).toEqual({
+                v: 1,
+                days: [{ date: DAY, burned_kcal: 400, credited_kcal: 320 }],
+            });
+        });
+    });
+
+    test("a day with activity and no meals keeps its section and says there is no net intake", async () => {
+        db.meals = [];
+        db.water = [];
+        db.goals = goals({ daily_calories: 2000 });
+        db.activeEntries = [ACTIVE_ROW()];
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: DAY,
+                end_date: DAY,
+            });
+            const text = textOf(r);
+            expect(text).not.toContain("No meals or water logged");
+            expect(text).toContain(`## ${DAY} (0 meals)`);
+            expect(text).toContain(
+                "Active calories: burned 400 kcal, credited 320 (80%). No meals logged, so there is no net intake to report.",
+            );
+            const sc = r.structuredContent as {
+                logged_days: number;
+                days: { date: string; meal_count: number }[];
+            };
+            expect(sc.logged_days).toBe(1);
+            expect(sc.days).toEqual([
+                expect.objectContaining({ date: DAY, meal_count: 0 }),
+            ]);
+        });
+    });
+
+    test("a range's summary adds the window totals and a daily average over the range", async () => {
+        db.meals = [meal({ calories: 2100 })];
+        db.goals = goals({ daily_calories: 2000 });
+        db.activeEntries = [
+            ACTIVE_ROW(),
+            ACTIVE_ROW({
+                id: OTHER_ACTIVE_ID,
+                kcal: 200,
+                credit_pct: 100,
+                logged_at: "2026-07-27T18:00:00.000Z",
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-07-25",
+                end_date: "2026-07-27",
+            });
+            expect(textOf(r)).toContain(
+                "Active calories: burned 600 kcal, credited 520 (87%) over 2 days with activity. Daily average over the 3 days in range: burned 200 kcal, credited 173 kcal.",
+            );
+            // The per-day lines stay per day: the range line is additional.
+            expect(textOf(r)).toContain(
+                "Net intake 1,780 kcal (220 under the 2,000 goal).",
+            );
+        });
+    });
+
+    test("a later set_activity_credit does not rewrite a stored row's share", async () => {
+        // The profile now says 50%, but the row was written at 80%: the read
+        // path must use the row's snapshot and never the profile.
+        db.profile = { ...PROFILE_BASE, activity_credit_pct: 50 };
+        db.meals = [meal({ calories: 2100 })];
+        db.goals = goals({ daily_calories: 2000 });
+        db.activeEntries = [ACTIVE_ROW({ credit_pct: 80 })];
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: DAY,
+                end_date: DAY,
+            });
+            expect(textOf(r)).toContain("credited 320 (80%)");
+            expect(textOf(r)).not.toContain("(50%)");
+            expect(r._meta?.[ACTIVITY_META_KEY]).toEqual({
+                v: 1,
+                days: [{ date: DAY, burned_kcal: 400, credited_kcal: 320 }],
+            });
+        });
+    });
+
+    test("a single past day is judged against the goal in effect that day", async () => {
+        // The history changes the calorie goal on 2026-07-20; the current row
+        // is the later value. A day before the change keeps the older goal.
+        db.goals = goals({ daily_calories: 2200 });
+        db.goalsHistory = [
+            historyRow("2026-07-01T10:00:00.000Z", { daily_calories: 1800 }),
+            historyRow("2026-07-20T10:00:00.000Z", { daily_calories: 2200 }),
+        ];
+        db.meals = [meal({ calories: 1700 })];
+        db.activeEntries = [ACTIVE_ROW()];
+        await withTools(null, async (call) => {
+            const before = await call("get_nutrition_summary", {
+                start_date: "2026-07-15",
+                end_date: "2026-07-15",
+            });
+            expect(
+                (
+                    before.structuredContent as {
+                        goals: { calories: number };
+                    }
+                ).goals.calories,
+            ).toBe(1800);
+            const after = await call("get_nutrition_summary", {
+                start_date: DAY,
+                end_date: DAY,
+            });
+            expect(
+                (
+                    after.structuredContent as {
+                        goals: { calories: number };
+                    }
+                ).goals.calories,
+            ).toBe(2200);
+            expect(textOf(after)).toContain("(820 under the 2,200 goal)");
+            const progress = await call("get_goal_progress", { date: DAY });
+            expect(
+                (
+                    progress.structuredContent as {
+                        goals: { calories: number };
+                    }
+                ).goals.calories,
+            ).toBe(2200);
+            expect(textOf(progress)).toContain(
+                "Net intake 1,380 kcal (820 under the 2,200 goal).",
+            );
+        });
+    });
+
+    test("today's date keeps the current goal, whatever the history says", async () => {
+        // A deliberately stale last history row (2200) against the current
+        // row (2000): today reads the current row and never the history.
+        const today = new Date().toISOString().slice(0, 10);
+        db.goals = goals({ daily_calories: 2000 });
+        db.goalsHistory = [
+            historyRow("2026-07-20T10:00:00.000Z", { daily_calories: 2200 }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: today,
+                end_date: today,
+            });
+            expect(
+                (r.structuredContent as { goals: { calories: number } }).goals
+                    .calories,
+            ).toBe(2000);
+            const progress = await call("get_goal_progress", {});
+            expect(
+                (
+                    progress.structuredContent as {
+                        goals: { calories: number };
+                    }
+                ).goals.calories,
+            ).toBe(2000);
+        });
+    });
+
+    test("get_goal_progress gives its day one activity line and no _meta key", async () => {
+        db.meals = [meal({ calories: 2100 })];
+        db.goals = goals({ daily_calories: 2000 });
+        db.activeEntries = [ACTIVE_ROW()];
+        await withTools(null, async (call) => {
+            const r = await call("get_goal_progress", { date: DAY });
+            expect(textOf(r)).toContain(
+                "Active calories: burned 400 kcal, credited 320 (80%). Net intake 1,780 kcal (220 under the 2,000 goal).",
+            );
+            expect(r._meta ?? {}).not.toHaveProperty(ACTIVITY_META_KEY);
+        });
+    });
+
+    test("get_trends averages activity over the window and sends the series in _meta", async () => {
+        db.meals = [meal({ calories: 2100 })];
+        db.goals = goals({ daily_calories: 2000 });
+        db.activeEntries = [ACTIVE_ROW()];
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", { days: 7, end_date: DAY });
+            // Burned and credited average over every calendar day of the
+            // 7-day window (400/7, 320/7). Net intake averages over the one
+            // day that has a meal: 2100 - 320 = 1,780.
+            expect(textOf(r)).toContain(
+                "Active calories over the last 7 days, averaged over all 7 calendar days: burned avg 57 kcal/day, credited avg 46 kcal/day. Net intake avg 1,780 kcal/day over the 1 day with a meal",
+            );
+            expect(r._meta?.[ACTIVITY_META_KEY]).toEqual({
+                v: 1,
+                days: [{ date: DAY, burned_kcal: 400, credited_kcal: 320 }],
+            });
+        });
+    });
+
+    test("get_trends' _meta ships only the last 30 days even for a 90-day window", async () => {
+        db.meals = [meal({ calories: 2100 })];
+        db.goals = goals({ daily_calories: 2000 });
+        // 2026-04-01 is outside the 30-day series (which starts 2026-06-27);
+        // 2026-07-01 is inside it. The activity read is not range-filtered in
+        // the mock, so the cut has to happen in the handler.
+        db.activeEntries = [
+            ACTIVE_ROW({ logged_at: "2026-04-01T19:00:00.000Z" }),
+            ACTIVE_ROW({ logged_at: "2026-07-01T19:00:00.000Z" }),
+            ACTIVE_ROW(),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", { days: 90, end_date: DAY });
+            expect(textOf(r)).toContain("over the last 90 days");
+            expect(r._meta?.[ACTIVITY_META_KEY]).toEqual({
+                v: 1,
+                days: [
+                    {
+                        date: "2026-07-01",
+                        burned_kcal: 400,
+                        credited_kcal: 320,
+                    },
+                    { date: DAY, burned_kcal: 400, credited_kcal: 320 },
+                ],
+            });
+        });
+    });
+
+    test("get_trends' _meta reaches the 30-day series, but the text stays on its window", async () => {
+        // 2026-07-10 is 16 days before the end: outside the 7-day text window,
+        // inside the 30-day series the widget re-averages.
+        db.meals = [meal({ calories: 2100 })];
+        db.goals = goals({ daily_calories: 2000 });
+        db.activeEntries = [
+            ACTIVE_ROW({ logged_at: "2026-07-10T19:00:00.000Z" }),
+        ];
+        await withTools(null, async (call) => {
+            const r = await call("get_trends", { days: 7, end_date: DAY });
+            expect(textOf(r)).not.toContain("Active calories over the last");
+            expect(r._meta?.[ACTIVITY_META_KEY]).toEqual({
+                v: 1,
+                days: [
+                    {
+                        date: "2026-07-10",
+                        burned_kcal: 400,
+                        credited_kcal: 320,
+                    },
+                ],
+            });
+        });
     });
 });

@@ -15,6 +15,11 @@ import {
 } from "./units.js";
 import { isDrinkUnit, type DrinkUnit } from "./alcohol.js";
 import {
+    activityCreditPct,
+    activityIdempotencyKey,
+    type ActivityEntry,
+} from "./activity.js";
+import {
     escapeLikePattern,
     tokenizeQuery,
     type SavedMealSummary,
@@ -617,7 +622,11 @@ export async function fetchAllPages<T>(
 }
 
 type LoggedTable =
-    "meals" | "water_log" | "weight_log" | "body_measurement_log";
+    | "meals"
+    | "water_log"
+    | "weight_log"
+    | "body_measurement_log"
+    | "active_calories_log";
 
 /**
  * Every row with start <= logged_at < end, oldest first — the one path behind
@@ -1823,6 +1832,9 @@ export interface Profile {
     widgets_enabled: boolean;
     alcohol_tracking_enabled: boolean;
     preferred_drink_unit: DrinkUnit | null;
+    // Share of active calories counted against intake, 0..100; null = never
+    // set, which reads as 100. Coalesce through activityCreditPctFromProfile.
+    activity_credit_pct: number | null;
     // null means "never set with set_language" — same null-is-not-a-default
     // contract as timezone above. Always coalesce through localeFromProfile /
     // getUserLocale, never read this directly.
@@ -1950,6 +1962,19 @@ export async function getAlcoholTrackingEnabled(
     return alcoholTrackingEnabledFromProfile(await getProfile(userId));
 }
 
+// The share of active calories that counts against intake for entries logged
+// from now on. Null (never set) reads as the default, 100. Coalesce through
+// this; a caller must not read profile.activity_credit_pct directly.
+export function activityCreditPctFromProfile(
+    profile: Profile | null | undefined,
+): number {
+    return activityCreditPct(profile?.activity_credit_pct);
+}
+
+export async function getActivityCreditPct(userId: string): Promise<number> {
+    return activityCreditPctFromProfile(await getProfile(userId));
+}
+
 // Returns the user's saved drink-unit preference, or null if they have never
 // chosen one. Display paths coalesce null to "us"; storage stays in grams of
 // ethanol either way. The isDrinkUnit guard is load-bearing: the column is
@@ -1982,6 +2007,7 @@ export async function upsertProfile(
         widgets_enabled?: boolean;
         alcohol_tracking_enabled?: boolean;
         preferred_drink_unit?: DrinkUnit | null;
+        activity_credit_pct?: number | null;
         locale?: string;
     },
 ): Promise<Profile> {
@@ -2002,6 +2028,9 @@ export async function upsertProfile(
     // null is meaningful here too (clears the preference).
     if (patch.preferred_drink_unit !== undefined)
         payload.preferred_drink_unit = patch.preferred_drink_unit;
+    // null is meaningful (back to the default of 100), so only skip undefined.
+    if (patch.activity_credit_pct !== undefined)
+        payload.activity_credit_pct = patch.activity_credit_pct;
     if (patch.locale !== undefined) payload.locale = patch.locale;
 
     const { data, error } = await getSupabase()
@@ -2455,6 +2484,185 @@ export async function deleteWater(
         .select("id");
 
     if (error) throw new Error(`Failed to delete water: ${error.message}`);
+    return (data?.length ?? 0) > 0;
+}
+
+// ---------- Active calories ----------
+
+export interface ActiveCaloriesEntry extends ActivityEntry {
+    id: string;
+    user_id: string;
+    logged_at: string;
+    kcal: number;
+    /** Snapshot of the profile's credit percentage when this row was written. */
+    credit_pct: number;
+    notes: string | null;
+    created_at: string;
+    idempotency_key: string | null;
+}
+
+export interface ActiveCaloriesInput {
+    kcal: number;
+    credit_pct: number;
+    logged_at?: string;
+    notes?: string;
+    idempotency_key?: string;
+}
+
+export interface ActiveCaloriesInsertResult {
+    entry: ActiveCaloriesEntry;
+    deduplicated: boolean;
+}
+
+/**
+ * Write one burn. Mirrors insertWater: a derived `auto:` key dedupes a retry
+ * that carries the same logged_at, notes and kcal. `credit_pct` is the caller's
+ * snapshot (from the profile at write time) and is stored on the row as given.
+ */
+export async function insertActiveCalories(
+    userId: string,
+    input: ActiveCaloriesInput,
+): Promise<ActiveCaloriesInsertResult> {
+    const sb = getSupabase();
+
+    const loggedAt = input.logged_at ?? new Date().toISOString();
+    const idempotencyKey =
+        input.idempotency_key ??
+        activityIdempotencyKey([userId, input.kcal, input.notes, loggedAt]);
+
+    const { data: existing, error: selErr } = await sb
+        .from("active_calories_log")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("idempotency_key", idempotencyKey)
+        .maybeSingle();
+    if (selErr)
+        throw new Error(`Failed to look up active calories: ${selErr.message}`);
+    if (existing)
+        return { entry: existing as ActiveCaloriesEntry, deduplicated: true };
+
+    const { data, error } = await sb
+        .from("active_calories_log")
+        .insert({
+            user_id: userId,
+            kcal: input.kcal,
+            credit_pct: input.credit_pct,
+            logged_at: loggedAt,
+            notes: input.notes ?? null,
+            idempotency_key: idempotencyKey,
+        })
+        .select()
+        .single();
+
+    if (error) {
+        if (error.code === "23505") {
+            const { data: raced, error: raceErr } = await sb
+                .from("active_calories_log")
+                .select("*")
+                .eq("user_id", userId)
+                .eq("idempotency_key", idempotencyKey)
+                .maybeSingle();
+            if (raceErr)
+                throw new Error(
+                    `Failed to resolve idempotent active calories: ${raceErr.message}`,
+                );
+            if (raced)
+                return {
+                    entry: raced as ActiveCaloriesEntry,
+                    deduplicated: true,
+                };
+        }
+        throw new Error(`Failed to insert active calories: ${error.message}`);
+    }
+    return { entry: data as ActiveCaloriesEntry, deduplicated: false };
+}
+
+/**
+ * Every burn with start <= logged_at < end in `tz`'s local days, oldest first.
+ * Paged and reconciled through selectLoggedWindow like every other window read.
+ * Serves both the one-day and the range readers (a day is start == end).
+ */
+export async function getActivityInRange(
+    userId: string,
+    startDate: string,
+    endDate: string,
+    tz: string = "UTC",
+): Promise<ActiveCaloriesEntry[]> {
+    const startUtc = zonedDayStartUtc(startDate, tz);
+    const endUtc = zonedNextDayStartUtc(endDate, tz);
+
+    return selectLoggedWindow<ActiveCaloriesEntry>(
+        "active_calories_log",
+        "active calories",
+        userId,
+        startUtc,
+        endUtc,
+    );
+}
+
+/** How many active-calorie rows this user already has (export reconciliation). */
+export async function countActiveCalories(userId: string): Promise<number> {
+    const { count, error } = await getSupabase()
+        .from("active_calories_log")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+    if (error)
+        throw new Error(`Failed to count active calories: ${error.message}`);
+    return count ?? 0;
+}
+
+/**
+ * All of a user's active-calorie rows, oldest first, for export_all_data. Pages
+ * like getAllWater and reconciles against countActiveCalories, so a truncated
+ * read throws instead of exporting less than the user has.
+ */
+export async function getAllActiveCalories(
+    userId: string,
+): Promise<ActiveCaloriesEntry[]> {
+    const expected = await countActiveCalories(userId);
+    if (expected === 0) return [];
+
+    const entries = await fetchAllPages<ActiveCaloriesEntry>(
+        async (from, to) => {
+            const { data, error } = await getSupabase()
+                .from("active_calories_log")
+                .select("*")
+                .eq("user_id", userId)
+                .order("logged_at", { ascending: true })
+                .order("id", { ascending: true })
+                .range(from, to);
+
+            if (error)
+                throw new Error(
+                    `Failed to get active calories: ${error.message}`,
+                );
+            return (data as ActiveCaloriesEntry[]) ?? [];
+        },
+    );
+
+    if (entries.length < expected) {
+        throw new Error(
+            `getAllActiveCalories: fetched ${entries.length} entries but countActiveCalories reported ${expected} — export would be truncated`,
+        );
+    }
+    return entries;
+}
+
+/** True when a row matched and was deleted; see deleteWater. */
+export async function deleteActiveCalories(
+    userId: string,
+    id: string,
+): Promise<boolean> {
+    const { data, error } = await getSupabase()
+        .from("active_calories_log")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId)
+        .select("id");
+
+    if (error)
+        throw new Error(`Failed to delete active calories: ${error.message}`);
     return (data?.length ?? 0) > 0;
 }
 
@@ -3229,6 +3437,15 @@ export async function deleteAllUserData(userId: string): Promise<void> {
         .eq("user_id", userId);
     if (waterErr)
         throw new Error(`Failed to delete water log: ${waterErr.message}`);
+
+    const { error: activeErr } = await sb
+        .from("active_calories_log")
+        .delete()
+        .eq("user_id", userId);
+    if (activeErr)
+        throw new Error(
+            `Failed to delete active calories: ${activeErr.message}`,
+        );
 
     const { error: weightErr } = await sb
         .from("weight_log")

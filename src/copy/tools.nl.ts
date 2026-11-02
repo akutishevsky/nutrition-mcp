@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_NL: ToolsDoc = {
     meta: {
-        title: "49 tools voor calorieën, macro's, water & gewicht",
+        title: "53 tools voor calorieën, macro's, water & gewicht",
         description:
-            "Alle 49 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
+            "Alle 53 Nutrition MCP-tools voor Claude, ChatGPT en meer: eten loggen, maaltijden opslaan die je vaak eet, barcodes scannen, MyFitnessPal- of Cronometer-CSV importeren, water, gewicht en lichaamsmaten bijhouden.",
         ogDescription:
-            "Alle 49 tools die de Nutrition MCP-server aan je AI geeft, van opgeslagen maaltijden tot een CSV-importer voor je geschiedenis uit een andere app. Met beschrijvingen en voorbeeldzinnen.",
+            "Alle 53 tools die de Nutrition MCP-server aan je AI geeft, van opgeslagen maaltijden tot een CSV-importer voor je geschiedenis uit een andere app. Met beschrijvingen en voorbeeldzinnen.",
     },
     hero: {
         eyebrow: "Naslag",
@@ -20,7 +20,7 @@ export const TOOLS_NL: ToolsDoc = {
         titleEm: "doen",
         titleAfterEm: "",
         lead: "Je roept deze tools nooit zelf aan: je praat gewoon met Claude, ChatGPT of een andere MCP-client, en die kiest de juiste tool. Hieronder staat elke tool die de Nutrition MCP-server biedt voor maaltijden en opgeslagen maaltijden, calorieën en macro's, water en gewicht, met wat hij doet en een zin waarmee je hem aan het werk zet.",
-        countBold: "49 tools",
+        countBold: "53 tools",
         countTail: "verdeeld over 7 categorieën",
     },
     categories: {
@@ -345,7 +345,7 @@ export const TOOLS_NL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, meal_items.csv (de ingrediënten van elke gelogde maaltijd), saved_meals.csv en saved_meal_items.csv (je opgeslagen maaltijden en hun ingrediënten), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (elke wijziging van je doelen, met datum), profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps en Apple Health-synchronisatie, zonder tokens), health_sync.csv (wat Apple Health-synchronisatie de afgelopen 8 dagen heeft verstuurd) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
+                "Exporteer alles wat de dienst over je bewaart in één ZIP-bestand: meals.csv, meal_items.csv (de ingrediënten van elke gelogde maaltijd), saved_meals.csv en saved_meal_items.csv (je opgeslagen maaltijden en hun ingrediënten), water.csv, active_calories.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (elke wijziging van je doelen, met datum), profile.csv, account.csv (je inlogaccount), telemetry.csv (gegevens over het gebruik van tools), connections.csv (je gekoppelde AI-apps en Apple Health-synchronisatie, zonder tokens), health_sync.csv (wat Apple Health-synchronisatie de afgelopen 8 dagen heeft verstuurd) en een README.txt die de kolommen en eenheden uitlegt en vermeldt wat er niet in staat. Je krijgt een privélink om het bestand te downloaden, die 60 minuten geldig is. Voorlopig kun je alleen de maaltijden weer importeren.",
             params: {},
             example:
                 "Exporteer al mijn gegevens: maaltijden, water, gewicht en doelen",
@@ -379,6 +379,39 @@ export const TOOLS_NL: ToolsDoc = {
                 id: "UUID van de te verwijderen waterregistratie",
             },
             example: "Verwijder die laatste waterregistratie",
+        },
+        log_active_calories: {
+            description:
+                "Registreert energie die je bij training verbrandt, in kilocalorieën, zoals een horloge of fitnessapp die aangeeft (het cijfer 'actieve calorieën' is de gebruikelijke bron). Het wordt naast de calorie-inname getoond en verandert je caloriedoel nooit. Alleen het deel dat is ingesteld met set_activity_credit telt mee bij de inname, en elke invoer behoudt het deel dat gold toen die werd opgeslagen.",
+            params: {
+                kcal: "Verbrande energie in kilocalorieën, een geheel getal van 1 tot 10.000.",
+                logged_at:
+                    "Wanneer de activiteit was; standaard nu. Een datum, een lokale tijd of een volledige ISO-tijd met offset.",
+                notes: "Optionele korte notitie, bijvoorbeeld 'ochtendrun'.",
+                idempotency_key:
+                    "Optionele sleutel zodat een nieuwe poging de invoer niet dubbel toevoegt.",
+            },
+            example:
+                "Ik heb vanochtend 420 actieve calorieën verbrand met hardlopen",
+        },
+        get_active_calories: {
+            description:
+                "Geeft de tijdens training verbrande energie (actieve calorieën) voor één datum of een periode: lokale tijd, kcal, het deel dat bij de inname telde, notitie en id van elke invoer, plus de totalen verbrand en meegeteld per dag. Standaard vandaag. Een periode beslaat maximaal 31 dagen.",
+            params: {
+                date: "Eén datum (JJJJ-MM-DD). Gebruik deze of start_date en end_date, niet beide.",
+                start_date:
+                    "Eerste dag van de periode (JJJJ-MM-DD), inclusief.",
+                end_date: "Laatste dag van de periode (JJJJ-MM-DD), inclusief.",
+            },
+            example: "Hoeveel actieve calorieën heb ik deze week verbrand?",
+        },
+        delete_active_calories: {
+            description:
+                "Verwijdert een actieve-calorieënvermelding die je per vergissing hebt toegevoegd. Inname en caloriedoel blijven ongewijzigd.",
+            params: {
+                id: "UUID van de actieve-calorieënvermelding die je wilt verwijderen",
+            },
+            example: "Verwijder de laatste actieve-calorieënvermelding",
         },
         log_weight: {
             description:
@@ -615,6 +648,15 @@ export const TOOLS_NL: ToolsDoc = {
             },
             example:
                 "Houd vanaf nu bij hoeveel alcohol ik drink, in Britse eenheden",
+        },
+        set_activity_credit: {
+            description:
+                "Kies welk deel van de actieve calorieën (tijdens training verbrande energie) bij de calorie-inname telt, van 0 tot 100 procent, of zet het met null terug op de standaard van 100 procent. Het geldt voor vermeldingen vanaf nu; eerder opgeslagen vermeldingen behouden het deel waarmee ze zijn opgeslagen. Het caloriedoel verandert nooit.",
+            params: {
+                percent:
+                    "Geheel getal van 0 tot 100, of null om terug te gaan naar 100.",
+            },
+            example: "Reken 50% van mijn actieve calorieën mee bij de inname",
         },
         delete_account: {
             description:

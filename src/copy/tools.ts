@@ -1,4 +1,4 @@
-// Typed content for /tools (the "all 49 tools" reference page), rendered
+// Typed content for /tools (the "all 53 tools" reference page), rendered
 // by scripts/gen-tools.ts. Extracted verbatim from the previously
 // hand-authored public/tools.html — see CLAUDE.md's "Public site" section
 // for the generator family this belongs to, and gen-tools.ts's own header
@@ -129,9 +129,9 @@ export interface ToolIdentity {
 }
 
 /**
- * All 49 tools, in the exact document order of public/tools.html (grouped
+ * All 53 tools, in the exact document order of public/tools.html (grouped
  * by category — see CategoryId — for the reader). The *set* of names must
- * equal the 49 `server.registerTool()` calls in src/mcp.ts; the two orders
+ * equal the 53 `server.registerTool()` calls in src/mcp.ts; the two orders
  * differ (mcp.ts registers in its own order, unrelated to this page's
  * reader-facing grouping). "the registered tool set and every hand-typed
  * tool count agree" in src/site-copy.test.ts enforces the set and the
@@ -563,6 +563,36 @@ export const TOOLS: ToolIdentity[] = [
         hasPhotoHint: false,
     },
     {
+        name: "log_active_calories",
+        category: "goals-progress",
+        badges: ["log"],
+        params: [
+            { name: "kcal", required: true },
+            { name: "logged_at", required: false },
+            { name: "notes", required: false },
+            { name: "idempotency_key", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "get_active_calories",
+        category: "goals-progress",
+        badges: ["view"],
+        params: [
+            { name: "date", required: false },
+            { name: "start_date", required: false },
+            { name: "end_date", required: false },
+        ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "delete_active_calories",
+        category: "goals-progress",
+        badges: ["remove"],
+        params: [{ name: "id", required: true }],
+        hasPhotoHint: false,
+    },
+    {
         name: "get_trends",
         category: "insights-trends",
         badges: ["view", "widget"],
@@ -622,6 +652,13 @@ export const TOOLS: ToolIdentity[] = [
             { name: "enabled", required: true },
             { name: "drink_unit", required: false },
         ],
+        hasPhotoHint: false,
+    },
+    {
+        name: "set_activity_credit",
+        category: "settings-account",
+        badges: ["setting"],
+        params: [{ name: "percent", required: true }],
         hasPhotoHint: false,
     },
     {
@@ -778,11 +815,11 @@ export interface ToolsDoc {
 
 const TOOLS_EN: ToolsDoc = {
     meta: {
-        title: "49 Calorie, Macro, Water & Weight Tools",
+        title: "53 Calorie, Macro, Water & Weight Tools",
         description:
-            "All 49 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
+            "All 53 Nutrition MCP tools for Claude, ChatGPT and more: log meals, save meals you eat often, scan barcodes, import a MyFitnessPal or Cronometer CSV, track water, weight and body measurements.",
         ogDescription:
-            "All 49 tools the Nutrition MCP server gives your AI, from saved meals to a CSV importer for your history — with descriptions and example prompts.",
+            "All 53 tools the Nutrition MCP server gives your AI, from saved meals to a CSV importer for your history — with descriptions and example prompts.",
     },
     hero: {
         eyebrow: "Reference",
@@ -790,7 +827,7 @@ const TOOLS_EN: ToolsDoc = {
         titleEm: "do",
         titleAfterEm: "",
         lead: "You never call these directly — you just talk to Claude, ChatGPT or another MCP client, and it picks the right tool. Here's every tool the Nutrition MCP server exposes for meals and saved meals, calories and macros, water and weight, with what each one does and a phrase that triggers it.",
-        countBold: "49 tools",
+        countBold: "53 tools",
         countTail: "across 7 areas",
     },
     categories: {
@@ -1113,7 +1150,7 @@ const TOOLS_EN: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Export everything the service stores about you as a single ZIP — meals.csv, meal_items.csv (the ingredients of each logged meal), saved_meals.csv and saved_meal_items.csv (your saved meals and their ingredients), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (every change to your goals, dated), profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps and Apple Health sync, without any tokens), health_sync.csv (what Apple Health sync sent over the last 8 days), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
+                "Export everything the service stores about you as a single ZIP — meals.csv, meal_items.csv (the ingredients of each logged meal), saved_meals.csv and saved_meal_items.csv (your saved meals and their ingredients), water.csv, active_calories.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (every change to your goals, dated), profile.csv, account.csv (your sign-in account), telemetry.csv (tool-usage records), connections.csv (your connected AI apps and Apple Health sync, without any tokens), health_sync.csv (what Apple Health sync sent over the last 8 days), and a README.txt explaining the columns, the units and what is not included — and hands back a private download link, valid for 60 minutes. Meals are the only part that can be imported back in for now.",
             params: {},
             example: "Export all of my data — meals, water, weight, and goals",
         },
@@ -1143,6 +1180,37 @@ const TOOLS_EN: ToolsDoc = {
                 id: "UUID of the water entry to delete",
             },
             example: "Remove that last water entry",
+        },
+        log_active_calories: {
+            description:
+                'Log energy burned in exercise, in kilocalories, as a watch or fitness app reports it (its "active calories" figure is the usual source). It is shown beside calorie intake and never changes your calorie goal. Only the share set with set_activity_credit counts against intake, and each entry keeps the share in effect when it was logged.',
+            params: {
+                kcal: "Energy burned in kilocalories: a whole number from 1 to 10,000.",
+                logged_at:
+                    "When the activity happened; defaults to now. A date, a local time, or a full ISO time with an offset.",
+                notes: 'Optional short note, such as "morning run".',
+                idempotency_key:
+                    "Optional key so a retry does not add the entry twice.",
+            },
+            example: "I burned 420 active calories on my run this morning",
+        },
+        get_active_calories: {
+            description:
+                "List the energy burned in exercise (active calories) for one date or a date range: each entry's local time, kcal, the share that counted against intake, its note and id, plus the burned and counted-against-intake totals for each day. Defaults to today. A range covers at most 31 days.",
+            params: {
+                date: "One date, YYYY-MM-DD. Use this or start_date and end_date, not both.",
+                start_date: "First date of the range, YYYY-MM-DD, inclusive.",
+                end_date: "Last date of the range, YYYY-MM-DD, inclusive.",
+            },
+            example: "How many active calories did I burn this week?",
+        },
+        delete_active_calories: {
+            description:
+                "Remove an active-calories entry you added by mistake. Calorie intake and the calorie goal are not affected.",
+            params: {
+                id: "UUID of the active-calories entry to delete",
+            },
+            example: "Remove that last active calories entry",
         },
         log_weight: {
             description:
@@ -1374,6 +1442,14 @@ const TOOLS_EN: ToolsDoc = {
                     "Which standard drink to show alongside the grams: <code>us</code> (14 g per drink) or <code>uk</code> (7.9 g per unit). Defaults to <code>us</code>; grams of pure ethanol are what's actually stored.",
             },
             example: "Start tracking my drinking, in UK units",
+        },
+        set_activity_credit: {
+            description:
+                "Choose what share of active calories (energy burned in exercise) counts against calorie intake, from 0 to 100 percent, or reset it to the default of 100 percent with null. It applies to entries logged from now on; entries already logged keep the share they were logged with. The calorie goal never changes.",
+            params: {
+                percent: "Whole number from 0 to 100, or null to reset to 100.",
+            },
+            example: "Count 50% of my active calories against intake",
         },
         delete_account: {
             description:
