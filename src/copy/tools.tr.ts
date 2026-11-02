@@ -8,11 +8,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_TR: ToolsDoc = {
     meta: {
-        title: "Kalori, makro, su ve kilo için 49 araç",
+        title: "Kalori, makro, su ve kilo için 53 araç",
         description:
-            "Claude, ChatGPT ve diğerleri için 49 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
+            "Claude, ChatGPT ve diğerleri için 53 Nutrition MCP aracının tamamı: yemek kaydet, sık yediğin yemekleri kayıtlı yemek olarak sakla, barkod tara, MyFitnessPal veya Cronometer CSV dosyası içe aktar, su, kilo ve vücut ölçülerini takip et.",
         ogDescription:
-            "Nutrition MCP sunucusunun yapay zekâna sunduğu 49 aracın tamamı — kayıtlı yemeklerden geçmişin için bir CSV içe aktarıcıya kadar — açıklamaları ve örnek cümleleriyle.",
+            "Nutrition MCP sunucusunun yapay zekâna sunduğu 53 aracın tamamı — kayıtlı yemeklerden geçmişin için bir CSV içe aktarıcıya kadar — açıklamaları ve örnek cümleleriyle.",
     },
     hero: {
         eyebrow: "Başvuru",
@@ -20,7 +20,7 @@ export const TOOLS_TR: ToolsDoc = {
         titleEm: "her şey",
         titleAfterEm: "",
         lead: "Bu araçları hiçbir zaman kendin çağırmazsın: sadece Claude, ChatGPT ya da başka bir MCP istemcisiyle konuşursun, o da doğru aracı seçer. Aşağıda Nutrition MCP sunucusunun yemekler ve kayıtlı yemekler, kalori ve makrolar, su ve kilo için sunduğu her araç var; her birinin ne yaptığı ve onu çalıştıran bir cümleyle birlikte.",
-        countBold: "49 araç",
+        countBold: "53 araç",
         countTail: "7 alana yayılmış",
     },
     categories: {
@@ -347,7 +347,7 @@ export const TOOLS_TR: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Servisin senin hakkında sakladığı her şeyi tek bir ZIP olarak dışa aktar: meals.csv, meal_items.csv (kaydettiğin yemeklerin malzemeleri), saved_meals.csv ve saved_meal_items.csv (kayıtlı yemeklerin ve malzemelerinin), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (hedeflerindeki her değişiklik, tarihiyle), profile.csv, account.csv (giriş hesabın), telemetry.csv (araç kullanım kayıtları), connections.csv (bağlı yapay zekâ uygulamaların ve Apple Health eşitlemesi, hiçbir token olmadan), health_sync.csv (Apple Health eşitlemesinin son 8 günde gönderdikleri) ve kolonları, birimleri ve neyin dahil olmadığını anlatan bir README.txt. Ardından 60 dakika geçerli, özel bir indirme bağlantısı verir. Şimdilik geri aktarılabilen tek bölüm yemekler.",
+                "Servisin senin hakkında sakladığı her şeyi tek bir ZIP olarak dışa aktar: meals.csv, meal_items.csv (kaydettiğin yemeklerin malzemeleri), saved_meals.csv ve saved_meal_items.csv (kayıtlı yemeklerin ve malzemelerinin), water.csv, active_calories.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (hedeflerindeki her değişiklik, tarihiyle), profile.csv, account.csv (giriş hesabın), telemetry.csv (araç kullanım kayıtları), connections.csv (bağlı yapay zekâ uygulamaların ve Apple Health eşitlemesi, hiçbir token olmadan), health_sync.csv (Apple Health eşitlemesinin son 8 günde gönderdikleri) ve kolonları, birimleri ve neyin dahil olmadığını anlatan bir README.txt. Ardından 60 dakika geçerli, özel bir indirme bağlantısı verir. Şimdilik geri aktarılabilen tek bölüm yemekler.",
             params: {},
             example:
                 "Tüm verilerimi dışa aktar: yemekler, su, kilo ve hedefler",
@@ -379,6 +379,37 @@ export const TOOLS_TR: ToolsDoc = {
                 id: "Silinecek su kaydının UUID değeri",
             },
             example: "Son su kaydını sil",
+        },
+        log_active_calories: {
+            description:
+                "Egzersizde yakılan enerjiyi kilokalori olarak kaydeder; bir saatin ya da fitness uygulamasının verdiği değer (genellikle «aktif kalori» rakamı) kullanılır. Alınan kaloriyle yan yana gösterilir ve kalori hedefini asla değiştirmez. Alınan kaloriye yalnızca set_activity_credit ile ayarlanan oran sayılır; her kayıt, kaydedildiği andaki oranı korur.",
+            params: {
+                kcal: "Yakılan enerji, kilokalori olarak; 1 ile 10.000 arasında tam sayı.",
+                logged_at:
+                    "Etkinliğin ne zaman yapıldığı; varsayılan şimdi. Tarih, yerel saat ya da saat dilimi içeren tam ISO zamanı.",
+                notes: "İsteğe bağlı kısa not, ör. «sabah koşusu».",
+                idempotency_key:
+                    "İsteğe bağlı anahtar; yeniden denemenin kaydı iki kez eklemesini önler.",
+            },
+            example: "Bu sabahki koşuda 420 aktif kalori yaktım",
+        },
+        get_active_calories: {
+            description:
+                "Bir tarih ya da tarih aralığı için egzersizde yakılan enerjiyi (aktif kalori) listeler: her kaydın yerel saati, kcal'si, alınan kaloriye sayılan oranı, notu ve kimliği ile her gün için toplam yakılan ve sayılan kalori. Varsayılan bugün. Bir aralık en fazla 31 günü kapsar.",
+            params: {
+                date: "Tek bir tarih (YYYY-AA-GG). Bunu ya da start_date ve end_date'i kullanın, ikisini birden değil.",
+                start_date: "Aralığın ilk günü (YYYY-AA-GG), dahil.",
+                end_date: "Aralığın son günü (YYYY-AA-GG), dahil.",
+            },
+            example: "Bu hafta kaç aktif kalori yaktım?",
+        },
+        delete_active_calories: {
+            description:
+                "Yanlışlıkla eklediğin bir aktif kalori kaydını siler. Alınan kalori ve kalori hedefi etkilenmez.",
+            params: {
+                id: "Silinecek aktif kalori kaydının UUID'si",
+            },
+            example: "Son aktif kalori kaydını sil",
         },
         log_weight: {
             description:
@@ -615,6 +646,15 @@ export const TOOLS_TR: ToolsDoc = {
             },
             example:
                 "Alkol tüketimimi takip etmeye başla, Birleşik Krallık birimleriyle",
+        },
+        set_activity_credit: {
+            description:
+                "Egzersizde yakılan enerjinin (aktif kalori) yüzde kaçının alınan kaloriye sayılacağını 0 ile 100 arasında seçin ya da null ile varsayılan %100'e dönün. Yalnızca bundan sonra kaydedilen kayıtlar için geçerlidir; önceden kaydedilenler kendi oranını korur. Kalori hedefi asla değişmez.",
+            params: {
+                percent:
+                    "0 ile 100 arasında tam sayı ya da %100'e dönmek için null.",
+            },
+            example: "Aktif kalorilerimin %50'sini alınan kaloriye say",
         },
         delete_account: {
             description:

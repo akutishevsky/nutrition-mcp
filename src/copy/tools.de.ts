@@ -6,11 +6,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_DE: ToolsDoc = {
     meta: {
-        title: "49 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
+        title: "53 Werkzeuge für Kalorien, Makros, Wasser & Gewicht",
         description:
-            "Alle 49 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, häufige Mahlzeiten speichern, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
+            "Alle 53 Werkzeuge für Claude, ChatGPT & Co.: Mahlzeiten erfassen, häufige Mahlzeiten speichern, Barcodes scannen, MyFitnessPal- oder Cronometer-CSV importieren, Wasser, Gewicht und Körpermaße tracken.",
         ogDescription:
-            "Alle 49 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – von gespeicherten Mahlzeiten bis zum CSV-Importer für deinen Verlauf, mit Beschreibungen und Beispielsätzen.",
+            "Alle 53 Werkzeuge, die der Nutrition-MCP-Server deiner KI bereitstellt – von gespeicherten Mahlzeiten bis zum CSV-Importer für deinen Verlauf, mit Beschreibungen und Beispielsätzen.",
     },
     hero: {
         eyebrow: "Referenz",
@@ -18,7 +18,7 @@ export const TOOLS_DE: ToolsDoc = {
         titleEm: "kann",
         titleAfterEm: "",
         lead: "Du rufst diese Werkzeuge nie selbst auf – du sprichst einfach mit Claude, ChatGPT oder einem anderen MCP-Client, und der wählt das passende Werkzeug. Hier findest du jedes Werkzeug, das der Nutrition-MCP-Server für Mahlzeiten und gespeicherte Mahlzeiten, Kalorien und Makros, Wasser und Gewicht bereitstellt – jeweils mit Beschreibung und einem Beispielsatz, der es auslöst.",
-        countBold: "49 Werkzeuge",
+        countBold: "53 Werkzeuge",
         countTail: "in 7 Bereichen",
     },
     categories: {
@@ -351,7 +351,7 @@ export const TOOLS_DE: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, meal_items.csv (die Zutaten jeder erfassten Mahlzeit), saved_meals.csv und saved_meal_items.csv (deine gespeicherten Mahlzeiten und ihre Zutaten), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (jede Änderung deiner Ziele, mit Datum), profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps und Apple Health Sync, ohne Tokens), health_sync.csv (was Apple Health Sync in den letzten 8 Tagen gesendet hat) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
+                "Exportiere alles, was der Dienst über dich speichert, als eine einzige ZIP-Datei – meals.csv, meal_items.csv (die Zutaten jeder erfassten Mahlzeit), saved_meals.csv und saved_meal_items.csv (deine gespeicherten Mahlzeiten und ihre Zutaten), water.csv, active_calories.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (jede Änderung deiner Ziele, mit Datum), profile.csv, account.csv (dein Anmeldekonto), telemetry.csv (Aufzeichnungen zur Werkzeugnutzung), connections.csv (deine verbundenen KI-Apps und Apple Health Sync, ohne Tokens), health_sync.csv (was Apple Health Sync in den letzten 8 Tagen gesendet hat) und eine README.txt, die Spalten und Einheiten erklärt und aufzählt, was nicht enthalten ist – und erhalte einen privaten Download-Link, der 60 Minuten gültig ist. Vorerst lassen sich nur die Mahlzeiten wieder importieren.",
             params: {},
             example:
                 "Exportier alle meine Daten – Mahlzeiten, Wasser, Gewicht und Ziele",
@@ -385,6 +385,40 @@ export const TOOLS_DE: ToolsDoc = {
                 id: "UUID des zu löschenden Wasser-Eintrags",
             },
             example: "Entfern den letzten Wasser-Eintrag",
+        },
+        log_active_calories: {
+            description:
+                "Erfasse die Energie, die du beim Training verbrennst, in Kilokalorien, so wie eine Uhr oder eine Fitness-App sie meldet (meist der Wert „Aktivkalorien“). Sie wird neben der Kalorienaufnahme angezeigt und verändert dein Kalorienziel nie. Nur der mit set_activity_credit eingestellte Anteil zählt auf die Aufnahme, und jeder Eintrag behält den Anteil, der beim Erfassen galt.",
+            params: {
+                kcal: "Verbrannte Energie in Kilokalorien, eine ganze Zahl von 1 bis 10.000.",
+                logged_at:
+                    "Wann die Aktivität stattfand; Standard ist jetzt. Ein Datum, eine Ortszeit oder eine vollständige ISO-Zeit mit Offset.",
+                notes: "Optionale kurze Notiz, z. B. „Morgenlauf“.",
+                idempotency_key:
+                    "Optionaler Schlüssel, damit ein erneuter Versuch den Eintrag nicht doppelt anlegt.",
+            },
+            example:
+                "Ich habe heute Morgen beim Laufen 420 Aktivkalorien verbrannt",
+        },
+        get_active_calories: {
+            description:
+                "Liste die beim Training verbrannte Energie (Aktivkalorien) für ein Datum oder einen Zeitraum auf: Ortszeit, kcal, den Anteil, der auf die Aufnahme angerechnet wurde, Notiz und ID jedes Eintrags, dazu die Summen je Tag für verbrannte und angerechnete Kalorien. Standard ist heute. Ein Zeitraum umfasst höchstens 31 Tage.",
+            params: {
+                date: "Ein Datum im Format JJJJ-MM-TT. Entweder dieses oder start_date und end_date, nicht beides.",
+                start_date:
+                    "Erster Tag des Zeitraums, JJJJ-MM-TT, einschließlich.",
+                end_date:
+                    "Letzter Tag des Zeitraums, JJJJ-MM-TT, einschließlich.",
+            },
+            example: "Wie viele Aktivkalorien habe ich diese Woche verbrannt?",
+        },
+        delete_active_calories: {
+            description:
+                "Entferne einen Aktivkalorien-Eintrag, den du versehentlich hinzugefügt hast. Kalorienaufnahme und Kalorienziel bleiben unberührt.",
+            params: {
+                id: "UUID des zu löschenden Aktivkalorien-Eintrags",
+            },
+            example: "Entfern den letzten Aktivkalorien-Eintrag",
         },
         log_weight: {
             description:
@@ -623,6 +657,15 @@ export const TOOLS_DE: ToolsDoc = {
                     "Welcher Standard-Drink neben den Gramm angezeigt wird: <code>us</code> (14 g pro Drink) oder <code>uk</code> (7,9 g pro Einheit). Standard ist <code>us</code>; gespeichert wird immer die Menge in Gramm reinen Alkohols.",
             },
             example: "Erfass ab jetzt auch meinen Alkohol, in UK-Einheiten",
+        },
+        set_activity_credit: {
+            description:
+                "Lege fest, welcher Anteil der Aktivkalorien (beim Training verbrannte Energie) auf die Kalorienaufnahme angerechnet wird: 0 bis 100 Prozent, oder setze ihn mit null auf den Standard von 100 Prozent zurück. Er gilt für Einträge ab jetzt; bereits erfasste Einträge behalten ihren Anteil. Das Kalorienziel ändert sich nie.",
+            params: {
+                percent:
+                    "Ganze Zahl von 0 bis 100, oder null, um auf 100 zurückzusetzen.",
+            },
+            example: "Rechne 50 % meiner Aktivkalorien auf die Aufnahme an",
         },
         delete_account: {
             description:

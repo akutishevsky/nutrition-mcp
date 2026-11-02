@@ -24,6 +24,9 @@
     - "nutrition-mcp.com/saturated-fat"  per-day saturated fat + its limit,
                                          and trans fat (`.trans`, no limit)
     - "nutrition-mcp.com/sodium"         per-day sodium (mg) + its limit
+    - "nutrition-mcp.com/activity"       per-day active calories burned and
+                                         the part credited against intake;
+                                         Burned and Net appear only with it
     - "nutrition-mcp.com/local-today"    which day is still running in the
                                          profile timezone
   A nutrient whose payload is missing (a host that dropped `_meta`) is simply
@@ -1596,6 +1599,9 @@
             const ADDED_SUGAR_META_KEY = "nutrition-mcp.com/added-sugar";
             const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
             const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
+            // Active calories per day (ActivityMeta, src/activity.ts). Must
+            // equal ACTIVITY_META_KEY in src/widgets.ts.
+            const ACTIVITY_META_KEY = "nutrition-mcp.com/activity";
             const LOCAL_TODAY_META_KEY = "nutrition-mcp.com/local-today";
 
             // Grams of alcohol per drink, by the account's drink unit. Must
@@ -1631,6 +1637,24 @@
                     days,
                 };
             }
+            // The activity payload, untrusted: { v: 1, days: [{ date,
+            // burned_kcal, credited_kcal }] }, each day kept only with an ISO
+            // date and finite, non-negative figures. A Map by date, or null
+            // when nothing usable is left (Burned and Net are then not offered).
+            function activityByDay(raw) {
+                if (!raw || typeof raw !== "object" || raw.v !== 1) return null;
+                if (!Array.isArray(raw.days)) return null;
+                const out = new Map();
+                for (const d of raw.days) {
+                    if (!d || typeof d !== "object" || !isDate(d.date))
+                        continue;
+                    const b = d.burned_kcal;
+                    const c = d.credited_kcal;
+                    if (!isNum(b) || b < 0 || !isNum(c) || c < 0) continue;
+                    out.set(d.date, { burned: b, credited: c });
+                }
+                return out.size ? out : null;
+            }
             function todayFrom(meta) {
                 const t = meta && meta[LOCAL_TODAY_META_KEY];
                 return t && t.v === 1 && isDate(t.today) ? t.today : null;
@@ -1660,13 +1684,21 @@
                 ["caffeine", "caffeine", "mg", "☕", true, "rec"],
                 ["water", "water", "L", "💧", false, "all"],
                 ["alcohol", "alcohol", "drinks", "🍷", true, "rec"],
+                // Only with the activity payload (see buildModel).
+                ["burned", "burned", "kcal", "🏃", false, "rec"],
+                ["net", "net", "kcal", "🥗", true, "rec"],
             ];
             // Never offered when not one day of the 30 recorded them.
-            const HIDE_IF_NEVER = ["trans", "caffeine", "alcohol"];
+            const HIDE_IF_NEVER = ["trans", "caffeine", "alcohol", "net"];
             // Calories' colour is the calorie gauge's green (the design's
-            // --kcal); every other nutrient has its own token.
+            // --kcal); every other nutrient has its own token. Burned takes
+            // the calorie orange and net the gauge green, the calorie family.
             const colourOf = (k) =>
-                k === "calories" ? "var(--gauge-fill)" : `var(--${k})`;
+                k === "calories" || k === "net"
+                    ? "var(--gauge-fill)"
+                    : k === "burned"
+                      ? "var(--calories)"
+                      : `var(--${k})`;
             const varsOf = (k) => `--mc: ${colourOf(k)}`;
 
             // ---- state -------------------------------------------------------
@@ -1793,6 +1825,7 @@
                     meta && meta[SODIUM_META_KEY],
                     true,
                 );
+                const act = activityByDay(meta && meta[ACTIVITY_META_KEY]);
                 const mealDay = days.map(
                     (d) =>
                         num(d.calories) > 0 ||
@@ -1838,6 +1871,24 @@
                               v == null ? null : v / perDrink,
                           )
                         : null,
+                    // Burned on every day that burned something; net on every
+                    // day with a meal, as intake less that day's credited
+                    // share (none credited: net is the intake).
+                    burned: act
+                        ? days.map((d) =>
+                              act.has(d.date) ? act.get(d.date).burned : null,
+                          )
+                        : null,
+                    net: act
+                        ? days.map((d, i) =>
+                              mealDay[i]
+                                  ? num(d.calories) -
+                                    (act.has(d.date)
+                                        ? act.get(d.date).credited
+                                        : 0)
+                                  : null,
+                          )
+                        : null,
                 };
                 const goals = {
                     calories: goalOf(g.calories),
@@ -1857,6 +1908,11 @@
                         perDrink && goalOf(g.alcohol_g) != null
                             ? g.alcohol_g / perDrink
                             : null,
+                    // Burned has no target. Net intake is read against the
+                    // unchanged calorie goal, so "below goal" is the deficit;
+                    // activity never changes the goal itself.
+                    burned: null,
+                    net: goalOf(g.calories),
                 };
                 const today = todayFrom(meta) || deviceToday();
                 return {
@@ -1870,6 +1926,15 @@
                         days.length > 0 && days[days.length - 1].date === today,
                     anyLogged: logged.some(Boolean),
                 };
+            }
+
+            // Burned (active calories) never has a goal by design, so the
+            // "no goal set" wording would read as a missing setting.
+            function goalless(m) {
+                return m.key === "burned";
+            }
+            function noGoalTxt(m) {
+                return goalless(m) ? "" : T.trends.noGoal;
             }
 
             // One nutrient over the current window.
@@ -1890,10 +1955,10 @@
                     ? null
                     : full.reduce((a, b) => a + b, 0) / full.length;
                 const hasGoal = g != null && !nr;
-                const band = key === "calories" ? 1.1 : 1;
+                const band = key === "calories" || key === "net" ? 1.1 : 1;
                 const over = hasGoal && ceil && avg > g * band;
                 const nearT = (v) => Math.abs(v - g) <= 0.1 * g;
-                const limitLike = ceil && key !== "calories";
+                const limitLike = ceil && key !== "calories" && key !== "net";
                 const onT = hasGoal
                     ? full.filter((v) => (limitLike ? v <= g : nearT(v))).length
                     : 0;
@@ -1950,7 +2015,7 @@
                 v != null &&
                 m.hasGoal &&
                 m.ceil &&
-                v > m.g * (m.key === "calories" ? 1.1 : 1);
+                v > m.g * (m.key === "calories" || m.key === "net" ? 1.1 : 1);
             const pctOf = (m, v) =>
                 v != null && m.hasGoal && m.g > 0
                     ? Math.round((v / m.g) * 100)
@@ -1999,10 +2064,16 @@
                     .map((v, i) => {
                         const s = i === sel;
                         const ov = isOv(m, v);
+                        // A negative value (net intake below credited activity)
+                        // has no bar: the readout and aria label carry the
+                        // signed figure, and the fill is left out rather than
+                        // drawn as a near-zero day.
+                        const neg = v != null && v < 0;
                         const cls =
                             (s ? " sel" : "") +
                             (ov ? " ov" : "") +
-                            (v == null ? " nr" : "");
+                            (v == null ? " nr" : "") +
+                            (neg ? " neg" : "");
                         const what =
                             v == null
                                 ? W.logged[i]
@@ -2018,7 +2089,10 @@
                             0.15 +
                             (0.9 * i) / Math.max(n - 1, 1)
                         ).toFixed(2);
-                        return `<button type="button" class="reset cb${cls}" data-act="day" data-i="${i}" data-fid="${kind}-day-${i}" aria-pressed="${s}" aria-label="${esc(aria)}"><span class="ctrk"><span class="cfill" style="height: ${h}%; animation-delay: ${delay}s"></span></span></button>`;
+                        const fill = neg
+                            ? ""
+                            : `<span class="cfill" style="height: ${h}%; animation-delay: ${delay}s"></span>`;
+                        return `<button type="button" class="reset cb${cls}" data-act="day" data-i="${i}" data-fid="${kind}-day-${i}" aria-pressed="${s}" aria-label="${esc(aria)}"><span class="ctrk">${fill}</span></button>`;
                     })
                     .join("");
                 const sv = m.vals[sel];
@@ -2127,7 +2201,7 @@
                         const pct = pctOf(m, v);
                         if (!lg) meta = T.trends.nothingLogged;
                         else if (v == null) meta = T.trends.notRecorded;
-                        else if (!m.hasGoal) meta = T.trends.noGoal;
+                        else if (!m.hasGoal) meta = noGoalTxt(m);
                         else if (isOv(m, v)) {
                             meta = tpl(
                                 m.limitLike
@@ -2136,7 +2210,7 @@
                                 { amount: withU(m.u, v - m.g) },
                             );
                             metaCls = " over";
-                        } else if (pct == null) meta = T.trends.noGoal;
+                        } else if (pct == null) meta = noGoalTxt(m);
                         else if (!m.limitLike && Math.abs(v - m.g) <= 0.1 * m.g)
                             meta = tpl(T.trends.onTargetPct, {
                                 pct: pctF(pct),
@@ -2255,7 +2329,9 @@
                 const pctB = `<b>${esc(pct == null ? "—" : pctF(pct))}</b>`;
                 const goalTxt = hm.hasGoal ? esc(withU(hU, hm.g)) : "";
                 const goalLine = !hm.hasGoal
-                    ? esc(T.trends.heroNoGoal)
+                    ? goalless(hm)
+                        ? ""
+                        : esc(T.trends.heroNoGoal)
                     : tplHtml(
                           hm.limitLike
                               ? T.trends.heroLimit
@@ -2266,7 +2342,9 @@
                       );
                 const hd = hm.hasGoal ? hm.avg - hm.g : 0;
                 const word = !hm.hasGoal
-                    ? T.trends.noGoalSet
+                    ? goalless(hm)
+                        ? ""
+                        : T.trends.noGoalSet
                     : hm.limitLike
                       ? hd > 0
                           ? T.trends.overLimit
@@ -2299,8 +2377,12 @@
                 const stats = `
             <div class="gstats">
               <div class="gs"><span class="gsl">${esc(hm.mode === "rec" ? T.trends.statDaysRecorded : T.trends.statDaysLogged)}</span><b class="num">${frac(hm.rec.length, W.n)} <small>${daysW(W.n)}</small></b></div>
-              <div class="gs"><span class="gsl">${esc(onLab)}</span><b class="num${hm.limitLike && hm.overN ? " over" : ""}">${hm.hasGoal ? frac(onN, hm.full.length) : "—"} ${hm.hasGoal ? `<small>${daysW(hm.full.length)}</small>` : ""}</b></div>
-              <div class="gs"><span class="gsl">${esc(statLabel)}</span><b class="num${hm.over ? " over" : ""}">${hm.hasGoal ? esc(fmtU(hU, Math.abs(hd))) : "—"} ${hm.hasGoal ? `<small>${esc(unitOf(hU))}</small>` : ""}</b></div>
+              ${
+                  goalless(hm)
+                      ? ""
+                      : `<div class="gs"><span class="gsl">${esc(onLab)}</span><b class="num${hm.limitLike && hm.overN ? " over" : ""}">${hm.hasGoal ? frac(onN, hm.full.length) : "—"} ${hm.hasGoal ? `<small>${daysW(hm.full.length)}</small>` : ""}</b></div>
+              <div class="gs"><span class="gsl">${esc(statLabel)}</span><b class="num${hm.over ? " over" : ""}">${hm.hasGoal ? esc(fmtU(hU, Math.abs(hd))) : "—"} ${hm.hasGoal ? `<small>${esc(unitOf(hU))}</small>` : ""}</b></div>`
+              }
             </div>`;
                 const aria = `${T.trends.avgWord} ${hNum} ${unitDay}`;
                 return {
@@ -2350,7 +2432,9 @@
                             ? " · " + T.trends.notRecorded
                             : m.hasGoal
                               ? " / " + withU(m.u, m.g)
-                              : " " + unitOf(m.u) + " · " + T.trends.noGoal;
+                              : " " +
+                                unitOf(m.u) +
+                                (goalless(m) ? "" : " · " + T.trends.noGoal);
                         const spark = m.vals
                             .map((v, i) => {
                                 const td = i === n - 1 ? " td" : "";
@@ -2821,6 +2905,7 @@
                 const sat = {};
                 const trans = {};
                 const sod = {};
+                const activity = [];
                 const end = new Date("2026-10-24T12:00:00Z");
                 const r1 = (n) => Math.round(n * 10) / 10;
                 for (let i = 29; i >= 0; i--) {
@@ -2860,6 +2945,16 @@
                         skip || i === 1 || i === 8
                             ? null
                             : Math.round((2080 + w * 380) * part);
+                    // Exercise on about one day in three; a day with a meal
+                    // nets its intake against what was credited.
+                    if (i % 3 === 1 && !skip) {
+                        const burned = Math.round(320 + w * 120);
+                        activity.push({
+                            date,
+                            burned_kcal: burned,
+                            credited_kcal: Math.round(burned * 0.8),
+                        });
+                    }
                 }
                 return {
                     data: {
@@ -2889,6 +2984,7 @@
                             trans: { goal: null, days: trans },
                         },
                         [SODIUM_META_KEY]: { v: 1, goal: 2300, days: sod },
+                        [ACTIVITY_META_KEY]: { v: 1, days: activity },
                         [LOCAL_TODAY_META_KEY]: {
                             v: 1,
                             today: days[days.length - 1].date,

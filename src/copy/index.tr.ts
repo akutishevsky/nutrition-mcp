@@ -191,7 +191,7 @@ export const INDEX_TR: IndexDoc = {
         note: "Buradaki her şey isteğe bağlı. Şimdi, sonra ya da hiç yapmayabilirsin — sadece kaydetmeye başla, bunları canın ne zaman isterse ayarla.",
         toolsCta: {
             heading: "Gerçekte neler yapabildiğini merak ettin mi?",
-            body: "49 aracın tamamına göz at — kaydetme, barkodlar, su, kilo ve vücut ölçüleri, hedefler ve eğilimler — her biri için bir açıklama ve örnek bir cümleyle.",
+            body: "53 aracın tamamına göz at — kaydetme, barkodlar, su, aktif kalori, kilo ve vücut ölçüleri, hedefler ve eğilimler — her biri için bir açıklama ve örnek bir cümleyle.",
             arrow: "Araçları keşfet",
         },
     },

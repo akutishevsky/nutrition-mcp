@@ -11,6 +11,7 @@ import { buildSaturatedFatMeta } from "../src/saturated-fat.js";
 import { buildSodiumMeta } from "../src/sodium.js";
 import type { Meal } from "../src/supabase.js";
 import {
+    ACTIVITY_META_KEY,
     ADDED_SUGAR_META_KEY,
     LOCAL_TODAY_META_KEY,
     SATURATED_FAT_META_KEY,
@@ -390,6 +391,18 @@ export function trendsScenario(
                 days: byDate,
             }),
             [LOCAL_TODAY_META_KEY]: { v: 1, today: NOW },
+            // Every fourth day of the series carries activity, ascending, as
+            // activityMetaFromDays sends it.
+            [ACTIVITY_META_KEY]: {
+                v: 1,
+                days: days
+                    .filter((_, i) => i % 4 === 0)
+                    .map((d) => ({
+                        date: String(d.date),
+                        burned_kcal: 380,
+                        credited_kcal: 300,
+                    })),
+            },
         },
     };
 }

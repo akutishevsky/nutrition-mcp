@@ -2,11 +2,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_PL: ToolsDoc = {
     meta: {
-        title: "49 narzędzi: kalorie, makroskładniki, woda i waga",
+        title: "53 narzędzi: kalorie, makroskładniki, woda i waga",
         description:
-            "Wszystkie 49 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, zapisane posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
+            "Wszystkie 53 narzędzi Nutrition MCP dla Claude, ChatGPT i nie tylko: posiłki, zapisane posiłki, kody kreskowe, import CSV z MyFitnessPal lub Cronometer, woda, waga i wymiary ciała.",
         ogDescription:
-            "Wszystkie 49 narzędzi, które serwer Nutrition MCP daje Twojemu AI, od zapisanych posiłków po importer CSV historii — z opisami i przykładowymi poleceniami.",
+            "Wszystkie 53 narzędzi, które serwer Nutrition MCP daje Twojemu AI, od zapisanych posiłków po importer CSV historii — z opisami i przykładowymi poleceniami.",
     },
     hero: {
         eyebrow: "Dokumentacja",
@@ -14,7 +14,7 @@ export const TOOLS_PL: ToolsDoc = {
         titleEm: "potrafi",
         titleAfterEm: " Twoje AI",
         lead: "Nie wywołujesz tych narzędzi samodzielnie — po prostu rozmawiasz z Claude, ChatGPT albo innym klientem MCP, a on sam dobiera właściwe narzędzie. Oto wszystkie narzędzia, które serwer Nutrition MCP udostępnia do śledzenia posiłków i zapisanych posiłków, kalorii i makroskładników, wody i wagi — z opisem działania i przykładowym poleceniem, które je uruchamia.",
-        countBold: "49 narzędzi",
+        countBold: "53 narzędzi",
         countTail: "w 7 obszarach",
     },
     categories: {
@@ -338,7 +338,7 @@ export const TOOLS_PL: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, meal_items.csv (składniki każdego zapisanego posiłku), saved_meals.csv i saved_meal_items.csv (Twoje zapisane posiłki i ich składniki), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (każda zmiana Twoich celów z datą), profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI i synchronizacja z Apple Health, bez żadnych tokenów), health_sync.csv (to, co synchronizacja z Apple Health wysłała w ciągu ostatnich 8 dni) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
+                "Wyeksportuj wszystko, co usługa o Tobie przechowuje, w jednym pliku ZIP — meals.csv, meal_items.csv (składniki każdego zapisanego posiłku), saved_meals.csv i saved_meal_items.csv (Twoje zapisane posiłki i ich składniki), water.csv, active_calories.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (każda zmiana Twoich celów z datą), profile.csv, account.csv (Twoje konto logowania), telemetry.csv (rejestr użycia narzędzi), connections.csv (Twoje połączone aplikacje AI i synchronizacja z Apple Health, bez żadnych tokenów), health_sync.csv (to, co synchronizacja z Apple Health wysłała w ciągu ostatnich 8 dni) oraz README.txt z objaśnieniem kolumn, jednostek i tego, czego eksport nie obejmuje — i otrzymaj prywatny link do pobrania, ważny przez 60 minut. Na razie z powrotem można zaimportować tylko posiłki.",
             params: {},
             example:
                 "Wyeksportuj wszystkie moje dane — posiłki, wodę, wagę i cele",
@@ -370,6 +370,37 @@ export const TOOLS_PL: ToolsDoc = {
                 id: "UUID wpisu wody do usunięcia",
             },
             example: "Usuń ostatni wpis wody",
+        },
+        log_active_calories: {
+            description:
+                "Zapisuje energię spaloną podczas ćwiczeń, w kilokaloriach, tak jak podaje ją zegarek lub aplikacja fitness (zwykle to wartość „aktywnych kalorii”). Jest pokazywana obok spożytych kalorii i nigdy nie zmienia celu kalorycznego. Od spożycia odejmowany jest tylko udział ustawiony przez set_activity_credit, a każdy wpis zachowuje udział obowiązujący w chwili zapisu.",
+            params: {
+                kcal: "Spalona energia w kilokaloriach: liczba całkowita od 1 do 10 000.",
+                logged_at:
+                    "Kiedy odbyła się aktywność; domyślnie teraz. Data, czas lokalny lub pełny czas ISO z przesunięciem.",
+                notes: "Opcjonalna krótka notatka, np. „poranny bieg”.",
+                idempotency_key:
+                    "Opcjonalny klucz, dzięki któremu ponowna próba nie doda wpisu drugi raz.",
+            },
+            example: "Spaliłem dziś rano 420 aktywnych kalorii podczas biegu",
+        },
+        get_active_calories: {
+            description:
+                "Wypisuje energię spaloną podczas ćwiczeń (aktywne kalorie) dla jednego dnia lub zakresu dat: lokalną godzinę, kcal, udział wliczony w spożycie, notatkę i id każdego wpisu oraz sumy spalonych i wliczonych kalorii dla każdego dnia. Domyślnie dzisiaj. Zakres obejmuje najwyżej 31 dni.",
+            params: {
+                date: "Jedna data (RRRR-MM-DD). Podaj ją albo start_date i end_date, nie oba naraz.",
+                start_date: "Pierwszy dzień zakresu (RRRR-MM-DD), włącznie.",
+                end_date: "Ostatni dzień zakresu (RRRR-MM-DD), włącznie.",
+            },
+            example: "Ile aktywnych kalorii spaliłem w tym tygodniu?",
+        },
+        delete_active_calories: {
+            description:
+                "Usuwa wpis aktywnych kalorii dodany przez pomyłkę. Spożycie i cel kaloryczny pozostają bez zmian.",
+            params: {
+                id: "UUID wpisu aktywnych kalorii do usunięcia",
+            },
+            example: "Usuń ostatni wpis aktywnych kalorii",
         },
         log_weight: {
             description:
@@ -606,6 +637,15 @@ export const TOOLS_PL: ToolsDoc = {
                     "Która porcja standardowa ma być pokazywana obok gramów: <code>us</code> (14 g na porcję) lub <code>uk</code> (7,9 g na jednostkę). Domyślnie <code>us</code>; w bazie zawsze zapisywane są gramy czystego etanolu.",
             },
             example: "Włącz śledzenie alkoholu w jednostkach brytyjskich",
+        },
+        set_activity_credit: {
+            description:
+                "Wybierz, jaki procent aktywnych kalorii (energii spalonej podczas ćwiczeń) wlicza się do spożycia: od 0 do 100 %, albo przywróć domyślne 100 % przez null. Dotyczy wpisów od teraz; wpisy już zapisane zachowują udział, z jakim je zapisano. Cel kaloryczny nigdy się nie zmienia.",
+            params: {
+                percent:
+                    "Liczba całkowita od 0 do 100 albo null, aby wrócić do 100.",
+            },
+            example: "Wliczaj 50 % moich aktywnych kalorii do spożycia",
         },
         delete_account: {
             description:

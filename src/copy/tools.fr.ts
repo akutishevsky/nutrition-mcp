@@ -18,11 +18,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_FR: ToolsDoc = {
     meta: {
-        title: "49 outils pour suivre calories, macros, eau et poids",
+        title: "53 outils pour suivre calories, macros, eau et poids",
         description:
-            "Les 49 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
+            "Les 53 outils Nutrition MCP pour Claude, ChatGPT et autres : repas, repas sauvegardés, scan de codes-barres, import CSV MyFitnessPal ou Cronometer, suivi de l'eau, du poids et des mensurations.",
         ogDescription:
-            "Les 49 outils que le serveur Nutrition MCP donne à ton IA, des repas sauvegardés à l'import CSV de ton historique d'une autre app, avec descriptions et exemples de demandes.",
+            "Les 53 outils que le serveur Nutrition MCP donne à ton IA, des repas sauvegardés à l'import CSV de ton historique d'une autre app, avec descriptions et exemples de demandes.",
     },
     hero: {
         eyebrow: "Référence",
@@ -30,7 +30,7 @@ export const TOOLS_FR: ToolsDoc = {
         titleEm: "faire",
         titleAfterEm: "",
         lead: "Tu n'appelles jamais ces outils toi-même : tu parles simplement à Claude, à ChatGPT ou à un autre client MCP, et il choisit le bon outil. Voici tous les outils que le serveur Nutrition MCP met à disposition pour les repas et les repas sauvegardés, les calories et les macros, l'eau et le poids, avec ce que fait chacun et une phrase qui le déclenche.",
-        countBold: "49 outils",
+        countBold: "53 outils",
         countTail: "répartis en 7 catégories",
     },
     categories: {
@@ -361,7 +361,7 @@ export const TOOLS_FR: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporte tout ce que le service conserve à ton sujet dans un seul fichier ZIP : meals.csv, meal_items.csv (les ingrédients de chaque repas enregistré), saved_meals.csv et saved_meal_items.csv (tes repas sauvegardés et leurs ingrédients), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (chaque modification de tes objectifs, datée), profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes apps d'IA connectées et la synchronisation Apple Health, sans aucun jeton), health_sync.csv (ce que la synchronisation Apple Health a envoyé ces 8 derniers jours) et un README.txt qui explique les colonnes, les unités et ce qui n'est pas inclus. Tu reçois en retour un lien de téléchargement privé, valable 60 minutes. Pour l'instant, seuls les repas peuvent être réimportés.",
+                "Exporte tout ce que le service conserve à ton sujet dans un seul fichier ZIP : meals.csv, meal_items.csv (les ingrédients de chaque repas enregistré), saved_meals.csv et saved_meal_items.csv (tes repas sauvegardés et leurs ingrédients), water.csv, active_calories.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (chaque modification de tes objectifs, datée), profile.csv, account.csv (ton compte de connexion), telemetry.csv (l'historique d'utilisation des outils), connections.csv (tes apps d'IA connectées et la synchronisation Apple Health, sans aucun jeton), health_sync.csv (ce que la synchronisation Apple Health a envoyé ces 8 derniers jours) et un README.txt qui explique les colonnes, les unités et ce qui n'est pas inclus. Tu reçois en retour un lien de téléchargement privé, valable 60 minutes. Pour l'instant, seuls les repas peuvent être réimportés.",
             params: {},
             example:
                 "Exporte toutes mes données : repas, eau, poids et objectifs",
@@ -393,6 +393,39 @@ export const TOOLS_FR: ToolsDoc = {
                 id: "UUID de l'entrée d'eau à supprimer",
             },
             example: "Supprime ma dernière entrée d'eau",
+        },
+        log_active_calories: {
+            description:
+                "Enregistre l'énergie dépensée à l'effort, en kilocalories, telle qu'une montre ou une appli de fitness l'indique (le chiffre « calories actives » est la source habituelle). Elle s'affiche à côté des calories ingérées et ne modifie jamais ton objectif calorique. Seule la part réglée avec set_activity_credit compte dans les calories ingérées, et chaque entrée garde la part en vigueur au moment où elle a été enregistrée.",
+            params: {
+                kcal: "Énergie dépensée en kilocalories : un nombre entier de 1 à 10 000.",
+                logged_at:
+                    "Moment de l'activité ; par défaut, maintenant. Une date, une heure locale ou une heure ISO complète avec décalage.",
+                notes: "Courte note facultative, par ex. « footing du matin ».",
+                idempotency_key:
+                    "Clé facultative pour qu'une nouvelle tentative n'ajoute pas l'entrée deux fois.",
+            },
+            example:
+                "J'ai brûlé 420 calories actives pendant mon footing ce matin",
+        },
+        get_active_calories: {
+            description:
+                "Liste l'énergie dépensée à l'effort (calories actives) pour une date ou une période : heure locale, kcal, part comptée dans les calories ingérées, note et identifiant de chaque entrée, avec les totaux brûlés et comptés pour chaque jour. Par défaut, aujourd'hui. Une période couvre au plus 31 jours.",
+            params: {
+                date: "Une date (AAAA-MM-JJ). À utiliser seule, ou avec start_date et end_date, pas les deux.",
+                start_date: "Premier jour de la période (AAAA-MM-JJ), inclus.",
+                end_date: "Dernier jour de la période (AAAA-MM-JJ), inclus.",
+            },
+            example:
+                "Combien de calories actives ai-je brûlées cette semaine ?",
+        },
+        delete_active_calories: {
+            description:
+                "Supprime une entrée de calories actives ajoutée par erreur. Les calories ingérées et l'objectif calorique ne sont pas modifiés.",
+            params: {
+                id: "UUID de l'entrée de calories actives à supprimer",
+            },
+            example: "Supprime la dernière entrée de calories actives",
         },
         log_weight: {
             description:
@@ -631,6 +664,16 @@ export const TOOLS_FR: ToolsDoc = {
             },
             example:
                 "Commence à suivre ma consommation d'alcool, en unités britanniques",
+        },
+        set_activity_credit: {
+            description:
+                "Choisis la part des calories actives (énergie dépensée à l'effort) qui compte dans les calories ingérées, de 0 à 100 %, ou remets-la à 100 % par défaut avec null. Elle s'applique aux entrées enregistrées à partir de maintenant ; les entrées déjà enregistrées gardent leur part. L'objectif calorique ne change jamais.",
+            params: {
+                percent:
+                    "Nombre entier de 0 à 100, ou null pour revenir à 100.",
+            },
+            example:
+                "Déduis 50 % de mes calories actives des calories ingérées",
         },
         delete_account: {
             description:

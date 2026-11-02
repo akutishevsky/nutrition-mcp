@@ -165,6 +165,17 @@ export const SATURATED_FAT_META_KEY = "nutrition-mcp.com/saturated-fat";
 export const SODIUM_META_KEY = "nutrition-mcp.com/sodium";
 
 /**
+ * `_meta` key for active calories (energy burned in exercise), on
+ * get_nutrition_summary and get_trends: `{ v: 1, days: [{ date, burned_kcal,
+ * credited_kcal }] }` built by activityMetaFromDays (src/activity.ts), only for
+ * days in the tool's period that carry activity, ascending by date. Omitted
+ * entirely when there is none. Same reason for `_meta`: output schemas are
+ * frozen. The nutrition-summary and trends templates read it; each repeats
+ * this literal, as any other widget that draws activity must.
+ */
+export const ACTIVITY_META_KEY = "nutrition-mcp.com/activity";
+
+/**
  * `_meta` key for each breakdown row's local clock time, on log_meal,
  * update_meal, log_saved_meal and get_nutrition_summary:
  * `{ v: 1, times: ["HH:MM", …], current? }` built by buildMealTimesMeta

@@ -133,6 +133,10 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         statPeakDay: "Піковий день",
         statLoggedDays: "Із записами",
         statOfDays: "з {n} днів",
+        activityBurned: "Спалено {v}",
+        activityCredited: "враховано {v}",
+        activityNet: "нетто {v}",
+        activityAvg: "у середньому за день: {line}",
         gaugeAriaToday:
             "{eaten} з {goal} ккал сьогодні, {pct}% цілі, {status}.",
         gaugeAriaThatDay:
@@ -558,6 +562,8 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
             caffeine: "Кофеїн",
             water: "Вода",
             alcohol: "Алкоголь",
+            burned: "Активні калорії",
+            net: "Нетто-споживання",
         },
         metricInTitle: {
             calories: "калорії",
@@ -573,6 +579,8 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
             caffeine: "кофеїн",
             water: "вода",
             alcohol: "алкоголь",
+            burned: "активних калорій",
+            net: "нетто-споживання",
         },
         pill: "{n} д",
         pillAria: "Показати {n} днів",

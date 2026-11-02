@@ -9,6 +9,7 @@ import {
 } from "bun:test";
 import {
     buildAccountCsv,
+    buildActiveCaloriesCsv,
     buildBodyMeasurementsCsv,
     buildConnectionsCsv,
     buildExportReadme,
@@ -793,6 +794,7 @@ function profile(overrides: Partial<Profile> = {}): Profile {
         preferred_drink_unit: "us",
         locale: null,
         preferred_length_unit: null,
+        activity_credit_pct: null,
         created_at: "2026-01-02T14:30:00.000Z",
         updated_at: "2026-06-20T14:30:00.000Z",
         ...overrides,
@@ -807,7 +809,7 @@ const GOALS_HEADER =
 const GOALS_HISTORY_HEADER =
     "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_sodium_mg,daily_water_ml,target_weight_g";
 const PROFILE_HEADER =
-    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit";
+    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit,activity_credit_pct";
 const BODY_MEASUREMENT_HEADER =
     "id,logged_at,timezone,kind,value_mm,value_entered,entered_unit,notes,created_at";
 
@@ -1206,6 +1208,8 @@ test("every profile value lands under its own header name", () => {
         updated_at: "2026-06-20 16:30:00",
         // Never ran set_length_unit: empty, not derived from the weight unit.
         preferred_length_unit: "",
+        // Never chosen: empty, the same as the other unset preferences.
+        activity_credit_pct: "",
     });
 });
 
@@ -1274,6 +1278,7 @@ const README_OPTS = {
         savedMeals: 9,
         savedMealItems: 14,
         water: 45,
+        activeCalories: 5,
         weight: 12,
         bodyMeasurements: 7,
         goalsHistory: 4,
@@ -2001,6 +2006,7 @@ test("EXPORT_ARCHIVE_FILES is the archive's real, ordered file list", () => {
         "saved_meals.csv",
         "saved_meal_items.csv",
         "water.csv",
+        "active_calories.csv",
         "weight.csv",
         "body_measurements.csv",
         "goals.csv",
@@ -2025,6 +2031,7 @@ test("an archive assembled from the builders reads back file for file", () => {
         "saved_meals.csv": buildSavedMealsCsv([savedMeal()], tz),
         "saved_meal_items.csv": buildSavedMealItemsCsv([savedMealItem()]),
         "water.csv": buildWaterCsv([water()], tz),
+        "active_calories.csv": buildActiveCaloriesCsv([activeCalories()], tz),
         "weight.csv": buildWeightCsv([weight()], tz, "kg"),
         "body_measurements.csv": buildBodyMeasurementsCsv([measurement()], tz),
         "goals.csv": buildGoalsCsv(goals(), tz),
@@ -2060,6 +2067,7 @@ test("an archive assembled from the builders reads back file for file", () => {
         "saved_meals.csv",
         "saved_meal_items.csv",
         "water.csv",
+        "active_calories.csv",
         "weight.csv",
         "body_measurements.csv",
         "goals_history.csv",
@@ -2411,4 +2419,70 @@ test("the README describes the provenance columns", () => {
     expect(readme).toContain("nutrient_sources");
     expect(readme).toContain("source_detail");
     expect(readme).toContain("provenance_version");
+});
+
+// ---------- active calories (issue #220) ----------
+
+function activeCalories(
+    overrides: Partial<{
+        id: string;
+        logged_at: string;
+        kcal: number;
+        credit_pct: number;
+        notes: string | null;
+        created_at: string;
+    }> = {},
+) {
+    return {
+        id: "33333333-3333-3333-3333-333333333333",
+        logged_at: "2026-06-20T14:30:00.000Z",
+        kcal: 400,
+        credit_pct: 80,
+        notes: null,
+        created_at: "2026-06-20T14:30:05.000Z",
+        ...overrides,
+    };
+}
+
+const ACTIVE_CALORIES_HEADER =
+    "id,logged_at,timezone,kcal,credit_pct,credited_kcal,notes,created_at";
+
+test("active_calories.csv header names every column, the credited figure included", () => {
+    expect(buildActiveCaloriesCsv([], "UTC")).toBe(ACTIVE_CALORIES_HEADER);
+});
+
+test("active_calories.csv header and data rows have identical field counts", () => {
+    const rows = parseCsv(
+        buildActiveCaloriesCsv(
+            [activeCalories(), activeCalories({ notes: 'a, "b"\nc' })],
+            "UTC",
+        ),
+    );
+    expect(rows[0]!.length).toBe(ACTIVE_CALORIES_HEADER.split(",").length);
+    expect(rows).toHaveLength(3);
+    for (const row of rows.slice(1)) {
+        expect(row.length).toBe(rows[0]!.length);
+    }
+});
+
+test("active_calories.csv credited_kcal is the rounded share, and the zone rides beside the clock", () => {
+    const f = fieldsByName(
+        buildActiveCaloriesCsv(
+            [
+                activeCalories({
+                    logged_at: "2026-06-20T23:30:00.000Z",
+                    kcal: 333,
+                    credit_pct: 50,
+                }),
+            ],
+            "Asia/Tokyo",
+        ),
+    );
+    expect(f.logged_at).toBe("2026-06-21 08:30:00");
+    expect(f.timezone).toBe("Asia/Tokyo");
+    expect(f.kcal).toBe("333");
+    expect(f.credit_pct).toBe("50");
+    // 333 * 50 / 100 = 166.5, rounded to a whole kcal.
+    expect(f.credited_kcal).toBe("167");
+    expect(f.notes).toBe("");
 });
