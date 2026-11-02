@@ -1876,6 +1876,12 @@ const LOGGED_AT_OMIT_IF_NOW =
 const LOGGED_AT_OMITTED_PLAIN =
     " Omitted, the server stamps the entry with the current time in the user's timezone; get_current_time returns the user's local clock.";
 
+// Plural of the noun the idempotency descriptions name: "entries" for "entry",
+// "meals" for "meal", and so on.
+function pluralOf(entry: string): string {
+    return entry === "entry" ? "entries" : `${entry}s`;
+}
+
 // What the derived "auto:" key really guarantees: it hashes the RESOLVED
 // logged_at, and an omitted logged_at resolves to the arrival instant (ms), so
 // replaying a "just now" call is a NEW entry. Deliberately not fixed with a
@@ -1889,7 +1895,7 @@ function idempotencyKeyDescription(
     return (
         `Optional key that makes a retry safe. Without one, the server derives a key from the ${entry}'s content and its resolved logged_at: replaying a call that carries an explicit logged_at returns the original ${entry} instead of adding another, but a call that omits logged_at is stamped with the moment it arrives, so replaying it adds a new ${entry}. ` +
         `If a call that omits logged_at may need to be retried (for example after a timeout), pass any unique string here, such as a UUID, and send the same value on the retry. ` +
-        `Two genuinely separate ${entry}s with identical content and the same logged_at are also treated as one — ${sameTimeAdvice}. Never reuse a key for a different ${entry}.`
+        `Two genuinely separate ${pluralOf(entry)} with identical content and the same logged_at are also treated as one — ${sameTimeAdvice}. Never reuse a key for a different ${entry}.`
     );
 }
 
@@ -1900,7 +1906,7 @@ function idempotencyKeyDescriptionPlain(entry: string): string {
     return (
         `Optional key that makes a retry safe. Without one, the server derives a key from the ${entry}'s content and its resolved logged_at: replaying a call that carries an explicit logged_at returns the original ${entry} instead of adding another, but a call that omits logged_at is stamped with the moment it arrives, so replaying it adds a new ${entry}. ` +
         `A call that repeats an earlier key, such as a retry after a timeout, returns the ${entry} that key already recorded rather than adding another, so any unique string (a UUID, for example) serves. ` +
-        `Two separate ${entry}s with identical content and the same logged_at are treated as one unless their logged_at values or keys differ, and a key repeated for a different ${entry} returns the earlier one instead of recording the new one.`
+        `Two separate ${pluralOf(entry)} with identical content and the same logged_at are treated as one unless their logged_at values or keys differ, and a key repeated for a different ${entry} returns the earlier one instead of recording the new one.`
     );
 }
 
@@ -4407,16 +4413,44 @@ export function registerTools(
 
                     const goalsPayload = goalsPayloadOf(goals, alcohol);
 
-                    if (
-                        meals.length === 0 &&
-                        water.length === 0 &&
-                        activity.length === 0
-                    ) {
+                    // Activity alone never makes a day logged: logged_days and
+                    // the averages count meal or water days only, as before
+                    // active calories existed. Activity-only days get a text
+                    // section (and the range activity line), not a day entry.
+                    const activityOnlySection = (date: string): string => {
+                        const dayActivity = activityByDay.get(date);
+                        return `## ${date} (0 meals)${
+                            dayActivity
+                                ? `\n${activityDayLine({
+                                      totals: dayActivity,
+                                      intakeKcal: null,
+                                      goalKcal: goals?.daily_calories ?? null,
+                                  })}`
+                                : ""
+                        }`;
+                    };
+                    // Across a range, the window's activity totals and the daily
+                    // average; a single day already has its own line above.
+                    const activityNote =
+                        activity.length > 0 && start_date !== end_date
+                            ? `\n\n${activityRangeLine({
+                                  totals: sumActivity(activity),
+                                  activeDays: activityByDay.size,
+                                  daysInRange,
+                              })}`
+                            : "";
+
+                    if (meals.length === 0 && water.length === 0) {
+                        const activityDates = [...activityByDay.keys()].sort();
+                        const emptyText = `No meals or water logged between ${start_date} and ${end_date}.`;
                         return {
                             content: [
                                 {
                                     type: "text",
-                                    text: `No meals or water logged between ${start_date} and ${end_date}.`,
+                                    text:
+                                        activityDates.length > 0
+                                            ? `${emptyText}\n\n${activityDates.map(activityOnlySection).join("\n\n")}${activityNote}`
+                                            : emptyText,
                                 },
                             ],
                             structuredContent: {
@@ -4492,12 +4526,6 @@ export function registerTools(
                         );
                         if (!byDate.has(date)) byDate.set(date, []);
                     }
-                    // A day with activity but no meals or water still gets its
-                    // section, as a water-only day does: it is not dropped.
-                    for (const date of activityByDay.keys()) {
-                        if (!byDate.has(date)) byDate.set(date, []);
-                    }
-
                     const sections: string[] = [];
                     const days: Array<
                         ReturnType<typeof totalsPayloadOf> & {
@@ -4509,9 +4537,17 @@ export function registerTools(
                         meals: Meal[];
                         totals: DailyTotals;
                     }> = [];
-                    for (const [date, dateMeals] of [
-                        ...byDate.entries(),
-                    ].sort()) {
+                    // Every logged day, plus the activity-only days, which
+                    // get a text section but no entry in days or logged_days.
+                    const sectionDates = [
+                        ...new Set([...byDate.keys(), ...activityByDay.keys()]),
+                    ].sort();
+                    for (const date of sectionDates) {
+                        const dateMeals = byDate.get(date);
+                        if (!dateMeals) {
+                            sections.push(activityOnlySection(date));
+                            continue;
+                        }
                         const totals = sumMeals(dateMeals);
                         totals.water_ml = waterByDate.get(date) ?? 0;
                         // Which nutrients this day actually recorded, so a
@@ -4644,17 +4680,6 @@ export function registerTools(
                         (goals
                             ? ""
                             : "\n\n(Tip: set daily targets with set_nutrition_goals to see progress percentages.)");
-
-                    // Across a range, the window's activity totals and the daily
-                    // average; a single day already has its own line above.
-                    const activityNote =
-                        activity.length > 0 && start_date !== end_date
-                            ? `\n\n${activityRangeLine({
-                                  totals: sumActivity(activity),
-                                  activeDays: activityByDay.size,
-                                  daysInRange,
-                              })}`
-                            : "";
 
                     return {
                         content: [

@@ -2891,6 +2891,37 @@ describe("log_meal and update_meal round-trip caffeine_mg", () => {
         });
     });
 
+    // The idempotency-key text pluralises its noun per tool: "entries" for the
+    // "entry" tools, "meals" / "measurements" for the others. "entrys" is a
+    // typo that once shipped to the directory-listed tool descriptions.
+    test("advertised idempotency descriptions pluralise the noun correctly", async () => {
+        const server = new McpServer(
+            { name: "t", version: "0.0.0" },
+            { capabilities: { tools: {}, resources: {} } },
+        );
+        registerTools(server, "u1", true, null);
+        const [ct, st] = InMemoryTransport.createLinkedPair();
+        const client = new Client({ name: "c", version: "0.0.0" });
+        await Promise.all([server.connect(st), client.connect(ct)]);
+        const { tools } = await client.listTools();
+        await client.close();
+        await server.close();
+
+        expect(JSON.stringify(tools)).not.toContain("entrys");
+        const schemaOf = (name: string) =>
+            JSON.stringify(tools.find((t) => t.name === name)?.inputSchema);
+        expect(schemaOf("log_water")).toContain(
+            "Two genuinely separate entries",
+        );
+        expect(schemaOf("log_active_calories")).toContain(
+            "Two genuinely separate entries",
+        );
+        expect(schemaOf("log_meal")).toContain("Two genuinely separate meals");
+        expect(schemaOf("log_body_measurement")).toContain(
+            "Two separate measurements",
+        );
+    });
+
     // CONTRACT: no caffeine_tracking_enabled, no tool pair, no nudge. Alcohol
     // has all three because surfacing trace alcohol to someone in recovery is a
     // real harm; caffeine has no equivalent, and inventing a settings surface
@@ -13222,7 +13253,12 @@ describe("active calories on the read tools", () => {
                 end_date: DAY,
             });
             const text = textOf(r);
-            expect(text).not.toContain("No meals or water logged");
+            // Activity alone is not a logged day: the day keeps its text
+            // section and activity line, but structuredContent is what it was
+            // before active calories existed (no logged day, no day entry).
+            expect(text).toContain(
+                `No meals or water logged between ${DAY} and ${DAY}.`,
+            );
             expect(text).toContain(`## ${DAY} (0 meals)`);
             expect(text).toContain(
                 "Active calories: burned 400 kcal, credited 320 (80%). No meals logged, so there is no net intake to report.",
@@ -13231,11 +13267,82 @@ describe("active calories on the read tools", () => {
                 logged_days: number;
                 days: { date: string; meal_count: number }[];
             };
-            expect(sc.logged_days).toBe(1);
-            expect(sc.days).toEqual([
-                expect.objectContaining({ date: DAY, meal_count: 0 }),
-            ]);
+            expect(sc.logged_days).toBe(0);
+            expect(sc.days).toEqual([]);
         });
+    });
+
+    test("an activity-only day is not a logged day: logged_days and the averages count the meal day alone", async () => {
+        db.meals = [
+            meal({ logged_at: "2026-07-25T12:00:00.000Z", calories: 2100 }),
+        ];
+        db.goals = goals({ daily_calories: 2000 });
+        db.activeEntries = [ACTIVE_ROW()];
+        await withTools(null, async (call) => {
+            const r = await call("get_nutrition_summary", {
+                start_date: "2026-07-25",
+                end_date: DAY,
+            });
+            expect(r.isError).toBeFalsy();
+            const sc = r.structuredContent as {
+                logged_days: number;
+                days_in_range: number;
+                days: { date: string }[];
+                averages: { calories: number };
+            };
+            expect(sc.logged_days).toBe(1);
+            expect(sc.days_in_range).toBe(2);
+            expect(sc.days.map((d) => d.date)).toEqual(["2026-07-25"]);
+            // One logged day, so the average is that day's 2,100 kcal, not
+            // 1,050 over the two calendar days.
+            expect(sc.averages.calories).toBe(2100);
+            const text = textOf(r);
+            expect(text).toContain(`## ${DAY} (0 meals)`);
+            expect(text).toContain(
+                "Active calories: burned 400 kcal, credited 320 (80%). No meals logged, so there is no net intake to report.",
+            );
+            expect(text).toContain(
+                "(Daily averages are per logged day — 1 of the 2 days in range.",
+            );
+            expect(r._meta?.[ACTIVITY_META_KEY]).toEqual({
+                v: 1,
+                days: [{ date: DAY, burned_kcal: 400, credited_kcal: 320 }],
+            });
+        });
+    });
+
+    // Activity is a text and _meta addition only. Every read tool's
+    // structuredContent must be exactly what it is with no activity rows at
+    // all, for an activity-only day and for a range holding one.
+    test("activity leaves structuredContent unchanged on every read tool", async () => {
+        db.meals = [
+            meal({ logged_at: "2026-07-25T12:00:00.000Z", calories: 2100 }),
+        ];
+        db.goals = goals({ daily_calories: 2000 });
+        const calls: Array<[string, Record<string, unknown>]> = [
+            [
+                "get_nutrition_summary",
+                { start_date: "2026-07-25", end_date: DAY },
+            ],
+            ["get_nutrition_summary", { start_date: DAY, end_date: DAY }],
+            ["get_goal_progress", { date: DAY }],
+            ["get_goal_progress", { date: "2026-07-25" }],
+            ["get_trends", { days: 7, end_date: DAY }],
+        ];
+        await withTools(null, async (call) => {
+            for (const [name, args] of calls) {
+                db.activeEntries = [ACTIVE_ROW()];
+                const withActivity = await call(name, args);
+                db.activeEntries = [];
+                const without = await call(name, args);
+                expect(withActivity.isError).toBeFalsy();
+                expect(without.isError).toBeFalsy();
+                expect(withActivity.structuredContent).toEqual(
+                    without.structuredContent,
+                );
+            }
+        });
+        db.activeEntries = [];
     });
 
     test("a range's summary adds the window totals and a daily average over the range", async () => {

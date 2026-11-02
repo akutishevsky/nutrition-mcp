@@ -41,6 +41,18 @@ describe("bounds", () => {
         expect(activeKcalError(Number.NaN)).not.toBeNull();
     });
 
+    test("a below-range kcal gets the range alone; an above-range one also gets the one-period hint", () => {
+        expect(activeKcalError(0)).toBe(
+            "kcal must be between 1 and 10000 (got 0).",
+        );
+        expect(activeKcalError(-5)).toBe(
+            "kcal must be between 1 and 10000 (got -5).",
+        );
+        expect(activeKcalError(10_001)).toBe(
+            "kcal must be between 1 and 10000 (got 10001). Log one workout or activity period per entry.",
+        );
+    });
+
     test("credit percentage runs from 0 to 100 as whole numbers", () => {
         expect(creditPctError(0)).toBeNull();
         expect(creditPctError(100)).toBeNull();
