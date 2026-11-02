@@ -6,6 +6,7 @@ import {
     getAllSavedMeals,
     getAllSavedMealItems,
     getAllWater,
+    getAllActiveCalories,
     getAllWeight,
     getAllBodyMeasurements,
     getAllOAuthGrants,
@@ -43,6 +44,7 @@ import {
     type SourceDetail,
 } from "./provenance.js";
 import { formatLocalDateTime, validateTz } from "./tz.js";
+import { creditedKcal, type ActivityEntry } from "./activity.js";
 import { fromGrams, isWeightUnit, type WeightUnit } from "./units.js";
 import { buildZip, type ZipEntry } from "./zip.js";
 
@@ -463,6 +465,55 @@ export function buildWaterCsv(entries: WaterEntry[], tz: string): string {
 }
 
 /**
+ * Column order for active_calories.csv. Parallel-array contract as for
+ * WATER_CSV_COLUMNS: edit this list and the row builder together.
+ *
+ * `kcal` and `credited_kcal` carry their unit in the name, as water's
+ * amount_ml does. `credit_pct` is the share in force when the entry was logged
+ * (a snapshot, not the current preference), so `credited_kcal` is the figure
+ * that counted against intake and it is derivable from the row alone.
+ */
+const ACTIVE_CALORIES_CSV_COLUMNS = [
+    "id",
+    "logged_at",
+    "timezone",
+    "kcal",
+    "credit_pct",
+    "credited_kcal",
+    "notes",
+    "created_at",
+] as const;
+
+/** Build active_calories.csv, timestamps rendered in `tz`. Header-only when
+ * there are no entries. */
+export function buildActiveCaloriesCsv(
+    entries: (ActivityEntry & {
+        id: string;
+        notes: string | null;
+        created_at: string;
+    })[],
+    tz: string,
+): string {
+    const rows = [ACTIVE_CALORIES_CSV_COLUMNS.join(",")];
+    for (const e of entries) {
+        rows.push(
+            [
+                csvEscape(e.id),
+                csvEscape(formatLocalDateTime(e.logged_at, tz)),
+                // The zone travels beside the wall clock, as in every file (#97).
+                csvEscape(tz),
+                csvEscape(e.kcal),
+                csvEscape(e.credit_pct),
+                csvEscape(creditedKcal(e.kcal, e.credit_pct)),
+                csvEscape(e.notes),
+                csvEscape(localOrNull(e.created_at, tz)),
+            ].join(","),
+        );
+    }
+    return rows.join("\n");
+}
+
+/**
  * Column order for weight.csv. Parallel array with the row builder below.
  *
  * Three weight columns rather than one: `weight_g` is what the DB actually
@@ -692,8 +743,11 @@ const PROFILE_CSV_COLUMNS = [
     "created_at",
     "updated_at",
     // Raw: empty means set_length_unit never ran; never derived from the
-    // weight unit. Appended last so every earlier column keeps its position.
+    // weight unit. Appended so every earlier column keeps its position.
     "preferred_length_unit",
+    // Raw: empty means set_activity_credit never ran, which counts as 100.
+    // The share in force for past entries is on their own rows, not here.
+    "activity_credit_pct",
 ] as const;
 
 /**
@@ -721,6 +775,7 @@ export function buildProfileCsv(profile: Profile | null, tz: string): string {
                 csvEscape(formatLocalDateTime(profile.created_at, tz)),
                 csvEscape(formatLocalDateTime(profile.updated_at, tz)),
                 csvEscape(profile.preferred_length_unit),
+                csvEscape(profile.activity_credit_pct),
             ].join(","),
         );
     }
@@ -1019,6 +1074,7 @@ export const EXPORT_ARCHIVE_FILES = [
     "saved_meals.csv",
     "saved_meal_items.csv",
     "water.csv",
+    "active_calories.csv",
     "weight.csv",
     "body_measurements.csv",
     "goals.csv",
@@ -1072,11 +1128,12 @@ export function buildExportReadme(opts: {
         `saved_meals.csv ${rows(counts.savedMeals)} — your saved meals: name, description, default meal type and the values for one serving, when each was created and last changed (in its "timezone" column's zone). Editing or deleting a saved meal does not change meals you already logged from it.`,
         `saved_meal_items.csv ${rows(counts.savedMealItems)} — the ingredients of saved meals, one row per ingredient, joined to saved_meals.csv by saved_meal_id. When a saved meal has ingredients, its values in saved_meals.csv are their sum, rounded the same way: calories to a whole number, the other values to two decimals. Each ingredient carries its own nutrient_sources and source_detail, as described under "Where the values came from".`,
         `water.csv    ${rows(counts.water)} — every water entry, in millilitres.`,
+        `active_calories.csv ${rows(counts.activeCalories)} — every entry of energy burned in exercise (active calories) as logged: the kilocalories burned, the credit_pct share that counted against intake at the time it was logged, and credited_kcal (that share of the burn, rounded). Burned energy is kept beside your intake and never changed your calorie goal.`,
         `weight.csv   ${rows(counts.weight)} — every weigh-in, as stored grams and as ${weightUnit}.`,
         `body_measurements.csv ${rows(counts.bodyMeasurements)} — every body measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf): the stored millimetres, and the value exactly as entered with its unit (cm or in).`,
         "goals.csv    your current daily targets — one row, or a header alone if you have never set goals.",
         `goals_history.csv ${rows(counts.goalsHistory)} — every change to your daily targets, oldest first: when the new values took effect (effective_at) and the targets from then on, in the same columns and units as goals.csv. Goals set before this history was kept appear once, as of their last change.`,
-        "profile.csv  your settings: timezone, preferred weight, length and drink units (empty preferred_length_unit = never chosen), display toggles and widget language — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
+        "profile.csv  your settings: timezone, preferred weight, length and drink units (empty preferred_length_unit = never chosen), display toggles, widget language and activity_credit_pct (the share of active calories that counts against intake for entries logged from now on; empty = never chosen, which counts as 100) — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
         'account.csv  your sign-in account: one "account" row (account id, email address, when the account was created, when the email was confirmed, last sign-in, sign-in methods) and one "identity" row per sign-in method (the provider, the provider\'s id for you, and any name or picture it sent — Google accounts created before September 27, 2026 may still hold them).',
         `telemetry.csv ${rows(counts.telemetry)} — one per tool call your AI app made: which tool, when, whether it succeeded, how long it took, the error category if it failed, the date-range length asked for, the MCP session id, the protocol revision and the app name it reported. None of it contains what you logged.`,
         `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty. If Apple Health sync is connected, its link is one more row of kind "health_sync": when it was created, last used and last synced, when it expires, which totals it sends (synced_fields), the first day it may send (sync_start_date) and the iPhone's own timezone (device_timezone, a saved setting — the timestamps are still in the "timezone" column's zone). Its token is not included either.`,
@@ -1098,6 +1155,7 @@ export function buildExportReadme(opts: {
         "  * caffeine_mg and daily_caffeine_mg are MILLIGRAMS, unlike every gram column beside them. A cup of coffee is about 95 mg.",
         "  * sodium_mg and daily_sodium_mg are MILLIGRAMS of sodium, not salt (1 g of salt holds about 400 mg of sodium). daily_sodium_mg is the daily limit for sodium.",
         "  * amount_ml, daily_water_ml and water_ml are millilitres.",
+        "  * active_calories.csv kcal and credited_kcal are kilocalories, and credit_pct is a whole percentage (0 to 100). credited_kcal is kcal × credit_pct ÷ 100, rounded to a whole kcal: the part of the burn that counted against intake.",
         `  * weight_g and target_weight_g are grams — the canonical form the server stores. weight.csv also gives weight_display in ${weightUnit}, with weight_unit naming it, so you do not have to divide anything by hand.`,
         "  * value_mm is millimetres, the canonical stored form; value_entered is the number as typed, in entered_unit.",
         "  * calories and energy_kcal are kcal.",
@@ -1106,7 +1164,7 @@ export function buildExportReadme(opts: {
         "Re-importing",
         "------------",
         "Only meals.csv can be read back in. Hand it to start_meal_import (which parses it in your browser) or to bulk_import_meals; its column names are exactly the ones the importer expects, and re-importing the same file twice is a no-op rather than a set of duplicates.",
-        "Every other file is export-only — there is no import path for meal ingredients, saved meals, water, weight, body measurements, goals, profile, account, telemetry, connections or Apple Health sync, so keep this archive if you want that history back.",
+        "Every other file is export-only — there is no import path for meal ingredients, saved meals, water, active calories, weight, body measurements, goals, profile, account, telemetry, connections or Apple Health sync, so keep this archive if you want that history back.",
         "",
         "Not in this archive",
         "-------------------",
@@ -1114,7 +1172,7 @@ export function buildExportReadme(opts: {
         "  * the server runtime log — a short rolling buffer of requests that does not contain your account id or email, so it cannot be looked up by account;",
         "  * our providers' own short-lived operational logs (including the sign-in provider's audit records) and their rolling backups, which age out on their own schedule;",
         "  * values kept only as one-way hashes for security: your password (held by the sign-in provider, which never returns it) and your tokens and sign-in codes, including the Apple Health sync token (which also sits, unhashed, in the shortcut on your own devices);",
-        "  * internal bookkeeping: the de-duplication keys stored beside meals, water, weight and body measurement entries, the PKCE challenge of a pending sign-in, and Apple Health sync's lock against two syncs at once, its per-day count of how often a day was offered and its record of which notices were shown;",
+        "  * internal bookkeeping: the de-duplication keys stored beside meals, water, active calories, weight and body measurement entries, the PKCE challenge of a pending sign-in, and Apple Health sync's lock against two syncs at once, its per-day count of how often a day was offered and its record of which notices were shown;",
         "  * a pending Apple Health sync connect request, which lasts at most 30 minutes and is deleted once the shortcut finishes connecting;",
         "  * a sign-in session record at our sign-in provider (IP address and browser), if one was ever left behind after sign-in; it is deleted with your account.",
         "",
@@ -1130,6 +1188,8 @@ export interface ExportCounts {
     /** Rows in saved_meal_items.csv: ingredients of saved meals. */
     savedMealItems: number;
     water: number;
+    /** Rows in active_calories.csv. */
+    activeCalories: number;
     weight: number;
     bodyMeasurements: number;
     /** Rows in goals_history.csv. */
@@ -1184,6 +1244,7 @@ export async function exportAllData(
         savedMeals,
         savedMealItems,
         water,
+        activeCalories,
         weight,
         bodyMeasurements,
         goals,
@@ -1200,6 +1261,7 @@ export async function exportAllData(
         getAllSavedMeals(userId),
         getAllSavedMealItems(userId),
         getAllWater(userId),
+        getAllActiveCalories(userId),
         getAllWeight(userId),
         getAllBodyMeasurements(userId),
         getNutritionGoals(userId),
@@ -1218,6 +1280,7 @@ export async function exportAllData(
         savedMeals: savedMeals.length,
         savedMealItems: savedMealItems.length,
         water: water.length,
+        activeCalories: activeCalories.length,
         weight: weight.length,
         bodyMeasurements: bodyMeasurements.length,
         goalsHistory: goalsHistory.length,
@@ -1267,6 +1330,7 @@ export async function exportAllData(
         "saved_meals.csv": buildSavedMealsCsv(savedMeals, tz),
         "saved_meal_items.csv": buildSavedMealItemsCsv(savedMealItems),
         "water.csv": buildWaterCsv(water, tz),
+        "active_calories.csv": buildActiveCaloriesCsv(activeCalories, tz),
         "weight.csv": buildWeightCsv(weight, tz, weightUnit),
         "body_measurements.csv": buildBodyMeasurementsCsv(bodyMeasurements, tz),
         "goals.csv": buildGoalsCsv(goals, tz),

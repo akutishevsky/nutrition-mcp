@@ -727,6 +727,13 @@ export interface WidgetStrings {
         statLoggedDays: string;
         /** Small text after the logged-days stat. Placeholder: {n}. */
         statOfDays: string;
+        /** Active calories under the gauge (src/activity.ts). Placeholder: {v}. */
+        activityBurned: string;
+        /** Calories counted against intake. Placeholder: {v}. */
+        activityCredited: string;
+        activityNet: string;
+        /** The line over a range's daily average. Placeholder: {line}. */
+        activityAvg: string;
         /** aria-label of the gauge. Placeholders: {eaten}, {goal}, {pct}, {status} ("600 kcal left"). */
         gaugeAriaToday: string;
         gaugeAriaThatDay: string;
@@ -1090,6 +1097,8 @@ export interface WidgetStrings {
             caffeine: string;
             water: string;
             alcohol: string;
+            burned: string;
+            net: string;
         };
         /** The nutrient word inside titleMetric (lower case in English). */
         metricInTitle: {
@@ -1106,6 +1115,8 @@ export interface WidgetStrings {
             caffeine: string;
             water: string;
             alcohol: string;
+            burned: string;
+            net: string;
         };
         /** Range pill label. Placeholder: {n}. Keep it to about four characters. */
         pill: string;
@@ -1796,6 +1807,10 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         statPeakDay: "Peak day",
         statLoggedDays: "Logged",
         statOfDays: "of {n} days",
+        activityBurned: "Burned {v}",
+        activityCredited: "credited {v}",
+        activityNet: "net {v}",
+        activityAvg: "avg/day: {line}",
         gaugeAriaToday:
             "{eaten} of {goal} kcal today, {pct}% of goal, {status}.",
         gaugeAriaThatDay:
@@ -2139,6 +2154,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             caffeine: "Caffeine",
             water: "Water",
             alcohol: "Alcohol",
+            burned: "Burned",
+            net: "Net intake",
         },
         metricInTitle: {
             calories: "calorie",
@@ -2154,6 +2171,8 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
             caffeine: "caffeine",
             water: "water",
             alcohol: "alcohol",
+            burned: "burned",
+            net: "net intake",
         },
         pill: "{n}d",
         pillAria: "Show {n} days",

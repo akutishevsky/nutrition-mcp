@@ -11,11 +11,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_ES: ToolsDoc = {
     meta: {
-        title: "49 herramientas: calorías, macros, agua y peso",
+        title: "53 herramientas: calorías, macros, agua y peso",
         description:
-            "Las 49 herramientas de Nutrition MCP para Claude, ChatGPT y más: registra comidas, guarda las que comes a menudo, agua, peso y medidas corporales, escanea códigos e importa CSV de MyFitnessPal o Cronometer.",
+            "Las 53 herramientas de Nutrition MCP para Claude, ChatGPT y más: registra comidas, guarda las que comes a menudo, agua, peso y medidas corporales, escanea códigos e importa CSV de MyFitnessPal o Cronometer.",
         ogDescription:
-            "Las 49 herramientas que el servidor Nutrition MCP da a tu IA, de las comidas guardadas a un importador CSV para tu historial, con descripciones y ejemplos.",
+            "Las 53 herramientas que el servidor Nutrition MCP da a tu IA, de las comidas guardadas a un importador CSV para tu historial, con descripciones y ejemplos.",
     },
     hero: {
         eyebrow: "Referencia",
@@ -23,7 +23,7 @@ export const TOOLS_ES: ToolsDoc = {
         titleEm: "hacer",
         titleAfterEm: "",
         lead: "Nunca tienes que usar estas herramientas tú mismo: basta con hablar con Claude, ChatGPT u otro cliente MCP, y él elige la adecuada. Aquí tienes todas las herramientas que ofrece el servidor Nutrition MCP para comidas y comidas guardadas, calorías y macros, agua y peso, con lo que hace cada una y una frase que la activa.",
-        countBold: "49 herramientas",
+        countBold: "53 herramientas",
         countTail: "en 7 áreas",
     },
     categories: {
@@ -351,7 +351,7 @@ export const TOOLS_ES: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Exporta en un único ZIP todo lo que el servicio guarda sobre ti: meals.csv, meal_items.csv (los ingredientes de cada comida registrada), saved_meals.csv y saved_meal_items.csv (tus comidas guardadas y sus ingredientes), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (cada cambio de tus objetivos, con fecha), profile.csv, account.csv (tu cuenta de inicio de sesión), telemetry.csv (registros de uso de herramientas), connections.csv (tus apps de IA conectadas y la sincronización con Apple Health, sin ningún token), health_sync.csv (lo que la sincronización con Apple Health envió en los últimos 8 días) y un README.txt que explica las columnas, las unidades y lo que no se incluye. Te devuelve un enlace de descarga privado, válido durante 60 minutos. Por ahora, las comidas son lo único que se puede volver a importar.",
+                "Exporta en un único ZIP todo lo que el servicio guarda sobre ti: meals.csv, meal_items.csv (los ingredientes de cada comida registrada), saved_meals.csv y saved_meal_items.csv (tus comidas guardadas y sus ingredientes), water.csv, active_calories.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (cada cambio de tus objetivos, con fecha), profile.csv, account.csv (tu cuenta de inicio de sesión), telemetry.csv (registros de uso de herramientas), connections.csv (tus apps de IA conectadas y la sincronización con Apple Health, sin ningún token), health_sync.csv (lo que la sincronización con Apple Health envió en los últimos 8 días) y un README.txt que explica las columnas, las unidades y lo que no se incluye. Te devuelve un enlace de descarga privado, válido durante 60 minutos. Por ahora, las comidas son lo único que se puede volver a importar.",
             params: {},
             example: "Exporta todos mis datos: comidas, agua, peso y objetivos",
         },
@@ -382,6 +382,38 @@ export const TOOLS_ES: ToolsDoc = {
                 id: "UUID del registro de agua que quieres eliminar",
             },
             example: "Borra el último registro de agua",
+        },
+        log_active_calories: {
+            description:
+                "Registra la energía que quemas al hacer ejercicio, en kilocalorías, tal como la informa un reloj o una app de fitness (lo habitual es la cifra de «calorías activas»). Se muestra junto a las calorías consumidas y nunca cambia tu objetivo calórico. Solo cuenta contra lo consumido el porcentaje que fijes con set_activity_credit, y cada registro conserva el porcentaje vigente cuando se guardó.",
+            params: {
+                kcal: "Energía quemada en kilocalorías: un número entero de 1 a 10 000.",
+                logged_at:
+                    "Cuándo ocurrió la actividad; por defecto, ahora. Una fecha, una hora local o una hora ISO completa con desfase horario.",
+                notes: "Nota corta opcional, p. ej. «carrera de la mañana».",
+                idempotency_key:
+                    "Clave opcional para que un reintento no añada el registro dos veces.",
+            },
+            example: "Quemé 420 calorías activas en mi carrera de esta mañana",
+        },
+        get_active_calories: {
+            description:
+                "Lista la energía quemada al hacer ejercicio (calorías activas) de una fecha o de un intervalo: la hora local, las kcal, el porcentaje que contó contra lo consumido, la nota y el id de cada registro, más los totales de quemadas y contadas por día. Por defecto, hoy. Un intervalo abarca como máximo 31 días.",
+            params: {
+                date: "Una fecha (AAAA-MM-DD). Usa esta o start_date y end_date, no ambas.",
+                start_date:
+                    "Primera fecha del intervalo (AAAA-MM-DD), incluida.",
+                end_date: "Última fecha del intervalo (AAAA-MM-DD), incluida.",
+            },
+            example: "¿Cuántas calorías activas quemé esta semana?",
+        },
+        delete_active_calories: {
+            description:
+                "Elimina un registro de calorías activas que añadiste por error. No afecta a las calorías consumidas ni al objetivo calórico.",
+            params: {
+                id: "UUID del registro de calorías activas que se va a eliminar",
+            },
+            example: "Elimina el último registro de calorías activas",
         },
         log_weight: {
             description:
@@ -620,6 +652,16 @@ export const TOOLS_ES: ToolsDoc = {
             },
             example:
                 "Empieza a registrar lo que bebo, en unidades del Reino Unido",
+        },
+        set_activity_credit: {
+            description:
+                "Elige qué porcentaje de las calorías activas (energía quemada al hacer ejercicio) cuenta contra las calorías consumidas, de 0 a 100 %, o restablécelo con null al 100 % por defecto. Se aplica a los registros a partir de ahora; los ya guardados conservan el porcentaje con el que se registraron. El objetivo calórico no cambia nunca.",
+            params: {
+                percent:
+                    "Número entero de 0 a 100, o null para volver al 100 %.",
+            },
+            example:
+                "Cuenta el 50 % de mis calorías activas contra lo consumido",
         },
         delete_account: {
             description:

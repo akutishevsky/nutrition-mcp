@@ -15,11 +15,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_IT: ToolsDoc = {
     meta: {
-        title: "49 strumenti per calorie, macro, acqua e peso",
+        title: "53 strumenti per calorie, macro, acqua e peso",
         description:
-            "I 49 strumenti per Claude, ChatGPT e altre IA: registra pasti, salva i pasti che mangi spesso, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
+            "I 53 strumenti per Claude, ChatGPT e altre IA: registra pasti, salva i pasti che mangi spesso, scansiona codici a barre, importa CSV da MyFitnessPal o Cronometer, monitora acqua, peso e misure corporee.",
         ogDescription:
-            "Tutti i 49 strumenti che il server Nutrition MCP mette a disposizione della tua IA, dai pasti salvati a un importatore CSV per il tuo storico, con descrizioni ed esempi di richieste.",
+            "Tutti i 53 strumenti che il server Nutrition MCP mette a disposizione della tua IA, dai pasti salvati a un importatore CSV per il tuo storico, con descrizioni ed esempi di richieste.",
     },
     hero: {
         eyebrow: "Guida di riferimento",
@@ -27,7 +27,7 @@ export const TOOLS_IT: ToolsDoc = {
         titleEm: "fare",
         titleAfterEm: "",
         lead: "Non devi mai usarli direttamente: parli con Claude, ChatGPT o un altro client MCP e l'assistente sceglie lo strumento giusto. Ecco tutti gli strumenti che il server Nutrition MCP offre per pasti e pasti salvati, calorie e macro, acqua e peso, con cosa fa ciascuno e una frase che lo attiva.",
-        countBold: "49 strumenti",
+        countBold: "53 strumenti",
         countTail: "in 7 aree",
     },
     categories: {
@@ -357,7 +357,7 @@ export const TOOLS_IT: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, meal_items.csv (gli ingredienti di ogni pasto registrato), saved_meals.csv e saved_meal_items.csv (i tuoi pasti salvati e i loro ingredienti), water.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (ogni modifica ai tuoi obiettivi, con data), profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate e la sincronizzazione con Apple Health, senza alcun token), health_sync.csv (ciò che la sincronizzazione con Apple Health ha inviato negli ultimi 8 giorni) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
+                "Esporta in un unico file ZIP tutto ciò che il servizio conserva su di te — meals.csv, meal_items.csv (gli ingredienti di ogni pasto registrato), saved_meals.csv e saved_meal_items.csv (i tuoi pasti salvati e i loro ingredienti), water.csv, active_calories.csv, weight.csv, body_measurements.csv, goals.csv, goals_history.csv (ogni modifica ai tuoi obiettivi, con data), profile.csv, account.csv (il tuo account di accesso), telemetry.csv (i dati sull'uso degli strumenti), connections.csv (le app di IA collegate e la sincronizzazione con Apple Health, senza alcun token), health_sync.csv (ciò che la sincronizzazione con Apple Health ha inviato negli ultimi 8 giorni) e un README.txt che spiega colonne, unità di misura e cosa non è incluso — e ti restituisce un link privato per il download, valido 60 minuti. Per ora solo i pasti si possono reimportare.",
             params: {},
             example:
                 "Esporta tutti i miei dati: pasti, acqua, peso e obiettivi",
@@ -390,6 +390,40 @@ export const TOOLS_IT: ToolsDoc = {
                 id: "UUID della voce d'acqua da eliminare",
             },
             example: "Elimina l'ultima voce d'acqua",
+        },
+        log_active_calories: {
+            description:
+                "Registra l'energia consumata durante l'esercizio, in kilocalorie, come la riporta un orologio o un'app fitness (di solito il dato «calorie attive»). Viene mostrata accanto alle calorie assunte e non modifica mai il tuo obiettivo calorico. Sulle calorie assunte conta solo la quota impostata con set_activity_credit, e ogni voce conserva la quota in vigore al momento della registrazione.",
+            params: {
+                kcal: "Energia consumata in kilocalorie: un numero intero da 1 a 10.000.",
+                logged_at:
+                    "Quando è avvenuta l'attività; predefinito: adesso. Una data, un orario locale o un orario ISO completo con fuso.",
+                notes: "Breve nota facoltativa, ad esempio «corsa del mattino».",
+                idempotency_key:
+                    "Chiave facoltativa perché un nuovo tentativo non aggiunga la voce due volte.",
+            },
+            example:
+                "Stamattina ho bruciato 420 calorie attive durante la corsa",
+        },
+        get_active_calories: {
+            description:
+                "Elenca l'energia consumata durante l'esercizio (calorie attive) per una data o un intervallo: orario locale, kcal, quota conteggiata sulle calorie assunte, nota e id di ogni voce, con i totali bruciati e conteggiati per ogni giorno. Predefinito: oggi. Un intervallo copre al massimo 31 giorni.",
+            params: {
+                date: "Una data (AAAA-MM-GG). Usa questa oppure start_date ed end_date, non entrambe.",
+                start_date:
+                    "Primo giorno dell'intervallo (AAAA-MM-GG), incluso.",
+                end_date:
+                    "Ultimo giorno dell'intervallo (AAAA-MM-GG), incluso.",
+            },
+            example: "Quante calorie attive ho bruciato questa settimana?",
+        },
+        delete_active_calories: {
+            description:
+                "Rimuove una voce di calorie attive aggiunta per errore. Non cambiano le calorie assunte né l'obiettivo calorico.",
+            params: {
+                id: "UUID della voce di calorie attive da eliminare",
+            },
+            example: "Elimina l'ultima voce di calorie attive",
         },
         log_weight: {
             description:
@@ -627,6 +661,16 @@ export const TOOLS_IT: ToolsDoc = {
             },
             example:
                 "Inizia a tenere traccia dell'alcol che bevo, in unità britanniche",
+        },
+        set_activity_credit: {
+            description:
+                "Scegli quale percentuale delle calorie attive (energia consumata durante l'esercizio) conta sulle calorie assunte, da 0 a 100%, oppure ripristina il valore predefinito del 100% con null. Si applica alle voci registrate da ora in poi; quelle già registrate mantengono la quota con cui sono state salvate. L'obiettivo calorico non cambia mai.",
+            params: {
+                percent:
+                    "Numero intero da 0 a 100, oppure null per tornare al 100%.",
+            },
+            example:
+                "Conta il 50% delle mie calorie attive sulle calorie assunte",
         },
         delete_account: {
             description:

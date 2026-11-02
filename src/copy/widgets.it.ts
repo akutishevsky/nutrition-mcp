@@ -123,6 +123,10 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         statPeakDay: "Giorno di picco",
         statLoggedDays: "Registrati",
         statOfDays: "su {n} giorni",
+        activityBurned: "Bruciate {v}",
+        activityCredited: "conteggiate {v}",
+        activityNet: "netto {v}",
+        activityAvg: "media al giorno: {line}",
         gaugeAriaToday:
             "{eaten} su {goal} kcal oggi, {pct}% dell'obiettivo, {status}.",
         gaugeAriaThatDay:
@@ -483,6 +487,8 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             caffeine: "Caffeina",
             water: "Acqua",
             alcohol: "Alcol",
+            burned: "Calorie attive",
+            net: "Assunzione netta",
         },
         metricInTitle: {
             calories: "delle calorie",
@@ -498,6 +504,8 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
             caffeine: "della caffeina",
             water: "dell'acqua",
             alcohol: "dell'alcol",
+            burned: "calorie attive",
+            net: "assunzione netta",
         },
         pill: "{n} g",
         pillAria: "Mostra {n} giorni",

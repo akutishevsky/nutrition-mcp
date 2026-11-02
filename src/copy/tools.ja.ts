@@ -25,11 +25,11 @@ import type { ToolsDoc } from "./tools.js";
 
 export const TOOLS_JA: ToolsDoc = {
     meta: {
-        title: "カロリー計算・PFC・水分・体重・体の計測値の全49ツール",
+        title: "カロリー計算・PFC・水分・体重・体の計測値の全53ツール",
         description:
-            "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全49ツール。食事記録、食べることの多い食事の保存、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重・体の計測値の記録に対応。",
+            "Claude、ChatGPTなどのAIアプリで使えるNutrition MCPの全53ツール。食事記録、食べることの多い食事の保存、バーコード検索、MyFitnessPalやCronometerのCSVインポート、水分・体重・体の計測値の記録に対応。",
         ogDescription:
-            "Nutrition MCPサーバーがお使いのAIに追加する全49ツールを、説明と例文つきで紹介。保存した食事から、他のアプリの履歴を取り込めるCSVインポーターまでそろっています。",
+            "Nutrition MCPサーバーがお使いのAIに追加する全53ツールを、説明と例文つきで紹介。保存した食事から、他のアプリの履歴を取り込めるCSVインポーターまでそろっています。",
     },
     hero: {
         eyebrow: "リファレンス",
@@ -37,7 +37,7 @@ export const TOOLS_JA: ToolsDoc = {
         titleEm: "できる",
         titleAfterEm: "こと、すべて",
         lead: "ツールを直接呼び出す必要はありません。Claude、ChatGPTなどのMCPクライアントに話しかけるだけで、AIが適切なツールを選びます。ここでは、Nutrition MCPサーバーが提供する食事と保存した食事・カロリーとPFC・水分・体重のツールをすべて取り上げ、それぞれの機能と、そのツールが使われるきっかけになるフレーズを紹介します。",
-        countBold: "全49ツール",
+        countBold: "全53ツール",
         countTail: "· 7分野",
     },
     categories: {
@@ -357,7 +357,7 @@ export const TOOLS_JA: ToolsDoc = {
         },
         export_all_data: {
             description:
-                "本サービスが保存しているあなたのデータを、すべて1つのZIPにまとめてエクスポートし、60分間有効な非公開のダウンロードリンクを返します。中身はmeals.csv、meal_items.csv（記録した食事ごとの材料）、saved_meals.csv と saved_meal_items.csv（保存した食事とその材料）、water.csv、weight.csv、body_measurements.csv、goals.csv、goals_history.csv（目標の変更履歴と日付）、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツールの利用記録）、connections.csv（接続中のAIアプリとApple Health同期。トークンは含みません）、health_sync.csv（Apple Health同期が直近8日間に送信した内容）と、列・単位・含まれないものを説明したREADME.txtです。現時点で再インポートできるのは食事データだけです。",
+                "本サービスが保存しているあなたのデータを、すべて1つのZIPにまとめてエクスポートし、60分間有効な非公開のダウンロードリンクを返します。中身はmeals.csv、meal_items.csv（記録した食事ごとの材料）、saved_meals.csv と saved_meal_items.csv（保存した食事とその材料）、water.csv、active_calories.csv、weight.csv、body_measurements.csv、goals.csv、goals_history.csv（目標の変更履歴と日付）、profile.csv、account.csv（サインイン用アカウント）、telemetry.csv（ツールの利用記録）、connections.csv（接続中のAIアプリとApple Health同期。トークンは含みません）、health_sync.csv（Apple Health同期が直近8日間に送信した内容）と、列・単位・含まれないものを説明したREADME.txtです。現時点で再インポートできるのは食事データだけです。",
             params: {},
             example: "食事・水分・体重・目標、データを全部エクスポートして",
         },
@@ -387,6 +387,37 @@ export const TOOLS_JA: ToolsDoc = {
                 id: "削除する水分記録のUUID",
             },
             example: "さっきの水分の記録を消して",
+        },
+        log_active_calories: {
+            description:
+                "運動で消費したエネルギーをキロカロリー単位で記録します。時計やフィットネスアプリが表示する値（多くは「アクティブカロリー」）を使います。摂取カロリーと並べて表示され、カロリー目標は変わりません。摂取カロリーに差し引かれるのは set_activity_credit で設定した割合だけで、各記録は登録時点の割合を保持します。",
+            params: {
+                kcal: "消費エネルギー（キロカロリー）。1〜10,000 の整数。",
+                logged_at:
+                    "活動した日時。省略すると現在時刻。日付、現地時刻、またはオフセット付きの完全な ISO 時刻。",
+                notes: "任意の短いメモ（例：「朝のランニング」）。",
+                idempotency_key:
+                    "任意のキー。再送しても同じ記録が二重に追加されないようにします。",
+            },
+            example: "今朝のランニングで420アクティブカロリー消費した",
+        },
+        get_active_calories: {
+            description:
+                "1日または期間のアクティブカロリー（運動で消費したエネルギー）を一覧します。各記録の現地時刻、kcal、摂取カロリーに算入された割合、メモ、ID に加え、日ごとの消費量と算入量の合計を含みます。日付を省略すると今日です。期間は最大31日です。",
+            params: {
+                date: "1日の日付（YYYY-MM-DD）。これか start_date と end_date のどちらか一方を指定します（両方は不可）。",
+                start_date: "期間の開始日（YYYY-MM-DD、含む）。",
+                end_date: "期間の終了日（YYYY-MM-DD、含む）。",
+            },
+            example: "今週はアクティブカロリーをどれくらい消費した？",
+        },
+        delete_active_calories: {
+            description:
+                "誤って追加したアクティブカロリーの記録を削除します。摂取カロリーとカロリー目標には影響しません。",
+            params: {
+                id: "削除するアクティブカロリー記録のUUID",
+            },
+            example: "最後のアクティブカロリーの記録を削除して",
         },
         log_weight: {
             description:
@@ -615,6 +646,14 @@ export const TOOLS_JA: ToolsDoc = {
                     "グラム数と並べて表示する標準ドリンクの単位：<code>us</code>（1杯14 g）または<code>uk</code>（1ユニット7.9 g）。デフォルトは<code>us</code>。実際に保存されるのは純アルコールのグラム数です。",
             },
             example: "お酒の記録を始めて。UKユニットで",
+        },
+        set_activity_credit: {
+            description:
+                "アクティブカロリー（運動で消費したエネルギー）のうち、摂取カロリーに算入する割合を0〜100%で設定します。null を指定すると既定の100%に戻ります。今後登録する記録に適用され、既存の記録は登録時の割合を保持します。カロリー目標は変わりません。",
+            params: {
+                percent: "0〜100の整数。null で既定の100に戻します。",
+            },
+            example: "アクティブカロリーの50%を摂取カロリーに算入して",
         },
         delete_account: {
             description:

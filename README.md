@@ -89,6 +89,9 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `get_water_today`          | Get today's water intake total and entries                                                                                                                                                                                                      |
 | `get_water_by_date`        | Get water intake for a specific date                                                                                                                                                                                                            |
 | `delete_water`             | Delete a water log entry by ID                                                                                                                                                                                                                  |
+| `log_active_calories`      | Log energy burned in exercise (active calories, kcal) beside intake; never changes the calorie goal                                                                                                                                             |
+| `get_active_calories`      | List active calories for a day or a date range, with per-day burned and counted totals                                                                                                                                                          |
+| `delete_active_calories`   | Delete an active-calories entry by ID                                                                                                                                                                                                           |
 | `log_weight`               | Log a body-weight measurement in kg or lb (converted and stored server-side)                                                                                                                                                                    |
 | `get_weight_today`         | Get today's weight entries                                                                                                                                                                                                                      |
 | `get_weight_by_date`       | Get weight entries for a specific date                                                                                                                                                                                                          |
@@ -111,6 +114,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `get_current_time`         | Get the current date and time in the user's timezone, plus the UTC instant — for hosts with no clock in context                                                                                                                                 |
 | `set_widget_display`       | Enable or disable the in-chat visual widgets (dashboards, rings, charts); enabled by default                                                                                                                                                    |
 | `set_alcohol_tracking`     | Turn alcohol tracking on or off (off by default) and choose US standard drinks or UK units; turning it off hides alcohol rather than deleting it                                                                                                |
+| `set_activity_credit`      | Choose the share (0–100%, default 100) of active calories that counts against calorie intake                                                                                                                                                    |
 | `delete_account`           | Permanently delete the user's Nutrition MCP account and all data it stores about them                                                                                                                                                           |
 
 ## MCP Resources
@@ -133,6 +137,11 @@ On hosts that support MCP Apps, the tools also draw a card in the chat. Each car
 Cards follow the light or dark theme of the host and the language set with `set_language`. They are on by default; `set_widget_display` turns them off, and the text answers are unchanged.
 
 ## Self-hosting
+
+For Cloudflare hosting options and an independent Workers reference, see
+[Cloudflare hosting and email authentication](docs/cloudflare-hosting.md). The guide
+distinguishes running this Bun/Supabase application in a container from adapting a
+smaller feature set to Workers and D1.
 
 ### 0. Get the code
 
@@ -260,7 +269,7 @@ An optional iOS Shortcut, **Nutrition MCP Health**, copies your daily totals int
 
 - `meals.csv` and `meal_items.csv` — every meal and its ingredients, with the source of each nutrient value. `meals.csv` uses the importer's column names, so it can be imported again.
 - `saved_meals.csv` and `saved_meal_items.csv` — saved meals and their ingredients.
-- `water.csv`, `weight.csv` and `body_measurements.csv` — every entry.
+- `water.csv`, `active_calories.csv`, `weight.csv` and `body_measurements.csv` — every entry.
 - `goals.csv` and `goals_history.csv` — current targets and limits, and how they changed.
 - `profile.csv` and `account.csv` — settings and account details.
 - `telemetry.csv` — the tool-call log kept for the account.

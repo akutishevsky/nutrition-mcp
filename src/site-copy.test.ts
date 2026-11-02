@@ -197,6 +197,7 @@ const ARCHIVE_FILES = [
     "saved_meals.csv",
     "saved_meal_items.csv",
     "water.csv",
+    "active_calories.csv",
     "weight.csv",
     "body_measurements.csv",
     "goals.csv",
@@ -663,16 +664,16 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
     );
     // [privacy, terms]
     const expected: Record<SiteLocale, [string, string]> = {
-        en: ["October 10, 2026", "October 25, 2026"],
-        de: ["10. Oktober 2026", "25. Oktober 2026"],
-        es: ["10 de octubre de 2026", "25 de octubre de 2026"],
-        fr: ["10 octobre 2026", "25 octobre 2026"],
-        nl: ["10 oktober 2026", "25 oktober 2026"],
-        pl: ["10 października 2026", "25 października 2026"],
-        it: ["10 ottobre 2026", "25 ottobre 2026"],
-        uk: ["10 жовтня 2026 року", "25 жовтня 2026 року"],
-        ja: ["2026年10月10日", "2026年10月25日"],
-        tr: ["10 Ekim 2026", "25 Ekim 2026"],
+        en: ["November 2, 2026", "November 2, 2026"],
+        de: ["2. November 2026", "2. November 2026"],
+        es: ["2 de noviembre de 2026", "2 de noviembre de 2026"],
+        fr: ["2 novembre 2026", "2 novembre 2026"],
+        nl: ["2 november 2026", "2 november 2026"],
+        pl: ["2 listopada 2026", "2 listopada 2026"],
+        it: ["2 novembre 2026", "2 novembre 2026"],
+        uk: ["2 листопада 2026 року", "2 листопада 2026 року"],
+        ja: ["2026年11月2日", "2026年11月2日"],
+        tr: ["2 Kasım 2026", "2 Kasım 2026"],
     };
     expect(dates).toEqual(expected);
 });
