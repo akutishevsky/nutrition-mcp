@@ -1,8 +1,11 @@
 /**
  * Generates public/apple-health.html and, for every other locale in
  * src/copy/apple-health.ts's APPLE_HEALTH, public/{locale}/apple-health.html:
- * the user-facing setup guide for Apple Health sync (the Nutrition MCP Health
- * iOS Shortcut). The maintainer's build sheet is docs/apple-health-shortcut.md;
+ * the user-facing setup guide for the two Apple Health iOS Shortcuts,
+ * Nutrition MCP Health (daily totals into Health) and Nutrition MCP Activity
+ * (Active Energy back as active calories). Every section covers both, side by
+ * side where they differ. The maintainer's build sheets are
+ * docs/apple-health-shortcut.md and docs/apple-health-activity-shortcut.md;
  * this page covers only what the user sees and does.
  *
  * Same shape as the other generators (scripts/gen-legal.ts,
@@ -11,7 +14,8 @@
  * pathFor() so a translated page never links back to English.
  *
  * Re-run after editing src/copy/apple-health*.ts or setting
- * HEALTH_SYNC_SHORTCUT_URL in src/health-sync.ts:
+ * HEALTH_SYNC_SHORTCUT_URL (src/health-sync.ts) or HEALTH_ACTIVITY_SHORTCUT_URL
+ * (src/health-activity-sync.ts):
  *   bun run scripts/gen-apple-health.ts
  * The generated .html files are the served artifacts — don't hand-edit them.
  */
@@ -54,6 +58,8 @@ const FILE = "apple-health.html";
  * scripts/depersonalize.ts removes that note (`ah-selfhost`) on a fork. */
 const BUILD_SHEET_URL =
     "https://github.com/akutishevsky/nutrition-mcp/blob/main/docs/apple-health-shortcut.md";
+const ACTIVITY_BUILD_SHEET_URL =
+    "https://github.com/akutishevsky/nutrition-mcp/blob/main/docs/apple-health-activity-shortcut.md";
 
 /** The /tools troubleshooting entries the guide links to, in card order. */
 const TROUBLESHOOTING = [
@@ -81,27 +87,56 @@ const SECTIONS = {
     connect: { icon: "fa-link", tint: "pro" },
     automate: { icon: "fa-wand-magic-sparkles", tint: "cal" },
     everyday: { icon: "fa-arrows-rotate", tint: "car" },
-    activity: { icon: "fa-person-running", tint: "pro" },
     privacy: { icon: "fa-shield-halved", tint: "fib" },
     troubleshooting: { icon: "fa-life-ring", tint: "fat" },
 } as const;
 type SectionId = keyof typeof SECTIONS;
 const SECTION_IDS = Object.keys(SECTIONS) as SectionId[];
 
-/** Fixed icons for AppleHealthDoc.automate.triggers, by index. */
-const TRIGGER_ICONS = [
-    { icon: "fa-heart-pulse", tint: "fat" },
-    { icon: "fa-bell", tint: "cal" },
-    { icon: "fa-plug", tint: "car" },
-] as const;
+/** Each shortcut's fixed icon and tint, everywhere it is named. */
+const SHORTCUTS = {
+    health: {
+        icon: "fa-heart-pulse",
+        tint: "fat",
+        name: HEALTH_SYNC_SHORTCUT_NAME,
+    },
+    activity: {
+        icon: "fa-person-running",
+        tint: "pro",
+        name: HEALTH_ACTIVITY_SHORTCUT_NAME,
+    },
+} as const;
+type ShortcutKey = keyof typeof SHORTCUTS;
 
-/** Fixed icons for AppleHealthDoc.everyday.cards, by index. */
-const EVERYDAY_ICONS = [
-    { icon: "fa-plus", tint: "car" },
-    { icon: "fa-arrow-down", tint: "fat" },
-    { icon: "fa-bars", tint: "pro" },
-    { icon: "fa-comment", tint: "wat" },
-] as const;
+/** Fixed icons for the trigger cards, by index. */
+const TRIGGER_ICONS = {
+    health: [
+        { icon: "fa-heart-pulse", tint: "fat" },
+        { icon: "fa-bell", tint: "cal" },
+        { icon: "fa-plug", tint: "car" },
+    ],
+    activity: [
+        { icon: "fa-comment", tint: "wat" },
+        { icon: "fa-heart-pulse", tint: "fat" },
+        { icon: "fa-clock", tint: "cal" },
+    ],
+} as const;
+
+/** Fixed icons for the everyday cards, by index. */
+const EVERYDAY_ICONS = {
+    health: [
+        { icon: "fa-plus", tint: "car" },
+        { icon: "fa-arrow-down", tint: "fat" },
+        { icon: "fa-bars", tint: "pro" },
+        { icon: "fa-comment", tint: "wat" },
+    ],
+    activity: [
+        { icon: "fa-calculator", tint: "cal" },
+        { icon: "fa-dumbbell", tint: "pro" },
+        { icon: "fa-circle-half-stroke", tint: "fib" },
+        { icon: "fa-bars", tint: "wat" },
+    ],
+} as const;
 
 const num = (i: number) => String(i + 1).padStart(2, "0");
 
@@ -459,6 +494,107 @@ const AH_STYLE = `        <style>
             .ah-more i {
                 font-size: 12px;
             }
+            /* Hero: one card per shortcut, side by side */
+            .ah-dirs {
+                flex: 1 1 100%;
+                min-width: 0;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+                gap: 14px;
+                animation: nm-rise 0.6s 0.2s both;
+            }
+            .ah-dir {
+                display: grid;
+                align-content: start;
+                gap: 12px;
+                min-width: 0;
+                box-sizing: border-box;
+                padding: clamp(18px, 2.6vw, 26px);
+            }
+            .ah-dir-head {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                min-width: 0;
+            }
+            .ah-dir-name {
+                display: block;
+                font-weight: 800;
+                font-size: 16px;
+                color: var(--ink);
+                overflow-wrap: anywhere;
+            }
+            .ah-flow {
+                display: block;
+                margin-top: 2px;
+                font-family: var(--mono);
+                font-size: 12px;
+                color: var(--ink3);
+            }
+            .ah-dir h2 {
+                margin: 0;
+                font-size: 19px;
+                font-weight: 800;
+                letter-spacing: -0.02em;
+                line-height: 1.25;
+            }
+            .ah-dir .nm-label-mono {
+                display: block;
+                margin: 4px 0 0;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+            }
+
+            /* Two columns, one per shortcut */
+            .ah-pair {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+                gap: 14px;
+            }
+            .ah-track {
+                display: grid;
+                align-content: start;
+                gap: 12px;
+                min-width: 0;
+                padding: 18px;
+                border-radius: 22px;
+                border: 1px solid var(--line);
+                background: var(--bg);
+            }
+            .ah-track-head {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin: 0;
+                font-size: 16px;
+                font-weight: 800;
+                color: var(--ink);
+            }
+            .ah-track .ah-grid {
+                grid-template-columns: 1fr;
+            }
+            .ah-track .ah-mini {
+                background: var(--panel);
+            }
+            .ah-install-tile {
+                display: grid;
+                gap: 14px;
+                align-content: start;
+            }
+            .ah-install-tile .ah-p {
+                font-size: 15px;
+            }
+            .ah-shortcut.ah-sc-activity {
+                background: linear-gradient(
+                    135deg,
+                    color-mix(in srgb, var(--pro) 18%, var(--panel)),
+                    color-mix(in srgb, var(--wat) 14%, var(--panel))
+                );
+            }
+            .ah-shortcut.ah-sc-activity .nm-tile {
+                background: var(--pro-icon);
+            }
+
             .ah-selfhost {
                 margin: 0;
                 font-size: 14.5px;
@@ -507,7 +643,6 @@ function titles(doc: AppleHealthDoc): Record<SectionId, string> {
         connect: doc.connect.title,
         automate: doc.automate.title,
         everyday: doc.everyday.title,
-        activity: doc.activity.title,
         privacy: doc.privacy.title,
         troubleshooting: doc.troubleshooting.title,
     };
@@ -535,46 +670,110 @@ function renderPage(doc: AppleHealthDoc, locale: SiteLocale): string {
     const I = "                    ";
     const tools = TOOLS_COPY[locale] ?? TOOLS_COPY.en!;
 
-    const chips = HEALTH_SYNC_FIELDS.map((f) => {
-        const note =
-            f === "water_ml"
-                ? ` <small>(${esc(doc.hero.waterNote)})</small>`
-                : "";
-        return `                        <li class="ah-chip"><span class="nm-dot nm-c-${FIELD_TINT[f]}" aria-hidden="true"></span>${esc(doc.hero.nutrients[f])}${note}</li>`;
-    }).join("\n");
-
     const toc = SECTION_IDS.map(
         (id, i) =>
             `                <a class="nm-chip" href="#${id}"><span class="nm-chip-n">${num(i)}</span>${esc(t[id])}</a>`,
     ).join("\n");
 
-    const install = HEALTH_SYNC_SHORTCUT_URL
-        ? `<a class="nm-btn nm-btn-acc nm-btn-fw" href="${esc(HEALTH_SYNC_SHORTCUT_URL)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-download" aria-hidden="true"></i>${esc(doc.install.button)}</a>`
-        : `<p class="ah-pending" role="note"><span class="nm-pulse-dot" aria-hidden="true"></span>${esc(doc.install.pending)}</p>`;
+    const urls: Record<ShortcutKey, string | null> = {
+        health: HEALTH_SYNC_SHORTCUT_URL,
+        activity: HEALTH_ACTIVITY_SHORTCUT_URL,
+    };
+    const anyUrl = urls.health !== null || urls.activity !== null;
 
-    const activityInstall = HEALTH_ACTIVITY_SHORTCUT_URL
-        ? `<a class="nm-btn nm-btn-acc nm-btn-fw" href="${esc(HEALTH_ACTIVITY_SHORTCUT_URL)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-download" aria-hidden="true"></i>${esc(doc.activity.button)}</a>`
-        : `<p class="ah-pending" role="note"><span class="nm-pulse-dot" aria-hidden="true"></span>${esc(doc.activity.pending)}</p>`;
+    /** A shortcut's name with its icon, as a pill. */
+    const badge = (k: ShortcutKey) =>
+        `<span class="ah-shortcut${k === "activity" ? " ah-sc-activity" : ""}">${tile(SHORTCUTS[k].icon, SHORTCUTS[k].tint, true)}${esc(SHORTCUTS[k].name)}</span>`;
 
-    const triggers = doc.automate.triggers
-        .map(
-            (tr, i) => `${I}    <div class="ah-mini">
-${I}        <div class="ah-mini-top">${tile(TRIGGER_ICONS[i]!.icon, TRIGGER_ICONS[i]!.tint, true)}<span class="nm-tag${i === 0 ? " nm-tag-acc" : ""}">${esc(tr.tag)}</span></div>
-${I}        <h4 class="ah-mini-title">${esc(tr.when)}</h4>
-${I}        <p>${tr.body}</p>
-${I}    </div>`,
+    /** A column heading naming its shortcut. */
+    const trackHead = (k: ShortcutKey, label: string, tag = "h3") =>
+        `<${tag} class="ah-track-head">${tile(SHORTCUTS[k].icon, SHORTCUTS[k].tint)}${esc(label)}</${tag}>`;
+
+    const pair = (
+        health: string,
+        activity: string,
+    ) => `${I}<div class="ah-pair">
+${I}    <div class="ah-track">
+${health}
+${I}    </div>
+${I}    <div class="ah-track">
+${activity}
+${I}    </div>
+${I}</div>`;
+
+    const J = `${I}        `;
+
+    const healthChips = HEALTH_SYNC_FIELDS.map((f) => {
+        const note =
+            f === "water_ml"
+                ? ` <small>(${esc(doc.hero.waterNote)})</small>`
+                : "";
+        return `${J}    <li class="ah-chip"><span class="nm-dot nm-c-${FIELD_TINT[f]}" aria-hidden="true"></span>${esc(doc.hero.nutrients[f])}${note}</li>`;
+    }).join("\n");
+
+    const direction = (k: ShortcutKey, chips: string, extra = "") => {
+        const d = doc.hero[k];
+        return `                    <article class="nm-card ah-dir" aria-labelledby="ah-dir-${k}">
+                        <div class="ah-dir-head">${tile(SHORTCUTS[k].icon, SHORTCUTS[k].tint)}<div><span class="ah-dir-name">${esc(SHORTCUTS[k].name)}</span><span class="ah-flow">${esc(d.flow)}</span></div></div>
+                        <h2 id="ah-dir-${k}">${esc(d.title)}</h2>
+${list(d.items, "                        ")}
+${chips}${extra}
+                    </article>`;
+    };
+    const dirs = [
+        direction(
+            "health",
+            `                        <span class="nm-label-mono" id="ah-nutrients">${esc(doc.hero.nutrientsLabel)}</span>
+                        <ul class="ah-chips" aria-labelledby="ah-nutrients">
+${healthChips.replaceAll(J, "                        ")}
+                        </ul>`,
+            `\n                        <p class="ah-alcohol">${esc(doc.hero.alcoholNote)}</p>`,
+        ),
+        direction(
+            "activity",
+            `                        <span class="nm-label-mono" id="ah-reads">${esc(doc.hero.readLabel)}</span>
+                        <ul class="ah-chips" aria-labelledby="ah-reads">
+                            <li class="ah-chip"><span class="nm-dot nm-c-pro" aria-hidden="true"></span>${esc(doc.hero.activeEnergy)}</li>
+                        </ul>`,
+        ),
+    ].join("\n");
+
+    const installTile = (k: ShortcutKey, blurb: string) => {
+        const url = urls[k];
+        const action = url
+            ? `<a class="nm-btn nm-btn-acc nm-btn-fw" href="${esc(url)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-download" aria-hidden="true"></i>${esc(doc.install.button)}</a>`
+            : `<p class="ah-pending" role="note"><span class="nm-pulse-dot" aria-hidden="true"></span>${esc(doc.install.pending)}</p>`;
+        return `${I}        <div class="ah-track ah-install-tile">
+${I}            ${badge(k)}
+${I}            <p class="ah-p">${esc(blurb)}</p>
+${I}            ${action}
+${I}        </div>`;
+    };
+
+    const triggerCards = (k: ShortcutKey) =>
+        (k === "health"
+            ? doc.automate.healthTriggers
+            : doc.automate.activityTriggers
         )
-        .join("\n");
+            .map(
+                (tr, i) => `${J}<div class="ah-mini">
+${J}    <div class="ah-mini-top">${tile(TRIGGER_ICONS[k][i]!.icon, TRIGGER_ICONS[k][i]!.tint, true)}<span class="nm-tag${i === 0 ? " nm-tag-acc" : ""}">${esc(tr.tag)}</span></div>
+${J}    <h4 class="ah-mini-title">${esc(tr.when)}</h4>
+${J}    <p>${tr.body}</p>
+${J}</div>`,
+            )
+            .join("\n");
 
-    const everyday = doc.everyday.cards
-        .map(
-            (c, i) => `${I}    <div class="ah-mini">
-${I}        ${tile(EVERYDAY_ICONS[i]!.icon, EVERYDAY_ICONS[i]!.tint, true)}
-${I}        <h3 class="ah-mini-title">${esc(c.title)}</h3>
-${I}        <p>${c.body}</p>
-${I}    </div>`,
-        )
-        .join("\n");
+    const everydayCards = (k: ShortcutKey) =>
+        (k === "health" ? doc.everyday.healthCards : doc.everyday.activityCards)
+            .map(
+                (c, i) => `${J}<div class="ah-mini">
+${J}    ${tile(EVERYDAY_ICONS[k][i]!.icon, EVERYDAY_ICONS[k][i]!.tint, true)}
+${J}    <h4 class="ah-mini-title">${esc(c.title)}</h4>
+${J}    <p>${c.body}</p>
+${J}</div>`,
+            )
+            .join("\n");
 
     const troubleshooting = TROUBLESHOOTING.map(
         (
@@ -585,10 +784,15 @@ ${I}        <span class="ah-more">${esc(doc.troubleshooting.readMore)}<i class="
 ${I}    </a>`,
     ).join("\n");
 
-    const selfHost = doc.selfHost.textHtml.replace(
-        "{link}",
-        `<a href="${BUILD_SHEET_URL}" target="_blank" rel="noopener noreferrer">${esc(doc.selfHost.linkText)}</a>`,
-    );
+    const selfHost = doc.selfHost.textHtml
+        .replace(
+            "{link}",
+            `<a href="${BUILD_SHEET_URL}" target="_blank" rel="noopener noreferrer">${esc(doc.selfHost.linkText)}</a>`,
+        )
+        .replace(
+            "{activityLink}",
+            `<a href="${ACTIVITY_BUILD_SHEET_URL}" target="_blank" rel="noopener noreferrer">${esc(doc.selfHost.activityLinkText)}</a>`,
+        );
 
     const notice = translationNotice(locale, SUFFIX);
 
@@ -597,10 +801,10 @@ ${I}    </a>`,
         section(
             "install",
             t.install,
-            `${I}<p class="ah-p">${HEALTH_SYNC_SHORTCUT_URL ? doc.install.lead : doc.install.leadPending}</p>
-${I}<div class="ah-install">
-${I}    <span class="ah-shortcut">${tile("fa-heart-pulse", "fat", true)}${esc(HEALTH_SYNC_SHORTCUT_NAME)}</span>
-${I}    ${install}
+            `${I}<p class="ah-p">${anyUrl ? doc.install.lead : doc.install.leadPending}</p>
+${I}<div class="ah-pair">
+${installTile("health", doc.install.healthBlurb)}
+${installTile("activity", doc.install.activityBlurb)}
 ${I}</div>
 ${I}<p class="ah-note">${doc.install.nameNote}</p>`,
         ),
@@ -608,16 +812,28 @@ ${I}<p class="ah-note">${doc.install.nameNote}</p>`,
             "connect",
             t.connect,
             `${steps(doc.connect.steps, I)}
+${pair(
+    `${J}${trackHead("health", doc.connect.health.label)}
+${list(doc.connect.health.items, J)}`,
+    `${J}${trackHead("activity", doc.connect.activity.label)}
+${list(doc.connect.activity.items, J)}`,
+)}
 ${I}<p class="ah-note">${doc.connect.note}</p>`,
         ),
         section(
             "automate",
             t.automate,
             `${I}<p class="ah-p">${doc.automate.lead}</p>
-${I}<h3 class="ah-label">${esc(doc.automate.triggersLabel)}</h3>
-${I}<div class="ah-grid">
-${triggers}
-${I}</div>
+${pair(
+    `${J}${trackHead("health", doc.automate.healthLabel)}
+${J}<div class="ah-grid">
+${triggerCards("health")}
+${J}</div>`,
+    `${J}${trackHead("activity", doc.automate.activityLabel)}
+${J}<div class="ah-grid">
+${triggerCards("activity")}
+${J}</div>`,
+)}
 ${I}<h3 class="ah-label">${esc(doc.automate.stepsLabel)}</h3>
 ${steps(doc.automate.steps, I)}
 ${I}<p class="ah-note">${doc.automate.note}</p>`,
@@ -625,20 +841,16 @@ ${I}<p class="ah-note">${doc.automate.note}</p>`,
         section(
             "everyday",
             t.everyday,
-            `${I}<div class="ah-grid">
-${everyday}
-${I}</div>`,
-        ),
-        section(
-            "activity",
-            t.activity,
-            `${I}<p class="ah-p">${doc.activity.lead}</p>
-${list(doc.activity.items, I)}
-${I}<div class="ah-install">
-${I}    <span class="ah-shortcut">${tile("fa-person-running", "pro", true)}${esc(HEALTH_ACTIVITY_SHORTCUT_NAME)}</span>
-${I}    ${activityInstall}
-${I}</div>
-${I}<p class="ah-note">${doc.activity.setup}</p>`,
+            pair(
+                `${J}${trackHead("health", doc.everyday.healthLabel)}
+${J}<div class="ah-grid">
+${everydayCards("health")}
+${J}</div>`,
+                `${J}${trackHead("activity", doc.everyday.activityLabel)}
+${J}<div class="ah-grid">
+${everydayCards("activity")}
+${J}</div>`,
+            ),
         ),
         section(
             "privacy",
@@ -690,15 +902,9 @@ ${nav(locale, SUFFIX)}
                     <h1 class="nm-h1" id="ah-title">${esc(doc.hero.title)}</h1>
                     <p class="nm-lead">${esc(doc.hero.lead)}</p>
                 </div>
-                <aside class="nm-card ah-see" aria-labelledby="ah-see-title">
-                    <h2 id="ah-see-title">${esc(doc.hero.seeTitle)}</h2>
-${list(doc.hero.seeItems, I)}
-                    <span class="nm-label-mono" id="ah-nutrients">${esc(doc.hero.nutrientsLabel)}</span>
-                    <ul class="ah-chips" aria-labelledby="ah-nutrients">
-${chips}
-                    </ul>
-                    <p class="ah-alcohol">${esc(doc.hero.alcoholNote)}</p>
-                </aside>
+                <div class="ah-dirs">
+${dirs}
+                </div>
             </section>
 ${notice ? `\n            <div class="translation-notice-band">\n${notice}\n            </div>\n` : ""}
             <nav class="ah-wrap ah-toc" aria-label="${esc(doc.tocLabel)}">

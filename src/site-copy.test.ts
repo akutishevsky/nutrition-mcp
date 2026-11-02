@@ -20,6 +20,10 @@ import { LOGIN } from "./copy/login.js";
 import { HEALTH_SYNC_COPY } from "./copy/health-sync.js";
 import { APPLE_HEALTH, type AppleHealthDoc } from "./copy/apple-health.js";
 import {
+    HEALTH_ACTIVITY_SHORTCUT_NAME,
+    HEALTH_ACTIVITY_SHORTCUT_URL,
+} from "./health-activity-sync.js";
+import {
     HEALTH_SYNC_CLOSE_HOUR,
     HEALTH_SYNC_CONNECT_TTL_MINUTES,
     HEALTH_SYNC_LINK_IDLE_DAYS,
@@ -1531,14 +1535,19 @@ test("every built Apple Health guide links its troubleshooting entries and polic
         expect(html, `${locale} privacy`).toContain(
             `href="${pathFor(locale, "/privacy")}"`,
         );
-        // No dead install button while the iCloud link is unpublished.
-        if (HEALTH_SYNC_SHORTCUT_URL) {
-            expect(html).toContain(`href="${HEALTH_SYNC_SHORTCUT_URL}"`);
-            expect(html).not.toContain('class="ah-pending"');
-        } else {
-            expect(html).toContain('class="ah-pending"');
+        // No dead install button while an iCloud link is unpublished: one
+        // button or one "coming soon" per shortcut, never both.
+        const urls = [HEALTH_SYNC_SHORTCUT_URL, HEALTH_ACTIVITY_SHORTCUT_URL];
+        for (const u of urls) if (u) expect(html).toContain(`href="${u}"`);
+        const pending = html.split('class="ah-pending"').length - 1;
+        expect(pending, `${locale} pending`).toBe(
+            urls.filter((u) => !u).length,
+        );
+        if (urls.every((u) => !u))
             expect(html).not.toContain("icloud.com/shortcuts");
-        }
+        // Both shortcuts are covered, by name, in every locale.
+        expect(html).toContain(HEALTH_ACTIVITY_SHORTCUT_NAME);
+        expect(html).toContain(HEALTH_SYNC_SHORTCUT_NAME);
     }
 });
 

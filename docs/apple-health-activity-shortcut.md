@@ -219,6 +219,7 @@ Delete any leftover empty **Comment** actions.
 1. In Shortcuts, tap **+** and name it `Nutrition MCP Activity Auto`.
 2. Its only actions: **Text** `auto` → **Run Shortcut** `Nutrition MCP Activity`, input = that **Text**, **Show While Running** off.
 3. Add triggers. In iOS 27 they are at the top of the shortcut; on a phone that still has an **Automation** tab, they are there. Each one runs this shortcut:
+    - **App** → **Claude** (or **ChatGPT**, whichever AI app you use) → **Is Opened**: the main one, so today's burn is current before you ask about your day
     - **App** → **Health** → **Is Opened**
     - **App** → **Fitness** → **Is Opened**
     - A workout-ended trigger, if your iOS offers one (look for **Workout** or **Apple Watch Workout**)
