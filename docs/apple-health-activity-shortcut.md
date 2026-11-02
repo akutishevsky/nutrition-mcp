@@ -31,7 +31,7 @@ Two rules for the whole build:
 1. Open **Settings → Apps → Shortcuts → Open shortcuts to** and choose **Editor**.
 2. Open **Shortcuts**, tap **+** (top right).
 3. Tap the name at the top → **Rename** → type `Nutrition MCP Activity` → **Done**.
-4. At the very top of the editor there is a row **Receive … from Nowhere**. Tap it and set **If there's no input** to **Continue**. Leave it receiving from **Nowhere**: no Share Sheet.
+4. At the very top of the editor there is a row **Receive … from Nowhere**. Tap the first value (it starts as **No**) and select **Text** only, so it reads **Receive Text from Nowhere**. Set **If there's no input** to **Continue**. Leave **Nowhere** as it is: no Share Sheet. With **Receive No**, iOS drops the `manual` and `auto` text that **Sync now** and the Auto shortcut pass in, so every **Sync now** just shows the menu again.
 
 How to work in the editor:
 
@@ -48,7 +48,7 @@ How to work in the editor:
 1. **Text**. Type the base URL: `https://nutrition-mcp.com`. While testing, use the dev deploy's origin instead, for example `https://stingray-app-uo24c.ondigitalocean.app`, with no slash at the end.
 2. **Set Variable**. Name `BaseURL`, Input = the **Text** above.
 3. **Get Stored Content**. Key: type `token`. Then **Set Variable** `Token` = **Stored Content**.
-4. **Text**. Tap inside it → choose **Shortcut Input**. Then **Set Variable** `Input` = that **Text**.
+4. **Text**. Tap inside it → choose **Shortcut Input**, and type nothing else: no space and no line break after the pill. Then **Set Variable** `Input` = that **Text**. A stray line break makes `manual` arrive as 7 characters, so **Sync now** never matches and just shows the menu again. To check it, a temporary **Show Result** of `InputLength` must show 0 when you run it by hand and 6 after **Sync now**.
 5. **Count**. Set it to **Characters** in `Input`. Then **Set Variable** `InputLength` = **Count**.
 
 Why the text copies: an **If** on **Shortcut Input** only offers "has any value", but on a Text variable it offers **is** and **contains**.
@@ -96,7 +96,7 @@ Inside the **Repeat**:
     - **Fill Missing**: on is fine; a day without data then comes back as 0 instead of empty.
     - **Sort by**, **Limit**: leave as they are, with the limit off.
 
-    The first time the shortcut runs, iOS asks for permission to read Active Energy.
+    The first time the shortcut runs, iOS asks for permission to read Active Energy. Then, at **Get Contents of URL**, it asks whether the shortcut may send health samples to the site. Choose **Always Allow**: with **Allow Once**, every automation stops at that prompt. The prompt lists the raw daily sums, in your region's number format (`922,774 kcal` is 922.774 kcal where a comma is the decimal separator), plus one 0 kcal group per day for midnight of the next day; the shortcut rounds before sending, and the 0 groups add nothing.
 
 8. **Set Variable** `Samples` = **Health Samples**
 9. **Number**. Type `0` → **Set Variable** `Kcal`. This is the value for a day with nothing recorded.
