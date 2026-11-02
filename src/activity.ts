@@ -75,6 +75,36 @@ export interface ActivityEntry {
     logged_at: string;
     kcal: number;
     credit_pct: number;
+    /** "apple_health" for a day total written by the activity sync, null or
+     *  absent for an entry logged by hand. */
+    source?: string | null;
+}
+
+/** True for a row the Apple Health activity sync wrote (a whole day's total). */
+export function isHealthDayTotal(e: Pick<ActivityEntry, "source">): boolean {
+    return e.source === "apple_health";
+}
+
+/**
+ * The entries that count toward each day's totals. On a local day that has an
+ * Apple Health day total, that total stands for the whole day and the day's
+ * hand-logged entries are left out: a watch's Active Energy already includes
+ * the workouts someone would log by hand, so adding both would count them
+ * twice. On every other day every entry counts. Order is preserved.
+ */
+export function countedActivity<T extends ActivityEntry>(
+    entries: readonly T[],
+    tz: string,
+): T[] {
+    const healthDays = new Set<string>();
+    for (const e of entries) {
+        if (isHealthDayTotal(e)) healthDays.add(dateInTz(e.logged_at, tz));
+    }
+    if (healthDays.size === 0) return [...entries];
+    return entries.filter(
+        (e) =>
+            isHealthDayTotal(e) || !healthDays.has(dateInTz(e.logged_at, tz)),
+    );
 }
 
 export interface ActivityTotals {
