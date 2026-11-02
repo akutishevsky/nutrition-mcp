@@ -65,9 +65,9 @@ A `/pending` entry:
 
 1. **Text** with the base URL → **Set variable** `BaseURL`
 2. **Get Stored Content** `token` → **Set variable** `Token`
-3. **Text** containing **Shortcut Input** → **Set variable** `Input`
+3. **Text** containing **Shortcut Input** and nothing else (no space or line break after the pill) → **Set variable** `Input`. A stray line break turns `manual` into 7 characters, and **Sync now** then only shows the menu again.
 4. **Count** **Characters** in `Input` → **Set variable** `InputLength`. A run started by hand still gives `Input` an empty text that **has any value** counts as a value, so the claim branch is chosen by length: a claim code is always 43 characters, `auto` and `manual` are short.
-5. In the **Receive … from Nowhere** row at the very top, **If there's no input** must be **Continue**. Leave it receiving from **Nowhere** (no Share Sheet).
+5. In the **Receive … from Nowhere** row at the very top, set the input type to **Text** only (it reads **Receive Text from Nowhere**), and **If there's no input** must be **Continue**. Leave it receiving from **Nowhere** (no Share Sheet). With **Receive No**, the `manual` / `auto` text that **Sync now** and the automations pass in is dropped, and every run shows the menu.
 
 Then four blocks in this order; only one ever runs.
 
