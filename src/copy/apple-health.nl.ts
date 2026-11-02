@@ -116,12 +116,27 @@ export const APPLE_HEALTH_NL: AppleHealthDoc = {
             },
         ],
     },
+    activity: {
+        title: "Optioneel: actieve calorieën uit Apple Health",
+        lead: "Een tweede, aparte opdracht, <strong>Nutrition MCP Activity</strong>, werkt andersom: ze leest je totaal <strong>Actieve energie</strong> voor vandaag en de 2 dagen ervoor uit Apple Health en stuurt alleen die dagtotalen naar Nutrition MCP, waar ze naast wat je at verschijnen als je actieve calorieën. Ze leest niets anders uit Gezondheid en verandert nooit je caloriedoel. Het is optioneel en werkt met of zonder de opdracht hierboven.",
+        items: [
+            "Elke dag is één invoer, het hele totaal Actieve energie van die dag, en elke synchronisatie vervangt het; zo telt een dag nooit dubbel, hoe vaak je de opdracht ook uitvoert.",
+            "Op een dag die al is verstuurd, blijven trainingen die je in de chat hebt gelogd in je log staan, maar worden ze er niet bovenop opgeteld: de Actieve energie van je horloge bevat ze al.",
+            "Een dag zonder Actieve energie, of een dag die Gezondheid haar niet liet lezen, wordt niet verstuurd en er wordt niets verwijderd.",
+            "Ontkoppelen via het menu van <strong>Nutrition MCP Activity</strong> laat de opdracht <strong>Nutrition MCP Health</strong> verbonden, en andersom net zo.",
+        ],
+        button: "Download de activiteitsopdracht",
+        pending:
+            "De link naar de activiteitsopdracht wordt hier binnenkort gepubliceerd.",
+        setup: "Voer <strong>Nutrition MCP Activity</strong> één keer uit en log in met hetzelfde account, precies zoals hierboven; bij de eerste synchronisatie vraagt ze of ze <strong>Actieve energie</strong> mag lezen. Houd de naam precies <strong>Nutrition MCP Activity</strong>. Wil je haar actueel houden, voeg dan automatiseringen toe die haar uitvoeren met de tekst <code>auto</code> als invoer, bijvoorbeeld wanneer Gezondheid of Fitness wordt geopend, of een paar keer per dag. Het menu heeft <strong>Sync now</strong>, <strong>Status</strong> en <strong>Disconnect</strong>.",
+    },
     privacy: {
         title: "Privacy en grenzen",
         items: [
             "Onze server bewaart de koppeling en, 8 dagen lang, een overzicht van de verstuurde totalen, zodat elke dag één keer wordt verstuurd en daarna alleen wordt aangevuld. Beide zitten in je gegevensexport.",
             "De opdracht bewaart haar toegangstoken in haar eigen opslag in de Opdrachten-app op je iPhone, niet in een bestand, en de Opdrachten-app synchroniseert het mogelijk via iCloud naar je andere apparaten. Wie de opdracht op je apparaten kan uitvoeren, kan de synchronisatie gebruiken tot je ontkoppelt, dus houd haar op apparaten die alleen jij gebruikt.",
             "We sturen niets naar Apple. De opdracht vraagt onze server om je totalen en schrijft ze op je iPhone in Gezondheid; vanaf daar gelden je eigen instellingen bij Apple.",
+            "Alleen de optionele opdracht <strong>Nutrition MCP Activity</strong> leest uit Apple Health, en alleen het dagtotaal Actieve energie. Onze server slaat die totalen op als je actieve calorieën, in je export en verwijderd met je account, zoals de actieve calorieën die je in de chat logt.",
             "Kies op elk moment <strong>Disconnect</strong> en de koppeling en haar overzicht worden direct verwijderd. Ze vervalt ook vanzelf na 90 dagen zonder synchronisatie, en 365 dagen na het verbinden. Wat al in Apple Health staat, blijft daar tot je het verwijdert.",
         ],
         policyLink: "Lees het privacybeleid",

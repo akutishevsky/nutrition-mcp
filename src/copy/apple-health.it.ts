@@ -118,12 +118,27 @@ export const APPLE_HEALTH_IT: AppleHealthDoc = {
             },
         ],
     },
+    activity: {
+        title: "Facoltativo: calorie attive da Apple Health",
+        lead: "Un secondo comando rapido, separato, <strong>Nutrition MCP Activity</strong>, funziona nel senso opposto: legge da Apple Health il totale di Energia attiva di oggi e dei 2 giorni precedenti e invia a Nutrition MCP solo quei totali giornalieri, dove compaiono come le tue calorie attive accanto a ciò che hai mangiato. Non legge nient'altro da Salute e non cambia mai il tuo obiettivo calorico. È facoltativo e funziona con o senza il comando rapido qui sopra.",
+        items: [
+            "Ogni giorno è una voce sola, il totale di Energia attiva dell'intera giornata, e ogni sincronizzazione la sostituisce, quindi eseguirlo spesso non conta mai un giorno due volte.",
+            "In un giorno che ha già inviato, gli allenamenti registrati in chat restano nel tuo registro ma non vengono sommati sopra: l'Energia attiva del tuo orologio li include già.",
+            "Un giorno senza Energia attiva, o che Salute non le ha permesso di leggere, non invia nulla e non rimuove nulla.",
+            "Scollegarlo dal suo menu lascia collegato il comando rapido <strong>Nutrition MCP Health</strong>, e viceversa.",
+        ],
+        button: "Ottieni il comando rapido per l'attività",
+        pending:
+            "Il link al comando rapido per l'attività verrà pubblicato qui a breve.",
+        setup: "Esegui <strong>Nutrition MCP Activity</strong> una volta e accedi con lo stesso account, esattamente come sopra; la prima sincronizzazione chiede di leggere <strong>Energia attiva</strong>. Mantieni esattamente il nome <strong>Nutrition MCP Activity</strong>. Per tenerlo aggiornato, aggiungi automazioni che lo eseguono con il testo <code>auto</code> come input, per esempio quando si apre Salute o Fitness, o a certe ore della giornata. Il suo menu contiene <strong>Sync now</strong>, <strong>Status</strong> e <strong>Disconnect</strong>.",
+    },
     privacy: {
         title: "Privacy e limiti",
         items: [
             "Il nostro server conserva il collegamento e, per 8 giorni, una registrazione dei totali che ha inviato, così che ogni giorno venga inviato una volta e poi solo integrato. Entrambi sono inclusi nell'esportazione dei tuoi dati.",
             "Il comando rapido conserva il suo token di accesso nella propria memoria all'interno dell'app Comandi Rapidi del tuo iPhone, non in un file, e l'app Comandi Rapidi può sincronizzarlo con gli altri tuoi dispositivi tramite iCloud. Chiunque possa eseguire il comando rapido sui tuoi dispositivi può usare la sincronizzazione finché non la scolleghi, quindi tienilo solo su dispositivi che usi tu.",
             "Non inviamo nulla ad Apple. Il comando rapido chiede i tuoi totali al nostro server e li scrive in Salute sul tuo iPhone; da lì in poi valgono le tue impostazioni Apple.",
+            "Solo il comando rapido facoltativo <strong>Nutrition MCP Activity</strong> legge da Apple Health, e solo il totale giornaliero di Energia attiva. Il nostro server conserva quei totali come tue calorie attive, che compaiono nell'esportazione dei tuoi dati e vengono eliminate con il tuo account, come quelle che registri in chat.",
             "Scegli <strong>Disconnect</strong> in qualsiasi momento e il collegamento e la sua registrazione vengono eliminati subito. Termina anche da solo dopo 90 giorni senza sincronizzazione e 365 giorni dopo il collegamento. Ciò che è già in Apple Health resta lì finché non lo elimini.",
         ],
         policyLink: "Leggi l'informativa sulla privacy",

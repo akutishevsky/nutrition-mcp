@@ -23,6 +23,13 @@
 // and the 90/365-day link lifetimes. src/site-copy.test.ts pins them in every
 // locale, so changing a constant fails until each translation says so too.
 // Never mention "Delete All Data from Shortcuts" except to warn against it.
+//
+// The `activity` section describes the second, optional shortcut, Nutrition
+// MCP Activity (HEALTH_ACTIVITY_SHORTCUT_NAME in src/health-activity-sync.ts),
+// which READS the daily Active Energy total from Apple Health — the only part
+// of the page about data travelling from Health to Nutrition MCP. It restates
+// the today-plus-2-days read, the one-entry-per-day replacement and the
+// hand-logged-entries rule; keep those in step with that module.
 
 import type { SiteLocale } from "../routes.js";
 import type { HealthSyncField } from "../health-sync.js";
@@ -143,6 +150,21 @@ export interface AppleHealthDoc {
             AppleHealthCard,
             AppleHealthCard,
         ];
+    };
+    /** The optional second shortcut, Nutrition MCP Activity. */
+    activity: {
+        /** PLAIN TEXT. */
+        title: string;
+        /** RAW HTML. What it does and that it is separate and optional. */
+        lead: string;
+        /** RAW HTML. How it behaves, as bullets. */
+        items: string[];
+        /** PLAIN TEXT. The install button (shown once its link exists). */
+        button: string;
+        /** PLAIN TEXT. Shown instead of the button while there is no link. */
+        pending: string;
+        /** RAW HTML. How to connect it and run it automatically. */
+        setup: string;
     };
     privacy: {
         /** PLAIN TEXT. */
@@ -281,12 +303,26 @@ export const APPLE_HEALTH_EN: AppleHealthDoc = {
             },
         ],
     },
+    activity: {
+        title: "Optional: active calories from Apple Health",
+        lead: "A second, separate shortcut, <strong>Nutrition MCP Activity</strong>, works the other way round: it reads your <strong>Active Energy</strong> total for today and the 2 days before from Apple Health and sends only those daily totals to Nutrition MCP, where they show up as your active calories beside what you ate. It reads nothing else from Health and never changes your calorie goal. It is optional, and it works with or without the shortcut above.",
+        items: [
+            "Each day is one entry, that day's whole Active Energy total, and every sync replaces it, so running it often never counts a day twice.",
+            "On a day it has sent, workouts you logged in chat stay in your log but aren't added on top: your watch's Active Energy already includes them.",
+            "A day with no Active Energy, or one Health didn't let it read, sends nothing and removes nothing.",
+            "Disconnecting it, from its own menu, leaves the <strong>Nutrition MCP Health</strong> shortcut connected, and the other way round.",
+        ],
+        button: "Get the activity shortcut",
+        pending: "The activity shortcut link will be published here soon.",
+        setup: "Run <strong>Nutrition MCP Activity</strong> once and sign in with the same account, exactly as above; the first sync asks to read <strong>Active Energy</strong>. Keep its name exactly <strong>Nutrition MCP Activity</strong>. To keep it up to date, add automations that run it with the text <code>auto</code> as input, for example when Health or Fitness is opened, or at a few times of day. Its menu has <strong>Sync now</strong>, <strong>Status</strong> and <strong>Disconnect</strong>.",
+    },
     privacy: {
         title: "Privacy and limits",
         items: [
             "Our server keeps the connection and, for 8 days, a record of the totals it sent, so each day is sent once and afterwards only topped up. Both are in your data export.",
             "The shortcut keeps its access token in its own storage inside the Shortcuts app on your iPhone, not in a file, and the Shortcuts app may sync it to your other devices through iCloud. Anyone who can run the shortcut on your devices can use the sync until you disconnect, so keep it on devices only you use.",
             "We send nothing to Apple. The shortcut asks our server for your totals and writes them into Health on your iPhone; from there, your own Apple settings apply.",
+            "Only the optional <strong>Nutrition MCP Activity</strong> shortcut reads from Apple Health, and only the daily Active Energy total. Our server stores those totals as your active calories, in your data export and deleted with your account, like the ones you log in chat.",
             "Choose <strong>Disconnect</strong> at any time and the connection and its record are deleted at once. It also ends by itself after 90 days without a sync, and 365 days after connecting. What is already in Apple Health stays there until you delete it.",
         ],
         policyLink: "Read the privacy policy",

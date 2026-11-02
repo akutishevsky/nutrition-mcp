@@ -23,12 +23,22 @@
  *   between the phone and the profile cannot move it to a neighbouring day.
  */
 
-import { isCalendarDate } from "./health-sync.js";
+import { isCalendarDate, shortcutUrlFromEnv } from "./health-sync.js";
 import { ACTIVE_KCAL_MAX } from "./activity.js";
 import { dateInTz, shiftLocalDate, validateTz, zonedHourUtc } from "./tz.js";
 
 /** The shortcut's exact name: the callback page reopens it by this name. */
 export const HEALTH_ACTIVITY_SHORTCUT_NAME = "Nutrition MCP Activity";
+
+/**
+ * The activity shortcut's install button on /apple-health, from the
+ * HEALTH_ACTIVITY_SHORTCUT_URL env var. Build-time, exactly like
+ * HEALTH_SYNC_SHORTCUT_URL (the Dockerfile declares it as a build arg): unset
+ * or not an iCloud shortcut link, and the page says the link is coming.
+ */
+export const HEALTH_ACTIVITY_SHORTCUT_URL: string | null = shortcutUrlFromEnv(
+    process.env.HEALTH_ACTIVITY_SHORTCUT_URL,
+);
 
 /** Days accepted: today and this many days before it. */
 export const HEALTH_ACTIVITY_WINDOW_DAYS = 7;
