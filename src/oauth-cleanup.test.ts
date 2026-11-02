@@ -316,6 +316,10 @@ function fakeHealthSyncStore(init: {
             days = days.filter((d) => d >= beforeDate);
             return before - days.length;
         },
+        async deleteExpiredActivityLinks(nowIso, createdBeforeIso) {
+            args.activityLinks = [nowIso, createdBeforeIso];
+            return 0;
+        },
     };
     return {
         store,
@@ -402,7 +406,7 @@ describe("sweepHealthSync", () => {
             expect(r.days).toBe(1);
             expect(left().days).toEqual(["2026-10-12", "2026-10-19"]);
             expect(log.mock.calls.map((c) => String(c[0]))).toEqual([
-                "[health-sync] cleanup pending=0 links=0 days=1",
+                "[health-sync] cleanup pending=0 links=0 days=1 activity_links=0",
             ]);
         } finally {
             log.mockRestore();
@@ -418,7 +422,12 @@ describe("sweepHealthSync", () => {
         const log = spyOn(console, "log").mockImplementation(() => {});
         try {
             const r = await sweepHealthSync(store, NOW);
-            expect(r).toEqual({ pending: 0, links: 0, days: 0 });
+            expect(r).toEqual({
+                pending: 0,
+                links: 0,
+                days: 0,
+                activityLinks: 0,
+            });
             expect(warn.mock.calls.map((c) => String(c[0]))).toEqual([
                 "[health-sync] cleanup failed table=health_sync_pending: boom",
             ]);

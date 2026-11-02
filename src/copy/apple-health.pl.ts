@@ -111,12 +111,26 @@ export const APPLE_HEALTH_PL: AppleHealthDoc = {
             },
         ],
     },
+    activity: {
+        title: "Opcjonalnie: aktywne kalorie z Apple Health",
+        lead: "Drugi, odrębny skrót, <strong>Nutrition MCP Activity</strong>, działa w odwrotnym kierunku: odczytuje z Apple Health sumę <strong>Aktywnej energii</strong> za dzisiaj i 2 dni wcześniej i wysyła tylko te sumy dzienne do Nutrition MCP, gdzie pojawiają się jako Twoje aktywne kalorie obok tego, co zjadłeś. Z Apple Health nie odczytuje niczego więcej i nigdy nie zmienia Twojego celu kalorycznego. Jest opcjonalny i działa zarówno ze skrótem opisanym powyżej, jak i bez niego.",
+        items: [
+            "Każdy dzień to jeden wpis, z całą sumą Aktywnej energii za ten dzień, a każda synchronizacja go zastępuje, więc częste uruchamianie nigdy nie policzy dnia dwa razy.",
+            "W dniu, który już wysłał, treningi zapisane w czacie zostają w Twoim dzienniku, ale nie są dodawane na wierzch: Aktywna energia z zegarka już je uwzględnia.",
+            "Dzień bez Aktywnej energii albo taki, którego Apple Health nie pozwoliło odczytać, nie wysyła niczego i niczego nie usuwa.",
+            "Odłączenie go z jego własnego menu nie rozłącza skrótu <strong>Nutrition MCP Health</strong>, i odwrotnie.",
+        ],
+        button: "Pobierz skrót aktywności",
+        pending: "Link do skrótu aktywności pojawi się tutaj wkrótce.",
+        setup: "Uruchom raz <strong>Nutrition MCP Activity</strong> i zaloguj się na to samo konto, dokładnie tak jak wyżej; przy pierwszej synchronizacji skrót zapyta o dostęp do odczytu <strong>Aktywnej energii</strong>. Zachowaj jego nazwę dokładnie jako <strong>Nutrition MCP Activity</strong>. Aby był na bieżąco, dodaj automatyzacje, które uruchamiają go z tekstem <code>auto</code> jako danymi wejściowymi, na przykład po otwarciu aplikacji Zdrowie lub Fitness albo o kilku porach dnia. Jego menu ma opcje <strong>Sync now</strong>, <strong>Status</strong> i <strong>Disconnect</strong>.",
+    },
     privacy: {
         title: "Prywatność i ograniczenia",
         items: [
             "Nasz serwer przechowuje połączenie oraz, przez 8 dni, zapis wysłanych sum, aby każdy dzień był wysyłany raz, a potem tylko uzupełniany. Oba znajdują się w Twoim eksporcie danych.",
             "Skrót przechowuje swój token dostępu we własnej pamięci w aplikacji Skróty w telefonie iPhone, a nie w pliku, a aplikacja Skróty może go synchronizować z innymi Twoimi urządzeniami przez iCloud. Każdy, kto może uruchomić skrót na Twoich urządzeniach, może korzystać z synchronizacji, dopóki jej nie odłączysz, więc trzymaj go tylko na urządzeniach, z których korzystasz wyłącznie Ty.",
             "Niczego nie wysyłamy do Apple. Skrót pobiera Twoje sumy z naszego serwera i zapisuje je w aplikacji Zdrowie w telefonie iPhone; od tego momentu obowiązują Twoje własne ustawienia Apple.",
+            "Tylko opcjonalny skrót <strong>Nutrition MCP Activity</strong> odczytuje dane z Apple Health, i to wyłącznie dzienną sumę Aktywnej energii. Nasz serwer zapisuje te sumy jako Twoje aktywne kalorie, które znajdują się w eksporcie danych i są usuwane wraz z kontem, tak jak te, które zapisujesz w czacie.",
             "W każdej chwili możesz wybrać <strong>Disconnect</strong>: połączenie i jego zapis zostaną natychmiast usunięte. Połączenie wygasa też samo po 90 dniach bez synchronizacji i 365 dniach od połączenia. To, co już jest w Apple Health, zostaje tam, dopóki tego nie usuniesz.",
         ],
         policyLink: "Przeczytaj politykę prywatności",

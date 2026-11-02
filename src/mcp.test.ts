@@ -13086,6 +13086,51 @@ describe("active calories tools", () => {
         });
     });
 
+    test("an Apple Health day total stands for its day; manual entries are listed, not added", async () => {
+        db.profile = { ...PROFILE_BASE, timezone: "Europe/Kyiv" };
+        db.activeEntries = [
+            ACTIVE_ENTRY({
+                id: "11111111-1111-4111-8111-111111111111",
+                kcal: 300,
+                credit_pct: 100,
+                logged_at: "2026-01-15T07:00:00.000Z",
+                notes: "run",
+            }),
+            ACTIVE_ENTRY({
+                kcal: 520,
+                credit_pct: 100,
+                logged_at: "2026-01-15T10:00:00.000Z",
+                source: "apple_health",
+                source_date: "2026-01-15",
+            }),
+        ];
+        await withTools(null, async (call) => {
+            const text = textOf(
+                await call("get_active_calories", { date: "2026-01-15" }),
+            );
+            expect(text).toContain(
+                "2026-01-15: 520 kcal burned, 520 kcal counted against intake",
+            );
+            expect(text).toContain(
+                `- Apple Health day total · 520 kcal · 100% counted [id: ${ACTIVE_ID}]`,
+            );
+            expect(text).toContain(
+                "- 09:00 · 300 kcal · 100% counted (run) · not added: the Apple Health total includes it",
+            );
+
+            const logged = textOf(
+                await call("log_active_calories", {
+                    kcal: 300,
+                    logged_at: "2026-01-15T09:00",
+                }),
+            );
+            expect(logged).toContain(
+                "2026-01-15 has an Apple Health day total (520 kcal), which already includes the day's workouts, so this entry is kept but not added to the day's total.",
+            );
+            expect(logged).toContain("Day 2026-01-15: 520 kcal burned");
+        });
+    });
+
     test("get_active_calories says so when nothing is logged", async () => {
         await withTools(null, async (call) => {
             const r = await call("get_active_calories", { date: "2026-01-15" });

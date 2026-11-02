@@ -1562,6 +1562,30 @@ test("every telemetry value lands under its own header name", () => {
     expect(Object.keys(f)).not.toContain("user_id");
 });
 
+test("the activity shortcut's link is its own row, with no fields or start date", () => {
+    const csv = buildConnectionsCsv([], "UTC", null, {
+        fallback_tz: "Europe/Kyiv",
+        created_at: "2026-11-02T10:00:00.000Z",
+        last_used_at: "2026-11-02T11:00:00.000Z",
+        last_sync_at: "2026-11-02T11:00:00.000Z",
+        expires_at: "2027-01-31T11:00:00.000Z",
+    });
+    expect(fieldsByName(csv, 1)).toEqual({
+        kind: "health_activity_sync",
+        client_id: "nutrition-mcp-health-sync",
+        client_name: "Apple Health activity sync (iOS Shortcut)",
+        redirect_uri: "",
+        created_at: "2026-11-02 10:00:00",
+        expires_at: "2027-01-31 11:00:00",
+        last_used_at: "2026-11-02 11:00:00",
+        last_sync_at: "2026-11-02 11:00:00",
+        timezone: "UTC",
+        synced_fields: "",
+        sync_start_date: "",
+        device_timezone: "Europe/Kyiv",
+    });
+});
+
 test("every connection value lands under its own header name", () => {
     const csv = buildConnectionsCsv(
         [
@@ -2431,6 +2455,8 @@ function activeCalories(
         credit_pct: number;
         notes: string | null;
         created_at: string;
+        source: string | null;
+        source_date: string | null;
     }> = {},
 ) {
     return {
@@ -2445,7 +2471,27 @@ function activeCalories(
 }
 
 const ACTIVE_CALORIES_HEADER =
-    "id,logged_at,timezone,kcal,credit_pct,credited_kcal,notes,created_at";
+    "id,logged_at,timezone,kcal,credit_pct,credited_kcal,notes,created_at,source,source_date";
+
+test("active_calories.csv marks an Apple Health day total and leaves manual rows empty", () => {
+    const rows = parseCsv(
+        buildActiveCaloriesCsv(
+            [
+                activeCalories(),
+                activeCalories({
+                    source: "apple_health",
+                    source_date: "2026-06-20",
+                }),
+            ],
+            "UTC",
+        ),
+    );
+    const at = (r: string[], name: string) => r[rows[0]!.indexOf(name)];
+    expect(at(rows[1]!, "source")).toBe("");
+    expect(at(rows[1]!, "source_date")).toBe("");
+    expect(at(rows[2]!, "source")).toBe("apple_health");
+    expect(at(rows[2]!, "source_date")).toBe("2026-06-20");
+});
 
 test("active_calories.csv header names every column, the credited figure included", () => {
     expect(buildActiveCaloriesCsv([], "UTC")).toBe(ACTIVE_CALORIES_HEADER);

@@ -269,6 +269,7 @@ async function pending(minutesLeft = 30) {
     const connectId = newOpaqueToken();
     const deviceSecret = newOpaqueToken();
     await store.createPending({
+        kind: "health",
         connectId,
         deviceSecret,
         pkceVerifier: "v".repeat(43),

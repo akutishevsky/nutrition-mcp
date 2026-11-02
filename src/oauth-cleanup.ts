@@ -185,6 +185,8 @@ export interface HealthSyncSweepResult {
     pending: number;
     links: number;
     days: number;
+    /** Expired activity-sync links (health_activity_links). */
+    activityLinks: number;
 }
 
 // Apple Health sync's three tables, on the same hourly tick: lapsed pending
@@ -195,7 +197,12 @@ export async function sweepHealthSync(
     store: HealthSyncCleanupStore = supabaseHealthSyncCleanupStore,
     now: number = Date.now(),
 ): Promise<HealthSyncSweepResult> {
-    const result: HealthSyncSweepResult = { pending: 0, links: 0, days: 0 };
+    const result: HealthSyncSweepResult = {
+        pending: 0,
+        links: 0,
+        days: 0,
+        activityLinks: 0,
+    };
     const nowIso = new Date(now).toISOString();
     // The calendar date in UTC, as the database's current_date reads it.
     const beforeDate = new Date(
@@ -219,6 +226,15 @@ export async function sweepHealthSync(
                 ),
         ],
         ["health_sync_days", "days", () => store.deleteDaysBefore(beforeDate)],
+        [
+            "health_activity_links",
+            "activityLinks",
+            () =>
+                store.deleteExpiredActivityLinks(
+                    nowIso,
+                    new Date(now - HEALTH_SYNC_LINK_MAX_AGE_MS).toISOString(),
+                ),
+        ],
     ] as const;
     for (const [table, key, run] of steps) {
         try {
@@ -230,9 +246,9 @@ export async function sweepHealthSync(
         }
     }
     // Counts only.
-    if (result.pending + result.links + result.days) {
+    if (result.pending + result.links + result.days + result.activityLinks) {
         console.log(
-            `[health-sync] cleanup pending=${result.pending} links=${result.links} days=${result.days}`,
+            `[health-sync] cleanup pending=${result.pending} links=${result.links} days=${result.days} activity_links=${result.activityLinks}`,
         );
     }
     return result;

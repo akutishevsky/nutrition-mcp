@@ -33,7 +33,10 @@ import {
     HEALTH_SYNC_RETENTION_DAYS,
 } from "./health-sync.js";
 import {
+    createSupabaseHealthActivityLinkStore,
     createSupabaseHealthSyncStore,
+    type HealthActivityLinkStatus,
+    type HealthActivityLinkStore,
     type HealthSyncDayRow,
     type HealthSyncLinkStatus,
     type HealthSyncStore,
@@ -482,6 +485,8 @@ const ACTIVE_CALORIES_CSV_COLUMNS = [
     "credited_kcal",
     "notes",
     "created_at",
+    "source",
+    "source_date",
 ] as const;
 
 /** Build active_calories.csv, timestamps rendered in `tz`. Header-only when
@@ -491,6 +496,7 @@ export function buildActiveCaloriesCsv(
         id: string;
         notes: string | null;
         created_at: string;
+        source_date?: string | null;
     })[],
     tz: string,
 ): string {
@@ -507,6 +513,10 @@ export function buildActiveCaloriesCsv(
                 csvEscape(creditedKcal(e.kcal, e.credit_pct)),
                 csvEscape(e.notes),
                 csvEscape(localOrNull(e.created_at, tz)),
+                // "apple_health" with the date it totals for a row the
+                // activity sync wrote; both empty for an entry logged by hand.
+                csvEscape(e.source ?? null),
+                csvEscape(e.source_date ?? null),
             ].join(","),
         );
     }
@@ -963,6 +973,10 @@ const CONNECTIONS_CSV_COLUMNS = [
  *  registrant's, so it needs no formula defusing. */
 const HEALTH_SYNC_CONNECTION_NAME = "Apple Health sync (iOS Shortcut)";
 
+/** What connections.csv calls the activity shortcut's link. */
+const HEALTH_ACTIVITY_CONNECTION_NAME =
+    "Apple Health activity sync (iOS Shortcut)";
+
 /**
  * Build connections.csv: every stored OAuth grant for the account, then the
  * Apple Health sync link when there is one. The link's token is stored only as
@@ -972,6 +986,7 @@ export function buildConnectionsCsv(
     grants: OAuthGrantRow[],
     tz: string,
     healthSync: HealthSyncLinkStatus | null = null,
+    activitySync: HealthActivityLinkStatus | null = null,
 ): string {
     const out = [CONNECTIONS_CSV_COLUMNS.join(",")];
     for (const g of grants) {
@@ -1009,6 +1024,25 @@ export function buildConnectionsCsv(
                 csvEscape(healthSync.fields.join(" ")),
                 csvEscape(healthSync.sync_start_date),
                 csvEscape(healthSync.fallback_tz),
+            ].join(","),
+        );
+    }
+    if (activitySync) {
+        out.push(
+            [
+                csvEscape("health_activity_sync"),
+                csvEscape(HEALTH_SYNC_CLIENT_ID),
+                csvEscape(HEALTH_ACTIVITY_CONNECTION_NAME),
+                "",
+                csvEscape(localOrNull(activitySync.created_at, tz)),
+                csvEscape(localOrNull(activitySync.expires_at, tz)),
+                csvEscape(localOrNull(activitySync.last_used_at, tz)),
+                csvEscape(localOrNull(activitySync.last_sync_at, tz)),
+                csvEscape(tz),
+                // It sends nothing to Apple Health and has no start date.
+                "",
+                "",
+                csvEscape(activitySync.fallback_tz),
             ].join(","),
         );
     }
@@ -1128,7 +1162,7 @@ export function buildExportReadme(opts: {
         `saved_meals.csv ${rows(counts.savedMeals)} — your saved meals: name, description, default meal type and the values for one serving, when each was created and last changed (in its "timezone" column's zone). Editing or deleting a saved meal does not change meals you already logged from it.`,
         `saved_meal_items.csv ${rows(counts.savedMealItems)} — the ingredients of saved meals, one row per ingredient, joined to saved_meals.csv by saved_meal_id. When a saved meal has ingredients, its values in saved_meals.csv are their sum, rounded the same way: calories to a whole number, the other values to two decimals. Each ingredient carries its own nutrient_sources and source_detail, as described under "Where the values came from".`,
         `water.csv    ${rows(counts.water)} — every water entry, in millilitres.`,
-        `active_calories.csv ${rows(counts.activeCalories)} — every entry of energy burned in exercise (active calories) as logged: the kilocalories burned, the credit_pct share that counted against intake at the time it was logged, and credited_kcal (that share of the burn, rounded). Burned energy is kept beside your intake and never changed your calorie goal.`,
+        `active_calories.csv ${rows(counts.activeCalories)} — every entry of energy burned in exercise (active calories) as logged: the kilocalories burned, the credit_pct share that counted against intake at the time it was logged, and credited_kcal (that share of the burn, rounded). Burned energy is kept beside your intake and never changed your calorie goal. A row with source "apple_health" is a whole day's Active Energy total that the Nutrition MCP Activity shortcut read from Apple Health and sent, for the date in source_date; it is replaced on every sync, and on that date it is the day's total in place of any entries logged by hand. Both columns are empty for an entry logged by hand.`,
         `weight.csv   ${rows(counts.weight)} — every weigh-in, as stored grams and as ${weightUnit}.`,
         `body_measurements.csv ${rows(counts.bodyMeasurements)} — every body measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf): the stored millimetres, and the value exactly as entered with its unit (cm or in).`,
         "goals.csv    your current daily targets — one row, or a header alone if you have never set goals.",
@@ -1136,7 +1170,7 @@ export function buildExportReadme(opts: {
         "profile.csv  your settings: timezone, preferred weight, length and drink units (empty preferred_length_unit = never chosen), display toggles, widget language and activity_credit_pct (the share of active calories that counts against intake for entries logged from now on; empty = never chosen, which counts as 100) — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
         'account.csv  your sign-in account: one "account" row (account id, email address, when the account was created, when the email was confirmed, last sign-in, sign-in methods) and one "identity" row per sign-in method (the provider, the provider\'s id for you, and any name or picture it sent — Google accounts created before September 27, 2026 may still hold them).',
         `telemetry.csv ${rows(counts.telemetry)} — one per tool call your AI app made: which tool, when, whether it succeeded, how long it took, the error category if it failed, the date-range length asked for, the MCP session id, the protocol revision and the app name it reported. None of it contains what you logged.`,
-        `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty. If Apple Health sync is connected, its link is one more row of kind "health_sync": when it was created, last used and last synced, when it expires, which totals it sends (synced_fields), the first day it may send (sync_start_date) and the iPhone's own timezone (device_timezone, a saved setting — the timestamps are still in the "timezone" column's zone). Its token is not included either.`,
+        `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty. If Apple Health sync is connected, its link is one more row of kind "health_sync": when it was created, last used and last synced, when it expires, which totals it sends (synced_fields), the first day it may send (sync_start_date) and the iPhone's own timezone (device_timezone, a saved setting — the timestamps are still in the "timezone" column's zone). Its token is not included either. If the Nutrition MCP Activity shortcut is connected, its link is a row of kind "health_activity_sync" with the same dates and device_timezone; it sends nothing to Apple Health, so synced_fields and sync_start_date are empty, and its token is not included.`,
         `health_sync.csv ${rows(counts.healthSync)} — what Apple Health sync sent to your iPhone, one row per day, kept for ${HEALTH_SYNC_RETENTION_DAYS} days: the daily totals sent (${HEALTH_SYNC_FIELDS.join(", ")}), how many later top-ups were sent for the day (topup_seq) and when the first and last were sent. Each row is in its own "timezone" — the zone the day was counted in, which can differ from your account's if your phone was elsewhere — and its date and times are wall clocks there. An empty value was not sent; a row with no values was offered but not yet confirmed by the phone. Alcohol is never sent.`,
         "README.txt   this file.",
         "",
@@ -1227,12 +1261,15 @@ export async function exportAllData(
     // Injectable for tests; every other reader here is a supabase.ts function.
     deps: {
         healthSync?: HealthSyncStore;
+        healthActivity?: Pick<HealthActivityLinkStore, "getActivityLinkStatus">;
         getGoalsHistory?: (
             userId: string,
         ) => Promise<NutritionGoalsHistoryRow[]>;
     } = {},
 ): Promise<FullExportResult> {
     const healthSync = deps.healthSync ?? createSupabaseHealthSyncStore();
+    const healthActivity =
+        deps.healthActivity ?? createSupabaseHealthActivityLinkStore();
     const getGoalsHistory = deps.getGoalsHistory ?? getNutritionGoalsHistory;
     // One round of independent queries rather than each awaited in turn: an
     // account with years of history pages through meals, water, weight and
@@ -1255,6 +1292,7 @@ export async function exportAllData(
         connections,
         healthSyncLink,
         healthSyncDays,
+        activitySyncLink,
     ] = await Promise.all([
         getAllMeals(userId),
         getAllMealItems(userId),
@@ -1272,6 +1310,7 @@ export async function exportAllData(
         getAllOAuthGrants(userId),
         healthSync.getLinkStatus(userId),
         healthSync.getDaysForExport(userId),
+        healthActivity.getActivityLinkStatus(userId),
     ]);
 
     const counts: ExportCounts = {
@@ -1285,7 +1324,10 @@ export async function exportAllData(
         bodyMeasurements: bodyMeasurements.length,
         goalsHistory: goalsHistory.length,
         telemetry: telemetry.length,
-        connections: connections.length + (healthSyncLink ? 1 : 0),
+        connections:
+            connections.length +
+            (healthSyncLink ? 1 : 0) +
+            (activitySyncLink ? 1 : 0),
         healthSync: healthSyncDays.length,
     };
 
@@ -1338,7 +1380,12 @@ export async function exportAllData(
         "profile.csv": buildProfileCsv(profile, tz),
         "account.csv": buildAccountCsv(account, tz),
         "telemetry.csv": buildTelemetryCsv(telemetry, tz),
-        "connections.csv": buildConnectionsCsv(connections, tz, healthSyncLink),
+        "connections.csv": buildConnectionsCsv(
+            connections,
+            tz,
+            healthSyncLink,
+            activitySyncLink,
+        ),
         "health_sync.csv": buildHealthSyncCsv(healthSyncDays, tz),
         "README.txt": buildExportReadme({
             generatedAt,

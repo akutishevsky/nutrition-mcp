@@ -2499,6 +2499,11 @@ export interface ActiveCaloriesEntry extends ActivityEntry {
     notes: string | null;
     created_at: string;
     idempotency_key: string | null;
+    /** "apple_health" for a day total the activity sync wrote; null when
+     *  logged by hand. Absent on rows read before the column existed. */
+    source?: string | null;
+    /** The local date an Apple Health day total covers; null otherwise. */
+    source_date?: string | null;
 }
 
 export interface ActiveCaloriesInput {
@@ -2664,6 +2669,38 @@ export async function deleteActiveCalories(
     if (error)
         throw new Error(`Failed to delete active calories: ${error.message}`);
     return (data?.length ?? 0) > 0;
+}
+
+/** One Apple Health day total for syncHealthActiveCalories. */
+export interface HealthActivityDayWrite {
+    date: string;
+    kcal: number;
+    logged_at: string;
+    credit_pct: number;
+}
+
+/**
+ * Write the activity sync's day totals: one row per local date, inserted or
+ * replaced (never added to), through the service-role-only
+ * sync_health_active_calories function
+ * (20261103120000_health_activity_sync.sql), which keeps an existing day's
+ * credit_pct snapshot. The caller validates every value. Returns how many
+ * rows were inserted or changed.
+ */
+export async function syncHealthActiveCalories(
+    userId: string,
+    days: readonly HealthActivityDayWrite[],
+): Promise<number> {
+    if (days.length === 0) return 0;
+    const { data, error } = await getSupabase().rpc(
+        "sync_health_active_calories",
+        { p_user_id: userId, p_days: days },
+    );
+    if (error)
+        throw new Error(
+            `Failed to store Apple Health active calories: ${error.message}`,
+        );
+    return typeof data === "number" ? data : 0;
 }
 
 // ---------- Weight log ----------
@@ -3397,6 +3434,15 @@ export async function deleteAllUserData(userId: string): Promise<void> {
     // (and writing another sent-values row) while the rest is being deleted.
     // Pending connects are only attributable once claimed; unclaimed ones
     // carry no user and lapse within 30 minutes.
+    const { error: haLinkErr } = await sb
+        .from("health_activity_links")
+        .delete()
+        .eq("user_id", userId);
+    if (haLinkErr)
+        throw new Error(
+            `Failed to delete Apple Health activity sync link: ${haLinkErr.message}`,
+        );
+
     const { error: hsLinkErr } = await sb
         .from("health_sync_links")
         .delete()

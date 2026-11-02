@@ -24,6 +24,10 @@ export const HEALTH_SYNC_LINK_MAX_AGE_MS = HEALTH_SYNC_LINK_MAX_DAYS * DAY_MS;
 /** health_sync_pending without its hash columns. */
 export interface HealthSyncPendingRow {
     id: string;
+    /** Which shortcut started the connect: the original Apple Health sync,
+     *  or the opt-in activity shortcut. Rows written before the column
+     *  existed read as "health" (the migration's default). */
+    kind: HealthSyncConnectKind;
     fields: string[];
     tz: string | null;
     backfill_days: number;
@@ -88,7 +92,10 @@ export interface HealthSyncDayExpect {
     sentNull: boolean;
 }
 
+export type HealthSyncConnectKind = "health" | "activity";
+
 export interface NewPendingConnection {
+    kind: HealthSyncConnectKind;
     connectId: string;
     deviceSecret: string;
     pkceVerifier: string;
@@ -206,7 +213,7 @@ export interface HealthSyncStore {
 }
 
 const PENDING_COLUMNS =
-    "id, fields, tz, backfill_days, pkce_verifier, user_id, claim_expires_at, created_at, expires_at";
+    "id, kind, fields, tz, backfill_days, pkce_verifier, user_id, claim_expires_at, created_at, expires_at";
 const LINK_COLUMNS =
     "id, user_id, kind, fields, fallback_tz, sync_start_date, lease_until, created_at, last_used_at, last_sync_at, expires_at";
 const DAY_COLUMNS =
@@ -226,6 +233,7 @@ export function createSupabaseHealthSyncStore(): HealthSyncStore {
             const { error } = await getSupabase()
                 .from("health_sync_pending")
                 .insert({
+                    kind: input.kind,
                     connect_id_hash: hashSecret(input.connectId),
                     device_secret_hash: hashSecret(input.deviceSecret),
                     pkce_verifier: input.pkceVerifier,
@@ -560,6 +568,12 @@ export interface HealthSyncCleanupStore {
     ): Promise<number>;
     /** Sent-values rows dated strictly before `beforeDate` (YYYY-MM-DD). */
     deleteDaysBefore(beforeDate: string): Promise<number>;
+    /** Activity links past their sliding expiry or created before
+     *  `createdBeforeIso` — the same two bounds as deleteExpiredLinks. */
+    deleteExpiredActivityLinks(
+        nowIso: string,
+        createdBeforeIso: string,
+    ): Promise<number>;
 }
 
 export const supabaseHealthSyncCleanupStore: HealthSyncCleanupStore = {
@@ -589,6 +603,18 @@ export const supabaseHealthSyncCleanupStore: HealthSyncCleanupStore = {
         return count ?? 0;
     },
 
+    async deleteExpiredActivityLinks(nowIso, createdBeforeIso) {
+        const { count, error } = await getSupabase()
+            .from("health_activity_links")
+            .delete({ count: "exact" })
+            .or(`expires_at.lt.${nowIso},created_at.lt.${createdBeforeIso}`);
+        if (error)
+            throw new Error(
+                `Failed to delete expired health_activity_links: ${error.message}`,
+            );
+        return count ?? 0;
+    },
+
     async deleteDaysBefore(beforeDate) {
         const { count, error } = await getSupabase()
             .from("health_sync_days")
@@ -601,3 +627,171 @@ export const supabaseHealthSyncCleanupStore: HealthSyncCleanupStore = {
         return count ?? 0;
     },
 };
+
+// ---------- Activity links (health_activity_links) ----------
+//
+// The opt-in "Nutrition MCP Activity" shortcut's link: at most one per user,
+// in its own table (20261103120000_health_activity_sync.sql), so it connects,
+// expires and disconnects independently of the Apple Health link above, and
+// neither token is accepted on the other's routes. Same token shape (`nmhs_`,
+// stored only as hashSecret) and the same expiry rules. No lease: an activity
+// sync replaces day totals, so two running at once write the same rows.
+
+/** health_activity_links without token_hash. */
+export interface HealthActivityLinkRow {
+    id: string;
+    user_id: string;
+    fallback_tz: string | null;
+    created_at: string;
+    last_used_at: string | null;
+    last_sync_at: string | null;
+    expires_at: string;
+}
+
+export type HealthActivityLinkLookup =
+    | { status: "valid"; link: HealthActivityLinkRow }
+    | { status: "invalid" }
+    | { status: "unavailable" };
+
+/** What get_profile and the export show about an activity link. */
+export type HealthActivityLinkStatus = Omit<
+    HealthActivityLinkRow,
+    "id" | "user_id"
+>;
+
+export interface HealthActivityLinkStore {
+    /** The user's activity link, replaced wholesale (upsert on user_id). */
+    replaceActivityLink(
+        userId: string,
+        link: { fallbackTz: string | null; expiresAt: string },
+        token: string,
+    ): Promise<void>;
+    lookupActivityLink(
+        token: string,
+        now?: Date,
+    ): Promise<HealthActivityLinkLookup>;
+    /** Stamp last_used_at and the slid expiry. The caller throttles. */
+    touchActivityLink(
+        userId: string,
+        lastUsedAt: string,
+        expiresAt: string,
+    ): Promise<void>;
+    /** Stamp the last sync, and the phone's zone it reported. */
+    setActivitySynced(
+        userId: string,
+        at: string,
+        fallbackTz: string | null,
+    ): Promise<void>;
+    deleteActivityLink(userId: string): Promise<void>;
+    /** The link while it still works (same bounds as the lookup), or null. */
+    getActivityLinkStatus(
+        userId: string,
+        now?: Date,
+    ): Promise<HealthActivityLinkStatus | null>;
+}
+
+const ACTIVITY_LINK_COLUMNS =
+    "id, user_id, fallback_tz, created_at, last_used_at, last_sync_at, expires_at";
+
+function liveSince(at: Date): string {
+    return new Date(at.getTime() - HEALTH_SYNC_LINK_MAX_AGE_MS).toISOString();
+}
+
+export function createSupabaseHealthActivityLinkStore(): HealthActivityLinkStore {
+    return {
+        async replaceActivityLink(userId, link, token) {
+            const { error } = await getSupabase()
+                .from("health_activity_links")
+                .upsert(
+                    {
+                        user_id: userId,
+                        token_hash: hashSecret(token),
+                        fallback_tz: link.fallbackTz,
+                        created_at: new Date().toISOString(),
+                        last_used_at: null,
+                        last_sync_at: null,
+                        expires_at: link.expiresAt,
+                    },
+                    { onConflict: "user_id" },
+                );
+            if (error)
+                throw new Error(
+                    `Failed to store activity sync link: ${error.message}`,
+                );
+        },
+
+        async lookupActivityLink(token, now) {
+            const at = now ?? new Date();
+            try {
+                const { data, error } = await getSupabase()
+                    .from("health_activity_links")
+                    .select(ACTIVITY_LINK_COLUMNS)
+                    .eq("token_hash", hashSecret(token))
+                    .gt("expires_at", at.toISOString())
+                    .gt("created_at", liveSince(at))
+                    .maybeSingle();
+                if (error) return { status: "unavailable" };
+                if (!data) return { status: "invalid" };
+                return {
+                    status: "valid",
+                    link: data as HealthActivityLinkRow,
+                };
+            } catch {
+                return { status: "unavailable" };
+            }
+        },
+
+        async touchActivityLink(userId, lastUsedAt, expiresAt) {
+            const { error } = await getSupabase()
+                .from("health_activity_links")
+                .update({ last_used_at: lastUsedAt, expires_at: expiresAt })
+                .eq("user_id", userId);
+            if (error)
+                throw new Error(
+                    `Failed to touch activity sync link: ${error.message}`,
+                );
+        },
+
+        async setActivitySynced(userId, at, fallbackTz) {
+            const patch: Record<string, string> = { last_sync_at: at };
+            if (fallbackTz !== null) patch.fallback_tz = fallbackTz;
+            const { error } = await getSupabase()
+                .from("health_activity_links")
+                .update(patch)
+                .eq("user_id", userId);
+            if (error)
+                throw new Error(
+                    `Failed to stamp activity sync: ${error.message}`,
+                );
+        },
+
+        async deleteActivityLink(userId) {
+            const { error } = await getSupabase()
+                .from("health_activity_links")
+                .delete()
+                .eq("user_id", userId);
+            if (error)
+                throw new Error(
+                    `Failed to delete activity sync link: ${error.message}`,
+                );
+        },
+
+        async getActivityLinkStatus(userId, now) {
+            const at = now ?? new Date();
+            const { data, error } = await getSupabase()
+                .from("health_activity_links")
+                .select(
+                    "fallback_tz, created_at, last_used_at, last_sync_at, expires_at",
+                )
+                .eq("user_id", userId)
+                .gt("expires_at", at.toISOString())
+                .gt("created_at", liveSince(at))
+                .maybeSingle();
+            if (error)
+                throw new Error(
+                    `Failed to read activity sync link: ${error.message}`,
+                );
+            return (data as HealthActivityLinkStatus | null) ?? null;
+        },
+    };
+}
