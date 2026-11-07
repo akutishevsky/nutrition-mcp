@@ -138,8 +138,13 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         caloriesByDay: "Calories par jour",
         mealTypes: {
             breakfast: "Petit-déjeuner",
+            second_breakfast: "Collation du matin",
             lunch: "Déjeuner",
+            afternoon_snack: "Goûter",
             dinner: "Dîner",
+            supper: "Souper",
+            pre_workout: "Avant l'entraînement",
+            post_workout: "Après l'entraînement",
             snack: "Collation",
         },
         items: {
@@ -386,8 +391,13 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         mealFallback: "Repas",
         mealTypes: {
             breakfast: "Petit-déjeuner",
+            second_breakfast: "Collation du matin",
             lunch: "Déjeuner",
+            afternoon_snack: "Goûter",
             dinner: "Dîner",
+            supper: "Souper",
+            pre_workout: "Avant l'entraînement",
+            post_workout: "Après l'entraînement",
             snack: "Collation",
         },
         noMealsToday: "Aucun repas enregistré aujourd'hui.",
@@ -1264,8 +1274,13 @@ export const WIDGET_STRINGS_FR: WidgetStrings = {
         meals: {
             types: {
                 breakfast: "Petit-déjeuner",
+                second_breakfast: "Collation du matin",
                 lunch: "Déjeuner",
+                afternoon_snack: "Goûter",
                 dinner: "Dîner",
+                supper: "Souper",
+                pre_workout: "Avant l'entraînement",
+                post_workout: "Après l'entraînement",
                 snack: "Collation",
                 drink: "Boisson",
             },

@@ -138,8 +138,13 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
         caloriesByDay: "Günlere göre kalori",
         mealTypes: {
             breakfast: "Kahvaltı",
+            second_breakfast: "Kuşluk",
             lunch: "Öğle yemeği",
+            afternoon_snack: "İkindi ara öğünü",
             dinner: "Akşam yemeği",
+            supper: "Gece öğünü",
+            pre_workout: "Antrenman öncesi",
+            post_workout: "Antrenman sonrası",
             snack: "Atıştırmalık",
         },
         items: {
@@ -373,8 +378,13 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
         mealFallback: "Yemek",
         mealTypes: {
             breakfast: "Kahvaltı",
+            second_breakfast: "Kuşluk",
             lunch: "Öğle yemeği",
+            afternoon_snack: "İkindi ara öğünü",
             dinner: "Akşam yemeği",
+            supper: "Gece öğünü",
+            pre_workout: "Antrenman öncesi",
+            post_workout: "Antrenman sonrası",
             snack: "Atıştırmalık",
         },
         noMealsToday: "Bugün yemek kaydı yok.",
@@ -1245,8 +1255,13 @@ export const WIDGET_STRINGS_TR: WidgetStrings = {
         meals: {
             types: {
                 breakfast: "Kahvaltı",
+                second_breakfast: "Kuşluk",
                 lunch: "Öğle yemeği",
+                afternoon_snack: "İkindi ara öğünü",
                 dinner: "Akşam yemeği",
+                supper: "Gece öğünü",
+                pre_workout: "Antrenman öncesi",
+                post_workout: "Antrenman sonrası",
                 snack: "Atıştırmalık",
                 drink: "İçecek",
             },

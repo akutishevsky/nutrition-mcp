@@ -148,8 +148,13 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         caloriesByDay: "Калорії за днями",
         mealTypes: {
             breakfast: "Сніданок",
+            second_breakfast: "Другий сніданок",
             lunch: "Обід",
+            afternoon_snack: "Підвечірок",
             dinner: "Вечеря",
+            supper: "Пізня вечеря",
+            pre_workout: "Перед тренуванням",
+            post_workout: "Після тренування",
             snack: "Перекус",
         },
         items: {
@@ -443,8 +448,13 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         mealFallback: "Страва",
         mealTypes: {
             breakfast: "Сніданок",
+            second_breakfast: "Другий сніданок",
             lunch: "Обід",
+            afternoon_snack: "Підвечірок",
             dinner: "Вечеря",
+            supper: "Пізня вечеря",
+            pre_workout: "Перед тренуванням",
+            post_workout: "Після тренування",
             snack: "Перекус",
         },
         noMealsToday: "Сьогодні страв не записано.",
@@ -1436,8 +1446,13 @@ export const WIDGET_STRINGS_UK: WidgetStrings = {
         meals: {
             types: {
                 breakfast: "Сніданок",
+                second_breakfast: "Другий сніданок",
                 lunch: "Обід",
+                afternoon_snack: "Підвечірок",
                 dinner: "Вечеря",
+                supper: "Пізня вечеря",
+                pre_workout: "Перед тренуванням",
+                post_workout: "Після тренування",
                 snack: "Перекус",
                 drink: "Напій",
             },

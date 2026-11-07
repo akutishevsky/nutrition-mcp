@@ -9,6 +9,7 @@ import {
     spyOn,
 } from "bun:test";
 import { z } from "zod";
+import { MEAL_TYPES } from "./meal-types.js";
 import {
     formatGoalLine,
     formatProgress,
@@ -13720,6 +13721,114 @@ describe("active calories on the read tools", () => {
                     },
                 ],
             });
+        });
+    });
+});
+
+describe("meal types: every value is accepted by the meal tools", () => {
+    test("log_meal, update_meal, save_meal, log_saved_meal and update_saved_meal take each of the nine types", async () => {
+        db.savedMeals = [savedMealRow()];
+        db.meals = [storedMeal({ id: MEAL_ID })];
+        await withTools(null, async (call) => {
+            for (const meal_type of MEAL_TYPES) {
+                db.inserted = [];
+                db.mealUpdates = [];
+                db.savedMealWrites = [];
+                db.savedMealUpdates = [];
+
+                const logged = await call("log_meal", {
+                    description: "Test meal",
+                    meal_type,
+                });
+                expect(logged.isError).toBeFalsy();
+                expect(db.inserted[0]!.meal_type).toBe(meal_type);
+
+                const updated = await call("update_meal", {
+                    id: MEAL_ID,
+                    meal_type,
+                });
+                expect(updated.isError).toBeFalsy();
+                expect(db.mealUpdates[0]!.meal_type).toBe(meal_type);
+
+                const saved = await call("save_meal", {
+                    name: `Named ${meal_type}`,
+                    meal_type,
+                    calories: 100,
+                    protein_g: 5,
+                    carbs_g: 10,
+                    fat_g: 3,
+                });
+                expect(saved.isError).toBeFalsy();
+                expect(db.savedMealWrites[0]!.input.meal_type).toBe(meal_type);
+
+                const savedUpdate = await call("update_saved_meal", {
+                    id: SAVED_ID,
+                    meal_type,
+                });
+                expect(savedUpdate.isError).toBeFalsy();
+                expect(db.savedMealUpdates[0]!.fields.meal_type).toBe(
+                    meal_type,
+                );
+
+                db.inserted = [];
+                const entry = await call("log_saved_meal", {
+                    saved_meal: SAVED_ID,
+                    meal_type,
+                });
+                expect(entry.isError).toBeFalsy();
+                expect(db.inserted[0]!.meal_type).toBe(meal_type);
+            }
+        });
+    });
+
+    test("an unknown meal type is refused before any write", async () => {
+        db.savedMeals = [savedMealRow()];
+        db.meals = [storedMeal({ id: MEAL_ID })];
+        await withTools(null, async (call) => {
+            const logged = await call("log_meal", {
+                description: "Brunch",
+                meal_type: "brunch",
+            });
+            expect(logged.isError).toBe(true);
+            expect(db.inserted).toHaveLength(0);
+
+            const updated = await call("update_meal", {
+                id: MEAL_ID,
+                meal_type: "brunch",
+            });
+            expect(updated.isError).toBe(true);
+            expect(db.mealUpdates).toHaveLength(0);
+
+            const saved = await call("save_meal", {
+                name: "Brunch",
+                meal_type: "brunch",
+                calories: 100,
+            });
+            expect(saved.isError).toBe(true);
+            expect(db.savedMealWrites).toHaveLength(0);
+
+            const entry = await call("log_saved_meal", {
+                saved_meal: SAVED_ID,
+                meal_type: "brunch",
+            });
+            expect(entry.isError).toBe(true);
+            expect(db.inserted).toHaveLength(0);
+
+            const savedUpdate = await call("update_saved_meal", {
+                id: SAVED_ID,
+                meal_type: "brunch",
+            });
+            expect(savedUpdate.isError).toBe(true);
+            expect(db.savedMealUpdates).toHaveLength(0);
+        });
+    });
+
+    test("log_saved_meal with no meal_type copies the saved meal's new default", async () => {
+        db.savedMeals = [savedMealRow({ meal_type: "post_workout" })];
+        await withTools(null, async (call) => {
+            const r = await call("log_saved_meal", { saved_meal: SAVED_ID });
+            expect(r.isError).toBeFalsy();
+            expect(db.inserted[0]!.meal_type).toBe("post_workout");
         });
     });
 });

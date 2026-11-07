@@ -26,6 +26,7 @@
 // race on.
 
 import type { SiteLocale } from "../routes.js";
+import type { MealType } from "../meal-types.js";
 import { WIDGET_STRINGS_DE } from "./widgets.de.js";
 import { WIDGET_STRINGS_ES } from "./widgets.es.js";
 import { WIDGET_STRINGS_FR } from "./widgets.fr.js";
@@ -417,8 +418,13 @@ export const DIGEST_STRINGS_EN = {
     meals: {
         types: {
             breakfast: "Breakfast",
+            second_breakfast: "Second breakfast",
             lunch: "Lunch",
+            afternoon_snack: "Afternoon snack",
             dinner: "Dinner",
+            supper: "Supper",
+            pre_workout: "Pre-workout",
+            post_workout: "Post-workout",
             snack: "Snack",
             drink: "Drink",
         },
@@ -744,13 +750,8 @@ export interface WidgetStrings {
         gaugeAriaMeals: string;
         /** Title of a range's calories panel (a day's uses macros.byMealTitle). */
         caloriesByDay: string;
-        /** The four meal types log_meal offers; any other stored type is shown as typed. */
-        mealTypes: {
-            breakfast: string;
-            lunch: string;
-            dinner: string;
-            snack: string;
-        };
+        /** Every meal type log_meal offers (MEAL_TYPES); any other stored type is shown as typed. */
+        mealTypes: Record<MealType, string>;
         /** Ingredient count on a meal row's meta line. */
         items: PluralForms;
         /** A meal row's meta line when the meal has no ingredients. */
@@ -954,12 +955,7 @@ export interface WidgetStrings {
         waterPast: string;
         totalOnly: string;
         mealFallback: string;
-        mealTypes: {
-            breakfast: string;
-            lunch: string;
-            dinner: string;
-            snack: string;
-        };
+        mealTypes: Record<MealType, string>;
         noMealsToday: string;
         noMealsPast: string;
         noWaterToday: string;
@@ -1822,8 +1818,13 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         caloriesByDay: "Calories by day",
         mealTypes: {
             breakfast: "Breakfast",
+            second_breakfast: "Second breakfast",
             lunch: "Lunch",
+            afternoon_snack: "Afternoon snack",
             dinner: "Dinner",
+            supper: "Supper",
+            pre_workout: "Pre-workout",
+            post_workout: "Post-workout",
             snack: "Snack",
         },
         items: {
@@ -2053,8 +2054,13 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
         mealFallback: "Meal",
         mealTypes: {
             breakfast: "Breakfast",
+            second_breakfast: "Second breakfast",
             lunch: "Lunch",
+            afternoon_snack: "Afternoon snack",
             dinner: "Dinner",
+            supper: "Supper",
+            pre_workout: "Pre-workout",
+            post_workout: "Post-workout",
             snack: "Snack",
         },
         noMealsToday: "No meals logged today.",

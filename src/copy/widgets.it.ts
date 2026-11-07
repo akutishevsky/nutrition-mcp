@@ -138,8 +138,13 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         caloriesByDay: "Calorie per giorno",
         mealTypes: {
             breakfast: "Colazione",
+            second_breakfast: "Spuntino di metà mattina",
             lunch: "Pranzo",
+            afternoon_snack: "Merenda",
             dinner: "Cena",
+            supper: "Spuntino serale",
+            pre_workout: "Pre-allenamento",
+            post_workout: "Post-allenamento",
             snack: "Spuntino",
         },
         items: {
@@ -386,8 +391,13 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         mealFallback: "Pasto",
         mealTypes: {
             breakfast: "Colazione",
+            second_breakfast: "Spuntino di metà mattina",
             lunch: "Pranzo",
+            afternoon_snack: "Merenda",
             dinner: "Cena",
+            supper: "Spuntino serale",
+            pre_workout: "Pre-allenamento",
+            post_workout: "Post-allenamento",
             snack: "Spuntino",
         },
         noMealsToday: "Nessun pasto registrato oggi.",
@@ -1265,8 +1275,13 @@ export const WIDGET_STRINGS_IT: WidgetStrings = {
         meals: {
             types: {
                 breakfast: "Colazione",
+                second_breakfast: "Spuntino di metà mattina",
                 lunch: "Pranzo",
+                afternoon_snack: "Merenda",
                 dinner: "Cena",
+                supper: "Spuntino serale",
+                pre_workout: "Pre-allenamento",
+                post_workout: "Post-allenamento",
                 snack: "Spuntino",
                 drink: "Bevanda",
             },
