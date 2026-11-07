@@ -4899,6 +4899,9 @@
                         : null;
                 WU = d.weight_unit === "lb" ? "lb" : "kg";
                 ST = freshState(data, d);
+                // Opened up front when the user asked for expanded widgets
+                // (startExpanded, bridge.js).
+                if (startExpanded(meta)) ST.level = 1;
                 document.getElementById("root").innerHTML =
                     '<div class="digest" id="dgx"></div>';
                 draw();

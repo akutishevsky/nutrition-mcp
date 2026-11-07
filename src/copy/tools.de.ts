@@ -640,10 +640,12 @@ export const TOOLS_DE: ToolsDoc = {
         },
         set_widget_display: {
             description:
-                "Schalte die visuellen In-Chat-Widgets ein oder aus – Dashboards, Ziel-Ringe und Trend-Diagramme. Sind sie aus, antworten dieselben Werkzeuge nur mit Text und Daten. Standardmäßig eingeschaltet; die Änderung gilt für neue Unterhaltungen.",
+                "Schalte die visuellen In-Chat-Widgets ein oder aus – Dashboards, Ziel-Ringe und Trend-Diagramme. Sind sie aus, antworten dieselben Werkzeuge nur mit Text und Daten. Standardmäßig eingeschaltet; die Änderung gilt für neue Unterhaltungen. Außerdem lässt sich wählen, ob sie aufgeklappt mit sichtbaren Details oder zugeklappt (Standard) geöffnet werden; das gilt ab dem nächsten Widget.",
             params: {
                 enabled:
                     "true zeigt Widgets an, false liefert reine Textantworten",
+                expanded:
+                    "true öffnet Widgets mit bereits aufgeklappten Details, false öffnet sie zugeklappt",
             },
             example: "Schalt die Widgets aus",
         },

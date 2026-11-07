@@ -2533,7 +2533,14 @@
                     return;
                 }
                 gpDay = buildDay(data, resultMeta);
-                S = { level: 0, flt: null, sel: null, mo: null };
+                // Expanded when the user asked for it (startExpanded,
+                // bridge.js); viewHtml ignores the level without goals.
+                S = {
+                    level: startExpanded(resultMeta) ? 1 : 0,
+                    flt: null,
+                    sel: null,
+                    mo: null,
+                };
                 prev = null;
                 // One assignment with the whole markup (the static renderer
                 // reads root.innerHTML); interactions repaint #gp only, so the

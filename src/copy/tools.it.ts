@@ -643,10 +643,12 @@ export const TOOLS_IT: ToolsDoc = {
         },
         set_widget_display: {
             description:
-                "Attiva o disattiva i widget visivi in chat: dashboard, anelli degli obiettivi e grafici degli andamenti. Se sono disattivati, gli stessi strumenti rispondono solo con testo e dati. Sono attivi per impostazione predefinita; la modifica vale per le nuove conversazioni.",
+                "Attiva o disattiva i widget visivi in chat: dashboard, anelli degli obiettivi e grafici degli andamenti. Se sono disattivati, gli stessi strumenti rispondono solo con testo e dati. Sono attivi per impostazione predefinita; la modifica vale per le nuove conversazioni. Puoi anche scegliere se si aprono espansi, con i dettagli già visibili, o compressi (predefinito); vale dal widget successivo.",
             params: {
                 enabled:
                     "true per mostrare i widget, false per risposte solo testuali",
+                expanded:
+                    "true per aprire i widget con i dettagli già espansi, false per aprirli compressi",
             },
             example: "Disattiva i widget",
         },

@@ -620,10 +620,12 @@ export const TOOLS_PL: ToolsDoc = {
         },
         set_widget_display: {
             description:
-                "Włącz lub wyłącz widżety wizualne w czacie — panele, pierścienie celów i wykresy trendów. Gdy są wyłączone, te same narzędzia odpowiadają tylko tekstem i danymi. Domyślnie są włączone; zmiana obowiązuje w nowych rozmowach.",
+                "Włącz lub wyłącz widżety wizualne w czacie — panele, pierścienie celów i wykresy trendów. Gdy są wyłączone, te same narzędzia odpowiadają tylko tekstem i danymi. Domyślnie są włączone; zmiana obowiązuje w nowych rozmowach. Możesz też wybrać, czy otwierają się rozwinięte, z widocznymi szczegółami, czy zwinięte (domyślnie); to obowiązuje od następnego widżetu.",
             params: {
                 enabled:
                     "true — widżety są widoczne, false — odpowiedzi tylko tekstowe",
+                expanded:
+                    "true — widżety otwierają się z rozwiniętymi szczegółami, false — otwierają się zwinięte",
             },
             example: "Wyłącz widżety",
         },

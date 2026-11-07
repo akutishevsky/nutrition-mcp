@@ -646,10 +646,12 @@ export const TOOLS_FR: ToolsDoc = {
         },
         set_widget_display: {
             description:
-                "Active ou désactive les widgets visuels dans le chat : tableaux de bord, anneaux d'objectifs et graphiques de tendances. Quand ils sont désactivés, les mêmes outils répondent uniquement avec du texte et des données. Activés par défaut ; le changement s'applique aux nouvelles conversations.",
+                "Active ou désactive les widgets visuels dans le chat : tableaux de bord, anneaux d'objectifs et graphiques de tendances. Quand ils sont désactivés, les mêmes outils répondent uniquement avec du texte et des données. Activés par défaut ; le changement s'applique aux nouvelles conversations. Tu peux aussi choisir s'ils s'ouvrent dépliés, avec leurs détails déjà affichés, ou repliés (par défaut) ; cela s'applique dès le widget suivant.",
             params: {
                 enabled:
                     "true pour afficher les widgets, false pour des réponses en texte seul",
+                expanded:
+                    "true pour ouvrir les widgets avec leurs détails déjà dépliés, false pour les ouvrir repliés",
             },
             example: "Désactive les widgets",
         },

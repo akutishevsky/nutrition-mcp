@@ -758,6 +758,9 @@ const PROFILE_CSV_COLUMNS = [
     // Raw: empty means set_activity_credit never ran, which counts as 100.
     // The share in force for past entries is on their own rows, not here.
     "activity_credit_pct",
+    // Whether widgets open expanded (set_widget_display's `expanded`).
+    // Appended so every earlier column keeps its position.
+    "widgets_expanded",
 ] as const;
 
 /**
@@ -786,6 +789,7 @@ export function buildProfileCsv(profile: Profile | null, tz: string): string {
                 csvEscape(formatLocalDateTime(profile.updated_at, tz)),
                 csvEscape(profile.preferred_length_unit),
                 csvEscape(profile.activity_credit_pct),
+                csvEscape(profile.widgets_expanded ?? false),
             ].join(","),
         );
     }
@@ -1167,7 +1171,7 @@ export function buildExportReadme(opts: {
         `body_measurements.csv ${rows(counts.bodyMeasurements)} — every body measurement (waist, hips, neck, chest, shoulders, upper arm, forearm, thigh, calf): the stored millimetres, and the value exactly as entered with its unit (cm or in).`,
         "goals.csv    your current daily targets — one row, or a header alone if you have never set goals.",
         `goals_history.csv ${rows(counts.goalsHistory)} — every change to your daily targets, oldest first: when the new values took effect (effective_at) and the targets from then on, in the same columns and units as goals.csv. Goals set before this history was kept appear once, as of their last change.`,
-        "profile.csv  your settings: timezone, preferred weight, length and drink units (empty preferred_length_unit = never chosen), display toggles, widget language and activity_credit_pct (the share of active calories that counts against intake for entries logged from now on; empty = never chosen, which counts as 100) — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
+        "profile.csv  your settings: timezone, preferred weight, length and drink units (empty preferred_length_unit = never chosen), display toggles (widgets_enabled; widgets_expanded = widgets open with their detail already shown), widget language and activity_credit_pct (the share of active calories that counts against intake for entries logged from now on; empty = never chosen, which counts as 100) — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
         'account.csv  your sign-in account: one "account" row (account id, email address, when the account was created, when the email was confirmed, last sign-in, sign-in methods) and one "identity" row per sign-in method (the provider, the provider\'s id for you, and any name or picture it sent — Google accounts created before September 27, 2026 may still hold them).',
         `telemetry.csv ${rows(counts.telemetry)} — one per tool call your AI app made: which tool, when, whether it succeeded, how long it took, the error category if it failed, the date-range length asked for, the MCP session id, the protocol revision and the app name it reported. None of it contains what you logged.`,
         `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty. If Apple Health sync is connected, its link is one more row of kind "health_sync": when it was created, last used and last synced, when it expires, which totals it sends (synced_fields), the first day it may send (sync_start_date) and the iPhone's own timezone (device_timezone, a saved setting — the timestamps are still in the "timezone" column's zone). Its token is not included either. If the Nutrition MCP Activity shortcut is connected, its link is a row of kind "health_activity_sync" with the same dates and device_timezone; it sends nothing to Apple Health, so synced_fields and sync_start_date are empty, and its token is not included.`,

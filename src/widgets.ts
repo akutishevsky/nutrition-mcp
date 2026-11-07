@@ -252,6 +252,18 @@ export const NUTRIENT_SOURCES_META_KEY = "nutrition-mcp.com/nutrient-sources";
  */
 export const DIGEST_META_KEY = "nutrition-mcp.com/digest";
 
+/**
+ * The user's widget display preferences that a widget needs at render time,
+ * `{ v: 1, expanded: true }`: `expanded` is profiles.widgets_expanded (set via
+ * set_widget_display's `expanded`), and makes every widget with a Show more
+ * button open with it already pressed. Sent only when expanded is on, so a user
+ * who never opted in gets byte-identical results. In `_meta` because output
+ * schemas are frozen; read once, in shared/bridge.js (`startExpanded`), which
+ * every template includes, so the literal is repeated there only. A host that
+ * drops `_meta`, or still runs a cached pre-change widget, opens collapsed.
+ */
+export const WIDGET_PREFS_META_KEY = "nutrition-mcp.com/widget-prefs";
+
 // ui:// resource name → template file under src/templates/.
 export const WIDGET_TEMPLATES: Record<string, string> = {
     "nutrition-summary": "nutrition-summary.html",

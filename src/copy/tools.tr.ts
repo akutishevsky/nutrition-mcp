@@ -628,10 +628,12 @@ export const TOOLS_TR: ToolsDoc = {
         },
         set_widget_display: {
             description:
-                "Sohbet içi görsel widget'ları aç ya da kapat: panolar, hedef halkaları ve eğilim grafikleri. Kapalıyken aynı araçlar yalnızca metin ve veriyle yanıt verir. Varsayılan olarak açıktır; değişiklik yeni sohbetlerde geçerli olur.",
+                "Sohbet içi görsel widget'ları aç ya da kapat: panolar, hedef halkaları ve eğilim grafikleri. Kapalıyken aynı araçlar yalnızca metin ve veriyle yanıt verir. Varsayılan olarak açıktır; değişiklik yeni sohbetlerde geçerli olur. Widget'ların ayrıntıları açık, genişletilmiş hâlde mi yoksa daraltılmış (varsayılan) hâlde mi açılacağını da seçebilirsin; bu bir sonraki widget'tan itibaren geçerli olur.",
             params: {
                 enabled:
                     "widget'ları göstermek için true, yalnızca metin yanıtları için false",
+                expanded:
+                    "widget'ları ayrıntıları genişletilmiş açmak için true, daraltılmış açmak için false",
             },
             example: "Widget'ları kapat",
         },

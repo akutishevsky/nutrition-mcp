@@ -485,3 +485,17 @@ function initWidget(config) {
         }
     }
 }
+
+// Whether this result asks the widget to open expanded: the user turned on
+// set_widget_display's `expanded`, and the tool sent `{ v: 1, expanded: true }`
+// in its `_meta` under this key (WIDGET_PREFS_META_KEY in src/widgets.ts). A
+// template calls it from render() with the `meta` argument and starts at its
+// first expanded level (what one tap on Show more gives). Anything else — no
+// `_meta`, an unknown version, a non-true value — opens collapsed, as before.
+function startExpanded(meta) {
+    const p =
+        meta && typeof meta === "object"
+            ? meta["nutrition-mcp.com/widget-prefs"]
+            : null;
+    return !!(p && typeof p === "object" && p.v === 1 && p.expanded === true);
+}

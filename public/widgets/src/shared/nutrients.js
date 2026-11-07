@@ -731,8 +731,16 @@ function nvPickedSeg(V, st) {
 }
 
 // Paint the card into `root` and wire its clicks (once per root element).
-function nvMount(root, V) {
-    const st = { open: false, sel: null, mo: null, closing: false };
+// `open` starts the card expanded, as if Show more had been tapped (the user's
+// set_widget_display `expanded` preference, read by startExpanded in
+// bridge.js). Ignored when there is nothing to expand.
+function nvMount(root, V, open) {
+    const st = {
+        open: !!open && !!V.hasData,
+        sel: null,
+        mo: null,
+        closing: false,
+    };
     const rows = nvRows(V);
     const ctl = { V, st, rows };
     root.__nv = ctl;
@@ -749,6 +757,7 @@ function nvMount(root, V) {
             nvAct(root, c, el);
         });
     }
+    if (st.open) nvUpdate(root, ctl, {});
 }
 
 function nvAct(root, c, el) {
