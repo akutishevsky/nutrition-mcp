@@ -1830,6 +1830,10 @@ export interface Profile {
     // Coalesce through preferredLengthUnitFromProfile. Never derived from the weight unit.
     preferred_length_unit: LengthUnit | null;
     widgets_enabled: boolean;
+    // Open widgets with their Show more detail already expanded. Optional in
+    // the type because a database without 20261107120000_widgets_expanded.sql
+    // has no such column; coalesce through widgetsExpandedFromProfile.
+    widgets_expanded?: boolean;
     alcohol_tracking_enabled: boolean;
     preferred_drink_unit: DrinkUnit | null;
     // Share of active calories counted against intake, 0..100; null = never
@@ -1941,6 +1945,14 @@ export async function getWidgetsEnabled(userId: string): Promise<boolean> {
     return widgetsEnabledFromProfile(await getProfile(userId));
 }
 
+// Whether widgets open expanded for this user. Off when no profile exists yet
+// or the column is absent: collapsed is the default view.
+export function widgetsExpandedFromProfile(
+    profile: Profile | null | undefined,
+): boolean {
+    return profile?.widgets_expanded ?? false;
+}
+
 // Whether alcohol should be surfaced for this user. Defaults to false when no
 // profile exists yet, or when the column is absent — alcohol tracking is opt-in,
 // so the fallback must be "off". Storage is unaffected: alcohol explicitly
@@ -1995,7 +2007,8 @@ export async function getPreferredDrinkUnit(
 
 // Upsert the fields provided in `patch`, leaving other columns untouched. On
 // first insert, an omitted column falls back to its DB default where one
-// exists (widgets_enabled: true, alcohol_tracking_enabled: false); timezone,
+// exists (widgets_enabled: true, widgets_expanded: false,
+// alcohol_tracking_enabled: false); timezone,
 // preferred_weight_unit, preferred_length_unit and preferred_drink_unit have
 // none and land as NULL, meaning "never chosen".
 export async function upsertProfile(
@@ -2005,6 +2018,7 @@ export async function upsertProfile(
         preferred_weight_unit?: WeightUnit | null;
         preferred_length_unit?: LengthUnit | null;
         widgets_enabled?: boolean;
+        widgets_expanded?: boolean;
         alcohol_tracking_enabled?: boolean;
         preferred_drink_unit?: DrinkUnit | null;
         activity_credit_pct?: number | null;
@@ -2023,6 +2037,8 @@ export async function upsertProfile(
         payload.preferred_length_unit = patch.preferred_length_unit;
     if (patch.widgets_enabled !== undefined)
         payload.widgets_enabled = patch.widgets_enabled;
+    if (patch.widgets_expanded !== undefined)
+        payload.widgets_expanded = patch.widgets_expanded;
     if (patch.alcohol_tracking_enabled !== undefined)
         payload.alcohol_tracking_enabled = patch.alcohol_tracking_enabled;
     // null is meaningful here too (clears the preference).

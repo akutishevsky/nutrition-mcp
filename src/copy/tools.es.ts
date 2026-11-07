@@ -634,10 +634,12 @@ export const TOOLS_ES: ToolsDoc = {
         },
         set_widget_display: {
             description:
-                "Activa o desactiva los widgets visuales del chat: paneles, anillos de objetivos y gráficos de tendencias. Si están desactivados, las mismas herramientas responden solo con texto y datos. Vienen activados por defecto; el cambio se aplica en las conversaciones nuevas.",
+                "Activa o desactiva los widgets visuales del chat: paneles, anillos de objetivos y gráficos de tendencias. Si están desactivados, las mismas herramientas responden solo con texto y datos. Vienen activados por defecto; el cambio se aplica en las conversaciones nuevas. También puedes elegir si se abren desplegados, con los detalles ya visibles, o plegados (por defecto); eso se aplica desde el siguiente widget.",
             params: {
                 enabled:
                     "true para mostrar los widgets, false para responder solo con texto",
+                expanded:
+                    "true para abrir los widgets con los detalles ya desplegados, false para abrirlos plegados",
             },
             example: "Desactiva los widgets",
         },

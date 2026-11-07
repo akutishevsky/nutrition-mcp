@@ -52,6 +52,7 @@ import {
     getPreferredWeightUnit,
     getUserLocale,
     widgetsEnabledFromProfile,
+    widgetsExpandedFromProfile,
     alcoholTrackingEnabledFromProfile,
     preferredDrinkUnitFromProfile,
     preferredWeightUnitFromProfile,
@@ -249,6 +250,7 @@ import {
     NUTRIENT_SOURCES_META_KEY,
     GOAL_DAY_META_KEY,
     DIGEST_META_KEY,
+    WIDGET_PREFS_META_KEY,
 } from "./widgets.js";
 import {
     buildGoalDayMeta,
@@ -3032,6 +3034,9 @@ export function registerTools(
     // through the live supabase functions at call time. Tests inject a fetch
     // and a fresh quota state per case.
     usda: Partial<UsdaDeps> = {},
+    // profiles.widgets_expanded, resolved once in buildMcpServer like
+    // widgetsEnabled. Last and optional for the same reason as protocolEra.
+    widgetsExpanded = false,
 ) {
     const usdaOverrides: Partial<UsdaDeps> = usda;
     // One context for all 49 tools. clientInfo is a getter, not a value: at
@@ -3060,6 +3065,30 @@ export function registerTools(
                   },
               }
             : {};
+    // Wraps the handler of every tool whose widget has a Show more button, and
+    // adds the user's widget display preference to the result's _meta under
+    // WIDGET_PREFS_META_KEY for the widget to read (startExpanded in
+    // shared/bridge.js). Only when the user turned expanded on and widgets are
+    // enabled, so every other result is byte-identical to before. _meta, not
+    // structuredContent: output schemas are frozen once deployed. Unlike
+    // widgetsEnabled this touches no registration metadata, so the next tool
+    // call already honours a change, in the same conversation.
+    const withWidgetPrefs =
+        <A extends unknown[], R extends object>(
+            handler: (...args: A) => Promise<R>,
+        ) =>
+        async (...args: A): Promise<R> => {
+            const result = await handler(...args);
+            if (!widgetsEnabled || !widgetsExpanded) return result;
+            const meta = (result as { _meta?: Record<string, unknown> })._meta;
+            return {
+                ...result,
+                _meta: {
+                    ...meta,
+                    [WIDGET_PREFS_META_KEY]: { v: 1, expanded: true },
+                },
+            };
+        };
 
     server.registerTool(
         "log_meal",
@@ -3217,7 +3246,7 @@ export function registerTools(
             // widget renders nothing when no goals are set.
             ...uiMeta(MEAL_LOGGED_WIDGET_URI),
         },
-        async (args) => {
+        withWidgetPrefs(async (args) => {
             return withAnalytics(
                 "log_meal",
                 async () => {
@@ -3334,7 +3363,7 @@ export function registerTools(
                 },
                 analytics,
             );
-        },
+        }),
     );
 
     // UI resource for the import widget. Registered unconditionally, like every
@@ -4387,7 +4416,7 @@ export function registerTools(
             // Link the tool to its dashboard UI (MCP Apps).
             ...uiMeta(SUMMARY_WIDGET_URI),
         },
-        async ({ start_date, end_date }) => {
+        withWidgetPrefs(async ({ start_date, end_date }) => {
             return withAnalytics(
                 "get_nutrition_summary",
                 async () => {
@@ -4800,7 +4829,7 @@ export function registerTools(
                 analytics,
                 { start_date, end_date },
             );
-        },
+        }),
     );
 
     // One period at a glance: get_digest and its widget (digest.html). The
@@ -4862,7 +4891,7 @@ export function registerTools(
             }),
             ...uiMeta(DIGEST_WIDGET_URI),
         },
-        async ({ period }) => {
+        withWidgetPrefs(async ({ period }) => {
             const which = period ?? "yesterday";
             return withAnalytics(
                 "get_digest",
@@ -4926,7 +4955,7 @@ export function registerTools(
                 analytics,
                 { period: which },
             );
-        },
+        }),
     );
 
     server.registerTool(
@@ -5241,7 +5270,7 @@ export function registerTools(
             // Link the tool to its progress UI (MCP Apps).
             ...uiMeta(GOAL_PROGRESS_WIDGET_URI),
         },
-        async ({ date }) => {
+        withWidgetPrefs(async ({ date }) => {
             return withAnalytics(
                 "get_goal_progress",
                 async () => {
@@ -5424,7 +5453,7 @@ export function registerTools(
                 analytics,
                 { date: date ?? "today" },
             );
-        },
+        }),
     );
 
     server.registerTool(
@@ -5605,143 +5634,149 @@ export function registerTools(
             // changes its header. Renders nothing when no goals are set.
             ...uiMeta(MEAL_LOGGED_WIDGET_URI),
         },
-        async ({
-            id,
-            items: rawItems,
-            food_ref: foodRef,
-            user_stated: userStated,
-            ...fields
-        }) => {
-            return withAnalytics(
-                "update_meal",
-                async () => {
-                    // Before resolveWriteTimestamp, which reads the profile.
-                    if (!isUuid(id))
-                        throw new ToolError(
-                            notUuidText("meal", id, MEAL_ID_SOURCES),
-                        );
-                    let itemsChecked: Awaited<
-                        ReturnType<typeof checkedItemsWithSources>
-                    > | null = null;
-                    if (rawItems !== undefined) {
-                        // Items replace the totals: the totals fields may not
-                        // come alongside, and each item is checked on its own.
-                        const sent = totalsSentWithItems(fields);
-                        if (sent.length > 0) throw totalsWithItemsError(sent);
-                        refuseMealLevelRefsWithItems(foodRef, userStated);
-                        itemsChecked = await checkedItemsWithSources(rawItems);
-                    } else if (totalsSentWithItems(fields).length > 0) {
-                        // A meal logged with items has totals that are their
-                        // sum, so a direct edit of a total would contradict
-                        // its items.
-                        const count = await countMealItems(userId, id);
-                        if (count > 0)
+        withWidgetPrefs(
+            async ({
+                id,
+                items: rawItems,
+                food_ref: foodRef,
+                user_stated: userStated,
+                ...fields
+            }) => {
+                return withAnalytics(
+                    "update_meal",
+                    async () => {
+                        // Before resolveWriteTimestamp, which reads the profile.
+                        if (!isUuid(id))
                             throw new ToolError(
-                                `This meal's totals are the sum of its ${count} item${count === 1 ? "" : "s"}, so they change through items (the full new list) rather than directly.`,
-                                { category: "meal_items_invalid" },
+                                notUuidText("meal", id, MEAL_ID_SOURCES),
                             );
-                    }
-                    // The sugar checks run on the row the plain write is computed
-                    // from (writePlainMealUpdate). A pair sent together needs no
-                    // stored partner, so it is checked from this call alone.
-                    const passedSugar = fields.sugar_g !== undefined;
-                    const passedAdded = fields.added_sugar_g !== undefined;
-                    const checkPairedSugar = (stored: Meal | null): void => {
-                        if (!passedSugar && !passedAdded) return;
-                        const partner =
-                            passedSugar && passedAdded ? null : stored;
-                        if (
-                            partner &&
-                            addedSugarRequiredNow() &&
-                            addedSugarMissing(fields, partner.added_sugar_g)
-                        )
-                            throw addedSugarMissingError(id);
-                        const sugarError = updatedAddedSugarError(
-                            fields,
-                            partner,
-                        );
-                        if (sugarError) throw new ToolError(sugarError);
-                    };
-                    // A plain meal's changed nutrients take fresh labels and the
-                    // rest keep theirs; an itemized meal's labels come from its
-                    // items (already in itemsChecked).
-                    if (!itemsChecked) {
-                        refuseLabelsWithoutValues(
-                            foodRef,
-                            userStated,
-                            totalsSentWithItems(fields).length > 0,
-                        );
-                        if (foodRef !== undefined) parseFoodRef(foodRef);
-                    }
-                    let written: { meal: Meal; note: string };
-                    if (itemsChecked) {
-                        const { iso, note } = await resolveWriteTimestamp(
-                            userId,
-                            fields.logged_at,
-                        );
-                        written = {
-                            meal: await replaceMealItems(
+                        let itemsChecked: Awaited<
+                            ReturnType<typeof checkedItemsWithSources>
+                        > | null = null;
+                        if (rawItems !== undefined) {
+                            // Items replace the totals: the totals fields may not
+                            // come alongside, and each item is checked on its own.
+                            const sent = totalsSentWithItems(fields);
+                            if (sent.length > 0)
+                                throw totalsWithItemsError(sent);
+                            refuseMealLevelRefsWithItems(foodRef, userStated);
+                            itemsChecked =
+                                await checkedItemsWithSources(rawItems);
+                        } else if (totalsSentWithItems(fields).length > 0) {
+                            // A meal logged with items has totals that are their
+                            // sum, so a direct edit of a total would contradict
+                            // its items.
+                            const count = await countMealItems(userId, id);
+                            if (count > 0)
+                                throw new ToolError(
+                                    `This meal's totals are the sum of its ${count} item${count === 1 ? "" : "s"}, so they change through items (the full new list) rather than directly.`,
+                                    { category: "meal_items_invalid" },
+                                );
+                        }
+                        // The sugar checks run on the row the plain write is computed
+                        // from (writePlainMealUpdate). A pair sent together needs no
+                        // stored partner, so it is checked from this call alone.
+                        const passedSugar = fields.sugar_g !== undefined;
+                        const passedAdded = fields.added_sugar_g !== undefined;
+                        const checkPairedSugar = (
+                            stored: Meal | null,
+                        ): void => {
+                            if (!passedSugar && !passedAdded) return;
+                            const partner =
+                                passedSugar && passedAdded ? null : stored;
+                            if (
+                                partner &&
+                                addedSugarRequiredNow() &&
+                                addedSugarMissing(fields, partner.added_sugar_g)
+                            )
+                                throw addedSugarMissingError(id);
+                            const sugarError = updatedAddedSugarError(
+                                fields,
+                                partner,
+                            );
+                            if (sugarError) throw new ToolError(sugarError);
+                        };
+                        // A plain meal's changed nutrients take fresh labels and the
+                        // rest keep theirs; an itemized meal's labels come from its
+                        // items (already in itemsChecked).
+                        if (!itemsChecked) {
+                            refuseLabelsWithoutValues(
+                                foodRef,
+                                userStated,
+                                totalsSentWithItems(fields).length > 0,
+                            );
+                            if (foodRef !== undefined) parseFoodRef(foodRef);
+                        }
+                        let written: { meal: Meal; note: string };
+                        if (itemsChecked) {
+                            const { iso, note } = await resolveWriteTimestamp(
+                                userId,
+                                fields.logged_at,
+                            );
+                            written = {
+                                meal: await replaceMealItems(
+                                    userId,
+                                    id,
+                                    {
+                                        ...fields,
+                                        ...itemsChecked.totals,
+                                        logged_at: iso,
+                                        nutrient_sources: itemsChecked.sources,
+                                        source_detail: itemsChecked.detail,
+                                    },
+                                    itemsChecked.items,
+                                ),
+                                note,
+                            };
+                        } else {
+                            written = await writePlainMealUpdate(
                                 userId,
                                 id,
-                                {
-                                    ...fields,
-                                    ...itemsChecked.totals,
-                                    logged_at: iso,
-                                    nutrient_sources: itemsChecked.sources,
-                                    source_detail: itemsChecked.detail,
-                                },
-                                itemsChecked.items,
-                            ),
-                            note,
-                        };
-                    } else {
-                        written = await writePlainMealUpdate(
-                            userId,
-                            id,
-                            fields,
-                            foodRef,
-                            userStated,
-                            checkPairedSugar,
-                        );
-                    }
-                    const { meal, note } = written;
-                    const { progressSection, structuredContent, meta, tz } =
-                        await buildMealProgress(
+                                fields,
+                                foodRef,
+                                userStated,
+                                checkPairedSugar,
+                            );
+                        }
+                        const { meal, note } = written;
+                        const { progressSection, structuredContent, meta, tz } =
+                            await buildMealProgress(
+                                userId,
+                                meal,
+                                "updated",
+                                alcohol,
+                            );
+                        const missingNote = await missingNutrientNoteFor(
                             userId,
                             meal,
-                            "updated",
-                            alcohol,
+                            itemsChecked?.items.length,
                         );
-                    const missingNote = await missingNutrientNoteFor(
-                        userId,
-                        meal,
-                        itemsChecked?.items.length,
-                    );
-                    const sourcesNote = sourcesNoteFor(
-                        meal,
-                        foodRef !== undefined ||
-                            (rawItems ?? []).some(
-                                (i) => i.food_ref !== undefined,
-                            ),
-                    );
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz, itemsChecked?.items)}${progressSection}${saturatedAboveFatNote(meal) ?? ""}${sourcesNote}${itemSourcesNoteFor(itemsChecked?.items)}${alcoholHiddenNote(
-                                    (meal.alcohol_g ?? 0) > 0,
-                                    alcohol,
-                                    "Alcohol saved with this meal",
-                                )}${missingNote}${note}`,
-                            },
-                        ],
-                        structuredContent,
-                        _meta: meta,
-                    };
-                },
-                analytics,
-            );
-        },
+                        const sourcesNote = sourcesNoteFor(
+                            meal,
+                            foodRef !== undefined ||
+                                (rawItems ?? []).some(
+                                    (i) => i.food_ref !== undefined,
+                                ),
+                        );
+                        return {
+                            content: [
+                                {
+                                    type: "text",
+                                    text: `Meal updated (${tz} time):\n${formatMealFull(meal, alcohol, tz, itemsChecked?.items)}${progressSection}${saturatedAboveFatNote(meal) ?? ""}${sourcesNote}${itemSourcesNoteFor(itemsChecked?.items)}${alcoholHiddenNote(
+                                        (meal.alcohol_g ?? 0) > 0,
+                                        alcohol,
+                                        "Alcohol saved with this meal",
+                                    )}${missingNote}${note}`,
+                                },
+                            ],
+                            structuredContent,
+                            _meta: meta,
+                        };
+                    },
+                    analytics,
+                );
+            },
+        ),
     );
     server.registerTool(
         "save_meal",
@@ -6214,7 +6249,7 @@ export function registerTools(
             }),
             ...uiMeta(MEAL_LOGGED_WIDGET_URI),
         },
-        async (args) => {
+        withWidgetPrefs(async (args) => {
             return withAnalytics(
                 "log_saved_meal",
                 async () => {
@@ -6335,7 +6370,7 @@ export function registerTools(
                 },
                 analytics,
             );
-        },
+        }),
     );
 
     server.registerTool(
@@ -7557,7 +7592,7 @@ export function registerTools(
             // Link the tool to its interactive weight-trends UI (MCP Apps).
             ...uiMeta(WEIGHT_TRENDS_WIDGET_URI),
         },
-        async ({ days, end_date }) => {
+        withWidgetPrefs(async ({ days, end_date }) => {
             return withAnalytics(
                 "get_weight_trends",
                 async () => {
@@ -7680,7 +7715,7 @@ export function registerTools(
                 analytics,
                 { days: days ?? 30 },
             );
-        },
+        }),
     );
 
     server.registerTool(
@@ -8334,7 +8369,7 @@ export function registerTools(
         {
             title: "Set Widget Display",
             description:
-                "Enable or disable the in-chat visual widgets (nutrition dashboard, goal progress, meal-logged rings, trends, weight charts). When disabled, the same tools still return their full text and data — just no rendered widget. Widgets are enabled by default. Note: hosts read the widget list when a session connects, so the change takes effect in new conversations; an already-open chat may keep showing widgets until it reconnects.",
+                "Turns the in-chat visual widgets (nutrition dashboard, goal progress, meal-logged rings, trends, weight charts) on or off, and sets whether they open expanded, with their Show more detail already open, or collapsed. When disabled, the same tools still return their full text and data — just no rendered widget. Widgets are enabled and collapsed by default. Either field can be given alone; an omitted one keeps its current value. Note: hosts read the widget list when a session connects, so turning widgets on or off takes effect in new conversations, and an already-open chat may keep showing widgets until it reconnects; the expanded choice applies from the next widget shown.",
             annotations: {
                 title: "Set Widget Display",
                 readOnlyHint: false,
@@ -8345,25 +8380,54 @@ export function registerTools(
             inputSchema: z.object({
                 enabled: z
                     .boolean()
+                    .optional()
                     .describe(
-                        "true to show widgets (default), false for text-only responses with no widget.",
+                        "true to show widgets (default), false for text-only responses with no widget. Omit to leave it unchanged.",
+                    ),
+                expanded: z
+                    .boolean()
+                    .optional()
+                    .describe(
+                        "true to open widgets with their detail (Show more) already expanded, false to open them collapsed (default). Omit to leave it unchanged.",
                     ),
             }),
         },
-        async ({ enabled }) => {
+        async ({ enabled, expanded }) => {
             return withAnalytics(
                 "set_widget_display",
                 async () => {
+                    // Refused in the handler, not with a Zod refine, so the
+                    // caller gets this sentence instead of a schema error.
+                    if (enabled === undefined && expanded === undefined)
+                        throw new ToolError(
+                            "Nothing to change: give enabled, expanded or both.",
+                        );
                     const profile = await upsertProfile(userId, {
-                        widgets_enabled: enabled,
+                        ...(enabled !== undefined
+                            ? { widgets_enabled: enabled }
+                            : {}),
+                        ...(expanded !== undefined
+                            ? { widgets_expanded: expanded }
+                            : {}),
                     });
+                    const lines: string[] = [];
+                    if (enabled !== undefined)
+                        lines.push(
+                            profile.widgets_enabled
+                                ? "Widgets enabled. Supported tools will show a visual widget alongside their text in new conversations."
+                                : "Widgets disabled. Supported tools will return text and data only, with no widget, in new conversations.",
+                        );
+                    if (expanded !== undefined)
+                        lines.push(
+                            widgetsExpandedFromProfile(profile)
+                                ? "Widgets will open expanded, with their detail already shown, from the next widget on."
+                                : "Widgets will open collapsed, from the next widget on.",
+                        );
                     return {
                         content: [
                             {
                                 type: "text",
-                                text: profile.widgets_enabled
-                                    ? "Widgets enabled. Supported tools will show a visual widget alongside their text in new conversations."
-                                    : "Widgets disabled. Supported tools will return text and data only, with no widget, in new conversations.",
+                                text: lines.join(" "),
                             },
                         ],
                     };
@@ -8490,7 +8554,7 @@ export function registerTools(
             // Link the tool to its interactive trends UI (MCP Apps).
             ...uiMeta(TRENDS_WIDGET_URI),
         },
-        async ({ days, end_date, group_by }) => {
+        withWidgetPrefs(async ({ days, end_date, group_by }) => {
             return withAnalytics(
                 "get_trends",
                 async () => {
@@ -8674,7 +8738,7 @@ export function registerTools(
                 analytics,
                 { days: days ?? 30 },
             );
-        },
+        }),
     );
 
     server.registerTool(
@@ -8922,7 +8986,7 @@ export function registerTools(
                             ? `Length unit: ${lengthUnit}.`
                             : "Length unit: not set. Body measurements display in the unit each was entered in, and logging one needs an explicit unit ('cm' or 'in').",
                         widgetsEnabled
-                            ? "Widgets: enabled. Supported tools show a visual widget alongside their text."
+                            ? `Widgets: enabled, opening ${widgetsExpandedFromProfile(profile) ? "expanded" : "collapsed"}. Supported tools show a visual widget alongside their text.`
                             : "Widgets: disabled. Supported tools return text and data only.",
                         alcoholEnabled
                             ? `Alcohol tracking: enabled, displayed in grams alongside ${drinkUnitLabel(drinkUnit)}${preferredDrinkUnitFromProfile(profile) ? "" : " (the default — no preference saved)"}.`
@@ -9211,6 +9275,8 @@ async function buildMcpServer(
         widgetsEnabledFromProfile(profile),
         alcoholTrackingEnabledFromProfile(profile) ? (drinkUnit ?? "us") : null,
         protocolEra,
+        {},
+        widgetsExpandedFromProfile(profile),
     );
     return server;
 }

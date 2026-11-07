@@ -631,9 +631,11 @@ export const TOOLS_NL: ToolsDoc = {
         },
         set_widget_display: {
             description:
-                "Zet de visuele widgets in de chat aan of uit: de dashboards, doelringen en trendgrafieken. Staan ze uit, dan antwoorden dezelfde tools alleen met tekst en gegevens. Standaard staan ze aan; de wijziging geldt voor nieuwe gesprekken.",
+                "Zet de visuele widgets in de chat aan of uit: de dashboards, doelringen en trendgrafieken. Staan ze uit, dan antwoorden dezelfde tools alleen met tekst en gegevens. Standaard staan ze aan; de wijziging geldt voor nieuwe gesprekken. Je kunt ook kiezen of ze uitgeklapt openen, met de details al zichtbaar, of ingeklapt (standaard); dat geldt vanaf de volgende widget.",
             params: {
                 enabled: "true om widgets te tonen, false voor alleen tekst",
+                expanded:
+                    "true om widgets met hun details al uitgeklapt te openen, false om ze ingeklapt te openen",
             },
             example: "Zet de widgets uit",
         },

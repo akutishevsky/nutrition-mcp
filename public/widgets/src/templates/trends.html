@@ -2775,7 +2775,9 @@
                     : 30;
                 STATE.mode = STATE.periods ? STATE.periods.groupBy : "days";
                 STATE.metric = "calories";
-                STATE.level = 0;
+                // Cards shown up front when the user asked for expanded
+                // widgets (startExpanded, bridge.js).
+                STATE.level = startExpanded(meta) ? 1 : 0;
                 STATE.sel = null;
                 STATE.day = null;
                 STATE.dayOpen = null;

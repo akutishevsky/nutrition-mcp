@@ -809,7 +809,7 @@ const GOALS_HEADER =
 const GOALS_HISTORY_HEADER =
     "effective_at,timezone,daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_saturated_fat_g,daily_fiber_g,daily_sugar_g,daily_added_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_sodium_mg,daily_water_ml,target_weight_g";
 const PROFILE_HEADER =
-    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit,activity_credit_pct";
+    "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,locale,created_at,updated_at,preferred_length_unit,activity_credit_pct,widgets_expanded";
 const BODY_MEASUREMENT_HEADER =
     "id,logged_at,timezone,kind,value_mm,value_entered,entered_unit,notes,created_at";
 
@@ -1210,7 +1210,16 @@ test("every profile value lands under its own header name", () => {
         preferred_length_unit: "",
         // Never chosen: empty, the same as the other unset preferences.
         activity_credit_pct: "",
+        // A database without the column reads as the default, false.
+        widgets_expanded: "false",
     });
+});
+
+test("profile.csv carries the expanded-widgets preference", () => {
+    const f = fieldsByName(
+        buildProfileCsv(profile({ widgets_expanded: true }), "UTC"),
+    );
+    expect(f.widgets_expanded).toBe("true");
 });
 
 test("profile.csv carries the chosen length unit", () => {

@@ -22,6 +22,9 @@
 //                       attention, kj, nocalories, long, single, large, errors,
 //                       dryfail, own, alcohol (with ?drinkUnit=us), xlsx, empty
 //   ?tz=0               import-meals: the user never set a timezone
+//   ?expanded=1         add the widget-prefs `_meta` a user with
+//                       set_widget_display expanded gets: every widget with a
+//                       Show more button opens with it already pressed
 //   ?noMeta=1           deliver the tool result WITHOUT its _meta, as a host that
 //                       drops it would (nutrition-summary then shows "N or more",
 //                       weight-trends falls back to its legacy 7/14/30 chart,
@@ -105,6 +108,7 @@ import {
     WEIGHT_SERIES_META_KEY,
     WEIGHT_ENTRIES_META_KEY,
     BODY_MEASUREMENTS_META_KEY,
+    WIDGET_PREFS_META_KEY,
     WIDGET_TEMPLATES,
 } from "../src/widgets.js";
 import {
@@ -1744,7 +1748,14 @@ function hostPage(widget: string, params: URLSearchParams): string {
         locale && typeof baseResult === "object"
             ? { ...baseResult, locale }
             : baseResult;
-    const toolMeta = noMeta ? null : (METAS[widget] ?? null);
+    const baseMeta = noMeta ? null : (METAS[widget] ?? null);
+    const toolMeta =
+        !noMeta && params.get("expanded") === "1"
+            ? {
+                  ...baseMeta,
+                  [WIDGET_PREFS_META_KEY]: { v: 1, expanded: true },
+              }
+            : baseMeta;
 
     return `<!doctype html>
 <html><head><meta charset="utf-8"><title>host: ${widget}</title>

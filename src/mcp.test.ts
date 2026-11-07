@@ -102,6 +102,7 @@ import {
     GOAL_DAY_META_KEY,
     NUTRIENT_SOURCES_META_KEY,
     WEIGHT_ENTRIES_META_KEY,
+    WIDGET_PREFS_META_KEY,
 } from "./widgets.js";
 
 // Snapshot BEFORE mock.module runs: Bun patches a mocked module's namespace
@@ -2324,12 +2325,21 @@ type CallTool = (
 async function withTools(
     alcohol: "us" | "uk" | null,
     run: (call: CallTool) => Promise<void>,
+    opts: { widgetsEnabled?: boolean; widgetsExpanded?: boolean } = {},
 ): Promise<void> {
     const server = new McpServer(
         { name: "nutrition-mcp-test", version: "0.0.0" },
         { capabilities: { tools: {}, resources: {} } },
     );
-    registerTools(server, "u1", true, alcohol);
+    registerTools(
+        server,
+        "u1",
+        opts.widgetsEnabled ?? true,
+        alcohol,
+        undefined,
+        {},
+        opts.widgetsExpanded ?? false,
+    );
     const [clientTransport, serverTransport] =
         InMemoryTransport.createLinkedPair();
     const client = new Client({ name: "test-client", version: "0.0.0" });
@@ -3203,6 +3213,121 @@ describe("set_alcohol_tracking", () => {
         expect(setWidgets?.description).toContain("reconnects");
         await client.close();
         await server.close();
+    });
+});
+
+describe("set_widget_display expanded", () => {
+    test("expanded alone is stored and leaves enabled untouched", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("set_widget_display", { expanded: true });
+            expect(r.isError).toBeFalsy();
+            expect(db.profilePatches[0]!.widgets_expanded).toBe(true);
+            expect("widgets_enabled" in db.profilePatches[0]!).toBe(false);
+            expect(textOf(r)).toContain("open expanded");
+            expect(textOf(r)).not.toContain("Widgets enabled");
+        });
+    });
+
+    test("enabled alone leaves expanded untouched", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("set_widget_display", { enabled: false });
+            expect(db.profilePatches[0]!.widgets_enabled).toBe(false);
+            expect("widgets_expanded" in db.profilePatches[0]!).toBe(false);
+            expect(textOf(r)).toContain("Widgets disabled.");
+        });
+    });
+
+    test("neither field is refused with nothing written", async () => {
+        await withTools(null, async (call) => {
+            const r = await call("set_widget_display", {});
+            expect(r.isError).toBe(true);
+            expect(textOf(r)).toContain("give enabled, expanded or both");
+            expect(db.profilePatches).toHaveLength(0);
+        });
+    });
+
+    test("get_profile names the expanded preference", async () => {
+        db.profile = { ...PROFILE_BASE, widgets_expanded: true };
+        await withTools(null, async (call) => {
+            expect(textOf(await call("get_profile"))).toContain(
+                "Widgets: enabled, opening expanded.",
+            );
+        });
+    });
+
+    test("widget results carry the preference only when expanded is on", async () => {
+        db.goals = goals();
+        const prefsOf = async (opts: {
+            widgetsEnabled?: boolean;
+            widgetsExpanded?: boolean;
+        }) => {
+            let meta: unknown = "unset";
+            await withTools(
+                null,
+                async (call) => {
+                    const r = await call("get_goal_progress", {
+                        date: "2026-07-26",
+                    });
+                    expect(r.isError).toBeFalsy();
+                    meta = r._meta?.[WIDGET_PREFS_META_KEY];
+                },
+                opts,
+            );
+            return meta;
+        };
+        expect(await prefsOf({ widgetsExpanded: true })).toEqual({
+            v: 1,
+            expanded: true,
+        });
+        // Off (the default): the result is exactly what it was before.
+        expect(await prefsOf({})).toBeUndefined();
+        // Widgets off: nothing would read it.
+        expect(
+            await prefsOf({ widgetsEnabled: false, widgetsExpanded: true }),
+        ).toBeUndefined();
+    });
+
+    // Every tool linking a widget with a Show more button must wrap its handler,
+    // or that tool silently ignores the preference. Scraped from the source
+    // like the tool names in site-copy.test.ts: calling every such tool would
+    // need a fixture per tool, and the get_goal_progress test above already
+    // checks what the wrapper does.
+    test("every tool linking an expandable widget is wrapped", async () => {
+        const src = await Bun.file(new URL("./mcp.ts", import.meta.url)).text();
+        const blocks = src.split("    server.registerTool(\n").slice(1);
+        const linked = blocks.filter(
+            (b) =>
+                /uiMeta\(\w+_WIDGET_URI\)/.test(b) &&
+                !b.includes("uiMeta(IMPORT_MEALS_WIDGET_URI)"),
+        );
+        expect(linked.length).toBe(8);
+        for (const b of linked) {
+            const name = /^\s*"(\w+)"/.exec(b)![1];
+            expect({
+                name,
+                wrapped: /\n        withWidgetPrefs\(\s*async /.test(b),
+            }).toEqual({
+                name,
+                wrapped: true,
+            });
+        }
+    });
+
+    // The widgets cannot import the key: shared/bridge.js repeats it, and each
+    // widget with a Show more button must actually consult it.
+    test("every expandable widget reads the preference", async () => {
+        for (const key of [
+            "meal-logged",
+            "nutrition-summary",
+            "goal-progress",
+            "trends",
+            "weight-trends",
+            "digest",
+        ]) {
+            const html = await getWidgetHtml(key);
+            expect(html).toContain(`"${WIDGET_PREFS_META_KEY}"`);
+            expect(html).toMatch(/startExpanded\((meta|resultMeta)\)/);
+        }
     });
 });
 
@@ -6539,7 +6664,7 @@ describe("current-time disclosure", () => {
         await withTools(null, async (call) => {
             const text = textOf(await call("get_profile"));
             expect(text).toContain("Weight unit: not set.");
-            expect(text).toContain("Widgets: enabled.");
+            expect(text).toContain("Widgets: enabled, opening collapsed.");
         });
     });
 
