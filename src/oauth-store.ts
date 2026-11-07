@@ -5,6 +5,7 @@
 // there is exactly what broke middleware.test.ts on Linux CI once already.
 import { hashSecret } from "./token-hash.js";
 import { HEALTH_SYNC_CLIENT_ID } from "./health-sync.js";
+import { DASHBOARD_CLIENT_ID } from "./dashboard-client.js";
 import {
     consumeAuthCode,
     consumeRefreshToken,
@@ -37,9 +38,9 @@ export interface OAuthClient {
     redirectUris: string[];
     legacy: boolean;
     // Set only on a built-in client this server runs itself (see
-    // HEALTH_SYNC_CLIENT). Never read from oauth_clients, so absent on every
-    // registered client and on the legacy one.
-    firstParty?: "health-sync";
+    // HEALTH_SYNC_CLIENT, DASHBOARD_CLIENT). Never read from oauth_clients, so
+    // absent on every registered client and on the legacy one.
+    firstParty?: "health-sync" | "dashboard";
 }
 
 export interface NewOAuthClient extends Omit<OAuthClient, "legacy"> {
@@ -162,19 +163,44 @@ export const HEALTH_SYNC_CLIENT: OAuthClient = Object.freeze({
     firstParty: "health-sync",
 }) as OAuthClient;
 
+// The web dashboard's own client (src/dashboard-auth.ts): the browser signs
+// in through the same /authorize page every MCP client uses, and the
+// dashboard's callback redeems the code straight from the store to open a
+// dashboard session (a cookie, never an access token). Built exactly like
+// HEALTH_SYNC_CLIENT: public, no oauth_clients row, and its only redirect is
+// this server's own DASHBOARD_CALLBACK_PATH on the request's base URL (see
+// redirectAllowed in src/oauth.ts). /token refuses it.
+export { DASHBOARD_CLIENT_ID };
+
+export const DASHBOARD_CLIENT: OAuthClient = Object.freeze({
+    clientId: DASHBOARD_CLIENT_ID,
+    secretHash: null,
+    authMethod: "none",
+    redirectUris: [],
+    legacy: false,
+    firstParty: "dashboard",
+}) as OAuthClient;
+
+const FIRST_PARTY_CLIENTS: ReadonlyMap<string, OAuthClient> = new Map([
+    [HEALTH_SYNC_CLIENT_ID, HEALTH_SYNC_CLIENT],
+    [DASHBOARD_CLIENT_ID, DASHBOARD_CLIENT],
+]);
+
 // Wraps any store so the built-in clients resolve in memory, ahead of the
 // table, exactly as withLegacyClient does for the env client. Applied by the
 // router to whichever store it was given, fake or Supabase.
 export function withFirstPartyClients(store: OAuthStore): OAuthStore {
     return {
         ...store,
-        getClient: (clientId) =>
-            clientId === HEALTH_SYNC_CLIENT_ID
-                ? Promise.resolve(HEALTH_SYNC_CLIENT)
-                : store.getClient(clientId),
+        getClient: (clientId) => {
+            const builtIn = FIRST_PARTY_CLIENTS.get(clientId);
+            return builtIn
+                ? Promise.resolve(builtIn)
+                : store.getClient(clientId);
+        },
         // No oauth_clients row to stamp.
         touchClient: (clientId) =>
-            clientId === HEALTH_SYNC_CLIENT_ID
+            FIRST_PARTY_CLIENTS.has(clientId)
                 ? Promise.resolve()
                 : store.touchClient(clientId),
     };

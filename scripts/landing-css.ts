@@ -201,6 +201,22 @@ html.js .lp-ex-panel.is-on .lp-ex-info { animation: nm-rise .4s both; }
 .lp-ex-thread { flex: 1; min-height: 0; contain: size; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; display: flex; flex-direction: column; gap: 12px; padding: 14px 4px 14px 0; }
 .lp-ex-thread > * { flex: none; }
 html.js .lp-ex-panel.is-on .lp-ex-thread > * { animation: nm-rise .35s both; }
+/* The web-dashboard strip under the carousel: the same cards, in a browser. */
+/* ---------- web dashboard ---------- */
+.lp-dash { display: grid; gap: 22px; }
+.lp-dash-head { display: grid; gap: 12px; max-width: 760px; }
+.lp-dash-lead { margin: 0; font-size: 18px; line-height: 1.5; color: var(--ink2); text-wrap: pretty; }
+.lp-dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.lp-dash-card { padding: 24px; display: grid; gap: 14px; align-content: start; }
+.lp-dash-card .nm-tile { width: 44px; height: 44px; border-radius: 16px; font-size: 17px; }
+.lp-dash-card h3 { margin: 0; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; line-height: 1.2; }
+.lp-dash-card p { margin: 8px 0 0; font-size: 15px; color: var(--ink2); text-wrap: pretty; }
+.lp-dash-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.lp-dash-cta p { margin: 0; font-size: 15px; color: var(--ink3); }
+@media (max-width: 699px) {
+    .lp-dash-lead { font-size: 16px; }
+    .lp-dash-cta .nm-btn { width: 100%; justify-content: center; }
+}
 
 /* ---------- live stats ---------- */
 .lp-stats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }

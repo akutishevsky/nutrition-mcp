@@ -184,6 +184,30 @@ export interface ExampleSlide {
     cardMeals?: string[];
 }
 
+/** The landing page's web-dashboard section (#dashboard, right after the
+ * examples). Plain text, escaped at render, except `faq.visibleHtml`, which
+ * may link to the dashboard as `href="/dashboard" data-link="dashboard"` so
+ * the generator rewrites it to the locale's own path. The generator also
+ * splices `faq` into the FAQ (after the saved-meals entry, so FAQPage JSON-LD
+ * carries it), appends `featureListItem` to the SoftwareApplication
+ * featureList and `keywords` to the meta keywords. Keep it factual: the
+ * dashboard shows the same widgets as the chat, refreshes every minute and
+ * only reads, so never promise logging or editing there. */
+export interface DashboardSection {
+    title: string;
+    lead: string;
+    /** Today, History, Trends, Body: the dashboard's four tabs, in order
+     * (icons and colours are DASHBOARD_META in scripts/gen-index.ts). */
+    cards: [FeatureCard, FeatureCard, FeatureCard, FeatureCard];
+    button: string;
+    /** One short line beside the button. */
+    note: string;
+    faq: FaqEntry;
+    featureListItem: string;
+    /** Comma-separated, no leading comma; appended to `keywords`. */
+    keywords: string;
+}
+
 export interface IndexDoc {
     title: string;
     metaDescription: string;
@@ -411,6 +435,7 @@ export interface IndexDoc {
     faqSection: {
         title: string;
     };
+    dashboard: DashboardSection;
     faq: FaqEntry[];
 }
 
@@ -1320,6 +1345,39 @@ const INDEX_EN: IndexDoc = {
 
     faqSection: {
         title: "Frequently asked questions",
+    },
+    dashboard: {
+        title: "Your nutrition dashboard, in the browser",
+        lead: "Everything you log in chat also appears on a web dashboard: today's calories and macros, your food diary history, nutrient trends and your weight. Sign in with the same account your AI app uses; there is nothing to set up.",
+        cards: [
+            {
+                title: "Today",
+                body: "Calories, macros and goal progress for the day, plus your daily digest, refreshed every minute.",
+            },
+            {
+                title: "History",
+                body: "A calendar of every logged day against your calorie goal, with search across meals, ingredients and saved meals.",
+            },
+            {
+                title: "Trends",
+                body: "7, 14 and 30-day averages for calories and every tracked nutrient, next to your weekly digest.",
+            },
+            {
+                title: "Body",
+                body: "Your weight trend toward your goal and your latest body measurements.",
+            },
+        ],
+        button: "Open your dashboard",
+        note: "Read-only: logging and editing stay in the chat.",
+        faq: {
+            question: "Is there a web dashboard?",
+            visibleHtml:
+                'Yes. Sign in at <a href="/dashboard" data-link="dashboard">nutrition-mcp.com/dashboard</a> with the account your AI app uses to see today\'s totals, a calendar of past days with meal search, nutrient trends, and your weight and body measurements. It shows the same cards as the chat and refreshes every minute. It is read-only, so you still log and edit meals by talking to your AI.',
+        },
+        featureListItem:
+            "Web dashboard with today's totals, a history calendar with meal search, nutrient trends and body measurements",
+        keywords:
+            "nutrition dashboard, food diary dashboard, calorie dashboard",
     },
     faq: [
         {

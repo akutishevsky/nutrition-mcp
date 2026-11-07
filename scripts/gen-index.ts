@@ -77,13 +77,13 @@ const CONTACT_EMAIL = "anton@nutrition-mcp.com";
 // ---------------------------------------------------------------- helpers
 
 // src/copy/index.ts's `why.noteHtml` and `faq[].visibleHtml` carry plain
-// href="/alternatives" data-link="alternatives" (or /privacy, /terms)
+// href="/alternatives" data-link="alternatives" (or /privacy, /terms, /dashboard)
 // markers, because the content string has no access to `locale` — this
 // rewrites each to the locale-correct path. Without it a translated landing
 // page would link to the English comparison hub or policy.
 function localizeLinks(html: string, locale: SiteLocale): string {
     return html.replace(
-        /href="\/(alternatives|privacy|terms)" data-link="\1"/g,
+        /href="\/(alternatives|privacy|terms|dashboard)" data-link="\1"/g,
         (_m, page: string) =>
             `class="nm-link" href="${pathFor(locale, `/${page}`)}"`,
     );
@@ -138,6 +138,14 @@ const FEATURE_META = [
     { icon: "fa-solid fa-earth-americas", c: "wat" },
     { icon: "fa-solid fa-file-import", c: "sug" },
     { icon: "fa-solid fa-file-zipper", c: "acc" },
+];
+/** The dashboard section's four cards, matched by index to
+ * DashboardSection.cards (Today, History, Trends, Body). */
+const DASHBOARD_META = [
+    { icon: "fa-solid fa-sun", c: "cal" },
+    { icon: "fa-solid fa-calendar-days", c: "pro" },
+    { icon: "fa-solid fa-chart-line", c: "car" },
+    { icon: "fa-solid fa-weight-scale", c: "wat" },
 ];
 const TRUST_ICONS = [
     "fa-solid fa-lock",
@@ -647,6 +655,47 @@ ${panels}
             </section>`;
 }
 
+// -------------------------------------------------------- web dashboard
+
+/** The signed-in web dashboard: what it shows and a link to the locale's own
+ * /dashboard. Its FAQ entry, featureList item and keywords are spliced in by
+ * faqEntries() and renderDoc(). */
+function renderDashboard(doc: IndexDoc, locale: SiteLocale): string {
+    const d = doc.dashboard;
+    const cards = d.cards
+        .map((c, i) => {
+            const m = DASHBOARD_META[i]!;
+            return `                    <article class="nm-card lp-dash-card nm-c-${m.c}">
+                        ${tile(m.icon)}
+                        <div><h3>${esc(c.title)}</h3>
+                        <p>${esc(c.body)}</p></div>
+                    </article>`;
+        })
+        .join("\n");
+    return `            <section class="nm-section lp-sec lp-dash" id="dashboard">
+                <div class="lp-dash-head">
+                    <h2 class="nm-h2">${esc(d.title)}</h2>
+                    <p class="lp-dash-lead">${esc(d.lead)}</p>
+                </div>
+                <div class="lp-dash-grid">
+${cards}
+                </div>
+                <div class="lp-dash-cta">
+                    <a class="nm-btn nm-btn-ink nm-btn-lg" href="${pathFor(locale, "/dashboard")}"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i>${esc(d.button)} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                    <p>${esc(d.note)}</p>
+                </div>
+            </section>`;
+}
+
+/** The FAQ as rendered and as FAQPage JSON-LD: the locale's entries with the
+ * dashboard entry placed right after the saved-meals one (the 9th), so both
+ * read the same list. */
+const DASHBOARD_FAQ_AT = 9;
+function faqEntries(doc: IndexDoc): FaqEntry[] {
+    const at = Math.min(DASHBOARD_FAQ_AT, doc.faq.length);
+    return [...doc.faq.slice(0, at), doc.dashboard.faq, ...doc.faq.slice(at)];
+}
+
 // ------------------------------------------------------------ live stats
 
 function renderStats(doc: IndexDoc): string {
@@ -836,7 +885,7 @@ function renderFaq(doc: IndexDoc, locale: SiteLocale): string {
     // Native <details name="faq">: no script, one open at a time, the first
     // open. The number and the +/− are CSS (counter + ::after), so <summary>
     // holds only the question — src/site-copy.test.ts reads it that way.
-    const rows = doc.faq
+    const rows = faqEntries(doc)
         .map(
             (
                 q,
@@ -873,7 +922,7 @@ function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
         description: doc.metaDescription,
         url,
         image: `${SITE}/og.png`,
-        featureList: doc.featureList,
+        featureList: [...doc.featureList, doc.dashboard.featureListItem],
         inLanguage: HTML_LANG[locale],
         applicationCategory: "HealthApplication",
         operatingSystem: "Any",
@@ -906,7 +955,7 @@ function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
     const faqSchema = {
         "@context": "https://schema.org",
         "@type": "FAQPage",
-        mainEntity: doc.faq.map((entry) => ({
+        mainEntity: faqEntries(doc).map((entry) => ({
             "@type": "Question",
             name: entry.question,
             acceptedAnswer: {
@@ -925,7 +974,7 @@ function renderDoc(doc: IndexDoc, locale: SiteLocale): string {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta charset="utf-8" />
         <meta name="description" content="${esc(doc.metaDescription)}" />
-        <meta name="keywords" content="${esc(doc.keywords)}" />
+        <meta name="keywords" content="${esc(`${doc.keywords}, ${doc.dashboard.keywords}`)}" />
         <meta property="og:title" content="${title}" />
         <meta property="og:description" content="${esc(doc.ogDescription)}" />
         <meta property="og:type" content="website" />
@@ -961,6 +1010,7 @@ ${renderHow(doc)}
 ${renderInstall(doc)}
 ${renderOnboarding(doc, locale)}
 ${renderExamples(doc, locale)}
+${renderDashboard(doc, locale)}
 ${renderStats(doc)}
 ${renderFeatures(doc)}
 ${renderWhy(doc, locale)}

@@ -24,6 +24,7 @@ import {
     type SiteLocale,
 } from "../src/routes.js";
 import { chromeFor, type ChromeCopy } from "../src/copy/chrome.js";
+import { DASHBOARD_VIEWS, dashboardFor } from "../src/copy/dashboard.js";
 
 export { SITE };
 
@@ -483,7 +484,7 @@ const THEME_MODES = [
  *
  * Layout (public/styles.css): the header is two glass pills — `.head-bar`
  * (brand, primary nav with its sliding `.nav-ind` pill, hamburger) and
- * `.head-tools` (GitHub, language, theme, Connect; hidden under 700px,
+ * `.head-tools` (GitHub, language, theme, Dashboard, Connect; hidden under 700px,
  * where the sheet carries the same controls). Under 1060px — or whenever
  * the nav overflows its pill, which site.js detects and flags with
  * html.nav-tight — the nav collapses behind the hamburger into
@@ -515,6 +516,14 @@ export function nav(
         consent?: boolean;
         /** The background blobs: "default", "compact" (/tools) or false. */
         blobs?: BlobsVariant | false;
+        /**
+         * "dashboard": the signed-in web dashboard's header (see
+         * dashboardHeader() below) — its four view tabs in place of the
+         * marketing links, and a Sign out form in place of Connect. Every
+         * other caller leaves this unset and gets exactly the markup it
+         * always did.
+         */
+        app?: "dashboard";
     },
 ): string {
     const p = (id: string) => pathFor(locale, id);
@@ -584,6 +593,35 @@ export function nav(
 ${menuLangItems}
                 </div>
             </div>`;
+    if (opts?.app === "dashboard") {
+        return dashboardHeader(locale, {
+            lead: `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>${blobsHtml}${banner}`,
+            switcher: opts.dynamicSwitcher
+                ? "                    {{LANG_SWITCHER}}"
+                : `                    <details class="lang-switch">
+                        <summary
+                            class="icon-btn"
+                            aria-label="${esc(`${c.changeLanguageAriaLabel} (${code(locale)})`)}"
+                            title="${esc(c.languageTitle)}"
+                        >
+                            <i class="fa-solid fa-language" aria-hidden="true"></i><span class="lang-code">${code(locale)}</span>
+                        </summary>
+                        <div class="lang-menu" role="group" aria-label="${esc(c.languageTitle)}">
+${switcherItems}
+                        </div>
+                    </details>`,
+            themeSeg,
+            menuTheme,
+            menuLangGroup,
+        });
+    }
+    // The web dashboard: a secondary pill beside Connect (which stays the
+    // primary action) and a matching button in the sheet. Each locale links
+    // to its own /{locale}/dashboard. Below 1060px the header pill shows
+    // its icon only, as it does at wider widths when site.js finds the nav
+    // would otherwise overflow (html.head-compact); the label stays its
+    // accessible name either way.
+    const dashHref = p("/dashboard");
     const html = `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>${blobsHtml}${banner}
         <header class="site-head" id="site-head">
             <div class="head-inner">
@@ -639,6 +677,7 @@ ${switcherItems}
                     <div class="theme-seg" role="group" aria-label="${esc(c.theme.ariaLabel)}" title="${esc(c.theme.title)}">
 ${themeSeg}
                     </div>
+                    <a class="head-dash" href="${dashHref}" title="${attr(c.dashboardCta)}"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span class="head-dash-label">${esc(c.dashboardCta)}</span></a>
                     <a class="head-cta" href="${h("install")}">${esc(c.connectCta)}</a>
                 </div>
             </div>
@@ -659,7 +698,10 @@ ${menuTheme}
                 </div>
             </div>
             <div class="menu-foot">
-                <a class="menu-gh" href="${REPO_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i>${esc(c.menu.github)}<span class="menu-gh-stars" data-gh-stars hidden><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars-n></span></span></a>
+                <div class="menu-foot-row">
+                    <a class="menu-gh" href="${REPO_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i>${esc(c.menu.github)}<span class="menu-gh-stars" data-gh-stars hidden><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars-n></span></span></a>
+                    <a class="menu-dash" href="${dashHref}"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i>${esc(c.dashboardCta)}</a>
+                </div>
                 <a class="menu-cta" href="${h("install")}">${esc(c.connectCta)}${arrow}</a>
             </div>
         </div>`;
@@ -671,6 +713,118 @@ ${menuTheme}
         `<a href="${currentHref}">`,
         `<a href="${currentHref}" aria-current="page">`,
     );
+}
+
+/**
+ * The sign-out control, in the header pill and the sheet menu. A real POST
+ * form (src/dashboard-auth.ts checks the Origin and the `csrf` field); the
+ * hidden input ships empty and public/dashboard.js fills it from
+ * GET /api/dashboard/session, so a page served from cache or opened without
+ * script can never post a stale token. `locale` sends sign-out back to this
+ * locale's landing page rather than English `/`.
+ */
+function signOutForm(
+    cls: string,
+    label: string,
+    indent: string,
+    locale: SiteLocale,
+): string {
+    return `${indent}<form class="dash-signout" method="post" action="/dashboard/logout">
+${indent}    <input type="hidden" name="csrf" value="" data-dash-csrf />
+${indent}    <input type="hidden" name="locale" value="${locale}" />
+${indent}    <button type="submit" class="${cls}">${esc(label)}</button>
+${indent}</form>`;
+}
+
+/**
+ * nav()'s `app: "dashboard"` header: the same two glass pills, sheet menu,
+ * language switcher (linking to /{locale}/dashboard) and theme control that
+ * public/site.js already drives, with the dashboard's four view tabs in
+ * place of the marketing links and a Sign out form in place of Connect. The
+ * tabs are same-page hash links (#today …): public/dashboard.js routes on
+ * location.hash and marks the active one aria-current="page", which is what
+ * site.js's sliding .nav-ind follows. No live-stats badge and no GitHub star
+ * count — the signed-in page makes no calls it does not need.
+ */
+function dashboardHeader(
+    locale: SiteLocale,
+    parts: {
+        lead: string;
+        switcher: string;
+        themeSeg: string;
+        menuTheme: string;
+        menuLangGroup: string;
+    },
+): string {
+    const c = chromeFor(locale);
+    const d = dashboardFor(locale);
+    const tabs = DASHBOARD_VIEWS.map(
+        (v) =>
+            `                        <a href="#${v}" data-dash-tab="${v}">${esc(d.tabs[v])}</a>`,
+    ).join("\n");
+    const menuTabs = DASHBOARD_VIEWS.map(
+        (v) =>
+            `                <a href="#${v}" data-dash-tab="${v}"><span>${esc(d.tabs[v])}</span><span class="dash-menu-end"><span class="dash-menu-dot" aria-hidden="true"></span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span></a>`,
+    ).join("\n");
+    // The language links keep their lang= but drop hreflang=: the dashboard
+    // is signed-in and unindexed, so it advertises no alternates at all
+    // (src/alt-pages.test.ts checks app pages carry no hreflang).
+    const noHreflang = (html: string) =>
+        html.replace(/\s+hreflang="[^"]*"/g, "");
+    return `${parts.lead}
+        <header class="site-head" id="site-head">
+            <div class="head-inner">
+                <div class="head-bar">
+                    <a class="brand" href="${pathFor(locale, "")}" aria-label="${esc(c.brandHomeAriaLabel)}">${logoSvg("h", 28)}<span>Nutrition&nbsp;MCP</span></a>
+                    <nav class="head-nav" aria-label="${esc(d.navAriaLabel)}">
+                        <span class="nav-ind" aria-hidden="true"></span>
+${tabs}
+                    </nav>
+                    <button
+                        class="menu-btn"
+                        type="button"
+                        id="menu-btn"
+                        aria-expanded="false"
+                        aria-controls="site-menu"
+                        aria-label="${esc(c.openMenuAriaLabel)}"
+                        data-close-label="${esc(c.closeMenuAriaLabel)}"
+                    >
+                        <i class="fa-solid fa-bars mb-open" aria-hidden="true"></i><i class="fa-solid fa-xmark mb-close" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="head-tools">
+                    <a
+                        class="icon-btn head-gh"
+                        href="${REPO_URL}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="${esc(c.githubAriaLabel)}"
+                        title="GitHub"
+                        ><i class="fa-brands fa-github" aria-hidden="true"></i></a
+                    >
+${noHreflang(parts.switcher)}
+                    <div class="theme-seg" role="group" aria-label="${esc(c.theme.ariaLabel)}" title="${esc(c.theme.title)}">
+${parts.themeSeg}
+                    </div>
+${signOutForm("head-cta", d.signOut, "                    ", locale)}
+                </div>
+            </div>
+        </header>
+        <div class="site-menu" id="site-menu" hidden>
+            <nav aria-label="${esc(c.landmarks.menu)}" class="menu-nav">
+${menuTabs}
+            </nav>${noHreflang(parts.menuLangGroup)}
+            <div class="menu-group">
+                <span class="menu-group-label" aria-hidden="true">${esc(c.theme.title)}</span>
+                <div class="menu-theme" role="group" aria-label="${esc(c.theme.title)}">
+${parts.menuTheme}
+                </div>
+            </div>
+            <div class="menu-foot">
+                <a class="menu-gh" href="${REPO_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i>${esc(c.menu.github)}</a>
+${signOutForm("menu-cta", d.signOut, "                ", locale)}
+            </div>
+        </div>`;
 }
 
 /**

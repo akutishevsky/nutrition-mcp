@@ -937,6 +937,39 @@ export const INDEX_PL: IndexDoc = {
     faqSection: {
         title: "Najczęściej zadawane pytania",
     },
+    dashboard: {
+        title: "Twój panel żywieniowy w przeglądarce",
+        lead: "Wszystko, co zapisujesz w czacie, widać też w panelu w przeglądarce: dzisiejsze kalorie i makroskładniki, historię dziennika żywieniowego, trendy składników odżywczych i wagę. Logujesz się tym samym kontem, którego używa Twoja aplikacja AI; niczego nie trzeba konfigurować.",
+        cards: [
+            {
+                title: "Dziś",
+                body: "Kalorie, makroskładniki i postęp celów na dziś oraz podsumowanie dnia, odświeżane co minutę.",
+            },
+            {
+                title: "Historia",
+                body: "Kalendarz wszystkich zapisanych dni na tle celu kalorycznego, z wyszukiwaniem posiłków, składników i zapisanych posiłków.",
+            },
+            {
+                title: "Trendy",
+                body: "Średnie z 7, 14 i 30 dni dla kalorii i każdego śledzonego składnika, obok podsumowania tygodnia.",
+            },
+            {
+                title: "Ciało",
+                body: "Zmiany wagi na drodze do celu i najnowsze pomiary ciała.",
+            },
+        ],
+        button: "Otwórz swój panel",
+        note: "Tylko do podglądu: zapisywanie i poprawki odbywają się w czacie.",
+        faq: {
+            question: "Czy jest panel w przeglądarce?",
+            visibleHtml:
+                'Tak. Zaloguj się na <a href="/dashboard" data-link="dashboard">nutrition-mcp.com/dashboard</a> kontem, którego używa Twoja aplikacja AI, aby zobaczyć dzisiejsze sumy, kalendarz minionych dni z wyszukiwaniem posiłków, trendy składników odżywczych oraz wagę i pomiary ciała. Panel pokazuje te same karty co czat i odświeża się co minutę. Służy tylko do podglądu: posiłki nadal zapisujesz i poprawiasz, rozmawiając z AI.',
+        },
+        featureListItem:
+            "Panel w przeglądarce z dzisiejszymi sumami, kalendarzem historii z wyszukiwaniem posiłków, trendami składników odżywczych i pomiarami ciała",
+        keywords:
+            "panel żywieniowy, panel dziennika żywieniowego, panel kalorii",
+    },
     faq: [
         {
             question: "Czym jest Nutrition MCP?",

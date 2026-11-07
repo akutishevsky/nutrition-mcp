@@ -25,46 +25,55 @@ import type { SiteLocale } from "../routes.js";
 import {
     LOGIN_DE,
     LOGIN_CLIENT_NOTICE_DE,
+    LOGIN_DASHBOARD_DE,
     LOGIN_ERRORS_DE,
 } from "./login.de.js";
 import {
     LOGIN_ES,
     LOGIN_CLIENT_NOTICE_ES,
+    LOGIN_DASHBOARD_ES,
     LOGIN_ERRORS_ES,
 } from "./login.es.js";
 import {
     LOGIN_FR,
     LOGIN_CLIENT_NOTICE_FR,
+    LOGIN_DASHBOARD_FR,
     LOGIN_ERRORS_FR,
 } from "./login.fr.js";
 import {
     LOGIN_NL,
     LOGIN_CLIENT_NOTICE_NL,
+    LOGIN_DASHBOARD_NL,
     LOGIN_ERRORS_NL,
 } from "./login.nl.js";
 import {
     LOGIN_PL,
     LOGIN_CLIENT_NOTICE_PL,
+    LOGIN_DASHBOARD_PL,
     LOGIN_ERRORS_PL,
 } from "./login.pl.js";
 import {
     LOGIN_IT,
     LOGIN_CLIENT_NOTICE_IT,
+    LOGIN_DASHBOARD_IT,
     LOGIN_ERRORS_IT,
 } from "./login.it.js";
 import {
     LOGIN_UK,
     LOGIN_CLIENT_NOTICE_UK,
+    LOGIN_DASHBOARD_UK,
     LOGIN_ERRORS_UK,
 } from "./login.uk.js";
 import {
     LOGIN_JA,
     LOGIN_CLIENT_NOTICE_JA,
+    LOGIN_DASHBOARD_JA,
     LOGIN_ERRORS_JA,
 } from "./login.ja.js";
 import {
     LOGIN_TR,
     LOGIN_CLIENT_NOTICE_TR,
+    LOGIN_DASHBOARD_TR,
     LOGIN_ERRORS_TR,
 } from "./login.tr.js";
 
@@ -144,12 +153,30 @@ export interface LoginErrors {
  * says what signing in does and who should not continue — someone who did
  * not start this from the shortcut on their own iPhone may have been sent
  * another person's pairing link. Plain text, no placeholders, also tinted.
+ *
+ * `dashboard` does the same for the web dashboard's built-in client
+ * (DASHBOARD_CLIENT_ID in src/dashboard-client.ts): signing in opens the
+ * dashboard in this browser, and someone who did not just open it here
+ * themselves may have been sent another person's sign-in link. Plain text,
+ * no placeholders, tinted.
  */
 export interface LoginClientNotice {
     returnTo: string;
     unknownHost: string;
     loopback: string;
     healthSync: string;
+    dashboard: string;
+}
+
+/**
+ * The login card's heading when the web dashboard is the client signing in
+ * (src/oauth.ts's dashboardHeading swaps it in for LoginDoc.title/subtitle,
+ * and the page <title> becomes "<LoginDoc.title> — <title>"). Plain text,
+ * escaped at render time.
+ */
+export interface LoginDashboardCopy {
+    title: string;
+    subtitle: string;
 }
 
 const EN: LoginDoc = {
@@ -222,6 +249,8 @@ export const LOGIN_CLIENT_NOTICE: Record<SiteLocale, LoginClientNotice> = {
             "You'll be sent back to a program running on this computer ({host}). Only continue if you started this connection from it.",
         healthSync:
             "Signing in connects Apple Health sync on the device that opened this page. If you did not start this from the Nutrition MCP shortcut on your own iPhone just now, close this page.",
+        dashboard:
+            "Signing in opens your Nutrition MCP dashboard in this browser. If you did not just open the dashboard here yourself, close this page.",
     },
     de: LOGIN_CLIENT_NOTICE_DE,
     es: LOGIN_CLIENT_NOTICE_ES,
@@ -232,4 +261,21 @@ export const LOGIN_CLIENT_NOTICE: Record<SiteLocale, LoginClientNotice> = {
     uk: LOGIN_CLIENT_NOTICE_UK,
     ja: LOGIN_CLIENT_NOTICE_JA,
     tr: LOGIN_CLIENT_NOTICE_TR,
+};
+
+export const LOGIN_DASHBOARD: Record<SiteLocale, LoginDashboardCopy> = {
+    en: {
+        title: "Your dashboard",
+        subtitle:
+            "Sign in with the account you connected to your AI assistant.",
+    },
+    de: LOGIN_DASHBOARD_DE,
+    es: LOGIN_DASHBOARD_ES,
+    fr: LOGIN_DASHBOARD_FR,
+    nl: LOGIN_DASHBOARD_NL,
+    pl: LOGIN_DASHBOARD_PL,
+    it: LOGIN_DASHBOARD_IT,
+    uk: LOGIN_DASHBOARD_UK,
+    ja: LOGIN_DASHBOARD_JA,
+    tr: LOGIN_DASHBOARD_TR,
 };

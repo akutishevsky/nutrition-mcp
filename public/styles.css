@@ -1056,6 +1056,65 @@ html:not(.js) .head-nav a[aria-current="page"] {
     background: var(--acc);
     color: var(--acc-ink);
 }
+/* Dashboard: the secondary pill beside Connect, outlined so Connect stays
+   the one filled action. Below 1060px (nav behind the hamburger, the pill
+   has to share the row with the brand) it is icon-only, and wider too when
+   site.js finds the nav would otherwise overflow (html.head-compact, kept
+   when the nav then goes behind the hamburger as well). The
+   label is clipped rather than removed, so it stays the link's name. */
+.head-dash {
+    flex: none;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 13px;
+    border: 1px solid var(--line2);
+    border-radius: 999px;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+    transition:
+        background 0.2s,
+        border-color 0.2s;
+}
+.head-dash:hover {
+    background: var(--bg2);
+    color: var(--ink);
+}
+.head-dash .fa-chart-pie {
+    font-size: 13px;
+    color: var(--acc-txt);
+}
+@media (max-width: 1059px) {
+    .head-dash {
+        width: 38px;
+        padding: 0;
+        justify-content: center;
+    }
+    .head-dash .head-dash-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+}
+html.head-compact .head-dash {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+}
+html.head-compact .head-dash .head-dash-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
 
 /* =====================================================================
    6. sheet menu — full screen, under the header (z 19 < 20) so the
@@ -1229,6 +1288,38 @@ body.menu-open .consent {
 .menu-gh-stars .fa-star {
     font-size: 10px;
     margin-right: 4px;
+}
+/* GitHub and Dashboard share one row above Connect, wrapping to two when a
+   translated label is too long for half a phone's width. */
+.menu-foot-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.menu-foot-row > a {
+    flex: 1 1 140px;
+}
+.menu-dash {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 16px;
+    border: 1px solid var(--line2);
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 16px;
+    white-space: nowrap;
+    color: var(--ink);
+}
+.menu-dash:hover {
+    color: var(--ink);
+    background: var(--bg2);
+}
+.menu-dash .fa-chart-pie {
+    font-size: 15px;
+    color: var(--acc-txt);
 }
 .menu-cta {
     height: 56px;

@@ -1,6 +1,14 @@
 import { test, expect, describe, afterEach, spyOn } from "bun:test";
 
-import { app, setShuttingDownForTest } from "./index.js";
+import { Hono } from "hono";
+import {
+    app,
+    createAppPageHandler,
+    isFrameableWidgetResponse,
+    setShuttingDownForTest,
+} from "./index.js";
+import { WIDGET_CSP } from "./dashboard-api.js";
+import { DashboardSessionThrottledError } from "./dashboard-auth.js";
 import { _resetBuckets } from "./rate-limit.js";
 
 // The shutdown gate (src/index.ts) exists because closing the MCP handler while
@@ -597,5 +605,346 @@ describe("Apple Health sync routes", () => {
             ok: false,
             error: "bad_request",
         });
+    });
+});
+
+// The web dashboard (src/dashboard-auth.ts, src/dashboard-api.ts). Every
+// request below is answered without a database call: no session cookie means
+// signed out, the widget HTML is assembled from files, and the gate, the body
+// limit and CORS answer before any route.
+describe("web dashboard", () => {
+    afterEach(() => _resetBuckets());
+
+    const cspDirectives = (csp: string | null) =>
+        new Map(
+            (csp ?? "")
+                .split(";")
+                .map((d) => d.trim().split(/\s+/))
+                .filter((parts) => parts[0])
+                .map((parts) => [parts[0]!, parts.slice(1)] as const),
+        );
+
+    test("the site CSP allows same-origin frames, and only those", async () => {
+        const r = await app.request("http://x/");
+        const d = cspDirectives(r.headers.get("Content-Security-Policy"));
+        expect(d.get("frame-src")).toEqual(["'self'"]);
+        expect(d.get("frame-ancestors")).toEqual(["'none'"]);
+        expect(r.headers.get("X-Frame-Options")).toBe("DENY");
+    });
+
+    test("a widget can be framed by the site, with its own locked-down CSP", async () => {
+        const r = await app.request(
+            "http://x/dashboard/widget/nutrition-summary",
+        );
+        expect(r.status).toBe(200);
+        expect(r.headers.get("X-Frame-Options")).not.toBe("DENY");
+        const d = cspDirectives(r.headers.get("Content-Security-Policy"));
+        expect(d.get("frame-ancestors")).toEqual(["'self'"]);
+        expect(d.get("default-src")).toEqual(["'none'"]);
+        // Not the site policy: no analytics host reaches a widget.
+        expect(r.headers.get("Content-Security-Policy")).not.toContain(
+            "clarity",
+        );
+    });
+
+    test("only the widget HTML is frameable: the route's 404 is DENY with the site CSP", async () => {
+        const ok = await app.request(
+            "http://x/dashboard/widget/nutrition-summary",
+        );
+        expect(ok.status).toBe(200);
+        expect(ok.headers.get("X-Frame-Options")).toBeNull();
+        const etag = ok.headers.get("ETag")!;
+        const notModified = await app.request(
+            "http://x/dashboard/widget/nutrition-summary",
+            { headers: { "If-None-Match": etag } },
+        );
+        expect(notModified.status).toBe(304);
+        expect(notModified.headers.get("X-Frame-Options")).toBeNull();
+
+        for (const path of [
+            "/dashboard/widget/no-such-widget",
+            "/dashboard/widget/",
+            "/dashboard/widget/nutrition-summary/extra",
+        ]) {
+            const r = await app.request(`http://x${path}`);
+            expect(r.status).toBeGreaterThanOrEqual(400);
+            expect({ path, xfo: r.headers.get("X-Frame-Options") }).toEqual({
+                path,
+                xfo: "DENY",
+            });
+            const d = cspDirectives(r.headers.get("Content-Security-Policy"));
+            expect(d.get("frame-ancestors")).toEqual(["'none'"]);
+        }
+    });
+
+    test("isFrameableWidgetResponse needs the prefix, a non-error status and the widget CSP", () => {
+        const res = (status: number, csp?: string) =>
+            new Response(status === 304 ? null : "x", {
+                status,
+                headers: csp ? { "Content-Security-Policy": csp } : {},
+            });
+        const p = "/dashboard/widget/trends";
+        expect(isFrameableWidgetResponse(p, res(200, WIDGET_CSP))).toBe(true);
+        expect(isFrameableWidgetResponse(p, res(304, WIDGET_CSP))).toBe(true);
+        // A 500 that somehow carried the widget CSP is still not frameable.
+        expect(isFrameableWidgetResponse(p, res(500, WIDGET_CSP))).toBe(false);
+        expect(isFrameableWidgetResponse(p, res(404))).toBe(false);
+        expect(isFrameableWidgetResponse(p, res(200))).toBe(false);
+        expect(
+            isFrameableWidgetResponse("/dashboard", res(200, WIDGET_CSP)),
+        ).toBe(false);
+    });
+
+    test("the framing exemption covers the widget prefix only", async () => {
+        for (const path of [
+            "/dashboard",
+            "/dashboard/login",
+            "/api/dashboard/session",
+        ]) {
+            const r = await app.request(`http://x${path}`);
+            expect({ path, xfo: r.headers.get("X-Frame-Options") }).toEqual({
+                path,
+                xfo: "DENY",
+            });
+        }
+    });
+
+    test("a signed-out visit is sent to sign-in in its own locale", async () => {
+        for (const [path, locale] of [
+            ["/dashboard", "en"],
+            ["/de/dashboard", "de"],
+            ["/ja/dashboard", "ja"],
+        ] as const) {
+            const r = await app.request(`http://x${path}`);
+            expect({ path, status: r.status }).toEqual({ path, status: 302 });
+            expect(r.headers.get("Location")).toBe(
+                `/dashboard/login?locale=${locale}`,
+            );
+            expect(r.headers.get("Cache-Control")).toBe("private, no-store");
+            expect(r.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+        }
+    });
+
+    test("dashboard pages send Referrer-Policy same-origin; every other page keeps no-referrer", async () => {
+        // Under no-referrer a browser sends `Origin: null` on the Sign out
+        // form post, which /dashboard/logout could not tell from a forgery.
+        for (const path of ["/dashboard", "/de/dashboard"]) {
+            const r = await app.request(`http://x${path}`);
+            expect(r.headers.get("Referrer-Policy")).toBe("same-origin");
+        }
+        const home = await app.request("http://x/");
+        expect(home.headers.get("Referrer-Policy")).toBe("no-referrer");
+    });
+
+    describe("the signed-in page shell", () => {
+        const page = (
+            deps: Parameters<typeof createAppPageHandler>[2],
+            locale = "de",
+        ) => {
+            const h = new Hono();
+            h.get("/p", createAppPageHandler(locale, "/shell.html", deps));
+            return h;
+        };
+        const signedIn = async () => "user-1";
+
+        test("is read from disk once, then served from memory with an ETag", async () => {
+            let reads = 0;
+            const h = page({
+                readUserId: signedIn,
+                readFile: async () => {
+                    reads++;
+                    return "<!doctype html><p>shell</p>";
+                },
+            });
+            const a = await h.request("http://x/p");
+            const b = await h.request("http://x/p");
+            expect(a.status).toBe(200);
+            expect(await b.text()).toBe("<!doctype html><p>shell</p>");
+            expect(reads).toBe(1);
+            expect(a.headers.get("ETag")).toMatch(/^"[0-9a-f]{32}"$/);
+            expect(b.headers.get("ETag")).toBe(a.headers.get("ETag"));
+            expect(a.headers.get("Cache-Control")).toBe("private, no-cache");
+            expect(a.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+            expect(a.headers.get("Referrer-Policy")).toBe("same-origin");
+        });
+
+        test("a matching If-None-Match is a 304 for a signed-in visit", async () => {
+            const h = page({
+                readUserId: signedIn,
+                readFile: async () => "shell",
+            });
+            const etag = (await h.request("http://x/p")).headers.get("ETag")!;
+            for (const inm of [etag, `W/${etag}`, `"other", ${etag}`]) {
+                const r = await h.request("http://x/p", {
+                    headers: { "If-None-Match": inm },
+                });
+                expect({ inm, status: r.status }).toEqual({ inm, status: 304 });
+                expect(r.headers.get("ETag")).toBe(etag);
+                expect(r.headers.get("Cache-Control")).toBe(
+                    "private, no-cache",
+                );
+            }
+            const miss = await h.request("http://x/p", {
+                headers: { "If-None-Match": '"other"' },
+            });
+            expect(miss.status).toBe(200);
+        });
+
+        test("the session check runs before any 304: signed out is still a redirect", async () => {
+            let signedInNow = true;
+            let checks = 0;
+            const h = page({
+                readUserId: async () => {
+                    checks++;
+                    return signedInNow ? "user-1" : null;
+                },
+                readFile: async () => "shell",
+            });
+            const etag = (await h.request("http://x/p")).headers.get("ETag")!;
+            signedInNow = false;
+            const r = await h.request("http://x/p", {
+                headers: { "If-None-Match": etag },
+            });
+            expect(r.status).toBe(302);
+            expect(r.headers.get("Location")).toBe(
+                "/dashboard/login?locale=de",
+            );
+            expect(r.headers.get("Cache-Control")).toBe("private, no-store");
+            expect(r.headers.get("ETag")).toBeNull();
+            expect(checks).toBe(2);
+        });
+
+        test("throttled and unavailable stay no-store and never read the file", async () => {
+            let reads = 0;
+            const readFile = async () => {
+                reads++;
+                return "shell";
+            };
+            const warn = spyOn(console, "warn").mockImplementation(() => {});
+            const error = spyOn(console, "error").mockImplementation(() => {});
+            try {
+                const throttled = await page({
+                    readUserId: async () => {
+                        throw new DashboardSessionThrottledError(30);
+                    },
+                    readFile,
+                }).request("http://x/p");
+                expect(throttled.status).toBe(429);
+                expect(throttled.headers.get("Cache-Control")).toBe(
+                    "private, no-store",
+                );
+                const down = await page({
+                    readUserId: async () => {
+                        throw new Error("store down");
+                    },
+                    readFile,
+                }).request("http://x/p");
+                expect(down.status).toBe(503);
+                expect(down.headers.get("Cache-Control")).toBe(
+                    "private, no-store",
+                );
+                expect(reads).toBe(0);
+            } finally {
+                warn.mockRestore();
+                error.mockRestore();
+            }
+        });
+
+        test("a missing file is a 500 and is retried, not cached", async () => {
+            let present = false;
+            const h = page({
+                readUserId: signedIn,
+                readFile: async () => {
+                    if (!present) throw new Error("ENOENT");
+                    return "shell";
+                },
+            });
+            h.onError((_e, c) => c.text("err", 500));
+            expect((await h.request("http://x/p")).status).toBe(500);
+            present = true;
+            expect((await h.request("http://x/p")).status).toBe(200);
+        });
+
+        test("the real routes serve the generated shell from disk", async () => {
+            // Same handler, real reader: the generated English page.
+            const real = new Hono();
+            real.get(
+                "/dashboard",
+                createAppPageHandler("en", "./public/dashboard.html", {
+                    readUserId: signedIn,
+                }),
+            );
+            const r = await real.request("http://x/dashboard");
+            expect(r.status).toBe(200);
+            expect(await r.text()).toContain("<html");
+        });
+    });
+
+    test("the trailing-slash variant redirects to the page", async () => {
+        const r = await app.request("http://x/fr/dashboard/");
+        expect(r.status).toBe(301);
+        expect(r.headers.get("Location")).toBe("/fr/dashboard");
+    });
+
+    test("never sends CORS headers, even to an allowed Origin", async () => {
+        for (const [path, method] of [
+            ["/api/dashboard/session", "GET"],
+            ["/api/dashboard/status", "OPTIONS"],
+            ["/dashboard", "GET"],
+            ["/dashboard/logout", "OPTIONS"],
+        ] as const) {
+            const r = await app.request(`http://x${path}`, {
+                method,
+                headers: {
+                    Origin: "http://localhost:3000",
+                    "Access-Control-Request-Method": "GET",
+                },
+            });
+            expect({
+                path,
+                method,
+                acao: r.headers.get("Access-Control-Allow-Origin"),
+                acac: r.headers.get("Access-Control-Allow-Credentials"),
+            }).toEqual({ path, method, acao: null, acac: null });
+        }
+    });
+
+    test("the dashboard routers leave every other route alone", async () => {
+        // A router-level use("*") would be mounted at the root and run its
+        // session check on every path; these would then 401.
+        expect((await app.request("http://x/health")).status).toBe(200);
+        expect((await app.request("http://x/robots.txt")).status).toBe(200);
+    });
+
+    test("the shutdown gate answers the API in the envelope", async () => {
+        setShuttingDownForTest(true);
+        const r = await app.request("http://x/api/dashboard/status");
+        expect(r.status).toBe(503);
+        expect(r.headers.get("Cache-Control")).toBe("private, no-store");
+        expect(await r.json()).toMatchObject({
+            ok: false,
+            error: "unavailable",
+        });
+    });
+
+    test("the body limit answers the API in the envelope", async () => {
+        const r = await app.request("http://x/api/dashboard/status", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: "x".repeat(1024 * 1024 + 1),
+        });
+        expect(r.status).toBe(413);
+        expect(await r.json()).toMatchObject({
+            ok: false,
+            error: "bad_request",
+        });
+    });
+
+    test("serves the client app as JavaScript", async () => {
+        const r = await app.request("http://x/dashboard.js");
+        expect(r.status).toBe(200);
+        expect(r.headers.get("Content-Type")).toBe(
+            "text/javascript; charset=utf-8",
+        );
     });
 });

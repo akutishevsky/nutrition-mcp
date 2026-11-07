@@ -934,6 +934,38 @@ export const INDEX_TR: IndexDoc = {
     faqSection: {
         title: "Sık sorulan sorular",
     },
+    dashboard: {
+        title: "Tarayıcında beslenme panon",
+        lead: "Sohbette kaydettiğin her şey bir web panosunda da görünür: bugünün kalorileri ve makroları, beslenme günlüğünün geçmişi, besin trendleri ve kilon. Yapay zekâ uygulamanın kullandığı hesapla giriş yap; ayarlaman gereken bir şey yok.",
+        cards: [
+            {
+                title: "Bugün",
+                body: "Günün kalorileri, makroları ve hedef ilerlemesi, ayrıca günlük özetin; her dakika yenilenir.",
+            },
+            {
+                title: "Geçmiş",
+                body: "Kaydettiğin her günü kalori hedefinle karşılaştıran bir takvim; öğünlerde, malzemelerde ve kayıtlı öğünlerde arama.",
+            },
+            {
+                title: "Trendler",
+                body: "Kaloriler ve takip ettiğin her besin için 7, 14 ve 30 günlük ortalamalar, haftalık özetinin yanında.",
+            },
+            {
+                title: "Vücut",
+                body: "Hedefine doğru kilo eğilimin ve en son vücut ölçülerin.",
+            },
+        ],
+        button: "Panonu aç",
+        note: "Yalnızca görüntüleme: kayıt ve düzenleme sohbette yapılır.",
+        faq: {
+            question: "Bir web panosu var mı?",
+            visibleHtml:
+                'Evet. Yapay zekâ uygulamanın kullandığı hesapla <a href="/dashboard" data-link="dashboard">nutrition-mcp.com/dashboard</a> adresinde oturum aç; bugünün toplamlarını, öğün aramalı geçmiş günler takvimini, besin trendlerini, kilonu ve vücut ölçülerini gör. Sohbettekiyle aynı kartları gösterir ve her dakika yenilenir. Yalnızca görüntüleme içindir: öğünleri yine yapay zekânla konuşarak kaydeder ve düzenlersin.',
+        },
+        featureListItem:
+            "Bugünün toplamları, öğün aramalı geçmiş takvimi, besin trendleri ve vücut ölçüleri sunan web panosu",
+        keywords: "beslenme panosu, beslenme günlüğü panosu, kalori panosu",
+    },
     faq: [
         {
             question: "Nutrition MCP nedir?",

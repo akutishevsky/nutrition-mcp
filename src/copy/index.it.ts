@@ -933,6 +933,39 @@ export const INDEX_IT: IndexDoc = {
     faqSection: {
         title: "Domande frequenti",
     },
+    dashboard: {
+        title: "La tua dashboard nutrizionale, nel browser",
+        lead: "Tutto ciò che registri in chat compare anche in una dashboard web: calorie e macro di oggi, lo storico del tuo diario alimentare, gli andamenti dei nutrienti e il tuo peso. Accedi con lo stesso account che usa la tua app di IA; non c'è niente da configurare.",
+        cards: [
+            {
+                title: "Oggi",
+                body: "Calorie, macro e avanzamento degli obiettivi della giornata, più il tuo riepilogo giornaliero, aggiornati ogni minuto.",
+            },
+            {
+                title: "Storico",
+                body: "Un calendario di ogni giorno registrato rispetto al tuo obiettivo calorico, con ricerca tra pasti, ingredienti e pasti salvati.",
+            },
+            {
+                title: "Andamenti",
+                body: "Medie a 7, 14 e 30 giorni per le calorie e ogni nutriente che monitori, accanto al tuo riepilogo settimanale.",
+            },
+            {
+                title: "Corpo",
+                body: "L'andamento del tuo peso verso l'obiettivo e le tue misure corporee più recenti.",
+            },
+        ],
+        button: "Apri la tua dashboard",
+        note: "Solo consultazione: registrare e modificare restano in chat.",
+        faq: {
+            question: "Esiste una dashboard web?",
+            visibleHtml:
+                'Sì. Accedi su <a href="/dashboard" data-link="dashboard">nutrition-mcp.com/dashboard</a> con l\'account che usa la tua app di IA per vedere i totali di oggi, un calendario dei giorni passati con la ricerca dei pasti, gli andamenti dei nutrienti, il tuo peso e le misure corporee. Mostra le stesse schede della chat e si aggiorna ogni minuto. Serve solo per consultare: continui a registrare e modificare i pasti parlando con la tua IA.',
+        },
+        featureListItem:
+            "Dashboard web con i totali di oggi, un calendario dello storico con ricerca dei pasti, andamenti dei nutrienti e misure corporee",
+        keywords:
+            "dashboard nutrizionale, dashboard diario alimentare, dashboard calorie",
+    },
     faq: [
         {
             question: "Cos'è Nutrition MCP?",

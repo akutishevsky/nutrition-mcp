@@ -16,6 +16,13 @@ const AUTH_LIMIT_PER_WINDOW = 30;
 // done:true /ack — at most 9 requests — so this leaves room for a retried run
 // without letting a looping shortcut hammer the meal reads behind /pending.
 export const HEALTH_SYNC_LIMIT_PER_WINDOW = 40;
+// Per-user limit for the web dashboard's JSON API (/api/dashboard/*), keyed by
+// user id. A page load is a handful of calls (session, status, two or three
+// widget tool reads) and the page refetches its view once a minute, so 120
+// leaves room for tab switching and several open tabs without letting a
+// looping client hammer the reads behind it. Separate from LIMIT_PER_WINDOW so
+// dashboard traffic never eats into the user's MCP budget, or the reverse.
+export const DASHBOARD_LIMIT_PER_WINDOW = 120;
 // Process-wide counters for the two unauthenticated health-sync calls. The
 // per-IP auth limiter keys on getClientIp, which trusts a spoofable
 // x-forwarded-for, so a caller rotating that header gets a fresh bucket per
@@ -28,6 +35,30 @@ export const HEALTH_SYNC_LIMIT_PER_WINDOW = 40;
 // guesses finds. Going over its limit only flags the log line
 // (`alert=claim_failures_high`).
 export const HEALTH_SYNC_START_GLOBAL_LIMIT = 60;
+// Per-IP budget of dashboard session-cookie lookups that came back invalid (a
+// well-formed nmds_ cookie no session row matches). Each costs a database
+// read, and an unauthenticated caller pays nothing else for it, so past this
+// many in a window the IP's cookie lookups are refused with a 429 before the
+// read. Each lookup is reserved against the budget before its read (so a
+// concurrent burst cannot overrun it) and handed back once it proves valid:
+// only failures stay counted, so a browser with a live session is never
+// charged, and one whose session expired spends one or two (its 401 clears
+// the cookie). Separate from the strike/ban machinery on purpose: a strike there
+// would let an expired dashboard cookie shed the IP's /mcp traffic too.
+export const DASHBOARD_LOOKUP_FAILURE_LIMIT = 30;
+// Process-wide budget of the same failed lookups, for every IP together. The
+// per-IP bucket above keys on getClientIp, which trusts a spoofable
+// x-forwarded-for, so a caller rotating that header gets a fresh bucket per
+// request; this cap bounds the database reads failed lookups cost whatever
+// the headers say. Like HEALTH_SYNC_START_GLOBAL_LIMIT it is a hard cap, far
+// above real traffic (an expired cookie costs one or two). While it is spent,
+// a cookie lookup is refused before the read unless this process has seen
+// that session valid (src/dashboard-auth.ts's DashboardSessionCache): within
+// DASHBOARD_SESSION_CACHE_TTL_MS it passes with no read, and after that it
+// is revalidated by a read outside the budget, which a forged cookie cannot
+// reach. So a flood holds off only cookies this process has never validated,
+// never a dashboard in use or a sign-in that finished here.
+export const DASHBOARD_LOOKUP_FAILURE_GLOBAL_LIMIT = 300;
 export const HEALTH_SYNC_CLAIM_FAILURE_GLOBAL_LIMIT = 30;
 const GLOBAL_KEY = "global";
 const SWEEP_INTERVAL_MS = 5 * 60_000;
@@ -65,6 +96,9 @@ const authFailures = new Map<string, AuthFailureEntry>();
 const healthSyncBuckets = new Map<string, number[]>();
 const healthSyncStartBuckets = new Map<string, number[]>();
 const healthSyncClaimFailureBuckets = new Map<string, number[]>();
+const dashboardBuckets = new Map<string, number[]>();
+const dashboardLookupFailureBuckets = new Map<string, number[]>();
+const dashboardLookupFailureGlobalBuckets = new Map<string, number[]>();
 
 // Periodically drop buckets whose newest entry is older than the window, so
 // a caller who stops making requests doesn't keep a slot in the Map forever.
@@ -77,6 +111,9 @@ setInterval(() => {
         healthSyncBuckets,
         healthSyncStartBuckets,
         healthSyncClaimFailureBuckets,
+        dashboardBuckets,
+        dashboardLookupFailureBuckets,
+        dashboardLookupFailureGlobalBuckets,
     ]) {
         for (const [key, timestamps] of map) {
             const last = timestamps[timestamps.length - 1];
@@ -162,6 +199,108 @@ export function checkHealthSyncRateLimit(userId: string): RateLimitResult {
         userId,
         HEALTH_SYNC_LIMIT_PER_WINDOW,
     );
+}
+
+// Per-user limiter for the web dashboard API, keyed by user id.
+export function checkDashboardRateLimit(userId: string): RateLimitResult {
+    return slidingWindow(dashboardBuckets, userId, DASHBOARD_LIMIT_PER_WINDOW);
+}
+
+// A sliding-window check that does not count: whether `key` has fewer than
+// `limit` entries in the window. Trims the bucket as it reads.
+function peekWindow(
+    store: Map<string, number[]>,
+    key: string,
+    limit: number,
+): RateLimitResult {
+    const now = Date.now();
+    const cutoff = now - WINDOW_MS;
+    const live = (store.get(key) ?? []).filter((t) => t > cutoff);
+    if (live.length === 0) store.delete(key);
+    else store.set(key, live);
+    if (live.length < limit) {
+        return { allowed: true, remaining: limit - live.length, limit };
+    }
+    return {
+        allowed: false,
+        retryAfterSeconds: Math.max(
+            1,
+            Math.ceil((live[0]! + WINDOW_MS - now) / 1000),
+        ),
+        remaining: 0,
+        limit,
+    };
+}
+
+export interface DashboardLookupReservation {
+    allowed: boolean;
+    retryAfterSeconds?: number;
+    // The timestamp counted against both buckets, for refundDashboardLookup.
+    at?: number;
+}
+
+// Reserve one dashboard session lookup against this IP's failed-lookup
+// bucket and the process-wide one, BEFORE the database read. Counting up
+// front is what bounds reads under concurrency: a check that only counted
+// once the read came back would let every request in flight during one
+// round trip through. Both budgets must have room, and then both count; a
+// refusal counts nothing. A lookup that turns out valid (or that the store
+// could not answer) is handed back with refundDashboardLookup, so only
+// failures stay counted.
+export function reserveDashboardLookup(ip: string): DashboardLookupReservation {
+    const perIp = peekWindow(
+        dashboardLookupFailureBuckets,
+        ip,
+        DASHBOARD_LOOKUP_FAILURE_LIMIT,
+    );
+    const global = peekWindow(
+        dashboardLookupFailureGlobalBuckets,
+        GLOBAL_KEY,
+        DASHBOARD_LOOKUP_FAILURE_GLOBAL_LIMIT,
+    );
+    if (!perIp.allowed || !global.allowed) {
+        return {
+            allowed: false,
+            retryAfterSeconds: Math.max(
+                perIp.allowed ? 0 : (perIp.retryAfterSeconds ?? 60),
+                global.allowed ? 0 : (global.retryAfterSeconds ?? 60),
+            ),
+        };
+    }
+    const at = Date.now();
+    pushStamp(dashboardLookupFailureBuckets, ip, at);
+    pushStamp(dashboardLookupFailureGlobalBuckets, GLOBAL_KEY, at);
+    return { allowed: true, at };
+}
+
+// Hand back a reservation whose lookup did not fail.
+export function refundDashboardLookup(ip: string, at: number): void {
+    dropStamp(dashboardLookupFailureBuckets, ip, at);
+    dropStamp(dashboardLookupFailureGlobalBuckets, GLOBAL_KEY, at);
+}
+
+// Record a failed lookup that was made without a reservation (a throttled
+// revalidation of a session this process already validated), against this
+// IP's bucket and the process-wide one.
+export function noteDashboardLookupFailure(ip: string): void {
+    const at = Date.now();
+    pushStamp(dashboardLookupFailureBuckets, ip, at);
+    pushStamp(dashboardLookupFailureGlobalBuckets, GLOBAL_KEY, at);
+}
+
+function pushStamp(store: Map<string, number[]>, key: string, at: number) {
+    const list = store.get(key);
+    if (list) list.push(at);
+    else store.set(key, [at]);
+}
+
+function dropStamp(store: Map<string, number[]>, key: string, at: number) {
+    const list = store.get(key);
+    if (!list) return;
+    const i = list.lastIndexOf(at);
+    if (i === -1) return;
+    list.splice(i, 1);
+    if (list.length === 0) store.delete(key);
 }
 
 // Process-wide cap on POST /api/v1/health-sync/start. Counts the call.
@@ -278,4 +417,7 @@ export function _resetBuckets(): void {
     healthSyncBuckets.clear();
     healthSyncStartBuckets.clear();
     healthSyncClaimFailureBuckets.clear();
+    dashboardBuckets.clear();
+    dashboardLookupFailureBuckets.clear();
+    dashboardLookupFailureGlobalBuckets.clear();
 }

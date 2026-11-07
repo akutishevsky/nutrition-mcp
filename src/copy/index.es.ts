@@ -926,6 +926,39 @@ export const INDEX_ES: IndexDoc = {
     faqSection: {
         title: "Preguntas frecuentes",
     },
+    dashboard: {
+        title: "Tu panel de nutrición, en el navegador",
+        lead: "Todo lo que registras en el chat aparece también en un panel web: las calorías y macros de hoy, el historial de tu diario de comidas, las tendencias de nutrientes y tu peso. Inicia sesión con la misma cuenta que usa tu app de IA; no hay nada que configurar.",
+        cards: [
+            {
+                title: "Hoy",
+                body: "Calorías, macros y progreso de tus objetivos del día, además de tu resumen diario, actualizado cada minuto.",
+            },
+            {
+                title: "Historial",
+                body: "Un calendario con cada día registrado frente a tu objetivo de calorías, con búsqueda en comidas, ingredientes y comidas guardadas.",
+            },
+            {
+                title: "Tendencias",
+                body: "Medias de 7, 14 y 30 días para las calorías y cada nutriente que registras, junto a tu resumen semanal.",
+            },
+            {
+                title: "Cuerpo",
+                body: "La evolución de tu peso hacia tu objetivo y tus medidas corporales más recientes.",
+            },
+        ],
+        button: "Abrir tu panel",
+        note: "Solo para consultar: registrar y editar sigue siendo cosa del chat.",
+        faq: {
+            question: "¿Hay un panel web?",
+            visibleHtml:
+                'Sí. Inicia sesión en <a href="/dashboard" data-link="dashboard">nutrition-mcp.com/dashboard</a> con la cuenta que usa tu app de IA para ver los totales de hoy, un calendario de días anteriores con búsqueda de comidas, las tendencias de nutrientes y tu peso y medidas corporales. Muestra las mismas tarjetas que el chat y se actualiza cada minuto. Es solo de consulta: sigues registrando y editando comidas hablando con tu IA.',
+        },
+        featureListItem:
+            "Panel web con los totales de hoy, un calendario de historial con búsqueda de comidas, tendencias de nutrientes y medidas corporales",
+        keywords:
+            "panel de nutrición, panel de diario de comidas, panel de calorías",
+    },
     faq: [
         {
             question: "¿Qué es Nutrition MCP?",

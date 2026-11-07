@@ -196,6 +196,18 @@ export const PAGE_ROUTES: Record<string, string> = {
     ...ALT_PAGES,
 };
 
+// Signed-in app pages, same shape as PAGE_ROUTES (path suffix -> file under
+// public/ or public/{locale}/) and served in every locale the same way, but
+// deliberately kept OUT of PAGE_ROUTES: they are noindex (meta tag and
+// X-Robots-Tag header), carry no analytics, and have no sitemap entry or
+// hreflang set, and every PAGE_ROUTES walker (sitemap, consent, hreflang
+// tests) assumes the opposite. A signed-out visit is redirected to sign-in
+// by src/index.ts before the file is read.
+export const APP_PAGE_ROUTES: Record<string, string> = {
+    // The web dashboard (scripts/gen-dashboard.ts, public/dashboard.js).
+    "/dashboard": "dashboard.html",
+};
+
 export const SITE = "https://nutrition-mcp.com";
 
 /** The site-relative path to a whole page (a PAGE_ROUTES key: "" for home,

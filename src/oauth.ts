@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import crypto from "node:crypto";
 import {
+    DASHBOARD_CLIENT_ID,
     HEALTH_SYNC_CLIENT_ID,
     createSupabaseOAuthStore,
     healthSyncCallbackUrl,
@@ -29,6 +30,7 @@ import {
     type RedirectKind,
 } from "./oauth-validate.js";
 import { hashSecret, newOpaqueToken } from "./token-hash.js";
+import { dashboardCallbackUrl } from "./dashboard-client.js";
 import { getBaseUrl } from "./url.js";
 import {
     SignInError,
@@ -46,11 +48,19 @@ import {
     type SiteLocale,
 } from "./routes.js";
 import {
+    LOGIN,
     LOGIN_CLIENT_NOTICE,
+    LOGIN_DASHBOARD,
     LOGIN_ERRORS,
     type LoginErrors,
 } from "./copy/login.js";
 import { chromeFor } from "./copy/chrome.js";
+import { escapeHtml as escapeHtmlShared } from "./html-escape.js";
+
+// The login page's attributes are all double-quoted, and its bytes are pinned
+// by its tests, so it keeps the four-character escape (see src/html-escape.ts).
+const escapeHtml = (str: string) =>
+    escapeHtmlShared(str, { apostrophe: false });
 
 const SESSION_TTL_MS = 10 * 60 * 1000;
 
@@ -218,25 +228,25 @@ function bindingMatches(
 
 // The answer to a request for a session this browser didn't start. Nothing
 // about the session is touched and nothing identifying is logged: in the
-// attack this refuses, the session belongs to someone else.
-function sessionMismatch(c: Context, route: string): Response {
+// attack this refuses, the session belongs to someone else. The dashboard's
+// sign-in is started from the dashboard, not from an AI app, so its wording
+// says so.
+function sessionMismatch(
+    c: Context,
+    route: string,
+    clientId: string,
+): Response {
     console.warn(`[oauth] session-binding-mismatch route=${route}`);
     return c.json(
         {
             error: "session_mismatch",
             error_description:
-                "Start signing in again from your AI app, in this browser.",
+                clientId === DASHBOARD_CLIENT_ID
+                    ? "Start signing in again from your dashboard, in this browser."
+                    : "Start signing in again from your AI app, in this browser.",
         },
         400,
     );
-}
-
-function escapeHtml(str: string): string {
-    return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
 }
 
 // Every locale (English implicit) whose translated login page actually
@@ -368,13 +378,17 @@ function renderTranslationNotice(
 // always this server, so naming a host would tell the user nothing, while the
 // real risk — someone else's shortcut run sending this link to the victim —
 // is exactly what the notice describes. Keyed on the client id the session was
-// validated for, which only that client can carry.
+// validated for, which only that client can carry. The dashboard's client gets
+// its own notice for the same reason: its redirect is this server too.
 function renderClientNotice(session: OAuthSession): string {
     const copy = LOGIN_CLIENT_NOTICE[session.locale];
     let template: string;
     let warn: boolean;
     if (session.clientId === HEALTH_SYNC_CLIENT_ID) {
         template = copy.healthSync;
+        warn = true;
+    } else if (session.clientId === DASHBOARD_CLIENT_ID) {
+        template = copy.dashboard;
         warn = true;
     } else if (session.redirectKind === "loopback") {
         template = copy.loopback;
@@ -400,6 +414,39 @@ function renderClientNotice(session: OAuthSession): string {
     return `<p class="client-notice"${warn ? " data-warn" : ""}>${text}</p>`;
 }
 
+// The dashboard's sign-in is this same page with its own heading: "Your
+// dashboard" and a subtitle naming the account to use, in place of "Sign in to
+// connect", and without the after-connect note (which tells the user to close
+// the tab and go back to their AI client — the dashboard opens right here).
+// Swapped on the generated markup rather than through new template tokens, so
+// the generated file keeps carrying the default copy that src/alt-pages.test.ts
+// checks for; src/dashboard-auth.test.ts renders every locale through this and
+// fails if a generator change stops any of the four from matching.
+function dashboardHeading(template: string, locale: SiteLocale): string {
+    const doc = LOGIN[locale];
+    const dash = LOGIN_DASHBOARD[locale];
+    return template
+        .replace(
+            /<title>[^<]*<\/title>/,
+            () =>
+                `<title>${escapeHtml(doc.title)} — ${escapeHtml(dash.title)}</title>`,
+        )
+        .replace(
+            /(<h1 class="auth-title" id="auth-title">)[^<]*(<\/h1>)/,
+            (_m, open: string, close: string) =>
+                `${open}${escapeHtml(dash.title)}${close}`,
+        )
+        .replace(
+            /(<p class="auth-sub">)[^<]*(<\/p>)/,
+            (_m, open: string, close: string) =>
+                `${open}${escapeHtml(dash.subtitle)}${close}`,
+        )
+        .replace(
+            /\s*<p class="auth-note auth-note-muted">[^<]*<\/p>/,
+            () => "",
+        );
+}
+
 export async function renderLoginPage(
     sessionId: string,
     session: OAuthSession,
@@ -421,7 +468,11 @@ export async function renderLoginPage(
     const notice = renderClientNotice(session);
     const switcher = await renderLangSwitcher(session, locale);
     const translation = renderTranslationNotice(session, locale);
-    return template
+    const page =
+        session.clientId === DASHBOARD_CLIENT_ID
+            ? dashboardHeading(template, locale)
+            : template;
+    return page
         .replaceAll("{{SESSION_ID}}", () => escapeHtml(sessionId))
         .replaceAll("{{ERROR}}", () => errorHtml)
         .replaceAll("{{CLIENT_NOTICE}}", () => notice)
@@ -903,6 +954,10 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         if (client.firstParty === "health-sync") {
             return redirectUri === healthSyncCallbackUrl(getBaseUrl(c));
         }
+        // The dashboard's client likewise: its own callback, exact match.
+        if (client.firstParty === "dashboard") {
+            return redirectUri === dashboardCallbackUrl(getBaseUrl(c));
+        }
         if (!client.legacy) {
             return client.redirectUris.some((r) =>
                 redirectMatches(r, redirectUri),
@@ -1095,7 +1150,7 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             return c.json({ error: "session_expired" }, 400);
         }
         if (!bindingMatches(c, sessionId, entry.session)) {
-            return sessionMismatch(c, "approve");
+            return sessionMismatch(c, "approve", entry.session.clientId);
         }
 
         // Only translated LOGIN_ERRORS text is ever shown here, picked by the
@@ -1163,7 +1218,11 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
             return c.json({ error: "session_expired" }, 400);
         }
         if (!bindingMatches(c, sessionId, entry.session)) {
-            return sessionMismatch(c, "authorize-google");
+            return sessionMismatch(
+                c,
+                "authorize-google",
+                entry.session.clientId,
+            );
         }
 
         // Fresh nonce per attempt. Supabase expects the SHA-256 *hex* digest sent
@@ -1228,7 +1287,11 @@ export function createOAuthRouter(deps: OAuthRouterDeps = {}) {
         // call to Google. JSON, not the translated error page: the session
         // may be someone else's, and its page is not this browser's to see.
         if (!bindingMatches(c, sessionId, entry.session)) {
-            return sessionMismatch(c, "google-callback");
+            return sessionMismatch(
+                c,
+                "google-callback",
+                entry.session.clientId,
+            );
         }
 
         // Surface user-cancelled / denied consent without treating it as a

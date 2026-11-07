@@ -10,8 +10,8 @@
  *   - The consent-gated analytics (the `data-analytics` snippet that loads
  *     Google Analytics and Microsoft Clarity after opt-in, the consent
  *     banner and the footer "Cookie settings" button) from every public HTML
- *     page except login.html (which never carries any of it), plus both
- *     services' hosts in the CSP allow-list
+ *     page except login.html and dashboard.html (which never carry any of
+ *     it), plus both services' hosts in the CSP allow-list
  *   - The Glama connector-ownership route (embeds the maintainer's email)
  *   - Patreon "Support" section, hero button and FAQ donation sentence (every
  *     locale); /terms' Patreon mention -> [YOUR DONATION PAGE]
@@ -405,6 +405,11 @@ const RULES_BY_FILENAME: Record<string, Rule[]> = {
         MAILTO_RULE,
         DOMAIN_RULE,
     ],
+    // The signed-in web dashboard (scripts/gen-dashboard.ts). Like login, no
+    // analytics rules: it carries no snippet, banner or button, so a required
+    // rule there would only ever report 0×. Its chrome is nav()/footer(), so
+    // the GitHub links and the footer contact go the same way as everywhere.
+    "dashboard.html": [GITHUB_LINKS_RULE, MAILTO_RULE, DOMAIN_RULE],
     "privacy.html": [
         ...ANALYTICS_RULES,
         GITHUB_LINKS_RULE,
@@ -513,6 +518,7 @@ const JOBS: { path: string; rules: Rule[] }[] = [
     ...[
         "index.html",
         "login.html",
+        "dashboard.html",
         "privacy.html",
         "terms.html",
         "tools.html",
