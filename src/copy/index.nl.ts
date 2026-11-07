@@ -205,11 +205,6 @@ export const INDEX_NL: IndexDoc = {
             "Foto: een kom borsjtsj met een schepje zure room en dille, met een snee roggebrood ernaast",
         photoPackageAlt:
             "Foto: de barcode op een bakje Griekse yoghurt naturel, nummer 2001234567893",
-        dashboard: {
-            lead: "Dezelfde kaarten, ook in je browser. ",
-            body: "Het webdashboard toont deze widgets met je eigen gegevens en ververst elke minuut. Je logt in met hetzelfde account dat je AI-app gebruikt. Het toont alleen: loggen en bewerken doe je nog steeds in de chat.",
-            button: "Open je dashboard",
-        },
         slides: [
             {
                 id: "log-meal",
@@ -932,6 +927,39 @@ export const INDEX_NL: IndexDoc = {
 
     faqSection: {
         title: "Veelgestelde vragen",
+    },
+    dashboard: {
+        title: "Je voedingsdashboard, in de browser",
+        lead: "Alles wat je in de chat logt, verschijnt ook op een webdashboard: de calorieën en macro's van vandaag, de geschiedenis van je voedingsdagboek, trends in voedingsstoffen en je gewicht. Je logt in met hetzelfde account dat je AI-app gebruikt; je hoeft niets in te stellen.",
+        cards: [
+            {
+                title: "Vandaag",
+                body: "Calorieën, macro's en voortgang op je doelen van vandaag, plus je dagoverzicht, elke minuut ververst.",
+            },
+            {
+                title: "Geschiedenis",
+                body: "Een kalender van elke gelogde dag tegenover je caloriedoel, met zoeken in maaltijden, ingrediënten en opgeslagen maaltijden.",
+            },
+            {
+                title: "Trends",
+                body: "Gemiddelden over 7, 14 en 30 dagen voor calorieën en elke voedingsstof die je bijhoudt, naast je weekoverzicht.",
+            },
+            {
+                title: "Lichaam",
+                body: "Het verloop van je gewicht richting je doel en je nieuwste lichaamsmaten.",
+            },
+        ],
+        button: "Open je dashboard",
+        note: "Alleen om te bekijken: loggen en bewerken doe je in de chat.",
+        faq: {
+            question: "Is er een webdashboard?",
+            visibleHtml:
+                'Ja. Log in op <a href="/dashboard" data-link="dashboard">nutrition-mcp.com/dashboard</a> met het account dat je AI-app gebruikt om de totalen van vandaag te zien, een kalender van eerdere dagen met zoeken in maaltijden, trends in voedingsstoffen en je gewicht en lichaamsmaten. Het toont dezelfde kaarten als de chat en ververst elke minuut. Het is alleen om te bekijken: maaltijden log en bewerk je nog steeds door met je AI te praten.',
+        },
+        featureListItem:
+            "Webdashboard met de totalen van vandaag, een geschiedeniskalender met zoeken in maaltijden, trends in voedingsstoffen en lichaamsmaten",
+        keywords:
+            "voedingsdashboard, voedingsdagboek dashboard, caloriedashboard",
     },
     faq: [
         {

@@ -202,11 +202,6 @@ export const INDEX_DE: IndexDoc = {
             "Foto: ein Teller Borschtsch mit einem Löffel Schmand und Dill, daneben eine Scheibe Roggenbrot",
         photoPackageAlt:
             "Foto: der Barcode auf einem Becher Naturjoghurt griechischer Art, Nummer 2001234567893",
-        dashboard: {
-            lead: "Dieselben Karten auch im Browser. ",
-            body: "Das Web-Dashboard zeigt diese Widgets mit deinen eigenen Daten und aktualisiert sich jede Minute. Du meldest dich mit demselben Konto an, das deine KI-App nutzt. Es zeigt nur an: Erfassen und Bearbeiten bleiben im Chat.",
-            button: "Dein Dashboard öffnen",
-        },
         slides: [
             {
                 id: "log-meal",
@@ -927,6 +922,39 @@ export const INDEX_DE: IndexDoc = {
 
     faqSection: {
         title: "Häufig gestellte Fragen",
+    },
+    dashboard: {
+        title: "Dein Ernährungs-Dashboard im Browser",
+        lead: "Alles, was du im Chat erfasst, erscheint auch in einem Web-Dashboard: Kalorien und Makros von heute, dein Ernährungstagebuch, Nährstoff-Trends und dein Gewicht. Du meldest dich mit demselben Konto an, das deine KI-App nutzt; einrichten musst du nichts.",
+        cards: [
+            {
+                title: "Heute",
+                body: "Kalorien, Makros und Zielfortschritt des Tages, dazu dein Tagesüberblick, jede Minute aktualisiert.",
+            },
+            {
+                title: "Verlauf",
+                body: "Ein Kalender aller erfassten Tage im Vergleich zu deinem Kalorienziel, mit Suche in Mahlzeiten, Zutaten und gespeicherten Mahlzeiten.",
+            },
+            {
+                title: "Trends",
+                body: "Durchschnitte über 7, 14 und 30 Tage für Kalorien und jeden erfassten Nährstoff, neben deinem Wochenüberblick.",
+            },
+            {
+                title: "Körper",
+                body: "Dein Gewichtsverlauf in Richtung Ziel und deine neuesten Körpermaße.",
+            },
+        ],
+        button: "Dein Dashboard öffnen",
+        note: "Nur zum Ansehen: Erfassen und Bearbeiten bleiben im Chat.",
+        faq: {
+            question: "Gibt es ein Web-Dashboard?",
+            visibleHtml:
+                'Ja. Melde dich unter <a href="/dashboard" data-link="dashboard">nutrition-mcp.com/dashboard</a> mit dem Konto an, das deine KI-App nutzt, und du siehst die Summen von heute, einen Kalender vergangener Tage mit Mahlzeitensuche, Nährstoff-Trends sowie dein Gewicht und deine Körpermaße. Es zeigt dieselben Karten wie der Chat und aktualisiert sich jede Minute. Es dient nur zum Ansehen: Mahlzeiten erfasst und bearbeitest du weiterhin im Gespräch mit deiner KI.',
+        },
+        featureListItem:
+            "Web-Dashboard mit den Summen von heute, einem Verlaufskalender mit Mahlzeitensuche, Nährstoff-Trends und Körpermaßen",
+        keywords:
+            "Ernährungs-Dashboard, Ernährungstagebuch Dashboard, Kalorien-Dashboard",
     },
     faq: [
         {
