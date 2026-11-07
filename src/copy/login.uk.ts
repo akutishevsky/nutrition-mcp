@@ -1,4 +1,9 @@
-import type { LoginClientNotice, LoginDoc, LoginErrors } from "./login.js";
+import type {
+    LoginClientNotice,
+    LoginDashboardCopy,
+    LoginDoc,
+    LoginErrors,
+} from "./login.js";
 
 export const LOGIN_UK: LoginDoc = {
     title: "Nutrition MCP",
@@ -46,4 +51,12 @@ export const LOGIN_CLIENT_NOTICE_UK: LoginClientNotice = {
         "Ти повернешся до застосунку, що працює на цьому комп’ютері ({host}). Продовжуй, лише якщо саме з нього ти зараз підключаєшся.",
     healthSync:
         "Вхід підключає синхронізацію з Apple Health на пристрої, який відкрив цю сторінку. Якщо ти щойно не запустив це сам зі швидкої команди Nutrition MCP на власному iPhone, закрий цю сторінку.",
+    dashboard:
+        "Вхід відкриває твою панель Nutrition MCP у цьому браузері. Якщо ти щойно не відкрив панель тут сам, закрий цю сторінку.",
+};
+
+export const LOGIN_DASHBOARD_UK: LoginDashboardCopy = {
+    title: "Твоя панель",
+    subtitle:
+        "Увійди в обліковий запис, який ти підключив до свого ШІ-асистента.",
 };

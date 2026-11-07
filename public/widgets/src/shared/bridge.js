@@ -20,6 +20,9 @@
 //     (config.onReady → api.callTool). Measured against MCP Inspector: ~370ms
 //     per call steady state, no per-call approval prompt.
 //   - a no-host fallback that renders config.sample so the file previews on its own.
+//   - the web dashboard host (hostInfo.name DASHBOARD_HOST_NAME, the page's own
+//     card is the surface): no chat-only settings footer, and `host-framed` on
+//     <html>, which base.css uses to drop the widget's own outer card.
 //
 // config = {
 //   name:     string   // appInfo.name announced to the host
@@ -46,6 +49,10 @@
 //   hostInfo: object             // { name, version } of the host
 //   updateModelContext(text)     // push a short summary into the model's context; resolves true/false
 // }
+// The web dashboard's hostInfo.name (public/dashboard.js answers ui/initialize
+// with it).
+const DASHBOARD_HOST_NAME = "nutrition-mcp-dashboard";
+
 function initWidget(config) {
     const rootId = config.rootId || "root";
     const root = () => document.getElementById(rootId);
@@ -88,6 +95,8 @@ function initWidget(config) {
         painted = true;
         const el = root();
         if (!el || el.innerHTML.trim() === "") return;
+        // The dashboard has no chat to "ask" in, and its own card frames this.
+        if (isDashboardHost()) return;
         const foot = document.createElement("div");
         // render() has just called setLocale(), so T is this payload's locale.
         foot.textContent = T.bridge.settingsFooter;
@@ -104,6 +113,9 @@ function initWidget(config) {
     // the host forward the full result in ui/notifications/tool-result, but
     // nothing guarantees `_meta` survives, so a template must treat it as
     // optional. Only a plain object counts; anything else becomes null.
+    function isDashboardHost() {
+        return !!hostInfo && hostInfo.name === DASHBOARD_HOST_NAME;
+    }
     function metaOf(obj) {
         const m = obj && typeof obj === "object" ? obj._meta : null;
         return m && typeof m === "object" && !Array.isArray(m) ? m : null;
@@ -413,6 +425,8 @@ function initWidget(config) {
                 api.hostCapabilities = hostCapabilities;
                 api.hostInfo = hostInfo;
                 api.canCallTools = !!hostCapabilities.serverTools;
+                if (isDashboardHost())
+                    document.documentElement.classList.add("host-framed");
 
                 // themeFrom already probes obj.hostContext?.theme.
                 const t = themeFrom(r);

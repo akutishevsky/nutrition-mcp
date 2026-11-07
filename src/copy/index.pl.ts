@@ -207,6 +207,11 @@ export const INDEX_PL: IndexDoc = {
             "Zdjęcie: miska barszczu z łyżką śmietany i koperkiem, a obok kromka żytniego chleba",
         photoPackageAlt:
             "Zdjęcie: kod kreskowy na kubeczku naturalnego jogurtu greckiego, numer 2001234567893",
+        dashboard: {
+            lead: "Te same karty także w przeglądarce. ",
+            body: "Panel w przeglądarce pokazuje te widżety z Twoimi danymi i odświeża się co minutę. Logujesz się tym samym kontem, którego używa Twoja aplikacja AI. Panel służy tylko do podglądu: zapisywanie i poprawki nadal odbywają się w czacie.",
+            button: "Otwórz swój panel",
+        },
         slides: [
             {
                 id: "log-meal",

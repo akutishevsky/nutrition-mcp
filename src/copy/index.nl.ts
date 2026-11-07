@@ -205,6 +205,11 @@ export const INDEX_NL: IndexDoc = {
             "Foto: een kom borsjtsj met een schepje zure room en dille, met een snee roggebrood ernaast",
         photoPackageAlt:
             "Foto: de barcode op een bakje Griekse yoghurt naturel, nummer 2001234567893",
+        dashboard: {
+            lead: "Dezelfde kaarten, ook in je browser. ",
+            body: "Het webdashboard toont deze widgets met je eigen gegevens en ververst elke minuut. Je logt in met hetzelfde account dat je AI-app gebruikt. Het toont alleen: loggen en bewerken doe je nog steeds in de chat.",
+            button: "Open je dashboard",
+        },
         slides: [
             {
                 id: "log-meal",

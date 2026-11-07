@@ -364,14 +364,25 @@
                 headNav.classList.add("ind-ready");
             });
     }
-    function fitNav() {
-        if (!headNav) return;
-        root.classList.remove("nav-tight");
-        if (
+    // The header's Dashboard pill gives up its label first
+    // (html.head-compact, icon only): only if the nav still overflows does
+    // the page go to the hamburger (html.nav-tight), and the pill stays
+    // icon-only there too, so its label never comes back as the window
+    // narrows. Under 1060px styles.css keeps the pill icon-only anyway.
+    var headDash = doc.querySelector(".head-dash");
+    function navOverflows() {
+        return (
             getComputedStyle(headNav).display !== "none" &&
             headNav.scrollWidth > headNav.clientWidth + 1
-        )
-            root.classList.add("nav-tight");
+        );
+    }
+    function fitNav() {
+        if (!headNav) return;
+        root.classList.remove("nav-tight", "head-compact");
+        if (navOverflows()) {
+            if (headDash) root.classList.add("head-compact");
+            if (!headDash || navOverflows()) root.classList.add("nav-tight");
+        }
         placeInd();
         closeMenuIfWide();
     }

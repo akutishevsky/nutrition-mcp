@@ -1,0 +1,163 @@
+import type { DashboardDoc } from "./dashboard.js";
+
+export const DASHBOARD_IT: DashboardDoc = {
+    meta: {
+        title: "Nutrition MCP — Dashboard",
+        description:
+            "I tuoi pasti, obiettivi, andamenti e misure corporee di Nutrition MCP, in un'unica pagina.",
+    },
+    noScript:
+        "La dashboard ha bisogno di JavaScript per caricare i tuoi dati. Attivalo e ricarica la pagina.",
+    tabs: {
+        today: "Oggi",
+        history: "Storico",
+        trends: "Andamenti",
+        body: "Corpo",
+    },
+    navAriaLabel: "Dashboard",
+    pagesAriaLabel: "Pagine della dashboard",
+    signOut: "Esci",
+    signOutFailed:
+        "Non è stato possibile uscire in questo momento, quindi questo browser ha ancora l'accesso. Riprova tra poco.",
+
+    sync: {
+        updated: "Aggiornato alle {time}",
+        updating: "Aggiornamento…",
+        offline: "Offline · ultimo aggiornamento alle {time}",
+        offlineNever: "Offline",
+        empty: "Ancora nessuna voce",
+    },
+    error: {
+        lead: "Aggiornamento non riuscito.",
+        leadFirst: "Impossibile caricare i tuoi dati.",
+        stale: "Stai vedendo i dati salvati alle {time}; quello che hai registrato dopo comparirà appena la connessione torna.",
+        first: "Controlla la connessione e riprova.",
+        retry: "Riprova",
+    },
+    loading: "Caricamento della tua giornata",
+
+    today: {
+        dateAriaLabel: "Data",
+        titleToday: "Oggi",
+        titleYesterday: "Ieri",
+        prevDay: "Giorno precedente",
+        nextDay: "Giorno successivo",
+        pickDate: "Scegli una data",
+        calendar: "Calendario",
+    },
+    empty: {
+        title: "Ancora niente registrato",
+        body: "Di' al tuo assistente IA cosa hai mangiato o bevuto. Ogni voce compare qui entro un minuto, con totali, obiettivi e andamenti.",
+        trySaying: "Prova a dire",
+        examples: [
+            "“A colazione ho mangiato due uova e del pane tostato”",
+            "“Imposta l'obiettivo di calorie a 2.200 e di proteine a 150 g”",
+            "“Registra 500 ml d'acqua”",
+        ],
+        stepsTitle: "Non ancora collegato?",
+        steps: [
+            "Aggiungi Nutrition MCP a Claude, ChatGPT o a un altro client MCP.",
+            "Quando richiesto, accedi con questo stesso account.",
+            "Registra il tuo primo pasto in chat. Questa pagina si aggiorna da sola.",
+        ],
+        connectCta: "Come collegarlo",
+    },
+    history: {
+        rangeAriaLabel: "Periodo",
+        title: "Storico",
+        loggedPill: {
+            one: "{logged} giorno registrato su {total}",
+            other: "{logged} giorni registrati su {total}",
+        },
+        searchPlaceholder: "Cerca pasti o ingredienti",
+        searchLabel: "Cerca tra pasti e ingredienti",
+        clearSearch: "Cancella la ricerca",
+        earlier: "Cinque settimane precedenti",
+        later: "Cinque settimane successive",
+        resultsTitle: {
+            one: "{n} pasto corrisponde a “{q}”",
+            other: "{n} pasti corrispondono a “{q}”",
+        },
+        resultsSub: "Nomi e ingredienti, dai più recenti",
+        ingredient: "Ingrediente: {item}",
+        kcal: "kcal",
+        noResults:
+            "Nessun pasto o ingrediente corrisponde. Prova una parola più corta, come “riso”.",
+        tooShort: "Scrivi almeno due lettere per cercare.",
+        searching: "Ricerca in corso…",
+        searchFailed:
+            "La ricerca non è disponibile al momento. Riprova tra poco.",
+        savedHit: "Anche un pasto salvato: {name}, {kcal} kcal a porzione",
+        calendarTitle: "Calendario",
+        legendOn: "In linea ±5%",
+        legendUnder: "Sotto",
+        legendOver: "Sopra",
+        calendarAriaLabel: "Calorie giornaliere, {from} – {to}",
+        cellToday: "oggi",
+        cellTodaySuffix: " (oggi)",
+        cellNothing: ", niente registrato",
+        cellKcal: ", {kcal} kcal",
+        summary:
+            "Media {avg} kcal · giorni completi: {n} · in linea: {on} · sopra: {over} · sotto: {under} · non registrati: {missing}",
+        summaryNone:
+            "Nessun giorno completo registrato in queste cinque settimane.",
+        dayEmpty: "Niente registrato: {date}.",
+        dayFailed: "Impossibile caricare {date}. Riprova tra poco.",
+        savedTitle: "Pasti salvati",
+        savedSub: "Registrane uno per nome in chat — “registra {name}”.",
+        savedSubNone:
+            "I pasti che salvi in chat compaiono qui, pronti da registrare per nome.",
+        perServing: " kcal / porzione",
+        protein: "P {g} g",
+        carbs: "C {g} g",
+        fat: "G {g} g",
+        items: { one: "{n} ingrediente", other: "{n} ingredienti" },
+        savedNone: "Ancora nessun pasto salvato.",
+    },
+    trends: {
+        eyebrow: "Calorie, macro e nutrienti nel tempo",
+        title: "Andamenti",
+    },
+    body: {
+        eyebrow: "Peso e misure",
+        title: "Corpo",
+        measTitle: "Misure",
+        measSub: "Circonferenze come le hai registrate · ultima: {date}",
+        notMeasured: "Non ancora misurate:",
+        hintCm: "Per aggiungerne una, di' al tuo assistente “vita 83,5 cm”. Le variazioni si calcolano dalla tua prima misura ({date}). In chat puoi passare ai pollici.",
+        hintIn: "Per aggiungerne una, di' al tuo assistente “vita 33 in”. Le variazioni si calcolano dalla tua prima misura ({date}). In chat puoi passare ai centimetri.",
+        sinceFirst: "{delta} dalla prima",
+        firstEntry: "Prima misura",
+        noMeasurements:
+            "Ancora nessuna misura corporea. Vita, fianchi e altre sette zone si possono registrare in centimetri o pollici.",
+        kinds: {
+            waist: "Vita",
+            hips: "Fianchi",
+            neck: "Collo",
+            chest: "Petto",
+            shoulders: "Spalle",
+            upper_arm: "Braccio",
+            forearm: "Avambraccio",
+            thigh: "Coscia",
+            calf: "Polpaccio",
+        },
+        kindsInline: {
+            waist: "vita",
+            hips: "fianchi",
+            neck: "collo",
+            chest: "petto",
+            shoulders: "spalle",
+            upper_arm: "braccio",
+            forearm: "avambraccio",
+            thigh: "coscia",
+            calf: "polpaccio",
+        },
+    },
+    widgets: {
+        summary: "Riepilogo nutrizionale",
+        digest: "Resoconto nutrizionale del periodo",
+        goals: "Progressi verso gli obiettivi",
+        weight: "Andamento del peso",
+        trends: "Andamenti",
+    },
+};

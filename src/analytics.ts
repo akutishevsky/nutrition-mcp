@@ -33,6 +33,34 @@ export interface AnalyticsRecord {
  */
 export const DELETED_ACCOUNT_ANALYTICS_ID = "[deleted]";
 
+/**
+ * Where a tool call came from. Absent is an MCP client over /mcp, the only
+ * thing tool_analytics and the `[analytics]` line describe. "dashboard" is the
+ * web dashboard running a read tool in-process to build a widget payload
+ * (src/dashboard-api.ts): not a tool call by anyone, so it writes no
+ * tool_analytics row and no `[analytics]` line — counting it would inflate
+ * per-user usage and the legacy-era retirement query, neither of which a page
+ * view should move.
+ */
+export type ToolSurface = "dashboard";
+
+/**
+ * `_meta` key on the isError result of a dashboard-surface call that threw.
+ * The in-process caller (src/dashboard-api.ts) reads it to pick its own error
+ * envelope instead of parsing the model-facing text. Only ever set on a
+ * dashboard-surface result, which never leaves the process: no MCP client sees
+ * it.
+ */
+export const DASHBOARD_ERROR_META_KEY = "nutrition-mcp.com/dashboard-error";
+
+export interface DashboardErrorMeta {
+    category: string;
+    ref: string;
+    /** The error was a ToolError: text written for the caller, so the
+     *  request (not the server) needs to change. */
+    toolError: boolean;
+}
+
 interface AnalyticsContext {
     userId: string;
     sessionId?: string;
@@ -48,6 +76,8 @@ interface AnalyticsContext {
     // separate request on that stateless leg, so this normally yields nothing
     // there — the era is what matters, the name is a bonus.
     clientInfo?: () => { name?: string; version?: string } | undefined;
+    // See ToolSurface. Absent for every /mcp call.
+    surface?: ToolSurface;
 }
 
 /**
@@ -374,6 +404,7 @@ export async function withAnalytics<T>(
     },
 ): Promise<T> {
     const persist = options?.persist ?? persistAnalytics;
+    const dashboard = context.surface === "dashboard";
     const start = performance.now();
     const invokedAt = new Date().toISOString();
     const dateRangeDays = calculateDateRangeDays(
@@ -385,6 +416,10 @@ export async function withAnalytics<T>(
         const result = await handler();
         const durationMs = Math.round(performance.now() - start);
         const outcome = options?.outcome?.(result) ?? { success: true };
+
+        // A dashboard read is not a tool call: no row, no line. The
+        // dashboard route logs its own `[dashboard]` line instead.
+        if (dashboard) return result;
 
         if (outcome.success) {
             console.log(
@@ -419,6 +454,36 @@ export async function withAnalytics<T>(
         const durationMs = Math.round(performance.now() - start);
         const errorCategory = categorizeError(error);
         const ref = newErrorRef();
+
+        if (dashboard) {
+            // No `[analytics]` line and no row, but the raw message still
+            // needs one diagnosable place, joined by `ref` to the dashboard
+            // route's own `[dashboard] … ref=` line. Same escaping and
+            // logText rule as analyticsLogLine; no user id.
+            console.warn(
+                `[dashboard] tool-error tool=${toolName} error=${errorCategory} ref=${ref}: ${JSON.stringify(errorLogText(error).slice(0, 500))}`,
+            );
+            const meta: DashboardErrorMeta = {
+                category: errorCategory,
+                ref,
+                toolError: error instanceof ToolError,
+            };
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: userFacingError(
+                            toolName,
+                            error,
+                            errorCategory,
+                            ref,
+                        ),
+                    },
+                ],
+                isError: true,
+                _meta: { [DASHBOARD_ERROR_META_KEY]: meta },
+            } as T;
+        }
 
         // The raw message reaches neither tool_analytics (no column for it)
         // nor the model (userFacingError replaces it), so this line — joined

@@ -80,6 +80,22 @@ header.head {
     padding: 12px;
 }
 
+/* Inside the web dashboard (bridge.js sets html.host-framed) the page's card
+   is the surface: a widget whose root is one .panel drops its own card and
+   the root's gutter and width cap, keeping the panel's inner padding. The
+   second selector covers a root that holds one repaint host around its one
+   panel (weight-trends: .wrap > #wt > .panel). */
+html.host-framed .wrap:has(> .panel, > :only-child > .panel:only-child) {
+    padding: 0;
+    max-width: none;
+}
+html.host-framed .wrap > .panel,
+html.host-framed .wrap > :only-child > .panel:only-child {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
 .panel {
     background: var(--panel);
     border: 1px solid var(--panel-border);

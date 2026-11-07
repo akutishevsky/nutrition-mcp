@@ -202,6 +202,11 @@ export const INDEX_DE: IndexDoc = {
             "Foto: ein Teller Borschtsch mit einem Löffel Schmand und Dill, daneben eine Scheibe Roggenbrot",
         photoPackageAlt:
             "Foto: der Barcode auf einem Becher Naturjoghurt griechischer Art, Nummer 2001234567893",
+        dashboard: {
+            lead: "Dieselben Karten auch im Browser. ",
+            body: "Das Web-Dashboard zeigt diese Widgets mit deinen eigenen Daten und aktualisiert sich jede Minute. Du meldest dich mit demselben Konto an, das deine KI-App nutzt. Es zeigt nur an: Erfassen und Bearbeiten bleiben im Chat.",
+            button: "Dein Dashboard öffnen",
+        },
         slides: [
             {
                 id: "log-meal",

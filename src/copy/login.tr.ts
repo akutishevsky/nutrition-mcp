@@ -1,4 +1,9 @@
-import type { LoginClientNotice, LoginDoc, LoginErrors } from "./login.js";
+import type {
+    LoginClientNotice,
+    LoginDashboardCopy,
+    LoginDoc,
+    LoginErrors,
+} from "./login.js";
 
 export const LOGIN_TR: LoginDoc = {
     title: "Nutrition MCP",
@@ -44,4 +49,11 @@ export const LOGIN_CLIENT_NOTICE_TR: LoginClientNotice = {
         "Bu bilgisayarda çalışan bir programa geri gönderileceksin ({host}). Bu bağlantıyı oradan kendin başlattıysan devam et.",
     healthSync:
         "Giriş yapmak, bu sayfayı açan cihazda Apple Health eşitlemesini bağlar. Bunu az önce kendi iPhone cihazındaki Nutrition MCP kısayolundan sen başlatmadıysan bu sayfayı kapat.",
+    dashboard:
+        "Giriş yapmak, Nutrition MCP panonu bu tarayıcıda açar. Panoyu az önce burada kendin açmadıysan bu sayfayı kapat.",
+};
+
+export const LOGIN_DASHBOARD_TR: LoginDashboardCopy = {
+    title: "Panon",
+    subtitle: "Yapay zekâ asistanına bağladığın hesapla giriş yap.",
 };

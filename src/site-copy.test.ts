@@ -35,6 +35,7 @@ import {
     HEALTH_SYNC_WINDOW_DAYS,
 } from "./health-sync.js";
 import { SITE_LOCALES, pathFor, type SiteLocale } from "./routes.js";
+import { esc } from "../scripts/site-partials.js";
 
 // The public pages are the only place the product describes ITSELF, and they
 // are the surface that goes stale first: a nutrient ships across the server,
@@ -418,6 +419,57 @@ test("each unit button's aria-label starts with its visible text and names its u
     }
 });
 
+// The examples section points at the signed-in web dashboard: one strip
+// under the carousel, saying the same widget cards are in a browser too. It
+// must exist in every locale's copy (translated, not English left in place),
+// reach the regenerated page, and link to that locale's own /dashboard: a
+// copied English href would sign a German visitor into the English shell.
+test("the landing page's dashboard strip is translated and links to its own locale's /dashboard", async () => {
+    const enDash = INDEX.en!.examples.dashboard;
+    for (const locale of SITE_LOCALES) {
+        const doc = INDEX[locale];
+        expect(doc, `INDEX has no ${locale} entry`).toBeTruthy();
+        const dash = doc!.examples.dashboard;
+        for (const key of ["lead", "body", "button"] as const) {
+            expect(
+                dash[key].trim(),
+                `${locale}: examples.dashboard.${key} is empty`,
+            ).toBeTruthy();
+            if (locale !== "en")
+                expect(
+                    dash[key],
+                    `${locale}: examples.dashboard.${key} is still the English text`,
+                ).not.toBe(enDash[key]);
+        }
+        const path =
+            locale === "en"
+                ? "./public/index.html"
+                : `./public/${locale}/index.html`;
+        const html = await Bun.file(path).text();
+        const strip = /<div class="lp-try-dash">([\s\S]*?)<\/a>\s*<\/div>/.exec(
+            html,
+        )?.[1];
+        expect(
+            strip,
+            `${path}: no dashboard strip in the examples section (re-run scripts/gen-index.ts)`,
+        ).toBeTruthy();
+        const tryAt = html.indexOf('id="try"');
+        expect(
+            tryAt >= 0 && html.indexOf('class="lp-try-dash"') > tryAt,
+            `${path}: the dashboard strip is not inside the #try section`,
+        ).toBe(true);
+        const hrefs = [...strip!.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
+        expect(hrefs, `${path}: the strip's links`).toEqual([
+            pathFor(locale, "/dashboard"),
+        ]);
+        for (const key of ["lead", "body", "button"] as const)
+            expect(
+                normalize(strip!),
+                `${path}: examples.dashboard.${key} is missing from the page`,
+            ).toContain(normalize(esc(dash[key])));
+    }
+});
+
 // Layout itself needs a browser, so what is pinned here is the structure the
 // fix rests on. The calorie odometer is one reel per digit: it cannot shrink
 // and cannot break mid-number, so when the live delta tag shared its row the
@@ -656,6 +708,25 @@ test("every locale's privacy policy names the contact, region and terms; its ter
     expect(missing).toEqual([]);
 });
 
+// The web dashboard's session cookie is the one persistent first-party cookie
+// the site sets for a signed-in user, so the policy must name it in every
+// locale, along with the dashboard itself; the terms must say it exists.
+test("every locale's privacy policy names the dashboard and its session cookie", () => {
+    const missing: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const privacy = allText(PRIVACY[locale]!);
+        for (const token of [
+            "<code>__Host-nm_dash</code>",
+            "nutrition-mcp.com/dashboard",
+        ])
+            if (!privacy.includes(token))
+                missing.push(`${locale} privacy: ${token}`);
+        if (!allText(TERMS[locale]!).includes("nutrition-mcp.com/dashboard"))
+            missing.push(`${locale} terms: dashboard`);
+    }
+    expect(missing).toEqual([]);
+});
+
 // The date at the top is the policy's promise of what changed when. Pinned
 // so a content change that forgets to move it shows up here: update this
 // list together with every lastUpdated.
@@ -668,16 +739,16 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
     );
     // [privacy, terms]
     const expected: Record<SiteLocale, [string, string]> = {
-        en: ["November 2, 2026", "November 2, 2026"],
-        de: ["2. November 2026", "2. November 2026"],
-        es: ["2 de noviembre de 2026", "2 de noviembre de 2026"],
-        fr: ["2 novembre 2026", "2 novembre 2026"],
-        nl: ["2 november 2026", "2 november 2026"],
-        pl: ["2 listopada 2026", "2 listopada 2026"],
-        it: ["2 novembre 2026", "2 novembre 2026"],
-        uk: ["2 листопада 2026 року", "2 листопада 2026 року"],
-        ja: ["2026年11月2日", "2026年11月2日"],
-        tr: ["2 Kasım 2026", "2 Kasım 2026"],
+        en: ["November 7, 2026", "November 7, 2026"],
+        de: ["7. November 2026", "7. November 2026"],
+        es: ["7 de noviembre de 2026", "7 de noviembre de 2026"],
+        fr: ["7 novembre 2026", "7 novembre 2026"],
+        nl: ["7 november 2026", "7 november 2026"],
+        pl: ["7 listopada 2026", "7 listopada 2026"],
+        it: ["7 novembre 2026", "7 novembre 2026"],
+        uk: ["7 листопада 2026 року", "7 листопада 2026 року"],
+        ja: ["2026年11月7日", "2026年11月7日"],
+        tr: ["7 Kasım 2026", "7 Kasım 2026"],
     };
     expect(dates).toEqual(expected);
 });

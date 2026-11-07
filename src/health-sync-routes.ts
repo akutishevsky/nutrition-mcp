@@ -112,6 +112,7 @@ import {
     type HealthSyncErrorKind,
 } from "./copy/health-sync.js";
 import { HTML_LANG, SITE, SITE_LOCALES, type SiteLocale } from "./routes.js";
+import { escapeHtml } from "./html-escape.js";
 
 const API = "/api/v1/health-sync";
 
@@ -427,15 +428,6 @@ export function localeFromAcceptLanguage(
         if (hit) return hit;
     }
     return "en";
-}
-
-function escapeHtml(s: string): string {
-    return s
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
 }
 
 // These pages load nothing: no script, no font, no analytics, no image. The

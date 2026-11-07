@@ -1595,6 +1595,39 @@ test("the activity shortcut's link is its own row, with no fields or start date"
     });
 });
 
+test("each web dashboard session is its own row, never its cookie value", () => {
+    const csv = buildConnectionsCsv([grant()], "Europe/Berlin", null, null, [
+        {
+            created_at: "2026-11-07T10:00:00.000Z",
+            last_seen_at: "2026-11-07T12:00:00.000Z",
+            expires_at: "2026-11-14T12:00:00.000Z",
+        },
+        {
+            created_at: "2026-11-08T09:00:00.000Z",
+            last_seen_at: null,
+            expires_at: "2026-11-15T09:00:00.000Z",
+        },
+    ]);
+    // Header, the grant, then one row per session in the order given.
+    expect(csv.split("\n")).toHaveLength(4);
+    expect(fieldsByName(csv, 2)).toEqual({
+        kind: "dashboard_session",
+        client_id: "nutrition-mcp-dashboard",
+        client_name: "Web dashboard (browser sign-in)",
+        redirect_uri: "",
+        created_at: "2026-11-07 11:00:00",
+        expires_at: "2026-11-14 13:00:00",
+        last_used_at: "2026-11-07 13:00:00",
+        last_sync_at: "",
+        timezone: "Europe/Berlin",
+        synced_fields: "",
+        sync_start_date: "",
+        device_timezone: "",
+    });
+    expect(fieldsByName(csv, 3).last_used_at).toBe("");
+    expect(csv).not.toContain("nmds_");
+});
+
 test("every connection value lands under its own header name", () => {
     const csv = buildConnectionsCsv(
         [
@@ -2270,6 +2303,14 @@ test("a row holding an unknown zone falls back to the account's instead of faili
     expect(f.first_sent_at).toBe("2026-10-02 02:05:00");
 });
 
+test("the README describes the dashboard_session rows and keeps their cookie out", () => {
+    const readme = buildExportReadme(README_OPTS);
+    expect(readme).toContain('kind "dashboard_session"');
+    expect(readme).toContain("7 days after last use");
+    expect(readme).toContain("30 days after sign-in");
+    expect(readme).toContain("the web dashboard's session cookie");
+});
+
 test("the README describes health_sync.csv, its own-zone rows and its retention", () => {
     const readme = buildExportReadme(README_OPTS);
     expect(readme).toContain("health_sync.csv 6 rows");
@@ -2326,6 +2367,10 @@ test("exportAllData asks the injected stores and fails loudly with them", async 
                     asked.push(`goals-history:${userId}`);
                     return [];
                 },
+                getDashboardSessions: async (userId: string) => {
+                    asked.push(`dashboard:${userId}`);
+                    return [];
+                },
             }),
         ).rejects.toThrow("result would be truncated");
     } finally {
@@ -2334,6 +2379,7 @@ test("exportAllData asks the injected stores and fails loudly with them", async 
         if (envBefore.key === undefined) delete process.env.SUPABASE_SECRET_KEY;
     }
     expect(asked.sort()).toEqual([
+        "dashboard:user-9",
         "days:user-9",
         "goals-history:user-9",
         "link:user-9",

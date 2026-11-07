@@ -1,6 +1,7 @@
 // Hourly sweep of the OAuth tables: expired access tokens, refresh tokens and
 // auth codes, and client registrations that were never used — and, on the
-// same tick, of Apple Health sync's pending connects, links and 8-day record. Started once from
+// same tick, of Apple Health sync's pending connects, links and 8-day record,
+// and of expired web dashboard sessions. Started once from
 // the import.meta.main block of src/index.ts, never on import. The sweep itself
 // takes an injectable store so src/oauth-cleanup.test.ts runs it against an
 // in-memory fake; the Supabase queries live in src/supabase.ts.
@@ -16,6 +17,10 @@ import {
     type HealthSyncCleanupStore,
 } from "./health-sync-store.js";
 import { HEALTH_SYNC_RETENTION_DAYS } from "./health-sync.js";
+import {
+    supabaseDashboardSessionCleanupStore,
+    type DashboardSessionCleanupStore,
+} from "./dashboard-session-store.js";
 
 const SWEEP_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -254,10 +259,30 @@ export async function sweepHealthSync(
     return result;
 }
 
+// Web dashboard sessions past their idle (7-day) or absolute (30-day) expiry.
+// The lookup already refuses them; this keeps the table to live rows, as the
+// privacy policy promises for every expired credential. Counts only.
+export async function sweepDashboardSessions(
+    store: DashboardSessionCleanupStore = supabaseDashboardSessionCleanupStore,
+    now: number = Date.now(),
+): Promise<number> {
+    let sessions = 0;
+    try {
+        sessions = await store.deleteExpired(new Date(now).toISOString());
+    } catch (err) {
+        console.warn(
+            `[dashboard] cleanup failed table=dashboard_sessions: ${(err as Error).message}`,
+        );
+    }
+    if (sessions) console.log(`[dashboard] cleanup sessions=${sessions}`);
+    return sessions;
+}
+
 let sweepRunning = false;
 
 /**
- * Start the hourly OAuth and Apple Health sync cleanup sweep. Call once at
+ * Start the hourly OAuth, Apple Health sync and dashboard-session cleanup
+ * sweep. Call once at
  * server startup.
  */
 export function startOAuthCleanup(): void {
@@ -276,6 +301,12 @@ export function startOAuthCleanup(): void {
             .catch((err) =>
                 console.warn(
                     `[health-sync] cleanup failed: ${(err as Error).message}`,
+                ),
+            )
+            .then(() => sweepDashboardSessions())
+            .catch((err) =>
+                console.warn(
+                    `[dashboard] cleanup failed: ${(err as Error).message}`,
                 ),
             )
             .finally(() => {

@@ -201,6 +201,16 @@ html.js .lp-ex-panel.is-on .lp-ex-info { animation: nm-rise .4s both; }
 .lp-ex-thread { flex: 1; min-height: 0; contain: size; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; display: flex; flex-direction: column; gap: 12px; padding: 14px 4px 14px 0; }
 .lp-ex-thread > * { flex: none; }
 html.js .lp-ex-panel.is-on .lp-ex-thread > * { animation: nm-rise .35s both; }
+/* The web-dashboard strip under the carousel: the same cards, in a browser. */
+.lp-try-dash { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px 18px; align-items: center; padding: 16px 16px 16px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 28px; }
+.lp-try-dash-icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 17px; background: var(--acc-soft); color: var(--acc); }
+.lp-try-dash p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--ink2); text-wrap: pretty; }
+.lp-try-dash p b { color: var(--ink); font-weight: 700; }
+.lp-try-dash .nm-btn { height: 48px; padding: 0 22px; font-size: 15px; }
+@media (max-width: 699px) {
+    .lp-try-dash { grid-template-columns: auto minmax(0, 1fr); align-items: start; padding: 16px; }
+    .lp-try-dash .nm-btn { grid-column: 1 / -1; width: 100%; }
+}
 
 /* ---------- live stats ---------- */
 .lp-stats { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
