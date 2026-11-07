@@ -4,6 +4,7 @@ import {
     APP_PAGE_ROUTES,
     PAGE_ROUTES,
     SITE_LOCALES,
+    pathFor,
     urlFor,
 } from "./routes.js";
 import { chromeFor } from "./copy/chrome.js";
@@ -664,5 +665,53 @@ test("the dashboard header carries its tabs, a sign-out form per menu and the lo
             expect(form).toContain(`>${d.signOut}</button>`);
         }
         expect(html, path).not.toContain("data-live-badge");
+    }
+});
+
+// The public header's Dashboard pill and the sheet menu's matching button
+// (nav() in scripts/site-partials.ts). Every nav()-based public page — every
+// PAGE_ROUTES page plus the login template — links to its OWN locale's
+// /dashboard in both places, labelled in its own language, and to no other
+// locale's. The dashboard itself (nav()'s app mode) has its own tabs and
+// Sign out, and must not link to itself.
+test("every public page links to its own locale's dashboard, and the dashboard does not", async () => {
+    const pages: { locale: (typeof SITE_LOCALES)[number]; path: string }[] = [];
+    for (const { locale, path } of await existingPages())
+        if (await isGenerated(path)) pages.push({ locale, path });
+    for (const locale of SITE_LOCALES)
+        pages.push({ locale, path: loginPath(locale) });
+    expect(pages.length).toBeGreaterThan(SITE_LOCALES.length);
+    for (const { locale, path } of pages) {
+        const html = collapse(await Bun.file(path).text());
+        const href = pathFor(locale, "/dashboard");
+        const label = chromeFor(locale).dashboardCta;
+        expect(label.length, `${locale} dashboardCta`).toBeGreaterThan(0);
+        expect(html, path).toContain(
+            `<a class="head-dash" href="${href}" title="${label}">`,
+        );
+        expect(html, path).toContain(
+            `<span class="head-dash-label">${label}</span></a>`,
+        );
+        expect(html, path).toContain(
+            `<a class="menu-dash" href="${href}"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i>${label}</a>`,
+        );
+        const dashHrefs = [
+            ...html.matchAll(/href="((?:\/[a-z]{2})?\/dashboard)"/g),
+        ].map((m) => m[1]);
+        // At least the pill and the sheet button; a page may add its own
+        // (the landing page's widgets section), but never another locale's.
+        expect(dashHrefs.length, path).toBeGreaterThanOrEqual(2);
+        expect({ path, foreign: dashHrefs.filter((x) => x !== href) }).toEqual({
+            path,
+            foreign: [],
+        });
+    }
+    for (const [, file] of Object.entries(APP_PAGE_ROUTES)) {
+        for (const locale of SITE_LOCALES) {
+            const path = await fileFor(locale, file);
+            const html = await Bun.file(path).text();
+            expect(html, path).not.toContain('class="head-dash"');
+            expect(html, path).not.toContain('class="menu-dash"');
+        }
     }
 });

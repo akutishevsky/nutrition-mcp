@@ -484,7 +484,7 @@ const THEME_MODES = [
  *
  * Layout (public/styles.css): the header is two glass pills — `.head-bar`
  * (brand, primary nav with its sliding `.nav-ind` pill, hamburger) and
- * `.head-tools` (GitHub, language, theme, Connect; hidden under 700px,
+ * `.head-tools` (GitHub, language, theme, Dashboard, Connect; hidden under 700px,
  * where the sheet carries the same controls). Under 1060px — or whenever
  * the nav overflows its pill, which site.js detects and flags with
  * html.nav-tight — the nav collapses behind the hamburger into
@@ -615,6 +615,13 @@ ${switcherItems}
             menuLangGroup,
         });
     }
+    // The web dashboard: a secondary pill beside Connect (which stays the
+    // primary action) and a matching button in the sheet. Each locale links
+    // to its own /{locale}/dashboard. Below 1060px the header pill shows
+    // its icon only, as it does at wider widths when site.js finds the nav
+    // would otherwise overflow (html.head-compact); the label stays its
+    // accessible name either way.
+    const dashHref = p("/dashboard");
     const html = `        <a class="skip" href="#main">${esc(c.skipToContent)}</a>${blobsHtml}${banner}
         <header class="site-head" id="site-head">
             <div class="head-inner">
@@ -670,6 +677,7 @@ ${switcherItems}
                     <div class="theme-seg" role="group" aria-label="${esc(c.theme.ariaLabel)}" title="${esc(c.theme.title)}">
 ${themeSeg}
                     </div>
+                    <a class="head-dash" href="${dashHref}" title="${attr(c.dashboardCta)}"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span class="head-dash-label">${esc(c.dashboardCta)}</span></a>
                     <a class="head-cta" href="${h("install")}">${esc(c.connectCta)}</a>
                 </div>
             </div>
@@ -690,7 +698,10 @@ ${menuTheme}
                 </div>
             </div>
             <div class="menu-foot">
-                <a class="menu-gh" href="${REPO_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i>${esc(c.menu.github)}<span class="menu-gh-stars" data-gh-stars hidden><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars-n></span></span></a>
+                <div class="menu-foot-row">
+                    <a class="menu-gh" href="${REPO_URL}" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-github" aria-hidden="true"></i>${esc(c.menu.github)}<span class="menu-gh-stars" data-gh-stars hidden><i class="fa-solid fa-star" aria-hidden="true"></i><span data-gh-stars-n></span></span></a>
+                    <a class="menu-dash" href="${dashHref}"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i>${esc(c.dashboardCta)}</a>
+                </div>
                 <a class="menu-cta" href="${h("install")}">${esc(c.connectCta)}${arrow}</a>
             </div>
         </div>`;

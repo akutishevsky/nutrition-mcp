@@ -128,6 +128,15 @@ export interface ChromeCopy {
     /** The header's primary CTA button, e.g. "Connect". */
     connectCta: string;
     /**
+     * The header's secondary pill beside Connect, and the matching button in
+     * the sheet menu, linking to this locale's /dashboard (the signed-in web
+     * dashboard). Plain text. Use the same word the dashboard's own page
+     * title uses (DashboardDoc's meta.title, "Nutrition MCP — <word>"), so
+     * the link and the page it opens agree. Keep it short: it shares the
+     * header's right pill with Connect, and below 1060px only its icon shows.
+     */
+    dashboardCta: string;
+    /**
      * The hamburger button's two accessible names. The button is one
      * control that toggles, so its label has to change with its state —
      * and site.js is a single static file served to all ten locales, so
@@ -223,6 +232,7 @@ export const CHROME_EN: ChromeCopy = {
         dark: "Dark",
     },
     connectCta: "Connect",
+    dashboardCta: "Dashboard",
     openMenuAriaLabel: "Open menu",
     closeMenuAriaLabel: "Close menu",
 

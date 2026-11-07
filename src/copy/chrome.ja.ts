@@ -34,6 +34,7 @@ export const CHROME_JA: ChromeCopy = {
         dark: "ダーク",
     },
     connectCta: "接続する",
+    dashboardCta: "ダッシュボード",
     openMenuAriaLabel: "メニューを開く",
     closeMenuAriaLabel: "メニューを閉じる",
 

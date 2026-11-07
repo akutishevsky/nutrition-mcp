@@ -33,6 +33,7 @@ export const CHROME_TR: ChromeCopy = {
         dark: "Koyu",
     },
     connectCta: "Bağlan",
+    dashboardCta: "Pano",
     openMenuAriaLabel: "Menüyü aç",
     closeMenuAriaLabel: "Menüyü kapat",
 

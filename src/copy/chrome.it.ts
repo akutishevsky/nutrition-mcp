@@ -34,6 +34,7 @@ export const CHROME_IT: ChromeCopy = {
         dark: "Scuro",
     },
     connectCta: "Connetti",
+    dashboardCta: "Dashboard",
     openMenuAriaLabel: "Apri il menu",
     closeMenuAriaLabel: "Chiudi il menu",
 
