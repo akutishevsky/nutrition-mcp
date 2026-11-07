@@ -4,6 +4,7 @@ import { maskIp } from "./net.js";
 import { resourceMetadataUrl } from "./discovery.js";
 import { getBaseUrl } from "./url.js";
 import { HEALTH_SYNC_TOKEN_PREFIX } from "./health-sync.js";
+import { DASHBOARD_SESSION_PREFIX } from "./dashboard-client.js";
 
 // Declare the context variables this middleware sets. Without it, c.get/c.set on
 // an untyped `new Hono()` app types its keys as `never`, so index.ts cannot read
@@ -99,8 +100,13 @@ export const authenticateBearer = async (c: Context, next: Next) => {
     // tokens live only in health_sync_links), but refusing the prefix here
     // costs nothing and keeps a phone's token from spending a database
     // round trip at /mcp. The reverse direction is the health-sync router's
-    // own prefix check.
-    if (token.startsWith(HEALTH_SYNC_TOKEN_PREFIX)) {
+    // own prefix check. A web dashboard session cookie value (nmds_) is
+    // refused the same way: it lives only in dashboard_sessions, and the
+    // dashboard never reads a Bearer header.
+    if (
+        token.startsWith(HEALTH_SYNC_TOKEN_PREFIX) ||
+        token.startsWith(DASHBOARD_SESSION_PREFIX)
+    ) {
         return rejectUnauthenticated(
             c,
             "invalid_token",

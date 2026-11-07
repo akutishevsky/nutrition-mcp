@@ -1,4 +1,9 @@
-import type { LoginClientNotice, LoginDoc, LoginErrors } from "./login.js";
+import type {
+    LoginClientNotice,
+    LoginDashboardCopy,
+    LoginDoc,
+    LoginErrors,
+} from "./login.js";
 
 export const LOGIN_FR: LoginDoc = {
     title: "Nutrition MCP",
@@ -45,4 +50,11 @@ export const LOGIN_CLIENT_NOTICE_FR: LoginClientNotice = {
         "Nous te renverrons vers un programme qui tourne sur cet ordinateur ({host}). Ne continue que si tu as lancé cette connexion depuis ce programme.",
     healthSync:
         "En vous connectant, vous activez la synchronisation avec Apple Health sur l'appareil qui a ouvert cette page. Si vous ne venez pas de lancer cette opération vous-même depuis le raccourci Nutrition MCP sur votre propre iPhone, fermez cette page.",
+    dashboard:
+        "En te connectant, tu ouvres ton tableau de bord Nutrition MCP dans ce navigateur. Si tu ne viens pas d'ouvrir toi-même le tableau de bord ici, ferme cette page.",
+};
+
+export const LOGIN_DASHBOARD_FR: LoginDashboardCopy = {
+    title: "Ton tableau de bord",
+    subtitle: "Connecte-toi avec le compte que tu as relié à ton assistant IA.",
 };
