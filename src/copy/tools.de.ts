@@ -90,7 +90,8 @@ export const TOOLS_DE: ToolsDoc = {
                 "Erfasse, was du gegessen hast, mit Kalorien und Makros – plus gesättigten Fettsäuren und Transfetten, Ballaststoffen, Gesamt- und zugesetztem Zucker, Natrium, Alkohol und Koffein, sofern die Werte vorliegen. Beschreib es ganz normal: Die KI schätzt die Werte, fragt bei unklarer Portionsgröße nach und kann vorher Nährwertangaben über einen Barcode oder aus dem Web holen. Du kannst auch die Zutaten einzeln angeben – dann ergibt die Summe der Zutaten die Gesamtwerte.",
             params: {
                 description: "Was gegessen wurde",
-                meal_type: "Frühstück, Mittagessen, Abendessen oder Snack",
+                meal_type:
+                    "Frühstück, zweites Frühstück, Mittagessen, Nachmittagssnack, Abendessen, Spätmahlzeit, Vor dem Training, Nach dem Training oder Snack",
                 calories: "Kalorien insgesamt",
                 protein_g: "Protein in Gramm",
                 carbs_g: "Kohlenhydrate in Gramm",
@@ -219,7 +220,7 @@ export const TOOLS_DE: ToolsDoc = {
                 description:
                     "Was die gespeicherte Mahlzeit ist. Standard ist ihr Name",
                 meal_type:
-                    "Frühstück, Mittagessen, Abendessen oder Snack – der Standard beim Erfassen",
+                    "Frühstück, zweites Frühstück, Mittagessen, Nachmittagssnack, Abendessen, Spätmahlzeit, Vor dem Training, Nach dem Training oder Snack – der Standard beim Erfassen",
                 items: "Zutaten, eine Zeile pro Zutat, mit Menge und Nährwerten. Ihre Summe wird zu den Werten der gespeicherten Mahlzeit, also Zutaten oder Werte senden, nicht beides",
                 calories: "Kalorien insgesamt für eine Portion",
                 protein_g: "Protein in Gramm für eine Portion",
@@ -253,7 +254,7 @@ export const TOOLS_DE: ToolsDoc = {
                 leave_out:
                     "Zutaten, die aus diesem Eintrag herausgenommen werden, nach Name oder Position",
                 meal_type:
-                    "Frühstück, Mittagessen, Abendessen oder Snack – überschreibt den Standard der gespeicherten Mahlzeit",
+                    "Frühstück, zweites Frühstück, Mittagessen, Nachmittagssnack, Abendessen, Spätmahlzeit, Vor dem Training, Nach dem Training oder Snack – überschreibt den Standard der gespeicherten Mahlzeit",
                 description:
                     "Beschreibung für diesen Eintrag. Standard ist die Beschreibung der gespeicherten Mahlzeit",
                 logged_at: "Wann du es gegessen hast, falls nicht gerade eben",
@@ -271,7 +272,7 @@ export const TOOLS_DE: ToolsDoc = {
                 name: "Neuer Name, unter deinen gespeicherten Mahlzeiten eindeutig",
                 description: "Neue Beschreibung",
                 meal_type:
-                    "Neuer Standard-Mahlzeitentyp: Frühstück, Mittagessen, Abendessen oder Snack",
+                    "Neuer Standard-Mahlzeitentyp: Frühstück, zweites Frühstück, Mittagessen, Nachmittagssnack, Abendessen, Spätmahlzeit, Vor dem Training, Nach dem Training oder Snack",
                 items: "Die vollständige Zutatenliste, die die bisherige ersetzt. Ihre Summe wird zu den Werten der gespeicherten Mahlzeit, daher können die Werte-Felder nicht zusammen damit gesendet werden",
                 calories: "Kalorien insgesamt für eine Portion",
                 protein_g: "Protein in Gramm für eine Portion",

@@ -1,6 +1,7 @@
 import { test, expect, describe } from "bun:test";
 import {
     buildDailyBuckets,
+    computeMealPatterns,
     computeTrends,
     computeWeeklyDigest,
     limitNotRecorded,
@@ -1222,5 +1223,88 @@ describe("sodium", () => {
         expect(computeWeeklyDigest(none, goals)).toContain(
             `  Sodium: ${limitNotRecorded("period", 2300, " mg")}`,
         );
+    });
+});
+
+describe("computeMealPatterns meal-type presence", () => {
+    const presence = (text: string) =>
+        text
+            .split("\n")
+            .filter((l) => /^ {2}[a-z_]+: \d+\/\d+ days/.test(l))
+            .map((l) => l.trim().split(":")[0]);
+
+    test("lists the base four even when none is in the window", () => {
+        const buckets = buildDailyBuckets(
+            [meal("2026-06-01T12:00:00Z", { meal_type: "lunch" })],
+            [],
+            "2026-06-01",
+            "2026-06-01",
+            "UTC",
+        );
+        expect(presence(computeMealPatterns(buckets, "UTC"))).toEqual([
+            "breakfast",
+            "lunch",
+            "dinner",
+            "snack",
+        ]);
+    });
+
+    test("adds a line for an extra type only when it appears in the window", () => {
+        const buckets = buildDailyBuckets(
+            [
+                meal("2026-06-01T08:00:00Z", { meal_type: "second_breakfast" }),
+                meal("2026-06-01T12:00:00Z", { meal_type: "lunch" }),
+            ],
+            [],
+            "2026-06-01",
+            "2026-06-02",
+            "UTC",
+        );
+        const lines = presence(computeMealPatterns(buckets, "UTC"));
+        expect(lines).toEqual([
+            "breakfast",
+            "lunch",
+            "dinner",
+            "snack",
+            "second_breakfast",
+        ]);
+    });
+
+    test("never lists pre_workout or post_workout absent from the window", () => {
+        const buckets = buildDailyBuckets(
+            [meal("2026-06-01T12:00:00Z", { meal_type: "dinner" })],
+            [],
+            "2026-06-01",
+            "2026-06-01",
+            "UTC",
+        );
+        const text = computeMealPatterns(buckets, "UTC");
+        expect(text).not.toContain("pre_workout");
+        expect(text).not.toContain("post_workout");
+    });
+
+    test("lists extra types in the MEAL_TYPES order, after the base four", () => {
+        // The base four keep their own order even when an extra type sorts
+        // before them in the day.
+        const buckets = buildDailyBuckets(
+            [
+                meal("2026-06-01T06:00:00Z", { meal_type: "post_workout" }),
+                meal("2026-06-01T07:00:00Z", { meal_type: "pre_workout" }),
+                meal("2026-06-01T15:00:00Z", { meal_type: "afternoon_snack" }),
+            ],
+            [],
+            "2026-06-01",
+            "2026-06-01",
+            "UTC",
+        );
+        expect(presence(computeMealPatterns(buckets, "UTC"))).toEqual([
+            "breakfast",
+            "lunch",
+            "dinner",
+            "snack",
+            "afternoon_snack",
+            "pre_workout",
+            "post_workout",
+        ]);
     });
 });

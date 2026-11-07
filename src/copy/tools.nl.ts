@@ -90,7 +90,8 @@ export const TOOLS_NL: ToolsDoc = {
                 "Log wat je hebt gegeten, met calorieën en macro's, plus verzadigd en transvet, vezels, totale en toegevoegde suikers, natrium, alcohol en cafeïne als die cijfers er zijn. Omschrijf het in gewone woorden: de AI schat de cijfers, vraagt naar de portie als die onduidelijk is en kan eerst de voedingswaarden van het etiket ophalen via een barcode of het web. Je kunt ook de ingrediënten één voor één meegeven; de totalen zijn dan de som van die ingrediënten.",
             params: {
                 description: "Wat er is gegeten",
-                meal_type: "ontbijt, lunch, diner of snack",
+                meal_type:
+                    "ontbijt, ochtendtussendoortje, lunch, middagsnack, diner, late maaltijd, voor de training, na de training of snack",
                 calories: "Totaal aantal calorieën",
                 protein_g: "Eiwit in gram",
                 carbs_g: "Koolhydraten in gram",
@@ -214,7 +215,7 @@ export const TOOLS_NL: ToolsDoc = {
                     "UUID van een gelogde maaltijd waarvan de waarden en ingrediënten worden gekopieerd",
                 description: "Wat de opgeslagen maaltijd is. Standaard de naam",
                 meal_type:
-                    "ontbijt, lunch, diner of snack: de standaard wanneer je hem logt",
+                    "ontbijt, ochtendtussendoortje, lunch, middagsnack, diner, late maaltijd, voor de training, na de training of snack: de standaard wanneer je hem logt",
                 items: "Ingrediënten, één rij per ingrediënt, met hun hoeveelheden en voedingswaarden. Hun som wordt de waarde van de opgeslagen maaltijd, dus stuur ingrediënten of waarden, niet allebei",
                 calories: "Totaal aantal calorieën voor één portie",
                 protein_g: "Eiwit in gram voor één portie",
@@ -248,7 +249,7 @@ export const TOOLS_NL: ToolsDoc = {
                 leave_out:
                     "Ingrediënten die je uit deze registratie laat, op naam of positie",
                 meal_type:
-                    "ontbijt, lunch, diner of snack: vervangt het standaardtype van de opgeslagen maaltijd",
+                    "ontbijt, ochtendtussendoortje, lunch, middagsnack, diner, late maaltijd, voor de training, na de training of snack: vervangt het standaardtype van de opgeslagen maaltijd",
                 description:
                     "Omschrijving voor deze registratie. Standaard de omschrijving van de opgeslagen maaltijd",
                 logged_at: "Wanneer je het hebt gegeten, als dat niet nu was",
@@ -266,7 +267,7 @@ export const TOOLS_NL: ToolsDoc = {
                 name: "Nieuwe naam, uniek onder je opgeslagen maaltijden",
                 description: "Nieuwe omschrijving",
                 meal_type:
-                    "Nieuw standaardmaaltijdtype: ontbijt, lunch, diner of snack",
+                    "Nieuw standaardmaaltijdtype: ontbijt, ochtendtussendoortje, lunch, middagsnack, diner, late maaltijd, voor de training, na de training of snack",
                 items: "De volledige ingrediëntenlijst, die de bestaande vervangt. De som wordt de waarde van de opgeslagen maaltijd, dus de waardevelden kun je er niet naast sturen",
                 calories: "Totaal aantal calorieën voor één portie",
                 protein_g: "Eiwit in gram voor één portie",

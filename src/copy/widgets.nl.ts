@@ -138,8 +138,13 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         caloriesByDay: "Calorieën per dag",
         mealTypes: {
             breakfast: "Ontbijt",
+            second_breakfast: "Ochtendtussendoortje",
             lunch: "Lunch",
+            afternoon_snack: "Middagsnack",
             dinner: "Diner",
+            supper: "Late maaltijd",
+            pre_workout: "Voor de training",
+            post_workout: "Na de training",
             snack: "Snack",
         },
         items: {
@@ -383,8 +388,13 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         mealFallback: "Maaltijd",
         mealTypes: {
             breakfast: "Ontbijt",
+            second_breakfast: "Ochtendtussendoortje",
             lunch: "Lunch",
+            afternoon_snack: "Middagsnack",
             dinner: "Diner",
+            supper: "Late maaltijd",
+            pre_workout: "Voor de training",
+            post_workout: "Na de training",
             snack: "Snack",
         },
         noMealsToday: "Vandaag geen maaltijden gelogd.",
@@ -1266,8 +1276,13 @@ export const WIDGET_STRINGS_NL: WidgetStrings = {
         meals: {
             types: {
                 breakfast: "Ontbijt",
+                second_breakfast: "Ochtendtussendoortje",
                 lunch: "Lunch",
+                afternoon_snack: "Middagsnack",
                 dinner: "Diner",
+                supper: "Late maaltijd",
+                pre_workout: "Voor de training",
+                post_workout: "Na de training",
                 snack: "Snack",
                 drink: "Drankje",
             },

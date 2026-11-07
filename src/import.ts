@@ -23,6 +23,13 @@
 import { z } from "zod";
 import type { MealInput, MealInsertResult } from "./supabase.js";
 import {
+    BASE_MEAL_TYPES,
+    MEAL_TYPES,
+    isBaseMealType,
+    type BaseMealType,
+    type MealType,
+} from "./meal-types.js";
+import {
     LOGGED_AT_FIX,
     loggedAtFailureReason,
     parseLoggedAt,
@@ -43,7 +50,7 @@ import {
 } from "./provenance.js";
 import type { MealNutrientKey } from "./meal-items.js";
 
-export type MealType = MealInput["meal_type"];
+export type { MealType };
 
 /** Max rows per call. Enforced here, not in Zod: a schema-level violation is
  *  rejected before the handler runs, which loses the whole structured report. */
@@ -81,12 +88,16 @@ const MAX_FUTURE_MS = 48 * 3600 * 1000;
 /** Rounding slack when reconciling the caller's kcal control total. */
 const KCAL_TOLERANCE_FRACTION = 0.005;
 
-const MEAL_TYPES: readonly MealType[] = [
-    "breakfast",
-    "lunch",
-    "dinner",
-    "snack",
-];
+/** Spellings that do not reduce to a canonical type by case, separators or a
+ *  plural "s". Keys are the canonical form: lowercase with spaces and hyphens
+ *  turned into underscores (see `canonicalMealTypeKey`). */
+const MEAL_TYPE_ALIASES = new Map<string, MealType>([
+    ["elevenses", "second_breakfast"],
+    ["afternoon_tea", "afternoon_snack"],
+    ["late_night_snack", "supper"],
+    ["preworkout", "pre_workout"],
+    ["postworkout", "post_workout"],
+]);
 
 /** Values real exports use to mean "no value" (Lose It! writes the string n/a). */
 const BLANK_TOKENS = new Set(["", "-", "--", "n/a", "na", "null", "none"]);
@@ -193,6 +204,12 @@ export interface ResolvedRow {
      *  unset-timezone warning to rows that actually depended on the account
      *  default, so a row carrying its own zone never triggers it. */
     logged_at_used_row_timezone: boolean;
+    /** Internal: the meal type and description exactly as the importer
+     *  before the meal-type widening would have produced them from the same
+     *  source row (`legacyMealType`). The content digest hashes these, not
+     *  the stored values, so a file imported earlier keeps its keys and a
+     *  replay stays a no-op. Absent on rows built outside `resolveRow`. */
+    digest_basis?: { meal_type: BaseMealType; description: string };
     /** The row's own export provenance, shape-checked but not yet verified
      *  against the food records. Null for any row not from our own export. */
     provenance?: {
@@ -514,24 +531,61 @@ export function resolveLoggedAt(
 
 // ---------- Meal type ----------
 
+/** Lowercase, with runs of spaces and hyphens joined by underscores:
+ *  "Second breakfast" and "pre-workout" become "second_breakfast" and
+ *  "pre_workout". */
+function canonicalMealTypeKey(raw: string): string {
+    return raw
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
+}
+
 /**
  * Normalize a caller-supplied meal type. Returns null when the source had no
  * usable value, which signals the caller to infer one — blank cells and the
  * literal "n/a" must NOT silently become "snack", or a file with an empty
  * meal-type column turns into hundreds of snacks with no provenance flag.
+ *
+ * Accepts the nine canonical types in any case, with underscores, spaces or
+ * hyphens, and a trailing plural "s" or "es" ("Lunches", "snacks"), plus the
+ * aliases in MEAL_TYPE_ALIASES.
  */
 export function normalizeMealType(raw: string | undefined): MealType | null {
     if (raw === undefined) return null;
     const v = raw.trim().toLowerCase();
     if (BLANK_TOKENS.has(v)) return null;
-    for (const t of MEAL_TYPES) {
-        if (v === t) return t;
+    const key = canonicalMealTypeKey(v);
+    const candidates = [key, key.replace(/es$/, ""), key.replace(/s$/, "")];
+    for (const c of candidates) {
+        if ((MEAL_TYPES as readonly string[]).includes(c)) {
+            return c as MealType;
+        }
+        const alias = MEAL_TYPE_ALIASES.get(c);
+        if (alias !== undefined) return alias;
     }
+    // Everything else (FatSecret's "other", Cronometer's user-invented group
+    // names) folds into snack, the catch-all type.
+    return "snack";
+}
+
+/**
+ * The meal type the importer produced before the meal-type widening, frozen
+ * for the content digest: exactly breakfast, lunch, dinner, snack, "snacks"
+ * and "breakfasts" (trimmed, any case) kept their type; every other label,
+ * "Lunches", "Dinners" and "Second breakfast" included, folded to snack.
+ * Null when the cell was blank, which inferred a base type then as now.
+ * Do not widen this: it is what earlier imports hashed.
+ */
+export function legacyMealType(raw: string | undefined): BaseMealType | null {
+    if (raw === undefined) return null;
+    const v = raw.trim().toLowerCase();
+    if (BLANK_TOKENS.has(v)) return null;
     if (v === "snacks") return "snack";
     if (v === "breakfasts") return "breakfast";
-    // Everything else (FatSecret's "other", Cronometer's user-invented group
-    // names) folds into snack — the DB CHECK constraint allows only the four.
-    return "snack";
+    return (BASE_MEAL_TYPES as readonly string[]).includes(v)
+        ? (v as BaseMealType)
+        : "snack";
 }
 
 /** Local hour as a fraction (13.5 = 13:30) for the inference cutoffs. */
@@ -548,8 +602,9 @@ function localHourFraction(iso: string, tz: string): number {
 }
 
 /** Infer a meal slot from local time. Always reported as inferred, never
- *  presented as if the source file said it. */
-export function inferMealType(iso: string, tz: string): MealType {
+ *  presented as if the source file said it. Only the four base types: the
+ *  extra types are places in the user's own day, which a clock cannot tell. */
+export function inferMealType(iso: string, tz: string): BaseMealType {
     const h = localHourFraction(iso, tz);
     if (h < 10.5) return "breakfast";
     if (h < 15) return "lunch";
@@ -571,7 +626,8 @@ export function synthesizeDescription(
     sourceApp: string | undefined,
 ): string | null {
     if (mealTypeInferred) return null;
-    const slot = mealType.charAt(0).toUpperCase() + mealType.slice(1);
+    const words = mealType.replace(/_/g, " ");
+    const slot = words.charAt(0).toUpperCase() + words.slice(1);
     const key = (sourceApp ?? "").trim().toLowerCase();
     const label = SOURCE_APP_LABELS[key];
     return label
@@ -679,10 +735,15 @@ export function validateRow(
 
     let mealTypeInferred = false;
     let mealType = normalizeMealType(row.meal_type);
-    if (mealType === null) {
+    // Null exactly when mealType is (same blank tokens), so an inferred row
+    // hashes the inferred base type, as it always did.
+    let legacyType = legacyMealType(row.meal_type);
+    if (mealType === null || legacyType === null) {
         mealType = inferMealType(ts.value.iso, effectiveTz);
+        legacyType = mealType;
         mealTypeInferred = true;
     }
+    let digestDescription: string | undefined;
 
     let descriptionSynthesized = false;
     let description = row.description?.trim();
@@ -705,6 +766,9 @@ export function validateRow(
         }
         description = synthetic;
         descriptionSynthesized = true;
+        // Not inferred here, so this cannot be null.
+        digestDescription =
+            synthesizeDescription(legacyType, false, sourceApp) ?? synthetic;
     }
 
     // Validate against what will actually be stored: insertMeal applies
@@ -832,6 +896,10 @@ export function validateRow(
             logged_at_used_row_timezone:
                 usedRowTimezone && ts.value.usedProfileTimezone,
             provenance: importedProvenance(row),
+            digest_basis: {
+                meal_type: legacyType,
+                description: digestDescription ?? description,
+            },
         },
     };
 }
@@ -900,9 +968,20 @@ function sha256Hex(parts: (string | number | null | undefined)[]): string {
         .digest("hex");
 }
 
+/** The meal type as the content digest sees it: a base type as is, anything
+ *  wider as 'snack', which is what every such type stored as before the
+ *  widening. Frozen with rowContentDigest; see the comment there. */
+function digestMealType(mealType: MealType): BaseMealType {
+    return isBaseMealType(mealType) ? mealType : "snack";
+}
+
 /** Content digest of a resolved row. Excludes source_line so that re-exporting
  *  a file with lines added or removed still dedupes against a prior import. */
-export function rowContentDigest(userId: string, input: MealInput): string {
+export function rowContentDigest(
+    userId: string,
+    input: MealInput,
+    basis?: { meal_type: BaseMealType; description: string },
+): string {
     // DO NOT ADD saturated_fat_g, trans_fat_g, fiber_g, sugar_g, added_sugar_g,
     // alcohol_g, caffeine_mg OR sodium_mg TO THIS ARRAY.
     //
@@ -918,10 +997,19 @@ export function rowContentDigest(userId: string, input: MealInput): string {
     // fiber, sugar, alcohol, caffeine or sodium collapse to one. Dedup stability is worth more than that precision here,
     // and a caller that needs the rows kept apart can pass an explicit
     // idempotency_key.
+    //
+    // meal_type and description are hashed as the importer before the
+    // meal-type widening produced them (`basis`, from legacyMealType): a row a
+    // file labelled "Second breakfast", "Lunches" or "Pre-workout" stored and
+    // hashed as 'snack', with a synthesized description to match, in every
+    // earlier import. Hashing the new values would give that row a new key
+    // and a replay of the same file would insert it again. Frozen: do not
+    // hash the stored type. Without a basis (a row built outside resolveRow)
+    // the stored type is folded by digestMealType.
     return sha256Hex([
         userId,
-        input.description,
-        input.meal_type,
+        basis ? basis.description : input.description,
+        basis ? basis.meal_type : digestMealType(input.meal_type),
         input.calories,
         input.protein_g,
         input.carbs_g,
@@ -960,7 +1048,7 @@ export function assignIdempotencyKeys(
         const basis =
             row.source_id !== null
                 ? `src:${row.source_id}`
-                : rowContentDigest(userId, row.input);
+                : rowContentDigest(userId, row.input, row.digest_basis);
         const ordinal = seen.get(basis) ?? 0;
         seen.set(basis, ordinal + 1);
         if (ordinal > 0) duplicateRowsInFile++;

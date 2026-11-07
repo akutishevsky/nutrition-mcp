@@ -100,7 +100,8 @@ export const TOOLS_FR: ToolsDoc = {
                 "Enregistre ce que tu as mangé avec les calories et les macros, plus les acides gras saturés et trans, les fibres, les sucres totaux et ajoutés, le sodium, l'alcool et la caféine quand ces valeurs sont disponibles. Décris-le avec tes mots : l'IA estime les valeurs, te demande la taille de la portion si elle n'est pas claire, et peut d'abord récupérer les données de l'étiquette via un code-barres ou sur le web. Il peut aussi prendre les ingrédients un à un : les totaux sont alors la somme de ces ingrédients.",
             params: {
                 description: "Ce qui a été mangé",
-                meal_type: "petit-déjeuner, déjeuner, dîner ou collation",
+                meal_type:
+                    "petit-déjeuner, collation du matin, déjeuner, goûter, dîner, souper, avant l'entraînement, après l'entraînement ou collation",
                 calories: "Calories totales",
                 protein_g: "Protéines en grammes",
                 carbs_g: "Glucides en grammes",
@@ -227,7 +228,7 @@ export const TOOLS_FR: ToolsDoc = {
                 description:
                     "Ce qu'est le repas sauvegardé. Par défaut, son nom",
                 meal_type:
-                    "petit-déjeuner, déjeuner, dîner ou collation : le type proposé par défaut quand tu l'enregistres",
+                    "petit-déjeuner, collation du matin, déjeuner, goûter, dîner, souper, avant l'entraînement, après l'entraînement ou collation : le type proposé par défaut quand tu l'enregistres",
                 items: "Ingrédients, une ligne chacun, avec leur quantité et leurs valeurs nutritionnelles. Leur somme devient les valeurs du repas sauvegardé, donc envoie les ingrédients ou les valeurs, pas les deux",
                 calories: "Calories totales pour une portion",
                 protein_g: "Protéines en grammes pour une portion",
@@ -263,7 +264,7 @@ export const TOOLS_FR: ToolsDoc = {
                 leave_out:
                     "Ingrédients à retirer de cette entrée, par nom ou position",
                 meal_type:
-                    "petit-déjeuner, déjeuner, dîner ou collation : remplace le type par défaut du repas sauvegardé",
+                    "petit-déjeuner, collation du matin, déjeuner, goûter, dîner, souper, avant l'entraînement, après l'entraînement ou collation : remplace le type par défaut du repas sauvegardé",
                 description:
                     "Description de cette entrée. Par défaut, celle du repas sauvegardé",
                 logged_at: "Quand tu l'as mangé, si ce n'est pas maintenant",
@@ -281,7 +282,7 @@ export const TOOLS_FR: ToolsDoc = {
                 name: "Nouveau nom, unique parmi tes repas sauvegardés",
                 description: "Nouvelle description",
                 meal_type:
-                    "Nouveau type de repas par défaut : petit-déjeuner, déjeuner, dîner ou collation",
+                    "Nouveau type de repas par défaut : petit-déjeuner, collation du matin, déjeuner, goûter, dîner, souper, avant l'entraînement, après l'entraînement ou collation",
                 items: "La liste complète des ingrédients, qui remplace l'existante. Leur somme devient les valeurs du repas sauvegardé, donc les champs de valeurs ne peuvent pas être envoyés avec elle",
                 calories: "Calories totales pour une portion",
                 protein_g: "Protéines en grammes pour une portion",

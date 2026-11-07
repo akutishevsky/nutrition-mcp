@@ -81,10 +81,12 @@
 //                       artboards' scenarios (scripts/harness-day-view.ts),
 //                       with sodium, meal times, ingredients and sources in
 //                       _meta. meal-logged: typical, long-names, over-goal,
-//                       tiny, edited-past, sparse, busy, no-goals, no-limits;
+//                       tiny, edited-past, sparse, busy, no-goals, no-limits,
+//                       pl-five, pl-four, training;
 //                       summary: today, past-over, long-names, sparse,
 //                       nothing, no-goals, trimmed (12 meals, one row
-//                       dropped as the server drops it), week, month-over
+//                       dropped as the server drops it), pl-five, pl-four,
+//                       training, week, month-over
 //
 // Nothing here is served by the production app; scripts/ is dev-only.
 
