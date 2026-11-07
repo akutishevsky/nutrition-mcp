@@ -20,7 +20,6 @@
     "type": "module",
     "private": true,
     "devDependencies": {
-        "@modelcontextprotocol/client": "^2.4.0",
         "@types/bun": "latest"
     },
     "peerDependencies": {
@@ -31,16 +30,18 @@
         "dev": "bun run gen:all && bun --watch src/index.ts",
         "inspect": "bunx @modelcontextprotocol/inspector",
         "harness": "bun run scripts/widget-harness.ts",
+        "dashboard:preview": "bun --watch scripts/dashboard-preview.ts",
         "test": "bun test",
         "format": "bunx prettier --write .",
         "format:check": "bunx prettier --check .",
         "typecheck": "bun run scripts/typecheck.ts",
-        "gen:pages": "bun run scripts/gen-index.ts && bun run scripts/gen-legal.ts && bun run scripts/gen-tools.ts && bun run scripts/gen-alternatives.ts && bun run scripts/gen-apple-health.ts && bun run scripts/gen-login.ts",
+        "gen:pages": "bun run scripts/gen-index.ts && bun run scripts/gen-legal.ts && bun run scripts/gen-tools.ts && bun run scripts/gen-alternatives.ts && bun run scripts/gen-apple-health.ts && bun run scripts/gen-login.ts && bun run scripts/gen-dashboard.ts",
         "gen:all": "bun run gen:pages && bun run scripts/gen-sitemap.ts",
         "depersonalize": "bun run scripts/depersonalize.ts",
         "generate-oauth-creds": "echo \"OAUTH_CLIENT_ID=$(openssl rand -hex 16)\" && echo \"OAUTH_CLIENT_SECRET=$(openssl rand -hex 32)\""
     },
     "dependencies": {
+        "@modelcontextprotocol/client": "^2.4.0",
         "@modelcontextprotocol/server": "^2.4.0",
         "@supabase/supabase-js": "^2.119.0",
         "hono": "^4.13.17",

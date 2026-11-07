@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
 import {
@@ -16,6 +16,17 @@ import {
     createHealthSyncRouter,
     isHealthSyncPath,
 } from "./health-sync-routes.js";
+import {
+    createDashboardAuthRouter,
+    isDashboardPath,
+    readDashboardUserId,
+    DashboardSessionThrottledError,
+} from "./dashboard-auth.js";
+import {
+    createDashboardApiRouter,
+    createDashboardWidgetRoute,
+    WIDGET_CSP,
+} from "./dashboard-api.js";
 import { startExportCleanup } from "./export.js";
 import { startOAuthCleanup } from "./oauth-cleanup.js";
 import {
@@ -28,7 +39,14 @@ import { registerDiscoveryRoutes } from "./discovery.js";
 import { registerSecurityTxtRoute } from "./security-txt.js";
 import { maskIp } from "./net.js";
 import { warmWidgets } from "./widgets.js";
-import { ALT_PAGES, LOCALES, PAGE_ROUTES } from "./routes.js";
+import {
+    ALT_PAGES,
+    APP_PAGE_ROUTES,
+    LOCALES,
+    PAGE_ROUTES,
+    SITE_LOCALES,
+    pathFor,
+} from "./routes.js";
 import { createTtlCache } from "./ttl-cache.js";
 import { createStarCounter } from "./github-stars.js";
 import { isHttpsRequest } from "./url.js";
@@ -70,18 +88,47 @@ app.use("*", async (c, next) => {
     );
 });
 
+// The dashboard's widget cards (src/dashboard-api.ts) are the one thing this
+// site lets a page frame: /dashboard embeds each as a sandboxed same-origin
+// iframe. The exemption from X-Frame-Options DENY is for the widget HTML
+// itself only — a response under the widget prefix that carries the route's
+// own WIDGET_CSP (`frame-ancestors 'self'`), i.e. the 200 and its 304. The
+// route's 404 and 500 text, and anything else that ends up on that path, get
+// DENY and the site CSP like every other response, the dashboard page
+// included.
+const DASHBOARD_WIDGET_PREFIX = "/dashboard/widget/";
+export function isFrameableWidgetResponse(
+    path: string,
+    res: Response,
+): boolean {
+    return (
+        path.startsWith(DASHBOARD_WIDGET_PREFIX) &&
+        res.status < 400 &&
+        res.headers.get("Content-Security-Policy") === WIDGET_CSP
+    );
+}
+
 // Security headers
 app.use("*", async (c, next) => {
     await next();
     c.header("X-Content-Type-Options", "nosniff");
-    c.header("X-Frame-Options", "DENY");
+    if (!isFrameableWidgetResponse(new URL(c.req.url).pathname, c.res)) {
+        c.header("X-Frame-Options", "DENY");
+    }
     if (!c.res.headers.get("Content-Security-Policy")) {
+        // frame-src 'self': the dashboard's widget iframes. default-src
+        // 'self' already allowed them; spelled out so the one framing the
+        // site does is visible in the policy rather than inherited.
         c.header(
             "Content-Security-Policy",
-            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-ancestors 'none'",
+            "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms; connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' https://www.googletagmanager.com https://*.clarity.ms https://c.bing.com; frame-src 'self'; frame-ancestors 'none'",
         );
     }
-    c.header("Referrer-Policy", "no-referrer");
+    // A route may choose a laxer policy for itself (the dashboard page sends
+    // `same-origin`, so its Sign out form post carries a real Origin).
+    if (!c.res.headers.get("Referrer-Policy")) {
+        c.header("Referrer-Policy", "no-referrer");
+    }
     // HSTS, so a later plain-http visit (or a downgrade on hostile Wi-Fi)
     // never reaches the login page unencrypted. Only on a request that came
     // over https: a browser honours it only there anyway, and sending it to
@@ -116,16 +163,21 @@ app.use("/token", async (c, next) => {
     await logTokenCallAnsweredBeforeRouter(c);
 });
 
+/** The dashboard's JSON API answers `{ ok:false, error, message }` on every
+ * failure, including the app-level body-limit 413 and shutdown 503 below. */
+const isDashboardApiPath = (path: string) => path.startsWith("/api/dashboard/");
+
 // Body limit
 app.use(
     "*",
     bodyLimit({
         maxSize: 1024 * 1024,
-        // The Apple Health sync API answers in its own `ok` envelope, which
-        // is what the shortcut branches on; everything else keeps the flat
-        // shape.
+        // The Apple Health sync API and the dashboard API answer in their own
+        // `ok` envelope, which is what the shortcut and dashboard.js branch
+        // on; everything else keeps the flat shape.
         onError: (c) =>
-            isHealthSyncPath(new URL(c.req.url).pathname)
+            isHealthSyncPath(new URL(c.req.url).pathname) ||
+            isDashboardApiPath(new URL(c.req.url).pathname)
                 ? c.json(
                       {
                           ok: false,
@@ -142,9 +194,12 @@ app.use(
 // CORS. Not on the Apple Health sync paths (isHealthSyncPath): the shortcut
 // sends no Origin, the connect and callback pages are top-level navigations,
 // and no web page — not even a localhost or ALLOWED_ORIGINS one — has any
-// business reading a sync response or a link token cross-origin. Skipping
-// the middleware there means no Access-Control-* header is ever sent for
-// them, and a preflight simply finds no OPTIONS route.
+// business reading a sync response or a link token cross-origin. Not on the
+// dashboard paths (isDashboardPath) either: its pages are top-level
+// navigations and its JSON is read by same-origin dashboard.js with the
+// session cookie, so no other origin may read it. Skipping the middleware
+// there means no Access-Control-* header is ever sent for them, and a
+// preflight simply finds no OPTIONS route.
 const corsMiddleware = cors({
     origin: (origin) => {
         if (!origin) return null;
@@ -174,11 +229,12 @@ const corsMiddleware = cors({
     credentials: false,
     maxAge: 86400,
 });
-app.use("*", (c, next) =>
-    isHealthSyncPath(new URL(c.req.url).pathname)
+app.use("*", (c, next) => {
+    const path = new URL(c.req.url).pathname;
+    return isHealthSyncPath(path) || isDashboardPath(path)
         ? next()
-        : corsMiddleware(c, next),
-);
+        : corsMiddleware(c, next);
+});
 
 // Shutdown gate. The signal handlers at the bottom of this file flip
 // `shuttingDown`, and from that instant every request is refused here — before
@@ -227,9 +283,9 @@ app.use("*", async (c, next) => {
             { "Retry-After": "1" },
         );
     }
-    // The Apple Health sync API answers in its own `ok` envelope, which is
-    // what the shortcut branches on.
-    if (path.startsWith("/api/v1/health-sync/")) {
+    // The Apple Health sync API and the dashboard API answer in their own
+    // `ok` envelope, which is what the shortcut and dashboard.js branch on.
+    if (path.startsWith("/api/v1/health-sync/") || isDashboardApiPath(path)) {
         return c.json(
             {
                 ok: false,
@@ -274,6 +330,15 @@ app.route("/", createOAuthRouter());
 // error envelope; every handler catches its own errors, so none reaches
 // onError below.
 app.route("/", createHealthSyncRouter());
+
+// Web dashboard (src/dashboard-auth.ts, src/dashboard-api.ts). Sign-in
+// (/dashboard/login, /dashboard/callback), sign-out and /api/dashboard/session;
+// the cookie-only JSON API under /api/dashboard/*; and the public widget HTML
+// at /dashboard/widget/:key that the page frames. Never Bearer: /mcp does not
+// read the session cookie, and these do not read Authorization.
+app.route("/", createDashboardAuthRouter());
+app.route("/", createDashboardApiRouter());
+app.route("/", createDashboardWidgetRoute());
 
 // MCP endpoint (protected). banRepeatAuthFailures runs first so a client stuck
 // in a failed-auth retry loop is rejected before any token verification.
@@ -487,6 +552,117 @@ for (const locale of LOCALES) {
     }
 }
 
+// Signed-in app pages (APP_PAGE_ROUTES: the dashboard), in English and every
+// locale. The HTML is a static shell with no user data in it, but a signed-out
+// visit is sent to sign-in (302, so the browser never caches the hop) rather
+// than shown an empty app: /dashboard/login starts the OAuth flow and comes
+// back to this locale's page. noindex as a header too, not only the page's
+// meta tag: a crawler that never parses the HTML still sees it, and so does a
+// fork that does not set NOINDEX. Referrer-Policy same-origin, not the site's
+// no-referrer: under no-referrer a browser sends `Origin: null` on a form post
+// (Fetch spec, "append a request Origin header"), and the Sign out form is
+// one. Cross-site requests still get no referrer.
+//
+// The shell is read from disk once per locale and kept in memory with its
+// ETag. The 200 is `private, no-cache`: the browser may keep the shell but
+// must revalidate every time, and the session check runs on every request
+// before an If-None-Match can earn a 304 — so a signed-out browser is always
+// redirected, never handed its cached copy. The 302, 429 and 503 stay
+// `private, no-store`. A missing file is not cached and still throws to
+// app.onError (500), exactly as an uncached read did.
+const APP_PAGE_HEADERS = {
+    "X-Robots-Tag": "noindex, nofollow",
+    "Cache-Control": "private, no-store",
+    "Referrer-Policy": "same-origin",
+} as const;
+const APP_PAGE_OK_HEADERS = {
+    ...APP_PAGE_HEADERS,
+    "Cache-Control": "private, no-cache",
+} as const;
+
+export interface AppPageDeps {
+    readUserId?: (c: Context) => Promise<string | null>;
+    readFile?: (path: string) => Promise<string>;
+}
+
+/** True when an If-None-Match header names `etag` (weak or strong, or `*`). */
+function ifNoneMatchHits(header: string | undefined, etag: string): boolean {
+    if (!header) return false;
+    return header
+        .split(",")
+        .map((t) => t.trim().replace(/^W\//, ""))
+        .some((t) => t === "*" || t === etag);
+}
+
+/** The handler behind one locale's app page; exported for its tests. */
+export function createAppPageHandler(
+    locale: string,
+    diskPath: string,
+    deps: AppPageDeps = {},
+) {
+    const readUserId = deps.readUserId ?? ((c) => readDashboardUserId(c));
+    const readFile = deps.readFile ?? ((path: string) => Bun.file(path).text());
+    let cached: { html: string; etag: string } | null = null;
+    const load = async () => {
+        if (cached) return cached;
+        const html = await readFile(diskPath);
+        const digest = new Bun.CryptoHasher("sha256")
+            .update(html)
+            .digest("hex")
+            .slice(0, 32);
+        cached = { html, etag: `"${digest}"` };
+        return cached;
+    };
+    return async (c: Context) => {
+        let userId: string | null;
+        try {
+            userId = await readUserId(c);
+        } catch (err) {
+            if (err instanceof DashboardSessionThrottledError) {
+                console.warn("[dashboard] route=page result=rate_limited");
+                return c.text(
+                    "Too many requests. Try again in a minute.",
+                    429,
+                    {
+                        ...APP_PAGE_HEADERS,
+                        "Retry-After": String(err.retryAfterSeconds),
+                    },
+                );
+            }
+            // Never the cause: it can carry a query, and this line is
+            // read by people who must not see one. A store outage is not
+            // "signed out", so it is not a redirect to sign-in either.
+            console.error("[dashboard] route=page result=unavailable");
+            return c.text(
+                "Nutrition MCP is temporarily unavailable. Try again in a moment.",
+                503,
+                { ...APP_PAGE_HEADERS, "Retry-After": "5" },
+            );
+        }
+        if (!userId) {
+            for (const [k, v] of Object.entries(APP_PAGE_HEADERS))
+                c.header(k, v);
+            return c.redirect(`/dashboard/login?locale=${locale}`, 302);
+        }
+        const { html, etag } = await load();
+        const headers = { ...APP_PAGE_OK_HEADERS, ETag: etag };
+        if (ifNoneMatchHits(c.req.header("if-none-match"), etag)) {
+            return c.body(null, 304, headers);
+        }
+        return c.html(html, 200, headers);
+    };
+}
+
+for (const locale of SITE_LOCALES) {
+    for (const [suffix, file] of Object.entries(APP_PAGE_ROUTES)) {
+        const path = pathFor(locale, suffix);
+        const diskPath =
+            locale === "en" ? `./public/${file}` : `./public/${locale}/${file}`;
+        app.get(path, createAppPageHandler(locale, diskPath));
+        app.get(`${path}/`, (c) => c.redirect(path, 301));
+    }
+}
+
 // CSS
 app.get("/styles.css", async (c) => {
     const file = Bun.file("./public/styles.css");
@@ -497,6 +673,15 @@ app.get("/styles.css", async (c) => {
 // Every public page loads it, so it is served from one place like the CSS.
 app.get("/site.js", async (c) => {
     const file = Bun.file("./public/site.js");
+    return c.body(await file.text(), 200, {
+        "Content-Type": "text/javascript; charset=utf-8",
+    });
+});
+
+// The dashboard's client app (scripts/gen-dashboard.ts loads it with defer),
+// served from one place like site.js.
+app.get("/dashboard.js", async (c) => {
+    const file = Bun.file("./public/dashboard.js");
     return c.body(await file.text(), 200, {
         "Content-Type": "text/javascript; charset=utf-8",
     });

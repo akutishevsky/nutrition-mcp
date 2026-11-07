@@ -1,8 +1,15 @@
 import { test, expect } from "bun:test";
-import { ALT_PAGES, PAGE_ROUTES, SITE_LOCALES, urlFor } from "./routes.js";
+import {
+    ALT_PAGES,
+    APP_PAGE_ROUTES,
+    PAGE_ROUTES,
+    SITE_LOCALES,
+    urlFor,
+} from "./routes.js";
 import { chromeFor } from "./copy/chrome.js";
 import { INDEX } from "./copy/index.js";
 import { LOGIN, LOGIN_ERRORS } from "./copy/login.js";
+import { DASHBOARD, DASHBOARD_VIEWS } from "./copy/dashboard.js";
 
 // The SEO "alternative to X" routes, and every locale's version of every
 // page, are wired data-driven via src/routes.ts (imported directly here —
@@ -596,5 +603,66 @@ test("every generated page wraps its body in one email_off pair, with every addr
                 inside: at > open && at < close,
             }).toEqual({ path, match: m[0], inside: true });
         }
+    }
+});
+
+// Signed-in app pages (APP_PAGE_ROUTES: the dashboard). Outside PAGE_ROUTES on
+// purpose, so none of the walkers above see them: src/index.ts serves every
+// locale's file (a missing one 500s), and the page is noindex, unlisted and
+// analytics-free, like login. The email_off and footer checks already cover
+// them through their public/**/*.html globs.
+test("every app page is built in every locale, noindex, unlisted and analytics-free", async () => {
+    const sitemap = await Bun.file("./public/sitemap.xml").text();
+    for (const [suffix, file] of Object.entries(APP_PAGE_ROUTES)) {
+        expect(PAGE_ROUTES).not.toHaveProperty(suffix);
+        for (const locale of SITE_LOCALES) {
+            const path = await fileFor(locale, file);
+            expect(`${path}: ${await Bun.file(path).exists()}`).toBe(
+                `${path}: true`,
+            );
+            const html = await Bun.file(path).text();
+            expect(html, path).toContain(
+                '<meta name="robots" content="noindex, nofollow"',
+            );
+            expect(html, path).not.toContain("data-analytics");
+            expect(html, path).not.toContain('class="consent"');
+            expect(html, path).not.toContain("data-consent-open");
+            expect(html, path).not.toContain('hreflang="');
+            expect(sitemap).not.toContain(
+                `<loc>${urlFor(locale, suffix)}</loc>`,
+            );
+        }
+    }
+});
+
+// nav()'s `app: "dashboard"` mode: the four view tabs in place of the
+// marketing links, a Sign out POST form (in the header pill and the sheet
+// menu) whose csrf input ships empty for dashboard.js to fill and whose
+// locale input sends sign-out back to this locale's landing page, the
+// locale's own labels, and no live-stats badge.
+test("the dashboard header carries its tabs, a sign-out form per menu and the locale's labels", async () => {
+    for (const locale of SITE_LOCALES) {
+        const path = await fileFor(locale, "dashboard.html");
+        const html = await Bun.file(path).text();
+        const d = DASHBOARD[locale];
+        for (const view of DASHBOARD_VIEWS) {
+            expect(html, `${path} #${view}`).toContain(
+                `href="#${view}" data-dash-tab="${view}"`,
+            );
+        }
+        const forms = html.match(
+            /<form class="dash-signout" method="post" action="\/dashboard\/logout">[\s\S]*?<\/form>/g,
+        );
+        expect(forms?.length, path).toBe(2);
+        for (const form of forms!) {
+            expect(form).toContain(
+                '<input type="hidden" name="csrf" value="" data-dash-csrf />',
+            );
+            expect(form).toContain(
+                `<input type="hidden" name="locale" value="${locale}" />`,
+            );
+            expect(form).toContain(`>${d.signOut}</button>`);
+        }
+        expect(html, path).not.toContain("data-live-badge");
     }
 });

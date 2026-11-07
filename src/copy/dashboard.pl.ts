@@ -1,0 +1,173 @@
+import type { DashboardDoc } from "./dashboard.js";
+
+export const DASHBOARD_PL: DashboardDoc = {
+    meta: {
+        title: "Nutrition MCP — Panel",
+        description:
+            "Twoje posiłki, cele, trendy i wymiary ciała z Nutrition MCP na jednej stronie.",
+    },
+    noScript:
+        "Panel potrzebuje JavaScriptu, aby wczytać Twoje dane. Włącz go i odśwież stronę.",
+    tabs: {
+        today: "Dziś",
+        history: "Historia",
+        trends: "Trendy",
+        body: "Ciało",
+    },
+    navAriaLabel: "Panel",
+    pagesAriaLabel: "Strony panelu",
+    signOut: "Wyloguj się",
+    signOutFailed:
+        "Nie udało się teraz wylogować, więc ta przeglądarka jest nadal zalogowana. Spróbuj ponownie za chwilę.",
+
+    sync: {
+        updated: "Zaktualizowano o {time}",
+        updating: "Aktualizuję…",
+        offline: "Offline · ostatnia aktualizacja o {time}",
+        offlineNever: "Offline",
+        empty: "Brak wpisów",
+    },
+    error: {
+        lead: "Nie udało się odświeżyć.",
+        leadFirst: "Nie udało się wczytać Twoich danych.",
+        stale: "Widzisz stan zapisany o {time}; wszystko, co zapisano później, pojawi się po przywróceniu połączenia.",
+        first: "Sprawdź połączenie i spróbuj ponownie.",
+        retry: "Spróbuj ponownie",
+    },
+    loading: "Wczytuję Twój dzień",
+
+    today: {
+        dateAriaLabel: "Data",
+        titleToday: "Dziś",
+        titleYesterday: "Wczoraj",
+        prevDay: "Poprzedni dzień",
+        nextDay: "Następny dzień",
+        pickDate: "Wybierz datę",
+        calendar: "Kalendarz",
+    },
+    empty: {
+        title: "Nic jeszcze nie zapisano",
+        body: "Powiedz swojemu asystentowi AI, co zjadłeś lub wypiłeś. Każdy wpis pojawi się tu w ciągu minuty, razem z sumami, celami i trendami.",
+        trySaying: "Powiedz na przykład",
+        examples: [
+            "„Na śniadanie zjadłem dwa jajka i tosta”",
+            "„Ustaw cel kalorii na 2200, a białka na 150 g”",
+            "„Zapisz 500 ml wody”",
+        ],
+        stepsTitle: "Jeszcze nie połączono?",
+        steps: [
+            "Dodaj Nutrition MCP do Claude, ChatGPT lub innego klienta MCP.",
+            "Gdy pojawi się prośba, zaloguj się na to samo konto.",
+            "Zapisz pierwszy posiłek na czacie. Ta strona odświeży się sama.",
+        ],
+        connectCta: "Jak połączyć",
+    },
+    history: {
+        rangeAriaLabel: "Zakres",
+        title: "Historia",
+        loggedPill: {
+            one: "{logged} z {total} dnia z wpisami",
+            few: "{logged} z {total} dni z wpisami",
+            many: "{logged} z {total} dni z wpisami",
+            other: "{logged} z {total} dni z wpisami",
+        },
+        searchPlaceholder: "Szukaj posiłków lub składników",
+        searchLabel: "Szukaj posiłków i składników",
+        clearSearch: "Wyczyść wyszukiwanie",
+        earlier: "Wcześniejsze pięć tygodni",
+        later: "Późniejsze pięć tygodni",
+        resultsTitle: {
+            one: "{n} posiłek pasuje do „{q}”",
+            few: "{n} posiłki pasują do „{q}”",
+            many: "{n} posiłków pasuje do „{q}”",
+            other: "{n} posiłku pasuje do „{q}”",
+        },
+        resultsSub: "Nazwy i składniki, od najnowszych",
+        ingredient: "Składnik: {item}",
+        kcal: "kcal",
+        noResults:
+            "Żaden posiłek ani składnik nie pasuje. Spróbuj krótszego słowa, np. „ryż”.",
+        tooShort: "Wpisz co najmniej dwie litery, aby wyszukać.",
+        searching: "Szukam…",
+        searchFailed:
+            "Wyszukiwanie jest teraz niedostępne. Spróbuj ponownie za chwilę.",
+        savedHit: "Także zapisany posiłek: {name}, {kcal} kcal na porcję",
+        calendarTitle: "Kalendarz",
+        legendOn: "W celu ±5%",
+        legendUnder: "Poniżej",
+        legendOver: "Powyżej",
+        calendarAriaLabel: "Kalorie dziennie, od {from} do {to}",
+        cellToday: "dziś",
+        cellTodaySuffix: " (dziś)",
+        cellNothing: ", brak wpisów",
+        cellKcal: ", {kcal} kcal",
+        summary:
+            "Średnio {avg} kcal · pełne dni: {n} · w celu: {on} · powyżej: {over} · poniżej: {under} · bez wpisów: {missing}",
+        summaryNone: "Brak pełnych dni z wpisami w tych pięciu tygodniach.",
+        dayEmpty: "Brak wpisów: {date}.",
+        dayFailed:
+            "Nie udało się wczytać dnia {date}. Spróbuj ponownie za chwilę.",
+        savedTitle: "Zapisane posiłki",
+        savedSub:
+            "Każdy dodasz do dziennika po nazwie na czacie — „dodaj {name}”.",
+        savedSubNone:
+            "Posiłki zapisane na czacie pojawią się tutaj, gotowe do dodania do dziennika po nazwie.",
+        perServing: " kcal / porcja",
+        protein: "B {g} g",
+        carbs: "W {g} g",
+        fat: "T {g} g",
+        items: {
+            one: "{n} składnik",
+            few: "{n} składniki",
+            many: "{n} składników",
+            other: "{n} składnika",
+        },
+        savedNone: "Brak zapisanych posiłków.",
+    },
+    trends: {
+        eyebrow: "Kalorie, makroskładniki i składniki odżywcze w czasie",
+        title: "Trendy",
+    },
+    body: {
+        eyebrow: "Waga i wymiary",
+        title: "Ciało",
+        measTitle: "Wymiary",
+        measSub: "Obwody tak, jak je zapisano · ostatnio {date}",
+        notMeasured: "Jeszcze nie zmierzono:",
+        hintCm: "Aby dodać pomiar, powiedz asystentowi „talia 83,5 cm”. Zmiany liczone są od pierwszego pomiaru, {date}. Jednostki można zmienić na cale na czacie.",
+        hintIn: "Aby dodać pomiar, powiedz asystentowi „talia 33 in”. Zmiany liczone są od pierwszego pomiaru, {date}. Jednostki można zmienić na centymetry na czacie.",
+        sinceFirst: "{delta} od pierwszego",
+        firstEntry: "Pierwszy pomiar",
+        noMeasurements:
+            "Brak wymiarów ciała. Talię, biodra i siedem innych miejsc można zapisywać w centymetrach lub calach.",
+        kinds: {
+            waist: "Talia",
+            hips: "Biodra",
+            neck: "Szyja",
+            chest: "Klatka piersiowa",
+            shoulders: "Barki",
+            upper_arm: "Ramię",
+            forearm: "Przedramię",
+            thigh: "Udo",
+            calf: "Łydka",
+        },
+        kindsInline: {
+            waist: "talia",
+            hips: "biodra",
+            neck: "szyja",
+            chest: "klatka piersiowa",
+            shoulders: "barki",
+            upper_arm: "ramię",
+            forearm: "przedramię",
+            thigh: "udo",
+            calf: "łydka",
+        },
+    },
+    widgets: {
+        summary: "Podsumowanie odżywiania",
+        digest: "Przegląd odżywiania",
+        goals: "Realizacja celów",
+        weight: "Trendy wagi",
+        trends: "Trendy",
+    },
+};
