@@ -212,6 +212,11 @@ export const INDEX_IT: IndexDoc = {
             "Foto: una scodella di borscht con un cucchiaio di panna acida e aneto, e accanto una fetta di pane di segale",
         photoPackageAlt:
             "Foto: il codice a barre su un vasetto di yogurt greco bianco, numero 2001234567893",
+        dashboard: {
+            lead: "Le stesse schede, anche nel browser. ",
+            body: "La dashboard web mostra questi widget con i tuoi dati e si aggiorna ogni minuto. Accedi con lo stesso account che usa la tua app di IA. Serve solo per consultare: registrare e modificare restano in chat.",
+            button: "Apri la tua dashboard",
+        },
         slides: [
             {
                 id: "log-meal",

@@ -203,6 +203,11 @@ export const INDEX_ES: IndexDoc = {
             "Foto: un plato de borsch con una cucharada de crema agria y eneldo, y una rebanada de pan de centeno al lado",
         photoPackageAlt:
             "Foto: el código de barras de un envase de yogur griego natural, número 2001234567893",
+        dashboard: {
+            lead: "Las mismas tarjetas, también en tu navegador. ",
+            body: "El panel web muestra estos widgets con tus propios datos y se actualiza cada minuto. Inicia sesión con la misma cuenta que usa tu app de IA. Solo sirve para consultar: registrar y editar sigue siendo cosa del chat.",
+            button: "Abrir tu panel",
+        },
         slides: [
             {
                 id: "log-meal",

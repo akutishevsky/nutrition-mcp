@@ -35,6 +35,7 @@ import {
     HEALTH_SYNC_WINDOW_DAYS,
 } from "./health-sync.js";
 import { SITE_LOCALES, pathFor, type SiteLocale } from "./routes.js";
+import { esc } from "../scripts/site-partials.js";
 
 // The public pages are the only place the product describes ITSELF, and they
 // are the surface that goes stale first: a nutrient ships across the server,
@@ -415,6 +416,57 @@ test("each unit button's aria-label starts with its visible text and names its u
                 `${path}: aria-label "${name}" does not name the unit "${unit}"`,
             ).toContain(unit!);
         }
+    }
+});
+
+// The examples section points at the signed-in web dashboard: one strip
+// under the carousel, saying the same widget cards are in a browser too. It
+// must exist in every locale's copy (translated, not English left in place),
+// reach the regenerated page, and link to that locale's own /dashboard: a
+// copied English href would sign a German visitor into the English shell.
+test("the landing page's dashboard strip is translated and links to its own locale's /dashboard", async () => {
+    const enDash = INDEX.en!.examples.dashboard;
+    for (const locale of SITE_LOCALES) {
+        const doc = INDEX[locale];
+        expect(doc, `INDEX has no ${locale} entry`).toBeTruthy();
+        const dash = doc!.examples.dashboard;
+        for (const key of ["lead", "body", "button"] as const) {
+            expect(
+                dash[key].trim(),
+                `${locale}: examples.dashboard.${key} is empty`,
+            ).toBeTruthy();
+            if (locale !== "en")
+                expect(
+                    dash[key],
+                    `${locale}: examples.dashboard.${key} is still the English text`,
+                ).not.toBe(enDash[key]);
+        }
+        const path =
+            locale === "en"
+                ? "./public/index.html"
+                : `./public/${locale}/index.html`;
+        const html = await Bun.file(path).text();
+        const strip = /<div class="lp-try-dash">([\s\S]*?)<\/a>\s*<\/div>/.exec(
+            html,
+        )?.[1];
+        expect(
+            strip,
+            `${path}: no dashboard strip in the examples section (re-run scripts/gen-index.ts)`,
+        ).toBeTruthy();
+        const tryAt = html.indexOf('id="try"');
+        expect(
+            tryAt >= 0 && html.indexOf('class="lp-try-dash"') > tryAt,
+            `${path}: the dashboard strip is not inside the #try section`,
+        ).toBe(true);
+        const hrefs = [...strip!.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
+        expect(hrefs, `${path}: the strip's links`).toEqual([
+            pathFor(locale, "/dashboard"),
+        ]);
+        for (const key of ["lead", "body", "button"] as const)
+            expect(
+                normalize(strip!),
+                `${path}: examples.dashboard.${key} is missing from the page`,
+            ).toContain(normalize(esc(dash[key])));
     }
 });
 

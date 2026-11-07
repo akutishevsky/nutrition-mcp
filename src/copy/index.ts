@@ -292,6 +292,14 @@ export interface IndexDoc {
         /** Accessible names of the two photo-turn pictures. */
         photoMealAlt: string;
         photoPackageAlt: string;
+        /** The strip under the carousel pointing at the signed-in web
+         * dashboard (/dashboard, linked per locale by the generator). Plain
+         * text, escaped at render. `lead` is the bold first sentence,
+         * trailing space included (ja ends on 。 with none), `body` follows
+         * it directly, `button` is the link's label. Keep it factual:
+         * the dashboard shows the same widgets, refreshes every minute and
+         * only reads, so never promise logging or editing there. */
+        dashboard: { lead: string; body: string; button: string };
         /** One slide per ExampleSlideId, in the carousel's order (EX_META in
          * scripts/gen-index.ts). */
         slides: ExampleSlide[];
@@ -602,6 +610,11 @@ const INDEX_EN: IndexDoc = {
             "Photo: a bowl of borscht with a spoonful of sour cream and dill, and a slice of rye bread beside it",
         photoPackageAlt:
             "Photo: the barcode on a pot of plain Greek yogurt, number 2001234567893",
+        dashboard: {
+            lead: "See the same cards in your browser. ",
+            body: "The web dashboard shows these widgets with your own data and refreshes every minute. Sign in with the account your AI app uses. It only shows: logging and editing stay in the chat.",
+            button: "Open your dashboard",
+        },
         slides: [
             {
                 id: "log-meal",

@@ -214,6 +214,11 @@ export const INDEX_FR: IndexDoc = {
             "Photo : un bol de bortsch avec une cuillerée de crème fraîche et de l'aneth, et une tranche de pain de seigle à côté",
         photoPackageAlt:
             "Photo : le code-barres d'un pot de yaourt à la grecque nature, numéro 2001234567893",
+        dashboard: {
+            lead: "Les mêmes cartes, aussi dans ton navigateur. ",
+            body: "Le tableau de bord web affiche ces widgets avec tes propres données et se met à jour chaque minute. Connecte-toi avec le même compte que ton app d'IA. Il sert uniquement à consulter : tu enregistres et modifies toujours dans le chat.",
+            button: "Ouvrir ton tableau de bord",
+        },
         slides: [
             {
                 id: "log-meal",

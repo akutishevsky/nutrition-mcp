@@ -211,6 +211,11 @@ export const INDEX_TR: IndexDoc = {
             "Fotoğraf: üzerine bir kaşık ekşi krema ve dereotu konmuş bir kâse borsç, yanında bir dilim çavdar ekmeği",
         photoPackageAlt:
             "Fotoğraf: sade Yunan yoğurdu kabının üzerindeki barkod, numarası 2001234567893",
+        dashboard: {
+            lead: "Aynı kartlar tarayıcında da. ",
+            body: "Web panosu bu widget'ları kendi verilerinle gösterir ve her dakika yenilenir. Yapay zekâ uygulamanın kullandığı hesapla giriş yap. Pano yalnızca gösterir: kayıt ve düzenleme yine sohbette yapılır.",
+            button: "Panonu aç",
+        },
         slides: [
             {
                 id: "log-meal",

@@ -644,6 +644,11 @@ ${tabs}
                     <span class="lp-ex-blob" aria-hidden="true"></span>
 ${panels}
                 </div>
+                <div class="lp-try-dash">
+                    <span class="lp-try-dash-icon" aria-hidden="true"><i class="fa-solid fa-chart-pie"></i></span>
+                    <p><b>${esc(e.dashboard.lead)}</b>${esc(e.dashboard.body)}</p>
+                    <a class="nm-btn nm-btn-glass" href="${pathFor(locale, "/dashboard")}">${esc(e.dashboard.button)} <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                </div>
             </section>`;
 }
 
