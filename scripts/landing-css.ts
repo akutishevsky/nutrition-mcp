@@ -202,14 +202,20 @@ html.js .lp-ex-panel.is-on .lp-ex-info { animation: nm-rise .4s both; }
 .lp-ex-thread > * { flex: none; }
 html.js .lp-ex-panel.is-on .lp-ex-thread > * { animation: nm-rise .35s both; }
 /* The web-dashboard strip under the carousel: the same cards, in a browser. */
-.lp-try-dash { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px 18px; align-items: center; padding: 16px 16px 16px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 28px; }
-.lp-try-dash-icon { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; font-size: 17px; background: var(--acc-soft); color: var(--acc); }
-.lp-try-dash p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--ink2); text-wrap: pretty; }
-.lp-try-dash p b { color: var(--ink); font-weight: 700; }
-.lp-try-dash .nm-btn { height: 48px; padding: 0 22px; font-size: 15px; }
+/* ---------- web dashboard ---------- */
+.lp-dash { display: grid; gap: 22px; }
+.lp-dash-head { display: grid; gap: 12px; max-width: 760px; }
+.lp-dash-lead { margin: 0; font-size: 18px; line-height: 1.5; color: var(--ink2); text-wrap: pretty; }
+.lp-dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.lp-dash-card { padding: 24px; display: grid; gap: 14px; align-content: start; }
+.lp-dash-card .nm-tile { width: 44px; height: 44px; border-radius: 16px; font-size: 17px; }
+.lp-dash-card h3 { margin: 0; font-weight: 800; font-size: 20px; letter-spacing: -0.02em; line-height: 1.2; }
+.lp-dash-card p { margin: 8px 0 0; font-size: 15px; color: var(--ink2); text-wrap: pretty; }
+.lp-dash-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.lp-dash-cta p { margin: 0; font-size: 15px; color: var(--ink3); }
 @media (max-width: 699px) {
-    .lp-try-dash { grid-template-columns: auto minmax(0, 1fr); align-items: start; padding: 16px; }
-    .lp-try-dash .nm-btn { grid-column: 1 / -1; width: 100%; }
+    .lp-dash-lead { font-size: 16px; }
+    .lp-dash-cta .nm-btn { width: 100%; justify-content: center; }
 }
 
 /* ---------- live stats ---------- */

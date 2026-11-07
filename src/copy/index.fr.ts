@@ -214,11 +214,6 @@ export const INDEX_FR: IndexDoc = {
             "Photo : un bol de bortsch avec une cuillerée de crème fraîche et de l'aneth, et une tranche de pain de seigle à côté",
         photoPackageAlt:
             "Photo : le code-barres d'un pot de yaourt à la grecque nature, numéro 2001234567893",
-        dashboard: {
-            lead: "Les mêmes cartes, aussi dans ton navigateur. ",
-            body: "Le tableau de bord web affiche ces widgets avec tes propres données et se met à jour chaque minute. Connecte-toi avec le même compte que ton app d'IA. Il sert uniquement à consulter : tu enregistres et modifies toujours dans le chat.",
-            button: "Ouvrir ton tableau de bord",
-        },
         slides: [
             {
                 id: "log-meal",
@@ -946,6 +941,39 @@ export const INDEX_FR: IndexDoc = {
 
     faqSection: {
         title: "Questions fréquentes",
+    },
+    dashboard: {
+        title: "Ton tableau de bord nutrition, dans le navigateur",
+        lead: "Tout ce que tu enregistres dans le chat apparaît aussi sur un tableau de bord web : les calories et macros du jour, l'historique de ton journal alimentaire, les tendances des nutriments et ton poids. Connecte-toi avec le même compte que ton app d'IA ; il n'y a rien à configurer.",
+        cards: [
+            {
+                title: "Aujourd'hui",
+                body: "Calories, macros et progression de tes objectifs du jour, plus ton bilan quotidien, mis à jour chaque minute.",
+            },
+            {
+                title: "Historique",
+                body: "Un calendrier de chaque jour enregistré par rapport à ton objectif calorique, avec une recherche dans les repas, les ingrédients et les repas enregistrés.",
+            },
+            {
+                title: "Tendances",
+                body: "Moyennes sur 7, 14 et 30 jours pour les calories et chaque nutriment suivi, à côté de ton bilan hebdomadaire.",
+            },
+            {
+                title: "Corps",
+                body: "L'évolution de ton poids vers ton objectif et tes dernières mensurations.",
+            },
+        ],
+        button: "Ouvrir ton tableau de bord",
+        note: "Consultation uniquement : tu enregistres et modifies toujours dans le chat.",
+        faq: {
+            question: "Existe-t-il un tableau de bord web ?",
+            visibleHtml:
+                'Oui. Connecte-toi sur <a href="/dashboard" data-link="dashboard">nutrition-mcp.com/dashboard</a> avec le compte de ton app d\'IA pour voir les totaux du jour, un calendrier des jours passés avec recherche de repas, les tendances des nutriments, ainsi que ton poids et tes mensurations. Il affiche les mêmes cartes que le chat et se met à jour chaque minute. Il sert uniquement à consulter : tu enregistres et modifies toujours tes repas en parlant à ton IA.',
+        },
+        featureListItem:
+            "Tableau de bord web avec les totaux du jour, un calendrier d'historique avec recherche de repas, les tendances des nutriments et les mensurations",
+        keywords:
+            "tableau de bord nutrition, tableau de bord journal alimentaire, tableau de bord calories",
     },
     faq: [
         {

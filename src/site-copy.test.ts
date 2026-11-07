@@ -419,54 +419,121 @@ test("each unit button's aria-label starts with its visible text and names its u
     }
 });
 
-// The examples section points at the signed-in web dashboard: one strip
-// under the carousel, saying the same widget cards are in a browser too. It
-// must exist in every locale's copy (translated, not English left in place),
-// reach the regenerated page, and link to that locale's own /dashboard: a
-// copied English href would sign a German visitor into the English shell.
-test("the landing page's dashboard strip is translated and links to its own locale's /dashboard", async () => {
-    const enDash = INDEX.en!.examples.dashboard;
+// The landing page has a section about the signed-in web dashboard
+// (#dashboard, right after the examples). It must exist in every locale's
+// copy (translated, not English left in place) and reach the regenerated
+// page; its links must go to that locale's own /dashboard (a copied English
+// href would sign a German visitor into the English shell); and its FAQ
+// entry and featureList item must reach the structured data search engines
+// read, since that is what the section is for.
+test("the landing page's dashboard section is translated, linked per locale and in the structured data", async () => {
+    const en = INDEX.en!.dashboard;
+    const flat = (d: typeof en): Record<string, string> => ({
+        title: d.title,
+        lead: d.lead,
+        button: d.button,
+        note: d.note,
+        faqQuestion: d.faq.question,
+        faqAnswer: d.faq.visibleHtml,
+        featureListItem: d.featureListItem,
+        keywords: d.keywords,
+        ...Object.fromEntries(
+            d.cards.flatMap((c, i) => [
+                [`card${i}.title`, c.title],
+                [`card${i}.body`, c.body],
+            ]),
+        ),
+    });
+    const enFlat = flat(en);
     for (const locale of SITE_LOCALES) {
         const doc = INDEX[locale];
         expect(doc, `INDEX has no ${locale} entry`).toBeTruthy();
-        const dash = doc!.examples.dashboard;
-        for (const key of ["lead", "body", "button"] as const) {
+        const d = doc!.dashboard;
+        const f = flat(d);
+        for (const [key, value] of Object.entries(f)) {
             expect(
-                dash[key].trim(),
-                `${locale}: examples.dashboard.${key} is empty`,
+                value.trim(),
+                `${locale}: dashboard.${key} is empty`,
             ).toBeTruthy();
-            if (locale !== "en")
+            // "Trends" is the same word in English, German and Dutch.
+            if (locale !== "en" && !/^card\d\.title$/.test(key))
                 expect(
-                    dash[key],
-                    `${locale}: examples.dashboard.${key} is still the English text`,
-                ).not.toBe(enDash[key]);
+                    value,
+                    `${locale}: dashboard.${key} is still the English text`,
+                ).not.toBe(enFlat[key]);
         }
+        expect(
+            d.faq.visibleHtml,
+            `${locale}: the dashboard FAQ answer must link with the data-link marker`,
+        ).toContain('href="/dashboard" data-link="dashboard"');
+
         const path =
             locale === "en"
                 ? "./public/index.html"
                 : `./public/${locale}/index.html`;
         const html = await Bun.file(path).text();
-        const strip = /<div class="lp-try-dash">([\s\S]*?)<\/a>\s*<\/div>/.exec(
-            html,
-        )?.[1];
+        const section =
+            /<section class="nm-section lp-sec lp-dash" id="dashboard">([\s\S]*?)<\/section>/.exec(
+                html,
+            )?.[1];
         expect(
-            strip,
-            `${path}: no dashboard strip in the examples section (re-run scripts/gen-index.ts)`,
+            section,
+            `${path}: no #dashboard section (re-run scripts/gen-index.ts)`,
         ).toBeTruthy();
         const tryAt = html.indexOf('id="try"');
+        const dashAt = html.indexOf('id="dashboard"');
+        const statsAt = html.indexOf('id="stats"');
         expect(
-            tryAt >= 0 && html.indexOf('class="lp-try-dash"') > tryAt,
-            `${path}: the dashboard strip is not inside the #try section`,
+            tryAt >= 0 && dashAt > tryAt && dashAt < statsAt,
+            `${path}: #dashboard must follow the examples, before the stats`,
         ).toBe(true);
-        const hrefs = [...strip!.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
-        expect(hrefs, `${path}: the strip's links`).toEqual([
+        const hrefs = [...section!.matchAll(/href="([^"]*)"/g)].map(
+            (m) => m[1],
+        );
+        expect(hrefs, `${path}: the section's links`).toEqual([
             pathFor(locale, "/dashboard"),
         ]);
-        for (const key of ["lead", "body", "button"] as const)
+        for (const text of [
+            d.title,
+            d.lead,
+            d.button,
+            d.note,
+            ...d.cards.flatMap((c) => [c.title, c.body]),
+        ])
             expect(
-                normalize(strip!),
-                `${path}: examples.dashboard.${key} is missing from the page`,
-            ).toContain(normalize(esc(dash[key])));
+                normalize(section!),
+                `${path}: dashboard copy missing from the section`,
+            ).toContain(normalize(esc(text)));
+
+        // The FAQ answer links to the locale's dashboard on the page…
+        const faqList =
+            /<div class="nm-card lp-faq-list">([\s\S]*?)<\/section>/.exec(
+                html,
+            )?.[1] ?? "";
+        expect(faqList, `${path}: dashboard FAQ question`).toContain(
+            esc(d.faq.question),
+        );
+        expect(faqList, `${path}: dashboard FAQ link`).toContain(
+            `class="nm-link" href="${pathFor(locale, "/dashboard")}"`,
+        );
+        // …and reaches the FAQPage and SoftwareApplication JSON-LD.
+        const blocks = [
+            ...html.matchAll(
+                /<script type="application\/ld\+json">([\s\S]*?)<\/script>/g,
+            ),
+        ].map((m) => JSON.parse(m[1]!));
+        const faq = blocks.find((b) => b["@type"] === "FAQPage");
+        expect(
+            faq?.mainEntity?.some(
+                (q: { name: string }) => q.name === d.faq.question,
+            ),
+            `${path}: dashboard question missing from FAQPage JSON-LD`,
+        ).toBe(true);
+        const app = blocks.find((b) => b["@type"] === "SoftwareApplication");
+        expect(app?.featureList, `${path}: featureList`).toContain(
+            d.featureListItem,
+        );
+        expect(html, `${path}: meta keywords`).toContain(esc(d.keywords));
     }
 });
 
@@ -1809,7 +1876,11 @@ test("the SoftwareApplication JSON-LD carries the featureList on every landing p
             match,
             `${locale}: no featureList in SoftwareApplication`,
         ).toBeTruthy();
-        expect(JSON.parse(match![1]!)).toEqual(INDEX[locale]!.featureList);
+        // gen-index.ts appends the dashboard section's item to the list.
+        expect(JSON.parse(match![1]!)).toEqual([
+            ...INDEX[locale]!.featureList,
+            INDEX[locale]!.dashboard.featureListItem,
+        ]);
     }
 });
 
