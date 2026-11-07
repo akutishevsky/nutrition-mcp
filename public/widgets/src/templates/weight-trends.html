@@ -3147,6 +3147,9 @@
                     ),
                 );
                 VIEW = freshView();
+                // Details open up front when the user asked for expanded
+                // widgets (startExpanded, bridge.js).
+                if (startExpanded(meta)) VIEW.level = 1;
                 FRESH = new Set(["intro"]);
                 buildModel();
                 STATE.range = MODEL.last ? initialRange(data) : "30";

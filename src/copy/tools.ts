@@ -641,7 +641,10 @@ export const TOOLS: ToolIdentity[] = [
         name: "set_widget_display",
         category: "settings-account",
         badges: ["setting"],
-        params: [{ name: "enabled", required: true }],
+        params: [
+            { name: "enabled", required: false },
+            { name: "expanded", required: false },
+        ],
         hasPhotoHint: false,
     },
     {
@@ -1426,9 +1429,11 @@ const TOOLS_EN: ToolsDoc = {
         },
         set_widget_display: {
             description:
-                "Turn the in-chat visual widgets on or off — the dashboards, goal rings, and trend charts. When off, the same tools reply with text and data only. Enabled by default; the change applies to new conversations.",
+                "Turn the in-chat visual widgets on or off — the dashboards, goal rings, and trend charts. When off, the same tools reply with text and data only. Enabled by default; the change applies to new conversations. Choose too whether they open expanded, with their details already showing, or collapsed (the default); that applies from the next widget.",
             params: {
                 enabled: "true to show widgets, false for text-only responses",
+                expanded:
+                    "true to open widgets with their details already expanded, false to open them collapsed",
             },
             example: "Turn off the widgets",
         },

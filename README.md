@@ -112,7 +112,7 @@ Read the story behind it: [How I Replaced MyFitnessPal and Other Apps with a Sin
 | `set_timezone`             | Set the user's IANA timezone (e.g. `America/Los_Angeles`)                                                                                                                                                                                       |
 | `set_language`             | Set the UI language for in-chat widgets (dashboards, charts) — not the language the AI replies in                                                                                                                                               |
 | `get_current_time`         | Get the current date and time in the user's timezone, plus the UTC instant — for hosts with no clock in context                                                                                                                                 |
-| `set_widget_display`       | Enable or disable the in-chat visual widgets (dashboards, rings, charts); enabled by default                                                                                                                                                    |
+| `set_widget_display`       | Enable or disable the in-chat visual widgets (dashboards, rings, charts), and choose whether they open expanded; enabled and collapsed by default                                                                                               |
 | `set_alcohol_tracking`     | Turn alcohol tracking on or off (off by default) and choose US standard drinks or UK units; turning it off hides alcohol rather than deleting it                                                                                                |
 | `set_activity_credit`      | Choose the share (0–100%, default 100) of active calories that counts against calorie intake                                                                                                                                                    |
 | `delete_account`           | Permanently delete the user's Nutrition MCP account and all data it stores about them                                                                                                                                                           |
@@ -134,7 +134,7 @@ On hosts that support MCP Apps, the tools also draw a card in the chat. Each car
 - **Digest** (`get_digest`): one period in collapsible sections — calories and nutrients against goals, trends, water and weight, meals or logging habits, and highlights.
 - **Import** (`start_meal_import`): the CSV importer. The file is read in the browser, mapped, and previewed before anything is saved.
 
-Cards follow the light or dark theme of the host and the language set with `set_language`. They are on by default; `set_widget_display` turns them off, and the text answers are unchanged.
+Cards follow the light or dark theme of the host and the language set with `set_language`. They are on by default; `set_widget_display` turns them off, and the text answers are unchanged. Its `expanded` option makes every card open with its Show more detail already showing.
 
 ## Self-hosting
 
