@@ -656,6 +656,25 @@ test("every locale's privacy policy names the contact, region and terms; its ter
     expect(missing).toEqual([]);
 });
 
+// The web dashboard's session cookie is the one persistent first-party cookie
+// the site sets for a signed-in user, so the policy must name it in every
+// locale, along with the dashboard itself; the terms must say it exists.
+test("every locale's privacy policy names the dashboard and its session cookie", () => {
+    const missing: string[] = [];
+    for (const locale of SITE_LOCALES) {
+        const privacy = allText(PRIVACY[locale]!);
+        for (const token of [
+            "<code>__Host-nm_dash</code>",
+            "nutrition-mcp.com/dashboard",
+        ])
+            if (!privacy.includes(token))
+                missing.push(`${locale} privacy: ${token}`);
+        if (!allText(TERMS[locale]!).includes("nutrition-mcp.com/dashboard"))
+            missing.push(`${locale} terms: dashboard`);
+    }
+    expect(missing).toEqual([]);
+});
+
 // The date at the top is the policy's promise of what changed when. Pinned
 // so a content change that forgets to move it shows up here: update this
 // list together with every lastUpdated.
@@ -668,16 +687,16 @@ test("lastUpdated is the date of the last policy change in every locale", () => 
     );
     // [privacy, terms]
     const expected: Record<SiteLocale, [string, string]> = {
-        en: ["November 2, 2026", "November 2, 2026"],
-        de: ["2. November 2026", "2. November 2026"],
-        es: ["2 de noviembre de 2026", "2 de noviembre de 2026"],
-        fr: ["2 novembre 2026", "2 novembre 2026"],
-        nl: ["2 november 2026", "2 november 2026"],
-        pl: ["2 listopada 2026", "2 listopada 2026"],
-        it: ["2 novembre 2026", "2 novembre 2026"],
-        uk: ["2 листопада 2026 року", "2 листопада 2026 року"],
-        ja: ["2026年11月2日", "2026年11月2日"],
-        tr: ["2 Kasım 2026", "2 Kasım 2026"],
+        en: ["November 7, 2026", "November 7, 2026"],
+        de: ["7. November 2026", "7. November 2026"],
+        es: ["7 de noviembre de 2026", "7 de noviembre de 2026"],
+        fr: ["7 novembre 2026", "7 novembre 2026"],
+        nl: ["7 november 2026", "7 november 2026"],
+        pl: ["7 listopada 2026", "7 listopada 2026"],
+        it: ["7 novembre 2026", "7 novembre 2026"],
+        uk: ["7 листопада 2026 року", "7 листопада 2026 року"],
+        ja: ["2026年11月7日", "2026年11月7日"],
+        tr: ["7 Kasım 2026", "7 Kasım 2026"],
     };
     expect(dates).toEqual(expected);
 });

@@ -13,6 +13,7 @@ A remote MCP server for personal nutrition tracking — log meals with calories,
 - [Tech Stack](#tech-stack)
 - [MCP Tools](#mcp-tools)
 - [MCP Resources](#mcp-resources)
+- [Dashboard](#dashboard)
 - [Self-hosting](#self-hosting)
     - [0. Get the code](#0-get-the-code)
     - [1. Supabase setup](#1-supabase-setup)
@@ -135,6 +136,14 @@ On hosts that support MCP Apps, the tools also draw a card in the chat. Each car
 - **Import** (`start_meal_import`): the CSV importer. The file is read in the browser, mapped, and previewed before anything is saved.
 
 Cards follow the light or dark theme of the host and the language set with `set_language`. They are on by default; `set_widget_display` turns them off, and the text answers are unchanged. Its `expanded` option makes every card open with its Show more detail already showing.
+
+## Dashboard
+
+The same data is also on a web dashboard at [nutrition-mcp.com/dashboard](https://nutrition-mcp.com/dashboard) (and `/{locale}/dashboard` in the nine other site languages). Sign in with the account your AI app uses, through the same sign-in page; there is no separate account. It has four tabs — **Today**, **History** (a calendar and search over meals and saved meals), **Trends** and **Body** (weight and measurements) — and the cards are the in-chat widgets, fed by the same tools. It refreshes itself every minute while the tab is visible.
+
+- **Read-only:** nothing is logged, changed or deleted from the dashboard; changes still go through your AI app. Reading data there does not count as a tool call, so it adds no telemetry rows.
+- **Session:** a strictly necessary `__Host-nm_dash` cookie holding a random value, stored on the server only as a hash. A session ends after 7 days without use, 30 days after sign-in at the latest, or at once on **Sign out**; deleting your account ends it too. Each session is a `dashboard_session` row in `connections.csv`.
+- **No analytics:** the dashboard pages load no analytics and show no cookie banner, and they are not indexed by search engines.
 
 ## Self-hosting
 
@@ -281,7 +290,7 @@ A second, separate shortcut, **Nutrition MCP Activity**, works the other way rou
 - `goals.csv` and `goals_history.csv` — current targets and limits, and how they changed.
 - `profile.csv` and `account.csv` — settings and account details.
 - `telemetry.csv` — the tool-call log kept for the account.
-- `connections.csv` — the apps connected to the account, including the Apple Health sync link.
+- `connections.csv` — the apps connected to the account, including the Apple Health sync link and each signed-in dashboard session.
 - `health_sync.csv` — the days sent to Apple Health in the last 8 days.
 - `README.txt` — the timezone the timestamps are written in, which columns are in milligrams, and which files can be imported.
 
@@ -337,6 +346,12 @@ The full version, in 10 languages, is at [nutrition-mcp.com/tools#troubleshootin
 | `POST /api/v1/health-sync/ack`                | Apple Health sync: record what the shortcut logged (Bearer token)              |
 | `POST /api/v1/health-sync/revoke`             | Apple Health sync: disconnect (Bearer token)                                   |
 | `POST /api/v1/health-sync/activity`           | Activity shortcut: daily Active Energy totals (Bearer `nmhs_…` token)          |
+| `GET /dashboard`, `GET /{locale}/dashboard`   | Web dashboard page; redirects to `/dashboard/login` when signed out            |
+| `GET /dashboard/login`                        | Dashboard: starts sign-in through the normal `/authorize` page                 |
+| `GET /dashboard/callback`                     | Dashboard: sign-in callback; sets the session cookie                           |
+| `POST /dashboard/logout`                      | Dashboard: sign out (same-origin, CSRF token required)                         |
+| `GET /dashboard/widget/:key`                  | Dashboard: the in-chat widget HTML, served for the dashboard's iframes         |
+| `GET /api/dashboard/*`                        | Dashboard data (session cookie only, read-only JSON)                           |
 | `ALL /mcp`                                    | MCP endpoint (authenticated)                                                   |
 
 ## Deploy

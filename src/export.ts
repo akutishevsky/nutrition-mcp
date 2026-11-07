@@ -11,6 +11,7 @@ import {
     getAllBodyMeasurements,
     getAllOAuthGrants,
     getAllToolAnalytics,
+    getDashboardSessionsForExport,
     getAuthAccount,
     getNutritionGoals,
     getNutritionGoalsHistory,
@@ -46,6 +47,7 @@ import {
     type NutrientSources,
     type SourceDetail,
 } from "./provenance.js";
+import { DASHBOARD_CLIENT_ID } from "./dashboard-client.js";
 import { formatLocalDateTime, validateTz } from "./tz.js";
 import { creditedKcal, type ActivityEntry } from "./activity.js";
 import { fromGrams, isWeightUnit, type WeightUnit } from "./units.js";
@@ -981,16 +983,34 @@ const HEALTH_SYNC_CONNECTION_NAME = "Apple Health sync (iOS Shortcut)";
 const HEALTH_ACTIVITY_CONNECTION_NAME =
     "Apple Health activity sync (iOS Shortcut)";
 
+/** What connections.csv calls a web dashboard sign-in. */
+const DASHBOARD_CONNECTION_NAME = "Web dashboard (browser sign-in)";
+
+/**
+ * A web dashboard session as the export sees it: its dates only. The cookie
+ * value is stored only as a hash, and neither the value nor the hash is ever
+ * read for the export (getDashboardSessionsForExport selects these three
+ * columns alone).
+ */
+export interface DashboardSessionExportRow {
+    created_at: string;
+    last_seen_at: string | null;
+    expires_at: string;
+}
+
 /**
  * Build connections.csv: every stored OAuth grant for the account, then the
- * Apple Health sync link when there is one. The link's token is stored only as
- * a hash and is never exported, like every other token here.
+ * Apple Health sync link when there is one, the activity shortcut's link when
+ * there is one, and one row per stored web dashboard session. The links'
+ * tokens and the sessions' cookie values are stored only as hashes and are
+ * never exported, like every other token here.
  */
 export function buildConnectionsCsv(
     grants: OAuthGrantRow[],
     tz: string,
     healthSync: HealthSyncLinkStatus | null = null,
     activitySync: HealthActivityLinkStatus | null = null,
+    dashboardSessions: DashboardSessionExportRow[] = [],
 ): string {
     const out = [CONNECTIONS_CSV_COLUMNS.join(",")];
     for (const g of grants) {
@@ -1047,6 +1067,28 @@ export function buildConnectionsCsv(
                 "",
                 "",
                 csvEscape(activitySync.fallback_tz),
+            ].join(","),
+        );
+    }
+    for (const d of dashboardSessions) {
+        out.push(
+            [
+                csvEscape("dashboard_session"),
+                csvEscape(DASHBOARD_CLIENT_ID),
+                csvEscape(DASHBOARD_CONNECTION_NAME),
+                "",
+                csvEscape(localOrNull(d.created_at, tz)),
+                // The idle expiry, slid forward as the session is used. The
+                // 30-day cap after sign-in is a separate column the export
+                // reader does not select; the README states it instead.
+                csvEscape(localOrNull(d.expires_at, tz)),
+                csvEscape(localOrNull(d.last_seen_at, tz)),
+                // A browser session syncs nothing and has no settings.
+                "",
+                csvEscape(tz),
+                "",
+                "",
+                "",
             ].join(","),
         );
     }
@@ -1174,7 +1216,7 @@ export function buildExportReadme(opts: {
         "profile.csv  your settings: timezone, preferred weight, length and drink units (empty preferred_length_unit = never chosen), display toggles (widgets_enabled; widgets_expanded = widgets open with their detail already shown), widget language and activity_credit_pct (the share of active calories that counts against intake for entries logged from now on; empty = never chosen, which counts as 100) — one row, or a header alone if you have no profile yet. An empty locale means no widget language was ever chosen, so widgets use English.",
         'account.csv  your sign-in account: one "account" row (account id, email address, when the account was created, when the email was confirmed, last sign-in, sign-in methods) and one "identity" row per sign-in method (the provider, the provider\'s id for you, and any name or picture it sent — Google accounts created before September 27, 2026 may still hold them).',
         `telemetry.csv ${rows(counts.telemetry)} — one per tool call your AI app made: which tool, when, whether it succeeded, how long it took, the error category if it failed, the date-range length asked for, the MCP session id, the protocol revision and the app name it reported. None of it contains what you logged.`,
-        `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty. If Apple Health sync is connected, its link is one more row of kind "health_sync": when it was created, last used and last synced, when it expires, which totals it sends (synced_fields), the first day it may send (sync_start_date) and the iPhone's own timezone (device_timezone, a saved setting — the timestamps are still in the "timezone" column's zone). Its token is not included either. If the Nutrition MCP Activity shortcut is connected, its link is a row of kind "health_activity_sync" with the same dates and device_timezone; it sends nothing to Apple Health, so synced_fields and sync_start_date are empty, and its token is not included.`,
+        `connections.csv ${rows(counts.connections)} — the sign-in grants that keep your AI apps connected: each access token, refresh token and pending authorization code, with the app it was issued to where recorded, when it was issued and when it expires. The tokens themselves are not included — we store them only as one-way hashes. Access tokens do not record which app they belong to, so their client columns are empty. If Apple Health sync is connected, its link is one more row of kind "health_sync": when it was created, last used and last synced, when it expires, which totals it sends (synced_fields), the first day it may send (sync_start_date) and the iPhone's own timezone (device_timezone, a saved setting — the timestamps are still in the "timezone" column's zone). Its token is not included either. If the Nutrition MCP Activity shortcut is connected, its link is a row of kind "health_activity_sync" with the same dates and device_timezone; it sends nothing to Apple Health, so synced_fields and sync_start_date are empty, and its token is not included. Each web dashboard session (a browser signed in at nutrition-mcp.com/dashboard) is a row of kind "dashboard_session": when you signed in (created_at), when it was last used (last_used_at, updated at most hourly) and when it ends if not used again (expires_at, 7 days after last use; a session also ends 30 days after sign-in at the latest, and the moment you sign out). Its cookie value is not included — we store it only as a one-way hash.`,
         `health_sync.csv ${rows(counts.healthSync)} — what Apple Health sync sent to your iPhone, one row per day, kept for ${HEALTH_SYNC_RETENTION_DAYS} days: the daily totals sent (${HEALTH_SYNC_FIELDS.join(", ")}), how many later top-ups were sent for the day (topup_seq) and when the first and last were sent. Each row is in its own "timezone" — the zone the day was counted in, which can differ from your account's if your phone was elsewhere — and its date and times are wall clocks there. An empty value was not sent; a row with no values was offered but not yet confirmed by the phone. Alcohol is never sent.`,
         "README.txt   this file.",
         "",
@@ -1209,7 +1251,7 @@ export function buildExportReadme(opts: {
         "This archive holds everything the service stores about you. What is not in it:",
         "  * the server runtime log — a short rolling buffer of requests that does not contain your account id or email, so it cannot be looked up by account;",
         "  * our providers' own short-lived operational logs (including the sign-in provider's audit records) and their rolling backups, which age out on their own schedule;",
-        "  * values kept only as one-way hashes for security: your password (held by the sign-in provider, which never returns it) and your tokens and sign-in codes, including the Apple Health sync token (which also sits, unhashed, in the shortcut on your own devices);",
+        "  * values kept only as one-way hashes for security: your password (held by the sign-in provider, which never returns it) and your tokens and sign-in codes, including the Apple Health sync token (which also sits, unhashed, in the shortcut on your own devices) and the web dashboard's session cookie (which also sits, unhashed, in your browser);",
         "  * internal bookkeeping: the de-duplication keys stored beside meals, water, active calories, weight and body measurement entries, the PKCE challenge of a pending sign-in, and Apple Health sync's lock against two syncs at once, its per-day count of how often a day was offered and its record of which notices were shown;",
         "  * a pending Apple Health sync connect request, which lasts at most 30 minutes and is deleted once the shortcut finishes connecting;",
         "  * a sign-in session record at our sign-in provider (IP address and browser), if one was ever left behind after sign-in; it is deleted with your account.",
@@ -1233,7 +1275,8 @@ export interface ExportCounts {
     /** Rows in goals_history.csv. */
     goalsHistory: number;
     telemetry: number;
-    /** OAuth grants plus the Apple Health sync link row, when there is one. */
+    /** OAuth grants, the Apple Health sync and activity link rows when there
+     *  are any, and one row per web dashboard session. */
     connections: number;
     /** Days in health_sync.csv. */
     healthSync: number;
@@ -1252,8 +1295,8 @@ export interface FullExportResult {
  * Build the whole-account archive — every log (meals and their ingredients,
  * saved meals and their ingredients, water, weight and body measurements), the
  * goals and their history, the profile, the
- * Auth account, the tool telemetry, the OAuth grants and the Apple Health sync
- * link with its record of what was sent —
+ * Auth account, the tool telemetry, the OAuth grants, the Apple Health sync
+ * link with its record of what was sent, and the web dashboard sessions —
  * upload it to the private `exports` bucket under a fixed per-user path (so
  * each export overwrites the previous one), and return a signed download link
  * valid for EXPORT_TTL_SECONDS. This is the only export path: a meals-only CSV
@@ -1269,12 +1312,17 @@ export async function exportAllData(
         getGoalsHistory?: (
             userId: string,
         ) => Promise<NutritionGoalsHistoryRow[]>;
+        getDashboardSessions?: (
+            userId: string,
+        ) => Promise<DashboardSessionExportRow[]>;
     } = {},
 ): Promise<FullExportResult> {
     const healthSync = deps.healthSync ?? createSupabaseHealthSyncStore();
     const healthActivity =
         deps.healthActivity ?? createSupabaseHealthActivityLinkStore();
     const getGoalsHistory = deps.getGoalsHistory ?? getNutritionGoalsHistory;
+    const getDashboardSessions =
+        deps.getDashboardSessions ?? getDashboardSessionsForExport;
     // One round of independent queries rather than each awaited in turn: an
     // account with years of history pages through meals, water, weight and
     // telemetry, and serialising those pushes the tool past the point where a
@@ -1297,6 +1345,7 @@ export async function exportAllData(
         healthSyncLink,
         healthSyncDays,
         activitySyncLink,
+        dashboardSessions,
     ] = await Promise.all([
         getAllMeals(userId),
         getAllMealItems(userId),
@@ -1315,6 +1364,7 @@ export async function exportAllData(
         healthSync.getLinkStatus(userId),
         healthSync.getDaysForExport(userId),
         healthActivity.getActivityLinkStatus(userId),
+        getDashboardSessions(userId),
     ]);
 
     const counts: ExportCounts = {
@@ -1331,7 +1381,8 @@ export async function exportAllData(
         connections:
             connections.length +
             (healthSyncLink ? 1 : 0) +
-            (activitySyncLink ? 1 : 0),
+            (activitySyncLink ? 1 : 0) +
+            dashboardSessions.length,
         healthSync: healthSyncDays.length,
     };
 
@@ -1389,6 +1440,7 @@ export async function exportAllData(
             tz,
             healthSyncLink,
             activitySyncLink,
+            dashboardSessions,
         ),
         "health_sync.csv": buildHealthSyncCsv(healthSyncDays, tz),
         "README.txt": buildExportReadme({
