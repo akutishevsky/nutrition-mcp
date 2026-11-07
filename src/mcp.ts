@@ -94,6 +94,7 @@ import {
     DELETED_ACCOUNT_ANALYTICS_ID,
     withAnalytics,
     categorizeError,
+    type ToolSurface,
 } from "./analytics.js";
 import { ToolError, newErrorRef, toolErrorWithUserText } from "./errors.js";
 import {
@@ -3017,12 +3018,57 @@ export function healthActivityProfileLine(
     return `Apple Health activity sync: connected ${connected}, reads the daily Active Energy total, last sync ${lastSync}.`;
 }
 
+/**
+ * Which tools and resources a server registers, by registration name. Absent
+ * (every /mcp server) means all of them. The web dashboard passes one naming
+ * only the read tools it can call and their widget resources, so each of its
+ * in-process calls skips registering ~50 tools nobody on that surface can
+ * reach. A name the filter lists that no registration carries simply registers
+ * nothing, so a typo shows up as a missing tool, never as an extra one.
+ */
+export interface RegistrationFilter {
+    tools: ReadonlySet<string>;
+    resources: ReadonlySet<string>;
+}
+
+// The registration calls below stay literal registerTool calls on `server`
+// (src/site-copy.test.ts scrapes them), so the filter sits in front of the
+// server rather than around each call. Nothing reads a registration's return
+// value, so a skipped one returns undefined.
+type RegistrationTarget = Pick<
+    McpServer,
+    "registerTool" | "registerResource" | "server"
+>;
+
+function filteredRegistrations(
+    target: McpServer,
+    only: RegistrationFilter,
+): RegistrationTarget {
+    const registerTool = ((name: string, ...rest: unknown[]) =>
+        only.tools.has(name)
+            ? (target.registerTool as (...a: unknown[]) => unknown).call(
+                  target,
+                  name,
+                  ...rest,
+              )
+            : undefined) as McpServer["registerTool"];
+    const registerResource = ((name: string, ...rest: unknown[]) =>
+        only.resources.has(name)
+            ? (target.registerResource as (...a: unknown[]) => unknown).call(
+                  target,
+                  name,
+                  ...rest,
+              )
+            : undefined) as McpServer["registerResource"];
+    return { registerTool, registerResource, server: target.server };
+}
+
 // Exported for tests: the only way to exercise a tool handler end-to-end
 // (schema coercion, handler, response text) is to register the tools on a real
 // McpServer and call them through a client. Production still reaches this only
 // via buildMcpServer.
 export function registerTools(
-    server: McpServer,
+    mcpServer: McpServer,
     userId: string,
     widgetsEnabled: boolean,
     alcohol: AlcoholDisplay,
@@ -3038,7 +3084,17 @@ export function registerTools(
     // profiles.widgets_expanded, resolved once in buildMcpServer like
     // widgetsEnabled. Last and optional for the same reason as protocolEra.
     widgetsExpanded = false,
+    // Who is calling (src/analytics.ts ToolSurface): absent for /mcp,
+    // "dashboard" for the web dashboard's in-process reads, which withAnalytics
+    // then leaves out of tool_analytics and the [analytics] log.
+    surface?: ToolSurface,
+    // Register only these tools and resources (see RegistrationFilter). Only
+    // the dashboard passes one; /mcp registers everything.
+    only?: RegistrationFilter,
 ) {
+    const server: RegistrationTarget = only
+        ? filteredRegistrations(mcpServer, only)
+        : mcpServer;
     const usdaOverrides: Partial<UsdaDeps> = usda;
     // One context for all 49 tools. clientInfo is a getter, not a value: at
     // registration time the SDK has not yet resolved who is calling, and on the
@@ -3047,6 +3103,7 @@ export function registerTools(
         userId,
         protocolEra,
         clientInfo: () => server.server.getClientVersion(),
+        surface,
     };
     // Link a tool to its widget only when this user has widgets enabled. Because
     // buildMcpServer registers tools per request, this makes widget display a
@@ -9257,10 +9314,16 @@ function newMcpServer(baseUrl: string): McpServer {
 // The full server: the bare one plus this user's tools registered. `baseUrl` is
 // the public origin the client reached us on (from the forwarding headers),
 // used only to advertise the server icon.
-async function buildMcpServer(
+//
+// Exported for the web dashboard (src/dashboard-api.ts), which runs the same
+// registered read tools in-process with `surface: "dashboard"` and an `only`
+// filter naming just those tools and their widgets; /mcp never passes either.
+export async function buildMcpServer(
     baseUrl: string,
     userId: string,
     protocolEra?: "legacy" | "modern",
+    surface?: ToolSurface,
+    only?: RegistrationFilter,
 ): Promise<McpServer> {
     const server = newMcpServer(baseUrl);
 
@@ -9283,6 +9346,8 @@ async function buildMcpServer(
         protocolEra,
         {},
         widgetsExpandedFromProfile(profile),
+        surface,
+        only,
     );
     return server;
 }
