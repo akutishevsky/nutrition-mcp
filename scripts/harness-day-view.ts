@@ -222,6 +222,152 @@ const CANTEEN: MealFx = {
     n: { fib: 3, sug: 6, add: null, sat: null, tr: null, na: 1120 },
 };
 
+// Meal types beyond the base four (src/meal-types.ts). Polish-style days:
+// the names are English, the types are the user's own day.
+const PL_EGGS: MealFx = {
+    type: "breakfast",
+    name: "Scrambled eggs on rye bread",
+    items: [
+        ["Eggs, scrambled", 120, "g", "usda", 180, 14, 1, 13, 240],
+        ["Rye bread, 2 slices", 80, "g", "own", 200, 7, 40, 2, 420],
+        ["Butter", 8, "g", "label", 60, 0, 0, 7, 2],
+        ["Tomato & chives", 40, "g", "est", 8, 0, 2, 0, 3],
+    ],
+    n: { fib: 5.5, sug: 3.0, add: 0, sat: 7.0, tr: 0 },
+};
+const PL_ROLL: MealFx = {
+    type: "second_breakfast",
+    name: "Rye roll with ham and cucumber",
+    items: [
+        ["Rye roll", 70, "g", "own", 180, 6, 34, 2, 380],
+        ["Cooked ham", 40, "g", "label", 50, 8, 1, 2, 480],
+        ["Cucumber", 50, "g", "usda", 8, 0, 2, 0, 1],
+    ],
+    n: { fib: 3.0, sug: 2.5, add: 0, sat: 1.0, tr: 0 },
+};
+const PL_CUTLET: MealFx = {
+    type: "lunch",
+    name: "Pork cutlet, potatoes and beetroot salad",
+    items: [
+        [
+            "Pork loin cutlet, breaded, fried",
+            150,
+            "g",
+            "est",
+            390,
+            32,
+            20,
+            20,
+            520,
+        ],
+        ["Boiled potatoes", 200, "g", "usda", 154, 4, 35, 0, 12],
+        [
+            "Beetroot salad with mayonnaise",
+            100,
+            "g",
+            "label",
+            120,
+            1,
+            9,
+            9,
+            380,
+        ],
+    ],
+    n: { fib: 8.0, sug: 9.0, add: 0.5, sat: 6.0, tr: 0.2 },
+};
+const PL_SERNIK: MealFx = {
+    type: "afternoon_snack",
+    name: "Cheesecake slice and black tea",
+    items: [
+        ["Cheesecake, 1 slice", 110, "g", "label", 320, 9, 30, 18, 260],
+        ["Black tea with sugar", 250, "ml", "est", 20, 0, 5, 0, 5],
+    ],
+    n: { fib: 0.8, sug: 24.0, add: 20.0, sat: 10.0, tr: 0.2, caf: 40 },
+};
+const PL_KOLACJA: MealFx = {
+    type: "supper",
+    name: "Cottage cheese and tomato on wholegrain",
+    items: [
+        ["Wholegrain bread, 2 slices", 70, "g", "label", 170, 7, 30, 2, 330],
+        ["Cottage cheese, low fat", 100, "g", "usda", 98, 11, 3, 4, 360],
+        ["Tomato", 60, "g", "usda", 11, 1, 2, 0, 3],
+        ["Chives", 5, "g", "est", 2, 0, 0, 0, 1],
+    ],
+    n: { fib: 5.0, sug: 6.0, add: 0, sat: 2.0, tr: 0 },
+};
+const PL_MUESLI: MealFx = {
+    type: "breakfast",
+    name: "Muesli with milk and banana",
+    items: [
+        ["Muesli, no added sugar", 50, "g", "label", 180, 5, 32, 4, 10],
+        ["Milk 2%", 200, "ml", "label", 100, 7, 10, 4, 90],
+        ["Banana", 100, "g", "usda", 89, 1, 23, 0, 1],
+    ],
+    n: { fib: 7.0, sug: 25.0, add: 2.0, sat: 2.5, tr: 0 },
+};
+const PL_BOWL: MealFx = {
+    type: "lunch",
+    name: "Work lunch: chicken and rice bowl",
+    items: [
+        ["Chicken breast, roasted", 130, "g", "usda", 215, 40, 0, 5, 90],
+        ["White rice, cooked", 180, "g", "usda", 234, 4, 51, 0.5, 2],
+        ["Sweet corn", 60, "g", "usda", 52, 2, 12, 0.7, 1],
+        ["Teriyaki sauce", 30, "g", "label", 60, 1, 13, 0.5, 620],
+    ],
+    n: { fib: 4.0, sug: 9.0, add: 4.0, sat: 1.5, tr: 0 },
+};
+const PL_PIEROGI: MealFx = {
+    type: "dinner",
+    name: "Potato pierogi with onion and sour cream",
+    items: [
+        ["Potato pierogi, boiled", 250, "g", "label", 520, 13, 90, 12, 640],
+        ["Fried onion", 30, "g", "est", 90, 1, 8, 6, 5],
+        ["Sour cream 18%", 40, "g", "label", 80, 1, 2, 8, 20],
+    ],
+    n: { fib: 6.0, sug: 6.0, add: 0.5, sat: 12.0, tr: 0.3 },
+};
+const PL_CHEESE_TOAST: MealFx = {
+    type: "supper",
+    name: "Cheese toast and an apple",
+    items: [
+        ["Wholegrain toast", 60, "g", "own", 150, 6, 26, 2, 300],
+        ["Cheddar", 30, "g", "label", 120, 7, 0, 10, 190],
+        ["Apple", 150, "g", "usda", 78, 0, 21, 0, 2],
+    ],
+    n: { fib: 6.0, sug: 16.0, add: 0, sat: 6.5, tr: 0 },
+};
+const PRE_WORKOUT: MealFx = {
+    type: "pre_workout",
+    name: "Banana and rice cakes with honey",
+    items: [
+        ["Banana", 120, "g", "usda", 107, 1, 27, 0, 1],
+        ["Rice cakes, plain", 30, "g", "label", 115, 2, 24, 1, 40],
+        ["Honey", 15, "g", "est", 46, 0, 12, 0, 1],
+    ],
+    n: { fib: 3.0, sug: 27.0, add: 12.0, sat: 0.1, tr: 0 },
+};
+const POST_WORKOUT: MealFx = {
+    type: "post_workout",
+    name: "Whey shake with milk and oats",
+    items: [
+        ["Whey protein, 30 g", 30, "g", "label", 115, 24, 3, 2, 60],
+        ["Semi-skimmed milk", 300, "ml", "label", 140, 10, 15, 5, 135],
+        ["Oat flakes", 30, "g", "usda", 115, 4, 20, 2, 2],
+    ],
+    n: { fib: 3.0, sug: 19.0, add: 0.5, sat: 3.0, tr: 0.1 },
+};
+const SALMON: MealFx = {
+    type: "dinner",
+    name: "Salmon with baby potatoes and broccoli",
+    items: [
+        ["Salmon fillet, baked", 150, "g", "usda", 312, 33, 0, 19, 90],
+        ["Baby potatoes, boiled", 200, "g", "usda", 154, 4, 35, 0, 12],
+        ["Broccoli, steamed", 120, "g", "usda", 41, 3, 8, 0.5, 40],
+        ["Olive oil", 10, "ml", "est", 88, 0, 0, 10, 0],
+    ],
+    n: { fib: 7.0, sug: 4.0, add: 0, sat: 5.0, tr: 0 },
+};
+
 const SOURCE_TAG: Record<Src, NutrientSources[keyof NutrientSources]> = {
     usda: { s: "usda", ref: "171477" },
     label: { s: "openfoodfacts", ref: "4820000000017" },
@@ -511,6 +657,36 @@ const ML_SCENARIOS: Record<
         ],
         water: 900,
         limits: false,
+    },
+    "pl-five": {
+        list: [
+            [PL_EGGS, "08:00"],
+            [PL_ROLL, "10:30"],
+            [PL_CUTLET, "14:00"],
+            [PL_SERNIK, "16:30"],
+            [PL_KOLACJA, "19:30"],
+        ],
+        water: 1500,
+    },
+    "pl-four": {
+        list: [
+            [PL_MUESLI, "08:00"],
+            [PL_BOWL, "12:30"],
+            [PL_PIEROGI, "17:00"],
+            [PL_CHEESE_TOAST, "21:00"],
+        ],
+        water: 1100,
+    },
+    training: {
+        list: [
+            [OATS, "07:30"],
+            [YOG, "10:20"],
+            [SAND, "12:45"],
+            [PRE_WORKOUT, "17:30"],
+            [POST_WORKOUT, "19:30"],
+            [SALMON, "20:45"],
+        ],
+        water: 2600,
     },
 };
 
@@ -828,6 +1004,36 @@ function summaryDay(name: string) {
             water: 500,
             goals: false,
         },
+        "pl-five": {
+            list: [
+                [PL_EGGS, "08:00"],
+                [PL_ROLL, "10:30"],
+                [PL_CUTLET, "14:00"],
+                [PL_SERNIK, "16:30"],
+                [PL_KOLACJA, "19:30"],
+            ],
+            water: 1500,
+        },
+        "pl-four": {
+            list: [
+                [PL_MUESLI, "08:00"],
+                [PL_BOWL, "12:30"],
+                [PL_PIEROGI, "17:00"],
+                [PL_CHEESE_TOAST, "21:00"],
+            ],
+            water: 1100,
+        },
+        training: {
+            list: [
+                [OATS, "07:30"],
+                [YOG, "10:20"],
+                [SAND, "12:45"],
+                [PRE_WORKOUT, "17:30"],
+                [POST_WORKOUT, "19:30"],
+                [SALMON, "20:45"],
+            ],
+            water: 2600,
+        },
     };
     const sc = dayLists[name];
     if (!sc) return null;
@@ -1114,6 +1320,9 @@ export const SUMMARY_SCENARIO_NAMES = [
     "sparse",
     "nothing",
     "no-goals",
+    "pl-five",
+    "pl-four",
+    "training",
     "week",
     "month-over",
 ];

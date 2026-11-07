@@ -85,7 +85,8 @@ export const TOOLS_PL: ToolsDoc = {
                 "Zapisuj posiłki z kaloriami i makroskładnikami — a także z tłuszczami nasyconymi i trans, błonnikiem, cukrami ogółem i dodanymi, sodem, alkoholem i kofeiną, jeśli te wartości są znane. Opisz posiłek zwykłymi słowami: AI oszacuje wartości, dopyta o wielkość porcji, gdy nie jest jasna, a wcześniej może pobrać dane z etykiety po kodzie kreskowym albo z internetu. Może też przyjąć składniki jeden po drugim — wtedy wartości posiłku są sumą tych składników.",
             params: {
                 description: "Co zostało zjedzone",
-                meal_type: "śniadanie, obiad, kolacja lub przekąska",
+                meal_type:
+                    "śniadanie, drugie śniadanie, obiad, podwieczorek, kolacja, przed treningiem, po treningu lub przekąska",
                 calories: "Łączna liczba kalorii",
                 protein_g: "Białko w gramach",
                 carbs_g: "Węglowodany w gramach",
@@ -208,7 +209,7 @@ export const TOOLS_PL: ToolsDoc = {
                     "UUID zapisanego posiłku, z którego skopiować wartości i składniki",
                 description: "Czym jest zapisany posiłek. Domyślnie jego nazwa",
                 meal_type:
-                    "śniadanie, obiad, kolacja lub przekąska — wartość domyślna przy zapisie do dziennika",
+                    "śniadanie, drugie śniadanie, obiad, podwieczorek, kolacja, przed treningiem, po treningu lub przekąska — wartość domyślna przy zapisie do dziennika",
                 items: "Składniki, jeden w wierszu, z ich ilościami i wartościami. Ich suma staje się wartościami zapisanego posiłku, więc wyślij składniki albo wartości, nie oba naraz",
                 calories: "Łączna liczba kalorii w jednej porcji",
                 protein_g: "Białko w gramach w jednej porcji",
@@ -242,7 +243,7 @@ export const TOOLS_PL: ToolsDoc = {
                 leave_out:
                     "Składniki do pominięcia w tym wpisie, wskazane nazwą albo pozycją",
                 meal_type:
-                    "śniadanie, obiad, kolacja lub przekąska — zastępuje domyślny typ zapisanego posiłku",
+                    "śniadanie, drugie śniadanie, obiad, podwieczorek, kolacja, przed treningiem, po treningu lub przekąska — zastępuje domyślny typ zapisanego posiłku",
                 description:
                     "Opis tego wpisu. Domyślnie opis zapisanego posiłku",
                 logged_at: "Kiedy go zjedzono, jeśli nie teraz",
@@ -260,7 +261,7 @@ export const TOOLS_PL: ToolsDoc = {
                 name: "Nowa nazwa, unikalna wśród Twoich zapisanych posiłków",
                 description: "Nowy opis",
                 meal_type:
-                    "Nowy domyślny typ posiłku: śniadanie, obiad, kolacja lub przekąska",
+                    "Nowy domyślny typ posiłku: śniadanie, drugie śniadanie, obiad, podwieczorek, kolacja, przed treningiem, po treningu lub przekąska",
                 items: "Pełna lista składników, zastępująca dotychczasową. Ich suma staje się wartościami zapisanego posiłku, więc pól z wartościami nie można wysłać razem z nią",
                 calories: "Łączna liczba kalorii w jednej porcji",
                 protein_g: "Białko w gramach w jednej porcji",

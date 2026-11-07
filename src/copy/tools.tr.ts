@@ -90,7 +90,8 @@ export const TOOLS_TR: ToolsDoc = {
                 "Ne yediğini kalori ve makrolarla kaydet; sayılar varsa doymuş ve trans yağ, lif, toplam ve ilave şeker, sodyum, alkol ve kafeinle birlikte. Günlük dille anlatman yeterli: yapay zekâ sayıları tahmin eder, porsiyon belirsizse sorar ve önce bir barkoddan ya da internetten etiket bilgisi çekebilir. Malzemeleri de tek tek verebilirsin; o zaman toplamlar bu malzemelerin toplamı olur.",
             params: {
                 description: "Ne yenildi",
-                meal_type: "kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün",
+                meal_type:
+                    "kahvaltı, kuşluk, öğle yemeği, ikindi ara öğünü, akşam yemeği, gece öğünü, antrenman öncesi, antrenman sonrası ya da ara öğün",
                 calories: "Toplam kalori",
                 protein_g: "Gram cinsinden protein",
                 carbs_g: "Gram cinsinden karbonhidrat",
@@ -213,7 +214,7 @@ export const TOOLS_TR: ToolsDoc = {
                     "Değerlerini ve malzemelerini kopyalayacağın kaydettiğin bir yemeğin UUID değeri",
                 description: "Kayıtlı yemeğin ne olduğu. Varsayılan olarak adı",
                 meal_type:
-                    "kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün — kaydederken varsayılan olarak kullanılır",
+                    "kahvaltı, kuşluk, öğle yemeği, ikindi ara öğünü, akşam yemeği, gece öğünü, antrenman öncesi, antrenman sonrası ya da ara öğün — kaydederken varsayılan olarak kullanılır",
                 items: "Malzemeler, her satırda kendi miktarı ve besin değerleriyle. Toplamları kayıtlı yemeğin değerleri olur; bu yüzden malzemeleri ya da değerleri gönder, ikisini birden değil",
                 calories: "Bir porsiyon için toplam kalori",
                 protein_g: "Bir porsiyon için gram cinsinden protein",
@@ -249,7 +250,7 @@ export const TOOLS_TR: ToolsDoc = {
                 leave_out:
                     "Bu kayıttan çıkarılacak malzemeler, ad ya da sıra numarasıyla",
                 meal_type:
-                    "kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün — kayıtlı yemeğin varsayılanının yerine geçer",
+                    "kahvaltı, kuşluk, öğle yemeği, ikindi ara öğünü, akşam yemeği, gece öğünü, antrenman öncesi, antrenman sonrası ya da ara öğün — kayıtlı yemeğin varsayılanının yerine geçer",
                 description:
                     "Bu kayıt için açıklama. Varsayılan olarak kayıtlı yemeğin açıklaması",
                 logged_at: "Ne zaman yediğin, şimdi değilse",
@@ -267,7 +268,7 @@ export const TOOLS_TR: ToolsDoc = {
                 name: "Yeni ad; kayıtlı yemeklerin arasında benzersiz olmalı",
                 description: "Yeni açıklama",
                 meal_type:
-                    "Yeni varsayılan yemek türü: kahvaltı, öğle yemeği, akşam yemeği ya da ara öğün",
+                    "Yeni varsayılan yemek türü: kahvaltı, kuşluk, öğle yemeği, ikindi ara öğünü, akşam yemeği, gece öğünü, antrenman öncesi, antrenman sonrası ya da ara öğün",
                 items: "Tam malzeme listesi; mevcut listenin yerini alır. Toplamı kayıtlı yemeğin değerleri olur; bu yüzden değer alanları bununla birlikte gönderilemez",
                 calories: "Bir porsiyon için toplam kalori",
                 protein_g: "Bir porsiyon için gram cinsinden protein",

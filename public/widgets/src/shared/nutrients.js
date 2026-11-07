@@ -319,10 +319,10 @@ function nvRowValue(row, V) {
 const NV_CHEV_DOWN = `<svg class="achev" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>`;
 const NV_CHEV_RIGHT = `<svg class="mc" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>`;
 
+// The one lookup lives in shared/macros.js, which every template that
+// includes this partial also includes.
 function nvMealTypeLabel(type) {
-    if (!type) return "";
-    const known = T.nutritionSummary.mealTypes;
-    return (known && known[type]) || type;
+    return type ? mealTypeLabelText(type) : "";
 }
 
 // A meal's own figure for one nutrient, in display units (null when the meal

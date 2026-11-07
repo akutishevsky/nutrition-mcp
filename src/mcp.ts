@@ -6,6 +6,7 @@ import {
     type McpRequestContext,
 } from "@modelcontextprotocol/server";
 import { getBaseUrl } from "./url.js";
+import { MEAL_TYPES } from "./meal-types.js";
 import { formatClientId } from "./client-id.js";
 import { z } from "zod";
 import type { Context } from "hono";
@@ -1144,7 +1145,7 @@ const IMPORT_ROW_SCHEMA = z.object({
         .string()
         .optional()
         .describe(
-            "breakfast, lunch, dinner or snack. Case-insensitive; unrecognized values become snack. Omit when the source has no meal column and it will be inferred from the time.",
+            "One of breakfast, second_breakfast, lunch, afternoon_snack, dinner, supper, pre_workout, post_workout or snack. Case-insensitive; unrecognized values become snack. Omit when the source has no meal column and it will be inferred from the time.",
         ),
     calories: z.coerce.number().optional(),
     protein_g: z.coerce.number().optional(),
@@ -3112,9 +3113,9 @@ export function registerTools(
             inputSchema: z.object({
                 description: z.string().describe("What was eaten"),
                 meal_type: z
-                    .enum(["breakfast", "lunch", "dinner", "snack"])
+                    .enum(MEAL_TYPES)
                     .describe(
-                        "Type of meal (breakfast, lunch, dinner, or snack). Always ask the user if not provided.",
+                        "The meal's place in the user's own day, as the user names it: breakfast, second_breakfast (a mid-morning meal), lunch, afternoon_snack, dinner (the main evening meal), supper (a later, lighter meal after dinner, including late-night eating), pre_workout, post_workout, or snack. The same clock time is a different meal in different cultures.",
                     ),
                 // Bounded in the schema, not the handler — see the MAX_*
                 // constants for why this tool differs from bulk_import_meals.
@@ -5543,8 +5544,11 @@ export function registerTools(
                     ),
                 description: z.string().optional(),
                 meal_type: z
-                    .enum(["breakfast", "lunch", "dinner", "snack"])
-                    .optional(),
+                    .enum(MEAL_TYPES)
+                    .optional()
+                    .describe(
+                        "The meal's place in the user's own day, as the user names it: breakfast, second_breakfast (a mid-morning meal), lunch, afternoon_snack, dinner (the main evening meal), supper (a later, lighter meal after dinner, including late-night eating), pre_workout, post_workout, or snack. The same clock time is a different meal in different cultures. Omit to keep the stored type.",
+                    ),
                 // Same bounds, and the same reasoning, as log_meal.
                 calories: z.coerce.number().min(0).max(MAX_CALORIES).optional(),
                 protein_g: z.coerce.number().min(0).max(MAX_MACRO_G).optional(),
@@ -5810,10 +5814,10 @@ export function registerTools(
                         "What the saved meal is, written as a meal description would be, 1 to 2000 characters. Defaults to the name, or to the copied meal's description.",
                     ),
                 meal_type: z
-                    .enum(["breakfast", "lunch", "dinner", "snack"])
+                    .enum(MEAL_TYPES)
                     .optional()
                     .describe(
-                        "Default meal type, used by log_saved_meal when its meal_type is not given.",
+                        "The meal's place in the user's own day, as the user names it: breakfast, second_breakfast (a mid-morning meal), lunch, afternoon_snack, dinner (the main evening meal), supper (a later, lighter meal after dinner, including late-night eating), pre_workout, post_workout, or snack. The same clock time is a different meal in different cultures. This is the default log_saved_meal uses when it is not given a type.",
                     ),
                 items: z
                     .array(MEAL_ITEM_INPUT)
@@ -6220,10 +6224,10 @@ export function registerTools(
                         "Items not eaten this time, by position number or exact name. At least one item stays in.",
                     ),
                 meal_type: z
-                    .enum(["breakfast", "lunch", "dinner", "snack"])
+                    .enum(MEAL_TYPES)
                     .optional()
                     .describe(
-                        "Meal type of this entry. Defaults to the saved meal's default meal type.",
+                        "The meal's place in the user's own day, as the user names it: breakfast, second_breakfast (a mid-morning meal), lunch, afternoon_snack, dinner (the main evening meal), supper (a later, lighter meal after dinner, including late-night eating), pre_workout, post_workout, or snack. The same clock time is a different meal in different cultures. Omit to use the saved meal's default.",
                     ),
                 description: z
                     .string()
@@ -6403,9 +6407,11 @@ export function registerTools(
                     .optional()
                     .describe("A new description, 1 to 2000 characters."),
                 meal_type: z
-                    .enum(["breakfast", "lunch", "dinner", "snack"])
+                    .enum(MEAL_TYPES)
                     .optional()
-                    .describe("A new default meal type."),
+                    .describe(
+                        "The meal's place in the user's own day, as the user names it: breakfast, second_breakfast (a mid-morning meal), lunch, afternoon_snack, dinner (the main evening meal), supper (a later, lighter meal after dinner, including late-night eating), pre_workout, post_workout, or snack. The same clock time is a different meal in different cultures. Omit to keep the current default.",
+                    ),
                 items: z
                     .array(MEAL_ITEM_INPUT)
                     .optional()

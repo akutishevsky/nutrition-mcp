@@ -148,8 +148,13 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         caloriesByDay: "Kalorie według dni",
         mealTypes: {
             breakfast: "Śniadanie",
+            second_breakfast: "Drugie śniadanie",
             lunch: "Obiad",
+            afternoon_snack: "Podwieczorek",
             dinner: "Kolacja",
+            supper: "Późna kolacja",
+            pre_workout: "Przed treningiem",
+            post_workout: "Po treningu",
             snack: "Przekąska",
         },
         items: {
@@ -418,8 +423,13 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         mealFallback: "Posiłek",
         mealTypes: {
             breakfast: "Śniadanie",
+            second_breakfast: "Drugie śniadanie",
             lunch: "Obiad",
+            afternoon_snack: "Podwieczorek",
             dinner: "Kolacja",
+            supper: "Późna kolacja",
+            pre_workout: "Przed treningiem",
+            post_workout: "Po treningu",
             snack: "Przekąska",
         },
         noMealsToday: "Dziś nie zapisano posiłków.",
@@ -1409,8 +1419,13 @@ export const WIDGET_STRINGS_PL: WidgetStrings = {
         meals: {
             types: {
                 breakfast: "Śniadanie",
+                second_breakfast: "Drugie śniadanie",
                 lunch: "Obiad",
+                afternoon_snack: "Podwieczorek",
                 dinner: "Kolacja",
+                supper: "Późna kolacja",
+                pre_workout: "Przed treningiem",
+                post_workout: "Po treningu",
                 snack: "Przekąska",
                 drink: "Napój",
             },

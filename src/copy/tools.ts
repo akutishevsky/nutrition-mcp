@@ -900,7 +900,8 @@ const TOOLS_EN: ToolsDoc = {
                 "Log what you ate with calories and macros — plus saturated and trans fat, fiber, total and added sugar, sodium, alcohol and caffeine when the numbers are there. Describe it in plain language — the AI estimates the numbers, asks about portion size when it's unclear, and can pull label data from a barcode or the web first. It can also take the ingredients one by one, and then the totals are the sum of those ingredients.",
             params: {
                 description: "What was eaten",
-                meal_type: "breakfast, lunch, dinner or snack",
+                meal_type:
+                    "breakfast, second breakfast, lunch, afternoon snack, dinner, supper, pre-workout, post-workout or snack",
                 calories: "Total calories",
                 protein_g: "Protein in grams",
                 carbs_g: "Carbohydrates in grams",
@@ -1022,7 +1023,7 @@ const TOOLS_EN: ToolsDoc = {
                     "UUID of a logged meal to copy its values and ingredients from",
                 description: "What the saved meal is. Defaults to its name",
                 meal_type:
-                    "breakfast, lunch, dinner or snack — the default when you log it",
+                    "breakfast, second breakfast, lunch, afternoon snack, dinner, supper, pre-workout, post-workout or snack — the default when you log it",
                 items: "Ingredients, one row each, with their amounts and nutrients. Their sum becomes the saved meal's values, so send items or values, not both",
                 calories: "Total calories for one serving",
                 protein_g: "Protein in grams for one serving",
@@ -1057,7 +1058,7 @@ const TOOLS_EN: ToolsDoc = {
                 leave_out:
                     "Ingredients to drop from this entry, by name or position",
                 meal_type:
-                    "breakfast, lunch, dinner or snack — overrides the saved meal's default",
+                    "breakfast, second breakfast, lunch, afternoon snack, dinner, supper, pre-workout, post-workout or snack — overrides the saved meal's default",
                 description:
                     "Description for this entry. Defaults to the saved meal's description",
                 logged_at: "When you ate it, if not now",
@@ -1075,7 +1076,7 @@ const TOOLS_EN: ToolsDoc = {
                 name: "New name, unique among your saved meals",
                 description: "New description",
                 meal_type:
-                    "New default meal type: breakfast, lunch, dinner or snack",
+                    "New default meal type: breakfast, second breakfast, lunch, afternoon snack, dinner, supper, pre-workout, post-workout or snack",
                 items: "The full ingredient list, replacing the existing one. Its sum becomes the saved meal's values, so the values fields can't be sent with it",
                 calories: "Total calories for one serving",
                 protein_g: "Protein in grams for one serving",

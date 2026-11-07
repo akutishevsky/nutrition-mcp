@@ -5,6 +5,7 @@ import {
 } from "@supabase/supabase-js";
 import { zonedDayStartUtc, zonedNextDayStartUtc } from "./tz.js";
 import { decodeEscapeSequences } from "./normalize.js";
+import type { MealType } from "./meal-types.js";
 import {
     isWeightUnit,
     isLengthUnit,
@@ -254,7 +255,7 @@ export interface Meal {
 
 export interface MealInput {
     description: string;
-    meal_type: "breakfast" | "lunch" | "dinner" | "snack";
+    meal_type: MealType;
     calories?: number;
     protein_g?: number;
     carbs_g?: number;

@@ -137,8 +137,13 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         caloriesByDay: "日別のカロリー",
         mealTypes: {
             breakfast: "朝食",
+            second_breakfast: "午前の間食",
             lunch: "昼食",
+            afternoon_snack: "おやつ",
             dinner: "夕食",
+            supper: "夜食",
+            pre_workout: "トレーニング前",
+            post_workout: "トレーニング後",
             snack: "間食",
         },
         items: {
@@ -366,8 +371,13 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         mealFallback: "食事",
         mealTypes: {
             breakfast: "朝食",
+            second_breakfast: "午前の間食",
             lunch: "昼食",
+            afternoon_snack: "おやつ",
             dinner: "夕食",
+            supper: "夜食",
+            pre_workout: "トレーニング前",
+            post_workout: "トレーニング後",
             snack: "間食",
         },
         noMealsToday: "今日は食事の記録がありません。",
@@ -1239,8 +1249,13 @@ export const WIDGET_STRINGS_JA: WidgetStrings = {
         meals: {
             types: {
                 breakfast: "朝食",
+                second_breakfast: "午前の間食",
                 lunch: "昼食",
+                afternoon_snack: "おやつ",
                 dinner: "夕食",
+                supper: "夜食",
+                pre_workout: "トレーニング前",
+                post_workout: "トレーニング後",
                 snack: "間食",
                 drink: "飲み物",
             },

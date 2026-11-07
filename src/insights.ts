@@ -2,6 +2,12 @@ import type { Meal, NutritionGoals, WaterEntry } from "./supabase.js";
 import { dateInTz, hourInTz } from "./tz.js";
 import { formatWeight, fromGrams, type WeightUnit } from "./units.js";
 import {
+    BASE_MEAL_TYPES,
+    MEAL_TYPES,
+    isBaseMealType,
+    type MealType,
+} from "./meal-types.js";
+import {
     dailyAverages,
     rateForDisplay,
     rateInUnit,
@@ -812,8 +818,12 @@ export function computeMealPatterns(
         `Patterns — ${buckets[0]!.date} to ${buckets[buckets.length - 1]!.date} (${logged.length} logged days of ${buckets.length})`,
     ];
 
-    // Meal-type presence rates (only counting logged days)
-    const mealTypes = ["breakfast", "lunch", "dinner", "snack"];
+    // Meal-type presence rates (only counting logged days). The base four are
+    // always listed; any other type gets a line only when the window has it.
+    const extraTypes = MEAL_TYPES.filter(
+        (t) => !isBaseMealType(t) && logged.some((b) => b.mealTypes.has(t)),
+    );
+    const mealTypes: readonly MealType[] = [...BASE_MEAL_TYPES, ...extraTypes];
     const presenceLines: string[] = [];
     for (const t of mealTypes) {
         const withType = logged.filter((b) => b.mealTypes.has(t));

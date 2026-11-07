@@ -94,7 +94,8 @@ export const TOOLS_ES: ToolsDoc = {
                 "Registra lo que comiste con sus calorías y macros, además de grasas saturadas y trans, fibra, azúcares totales y añadidos, sodio, alcohol y cafeína cuando haya datos. Descríbelo con tus propias palabras: la IA estima las cifras, te pregunta el tamaño de la porción si no está claro y puede consultar antes los datos de la etiqueta con el código de barras o en la web. También puede recibir los ingredientes uno a uno, y entonces los totales son la suma de esos ingredientes.",
             params: {
                 description: "Qué comiste",
-                meal_type: "desayuno, almuerzo, cena o snack",
+                meal_type:
+                    "desayuno, media mañana, almuerzo, merienda, cena, recena, antes de entrenar, después de entrenar o snack",
                 calories: "Calorías totales",
                 protein_g: "Proteína en gramos",
                 carbs_g: "Carbohidratos en gramos",
@@ -220,7 +221,7 @@ export const TOOLS_ES: ToolsDoc = {
                 description:
                     "Qué es la comida guardada. Por defecto, su nombre",
                 meal_type:
-                    "desayuno, almuerzo, cena o snack: el valor por defecto al registrarla",
+                    "desayuno, media mañana, almuerzo, merienda, cena, recena, antes de entrenar, después de entrenar o snack: el valor por defecto al registrarla",
                 items: "Ingredientes, una fila por cada uno, con sus cantidades y nutrientes. Su suma pasa a ser los valores de la comida guardada, así que envía ingredientes o valores, no ambos",
                 calories: "Calorías totales para una ración",
                 protein_g: "Proteína en gramos para una ración",
@@ -254,7 +255,7 @@ export const TOOLS_ES: ToolsDoc = {
                 leave_out:
                     "Ingredientes que quitar de esta entrada, por nombre o posición",
                 meal_type:
-                    "desayuno, almuerzo, cena o snack: sustituye al valor por defecto de la comida guardada",
+                    "desayuno, media mañana, almuerzo, merienda, cena, recena, antes de entrenar, después de entrenar o snack: sustituye al valor por defecto de la comida guardada",
                 description:
                     "Descripción de esta entrada. Por defecto, la descripción de la comida guardada",
                 logged_at: "Cuándo lo comiste, si no fue ahora",
@@ -272,7 +273,7 @@ export const TOOLS_ES: ToolsDoc = {
                 name: "Nombre nuevo, único entre tus comidas guardadas",
                 description: "Nueva descripción",
                 meal_type:
-                    "Nuevo tipo de comida por defecto: desayuno, almuerzo, cena o snack",
+                    "Nuevo tipo de comida por defecto: desayuno, media mañana, almuerzo, merienda, cena, recena, antes de entrenar, después de entrenar o snack",
                 items: "La lista completa de ingredientes, que sustituye a la existente. Su suma pasa a ser los valores de la comida guardada, así que no se pueden enviar junto a ella los campos de valores",
                 calories: "Calorías totales para una ración",
                 protein_g: "Proteína en gramos para una ración",

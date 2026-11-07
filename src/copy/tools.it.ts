@@ -99,7 +99,8 @@ export const TOOLS_IT: ToolsDoc = {
                 "Registra cosa hai mangiato con calorie e macro, più grassi saturi e trans, fibre, zuccheri totali e aggiunti, sodio, alcol e caffeina quando i valori sono disponibili. Descrivilo a parole tue: l'IA stima i valori, ti chiede la porzione quando non è chiara e può prima recuperare i dati dell'etichetta da un codice a barre o dal web. Può anche ricevere gli ingredienti uno per uno, e in quel caso i totali sono la somma di quegli ingredienti.",
             params: {
                 description: "Cosa hai mangiato",
-                meal_type: "colazione, pranzo, cena o spuntino",
+                meal_type:
+                    "colazione, spuntino di metà mattina, pranzo, merenda, cena, spuntino serale, pre-allenamento, post-allenamento o spuntino",
                 calories: "Calorie totali",
                 protein_g: "Proteine in grammi",
                 carbs_g: "Carboidrati in grammi",
@@ -224,7 +225,7 @@ export const TOOLS_IT: ToolsDoc = {
                     "UUID di un pasto registrato da cui copiare valori e ingredienti",
                 description: "Di cosa si tratta. Predefinito: il nome",
                 meal_type:
-                    "colazione, pranzo, cena o spuntino: il valore predefinito al momento della registrazione",
+                    "colazione, spuntino di metà mattina, pranzo, merenda, cena, spuntino serale, pre-allenamento, post-allenamento o spuntino: il valore predefinito al momento della registrazione",
                 items: "Ingredienti, una riga per ciascuno, con quantità e valori nutrizionali. La loro somma diventa i valori del pasto salvato, quindi invia ingredienti oppure valori, non entrambi",
                 calories: "Calorie totali per una porzione",
                 protein_g: "Proteine in grammi per una porzione",
@@ -259,7 +260,7 @@ export const TOOLS_IT: ToolsDoc = {
                 leave_out:
                     "Ingredienti da togliere da questa voce, per nome o posizione",
                 meal_type:
-                    "colazione, pranzo, cena o spuntino: sostituisce il tipo predefinito del pasto salvato",
+                    "colazione, spuntino di metà mattina, pranzo, merenda, cena, spuntino serale, pre-allenamento, post-allenamento o spuntino: sostituisce il tipo predefinito del pasto salvato",
                 description:
                     "Descrizione di questa voce. Predefinito: la descrizione del pasto salvato",
                 logged_at: "Quando l'hai mangiato, se non è adesso",
@@ -277,7 +278,7 @@ export const TOOLS_IT: ToolsDoc = {
                 name: "Nuovo nome, unico tra i tuoi pasti salvati",
                 description: "Nuova descrizione",
                 meal_type:
-                    "Nuovo tipo di pasto predefinito: colazione, pranzo, cena o spuntino",
+                    "Nuovo tipo di pasto predefinito: colazione, spuntino di metà mattina, pranzo, merenda, cena, spuntino serale, pre-allenamento, post-allenamento o spuntino",
                 items: "La lista completa degli ingredienti, che sostituisce quella esistente. La loro somma diventa i valori del pasto salvato, quindi con essa non si possono inviare i campi dei valori",
                 calories: "Calorie totali per una porzione",
                 protein_g: "Proteine in grammi per una porzione",

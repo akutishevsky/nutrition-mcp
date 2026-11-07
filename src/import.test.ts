@@ -1,11 +1,13 @@
-import { test, expect, spyOn } from "bun:test";
+import { test, expect, spyOn, describe } from "bun:test";
 import type { MealInput, MealInsertResult, Meal } from "./supabase.js";
 import {
     serializeImportResult,
     BULK_IMPORT_OUTPUT_SCHEMA,
     resolveLoggedAt,
     normalizeMealType,
+    legacyMealType,
     inferMealType,
+    rowContentDigest,
     synthesizeDescription,
     validateRow,
     assignIdempotencyKeys,
@@ -19,6 +21,7 @@ import {
     type ImportDeps,
 } from "./import.js";
 import { dateInTz } from "./tz.js";
+import { BASE_MEAL_TYPES, MEAL_TYPES } from "./meal-types.js";
 import type { ReferenceRecord } from "./provenance.js";
 
 const NOW = Date.parse("2026-07-25T12:00:00Z");
@@ -199,7 +202,83 @@ test("normalizeMealType treats blank-ish source cells as absent, not snack", () 
     expect(normalizeMealType("  DINNER ")).toBe("dinner");
     expect(normalizeMealType("Snacks")).toBe("snack");
     expect(normalizeMealType("other")).toBe("snack"); // FatSecret
-    expect(normalizeMealType("Second breakfast")).toBe("snack"); // Cronometer
+    expect(normalizeMealType("Cheat meal")).toBe("snack"); // user-invented group
+});
+
+test("normalizeMealType maps every canonical value to itself", () => {
+    for (const t of MEAL_TYPES) {
+        expect(normalizeMealType(t)).toBe(t);
+        expect(normalizeMealType(t.toUpperCase())).toBe(t);
+    }
+});
+
+test("normalizeMealType accepts underscores, spaces and hyphens interchangeably", () => {
+    expect(normalizeMealType("second breakfast")).toBe("second_breakfast");
+    expect(normalizeMealType("Second-Breakfast")).toBe("second_breakfast");
+    expect(normalizeMealType("afternoon snack")).toBe("afternoon_snack");
+    expect(normalizeMealType("Pre-workout")).toBe("pre_workout");
+    expect(normalizeMealType("pre workout")).toBe("pre_workout");
+    expect(normalizeMealType("POST-WORKOUT")).toBe("post_workout");
+    expect(normalizeMealType("post workout")).toBe("post_workout");
+});
+
+test("normalizeMealType is plural-tolerant", () => {
+    expect(normalizeMealType("Breakfasts")).toBe("breakfast");
+    expect(normalizeMealType("Lunches")).toBe("lunch");
+    expect(normalizeMealType("dinners")).toBe("dinner");
+    expect(normalizeMealType("suppers")).toBe("supper");
+    expect(normalizeMealType("Afternoon snacks")).toBe("afternoon_snack");
+    expect(normalizeMealType("pre-workouts")).toBe("pre_workout");
+});
+
+test("normalizeMealType resolves the named aliases", () => {
+    expect(normalizeMealType("elevenses")).toBe("second_breakfast");
+    expect(normalizeMealType("afternoon tea")).toBe("afternoon_snack");
+    expect(normalizeMealType("supper")).toBe("supper");
+    expect(normalizeMealType("late night snack")).toBe("supper");
+    expect(normalizeMealType("late-night snack")).toBe("supper");
+    expect(normalizeMealType("preworkout")).toBe("pre_workout");
+    expect(normalizeMealType("pre workout")).toBe("pre_workout");
+    expect(normalizeMealType("postworkout")).toBe("post_workout");
+    expect(normalizeMealType("post-workout")).toBe("post_workout");
+});
+
+test("normalizeMealType still treats blank tokens as absent with the new types", () => {
+    for (const blank of ["", "n/a", "none", "--"]) {
+        expect(normalizeMealType(blank)).toBeNull();
+    }
+});
+
+test("synthesizeDescription reads a multi-word type as words", () => {
+    expect(synthesizeDescription("second_breakfast", false, "cronometer")).toBe(
+        "Second breakfast (imported from Cronometer)",
+    );
+    expect(synthesizeDescription("pre_workout", false, undefined)).toBe(
+        "Pre workout (imported, no food detail in source)",
+    );
+});
+
+test("inferMealType never returns a type beyond the base four", () => {
+    // A 24-hour sweep at 10-minute steps, in a zone far from UTC and one
+    // across the date line, must land only on the four base types.
+    const base = new Set<string>(BASE_MEAL_TYPES);
+    for (const tz of [
+        "Europe/Kyiv",
+        "Pacific/Auckland",
+        "America/Los_Angeles",
+    ]) {
+        for (let m = 0; m < 24 * 60; m += 10) {
+            const hh = String(Math.floor(m / 60)).padStart(2, "0");
+            const mm = String(m % 60).padStart(2, "0");
+            const iso = (
+                resolveLoggedAt(`2026-01-15T${hh}:${mm}`, tz, NOW) as {
+                    value: { iso: string };
+                }
+            ).value.iso;
+            const t = inferMealType(iso, tz);
+            expect(base.has(t)).toBe(true);
+        }
+    }
 });
 
 test("inferMealType uses local-time cutoffs", () => {
@@ -2194,4 +2273,138 @@ test("sodium is EXCLUDED from the content digest, so a replay still dedupes", as
     );
     expect(second.summary.deduplicated).toBe(1);
     expect(inserted).toHaveLength(1);
+});
+
+describe("meal-type widening keeps the content digest", () => {
+    // Before the widening, every type beyond the base four was stored as
+    // 'snack', so a file's import keys were built from 'snack'. The digest
+    // must keep hashing that value, or a replay of an old file inserts again.
+    const digestInput = (meal_type: string) =>
+        ({
+            description: "Toast",
+            meal_type,
+            calories: 120,
+            logged_at: "2026-01-15T08:00:00.000Z",
+        }) as unknown as MealInput;
+
+    test("a wider type hashes exactly as the 'snack' it used to fold to", () => {
+        const folded = rowContentDigest("user-1", digestInput("snack"));
+        for (const t of [
+            "second_breakfast",
+            "afternoon_snack",
+            "supper",
+            "pre_workout",
+            "post_workout",
+        ]) {
+            expect(rowContentDigest("user-1", digestInput(t))).toBe(folded);
+        }
+    });
+
+    test("a base type still hashes by its own value", () => {
+        const lunch = rowContentDigest("user-1", digestInput("lunch"));
+        const snack = rowContentDigest("user-1", digestInput("snack"));
+        expect(lunch).not.toBe(snack);
+        expect(rowContentDigest("user-1", digestInput("breakfast"))).not.toBe(
+            lunch,
+        );
+    });
+
+    test("legacyMealType reproduces the pre-widening fold exactly", () => {
+        expect(legacyMealType("Lunch")).toBe("lunch");
+        expect(legacyMealType(" Snacks ")).toBe("snack");
+        expect(legacyMealType("Breakfasts")).toBe("breakfast");
+        // Plurals of lunch and dinner were never recognized: they folded.
+        expect(legacyMealType("Lunches")).toBe("snack");
+        expect(legacyMealType("Dinners")).toBe("snack");
+        expect(legacyMealType("Second breakfast")).toBe("snack");
+        expect(legacyMealType("pre_workout")).toBe("snack");
+        expect(legacyMealType("n/a")).toBeNull();
+        expect(legacyMealType(undefined)).toBeNull();
+    });
+
+    for (const [label, stored] of [
+        ["Lunches", "lunch"],
+        ["Dinners", "dinner"],
+        ["Pre-workout", "pre_workout"],
+    ] as const) {
+        test(`a row labelled "${label}" keeps its pre-widening key but stores ${stored}`, async () => {
+            const { deps, inserted } = makeStore();
+            const r = row({
+                source_line: 2,
+                description: "Rice bowl",
+                meal_type: label,
+                logged_at: "2026-01-15T13:00",
+                calories: 500,
+            });
+            await runImport(args([r]), deps);
+            expect(inserted[0]!.meal_type).toBe(stored);
+            const asSnack = makeStore();
+            await runImport(args([{ ...r, meal_type: "snack" }]), asSnack.deps);
+            expect(inserted[0]!.idempotency_key).toBe(
+                asSnack.inserted[0]!.idempotency_key,
+            );
+        });
+    }
+
+    test("a synthesized description hashes as the old 'Snack' wording", async () => {
+        const { deps, inserted } = makeStore();
+        const r = row({
+            source_line: 2,
+            description: undefined,
+            meal_type: "Second breakfast",
+            logged_at: "2026-01-15T10:30",
+            calories: 300,
+        });
+        await runImport(args([r], { source_app: "myfitnesspal" }), deps);
+        expect(inserted[0]!.description).toBe(
+            "Second breakfast (imported from MyFitnessPal)",
+        );
+        const asSnack = makeStore();
+        await runImport(
+            args([{ ...r, meal_type: "Snacks" }], {
+                source_app: "myfitnesspal",
+            }),
+            asSnack.deps,
+        );
+        expect(asSnack.inserted[0]!.description).toBe(
+            "Snack (imported from MyFitnessPal)",
+        );
+        expect(inserted[0]!.idempotency_key).toBe(
+            asSnack.inserted[0]!.idempotency_key,
+        );
+    });
+
+    test("a file imported before the widening dedupes when replayed after it", async () => {
+        const { deps, inserted } = makeStore();
+        // The stored form an old import wrote for "Second breakfast".
+        const before = await runImport(
+            args([
+                row({
+                    source_line: 4,
+                    description: "Toast",
+                    meal_type: "snack",
+                    logged_at: "2026-01-15T08:00",
+                    calories: 120,
+                }),
+            ]),
+            deps,
+        );
+        expect(before.summary.created).toBe(1);
+
+        const replay = await runImport(
+            args([
+                row({
+                    source_line: 4,
+                    description: "Toast",
+                    meal_type: "Second breakfast",
+                    logged_at: "2026-01-15T08:00",
+                    calories: 120,
+                }),
+            ]),
+            deps,
+        );
+        expect(replay.summary.created).toBe(0);
+        expect(replay.summary.deduplicated).toBe(1);
+        expect(inserted).toHaveLength(1);
+    });
 });
