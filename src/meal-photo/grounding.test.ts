@@ -3,6 +3,7 @@ import type { FoodCandidate } from "../food-providers/types.js";
 import {
     groundMealPhotoItems,
     isAmbiguous,
+    mealPhotoItemIsComplete,
     resolveGroundedPortion,
     LOW_PORTION_CONFIDENCE,
 } from "./grounding.js";
@@ -104,11 +105,12 @@ describe("groundMealPhotoItems", () => {
         expect(entry?.question).toBeNull();
     });
 
-    test("unresolvable items become labelled estimates with EMPTY nutrition", async () => {
+    test("unresolvable items with no estimate step carry NO nutrition and a BLOCKING question (regression: formerly silently empty)", async () => {
         const [entry] = await groundMealPhotoItems([chicken], {
             search: async () => ({ candidates: [], failures: [] }),
         });
         expect(entry?.grounded).toBe(false);
+        expect(entry?.estimated).toBe(false);
         expect(entry?.groundingSource).toBe("model_estimate");
         expect(entry?.draftItem.sourceType).toBe("model_estimate");
         expect(entry?.draftItem.nutrients).toEqual({});
@@ -116,6 +118,63 @@ describe("groundMealPhotoItems", () => {
         expect(entry?.draftItem.assumptions).toContain(
             "assumed skinless breast",
         );
+        // The hardening: never silently empty — a blocking question
+        // replaces the old confirm-as-is behaviour.
+        expect(entry?.needsQuestion).toBe(true);
+        expect(entry?.question?.blocking).toBe(true);
+        expect(entry?.question?.questionKey).toBe("photo_estimate_missing_0");
+        expect(entry?.question?.prompt).toContain("grilled chicken breast");
+        expect(entry?.question?.prompt).toContain("remove the item");
+        expect(entry?.draftItem.sourceSnapshot?.estimate_status).toBe(
+            "unavailable",
+        );
+    });
+
+    test("unresolvable items get LABELLED estimate values from the estimate step, auditable and never provider data", async () => {
+        const [entry] = await groundMealPhotoItems([chicken], {
+            search: async () => ({ candidates: [], failures: [] }),
+            estimateNutrients: async (requests) => {
+                expect(requests).toHaveLength(1);
+                expect(requests[0]?.name).toBe("grilled chicken breast");
+                expect(requests[0]?.quantity).toBe(160);
+                return new Map([
+                    [
+                        "item:0",
+                        { calories: 248, protein_g: 46, carbs_g: 0, fat_g: 5 },
+                    ],
+                ]);
+            },
+        });
+        expect(entry?.grounded).toBe(false);
+        expect(entry?.estimated).toBe(true);
+        expect(entry?.draftItem.sourceType).toBe("model_estimate");
+        expect(entry?.draftItem.nutrients.calories).toBe(248);
+        expect(entry?.draftItem.provider).toBeUndefined();
+        expect(entry?.draftItem.providerFoodId).toBeUndefined();
+        expect(entry?.draftItem.sourceUrl).toBeUndefined();
+        expect(entry?.draftItem.assumptions).toContain(
+            "assumed skinless breast",
+        );
+        expect(entry?.draftItem.sourceSnapshot?.estimate_origin).toBe(
+            "model_estimate",
+        );
+        expect(
+            (entry?.draftItem.sourceSnapshot?.nutrition_snapshot as any)
+                ?.calories,
+        ).toBe(248);
+        expect(entry?.question).toBeNull();
+    });
+
+    test("estimate step failure falls back to NO values + blocking question, never a throw or silent empty", async () => {
+        const [entry] = await groundMealPhotoItems([chicken], {
+            search: async () => ({ candidates: [], failures: [] }),
+            estimateNutrients: async () => {
+                throw new Error("provider down");
+            },
+        });
+        expect(entry?.estimated).toBe(false);
+        expect(entry?.draftItem.nutrients).toEqual({});
+        expect(entry?.question?.blocking).toBe(true);
     });
 
     test("low portion confidence becomes a draft question, not a silent guess", async () => {
@@ -204,5 +263,132 @@ describe("groundMealPhotoItems", () => {
         });
         expect(nulled?.grounded).toBe(false);
         expect(nulled?.draftItem.sourceType).toBe("model_estimate");
+    });
+});
+
+describe("production case: chicken / rice / broccoli plate (S3 hardening regression)", () => {
+    const broccoli: MealPhotoVisionItem = {
+        name: "steamed broccoli",
+        cooking_method: "steamed",
+        quantity: 100,
+        unit: "g",
+        portion_confidence: 0.9,
+        assumptions: [],
+    };
+    const rice: MealPhotoVisionItem = {
+        name: "cooked white rice",
+        cooking_method: "steamed",
+        quantity: 1,
+        unit: "cup",
+        portion_confidence: 0.8,
+        assumptions: [],
+    };
+    const plate = [chicken, rice, broccoli];
+    const search = async (query: string) => {
+        if (query.includes("chicken")) {
+            return { candidates: [candidate()], failures: [] };
+        }
+        if (query.includes("broccoli")) {
+            return {
+                candidates: [
+                    candidate({
+                        providerFoodId: "170379",
+                        name: "Broccoli, cooked",
+                        nutrientsPer100g: {
+                            calories: 35,
+                            protein_g: 2.4,
+                            carbs_g: 7.2,
+                            fat_g: 0.4,
+                        },
+                    }),
+                ],
+                failures: [],
+            };
+        }
+        // Rice gets NO usable candidate — the production defect case.
+        return { candidates: [], failures: [] };
+    };
+
+    test("rice carries labelled Model estimate values; chicken+broccoli stay provider-grounded; every item complete", async () => {
+        let estimateCalls = 0;
+        const grounded = await groundMealPhotoItems(plate, {
+            search,
+            estimateNutrients: async (requests) => {
+                estimateCalls += 1;
+                // Batched: exactly the ungrounded items, one call.
+                expect(requests.map((request) => request.name)).toEqual([
+                    "cooked white rice",
+                ]);
+                return new Map([
+                    [
+                        "item:1",
+                        {
+                            calories: 205,
+                            protein_g: 4.3,
+                            carbs_g: 44.5,
+                            fat_g: 0.4,
+                        },
+                    ],
+                ]);
+            },
+        });
+        expect(estimateCalls).toBe(1);
+        const [chickenEntry, riceEntry, broccoliEntry] = grounded;
+        expect(chickenEntry?.grounded).toBe(true);
+        expect(chickenEntry?.draftItem.nutrients.calories).toBe(264);
+        expect(broccoliEntry?.grounded).toBe(true);
+        expect(broccoliEntry?.draftItem.nutrients.calories).toBe(35);
+        expect(riceEntry?.grounded).toBe(false);
+        expect(riceEntry?.estimated).toBe(true);
+        expect(riceEntry?.draftItem.sourceType).toBe("model_estimate");
+        expect(riceEntry?.draftItem.nutrients.calories).toBe(205);
+        expect(riceEntry?.draftItem.providerFoodId).toBeUndefined();
+        expect(riceEntry?.question).toBeNull();
+        // The draft total now INCLUDES the rice.
+        const total = grounded.reduce(
+            (sum, entry) => sum + (entry.draftItem.nutrients.calories ?? 0),
+            0,
+        );
+        expect(total).toBe(264 + 205 + 35);
+        for (const entry of grounded) {
+            expect(mealPhotoItemIsComplete(entry)).toBe(true);
+        }
+    });
+
+    test("estimate failure: rice has NO values and a blocking question; invariant still holds for every item", async () => {
+        const grounded = await groundMealPhotoItems(plate, {
+            search,
+            estimateNutrients: async () => {
+                throw new Error("estimate unavailable");
+            },
+        });
+        const riceEntry = grounded[1]!;
+        expect(riceEntry.draftItem.nutrients).toEqual({});
+        expect(riceEntry.question?.blocking).toBe(true);
+        expect(riceEntry.question?.questionKey).toBe(
+            "photo_estimate_missing_1",
+        );
+        for (const entry of grounded) {
+            expect(mealPhotoItemIsComplete(entry)).toBe(true);
+        }
+    });
+
+    test("multiple ungrounded items are batched into a single estimate call", async () => {
+        let calls = 0;
+        const grounded = await groundMealPhotoItems(plate, {
+            search: async () => ({ candidates: [], failures: [] }),
+            estimateNutrients: async (requests) => {
+                calls += 1;
+                expect(requests).toHaveLength(3);
+                return new Map(
+                    requests.map((request) => [
+                        request.key,
+                        { calories: 100, protein_g: 5, carbs_g: 10, fat_g: 3 },
+                    ]),
+                );
+            },
+        });
+        expect(calls).toBe(1);
+        expect(grounded.every((entry) => entry.estimated)).toBe(true);
     });
 });

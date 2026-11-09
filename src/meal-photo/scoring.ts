@@ -7,8 +7,9 @@ import type { GroundedMealPhotoItem } from "./grounding.js";
  *
  * Bars: item recall ≥ 90%; ≥ 80% of items provider-grounded; portions
  * within ±30% of golden for ≥ 70% of items; ZERO fabricated provider IDs
- * or nutrition values (hard fail); calorie total within ±25% on ≥ 75%
- * of fixtures.
+ * or provider-attributed nutrition values (hard fail — labelled model
+ * estimates are not fabrications, see scoreFixture); calorie total
+ * within ±25% on ≥ 75% of fixtures.
  *
  * Golden calorie totals do not exist in the fixture set, so the calorie
  * bar is scored against a REFERENCE total: the expected items grounded
@@ -95,11 +96,13 @@ export function scoreFixture(input: {
     /** Every provider food ID the search actually returned for this
      * fixture; a draft item carrying any other ID is a fabrication. */
     returnedProviderIds: ReadonlySet<string>;
-    /** Provider nutrition is the only legitimate nutrition source: for
-     * each grounded item the caller supplies the candidate nutrition
-     * snapshot the draft values must derive from. Checked structurally
-     * in the lanes; here we count model_estimate items that nevertheless
-     * carry nutrition as fabricated nutrition. */
+    /** Fabrication means fake PROVIDER attribution only (S3 hardening
+     * semantics): a draft item carrying a provider food ID the search
+     * never returned, or nutrition on an item that is neither provider-
+     * grounded nor a labelled model estimate. Labelled `model_estimate`
+     * items carrying values from the estimate step (`entry.estimated`)
+     * are the brief §3 fallback, NOT fabrications — they carry no
+     * provider ID and their snapshot records the estimate origin. */
     referenceCalories: number | null;
 }): PhotoEvalFixtureScore {
     const { expected, grounded } = input;
@@ -142,7 +145,7 @@ export function scoreFixture(input: {
                 fabricatedIds += 1;
             }
         }
-        if (!entry.grounded) {
+        if (!entry.grounded && !entry.estimated) {
             const nutrients = entry.draftItem.nutrients;
             if (Object.values(nutrients).some((value) => value !== undefined)) {
                 fabricatedNutrition += 1;
