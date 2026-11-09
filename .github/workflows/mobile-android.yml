@@ -179,14 +179,19 @@ jobs:
           profile: pixel_7
           disable-animations: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # Gradle tasks are scoped to :app on purpose: an unscoped
+          # assembleDebugAndroidTest also builds library-module test APKs,
+          # and :capacitor-cordova-android-plugins' androidTest classpath
+          # has a duplicate Kotlin stdlib (1.8.22 vs jdk8 1.6.21) conflict
+          # that fails checkDebugAndroidTestDuplicateClasses.
           script: |
-            cd android && ./gradlew assembleDebug assembleDebugAndroidTest && cd ..
+            cd android && ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest && cd ..
             adb install -r android/app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -n business.munch.app/.MainActivity
             sleep 10
             adb exec-out screencap -p > boot-screenshot.png
             adb logcat -d > boot-logcat.txt || true
-            cd android && ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=business.munch.app.AppBootSmokeTest
+            cd android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=business.munch.app.AppBootSmokeTest
       - name: Upload boot evidence (screenshot, logcat, test results)
         if: always()
         uses: actions/upload-artifact@v4
