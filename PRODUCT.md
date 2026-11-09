@@ -34,7 +34,7 @@ Used inside AI chat clients over remote MCP (endpoint https://munch.business/mcp
 
 - The name "Munch" is binding (Michael, confirmed 2026-11-09).
 - The brand green is binding (Michael, 2026-11-09: "Keep the name and the green — replace only the mark").
-- The current M mark is NOT binding: it is being replaced at Michael's direction (2026-11-09, "the current one stinks").
+- The old M mark was replaced at Michael's direction (2026-11-09, "the current one stinks"). The current mark is binding: a plump apple with a leaf, carrying the Nutrition Facts label's rhythm — one heavy bar over descending rules — knocked out of its body. Food reads first, tracking second. The letterform M is retired and does not return. (Design record: DESIGN.md; direction contract: .impeccable/surfaces/public-brand-munch-mark-svg.md.)
 - Voice: plain, friendly, non-clinical. Never hype, never medical.
 
 ## Evidence on Hand
