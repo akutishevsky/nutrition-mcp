@@ -109,9 +109,9 @@ async function buildMunchMcpServer(
         capabilities,
         widgetsEnabled,
     );
-    registerMealDetailTools(optimizedServer, userId);
+    registerMealDetailTools(optimizedServer, userId, widgetsEnabled);
     registerMealReviewTools(optimizedServer, userId, widgetsEnabled);
-    registerMealDraftTools(optimizedServer, userId);
+    registerMealDraftTools(optimizedServer, userId, widgetsEnabled);
     registerRecipeImportTools(
         optimizedServer,
         userId,

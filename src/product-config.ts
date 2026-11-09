@@ -1,7 +1,7 @@
 export const PRODUCT_CONFIG = Object.freeze({
     name: "Munch",
     publicBaseUrl: "https://munch.business",
-    premiumPriceMonthlyCents: 499,
+    premiumPriceMonthlyCents: 299,
     householdMemberPriceMonthlyCents: 200,
     trialEnabled: false,
     freeTierEnabled: true,
@@ -51,7 +51,7 @@ export const PROTECTED_COMMERCE_TERMS = Object.freeze([
     "stripe checkout",
     "billing portal",
     "pricing plan",
-    "$4.99",
+    "$2.99",
 ]);
 
 export const PROTECTED_COMMERCE_PATHS = Object.freeze([

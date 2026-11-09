@@ -169,7 +169,7 @@ function settingsIndex(data) {
         [
             "/app/settings/profile",
             "Profile & preferences",
-            "Timezone, units, ChatGPT display and tracking preferences",
+            "Timezone, units, assistant display and tracking preferences",
             "Profile",
         ],
         [
@@ -344,7 +344,7 @@ function connectionsPage(data) {
                               `<article class="connection-card"><div class="connection-icon" aria-hidden="true">↗</div><div><h3>${esc(connection.clientName || "ChatGPT / MCP client")}</h3><p>${esc(connection.clientId)}</p><small>${Number(connection.activeAccessTokens || 0)} active access token${Number(connection.activeAccessTokens || 0) === 1 ? "" : "s"} · expires ${esc(formatDateTime(connection.expiresAt))}</small></div><button class="button button-secondary button-small" data-action="connection-revoke" data-token-family-id="${esc(connection.tokenFamilyId)}" data-client-name="${esc(connection.clientName || "this connection")}">Revoke</button></article>`,
                       )
                       .join("")}</div>`
-                : `<div class="settings-empty"><span aria-hidden="true">✓</span><h3>No active connections</h3><p>Connect Munch from ChatGPT and authorized clients will appear here.</p></div>`
+                : `<div class="settings-empty"><span aria-hidden="true">✓</span><h3>No active connections</h3><p>Connect Munch from your AI assistant and authorized clients will appear here.</p></div>`
         }`,
     );
 }

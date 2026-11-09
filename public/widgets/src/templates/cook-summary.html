@@ -7,38 +7,57 @@
         <style>
             /*@include shared/tokens.css@*/
             /*@include shared/base.css@*/
-            .cook-card {
-                padding: 12px;
+            /*@include shared/facts.css@*/
+            .f-section-title {
+                font-size: 15px;
+                font-weight: 650;
+                margin: 14px 0 4px;
             }
             .cook-title {
-                min-width: 0;
+                font-size: 18px;
+                line-height: 1.25;
+                font-weight: 700;
+                letter-spacing: -0.015em;
+                overflow-wrap: anywhere;
             }
-            .cook-title h1 {
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-            .cook-status {
-                flex: 0 0 auto;
-            }
-            .cook-status.active {
-                color: var(--accent);
-            }
-            .cook-status.finished {
-                color: var(--text-dim);
-            }
-            .cook-meta {
-                margin-top: 3px;
-            }
-            .cook-summary {
+            .cook-result {
                 margin-top: 10px;
+            }
+            .cook-result-label {
+                font-size: 11px;
+                font-weight: 650;
+                letter-spacing: 0.07em;
+                text-transform: uppercase;
                 color: var(--text-dim);
+            }
+            .cook-result-text {
+                margin-top: 2px;
+                overflow-wrap: anywhere;
+            }
+            .cook-event-row {
+                display: grid;
+                grid-template-columns: 92px 1fr;
+                gap: 9px;
+                padding: 7px 0;
+                border-bottom: 1px solid var(--panel-border);
+            }
+            .cook-event-row:last-child {
+                border-bottom: 0;
+            }
+            .cook-event-row time {
+                color: var(--text-dim);
+                font-size: 11.5px;
+                padding-top: 2px;
+            }
+            .cook-event-row p {
+                margin: 0;
+                overflow-wrap: anywhere;
             }
             .cook-photos {
                 display: flex;
+                flex-wrap: wrap;
                 gap: 7px;
-                overflow-x: auto;
-                margin-top: 10px;
+                margin-top: 8px;
             }
             .cook-photos img {
                 width: 72px;
@@ -48,60 +67,18 @@
                 border: 1px solid var(--panel-border);
                 flex: 0 0 auto;
             }
-            .cook-detail {
-                margin-top: 9px;
-                border-top: 1px solid var(--border);
-            }
-            .cook-detail > summary {
-                min-height: 42px;
-                display: flex;
-                align-items: center;
-                cursor: pointer;
-                color: var(--text-dim);
-                font-size: 12px;
-                font-weight: 650;
-            }
-            .cook-section {
-                padding: 7px 0;
-                border-top: 1px solid var(--border);
-            }
-            .cook-section:first-child {
-                border-top: 0;
-            }
-            .cook-event {
-                display: grid;
-                grid-template-columns: 92px 1fr;
-                gap: 9px;
-                padding: 5px 0;
-            }
-            .cook-event time {
-                color: var(--text-dim);
-                font-size: 11px;
-            }
-            .cook-event p {
-                margin: 0;
-                overflow-wrap: anywhere;
-            }
-            .cook-note {
-                color: var(--text-dim);
-                font-size: 12px;
-                white-space: pre-wrap;
-                overflow-wrap: anywhere;
-            }
-            .cook-empty {
-                padding: 14px;
-            }
             .cook-update {
                 display: grid;
                 gap: 7px;
                 margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px solid var(--border);
             }
             .cook-update textarea {
                 width: 100%;
                 min-height: 54px;
                 resize: vertical;
+            }
+            .cook-update input[type="file"] {
+                min-height: 44px;
             }
             .cook-update-status {
                 color: var(--text-dim);
@@ -109,7 +86,7 @@
                 min-height: 16px;
             }
             @media (max-width: 420px) {
-                .cook-event {
+                .cook-event-row {
                     grid-template-columns: 1fr;
                     gap: 1px;
                 }
@@ -122,9 +99,60 @@
             "use strict";
             /*@include shared/bridge.js@*/
             /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
+            const SAMPLE = {
+                cook: {
+                    id: "00000000-0000-4000-8000-0000000000c1",
+                    title: "Smoked brisket",
+                    status: "finished",
+                    cook_date: "2026-08-02",
+                    notes: "Oak smoke, wrapped at the stall.",
+                },
+                dishes: [{ name: "Brisket" }, { name: "Burnt ends" }],
+                updates: [],
+                events: [
+                    {
+                        event_at: "2026-08-02T06:00:00Z",
+                        event_type: "started",
+                        note: "Brisket on the smoker",
+                        setpoint_temperature: 250,
+                        setpoint_unit: "F",
+                    },
+                    {
+                        event_at: "2026-08-02T12:30:00Z",
+                        event_type: "wrapped",
+                        note: "Wrapped in butcher paper",
+                        internal_temperature: 165,
+                        internal_unit: "F",
+                    },
+                    {
+                        event_at: "2026-08-02T18:45:00Z",
+                        event_type: "finished",
+                        note: "Probe tender",
+                        internal_temperature: 203,
+                        internal_unit: "F",
+                    },
+                ],
+                outcomes: [
+                    {
+                        dish_id: null,
+                        written_feedback:
+                            "Tender and juicy; bark held up after the wrap.",
+                        next_time_notes: "Rest a full hour before slicing.",
+                    },
+                ],
+                media: [],
+            };
             let API = null;
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
                 return payload.structuredContent || payload;
             }
             function detail(data) {
@@ -132,12 +160,78 @@
                 if (data?.cook?.cook && data.cook.events) return data.cook;
                 return data?.cook?.cook ? data.cook : data;
             }
+            function eventRow(event) {
+                return `<div class="cook-event-row"><time>${esc(humanDate(event.event_at))} ${esc(event.time_precision === "approximate" ? "(approx.)" : "")}</time><p><strong>${esc(String(event.event_type || "event").replaceAll("_", " "))}</strong>${event.note ? ` · ${esc(event.note)}` : ""}${event.setpoint_temperature != null ? ` · setpoint ${esc(event.setpoint_temperature)}°${esc(event.setpoint_unit || "")}` : ""}${event.ambient_temperature != null ? ` · environment ${esc(event.ambient_temperature)}°${esc(event.ambient_unit || "")}` : ""}${event.internal_temperature != null ? ` · internal ${esc(event.internal_temperature)}°${esc(event.internal_unit || "")}` : ""}</p></div>`;
+            }
+            function failureList(failures) {
+                if (!failures.length) return "";
+                const items = failures
+                    .map(
+                        (failure) =>
+                            `<div>${esc(failure.file_name || failure.fileName || "Photo")} — ${esc(failure.message || "The photo was not saved; it needs a retry.")}</div>`,
+                    )
+                    .join("");
+                return factsBanner(
+                    "warn",
+                    `<b>${failures.length} photo${failures.length === 1 ? "" : "s"} need${failures.length === 1 ? "s" : ""} a retry.</b> The cook itself was saved.${items}`,
+                );
+            }
+            function renderSearch(data) {
+                const cooks = data.cooks;
+                const right = `${cooks.length} cook${cooks.length === 1 ? "" : "s"}`;
+                if (!cooks.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Cook history", "Search")}${factsState("empty", "No cooks found", "No cooks match that search yet. Record a cook in chat and it will appear here.")}<div class="f-foot"><span>Every cook traces to its timeline</span><span>Your recorded cooks</span></div></article>`;
+                    return;
+                }
+                const row = (cook) =>
+                    factsCompactRow({
+                        name: cook.title || "Cook",
+                        meta: `${humanDate(cook.cook_date)} · ${cook.status || ""}`,
+                        valueText: cook.status || "",
+                    });
+                const inlineRows = cooks.slice(0, 5).map(row).join("");
+                const allRows = cooks.map(row).join("");
+                document.getElementById("root").innerHTML =
+                    `<article class="card">${factsBand("Cook history", right)}<div class="f-body"><div class="f-hero-cap" style="margin-top:0">Cooks that match your search, newest first.</div><div class="f-src">Source · <b>Your recorded cooks</b></div><div class="f-rule-heavy"></div><div class="inline-only">${inlineRows}${cooks.length > 5 ? `<button class="f-more-row" id="expand">View all ${cooks.length} cooks</button>` : ""}</div><div class="fullscreen-only">${allRows}<div class="actions"><button class="btn" id="close">Return to chat</button></div></div></div><div class="f-foot"><span>Every cook traces to its timeline</span><span>Your recorded cooks</span></div></article>`;
+                bindNav();
+            }
+            function bindNav() {
+                document
+                    .getElementById("expand")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("fullscreen"),
+                    );
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
+            }
             function render(data) {
+                if (data?.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Cook history",
+                        "",
+                        "error",
+                        "Could not load this cook",
+                        String(data.__error) ||
+                            "Something went wrong reading the cook history. Try again in chat.",
+                    );
+                    return;
+                }
+                if (Array.isArray(data?.cooks)) {
+                    renderSearch(data);
+                    return;
+                }
+                const failures = Array.isArray(data?.media_failures)
+                    ? data.media_failures
+                    : [];
                 const value = detail(data);
                 const cook = value?.cook || value;
                 if (!cook || !cook.title) {
                     document.getElementById("root").innerHTML =
-                        '<article class="card cook-empty"><strong>No cook selected</strong><div class="caption">Search or record a cook to see its history.</div></article>';
+                        `<article class="card">${factsBand("Cook history", "")}${factsState("empty", "No cook selected", "Search or record a cook to see its history.")}<div class="f-foot"><span>Every cook traces to its timeline</span><span>Your recorded cooks</span></div></article>`;
                     return;
                 }
                 const events = Array.isArray(value.events) ? value.events : [];
@@ -152,24 +246,57 @@
                             `<img src="${esc(photo.url)}" alt="${esc(photo.caption || photo.file_name || "Cook photo")}" loading="lazy" />`,
                     )
                     .join("");
-                const timeline = events.length
-                    ? events
-                          .map(
-                              (event) =>
-                                  `<div class="cook-event"><time>${esc(humanDate(event.event_at))} ${esc(event.time_precision === "approximate" ? "(approx.)" : "")}</time><p><strong>${esc(String(event.event_type).replaceAll("_", " "))}</strong>${event.note ? ` · ${esc(event.note)}` : ""}${event.setpoint_temperature != null ? ` · setpoint ${esc(event.setpoint_temperature)}°${esc(event.setpoint_unit || "")}` : ""}${event.ambient_temperature != null ? ` · environment ${esc(event.ambient_temperature)}°${esc(event.ambient_unit || "")}` : ""}${event.internal_temperature != null ? ` · internal ${esc(event.internal_temperature)}°${esc(event.internal_unit || "")}` : ""}</p></div>`,
-                          )
-                          .join("")
-                    : '<div class="cook-note">No timeline events recorded yet.</div>';
                 const outcome =
                     outcomes.find((item) => item.dish_id == null) ||
                     outcomes[0];
+                const resultText = outcome
+                    ? outcome.written_feedback ||
+                      outcome.next_time_notes ||
+                      "Result recorded"
+                    : "";
+                const lastEvents = events.slice(-5);
+                const inlineTimeline = lastEvents.length
+                    ? lastEvents.map(eventRow).join("")
+                    : '<div class="f-note" style="margin-top:0">No timeline events recorded yet.</div>';
+                const fullTimeline = events.length
+                    ? events.map(eventRow).join("")
+                    : '<div class="f-note" style="margin-top:0">No timeline events recorded yet.</div>';
+                const dishRows = dishes
+                    .map((dish) =>
+                        factsCompactRow({
+                            name: dish.name || "Dish",
+                            meta: [dish.method, dish.equipment]
+                                .filter(Boolean)
+                                .join(" · "),
+                            valueText: dish.flavor || "",
+                        }),
+                    )
+                    .join("");
                 document.getElementById("root").innerHTML =
-                    `<article class="card cook-card"><div class="row-between"><div class="cook-title"><div class="eyebrow">${esc(cook.status === "active" ? "Active cook" : "Completed cook")}</div><h1>${esc(cook.title)}</h1><div class="meta cook-meta">${esc(humanDate(cook.cook_date))} · ${dishes.length} dish${dishes.length === 1 ? "" : "es"}</div></div><div class="chip cook-status ${esc(cook.status)}">${esc(cook.status)}</div></div>${cook.notes ? `<div class="cook-summary">${esc(cook.notes)}</div>` : ""}${photos ? `<div class="cook-photos" aria-label="Saved cook photos">${photos}</div>` : ""}<details class="cook-detail"><summary>Timeline · ${events.length} event${events.length === 1 ? "" : "s"}</summary><div class="cook-section">${timeline}</div>${outcome ? `<div class="cook-section"><strong>Result</strong><div class="cook-note">${esc(outcome.written_feedback || outcome.next_time_notes || "Result recorded")}</div></div>` : ""}</details>${cook.id ? `<form class="cook-update" id="cook-widget-update"><label class="field-label" for="cook-widget-message">Add an update</label><textarea id="cook-widget-message" placeholder="What happened? (optional if you add a photo)"></textarea><input id="cook-widget-photo" type="file" accept="image/jpeg,image/png,image/webp" /><div class="actions"><button class="btn btn-primary" type="submit">Save update</button><span class="cook-update-status" id="cook-widget-status" role="status"></span></div></form>` : ""}<div class="actions single"><button class="btn btn-quiet" id="expand">Open full cook</button></div></article>`;
-                document
-                    .getElementById("expand")
-                    ?.addEventListener("click", () =>
-                        API?.requestDisplayMode("fullscreen"),
-                    );
+                    `<article class="card">
+        ${factsBand("Cook summary", cook.status === "active" ? "Active cook" : "Completed cook")}
+        <div class="f-body">
+        <div class="cook-title">${esc(cook.title)}</div>
+        <div class="meta">${esc(humanDate(cook.cook_date))} · ${dishes.length} dish${dishes.length === 1 ? "" : "es"} · ${esc(cook.status || "")}</div>
+        <div class="f-src">Source · <b>Your recorded cook</b></div>
+        ${cook.notes ? `<div class="f-note">${esc(cook.notes)}</div>` : ""}
+        ${failureList(failures)}
+        ${resultText ? `<div class="cook-result"><div class="cook-result-label">Result</div><div class="cook-result-text">${esc(resultText)}</div></div>` : ""}
+        <div class="f-rule-heavy"></div>
+        <h2 class="f-section-title">Timeline · last ${lastEvents.length} of ${events.length}</h2>
+        <div class="inline-only">${inlineTimeline}${events.length > 5 || photos || cook.id ? `<button class="f-more-row" id="expand">Open full cook</button>` : ""}</div>
+        <div class="fullscreen-only">
+        ${fullTimeline}
+        ${dishes.length ? `<div class="f-rule-med"></div><h2 class="f-section-title">Dishes</h2>${dishRows}` : ""}
+        ${photos ? `<div class="f-rule-med"></div><h2 class="f-section-title">Photos · ${media.length}</h2><div class="cook-photos" aria-label="Saved cook photos">${photos}</div>` : ""}
+        ${outcome?.next_time_notes && outcome?.written_feedback ? `<div class="f-rule-med"></div><h2 class="f-section-title">Next time</h2><div class="cook-result-text">${esc(outcome.next_time_notes)}</div>` : ""}
+        ${cook.id ? `<div class="f-rule-med"></div><form class="cook-update" id="cook-widget-update"><label class="field-label" for="cook-widget-message">Add an update</label><textarea id="cook-widget-message" placeholder="What happened? (optional if you add a photo)"></textarea><input id="cook-widget-photo" type="file" accept="image/jpeg,image/png,image/webp" /><div class="actions"><button class="btn btn-primary" type="submit">Save update</button><span class="cook-update-status" id="cook-widget-status" role="status"></span></div></form>` : ""}
+        <div class="actions"><button class="btn" id="close">Return to chat</button></div>
+        </div>
+        </div>
+        <div class="f-foot"><span>Every cook traces to its timeline</span><span>Your recorded cooks</span></div>
+    </article>`;
+                bindNav();
                 document
                     .getElementById("cook-widget-update")
                     ?.addEventListener("submit", async (event) => {
@@ -246,9 +373,10 @@
                 name: "cook-summary-widget",
                 displayModes: ["inline", "fullscreen"],
                 loading:
-                    '<div class="card cook-empty">Loading cook history…</div>',
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Cook summary</span></div><div class="f-state"><strong>Loading cook history</strong><span>Reading the timeline…</span></div></article>',
                 coerce,
                 render,
+                sample: SAMPLE,
                 onReady(api) {
                     API = api;
                 },

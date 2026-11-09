@@ -76,7 +76,7 @@ async function setEnabled(enabled) {
         workspace.classList.toggle("hidden", !result.enabled);
         status(
             result.enabled
-                ? "Pantry enabled. ChatGPT will expose Pantry tools on the next app refresh."
+                ? "Pantry enabled. Your AI assistant will expose Pantry tools on the next refresh."
                 : "Pantry disabled. Existing inventory is preserved.",
         );
         if (result.enabled) await loadPantry();

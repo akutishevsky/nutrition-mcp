@@ -50,7 +50,7 @@ describe("single-source product policy", () => {
         expect(source).toContain("policy.householdMemberPriceMonthlyCents");
         expect(source).toContain("policy.householdMemberLimit");
         expect(source).toContain("weightFromGrams");
-        expect(source).not.toContain("499 + 200");
+        expect(source).not.toContain("299 + 200");
         expect(source).not.toContain("/ 453.59237");
         expect(source).not.toContain("/ 1000");
     });
