@@ -73,6 +73,11 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    buildFeatures {
+        // AppIdentityUnitTest asserts the packaged identity from the
+        // generated BuildConfig; AGP 8 does not generate it by default.
+        buildConfig true
+    }
     signingConfigs {
         if (internalDebugSigningReady) {
             internalDebug {
