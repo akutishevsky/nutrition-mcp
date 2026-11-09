@@ -8,7 +8,7 @@
         }
     ],
     "id": "fixture-vision-receipt",
-    "model": "meta/muse-ember-1.0",
+    "model": "meta/muse-ember",
     "usage": {
         "completion_tokens": 141,
         "prompt_tokens": 812,

@@ -8,7 +8,7 @@
         }
     ],
     "id": "fixture-recipe-import-normalize",
-    "model": "meta/muse-ember-1.0",
+    "model": "meta/muse-ember",
     "usage": {
         "completion_tokens": 122,
         "prompt_tokens": 640,

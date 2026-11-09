@@ -1,4 +1,4 @@
-export const DEFAULT_WEBSITE_AI_MODEL = "qwen/qwen3.7-flash";
+export const DEFAULT_WEBSITE_AI_MODEL = "meta/muse-ember";
 
 export function websiteAiModel(
     env: Record<string, string | undefined> = process.env,

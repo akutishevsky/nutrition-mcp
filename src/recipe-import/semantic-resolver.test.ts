@@ -54,6 +54,7 @@ describe("recipe import website AI configuration", () => {
                 OPENROUTER_API_KEY: "or-test",
             })?.model,
         ).toBe(DEFAULT_RECIPE_IMPORT_AI_MODEL);
+        expect(DEFAULT_RECIPE_IMPORT_AI_MODEL).toBe("meta/muse-ember");
         expect(
             recipeImportAiConfig({
                 OPENROUTER_API_KEY: "or-test",

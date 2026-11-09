@@ -1,0 +1,17 @@
+{
+    "choices": [
+        {
+            "message": {
+                "content": "{\"items\":[{\"date\":\"2026-11-10\",\"meal_slot\":\"dinner\",\"servings\":2,\"generated_recipe\":{\"name\":\"Fixture Herb Chicken\",\"description\":\"A generic fixture recipe.\",\"ingredients\":[{\"name\":\"chicken breast\",\"quantity\":400,\"unit\":\"g\",\"optional\":false},{\"name\":\"long grain rice\",\"quantity\":200,\"unit\":\"g\",\"optional\":false}],\"instructions\":[\"Cook the rice.\",\"Grill the chicken and serve over the rice.\"],\"servings\":2,\"preparation_minutes\":15,\"cooking_minutes\":25,\"difficulty\":\"easy\",\"required_equipment\":[\"skillet\"],\"cuisine_tags\":[\"fixture\"],\"primary_protein\":\"chicken\",\"cooking_methods\":[\"grill\"]}}]}",
+                "role": "assistant"
+            }
+        }
+    ],
+    "id": "fixture-guidance-propose",
+    "model": "meta/muse-ember",
+    "usage": {
+        "completion_tokens": 210,
+        "prompt_tokens": 940,
+        "total_tokens": 1150
+    }
+}
