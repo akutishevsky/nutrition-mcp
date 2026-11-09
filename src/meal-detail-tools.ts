@@ -3,7 +3,10 @@ import { z } from "zod";
 import { withAnalytics } from "./analytics.js";
 import { getNutritionProvenanceAnalysis } from "./nutrition-provenance.js";
 import { getStructuredMeal } from "./structured-meals/repository.js";
+import { widgetToolMeta } from "./openai-submission.js";
 import { getUserTimezone } from "./storage.js";
+
+const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 import { shiftLocalDate, todayInTz } from "./tz.js";
 
 type ToolServer = {
@@ -184,8 +187,13 @@ const nutritionProvenanceOutputSchema = {
 export function registerMealDetailTools(
     server: McpServer,
     userId: string,
+    widgetsEnabled = true,
 ): void {
     const toolServer = server as unknown as ToolServer;
+    // Both tools ride the meal-logged receipt surface (audit Fix 4):
+    // get_meal_details in read mode, get_nutrition_provenance as its
+    // fullscreen provenance section. UI meta only.
+    const uiMeta = widgetsEnabled ? widgetToolMeta(MEAL_LOGGED_WIDGET_URI) : {};
 
     toolServer.registerTool(
         "get_meal_details",
@@ -197,6 +205,7 @@ export function registerMealDetailTools(
                 meal_id: z.string().uuid().describe("UUID of the logged meal"),
             },
             outputSchema: mealDetailsOutputSchema,
+            ...uiMeta,
             annotations: {
                 title: "Get Meal Details",
                 readOnlyHint: true,
@@ -279,6 +288,7 @@ export function registerMealDetailTools(
                     ),
             },
             outputSchema: nutritionProvenanceOutputSchema,
+            ...uiMeta,
             annotations: {
                 title: "Get Nutrition Provenance",
                 readOnlyHint: true,

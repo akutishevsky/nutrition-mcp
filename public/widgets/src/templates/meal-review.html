@@ -7,115 +7,42 @@
         <style>
             /*@include shared/tokens.css@*/
             /*@include shared/base.css@*/
-            .review-head {
-                display: flex;
-                align-items: baseline;
-                justify-content: space-between;
-                gap: 12px;
-                padding: 12px 13px 9px;
-                border-bottom: 1px solid var(--panel-border);
+            /*@include shared/facts.css@*/
+            .f-section-title {
+                font-size: 15px;
+                font-weight: 650;
+                margin: 14px 0 4px;
             }
-            .review-head-main {
-                min-width: 0;
+            .mr-title {
+                font-size: 21px;
+                line-height: 1.2;
+                font-weight: 750;
+                letter-spacing: -0.01em;
             }
-            .review-head h1 {
-                font-size: 16px;
-            }
-            .review-kcal {
-                flex: 0 0 auto;
-                font-size: 18px;
-                font-weight: 760;
-                font-variant-numeric: tabular-nums;
-            }
-            .item {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) auto;
-                gap: 10px;
-                padding: 9px 13px;
-                border-bottom: 1px solid var(--panel-border);
-            }
-            .item:last-child {
-                border-bottom: 0;
-            }
-            .item-name {
-                font-weight: 680;
-            }
-            .item-kcal {
-                font-weight: 720;
-                white-space: nowrap;
-                font-variant-numeric: tabular-nums;
-            }
-            .item-meta {
+            .mr-meta {
+                font-size: 12.5px;
+                color: var(--text-dim);
                 margin-top: 2px;
-                color: var(--text-dim);
-                font-size: 11.5px;
-            }
-            .summary {
-                padding: 10px 13px 12px;
-                background: var(--panel-muted);
-            }
-            .summary-line {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 10px;
-            }
-            .macro-line {
-                color: var(--text-dim);
-                font-size: 12px;
                 font-variant-numeric: tabular-nums;
+            }
+            .mr-warn {
+                font-size: 12.5px;
+                color: var(--warn);
+                margin-top: 3px;
             }
             .review-flags {
                 display: flex;
                 flex-wrap: wrap;
                 gap: 5px;
-                margin-top: 7px;
-            }
-            .review-detail {
                 margin-top: 8px;
-                border: 1px solid var(--panel-border);
-                border-radius: var(--radius-sm);
-                background: var(--panel);
-            }
-            .review-detail > summary {
-                min-height: 44px;
-                display: flex;
-                align-items: center;
-                padding: 0 10px;
-                cursor: pointer;
-                color: var(--text-dim);
-                font-weight: 650;
-                font-size: 12px;
-            }
-            .detail-body {
-                display: grid;
-                gap: 8px;
-                padding: 0 10px 10px;
-                color: var(--text-dim);
-                font-size: 11.5px;
-                line-height: 1.4;
-            }
-            .source-row {
-                display: grid;
-                gap: 2px;
-                padding-top: 7px;
-                border-top: 1px solid var(--panel-border);
-            }
-            .source-row:first-child {
-                border-top: 0;
-                padding-top: 0;
-            }
-            .source-row strong {
-                color: var(--text);
-                font-size: 12px;
             }
             .question-line {
-                margin-top: 8px;
+                margin-top: 10px;
                 padding: 8px 10px;
                 border: 1px solid var(--panel-border);
                 border-radius: var(--radius-sm);
                 background: var(--panel);
-                font-size: 12px;
+                font-size: 12.5px;
             }
             .question-line.warn {
                 border-color: color-mix(
@@ -124,25 +51,40 @@
                     var(--panel-border)
                 );
             }
-            .summary .actions {
-                margin-top: 9px;
+            .source-row {
+                display: grid;
+                gap: 2px;
+                padding-top: 7px;
+                border-top: 1px solid var(--panel-border);
+                color: var(--text-dim);
+                font-size: 12.5px;
+                line-height: 1.4;
             }
-            .summary .status:empty {
+            .source-row:first-child {
+                border-top: 0;
+                padding-top: 0;
+            }
+            .source-row strong {
+                color: var(--text);
+                font-size: 12.5px;
+            }
+            .f-sticky-bar .status:empty {
                 min-height: 0;
                 margin-top: 0;
             }
-            .success-state {
-                padding: 12px;
+            .f-sticky-bar .status {
+                margin-top: 0;
             }
-            @media (max-width: 420px) {
-                .review-head,
-                .item,
-                .summary {
-                    padding-inline: 10px;
-                }
-                .item-meta {
-                    overflow-wrap: anywhere;
-                }
+            .mr-total-val {
+                margin-left: auto;
+                font-size: 19px;
+                font-weight: 800;
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            .f-prow {
+                padding-top: 6px;
+                padding-bottom: 6px;
             }
         </style>
     </head>
@@ -152,6 +94,7 @@
             "use strict";
             /*@include shared/bridge.js@*/
             /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
             const SAMPLE = {
                 id: "draft-1",
                 version: 1,
@@ -202,12 +145,97 @@
             let REVIEW = null;
             let API = null;
             let BUSY = false;
+            // The review flow (prepare_meal_review / resolve_meal_review)
+            // returns { review } in the serializeReview shape (snake_case
+            // items, totals, ready_for_confirmation). The draft flow
+            // (get_meal_draft / prepare_meal_confirmation) returns
+            // { draft } in the serializeDraft shape: items spread the stored
+            // item (camelCase portionLabel / sourceType), there are no
+            // totals, and readiness is implied by status + open questions.
+            // normalizeReview folds both into the one shape render() uses;
+            // bindings stay UI-meta-only, no payload changes server-side.
+            function normalizeItem(item) {
+                return {
+                    ...item,
+                    name: item.name || "Food item",
+                    portion_label:
+                        item.portion_label ?? item.portionLabel ?? null,
+                    nutrients: item.nutrients || {},
+                    source_type: item.source_type ?? item.sourceType ?? null,
+                    provider: item.provider ?? null,
+                    confidence: item.confidence ?? null,
+                    assumptions: Array.isArray(item.assumptions)
+                        ? item.assumptions
+                        : [],
+                };
+            }
+            function sumTotals(items) {
+                const totals = {};
+                for (const item of items) {
+                    for (const [key, value] of Object.entries(
+                        item.nutrients || {},
+                    )) {
+                        if (typeof value === "number")
+                            totals[key] = (totals[key] || 0) + value;
+                    }
+                }
+                return totals;
+            }
+            function normalizeReview(raw) {
+                if (!raw || typeof raw !== "object") return null;
+                const items = (Array.isArray(raw.items) ? raw.items : [])
+                    .map(normalizeItem)
+                    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+                const questions = Array.isArray(raw.questions)
+                    ? raw.questions
+                    : [];
+                const open = questions.filter(
+                    (question) => question.status === "open",
+                );
+                const next_question = raw.next_question?.prompt
+                    ? raw.next_question
+                    : open[0]
+                      ? { prompt: open[0].prompt }
+                      : null;
+                const assumptions =
+                    Array.isArray(raw.assumptions) && raw.assumptions.length
+                        ? raw.assumptions
+                        : [
+                              ...new Set(
+                                  items.flatMap((item) => item.assumptions),
+                              ),
+                          ];
+                return {
+                    ...raw,
+                    items,
+                    questions,
+                    totals: raw.totals || sumTotals(items),
+                    assumptions,
+                    next_question,
+                    ready_for_confirmation:
+                        raw.ready_for_confirmation ??
+                        (raw.status === "awaiting_confirmation" &&
+                            open.length === 0 &&
+                            items.length > 0),
+                };
+            }
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
-                if (payload.review) return payload.review;
-                if (payload.structuredContent?.review)
-                    return payload.structuredContent.review;
-                if (payload.id && Array.isArray(payload.items)) return payload;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
+                if (payload.review) return normalizeReview(payload.review);
+                if (payload.draft) return normalizeReview(payload.draft);
+                if (payload.found === false || payload.draft === null)
+                    return { __empty: true };
+                if (payload.id && Array.isArray(payload.items))
+                    return normalizeReview(payload);
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
                 return null;
             }
             function sourceLabel(item) {
@@ -232,8 +260,49 @@
                     ? `${items.length} foods`
                     : review.description || "Meal estimate";
             }
+            function macroText(nutrients) {
+                return [
+                    nutrients.protein_g != null
+                        ? `P ${fmt(nutrients.protein_g, 1)}g`
+                        : null,
+                    nutrients.carbs_g != null
+                        ? `C ${fmt(nutrients.carbs_g, 1)}g`
+                        : null,
+                    nutrients.fat_g != null
+                        ? `F ${fmt(nutrients.fat_g, 1)}g`
+                        : null,
+                ]
+                    .filter(Boolean)
+                    .join(" · ");
+            }
+            function itemRowFull(item) {
+                const nutrients = item.nutrients || {};
+                const macro = macroText(nutrients);
+                const confidence =
+                    item.confidence == null
+                        ? ""
+                        : ` · ${Math.round(item.confidence * 100)}% confidence`;
+                const low = item.confidence != null && item.confidence < 0.6;
+                return `<div class="f-lrow"><div class="f-lrow-top"><span class="f-lrow-name">${esc(item.name)}</span><span class="f-lrow-of">${esc(item.portion_label || "Portion estimated")}</span><span class="f-lrow-val num">${fmt(nutrients.calories)} kcal</span></div><div class="f-src">Source · <b>${esc(sourceLabel(item))}</b>${esc(confidence)}${macro ? ` · ${esc(macro)}` : ""}</div>${low ? `<div class="mr-warn">Portion estimated — worth a quick check.</div>` : ""}</div>`;
+            }
             function render(review) {
                 REVIEW = review;
+                if (review.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Review this meal",
+                        "",
+                        "error",
+                        "Could not load this meal review",
+                        String(review.__error) ||
+                            "Something went wrong reading the draft. Try again in chat.",
+                    );
+                    return;
+                }
+                if (review.__empty) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Review this meal", "")}${factsState("empty", "No meal draft found", "This draft may have been confirmed or cancelled. Continue in chat to start a new one.")}<div class="f-foot"><span>Confirm-first: Munch never logs without you</span><span>Nothing is saved until you confirm</span></div></article>`;
+                    return;
+                }
                 const items = Array.isArray(review.items) ? review.items : [];
                 const totals = review.totals || {};
                 const low = items.filter(
@@ -244,29 +313,37 @@
                         item.source_type === "model_estimate" ||
                         (item.confidence != null && item.confidence < 0.8),
                 );
-                const itemHtml = items
-                    .map((item) => {
-                        const nutrients = item.nutrients || {};
-                        const macro = [
-                            nutrients.protein_g != null
-                                ? `P ${fmt(nutrients.protein_g, 1)}g`
-                                : null,
-                            nutrients.carbs_g != null
-                                ? `C ${fmt(nutrients.carbs_g, 1)}g`
-                                : null,
-                            nutrients.fat_g != null
-                                ? `F ${fmt(nutrients.fat_g, 1)}g`
-                                : null,
-                        ]
-                            .filter(Boolean)
-                            .join(" · ");
-                        return `<div class="item">
-            <div><div class="item-name">${esc(item.name || "Food item")}</div>
-            <div class="item-meta">${esc(item.portion_label || "Portion estimated")}${macro ? ` · ${esc(macro)}` : ""}</div></div>
-            <div class="item-kcal">${fmt(nutrients.calories)} kcal</div>
-        </div>`;
-                    })
-                    .join("");
+                const matched = items.length - estimated.length;
+                const flags = [
+                    estimated.length
+                        ? `${estimated.length} estimated`
+                        : "Sources matched",
+                    low.length
+                        ? `${low.length} needs review`
+                        : "Estimate ready",
+                ];
+                // Row rule: up to 4 items render as full label rows. Past
+                // that the rows go compact in both modes (the brief's
+                // compact rule, pulled forward so a 5+ item meal still
+                // meets the 640px write-surface budget — full rows carry
+                // a per-row source line and run ~56px each), inline shows
+                // the first 6 compact rows, and the rest are one tap away
+                // in fullscreen, never a scroll inside the inline frame.
+                const compact = items.length > 4;
+                const inlineItems = compact ? items.slice(0, 6) : items;
+                const hiddenCount = items.length - inlineItems.length;
+                const itemHtml = compact
+                    ? inlineItems
+                          .map((item) =>
+                              factsCompactRow({
+                                  name: item.name,
+                                  meta: `${item.portion_label || "Portion estimated"} · ${sourceLabel(item)}`,
+                                  valueText: `${fmt(item.nutrients?.calories)} kcal`,
+                              }),
+                          )
+                          .join("")
+                    : inlineItems.map(itemRowFull).join("");
+                const fullItemHtml = items.map(itemRowFull).join("");
                 const assumptions = [
                     ...new Set([
                         ...(review.assumptions || []),
@@ -286,29 +363,34 @@
                     })
                     .join("");
                 const question = review.next_question?.prompt;
-                const detail =
-                    review.description || sourceRows || assumptions.length
-                        ? `<details class="review-detail"><summary>Estimate details${assumptions.length ? ` · ${assumptions.length} assumption${assumptions.length === 1 ? "" : "s"}` : ""}</summary><div class="detail-body">${review.description ? `<div><strong>Original description</strong><br />${esc(review.description)}</div>` : ""}${sourceRows}${assumptions.length ? `<div><strong>Meal assumptions</strong><br />${assumptions.map((value) => esc(value)).join(" · ")}</div>` : ""}</div></details>`
-                        : "";
+                const hasDetail = Boolean(
+                    review.description || sourceRows || assumptions.length,
+                );
+                const detailHtml = hasDetail
+                    ? `<div class="fullscreen-only"><div class="f-rule-med"></div><h2 class="f-section-title">Estimate details${assumptions.length ? ` · ${assumptions.length} assumption${assumptions.length === 1 ? "" : "s"}` : ""}</h2><div class="review-flags">${flags.map((flag, index) => `<span class="chip${index === 1 && low.length ? " warn" : ""}">${esc(flag)}</span>`).join("")}</div>${review.description ? `<div class="mr-meta"><strong>Original description</strong><br />${esc(review.description)}</div>` : ""}${sourceRows}${assumptions.length ? `<div class="mr-meta" style="margin-top:8px"><strong>Meal assumptions</strong><br />${assumptions.map((value) => esc(value)).join(" · ")}</div>` : ""}</div>`
+                    : "";
+                const allFoodsHtml = compact
+                    ? `<div class="fullscreen-only"><div class="f-rule-med"></div><h2 class="f-section-title">All ${items.length} foods</h2>${fullItemHtml}</div>`
+                    : "";
                 const reviewTitle = displayTitle(review, items);
-                const flags = [
-                    estimated.length
-                        ? `${estimated.length} estimated`
-                        : "Sources matched",
-                    low.length
-                        ? `${low.length} needs review`
-                        : "Estimate ready",
-                ];
+                const mealType = review.meal_type || "meal";
                 document.getElementById("root").innerHTML =
                     `<article class="card" aria-label="Meal review">
-        <div class="review-head"><div class="review-head-main"><div class="eyebrow">Review ${esc(review.meal_type || "meal")}</div><h1>${esc(reviewTitle)}</h1></div>${totals.calories != null ? `<div class="review-kcal">${fmt(totals.calories)} kcal</div>` : ""}</div>
-        <div>${itemHtml || '<div class="empty"><strong>No items found</strong>Continue in chat to identify the meal.</div>'}</div>
-        <div class="summary"><div class="summary-line"><div class="macro-line">P ${fmt(totals.protein_g, 1)}g · C ${fmt(totals.carbs_g, 1)}g · F ${fmt(totals.fat_g, 1)}g</div></div>
-        <div class="review-flags">${flags.map((flag, index) => `<span class="chip${index === 1 && low.length ? " warn" : ""}">${esc(flag)}</span>`).join("")}</div>
+        ${factsBand("Review this meal", mealType)}
+        <div class="f-body">
+        <div class="mr-title">${esc(reviewTitle)}</div>
+        <div class="f-hero-cap">${items.length} food${items.length === 1 ? "" : "s"} · ${matched} matched to a source · ${estimated.length} estimated${low.length ? ` · ${low.length} needs review` : ""}</div>
         ${question ? `<div class="question-line${low.length ? " warn" : ""}"><strong>Needs input</strong><br />${esc(question)}</div>` : ""}
-        ${detail}
-        <div class="actions"><button class="btn btn-primary" id="confirm" ${review.ready_for_confirmation ? "" : "disabled"}>Log meal</button><button class="btn" id="adjust">Adjust</button></div>
-        <div class="status" id="status" role="status" aria-live="polite"></div></div>
+        <div class="f-rule-heavy"></div>
+        <div>${itemHtml || factsState("empty", "No items found", "Continue in chat to identify the meal.")}</div>
+        ${hiddenCount > 0 ? `<button class="f-more-row inline-only" id="details">…and ${hiddenCount} more · view all foods</button>` : hasDetail ? `<button class="f-more-row inline-only" id="details">View estimate details</button>` : ""}
+        <div class="f-rule-med"></div>
+        <div class="f-prow" style="border-bottom:0"><span class="f-lrow-name" style="font-size:15px;font-weight:700">Total</span><span class="f-crow-meta">${esc(macroText(totals))}</span><span class="mr-total-val num">${fmt(totals.calories)} kcal</span></div>
+        ${allFoodsHtml}
+        ${detailHtml}
+        <div class="fullscreen-only"><div class="actions"><button class="btn" id="close">Return to chat</button></div></div>
+        </div>
+        <div class="f-sticky-bar"><div class="f-sticky-actions"><button class="f-btn-primary" id="confirm" ${review.ready_for_confirmation ? "" : "disabled"}>Log meal</button><button class="btn" id="adjust">Adjust</button></div><div class="f-sticky-confirm"><b>Nothing is saved until you tap Log meal.</b></div><div class="status" id="status" role="status" aria-live="polite"></div></div>
     </article>`;
                 document
                     .getElementById("confirm")
@@ -316,6 +398,21 @@
                 document
                     .getElementById("adjust")
                     ?.addEventListener("click", adjust);
+                document
+                    .getElementById("details")
+                    ?.addEventListener("click", async () => {
+                        const result = await API?.requestDisplayMode(
+                            "fullscreen",
+                        ).catch(() => null);
+                        if (!result || result.unsupported)
+                            document.getElementById("details").textContent =
+                                "Details unavailable";
+                    });
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
             }
             function setBusy(value, message) {
                 BUSY = value;
@@ -385,14 +482,16 @@
                         : [];
                     const title = displayTitle(REVIEW, items);
                     document.getElementById("root").innerHTML =
-                        `<article class="card success-state"><div class="row"><div class="icon-badge success">✓</div><div><div class="eyebrow">Meal logged</div><h1>${esc(title)}</h1><div class="meta num">${fmt(totals.calories)} kcal · P ${fmt(totals.protein_g, 1)}g · C ${fmt(totals.carbs_g, 1)}g · F ${fmt(totals.fat_g, 1)}g</div></div></div></article>`;
+                        `<article class="card">${factsBand("Meal logged", REVIEW.meal_type || "meal")}<div class="f-body"><div class="row"><div class="icon-badge success">✓</div><div><div class="eyebrow">Meal logged</div><h1>${esc(title)}</h1><div class="meta num">${fmt(totals.calories)} kcal · P ${fmt(totals.protein_g, 1)}g · C ${fmt(totals.carbs_g, 1)}g · F ${fmt(totals.fat_g, 1)}g</div></div></div></div><div class="f-foot"><span>Every number traces to its source</span><span>Your logged meals</span></div></article>`;
                 } catch (error) {
                     setBusy(false, error?.message || "Unable to log the meal.");
                 }
             }
             initWidget({
                 name: "meal-review-widget",
-                loading: '<div class="card empty">Preparing meal review…</div>',
+                displayModes: ["inline", "fullscreen"],
+                loading:
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Review this meal</span></div><div class="f-state"><strong>Preparing meal review</strong><span>Reading the draft…</span></div></article>',
                 coerce,
                 render,
                 sample: SAMPLE,
