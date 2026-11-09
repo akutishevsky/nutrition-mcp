@@ -193,7 +193,7 @@ export function registerFoodTools(server: McpServer, userId: string): void {
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
-                openWorldHint: false,
+                openWorldHint: true,
             },
             inputSchema: {
                 query: z.string().min(1).max(200),
@@ -255,7 +255,7 @@ export function registerFoodTools(server: McpServer, userId: string): void {
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
-                openWorldHint: false,
+                openWorldHint: true,
             },
             inputSchema: {
                 candidate_id: z.string().min(3).max(300),
@@ -302,7 +302,7 @@ export function registerFoodTools(server: McpServer, userId: string): void {
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
-                openWorldHint: false,
+                openWorldHint: true,
             },
             inputSchema: {
                 barcode: z.string().min(8).max(40),

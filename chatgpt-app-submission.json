@@ -263,12 +263,12 @@
         "get_food_details": {
             "annotations": {
                 "readOnlyHint": true,
-                "openWorldHint": false,
+                "openWorldHint": true,
                 "destructiveHint": false
             },
             "justifications": {
                 "read_only_justification": "Retrieves or computes information without changing the user's Munch records.",
-                "open_world_justification": "Does not publish content or change publicly visible internet state or third-party systems.",
+                "open_world_justification": "May communicate with a configured external data provider as part of the requested workflow.",
                 "destructive_justification": "Does not permanently delete, revoke, or perform another irreversible action."
             }
         },
@@ -635,24 +635,24 @@
         "lookup_barcode": {
             "annotations": {
                 "readOnlyHint": true,
-                "openWorldHint": false,
+                "openWorldHint": true,
                 "destructiveHint": false
             },
             "justifications": {
                 "read_only_justification": "Retrieves or computes information without changing the user's Munch records.",
-                "open_world_justification": "Does not publish content or change publicly visible internet state or third-party systems.",
+                "open_world_justification": "May communicate with a configured external data provider as part of the requested workflow.",
                 "destructive_justification": "Does not permanently delete, revoke, or perform another irreversible action."
             }
         },
         "lookup_food_barcode": {
             "annotations": {
                 "readOnlyHint": true,
-                "openWorldHint": false,
+                "openWorldHint": true,
                 "destructiveHint": false
             },
             "justifications": {
                 "read_only_justification": "Retrieves or computes information without changing the user's Munch records.",
-                "open_world_justification": "Does not publish content or change publicly visible internet state or third-party systems.",
+                "open_world_justification": "May communicate with a configured external data provider as part of the requested workflow.",
                 "destructive_justification": "Does not permanently delete, revoke, or perform another irreversible action."
             }
         },
@@ -683,12 +683,12 @@
         "parse_recipe_url": {
             "annotations": {
                 "readOnlyHint": true,
-                "openWorldHint": false,
+                "openWorldHint": true,
                 "destructiveHint": false
             },
             "justifications": {
                 "read_only_justification": "Retrieves or computes information without changing the user's Munch records.",
-                "open_world_justification": "Does not publish content or change publicly visible internet state or third-party systems.",
+                "open_world_justification": "Fetches the public recipe URL supplied by the user and extracts its contents; it does not publish or modify anything at that URL.",
                 "destructive_justification": "Does not permanently delete, revoke, or perform another irreversible action."
             }
         },
@@ -899,12 +899,12 @@
         "search_foods": {
             "annotations": {
                 "readOnlyHint": true,
-                "openWorldHint": false,
+                "openWorldHint": true,
                 "destructiveHint": false
             },
             "justifications": {
                 "read_only_justification": "Retrieves or computes information without changing the user's Munch records.",
-                "open_world_justification": "Does not publish content or change publicly visible internet state or third-party systems.",
+                "open_world_justification": "May communicate with a configured external data provider as part of the requested workflow.",
                 "destructive_justification": "Does not permanently delete, revoke, or perform another irreversible action."
             }
         },
@@ -1019,12 +1019,12 @@
         "start_cook": {
             "annotations": {
                 "readOnlyHint": false,
-                "openWorldHint": false,
+                "openWorldHint": true,
                 "destructiveHint": false
             },
             "justifications": {
                 "read_only_justification": "Creates or updates records inside the authenticated user's private Munch account or household workspace.",
-                "open_world_justification": "Does not publish content or change publicly visible internet state or third-party systems.",
+                "open_world_justification": "Downloads cook photos from download URLs supplied by the client as part of the requested workflow.",
                 "destructive_justification": "Does not permanently delete, revoke, or perform another irreversible action."
             }
         },
@@ -1055,12 +1055,12 @@
         "update_cook": {
             "annotations": {
                 "readOnlyHint": false,
-                "openWorldHint": false,
+                "openWorldHint": true,
                 "destructiveHint": false
             },
             "justifications": {
                 "read_only_justification": "Creates or updates records inside the authenticated user's private Munch account or household workspace.",
-                "open_world_justification": "Does not publish content or change publicly visible internet state or third-party systems.",
+                "open_world_justification": "Downloads cook photos from download URLs supplied by the client as part of the requested workflow.",
                 "destructive_justification": "Does not permanently delete, revoke, or perform another irreversible action."
             }
         },

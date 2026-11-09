@@ -316,7 +316,7 @@ export function registerCookTools(
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
-                openWorldHint: false,
+                openWorldHint: true,
             },
             inputSchema: {
                 title: z.string().max(200).optional(),
@@ -425,7 +425,7 @@ export function registerCookTools(
                 readOnlyHint: false,
                 destructiveHint: false,
                 idempotentHint: true,
-                openWorldHint: false,
+                openWorldHint: true,
             },
             inputSchema: {
                 cook_id: z.string().uuid(),

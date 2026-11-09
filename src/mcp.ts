@@ -1318,7 +1318,7 @@ export function registerTools(
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
-                openWorldHint: false,
+                openWorldHint: true,
             },
             inputSchema: {
                 barcode: z

@@ -8,12 +8,25 @@ const outputPath = "chatgpt-app-submission.json";
 const inventoryPath = "docs/openai-submission/tool-inventory.md";
 const checkOnly = process.argv.includes("--check");
 
+// Open-world justifications for tools whose internet access is not a
+// configured data provider: they fetch URLs supplied by the user or the
+// client, so the generic provider wording would misdescribe them.
+const OPEN_WORLD_JUSTIFICATIONS: Record<string, string> = {
+    parse_recipe_url:
+        "Fetches the public recipe URL supplied by the user and extracts its contents; it does not publish or modify anything at that URL.",
+    start_cook:
+        "Downloads cook photos from download URLs supplied by the client as part of the requested workflow.",
+    update_cook:
+        "Downloads cook photos from download URLs supplied by the client as part of the requested workflow.",
+};
+
 function annotationJustifications(entry: ToolInventoryEntry) {
     const readOnly = entry.readOnlyHint
         ? "Retrieves or computes information without changing the user's Munch records."
         : "Creates or updates records inside the authenticated user's private Munch account or household workspace.";
     const openWorld = entry.openWorldHint
-        ? "May communicate with a configured external data provider as part of the requested workflow."
+        ? (OPEN_WORLD_JUSTIFICATIONS[entry.name] ??
+          "May communicate with a configured external data provider as part of the requested workflow.")
         : "Does not publish content or change publicly visible internet state or third-party systems.";
     const destructive = entry.destructiveHint
         ? "Can permanently delete, revoke, or cancel selected private Munch data after the tool's confirmation safeguard is satisfied."
