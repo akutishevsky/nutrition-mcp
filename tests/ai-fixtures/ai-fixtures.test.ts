@@ -3,7 +3,15 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { generateGuidanceProposals } from "../../src/app/guidance-ai.js";
 import { previewInventoryImage } from "../../src/inventory/vision.js";
+import { assertNoOpenBlockingQuestions } from "../../src/meal-drafts/blocking.js";
+import type { MealDraft } from "../../src/meal-drafts/types.js";
+import { estimateMealPhotoNutrients } from "../../src/meal-photo/estimate.js";
+import {
+    groundMealPhotoItems,
+    mealPhotoItemIsComplete,
+} from "../../src/meal-photo/grounding.js";
 import { identifyMealPhoto } from "../../src/meal-photo/vision.js";
+import type { FoodCandidate } from "../../src/food-providers/types.js";
 import {
     requestPantryMealIdeas,
     validateMealIdeaGrounding,
@@ -283,5 +291,193 @@ describe("ai-fixture: meal photo identify (recorded response)", () => {
         expect(JSON.stringify(result)).not.toMatch(
             /calories|protein_g|carbs_g|fat_g/,
         );
+    });
+});
+
+describe("ai-fixture: meal photo production case — chicken/rice/broccoli (S3 hardening)", () => {
+    function usdaCandidate(
+        name: string,
+        id: string,
+        per100: FoodCandidate["nutrientsPer100g"],
+    ): FoodCandidate {
+        return {
+            provider: "usda",
+            providerFoodId: id,
+            name,
+            dataKind: "generic",
+            nutrientsPer100g: per100,
+            portions: [
+                {
+                    id: "100g",
+                    amount: 100,
+                    unit: "g",
+                    label: "100 g",
+                    gramWeight: 100,
+                    nutrients: per100!,
+                },
+            ],
+            attribution: {
+                label: "USDA FoodData Central",
+                url: `https://fdc.nal.usda.gov/food/${id}`,
+            },
+            confidence: 0.95,
+        };
+    }
+
+    // Grounding seam mirroring production: chicken + broccoli resolve
+    // to USDA candidates; rice gets NO usable candidate.
+    const search = async (query: string) => {
+        if (query.includes("chicken")) {
+            return {
+                candidates: [
+                    usdaCandidate("Chicken breast, grilled", "171688", {
+                        calories: 165,
+                        protein_g: 31,
+                        carbs_g: 0,
+                        fat_g: 3.6,
+                    }),
+                ],
+                failures: [],
+            };
+        }
+        if (query.includes("broccoli")) {
+            return {
+                candidates: [
+                    usdaCandidate("Broccoli, cooked", "170379", {
+                        calories: 35,
+                        protein_g: 2.4,
+                        carbs_g: 7.2,
+                        fat_g: 0.4,
+                    }),
+                ],
+                failures: [],
+            };
+        }
+        return { candidates: [], failures: [] };
+    };
+
+    test("recorded vision + grounding + estimate: rice carries values labelled Model estimate, total includes rice", async () => {
+        const visionFixture = await loadFixture(
+            "meal-photo-chicken-rice-broccoli.response.json",
+        );
+        const vision = await identifyMealPhoto(
+            { mimeType: "image/jpeg", bytes: new Uint8Array([7, 8, 9]) },
+            visionConfig,
+            { fetcher: recordedFetcher(visionFixture) },
+        );
+        expect(vision.items.map((item) => item.name)).toEqual([
+            "grilled chicken breast",
+            "cooked white rice",
+            "steamed broccoli",
+        ]);
+
+        const estimateFixture = await loadFixture(
+            "meal-photo-estimate-rice.response.json",
+        );
+        const grounded = await groundMealPhotoItems(vision.items, {
+            search: search as never,
+            estimateNutrients: (requests) =>
+                estimateMealPhotoNutrients(requests, visionConfig, {
+                    fetcher: recordedFetcher(estimateFixture),
+                }),
+        });
+
+        const [chicken, rice, broccoli] = grounded;
+        expect(chicken?.grounded).toBe(true);
+        expect(chicken?.draftItem.sourceType).toBe("usda");
+        expect(chicken?.draftItem.nutrients.calories).toBe(264);
+        expect(broccoli?.grounded).toBe(true);
+        expect(broccoli?.draftItem.nutrients.calories).toBe(35);
+
+        // The regression assertion (inverted from the pre-fix repro,
+        // where this item arrived with nutrients {} and no question):
+        expect(rice?.grounded).toBe(false);
+        expect(rice?.estimated).toBe(true);
+        expect(rice?.draftItem.sourceType).toBe("model_estimate");
+        expect(rice?.draftItem.nutrients).toMatchObject({
+            calories: 205,
+            protein_g: 4.3,
+            carbs_g: 44.5,
+            fat_g: 0.4,
+        });
+        expect(rice?.draftItem.providerFoodId).toBeUndefined();
+        expect(rice?.draftItem.provider).toBeUndefined();
+        expect(rice?.draftItem.sourceSnapshot?.estimate_origin).toBe(
+            "model_estimate",
+        );
+        expect(rice?.question).toBeNull();
+
+        const total = grounded.reduce(
+            (sum, entry) => sum + (entry.draftItem.nutrients.calories ?? 0),
+            0,
+        );
+        expect(total).toBe(264 + 205 + 35);
+        for (const entry of grounded) {
+            expect(mealPhotoItemIsComplete(entry)).toBe(true);
+        }
+    });
+
+    test("estimate-failure variant: rice gets a BLOCKING question and the shared confirm guard refuses, naming the rice", async () => {
+        const visionFixture = await loadFixture(
+            "meal-photo-chicken-rice-broccoli.response.json",
+        );
+        const vision = await identifyMealPhoto(
+            { mimeType: "image/jpeg", bytes: new Uint8Array([7, 8, 9]) },
+            visionConfig,
+            { fetcher: recordedFetcher(visionFixture) },
+        );
+        const grounded = await groundMealPhotoItems(vision.items, {
+            search: search as never,
+            estimateNutrients: (requests) =>
+                estimateMealPhotoNutrients(requests, visionConfig, {
+                    // Unusable output on both bounded attempts.
+                    fetcher: async () =>
+                        new Response(
+                            JSON.stringify({
+                                choices: [{ message: { content: "not json" } }],
+                            }),
+                            {
+                                status: 200,
+                                headers: {
+                                    "content-type": "application/json",
+                                },
+                            },
+                        ),
+                }),
+        });
+        const rice = grounded[1]!;
+        expect(rice.draftItem.nutrients).toEqual({});
+        expect(rice.question?.blocking).toBe(true);
+        expect(rice.question?.questionKey).toBe("photo_estimate_missing_1");
+        for (const entry of grounded) {
+            expect(mealPhotoItemIsComplete(entry)).toBe(true);
+        }
+
+        // The same guard the shared confirm path enforces
+        // (prepareMealDraftConfirmation / confirmMealDraft call
+        // assertNoOpenBlockingQuestions): refusal names the item.
+        const draftLike = {
+            items: grounded.map((entry, index) => ({
+                id: `item-${index}`,
+                item: entry.draftItem,
+            })),
+            questions: grounded
+                .filter((entry) => entry.question)
+                .map((entry, index) => ({
+                    id: `question-${index}`,
+                    itemId: `item-${grounded.indexOf(entry)}`,
+                    questionKey: entry.question!.questionKey,
+                    prompt: entry.question!.prompt,
+                    status: "open" as const,
+                })),
+        } as unknown as MealDraft;
+        let message = "";
+        try {
+            assertNoOpenBlockingQuestions(draftLike);
+        } catch (error) {
+            message = String(error);
+        }
+        expect(message).toContain("cooked white rice");
+        expect(message).toContain("cannot be confirmed");
     });
 });

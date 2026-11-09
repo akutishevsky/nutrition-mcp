@@ -11,6 +11,7 @@ const FORBIDDEN_MCP_MODULES = new Set([
     "inventory/meal-ideas.ts",
     "inventory/vision.ts",
     "meal-photo/vision.ts",
+    "meal-photo/estimate.ts",
     "meal-photo/grounding.ts",
     "meal-photo/pipeline.ts",
     "recipe-import/semantic-resolver.ts",

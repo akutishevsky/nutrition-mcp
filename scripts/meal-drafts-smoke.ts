@@ -264,6 +264,113 @@ if (
     throw new Error("Draft item deletion did not compact positions safely");
 }
 
+// S3 hardening: a BLOCKING question (photo item with no nutrition
+// values) cannot be accepted away — prepare must refuse even with
+// acceptRemainingAssumptions, naming the item; supplying the item's
+// nutrition and answering the question unblocks confirmation.
+let blocked = await createMealDraft({
+    userId: userA,
+    sourceMode: "photo",
+    description: "Plate with an unestimated item",
+    mealType: "lunch",
+});
+blocked = await upsertMealDraftItem({
+    userId: userA,
+    draftId: blocked.id,
+    expectedVersion: blocked.version,
+    position: 0,
+    item: {
+        name: "cooked white rice",
+        quantity: 1,
+        portionLabel: "1 cup",
+        nutrients: {},
+        sourceType: "model_estimate",
+        confidence: 0.8,
+        assumptions: [],
+        sourceSnapshot: {
+            resolution_layer: "meal_photo_grounding",
+            estimate_status: "unavailable",
+        },
+    },
+});
+const blockedItemId = blocked.items[0]!.id;
+blocked = await addMealDraftQuestion({
+    userId: userA,
+    draftId: blocked.id,
+    expectedVersion: blocked.version,
+    itemId: blockedItemId,
+    questionKey: "photo_estimate_missing_0",
+    prompt: "We couldn't find nutrition for cooked white rice (1 cup). Please supply or confirm its nutrition, or remove the item.",
+    impactScore: 100,
+});
+let blockingRefusal = "";
+try {
+    await prepareMealDraftConfirmation({
+        userId: userA,
+        draftId: blocked.id,
+        expectedVersion: blocked.version,
+        acceptRemainingAssumptions: true,
+    });
+} catch (error) {
+    blockingRefusal = String(error);
+}
+if (
+    !blockingRefusal.includes("cannot be confirmed") ||
+    !blockingRefusal.includes("cooked white rice")
+) {
+    throw new Error(
+        `Blocking question was accepted away or the refusal did not name the item: ${blockingRefusal}`,
+    );
+}
+if (
+    blocked.questions.find(
+        (question) => question.questionKey === "photo_estimate_missing_0",
+    )?.status !== "open"
+) {
+    throw new Error("Blocking question did not remain open after refusal");
+}
+// Supply the nutrition (item update reconciles the question), answer
+// it, then preparation and confirmation succeed.
+blocked = await upsertMealDraftItem({
+    userId: userA,
+    draftId: blocked.id,
+    expectedVersion: blocked.version,
+    position: 0,
+    item: {
+        ...blocked.items[0]!.item,
+        nutrients: { calories: 205, protein_g: 4.3, carbs_g: 44.5, fat_g: 0.4 },
+        sourceType: "user_supplied",
+    },
+});
+const blockingQuestion = blocked.questions.find(
+    (question) => question.questionKey === "photo_estimate_missing_0",
+)!;
+blocked = await answerMealDraftQuestion({
+    userId: userA,
+    draftId: blocked.id,
+    expectedVersion: blocked.version,
+    questionId: blockingQuestion.id,
+    answer: "Confirmed the rice nutrition from the package label.",
+});
+blocked = await prepareMealDraftConfirmation({
+    userId: userA,
+    draftId: blocked.id,
+    expectedVersion: blocked.version,
+});
+blocked = await confirmMealDraft({
+    userId: userA,
+    draftId: blocked.id,
+    expectedVersion: blocked.version,
+    confirmed: true,
+});
+if (blocked.status !== "confirmed" || !blocked.confirmedMealId) {
+    throw new Error("Resolved blocking draft was not confirmed");
+}
+const blockedMeal = await getStructuredMeal(userA, blocked.confirmedMealId);
+if (!blockedMeal || blockedMeal.calories !== 205) {
+    throw new Error("Resolved blocking draft logged the wrong totals");
+}
+
 await closePlatformDatabase();
 console.log(
     "Munch meal draft state, confirmation, idempotency, and RLS smoke test passed.",

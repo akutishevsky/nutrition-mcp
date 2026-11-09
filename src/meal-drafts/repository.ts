@@ -3,6 +3,10 @@ import {
     withUserDatabase,
     type DatabaseTransaction,
 } from "../platform/database.js";
+import {
+    assertNoOpenBlockingQuestions,
+    BLOCKING_DRAFT_QUESTION_KEY_PREFIX,
+} from "./blocking.js";
 import { aggregateStructuredMealItems } from "../structured-meals/repository.js";
 import type { StructuredMealItemInput } from "../structured-meals/types.js";
 import type {
@@ -532,6 +536,11 @@ export async function prepareMealDraftConfirmation(input: {
         if (!draft) throw new Error("Meal draft not found");
         assertEditable(draft);
         assertVersion(draft, input.expectedVersion);
+        // Blocking questions (photo items with NO nutrition values) can
+        // never be accepted away — the refusal names the item(s). This
+        // is the shared confirm path for the web route and the MCP
+        // tools, so the guard holds on both surfaces.
+        assertNoOpenBlockingQuestions(draft);
         const openQuestions = draft.questions.filter(
             (question) => question.status === "open",
         );
@@ -548,6 +557,7 @@ export async function prepareMealDraftConfirmation(input: {
                     answered_at = now()
                 where draft_id = ${input.draftId}
                   and status = 'open'
+                  and question_key not like ${`${BLOCKING_DRAFT_QUESTION_KEY_PREFIX}%`}
             `;
         }
         if (draft.items.length === 0) {
@@ -682,6 +692,10 @@ export async function confirmMealDraft(input: {
         if (draft.status !== "awaiting_confirmation") {
             throw new Error("Meal draft is not ready for confirmation");
         }
+        // Defence in depth on the same shared path: even a draft that
+        // reached awaiting_confirmation with a blocking question open
+        // (e.g. a question added after preparation) cannot confirm.
+        assertNoOpenBlockingQuestions(draft);
         if (draft.questions.some((question) => question.status === "open")) {
             throw new Error("Meal draft still has unresolved questions");
         }

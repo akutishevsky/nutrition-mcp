@@ -219,7 +219,8 @@
                     return "Restaurant nutrition";
                 if (item.source_type === "saved_food") return "Saved food";
                 if (item.source_type === "past_meal") return "Past meal";
-                if (item.source_type === "model_estimate") return "Estimated";
+                if (item.source_type === "model_estimate")
+                    return "Model estimate";
                 if (
                     item.source_type === "user_supplied" &&
                     item.source_snapshot?.resolution_layer === "external_web"

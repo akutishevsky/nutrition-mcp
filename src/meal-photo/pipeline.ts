@@ -17,6 +17,9 @@ import type { MealPhotoVisionResult } from "./vision.js";
  * `accept_remaining_assumptions` → confirm — unchanged. Nothing is
  * logged until the user confirms through the existing confirm path.
  * Low-confidence items become draft QUESTIONS, not silent guesses.
+ * Items whose labelled estimate failed become BLOCKING questions:
+ * the shared confirm path refuses to confirm until the user supplies
+ * the item's nutrition or removes it (meal-drafts/blocking.ts).
  */
 
 export const PHOTO_DRAFT_DESCRIPTION = "Photo estimate — check portions";
@@ -27,6 +30,10 @@ export interface MealPhotoDraftResult {
     draft: MealDraft;
     grounded: GroundedMealPhotoItem[];
     groundedCount: number;
+    /** Items whose values came from the labelled model-estimate step. */
+    estimatedCount: number;
+    /** Items with NO values and a blocking question (estimate failed). */
+    blockingCount: number;
     questionCount: number;
 }
 
@@ -78,6 +85,9 @@ export async function createMealPhotoDraft(input: {
         draft,
         grounded,
         groundedCount: grounded.filter((entry) => entry.grounded).length,
+        estimatedCount: grounded.filter((entry) => entry.estimated).length,
+        blockingCount: grounded.filter((entry) => entry.question?.blocking)
+            .length,
         questionCount: grounded.filter((entry) => entry.question).length,
     };
 }

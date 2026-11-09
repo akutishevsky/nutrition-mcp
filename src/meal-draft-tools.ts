@@ -423,7 +423,7 @@ export function registerMealDraftTools(
         {
             title: "Prepare Meal Confirmation",
             description:
-                "Move a complete draft to final confirmation. This fails while questions remain unless the user explicitly instructed you to stop asking and accept the remaining assumptions.",
+                "Move a complete draft to final confirmation. This fails while questions remain unless the user explicitly instructed you to stop asking and accept the remaining assumptions. Blocking questions (photo items with no nutrition values, key photo_estimate_missing_*) can never be accepted away: supply or confirm the item's nutrition, or remove the item, first.",
             annotations: {
                 readOnlyHint: false,
                 destructiveHint: false,

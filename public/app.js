@@ -158,7 +158,7 @@ const sourceLabels = {
     saved_food: "Saved food",
     past_meal: "Past meal",
     user_supplied: "User supplied",
-    model_estimate: "Estimated",
+    model_estimate: "Model estimate",
     legacy_aggregate: "Legacy entry",
 };
 

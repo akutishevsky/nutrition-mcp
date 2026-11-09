@@ -51,6 +51,7 @@ import {
     upsertProfile,
 } from "../storage.js";
 import { getFoodSearchService } from "../food-providers/service.js";
+import { estimateMealPhotoNutrients } from "../meal-photo/estimate.js";
 import { createMealPhotoDraft } from "../meal-photo/pipeline.js";
 import {
     chooseMealPhotoCandidates,
@@ -1510,6 +1511,8 @@ export function createAppRouter(): Hono {
                     search: (query, limit) => foodSearch.search(query, limit),
                     chooseCandidates: (requests) =>
                         chooseMealPhotoCandidates(requests, visionConfig),
+                    estimateNutrients: (requests) =>
+                        estimateMealPhotoNutrients(requests, visionConfig),
                 },
             });
             return privateJson(c, {
