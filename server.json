@@ -1,14 +1,35 @@
 {
     "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-    "name": "io.github.michaelhmiv/munch",
-    "title": "Munch",
-    "description": "Privacy-conscious nutrition tracking through ChatGPT and other MCP clients.",
-    "version": "0.1.0",
-    "websiteUrl": "https://github.com/michaelhmiv/Munch",
+    "description": "Track meals, nutrition, recipes, and grocery lists privately from any MCP client.",
+    "icons": [
+        {
+            "mimeType": "image/png",
+            "sizes": [
+                "512x512"
+            ],
+            "src": "https://munch.business/brand/munch-mark-512.png"
+        },
+        {
+            "mimeType": "image/png",
+            "sizes": [
+                "192x192"
+            ],
+            "src": "https://munch.business/brand/munch-mark-192.png"
+        }
+    ],
+    "name": "business.munch/munch",
+    "remotes": [
+        {
+            "type": "streamable-http",
+            "url": "https://munch.business/mcp"
+        }
+    ],
     "repository": {
-        "url": "https://github.com/michaelhmiv/Munch",
+        "id": "1322040491",
         "source": "github",
-        "id": "michaelhmiv/Munch"
+        "url": "https://github.com/michaelhmiv/Munch"
     },
-    "remotes": []
+    "title": "Munch",
+    "version": "0.1.0",
+    "websiteUrl": "https://munch.business"
 }
