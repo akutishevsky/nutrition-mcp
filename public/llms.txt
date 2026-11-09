@@ -13,6 +13,25 @@ Munch is designed for use through ChatGPT, Claude, and other MCP clients, with t
 
 Munch does not train a Munch model on nutrition records, sell nutrition data, or use Google Analytics or advertising trackers. Your AI provider separately controls its conversation processing, retention, and training choices according to your plan, settings, and the provider's policies.
 
+## Connect Munch to your AI
+
+Munch connects to any MCP client as a custom connector / remote MCP server. Full step-by-step instructions live at https://munch.business/connect — the summary:
+
+- Endpoint: https://munch.business/mcp
+- Connector name: Munch
+- Authentication: OAuth 2.1 + PKCE + DCR. Starting the connection opens a Munch page in the user's browser.
+- Sign-in is by single-use email link — there is no password. Entering an email and opening the link Munch sends signs the user in; if the email has never been used with Munch, that same link creates the account automatically. There is no separate sign-up step. After sign-in, the user reviews the requested permissions on Munch's approval page and approves; the client is then connected.
+- A returning user can also paste the connect block from https://munch.business/ into their AI chat and let the assistant walk them through the same steps.
+
+Per-client summary:
+
+- Claude: Customize → Connectors (Settings → Connectors in some versions) → + → Add custom connector → name Munch, URL https://munch.business/mcp → Add → Connect → complete the email-link sign-in and approval in the browser. Custom connectors are available on Free, Pro, Max, Team, and Enterprise plans; free accounts can keep one custom connector.
+- ChatGPT: on the web, Settings → Apps & Connectors → Advanced settings → turn on Developer mode → back in Apps & Connectors choose Create → name Munch, MCP server URL https://munch.business/mcp, Authentication OAuth → Create → complete the email-link sign-in and approval in the browser. Developer mode is a paid-plan feature (Plus, Pro, Business, Enterprise, Edu) and is not available on free accounts.
+- Muse: run `claude mcp add --transport http Munch https://munch.business/mcp`, then run `/mcp`, choose Munch, and Authenticate; complete the email-link sign-in and approval in the browser.
+- Any MCP app: open the app's custom connector / MCP server settings, add a server named Munch with URL https://munch.business/mcp and OAuth authentication, start the connection, and complete the email-link sign-in and approval in the browser.
+
+After connecting, the assistant can confirm the connection is live and offer a first action — log a first meal or set a nutrition goal. Connections can be revoked at any time from Munch Settings → Connections; revoking stops that connection without deleting the account or its records. Support: support@munch.business.
+
 ## Access and billing
 
 - Munch has a permanent Free tier for core nutrition logging, daily progress, water and weight tracking, imports, exports, connections, and account deletion.
@@ -34,6 +53,7 @@ Sources and assumptions should remain visible. Munch is a consumer wellness prod
 ## Main pages
 
 - Home: https://munch.business/
+- Connect Munch to your AI: https://munch.business/connect
 - Tools and example prompts: https://munch.business/tools
 - Privacy policy: https://munch.business/privacy
 - Terms of service: https://munch.business/terms

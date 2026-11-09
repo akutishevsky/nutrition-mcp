@@ -16,10 +16,22 @@ if (!PRODUCT_CONFIG.freeTierEnabled) {
     errors.push("The permanent Free tier must remain enabled");
 }
 
+// The 7-day free trial is a settled product fact (PRODUCT.md, ruled
+// 2026-11-09: "The 7-day free trial and the permanent free tier are
+// unchanged"; homepage-connect brief Hard Floor 2: the trial lives on
+// the Stripe price, so checkout code still never sets trial params and
+// trialEnabled stays false). The two Persuade marketing surfaces — the
+// homepage and /connect — may state that fact; trial language stays
+// forbidden on every other public page (app, auth, help, legal).
+const trialFactSurfaces = new Set(["public/index.html", "public/connect.html"]);
+
 const publicHtml = new Bun.Glob("public/**/*.html");
 for await (const path of publicHtml.scan({ cwd: "." })) {
     const source = await Bun.file(path).text();
-    if (/\btrial\b/i.test(normalizedText(source))) {
+    if (
+        !trialFactSurfaces.has(path) &&
+        /\btrial\b/i.test(normalizedText(source))
+    ) {
         errors.push(`${path}: contains user-facing trial language`);
     }
     if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(source)) {

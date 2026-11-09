@@ -1,0 +1,892 @@
+/*
+ * Editorial Serif — Munch house theme for the flagship public surfaces
+ * (homepage `/` and `/connect`). Direction contract:
+ * ~/workspace/munch-prep/homepage-connect/direction-contract.md
+ * The quiet letter: warm paper, Georgia display type, hairline rules,
+ * no cards, restrained green button, marginalia-style notes.
+ * This stylesheet is loaded ONLY by public/index.html and
+ * public/connect.html; every other surface keeps public/styles.css.
+ */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+:root {
+    color-scheme: light;
+    --paper: #f6f1e7;
+    --paper-card: #fffdf8;
+    --ink: #2b2620;
+    --ink-soft: #4a4237;
+    --ink-mute: #5d5344;
+    --hairline: #d8cdb6;
+    --rule: #8a7c63;
+    --green: #176b3a;
+    --green-deep: #0b3d24;
+    --green-tint: #eef4ea;
+    --danger: #8c2f22;
+    --serif: Georgia, "Times New Roman", Times, serif;
+    --sans:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --measure: 780px;
+}
+
+html {
+    scroll-behavior: smooth;
+    text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+    background: var(--green);
+    color: #fff;
+}
+
+img,
+svg {
+    display: block;
+    max-width: 100%;
+}
+
+a {
+    color: var(--green);
+    text-underline-offset: 3px;
+}
+
+a:hover {
+    text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+    outline: 3px solid var(--green);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.skip-link {
+    position: absolute;
+    left: 16px;
+    top: -60px;
+    z-index: 50;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--green);
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: top 0.15s ease-out;
+}
+
+.skip-link:focus-visible {
+    top: 12px;
+}
+
+.wrap {
+    max-width: var(--measure);
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ---------- Header ---------- */
+
+.top {
+    border-bottom: 1px solid var(--hairline);
+}
+
+.topin {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.mark {
+    width: 40px;
+    height: 40px;
+}
+
+.brandname {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+}
+
+.brandlink {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    text-decoration: none;
+    color: var(--ink);
+    flex: 0 0 auto;
+}
+
+.top nav {
+    margin-left: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+
+.top nav a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 10px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+}
+
+.top nav a:hover {
+    color: var(--green);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.top nav a.nav-cta {
+    color: var(--green);
+    font-weight: 700;
+}
+
+/* ---------- Type ---------- */
+
+h1,
+h2,
+h3 {
+    font-family: var(--serif);
+    font-weight: 600;
+    color: var(--ink);
+}
+
+h1 {
+    font-size: 40px;
+    line-height: 1.08;
+    letter-spacing: -0.015em;
+    margin: 10px 0 14px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--hairline);
+    text-wrap: balance;
+}
+
+h2 {
+    font-size: 27px;
+    line-height: 1.18;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+    text-wrap: balance;
+}
+
+h3 {
+    font-size: 19px;
+    line-height: 1.3;
+    margin: 0 0 8px;
+}
+
+p {
+    margin: 0 0 12px;
+}
+
+.eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin: 0;
+}
+
+.lead {
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 62ch;
+}
+
+.fine {
+    font-size: 13px;
+    color: var(--ink-mute);
+}
+
+code {
+    font-family: var(--serif);
+    font-size: 0.95em;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 22px;
+    background: var(--green);
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: var(--green-deep);
+    text-decoration: none;
+}
+
+.btn.big {
+    font-size: 17px;
+    padding: 14px 26px;
+}
+
+.btn.ghost {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--rule);
+}
+
+.btn.ghost:hover {
+    background: var(--paper-card);
+    color: var(--green);
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* ---------- Hero & paste block ---------- */
+
+.hero {
+    padding: 32px 0 4px;
+}
+
+.pastebox {
+    margin: 24px 0 8px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--paper-card);
+}
+
+.pastehead {
+    display: flex;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--hairline);
+    color: var(--ink-mute);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.pastehead span {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+}
+
+.paste {
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    background: var(--paper-card);
+    color: var(--ink);
+}
+
+.pastefoot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px 18px;
+}
+
+.copy-btn {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    background: var(--green);
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.copy-btn:hover {
+    background: var(--green-deep);
+}
+
+.copy-status {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--green);
+    margin: 0;
+}
+
+.pastenote {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--ink-mute);
+    margin: 10px 2px 0;
+}
+
+/* ---------- Fact strip ---------- */
+
+.factstrip {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0 16px;
+    margin: 20px 0 4px;
+}
+
+.fact {
+    border-top: 1px solid var(--hairline);
+    padding: 12px 2px;
+}
+
+.fact strong {
+    display: block;
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.15;
+}
+
+.fact span {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-mute);
+}
+
+/* ---------- Preview (authored demo, labeled) ---------- */
+
+.preview {
+    margin: 28px 0 8px;
+    padding: 20px 18px 14px;
+    position: relative;
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    background: var(--paper-card);
+}
+
+.prevtag {
+    position: absolute;
+    top: -13px;
+    left: 16px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    background: var(--green);
+    color: #fff;
+    border-radius: 2px;
+}
+
+.chatwho {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.chatwho img {
+    width: 28px;
+    height: 28px;
+}
+
+.chatwho strong {
+    font-size: 14px;
+}
+
+.chatwho span {
+    font-size: 12px;
+    color: var(--ink-mute);
+    margin-left: auto;
+}
+
+.chatbubble {
+    max-width: 88%;
+    padding: 12px 16px;
+    margin: 10px 0;
+    font-size: 15px;
+    line-height: 1.55;
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    background: var(--paper-card);
+}
+
+.chatbubble.user {
+    margin-left: auto;
+    background: var(--green-tint);
+}
+
+.chatbubble.short {
+    max-width: 34%;
+    text-align: center;
+}
+
+.nutri {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+    text-align: center;
+}
+
+.nutri div {
+    padding: 8px 4px;
+    border-top: 2px solid var(--green);
+    border-bottom: 1px solid var(--hairline);
+}
+
+.nutri strong {
+    display: block;
+    font-size: 19px;
+    font-variant-numeric: tabular-nums;
+}
+
+.nutri span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-mute);
+}
+
+.srcrow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.chip {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 9px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    color: var(--ink-soft);
+}
+
+.todayrow {
+    display: grid;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 14px;
+}
+
+.todayrow div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Sections ---------- */
+
+.block {
+    padding: 32px 0 8px;
+}
+
+.grid2,
+.grid3,
+.grid4 {
+    display: grid;
+    gap: 4px 28px;
+}
+
+.entry {
+    border-top: 1px solid var(--hairline);
+    padding: 18px 0 10px;
+}
+
+.entry ul {
+    margin: 0 0 14px;
+    padding-left: 20px;
+}
+
+.entry li {
+    margin: 6px 0;
+}
+
+.num {
+    display: block;
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--green);
+    margin-bottom: 4px;
+}
+
+.note {
+    font-style: italic;
+    color: var(--ink-mute);
+    font-size: 14px;
+}
+
+/* ---------- Pricing ---------- */
+
+.bigprice {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 600;
+    line-height: 1.1;
+    margin: 4px 0 10px;
+}
+
+.bigprice small {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-mute);
+}
+
+.price-featured {
+    border-top: 2px solid var(--green);
+}
+
+/* ---------- FAQ ---------- */
+
+.faq details {
+    border-top: 1px solid var(--hairline);
+    padding: 6px 0;
+}
+
+.faq summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px 0;
+}
+
+.faq details p {
+    max-width: 62ch;
+    color: var(--ink-soft);
+}
+
+/* ---------- Boundary ---------- */
+
+.boundary {
+    display: grid;
+    gap: 4px 28px;
+}
+
+/* ---------- Steps & tabs (/connect) ---------- */
+
+.steps {
+    margin: 0 0 14px;
+    padding-left: 22px;
+}
+
+.steps li {
+    margin: 8px 0;
+}
+
+.fields {
+    display: grid;
+    gap: 8px;
+    margin: 14px 0;
+}
+
+.fields div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--hairline);
+    padding-top: 8px;
+    font-size: 14px;
+}
+
+.fields dt {
+    color: var(--ink-mute);
+    font-weight: 600;
+}
+
+.fields dd {
+    margin: 0;
+    font-weight: 700;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.tabs {
+    position: relative;
+}
+
+.tabs > input {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.tabbar {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-bottom: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+}
+
+.tablabel {
+    min-height: 48px;
+    flex: 1 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--ink);
+    white-space: nowrap;
+}
+
+.tablabel:hover {
+    border-color: var(--green);
+    color: var(--green);
+}
+
+/* No-JS default: every panel is a stacked section. When JS runs it adds
+ * .js-tabs, and the radio inputs take over show/hide. */
+.panel {
+    border-top: 1px solid var(--hairline);
+    padding: 20px 0 8px;
+}
+
+.tabs.js-tabs .panel {
+    display: none;
+}
+
+.tabs.js-tabs:has(input:nth-of-type(1):checked) .panel.c1,
+.tabs.js-tabs:has(input:nth-of-type(2):checked) .panel.c2,
+.tabs.js-tabs:has(input:nth-of-type(3):checked) .panel.c3,
+.tabs.js-tabs:has(input:nth-of-type(4):checked) .panel.c4 {
+    display: block;
+}
+
+.tabs.js-tabs:has(input:nth-of-type(1):checked) .tablabel[for="t1"],
+.tabs.js-tabs:has(input:nth-of-type(2):checked) .tablabel[for="t2"],
+.tabs.js-tabs:has(input:nth-of-type(3):checked) .tablabel[for="t3"],
+.tabs.js-tabs:has(input:nth-of-type(4):checked) .tablabel[for="t4"] {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+}
+
+.tabs > input:focus-visible ~ .tabbar .tablabel {
+    outline: 3px solid var(--green);
+    outline-offset: 2px;
+}
+
+/* ---------- Closing & footer ---------- */
+
+.cta {
+    padding: 36px 0 40px;
+    border-top: 1px solid var(--hairline);
+    margin-top: 28px;
+}
+
+.foot {
+    margin-top: 24px;
+    padding: 26px 0 20px;
+    border-top: 1px solid var(--hairline);
+    color: var(--ink-mute);
+    font-size: 14px;
+}
+
+.footgrid {
+    display: grid;
+    gap: 18px;
+}
+
+.foot strong {
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 16px;
+}
+
+.foot nav {
+    display: grid;
+    gap: 2px;
+}
+
+.foot nav a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.foot nav a:hover {
+    text-decoration: underline;
+}
+
+.tinyline {
+    font-size: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--hairline);
+    margin-top: 18px;
+}
+
+/* ---------- Wider screens ---------- */
+
+@media (min-width: 760px) {
+    h1 {
+        font-size: 54px;
+    }
+
+    h2 {
+        font-size: 32px;
+    }
+
+    .hero {
+        padding-top: 44px;
+    }
+
+    .factstrip {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .grid2,
+    .boundary {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .grid3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .grid4 {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .todayrow {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .footgrid {
+        grid-template-columns: 2fr 1fr 1fr;
+    }
+
+    .tabbar {
+        overflow-x: visible;
+    }
+}
+
+/* ---------- Phone: one-row header, tighter hero ---------- */
+
+@media (max-width: 759px) {
+    .topin {
+        flex-wrap: nowrap;
+        padding-left: 16px;
+        padding-right: 8px;
+    }
+
+    .top nav {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        margin-left: 4px;
+        min-width: 0;
+    }
+
+    .top nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .top nav a {
+        white-space: nowrap;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .brandname {
+        font-size: 20px;
+    }
+
+    .mark {
+        width: 34px;
+        height: 34px;
+    }
+
+    .hero {
+        padding-top: 22px;
+    }
+
+    h1 {
+        font-size: 36px;
+    }
+
+    .lead {
+        font-size: 17px;
+    }
+
+    .paste {
+        padding: 16px;
+    }
+
+    .pastefoot {
+        padding: 0 16px 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .skip-link {
+        transition: none;
+    }
+}
