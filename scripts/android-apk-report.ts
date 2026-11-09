@@ -19,12 +19,13 @@ import { basename, join } from "node:path";
 const apkPath =
     process.argv[2] ?? "android/app/build/outputs/apk/debug/app-debug.apk";
 const reportDir = process.argv[3] ?? "apk-size-report";
-// Baseline guard, tightened against the measured CI size in the S0 PR.
-// Debug APKs carry unstripped native libraries and the ML Kit barcode
-// model, so this is a tripwire against accidental bloat (a second copy
-// of the web bundle, a stray dependency), not a store-size target.
+// Baseline guard, set from the measured CI size in the S0 PR
+// (43.67 MiB debug APK, run 42707148603) with ~10% headroom. Debug APKs
+// carry unstripped native libraries and the ML Kit barcode model, so
+// this is a tripwire against accidental bloat (a second copy of the web
+// bundle, a stray dependency), not a store-size target.
 const budgetBytes = Number(
-    process.env.MUNCH_ANDROID_APK_BUDGET_BYTES ?? 64 * 1024 * 1024,
+    process.env.MUNCH_ANDROID_APK_BUDGET_BYTES ?? 48 * 1024 * 1024,
 );
 
 interface ZipEntry {
