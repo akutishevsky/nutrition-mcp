@@ -2,18 +2,20 @@
   <!-- Munch social card (og.png), 1200x630.
        Source of truth for public/og.png. Re-render with:
        ffmpeg -y -i public/og.svg public/og.png
-       Copy is preserved verbatim from the previous card; the mark is the
-       printed-label apple adopted 2026-11-09 (see DESIGN.md), embedded
-       from public/brand/munch-mark.svg. -->
-  <title>Munch — Persistent nutrition for ChatGPT</title>
+       Copy set by the 2026-11-09 positioning ruling: MCP-wide, never
+       ChatGPT-branded; Premium $2.99/mo. The mark is the printed-label
+       apple adopted 2026-11-09 (see DESIGN.md), embedded from
+       public/brand/munch-mark.svg. -->
+  <title>Munch — Persistent nutrition for your AI</title>
   <rect width="1200" height="630" fill="#FCFDF9"/>
   <g transform="translate(52 150) scale(1.8)">
       <path fill="#0B8F4D" fill-rule="evenodd" d="M 96 60.8 C 83.2 48 52.8 46.4 44.8 73.6 C 37.6 97.6 43.2 128 60.8 142.4 C 73.6 152.8 86.4 148.8 96 145.6 C 105.6 148.8 118.4 152.8 131.2 142.4 C 148.8 128 154.4 97.6 147.2 73.6 C 139.2 46.4 108.8 48 96 60.8 Z M 60.0 81.6 H 132.0 A 2.4 2.4 0 0 1 134.4 84.0 V 87.99999999999999 A 2.4 2.4 0 0 1 132.0 90.39999999999999 H 60.0 A 2.4 2.4 0 0 1 57.6 87.99999999999999 V 84.0 A 2.4 2.4 0 0 1 60.0 81.6 Z M 59.2 97.6 H 132.8 A 1.6 1.6 0 0 1 134.4 99.19999999999999 V 99.2 A 1.6 1.6 0 0 1 132.8 100.8 H 59.2 A 1.6 1.6 0 0 1 57.6 99.2 V 99.19999999999999 A 1.6 1.6 0 0 1 59.2 97.6 Z M 60.0 106.4 H 108.0 A 2.4 2.4 0 0 1 110.4 108.80000000000001 V 108.8 A 2.4 2.4 0 0 1 108.0 111.2 H 60.0 A 2.4 2.4 0 0 1 57.6 108.8 V 108.80000000000001 A 2.4 2.4 0 0 1 60.0 106.4 Z M 59.2 116.8 H 132.8 A 1.6 1.6 0 0 1 134.4 118.39999999999999 V 118.4 A 1.6 1.6 0 0 1 132.8 120.0 H 59.2 A 1.6 1.6 0 0 1 57.6 118.4 V 118.39999999999999 A 1.6 1.6 0 0 1 59.2 116.8 Z"/>
       <path d="M 96 60.8 C 94.4 49.6 97.6 40 104.8 34.4" fill="none" stroke="#0B8F4D" stroke-width="7.2" stroke-linecap="round"/>
       <path fill="#A8D90F" d="M 106.4 43.2 C 111.2 28 125.6 24 134.4 28 C 132.8 41.6 120.8 48.8 106.4 43.2 Z"/>
   </g>
-  <text x="368" y="254" font-family="Noto Sans, sans-serif" font-weight="700" font-size="68" letter-spacing="1.5" fill="#16221B">Persistent nutrition</text>
-  <text x="368" y="334" font-family="Noto Sans, sans-serif" font-weight="700" font-size="68" letter-spacing="1.5" fill="#0B8F4D">for ChatGPT</text>
-  <text x="368" y="405" font-family="Noto Sans, sans-serif" font-size="32" fill="#55635B">Secure history, verified food data, and tools</text>
-  <text x="368" y="450" font-family="Noto Sans, sans-serif" font-size="32" fill="#55635B">$4.99/month after a 7-day free trial</text>
+  <text x="368" y="238" font-family="Noto Sans, sans-serif" font-weight="700" font-size="68" letter-spacing="1.5" fill="#16221B">Persistent nutrition</text>
+  <text x="368" y="318" font-family="Noto Sans, sans-serif" font-weight="700" font-size="68" letter-spacing="1.5" fill="#0B8F4D">for your AI</text>
+  <text x="368" y="384" font-family="Noto Sans, sans-serif" font-size="32" fill="#55635B">Works with ChatGPT, Claude, and any MCP app</text>
+  <text x="368" y="428" font-family="Noto Sans, sans-serif" font-size="32" fill="#55635B">Secure history, verified food data, and tools</text>
+  <text x="368" y="472" font-family="Noto Sans, sans-serif" font-size="32" fill="#55635B">$2.99/month after a 7-day free trial</text>
 </svg>
