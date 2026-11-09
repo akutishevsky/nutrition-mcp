@@ -1,1 +1,17 @@
-{"choices":[{"message":{"content":"{\"lines\":[{\"raw_label\":\"GRND BEEF 1LB\",\"name\":\"Ground beef\",\"quantity\":1,\"unit\":\"lb\",\"is_food\":true,\"confidence\":0.97,\"location\":\"fridge\"},{\"raw_label\":\"RICE 2LB\",\"name\":\"Long grain rice\",\"quantity\":2,\"unit\":\"lb\",\"is_food\":true,\"confidence\":0.95,\"location\":\"pantry\"},{\"raw_label\":\"PAPER TOWEL\",\"name\":\"Paper towels\",\"quantity\":1,\"unit\":\"count\",\"is_food\":false,\"confidence\":0.99,\"location\":\"unspecified\"}],\"notes\":[]}","role":"assistant"}}],"id":"fixture-vision-receipt","model":"meta/muse-ember-1.0","usage":{"completion_tokens":141,"prompt_tokens":812,"total_tokens":953}}
+{
+    "choices": [
+        {
+            "message": {
+                "content": "{\"lines\":[{\"raw_label\":\"GRND BEEF 1LB\",\"name\":\"Ground beef\",\"quantity\":1,\"unit\":\"lb\",\"is_food\":true,\"confidence\":0.97,\"location\":\"fridge\"},{\"raw_label\":\"RICE 2LB\",\"name\":\"Long grain rice\",\"quantity\":2,\"unit\":\"lb\",\"is_food\":true,\"confidence\":0.95,\"location\":\"pantry\"},{\"raw_label\":\"PAPER TOWEL\",\"name\":\"Paper towels\",\"quantity\":1,\"unit\":\"count\",\"is_food\":false,\"confidence\":0.99,\"location\":\"unspecified\"}],\"notes\":[]}",
+                "role": "assistant"
+            }
+        }
+    ],
+    "id": "fixture-vision-receipt",
+    "model": "meta/muse-ember-1.0",
+    "usage": {
+        "completion_tokens": 141,
+        "prompt_tokens": 812,
+        "total_tokens": 953
+    }
+}

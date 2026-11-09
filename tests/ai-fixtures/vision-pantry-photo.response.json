@@ -1,1 +1,17 @@
-{"choices":[{"message":{"content":"{\"lines\":[{\"raw_label\":null,\"name\":\"Eggs\",\"quantity\":12,\"unit\":\"count\",\"is_food\":true,\"confidence\":0.96,\"location\":\"fridge\"},{\"raw_label\":null,\"name\":\"Frozen peas\",\"quantity\":1,\"unit\":\"bag\",\"is_food\":true,\"confidence\":0.9,\"location\":\"freezer\"}],\"notes\":[\"Back row partially obscured.\"]}","role":"assistant"}}],"id":"fixture-vision-pantry-photo","model":"meta/muse-ember-1.0","usage":{"completion_tokens":96,"prompt_tokens":1044,"total_tokens":1140}}
+{
+    "choices": [
+        {
+            "message": {
+                "content": "{\"lines\":[{\"raw_label\":null,\"name\":\"Eggs\",\"quantity\":12,\"unit\":\"count\",\"is_food\":true,\"confidence\":0.96,\"location\":\"fridge\"},{\"raw_label\":null,\"name\":\"Frozen peas\",\"quantity\":1,\"unit\":\"bag\",\"is_food\":true,\"confidence\":0.9,\"location\":\"freezer\"}],\"notes\":[\"Back row partially obscured.\"]}",
+                "role": "assistant"
+            }
+        }
+    ],
+    "id": "fixture-vision-pantry-photo",
+    "model": "meta/muse-ember-1.0",
+    "usage": {
+        "completion_tokens": 96,
+        "prompt_tokens": 1044,
+        "total_tokens": 1140
+    }
+}

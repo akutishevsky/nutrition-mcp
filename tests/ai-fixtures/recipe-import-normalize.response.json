@@ -1,1 +1,17 @@
-{"choices":[{"message":{"content":"{\"ingredients\":[{\"raw_index\":0,\"components\":[{\"name\":\"Yukon gold potato\",\"quantity\":4.5,\"unit\":\"piece\",\"preparation\":null,\"optional\":false,\"search_queries\":[\"Yukon gold potato\",\"potato\"],\"assumption\":\"Used the midpoint of the 4-5 potato range.\",\"impact\":\"medium\",\"confidence\":0.94}],\"notes\":[]}]}","role":"assistant"}}],"id":"fixture-recipe-import-normalize","model":"meta/muse-ember-1.0","usage":{"completion_tokens":122,"prompt_tokens":640,"total_tokens":762}}
+{
+    "choices": [
+        {
+            "message": {
+                "content": "{\"ingredients\":[{\"raw_index\":0,\"components\":[{\"name\":\"Yukon gold potato\",\"quantity\":4.5,\"unit\":\"piece\",\"preparation\":null,\"optional\":false,\"search_queries\":[\"Yukon gold potato\",\"potato\"],\"assumption\":\"Used the midpoint of the 4-5 potato range.\",\"impact\":\"medium\",\"confidence\":0.94}],\"notes\":[]}]}",
+                "role": "assistant"
+            }
+        }
+    ],
+    "id": "fixture-recipe-import-normalize",
+    "model": "meta/muse-ember-1.0",
+    "usage": {
+        "completion_tokens": 122,
+        "prompt_tokens": 640,
+        "total_tokens": 762
+    }
+}
