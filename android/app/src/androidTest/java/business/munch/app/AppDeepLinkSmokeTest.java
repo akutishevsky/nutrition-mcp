@@ -76,10 +76,14 @@ public class AppDeepLinkSmokeTest {
     public void deepLinkLandsOnAllowlistedRoute() throws Exception {
         UiAutomation automation =
                 InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        // No quotes around the URI: UiAutomation's shell does not
+        // strip them, and the intent data would literally arrive as
+        // "\"munch://app/recipes\"" — an unparseable URL (observed in
+        // the boot-evidence logcat on the previous CI run).
         executeShell(
                 automation,
                 "am start -a android.intent.action.VIEW"
-                        + " -d \"munch://app/recipes\""
+                        + " -d munch://app/recipes"
                         + " -n business.munch.app/.MainActivity");
         // Let the delivery settle onto its routed page before
         // attaching the scenario used to inspect the WebView.
