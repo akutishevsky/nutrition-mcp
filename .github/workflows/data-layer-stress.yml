@@ -1,0 +1,52 @@
+name: Data-layer stress baseline
+
+# Amendment E Phase 1 evidence tool. Manual-only on purpose: the stress
+# baseline is a nightly/on-demand measurement, NOT a per-PR gate.
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    stress:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        services:
+            postgres:
+                image: public.ecr.aws/docker/library/postgres:17
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: munch_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U postgres -d munch_test"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+        env:
+            DATABASE_URL: postgres://postgres:postgres@localhost:5432/munch_test
+            MUNCH_STRESS_REPORT: stress-report.json
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+            - name: Set up Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: 1
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+            - name: Install fresh canonical schema
+              run: bun run db:migrate
+            - name: Run data-layer stress baseline
+              run: bun scripts/data-layer-stress.ts
+            - name: Upload stress report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: data-layer-stress-report
+                  path: stress-report.json
+                  if-no-files-found: warn
+                  retention-days: 14
