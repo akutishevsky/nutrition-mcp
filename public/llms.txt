@@ -36,7 +36,7 @@ After connecting, the assistant can confirm the connection is live and offer a f
 
 - Munch has a permanent Free tier for core nutrition logging, daily progress, water and weight tracking, imports, exports, connections, and account deletion.
 - Optional Premium capabilities are managed on the Munch website. Connecting an MCP client does not require a subscription prompt or payment.
-- Premium is $2.99/month for the owner. Additional household members are $2/month each after they accept an invitation; invitations are free until accepted.
+- Premium is $3.00/month for the owner. Additional household members are $2/month each after they accept an invitation; invitations are free until accepted.
 - Checkout, recurring billing, payment methods, invoices, and cancellation are handled through Stripe on the website.
 
 ## Nutrition sources

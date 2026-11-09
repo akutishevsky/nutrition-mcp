@@ -2716,18 +2716,17 @@ async function openMealDraft(id) {
     searchDraftFoods("");
 }
 
-const mealPhotoCapture = { idempotencyKey: null, balance: null, cost: 4 };
+const mealPhotoCapture = { idempotencyKey: null };
 
 async function openMealPhotoDialog() {
     mealPhotoCapture.idempotencyKey = `web-meal-photo:${crypto.randomUUID()}`;
-    mealPhotoCapture.balance = null;
     openDialog(
         "Log by photo",
         `<div class="meal-photo-capture">
             <p class="meal-photo-lede">Photograph your meal and Munch will estimate the items and portions into a reviewable draft. Nothing is logged until you confirm the draft, and the photo itself is processed transiently — it is never kept.</p>
             <label class="field"><span>Meal photo</span><input id="meal-photo-file" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" /></label>
             <label class="field"><span>Meal type</span><select id="meal-photo-meal-type"><option value="breakfast">Breakfast</option><option value="lunch" selected>Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
-            <p class="tiny" id="meal-photo-credits" role="status">Checking your AI credit balance…</p>
+            <p class="tiny" id="meal-photo-premium" role="status"></p>
             <p class="tiny meal-photo-status" id="meal-photo-status" role="alert"></p>
             <div class="auth-actions">
                 <button class="button button-primary" type="button" data-action="submit-meal-photo" id="meal-photo-submit">Estimate my meal</button>
@@ -2737,28 +2736,23 @@ async function openMealPhotoDialog() {
     );
     try {
         const settings = await api("/api/app/settings", { keepPrevious: true });
-        const credits = settings.aiCredits;
-        const line = document.getElementById("meal-photo-credits");
+        const line = document.getElementById("meal-photo-premium");
         if (!line) return;
-        if (!credits) {
+        if (settings.aiPremium === false) {
+            // Premium gate framing: no cost framing, the manual path is
+            // offered right here — never a dead end.
             line.textContent =
-                "AI credits could not be checked right now; the estimate will pause safely if the check fails. Manual entry always works.";
-            return;
-        }
-        mealPhotoCapture.balance = credits.balance;
-        mealPhotoCapture.cost = credits.taskCosts?.meal_photo_log ?? 4;
-        if (credits.balance < mealPhotoCapture.cost) {
-            line.textContent = `This estimate uses ${mealPhotoCapture.cost} AI credits and your balance is ${credits.balance}, so the photo estimate can't run this month. Manual entry always works and never uses credits.`;
+                "Meal-photo estimates are a Premium feature. You can log the meal manually instead — manual entry always works.";
             const submit = document.getElementById("meal-photo-submit");
             if (submit) submit.disabled = true;
-        } else {
-            line.textContent = `This estimate uses ${mealPhotoCapture.cost} AI credits — your balance is ${credits.balance}. You are only charged when an estimate is completed; a failed or unreadable photo is refunded.`;
         }
+        // Premium subscribers see no cost framing at all: the line
+        // stays empty and the estimate simply runs.
     } catch {
-        const line = document.getElementById("meal-photo-credits");
+        const line = document.getElementById("meal-photo-premium");
         if (line) {
             line.textContent =
-                "AI credits could not be checked right now; manual entry always works.";
+                "If the photo estimate is unavailable, manual entry always works.";
         }
     }
 }
@@ -2795,7 +2789,10 @@ async function submitMealPhoto() {
         await openMealDraft(result.draft.id);
     } catch (error) {
         if (submit) submit.disabled = false;
-        if (error.status === 402) {
+        if (
+            error.status === 403 &&
+            error.payload?.error === "premium_required"
+        ) {
             say(
                 `${error.message} Use “Log manually instead” below — it always works.`,
             );

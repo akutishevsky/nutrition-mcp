@@ -463,8 +463,8 @@ function logPlanningPhase(
  * response-healing plugin, temperature 0 (extractive grounding rules
  * apply to the output), a per-flow max-token cap, and ONE bounded retry
  * on unparseable output. Grounding validation stays deterministic and
- * outside the retry: an ungrounded response is unusable, throws, and
- * the route refunds the credit reservation.
+ * outside the retry: an ungrounded response is unusable and throws, so
+ * the user sees a retryable failure instead of invented meal ideas.
  */
 export async function requestPantryMealIdeas(
     config: PlanningModelConfig,

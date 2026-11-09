@@ -286,8 +286,8 @@ export async function previewInventoryImage(
     // S2 reliability pattern (recipe resolver is the reference): one
     // bounded retry when the model returns unparseable output; HTTP and
     // transport failures are not retried. A call that still cannot be
-    // parsed throws — the route refunds the credit reservation and the
-    // user sees a retryable failure, never fabricated lines.
+    // parsed throws — the user sees a retryable failure, never
+    // fabricated lines.
     let callsUsed = 0;
     let lastParseError: unknown;
     for (let attempt = 0; attempt < 2; attempt++) {

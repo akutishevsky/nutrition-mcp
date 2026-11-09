@@ -29,7 +29,7 @@ Used inside AI chat clients over remote MCP (endpoint https://munch.business/mcp
 ## Capabilities and Constraints
 
 - Free tier is permanent; Premium is sold only on the Munch website via Stripe.
-- Premium is $2.99/month (Michael, ruled 2026-11-09, lowered from $4.99 now that AI interaction lives entirely in MCP clients and carries no inference cost on Munch's side). The 7-day free trial and the permanent free tier are unchanged; household extra seats stay +$2/member.
+- Premium is $3.00/month (Michael, ruled 2026-11-09, Amendment C — subscription-only, AI credits ditched: Munch-supplied AI features on the website and in the app gate on Premium entitlement and run unmetered for subscribers). The 7-day free trial and the permanent free tier are unchanged; household extra seats stay +$2/member.
 - ChatGPT-facing surfaces (tool descriptions, results, widgets, listing) never advertise pricing or initiate checkout — both a product law and an OpenAI platform rule.
 - Consumer wellness product: no medical advice, diagnosis, treatment, or clinical determinations; health status is never inferred from indirect signals.
 - Account controls are user-operable: export, revoke access, delete account.

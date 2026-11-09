@@ -158,8 +158,6 @@ jobs:
         run: bun scripts/recipe-import-save-roundtrip-smoke.ts
       - name: Exercise Pantry inventory, receipt reconciliation, and RLS
         run: bun scripts/pantry-platform-smoke.ts
-      - name: Exercise AI credit ledger grant, spend, refund, cap, and RLS
-        run: bun scripts/ai-credits-smoke.ts
       - name: Exercise Pantry planning profiles, ranking, and RLS
         env:
           MUNCH_PANTRY_PLANNING_ENABLED: "true"

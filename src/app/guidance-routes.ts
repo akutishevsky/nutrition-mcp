@@ -3,10 +3,7 @@ import { z } from "zod";
 import { requireSameOrigin } from "../accounts/csrf.js";
 import { requireWebSession } from "../accounts/session.js";
 import { resolveRequestMunchCapabilities } from "../billing/capabilities.js";
-import {
-    refundAiCredits,
-    requireAiCredits,
-} from "../billing/android-ai-credits.js";
+import { requirePremiumAi } from "../billing/ai-entitlement.js";
 import {
     requirePlanningAccess,
     requirePlanningScope,
@@ -185,7 +182,7 @@ async function proposeRecipes(c: any, userId: string, body: unknown) {
     };
     // The model call itself lives in guidance-ai.ts behind an injectable
     // transport (recorded-fixture seam, S2); this handler keeps auth,
-    // scope, context building, and the credit meter.
+    // scope, context building, and the Premium AI gate.
     return generateGuidanceProposals({
         config,
         slots,
@@ -308,37 +305,14 @@ export function createGuidanceRouter(): Hono {
     app.post("/api/app/planning/propose", requireSameOrigin, async (c) => {
         const userId = currentUserId(c);
         const body = await c.req.json();
-        // One credit meter for web + app (brief §2, Decision 3): reserve
-        // before the model call; a manual_fallback result means the AI
-        // call failed or was unavailable, so the spend is refunded — a
-        // user never pays for an outage.
-        const gate = await requireAiCredits(c, {
-            userId,
-            task: "plan_generation",
-            idempotencyKey:
-                body &&
-                typeof body === "object" &&
-                typeof (body as Record<string, unknown>).idempotency_key ===
-                    "string"
-                    ? ((body as Record<string, unknown>)
-                          .idempotency_key as string)
-                    : undefined,
-        });
+        // AI feature (Amendment C): Premium entitlement only, resolved
+        // from the account's actual subscription tier on both surfaces.
+        // Subscribers run unmetered; a manual_fallback result simply
+        // means the AI call was unavailable — manual planning always
+        // works and nothing is charged either way.
+        const gate = await requirePremiumAi(c, { userId });
         if (!gate.allowed) return gate.response;
-        try {
-            const result = await proposeRecipes(c, userId, body);
-            if (
-                result &&
-                typeof result === "object" &&
-                (result as { status?: unknown }).status === "manual_fallback"
-            ) {
-                await refundAiCredits(gate.reservation);
-            }
-            return privateJson(c, result);
-        } catch (error) {
-            await refundAiCredits(gate.reservation);
-            throw error;
-        }
+        return privateJson(c, await proposeRecipes(c, userId, body));
     });
     app.post("/api/app/planning/drafts", requireSameOrigin, async (c) => {
         const userId = currentUserId(c);

@@ -3,7 +3,7 @@
        Source of truth for public/og.png. Re-render with:
        ffmpeg -y -i public/og.svg public/og.png
        Copy set by the 2026-11-09 positioning ruling: MCP-wide, never
-       ChatGPT-branded; Premium $2.99/mo. The mark is the printed-label
+       ChatGPT-branded; Premium $3.00/mo. The mark is the printed-label
        apple adopted 2026-11-09 (see DESIGN.md), embedded from
        public/brand/munch-mark.svg. -->
   <title>Munch — Persistent nutrition for your AI</title>
@@ -17,5 +17,5 @@
   <text x="368" y="318" font-family="Noto Sans, sans-serif" font-weight="700" font-size="68" letter-spacing="1.5" fill="#0B8F4D">for your AI</text>
   <text x="368" y="384" font-family="Noto Sans, sans-serif" font-size="32" fill="#55635B">Works with ChatGPT, Claude, and any MCP app</text>
   <text x="368" y="428" font-family="Noto Sans, sans-serif" font-size="32" fill="#55635B">Secure history, verified food data, and tools</text>
-  <text x="368" y="472" font-family="Noto Sans, sans-serif" font-size="32" fill="#55635B">$2.99/month after a 7-day free trial</text>
+  <text x="368" y="472" font-family="Noto Sans, sans-serif" font-size="32" fill="#55635B">$3.00/month after a 7-day free trial</text>
 </svg>
