@@ -3,13 +3,15 @@ package business.munch.app;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import android.content.Intent;
-import android.net.Uri;
+import android.app.UiAutomation;
+import android.os.ParcelFileDescriptor;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -24,6 +26,11 @@ import org.junit.runner.RunWith;
  * packaged sign-in page carrying the deep-linked route as its
  * return_to, so sign-in continues to /app/recipes — the link is
  * neither dropped nor opened externally.
+ *
+ * <p>The link is delivered exactly the way the OS delivers a browser
+ * tap (am start VIEW after a force-stop), because ActivityScenario's
+ * launch intent is not what reaches Capacitor's launch-URL bridge
+ * when a singleTask activity already exists in the task.
  */
 @RunWith(AndroidJUnit4.class)
 public class AppDeepLinkSmokeTest {
@@ -52,13 +59,34 @@ public class AppDeepLinkSmokeTest {
         }
     }
 
+    private static void executeShell(UiAutomation automation, String command)
+            throws Exception {
+        ParcelFileDescriptor descriptor = automation.executeShellCommand(command);
+        try (InputStream input =
+                new ParcelFileDescriptor.AutoCloseInputStream(descriptor)) {
+            while (input.read() != -1) {
+                // Drain so the command runs to completion.
+            }
+        }
+    }
+
     @Test
     public void deepLinkLandsOnAllowlistedRoute() throws Exception {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("munch://app/recipes"));
-        intent.setClassName("business.munch.app", "business.munch.app.MainActivity");
+        UiAutomation automation =
+                InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        executeShell(automation, "am force-stop business.munch.app");
+        executeShell(
+                automation,
+                "am start -a android.intent.action.VIEW"
+                        + " -d \"munch://app/recipes\""
+                        + " -n business.munch.app/.MainActivity");
+        // Let the cold start settle onto its first routed page before
+        // attaching the scenario used to inspect the WebView.
+        Thread.sleep(2_000);
 
         AtomicReference<String> urlRef = new AtomicReference<>();
-        try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(intent)) {
+        try (ActivityScenario<MainActivity> scenario =
+                ActivityScenario.launch(MainActivity.class)) {
             long deadlineMs = System.currentTimeMillis() + 30_000;
             while (System.currentTimeMillis() < deadlineMs) {
                 scenario.onActivity(
