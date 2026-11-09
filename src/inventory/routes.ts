@@ -1,7 +1,10 @@
 import { Hono, type Context } from "hono";
 import { requireSameOrigin } from "../accounts/csrf.js";
 import { requireWebSession } from "../accounts/session.js";
-import { androidAiTaskCreditsUnavailable } from "../billing/android-ai-credits.js";
+import {
+    refundAiCredits,
+    requireAiCredits,
+} from "../billing/android-ai-credits.js";
 import {
     resolveRequestMunchCapabilities,
     type MunchCapabilities,
@@ -412,11 +415,7 @@ export function createInventoryRouter(): Hono {
     });
 
     app.post("/api/app/pantry/meal-ideas", requireSameOrigin, async (c) => {
-        const unavailable = androidAiTaskCreditsUnavailable(c);
-        if (unavailable) return unavailable;
         const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
         if (!(await getPantryPreference(context.userId)))
             return privateJson(c, { error: "pantry_not_enabled" }, 409);
         if (!pantryPlanningEnabled())
@@ -449,23 +448,40 @@ export function createInventoryRouter(): Hono {
                   .slice(0, 20)
             : [];
         const scope = scopeFromValue(body.scope, context.capabilities, false);
-        const generated = await generatePantryMealIdeas({
+        // One credit meter for web + app (brief §2, Decision 3): reserve
+        // before the model call; refund if generation fails.
+        const gate = await requireAiCredits(c, {
             userId: context.userId,
-            scope,
-            goal,
-            mealType,
-            servings: numberValue(body.servings, "Servings"),
-            maxMinutes: numberValue(body.max_minutes, "Maximum minutes"),
-            allowMissingItems:
-                body.allow_missing_items === undefined
-                    ? 1
-                    : numberValue(
-                          body.allow_missing_items,
-                          "Allowed missing items",
-                          true,
-                      ),
-            assumedStaples,
+            task: "meal_ideas",
+            idempotencyKey:
+                typeof body.idempotency_key === "string"
+                    ? body.idempotency_key
+                    : undefined,
         });
+        if (!gate.allowed) return gate.response;
+        let generated: Awaited<ReturnType<typeof generatePantryMealIdeas>>;
+        try {
+            generated = await generatePantryMealIdeas({
+                userId: context.userId,
+                scope,
+                goal,
+                mealType,
+                servings: numberValue(body.servings, "Servings"),
+                maxMinutes: numberValue(body.max_minutes, "Maximum minutes"),
+                allowMissingItems:
+                    body.allow_missing_items === undefined
+                        ? 1
+                        : numberValue(
+                              body.allow_missing_items,
+                              "Allowed missing items",
+                              true,
+                          ),
+                assumedStaples,
+            });
+        } catch (error) {
+            await refundAiCredits(gate.reservation);
+            throw error;
+        }
         return privateJson(c, {
             result: generated.result,
             context_summary: {
@@ -478,11 +494,7 @@ export function createInventoryRouter(): Hono {
     });
 
     async function imagePreview(c: Context, mode: "receipt" | "pantry_photo") {
-        const unavailable = androidAiTaskCreditsUnavailable(c);
-        if (unavailable) return unavailable;
         const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
         if (!(await getPantryPreference(context.userId)))
             return privateJson(c, { error: "pantry_not_enabled" }, 409);
         const form = await c.req.parseBody();
@@ -497,11 +509,23 @@ export function createInventoryRouter(): Hono {
         const file = uploaded as File;
         if (file.size > 8 * 1024 * 1024)
             throw new Error("Image exceeds the 8 MB Pantry limit");
-        const preview = await previewInventoryImage({
-            mode,
-            mimeType: file.type,
-            bytes: new Uint8Array(await file.arrayBuffer()),
+        // Reserve before the vision call; refund on failure (brief §2).
+        const gate = await requireAiCredits(c, {
+            userId: context.userId,
+            task: mode === "receipt" ? "receipt_scan" : "pantry_photo_scan",
         });
+        if (!gate.allowed) return gate.response;
+        let preview: Awaited<ReturnType<typeof previewInventoryImage>>;
+        try {
+            preview = await previewInventoryImage({
+                mode,
+                mimeType: file.type,
+                bytes: new Uint8Array(await file.arrayBuffer()),
+            });
+        } catch (error) {
+            await refundAiCredits(gate.reservation);
+            throw error;
+        }
         return privateJson(c, {
             file_name: file.name.slice(0, 200),
             transient_media: true,
