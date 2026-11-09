@@ -122,8 +122,7 @@ describe("Stripe Checkout", () => {
         let authorization = "";
         globalThis.fetch = mock(async (_url, init) => {
             authorization = String(
-                (init?.headers as Record<string, string>)?.Authorization ??
-                    "",
+                (init?.headers as Record<string, string>)?.Authorization ?? "",
             );
             return new Response(
                 JSON.stringify({
