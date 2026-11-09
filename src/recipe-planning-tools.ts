@@ -2,6 +2,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { dateOnlyString } from "./tz.js";
 import { withAnalytics } from "./analytics.js";
+import { WIDGET_RESOURCE_METADATA } from "./openai-submission.js";
+import { RECIPE_WIDGET_URI } from "./recipe-import-tools.js";
+import { getWidgetHtml } from "./widgets.js";
+
+const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
 import type { MunchCapabilities } from "./billing/capabilities.js";
 import { rankSavedRecipesForPantry } from "./inventory/meal-planning.js";
 import {
@@ -427,6 +432,7 @@ export function registerRecipePlanningTools(
     server: McpServer,
     userId: string,
     capabilities: MunchCapabilities,
+    widgetsEnabled = true,
 ): void {
     const toolServer = server as unknown as {
         registerTool: (
@@ -434,7 +440,37 @@ export function registerRecipePlanningTools(
             config: unknown,
             handler: (...args: any[]) => unknown,
         ) => unknown;
+        registerResource: (
+            name: string,
+            uri: string,
+            config: unknown,
+            handler: (...args: any[]) => unknown,
+        ) => unknown;
     };
+    const uiMeta = widgetsEnabled
+        ? { _meta: { ui: { resourceUri: RECIPE_WIDGET_URI } } }
+        : {};
+
+    toolServer.registerResource(
+        "recipe-widget",
+        RECIPE_WIDGET_URI,
+        {
+            title: "Recipe",
+            description:
+                "Recipe search results, a full recipe with ingredients, steps, and per-serving nutrition, and a parsed recipe import laid out for review before saving.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri: URL | string) => ({
+            contents: [
+                {
+                    uri: typeof uri === "string" ? uri : uri.href,
+                    mimeType: APP_UI_MIME_TYPE,
+                    text: await getWidgetHtml("recipe"),
+                    _meta: WIDGET_RESOURCE_METADATA,
+                },
+            ],
+        }),
+    );
 
     toolServer.registerTool(
         "search_recipes",
@@ -476,6 +512,7 @@ export function registerRecipePlanningTools(
                 max_minutes: z.number().int().positive().max(1440).optional(),
             },
             outputSchema: planningOutputSchemas.search_recipes,
+            ...uiMeta,
         },
         async ({
             query,
@@ -569,6 +606,7 @@ export function registerRecipePlanningTools(
                 recipe_revision_id: z.string().uuid().optional(),
             },
             outputSchema: planningOutputSchemas.get_recipe,
+            ...uiMeta,
         },
         async ({ recipe_id, recipe_revision_id }) =>
             withAnalytics(

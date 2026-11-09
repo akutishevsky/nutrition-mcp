@@ -14,6 +14,9 @@ function captureTools(capabilities: MunchCapabilities) {
             tools.set(name, config);
             return {};
         },
+        registerResource() {
+            return {};
+        },
     } as unknown as McpServer;
     registerRecipePlanningTools(
         server,

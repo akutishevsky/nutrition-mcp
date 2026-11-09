@@ -98,16 +98,31 @@ async function buildMunchMcpServer(
         alcoholTrackingEnabledFromProfile(profile) ? (drinkUnit ?? "us") : null,
         capabilities,
     );
-    registerFoodTools(withCanonicalFoodSearch(optimizedServer), userId);
-    registerSavedFoodTools(optimizedServer, userId, capabilities);
+    registerFoodTools(
+        withCanonicalFoodSearch(optimizedServer),
+        userId,
+        widgetsEnabled,
+    );
+    registerSavedFoodTools(
+        optimizedServer,
+        userId,
+        capabilities,
+        widgetsEnabled,
+    );
     registerMealDetailTools(optimizedServer, userId);
     registerMealReviewTools(optimizedServer, userId, widgetsEnabled);
     registerMealDraftTools(optimizedServer, userId);
-    registerRecipeImportTools(optimizedServer, userId, capabilities);
+    registerRecipeImportTools(
+        optimizedServer,
+        userId,
+        capabilities,
+        widgetsEnabled,
+    );
     registerRecipePlanningTools(
         withRecipeNutritionResolution(optimizedServer),
         userId,
         capabilities,
+        widgetsEnabled,
     );
     registerMealToRecipeTool(optimizedServer, userId, capabilities);
     registerCookTools(optimizedServer, userId, widgetsEnabled);
