@@ -21,6 +21,14 @@ const WIDGET_DESCRIPTIONS: Record<string, string> = {
         "A Munch meal-history importer that lets the user map, preview, validate, and confirm an uploaded export before anything is saved.",
     "ui://widget/cook-summary.html":
         "A compact Munch cook-history card showing saved photos, dishes, timeline events, and user-authored results with expandable detail.",
+    "ui://widget/meal-plan.html":
+        "A Munch meal-plan view showing planned recipes day by day with per-day totals and the full week when expanded.",
+    "ui://widget/grocery-list.html":
+        "A Munch grocery checklist showing what is still to buy and what is already purchased, grouped by where each item came from.",
+    "ui://widget/pantry.html":
+        "A Munch pantry view showing on-hand inventory with quantities, plus a review list of confirmed pantry or purchase changes.",
+    "ui://widget/day-meals.html":
+        "A Munch list of logged meals for a day or date range with per-entry numbers and day totals, or past-meal search matches.",
     "ui://widget/food-label.html":
         "A Munch food label showing search and saved-food results built for comparison, or one food's full nutrition panel, with the source named on every row.",
     "ui://widget/recipe.html":

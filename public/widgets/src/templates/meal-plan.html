@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Meal Plan</title>
+        <style>
+            /*@include shared/tokens.css@*/
+            /*@include shared/base.css@*/
+            /*@include shared/facts.css@*/
+            .p-day-head {
+                display: flex;
+                align-items: baseline;
+                gap: 10px;
+                padding: 2px 0 0;
+                margin-top: 6px;
+            }
+            .p-day-head:first-child {
+                margin-top: 2px;
+            }
+            .p-day-name {
+                font-size: 14px;
+                font-weight: 700;
+            }
+            .p-day-total {
+                margin-left: auto;
+                font-weight: 700;
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            .p-intro {
+                font-size: 13px;
+                color: var(--text-dim);
+            }
+            .p-intro b {
+                color: var(--text);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+        <script>
+            "use strict";
+            /*@include shared/bridge.js@*/
+            /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
+            const SAMPLE = {
+                planned_meals: [
+                    {
+                        planned_meal_id: "sample-1",
+                        planned_date: "2026-08-10",
+                        meal_slot: "breakfast",
+                        recipe_name: "Overnight oats with berries",
+                        servings: 1,
+                        note: null,
+                        nutrition_per_serving: {
+                            calories: 430,
+                            protein_g: 19,
+                            carbs_g: 63,
+                            fat_g: 12,
+                        },
+                    },
+                    {
+                        planned_meal_id: "sample-2",
+                        planned_date: "2026-08-10",
+                        meal_slot: "lunch",
+                        recipe_name: "Grilled chicken and rice bowl",
+                        servings: 1,
+                        note: null,
+                        nutrition_per_serving: {
+                            calories: 650,
+                            protein_g: 52,
+                            carbs_g: 78,
+                            fat_g: 16,
+                        },
+                    },
+                    {
+                        planned_meal_id: "sample-3",
+                        planned_date: "2026-08-11",
+                        meal_slot: "dinner",
+                        recipe_name: "Salmon with vegetables",
+                        servings: 2,
+                        note: null,
+                        nutrition_per_serving: {
+                            calories: 360,
+                            protein_g: 34,
+                            carbs_g: 12,
+                            fat_g: 21,
+                        },
+                    },
+                ],
+            };
+            let API = null;
+            const SLOT_ORDER = { breakfast: 0, lunch: 1, dinner: 2, snack: 3 };
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
+                if (Array.isArray(payload.planned_meals)) return payload;
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
+                return null;
+            }
+            function bindExpand() {
+                document
+                    .getElementById("details")
+                    ?.addEventListener("click", async () => {
+                        const result = await API?.requestDisplayMode(
+                            "fullscreen",
+                        ).catch(() => null);
+                        if (!result || result.unsupported)
+                            document.getElementById("details").textContent =
+                                "Details unavailable";
+                    });
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
+            }
+            // Entry calories are the per-serving figure scaled by servings,
+            // rounded once; day totals are the sum of those entry figures so
+            // the numbers on screen always add up exactly as shown.
+            function normalize(raw) {
+                const entries = (raw || []).map((meal) => {
+                    const per = meal.nutrition_per_serving || {};
+                    const servings = Number(meal.servings || 1);
+                    const kcal =
+                        per.calories == null
+                            ? null
+                            : Math.round(Number(per.calories) * servings);
+                    return {
+                        date: String(meal.planned_date || ""),
+                        slot: meal.meal_slot || "",
+                        name: meal.recipe_name || meal.note || "Planned meal",
+                        note: meal.recipe_name && meal.note ? meal.note : "",
+                        servings,
+                        kcal,
+                        protein:
+                            per.protein_g == null
+                                ? null
+                                : Math.round(
+                                      Number(per.protein_g) * servings * 10,
+                                  ) / 10,
+                        hasNutrition: per.calories != null,
+                    };
+                });
+                entries.sort(
+                    (a, b) =>
+                        a.date.localeCompare(b.date) ||
+                        (SLOT_ORDER[a.slot] ?? 4) - (SLOT_ORDER[b.slot] ?? 4),
+                );
+                const days = [];
+                for (const entry of entries) {
+                    let day = days.find((d) => d.date === entry.date);
+                    if (!day) {
+                        day = {
+                            date: entry.date,
+                            entries: [],
+                            total: 0,
+                            missing: 0,
+                        };
+                        days.push(day);
+                    }
+                    day.entries.push(entry);
+                    if (entry.kcal != null) day.total += entry.kcal;
+                    else day.missing += 1;
+                }
+                return days;
+            }
+            function entryLabelRow(entry) {
+                const ofText = [
+                    entry.slot,
+                    entry.servings !== 1
+                        ? `${fmt(entry.servings, entry.servings % 1 ? 1 : 0)} servings`
+                        : "",
+                ]
+                    .filter(Boolean)
+                    .join(" · ");
+                return factsLabelRow({
+                    name: entry.name,
+                    ofText,
+                    valueText:
+                        entry.kcal == null ? "—" : `${fmt(entry.kcal)} kcal`,
+                    showBar: false,
+                    source: "Saved recipe",
+                });
+            }
+            function entryCompactRow(entry) {
+                return factsCompactRow({
+                    name: entry.name,
+                    meta: entry.slot,
+                    valueText:
+                        entry.kcal == null ? "—" : `${fmt(entry.kcal)} kcal`,
+                });
+            }
+            function dayHead(day) {
+                return `<div class="p-day-head"><span class="p-day-name">${esc(humanDate(day.date))}</span><span class="p-day-total num" data-day-total="${esc(day.date)}">${fmt(day.total)} kcal</span></div>`;
+            }
+            function render(data) {
+                if (data.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Meal plan",
+                        "",
+                        "error",
+                        "Could not load your meal plan",
+                        "Something went wrong reading the plan. Try again in chat.",
+                    );
+                    return;
+                }
+                const days = normalize(data.planned_meals);
+                const rangeLabel = days.length
+                    ? humanRange(days[0].date, days[days.length - 1].date)
+                    : "";
+                if (!days.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Meal plan", "")}${factsState("empty", "No meals planned in this range", "Schedule a saved recipe and it will show up here day by day.")}<div class="f-foot"><span>Every number traces to its source</span><span>Saved recipes in your meal plan</span></div></article>`;
+                    return;
+                }
+                const totalEntries = days.reduce(
+                    (sum, day) => sum + day.entries.length,
+                    0,
+                );
+                const weekTotal = days.reduce((sum, day) => sum + day.total, 0);
+                const missing = days.reduce((sum, day) => sum + day.missing, 0);
+                const compact = totalEntries > 6;
+                const rowFor = compact ? entryCompactRow : entryLabelRow;
+                // Inline carries whole days until the row budget is used;
+                // the rest of the week is fullscreen-only detail. A partial
+                // banner is inline content too, so it consumes one row of
+                // the budget (5 rows, 4 when the banner shows).
+                const budget = missing > 0 ? 4 : 5;
+                let used = 0;
+                let folded = false;
+                const inlineParts = [];
+                const fullParts = [];
+                for (const day of days) {
+                    if (!folded && used + day.entries.length <= budget) {
+                        inlineParts.push(dayHead(day));
+                        inlineParts.push(day.entries.map(rowFor).join(""));
+                        used += day.entries.length;
+                        continue;
+                    }
+                    folded = true;
+                    if (used === 0 && day.entries.length > budget) {
+                        inlineParts.push(dayHead(day));
+                        inlineParts.push(
+                            day.entries.slice(0, budget).map(rowFor).join(""),
+                        );
+                        used = budget;
+                        fullParts.push(dayHead(day));
+                        fullParts.push(
+                            day.entries
+                                .slice(budget)
+                                .map((entry) => entryLabelRow(entry))
+                                .join(""),
+                        );
+                        continue;
+                    }
+                    fullParts.push(dayHead(day));
+                    fullParts.push(
+                        day.entries
+                            .map((entry) => entryLabelRow(entry))
+                            .join(""),
+                    );
+                }
+                const hidden = totalEntries - used;
+                const banner =
+                    missing > 0
+                        ? factsBanner(
+                              "warn",
+                              `<b>Partial totals</b> — ${missing} planned meal${missing === 1 ? " has" : "s have"} no nutrition yet (shown as —).`,
+                          )
+                        : "";
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand("Meal plan", rangeLabel)}
+        <div class="f-body">
+        <p class="p-intro"><b>${totalEntries} meal${totalEntries === 1 ? "" : "s"}</b> planned across <b>${days.length} day${days.length === 1 ? "" : "s"}</b> · <b>${fmt(weekTotal)} kcal</b> planned in total</p>
+        <div class="f-src">Source · <b>Saved recipes in your meal plan</b></div>
+        ${banner}
+        <div class="f-rule-heavy"></div>
+        ${inlineParts.join("")}
+        ${hidden > 0 ? `<button class="f-more-row inline-only" id="details">…and ${hidden} more</button>` : ""}
+        ${fullParts.length ? `<div class="fullscreen-only">${fullParts.join("")}<div class="f-rule-med"></div><div class="f-prow"><span class="f-lrow-name">Week total</span><span class="f-crow-val num">${fmt(weekTotal)} kcal</span></div><div class="actions"><button class="btn" id="close">Return to chat</button></div></div>` : ""}
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Saved recipes · per-serving nutrition × servings</span></div>
+    </article>`;
+                bindExpand();
+            }
+            initWidget({
+                name: "meal-plan-widget",
+                displayModes: ["inline", "fullscreen"],
+                loading:
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Meal plan</span></div><div class="f-state"><strong>Loading your plan</strong><span>Reading the scheduled recipes…</span></div></article>',
+                coerce,
+                render,
+                sample: SAMPLE,
+                onReady(api) {
+                    API = api;
+                },
+            });
+        </script>
+    </body>
+</html>

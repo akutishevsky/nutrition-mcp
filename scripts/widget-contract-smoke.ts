@@ -20,6 +20,10 @@ const expectedWidgetKeys = [
     "cook-summary",
     "food-label",
     "recipe",
+    "meal-plan",
+    "grocery-list",
+    "pantry",
+    "day-meals",
 ];
 
 assert(

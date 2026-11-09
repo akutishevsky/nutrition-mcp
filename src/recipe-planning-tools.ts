@@ -33,6 +33,8 @@ import {
 import { widgetToolMeta } from "./openai-submission.js";
 
 const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
+const MEAL_PLAN_WIDGET_URI = "ui://widget/meal-plan.html";
+const GROCERY_LIST_WIDGET_URI = "ui://widget/grocery-list.html";
 
 const nutrientSchema = z.object({
     calories: z.number().nonnegative().optional(),
@@ -450,7 +452,7 @@ export function registerRecipePlanningTools(
             handler: (...args: any[]) => unknown,
         ) => unknown;
     };
-    const uiMeta = widgetsEnabled
+    const recipeUiMeta = widgetsEnabled
         ? { _meta: { ui: { resourceUri: RECIPE_WIDGET_URI } } }
         : {};
 
@@ -479,6 +481,52 @@ export function registerRecipePlanningTools(
     const mealLoggedMeta = widgetsEnabled
         ? widgetToolMeta(MEAL_LOGGED_WIDGET_URI)
         : {};
+    // Link a tool to its widget only when this user has widgets enabled
+    // (UI meta only; annotations, behavior, and payloads are unchanged).
+    const uiMeta = (resourceUri: string) =>
+        widgetsEnabled ? widgetToolMeta(resourceUri) : {};
+    if (typeof toolServer.registerResource === "function") {
+        toolServer.registerResource(
+            "meal-plan-widget",
+            MEAL_PLAN_WIDGET_URI,
+            {
+                title: "Meal Plan",
+                description:
+                    "Interactive UI for get_meal_plan: planned recipes day by day with per-day totals, with automatic light/dark theming.",
+                mimeType: APP_UI_MIME_TYPE,
+            },
+            async (uri: URL | string) => ({
+                contents: [
+                    {
+                        uri: typeof uri === "string" ? uri : uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await getWidgetHtml("meal-plan"),
+                        _meta: WIDGET_RESOURCE_METADATA,
+                    },
+                ],
+            }),
+        );
+        toolServer.registerResource(
+            "grocery-list-widget",
+            GROCERY_LIST_WIDGET_URI,
+            {
+                title: "Grocery List",
+                description:
+                    "Interactive UI for get_grocery_list: a read-only checklist of what is still to buy and what is already purchased, with automatic light/dark theming.",
+                mimeType: APP_UI_MIME_TYPE,
+            },
+            async (uri: URL | string) => ({
+                contents: [
+                    {
+                        uri: typeof uri === "string" ? uri : uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await getWidgetHtml("grocery-list"),
+                        _meta: WIDGET_RESOURCE_METADATA,
+                    },
+                ],
+            }),
+        );
+    }
 
     toolServer.registerTool(
         "search_recipes",
@@ -520,7 +568,7 @@ export function registerRecipePlanningTools(
                 max_minutes: z.number().int().positive().max(1440).optional(),
             },
             outputSchema: planningOutputSchemas.search_recipes,
-            ...uiMeta,
+            ...recipeUiMeta,
         },
         async ({
             query,
@@ -614,7 +662,7 @@ export function registerRecipePlanningTools(
                 recipe_revision_id: z.string().uuid().optional(),
             },
             outputSchema: planningOutputSchemas.get_recipe,
-            ...uiMeta,
+            ...recipeUiMeta,
         },
         async ({ recipe_id, recipe_revision_id }) =>
             withAnalytics(
@@ -872,6 +920,7 @@ export function registerRecipePlanningTools(
                 scope: z.enum(["personal", "household", "all"]).optional(),
             },
             outputSchema: planningOutputSchemas.get_meal_plan,
+            ...uiMeta(MEAL_PLAN_WIDGET_URI),
         },
         async ({ start_date, end_date, scope }) =>
             withAnalytics(
@@ -918,6 +967,7 @@ export function registerRecipePlanningTools(
                 include_purchased: z.boolean().optional(),
             },
             outputSchema: planningOutputSchemas.get_grocery_list,
+            ...uiMeta(GROCERY_LIST_WIDGET_URI),
         },
         async ({ scope, include_purchased }) =>
             withAnalytics(

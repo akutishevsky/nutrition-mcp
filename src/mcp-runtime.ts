@@ -127,7 +127,12 @@ async function buildMunchMcpServer(
     registerMealToRecipeTool(optimizedServer, userId, capabilities);
     registerCookTools(optimizedServer, userId, widgetsEnabled);
     if (capabilities.tier === "premium" && pantryEnabledFromProfile(profile)) {
-        registerInventoryTools(optimizedServer, userId, capabilities);
+        registerInventoryTools(
+            optimizedServer,
+            userId,
+            capabilities,
+            widgetsEnabled,
+        );
     }
     registerConnectionStatusTools(optimizedServer, userId, {
         accountEmail: accountIdentity?.email,

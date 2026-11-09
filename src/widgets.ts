@@ -19,6 +19,10 @@ export const USER_WIDGET_TEMPLATES: Record<string, string> = {
     "weight-trends": "weight-trends.html",
     "import-meals": "import-meals.html",
     "cook-summary": "cook-summary.html",
+    "meal-plan": "meal-plan.html",
+    "grocery-list": "grocery-list.html",
+    pantry: "pantry.html",
+    "day-meals": "day-meals.html",
     "food-label": "food-label.html",
     recipe: "recipe.html",
 };

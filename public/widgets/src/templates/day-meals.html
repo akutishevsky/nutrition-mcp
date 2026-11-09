@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Meals</title>
+        <style>
+            /*@include shared/tokens.css@*/
+            /*@include shared/base.css@*/
+            /*@include shared/facts.css@*/
+            .d-day-head {
+                display: flex;
+                align-items: baseline;
+                gap: 10px;
+                padding: 2px 0 0;
+                margin-top: 6px;
+            }
+            .d-day-head:first-child {
+                margin-top: 2px;
+            }
+            .d-day-name {
+                font-size: 14px;
+                font-weight: 700;
+            }
+            .d-day-total {
+                margin-left: auto;
+                font-weight: 700;
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+            .f-body {
+                padding-bottom: 12px;
+            }
+            .d-macros {
+                font-size: 12.5px;
+                color: var(--text-dim);
+                margin-top: 3px;
+                font-variant-numeric: tabular-nums;
+            }
+            .d-section {
+                font-size: 15px;
+                font-weight: 650;
+                margin: 14px 0 2px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+        <script>
+            "use strict";
+            /*@include shared/bridge.js@*/
+            /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
+            const SAMPLE = {
+                date: "2026-08-05",
+                meals: [
+                    {
+                        description: "Overnight oats with berries",
+                        meal_type: "breakfast",
+                        date: "2026-08-05",
+                        calories: 430,
+                        protein_g: 19,
+                        carbs_g: 63,
+                        fat_g: 12,
+                    },
+                    {
+                        description: "Grilled chicken and rice bowl",
+                        meal_type: "lunch",
+                        date: "2026-08-05",
+                        calories: 650,
+                        protein_g: 52,
+                        carbs_g: 78,
+                        fat_g: 16,
+                    },
+                    {
+                        description: "Salmon with vegetables",
+                        meal_type: "dinner",
+                        date: "2026-08-05",
+                        calories: 720,
+                        protein_g: 55,
+                        carbs_g: 44,
+                        fat_g: 34,
+                    },
+                ],
+            };
+            let API = null;
+            function num(value) {
+                if (value == null) return null;
+                const parsed = Number(String(value).replace(/[^0-9.\-]/g, ""));
+                return Number.isFinite(parsed) ? parsed : null;
+            }
+            // --- Text payload parsing -------------------------------------
+            // get_meals_today / get_meals_by_date / get_meals_by_date_range /
+            // search_meals are text-output tools: the binding delivers
+            // { text } (the same listing the model narrates), so the widget
+            // parses that listing back into entries. This keeps the binding
+            // UI-meta-only — no payload or behavior change on the server.
+            function parseMealBlock(block) {
+                const fields = {};
+                for (const line of block.split("\n")) {
+                    const match = line.match(/^([A-Za-z ]+):\s*(.*)$/);
+                    if (match) fields[match[1].trim()] = match[2].trim();
+                }
+                if (!fields.Description) return null;
+                return {
+                    description: fields.Description,
+                    meal_type: fields.Type || "",
+                    date: fields.Time ? fields.Time.slice(0, 10) : "",
+                    calories: num(fields.Calories),
+                    protein_g: num(fields.Protein),
+                    carbs_g: num(fields.Carbs),
+                    fat_g: num(fields.Fat),
+                    notes: fields.Notes || "",
+                };
+            }
+            function parseSearchText(text) {
+                const header = text.match(
+                    /Found (\d+) past meals? matching (.+)\./,
+                );
+                if (!header) return null;
+                const variations = [];
+                const variationRe =
+                    /^\d+\.\s+(.+?) — logged (\d+)×, last on (\d{4}-\d{2}-\d{2})(?:, typically ~(\d+) kcal(?: \((.+)\))?|, \(no macros logged\))/gm;
+                let match;
+                while ((match = variationRe.exec(text)) !== null) {
+                    variations.push({
+                        label: match[1],
+                        count: Number(match[2]),
+                        last: match[3],
+                        typicalCalories:
+                            match[4] != null ? Number(match[4]) : null,
+                        macros: match[5] || "",
+                    });
+                }
+                const recent = [];
+                const recentRe =
+                    /^- (\d{4}-\d{2}-\d{2})(?: ([a-z]+))?: (.+?)(?: — (\d+) kcal)? \[id: [^\]]+\]$/gm;
+                while ((match = recentRe.exec(text)) !== null) {
+                    recent.push({
+                        date: match[1],
+                        meal_type: match[2] || "",
+                        description: match[3],
+                        calories: match[4] != null ? Number(match[4]) : null,
+                        protein_g: null,
+                        carbs_g: null,
+                        fat_g: null,
+                        notes: "",
+                    });
+                }
+                return {
+                    mode: "search",
+                    query: header[2],
+                    total: Number(header[1]),
+                    variations,
+                    recent,
+                };
+            }
+            function parseDayText(rawText) {
+                let text = String(rawText || "").trim();
+                let historyNote = "";
+                const noteMatch = text.match(
+                    /^Conversational history is available from (\d{4}-\d{2}-\d{2})[^\n]*\n\n/,
+                );
+                if (noteMatch) {
+                    historyNote = noteMatch[1];
+                    text = text.slice(noteMatch[0].length);
+                }
+                if (/^No meals logged/i.test(text))
+                    return { mode: "days", days: [], historyNote };
+                if (/^No meals found between/i.test(text))
+                    return { mode: "days", days: [], historyNote };
+                if (/^No past meals matching/i.test(text))
+                    return {
+                        mode: "search",
+                        query: "",
+                        total: 0,
+                        variations: [],
+                        recent: [],
+                    };
+                if (/^Found \d+ past meals? matching/.test(text))
+                    return { ...parseSearchText(text), historyNote };
+                if (/^Conversational history is available/.test(text))
+                    return { mode: "days", days: [], historyNote };
+                const sections = text.split(/\n\n===\n\n/);
+                const days = [];
+                for (const section of sections) {
+                    const headerMatch = section.match(
+                        /^## (\d{4}-\d{2}-\d{2}) \(\d+ meals?\)\n\n/,
+                    );
+                    const body = headerMatch
+                        ? section.slice(headerMatch[0].length)
+                        : section;
+                    const entries = body
+                        .split(/\n\n---\n\n/)
+                        .map(parseMealBlock)
+                        .filter(Boolean);
+                    if (!entries.length) continue;
+                    const date = headerMatch?.[1] || entries[0].date || "";
+                    for (const entry of entries)
+                        if (!entry.date) entry.date = date;
+                    days.push({ date, entries });
+                }
+                days.sort((a, b) => a.date.localeCompare(b.date));
+                return { mode: "days", days, historyNote };
+            }
+            function structuredDays(payload) {
+                if (
+                    Array.isArray(payload.days) &&
+                    payload.days.length &&
+                    Array.isArray(payload.days[0]?.meals)
+                ) {
+                    return payload.days.map((day) => ({
+                        date: day.date || "",
+                        entries: (day.meals || []).map(normalizeEntry),
+                    }));
+                }
+                if (Array.isArray(payload.meals)) {
+                    const byDate = new Map();
+                    for (const raw of payload.meals) {
+                        const entry = normalizeEntry(raw);
+                        const date = entry.date || payload.date || "";
+                        if (!byDate.has(date)) byDate.set(date, []);
+                        byDate.get(date).push(entry);
+                    }
+                    return [...byDate.entries()]
+                        .sort((a, b) => a[0].localeCompare(b[0]))
+                        .map(([date, entries]) => ({ date, entries }));
+                }
+                return null;
+            }
+            function normalizeEntry(raw) {
+                return {
+                    description: raw.description || "Meal",
+                    meal_type: raw.meal_type || "",
+                    date: raw.date || "",
+                    calories:
+                        raw.calories == null ? null : Number(raw.calories),
+                    protein_g:
+                        raw.protein_g == null ? null : Number(raw.protein_g),
+                    carbs_g: raw.carbs_g == null ? null : Number(raw.carbs_g),
+                    fat_g: raw.fat_g == null ? null : Number(raw.fat_g),
+                    notes: raw.notes || "",
+                };
+            }
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
+                if (typeof payload.text === "string")
+                    return parseDayText(payload.text);
+                if (
+                    payload.mode === "search" &&
+                    Array.isArray(payload.variations)
+                )
+                    return payload;
+                const days = structuredDays(payload);
+                if (days) return { mode: "days", days, historyNote: "" };
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
+                return null;
+            }
+            function bindExpand() {
+                document
+                    .getElementById("details")
+                    ?.addEventListener("click", async () => {
+                        const result = await API?.requestDisplayMode(
+                            "fullscreen",
+                        ).catch(() => null);
+                        if (!result || result.unsupported)
+                            document.getElementById("details").textContent =
+                                "Details unavailable";
+                    });
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
+            }
+            function dayTotals(day) {
+                let kcal = 0;
+                let protein = 0;
+                let carbs = 0;
+                let fat = 0;
+                let missing = 0;
+                for (const entry of day.entries) {
+                    if (entry.calories == null) missing += 1;
+                    else kcal += entry.calories;
+                    protein += entry.protein_g || 0;
+                    carbs += entry.carbs_g || 0;
+                    fat += entry.fat_g || 0;
+                }
+                return { kcal, protein, carbs, fat, missing };
+            }
+            function entryLabelRow(entry, withDetail) {
+                const macros =
+                    withDetail &&
+                    (entry.protein_g != null ||
+                        entry.carbs_g != null ||
+                        entry.fat_g != null)
+                        ? `<div class="d-macros">Protein ${fmt(entry.protein_g, 1)} g · Carbs ${fmt(entry.carbs_g, 1)} g · Fat ${fmt(entry.fat_g, 1)} g</div>`
+                        : "";
+                const notes =
+                    withDetail && entry.notes
+                        ? `<div class="d-macros">${esc(entry.notes)}</div>`
+                        : "";
+                const row = factsLabelRow({
+                    name: entry.description,
+                    ofText: entry.meal_type,
+                    valueText:
+                        entry.calories == null
+                            ? "—"
+                            : `${fmt(entry.calories)} kcal`,
+                    showBar: false,
+                    source: "Your logged meals",
+                });
+                if (!macros && !notes) return row;
+                return `${row.slice(0, row.lastIndexOf("</div>"))}${macros}${notes}</div>`;
+            }
+            function entryCompactRow(entry) {
+                return factsCompactRow({
+                    name: entry.description,
+                    meta: entry.meal_type,
+                    valueText:
+                        entry.calories == null
+                            ? "—"
+                            : `${fmt(entry.calories)} kcal`,
+                });
+            }
+            function dayHead(day, totals) {
+                return `<div class="d-day-head"><span class="d-day-name">${esc(humanDate(day.date))}</span><span class="d-day-total num" data-day-total="${esc(day.date)}">${fmt(totals.kcal)} kcal</span></div>`;
+            }
+            function renderSearch(data) {
+                const title = "Meal search";
+                if (!data.total || !data.variations.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand(title, "")}${factsState("empty", "No matching meals", "No past meals match that search. Try a shorter food name.")}<div class="f-foot"><span>Every number traces to its source</span><span>Your logged meals</span></div></article>`;
+                    return;
+                }
+                const compact = data.variations.length > 6;
+                const rowFor = compact
+                    ? (v) =>
+                          factsCompactRow({
+                              name: v.label,
+                              meta: `logged ${v.count}×`,
+                              valueText:
+                                  v.typicalCalories == null
+                                      ? "—"
+                                      : `~${fmt(v.typicalCalories)} kcal`,
+                          })
+                    : (v) =>
+                          factsLabelRow({
+                              name: v.label,
+                              ofText: `logged ${v.count}× · last ${humanDate(v.last)}`,
+                              valueText:
+                                  v.typicalCalories == null
+                                      ? "no macros logged"
+                                      : `~${fmt(v.typicalCalories)} kcal typical`,
+                              showBar: false,
+                              source: "Your logged meals",
+                          });
+                const inlineVars = data.variations.slice(0, 5);
+                const restVars = data.variations.slice(5);
+                const hidden = restVars.length;
+                const recentHtml = data.recent.length
+                    ? `<h2 class="d-section">Most recent matches</h2>${data.recent.map((entry) => entryLabelRow(entry, true)).join("")}`
+                    : "";
+                const restHtml = restVars.length
+                    ? `<h2 class="d-section">${restVars.length} more variation${restVars.length === 1 ? "" : "s"}</h2>${restVars.map((v) => factsLabelRow({ name: v.label, ofText: `logged ${v.count}× · last ${humanDate(v.last)}`, valueText: v.typicalCalories == null ? "no macros logged" : `~${fmt(v.typicalCalories)} kcal typical`, showBar: false, source: "Your logged meals" })).join("")}`
+                    : "";
+                const hasFull = Boolean(restHtml || recentHtml);
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand(title, data.query || "")}
+        <div class="f-body">
+        ${factsHero(`${data.total}`, "past meals match", "", "")}
+        <div class="f-src">Source · <b>Your logged meals</b></div>
+        <div class="f-rule-heavy"></div>
+        ${inlineVars.map(rowFor).join("")}
+        <div class="f-note">Typical amounts are the middle value across matching logs — an <b>estimate</b> for the variation, not one meal's exact numbers.</div>
+        ${hasFull ? `<button class="f-more-row inline-only" id="details">${hidden > 0 ? `…and ${hidden} more` : "View recent matches"}</button><div class="fullscreen-only">${restHtml}${recentHtml}<div class="actions"><button class="btn" id="close">Return to chat</button></div></div>` : ""}
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Your logged meals</span></div>
+    </article>`;
+                bindExpand();
+            }
+            function renderDays(data) {
+                const days = (data.days || []).filter(
+                    (day) => day.entries.length,
+                );
+                const multi = days.length > 1;
+                const title = multi ? "Meals by day" : "Meals";
+                if (!days.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand(title, "")}${factsState("empty", "No meals logged", "Nothing was logged for this day. Log a meal and it will appear here with its numbers.")}<div class="f-foot"><span>Every number traces to its source</span><span>Your logged meals</span></div></article>`;
+                    return;
+                }
+                const totalsByDay = days.map(dayTotals);
+                const totalKcal = totalsByDay.reduce(
+                    (sum, totals) => sum + totals.kcal,
+                    0,
+                );
+                const totalProtein = totalsByDay.reduce(
+                    (sum, totals) => sum + totals.protein,
+                    0,
+                );
+                const totalEntries = days.reduce(
+                    (sum, day) => sum + day.entries.length,
+                    0,
+                );
+                const missing = totalsByDay.reduce(
+                    (sum, totals) => sum + totals.missing,
+                    0,
+                );
+                const rangeLabel = multi
+                    ? humanRange(days[0].date, days[days.length - 1].date)
+                    : humanDate(days[0].date);
+                const hero = multi
+                    ? factsHero(
+                          `${fmt(totalKcal)} <span class="f-hero-unit">kcal</span>`,
+                          `across ${days.length} days · ${totalEntries} meals`,
+                          `${fmt(totalProtein, 1)} g`,
+                          "protein in total",
+                      )
+                    : factsHero(
+                          `${fmt(totalKcal)} <span class="f-hero-unit">kcal</span>`,
+                          `${totalEntries} meal${totalEntries === 1 ? "" : "s"} logged`,
+                          `${fmt(totalProtein, 1)} g`,
+                          "protein",
+                      );
+                const compact = totalEntries > 6;
+                const rowFor = compact
+                    ? entryCompactRow
+                    : (entry) => entryLabelRow(entry, false);
+                let used = 0;
+                let folded = false;
+                const inlineParts = [];
+                const fullParts = [];
+                days.forEach((day, index) => {
+                    const totals = totalsByDay[index];
+                    const head = multi ? dayHead(day, totals) : "";
+                    if (!folded && used + day.entries.length <= 5) {
+                        if (head) inlineParts.push(head);
+                        inlineParts.push(day.entries.map(rowFor).join(""));
+                        used += day.entries.length;
+                        return;
+                    }
+                    folded = true;
+                    if (used === 0 && day.entries.length > 5) {
+                        if (head) inlineParts.push(head);
+                        inlineParts.push(
+                            day.entries.slice(0, 5).map(rowFor).join(""),
+                        );
+                        used = 5;
+                        if (head) fullParts.push(head);
+                        fullParts.push(
+                            day.entries
+                                .slice(5)
+                                .map((entry) => entryLabelRow(entry, true))
+                                .join(""),
+                        );
+                        return;
+                    }
+                    if (head) fullParts.push(head);
+                    fullParts.push(
+                        day.entries
+                            .map((entry) => entryLabelRow(entry, true))
+                            .join(""),
+                    );
+                    fullParts.push(
+                        `<div class="f-prow"><span class="f-lrow-name">Day total · ${esc(humanDate(day.date))}</span><span class="f-crow-val num">${fmt(totals.kcal)} kcal</span></div><div class="d-macros">Protein ${fmt(totals.protein, 1)} g · Carbs ${fmt(totals.carbs, 1)} g · Fat ${fmt(totals.fat, 1)} g</div>`,
+                    );
+                });
+                const hidden = totalEntries - used;
+                // Single-day fullscreen adds the per-entry macro detail for
+                // the entries already shown inline, as its own section.
+                const singleDetail =
+                    !multi && days[0].entries.length
+                        ? `<h2 class="d-section">Entry detail</h2>${days[0].entries.map((entry) => entryLabelRow(entry, true)).join("")}<div class="f-prow"><span class="f-lrow-name">Day total</span><span class="f-crow-val num">${fmt(totalsByDay[0].kcal)} kcal</span></div><div class="d-macros">Protein ${fmt(totalsByDay[0].protein, 1)} g · Carbs ${fmt(totalsByDay[0].carbs, 1)} g · Fat ${fmt(totalsByDay[0].fat, 1)} g</div>`
+                        : "";
+                const hasFull = Boolean(fullParts.length || singleDetail);
+                const banners =
+                    (data.historyNote
+                        ? factsBanner(
+                              "warn",
+                              `<b>Partial history.</b> Entries are shown from ${esc(humanDate(data.historyNote))} — earlier meals in the range are outside the available history window.`,
+                          )
+                        : "") +
+                    (missing
+                        ? factsBanner(
+                              "warn",
+                              `<b>Partial totals</b> — ${missing} entr${missing === 1 ? "y has" : "ies have"} no calories logged (shown as —).`,
+                          )
+                        : "");
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand(title, rangeLabel)}
+        <div class="f-body">
+        ${hero}
+        <div class="f-src">Source · <b>Your logged meals</b></div>
+        ${banners}
+        <div class="f-rule-heavy"></div>
+        ${inlineParts.join("")}
+        ${hasFull ? `<button class="f-more-row inline-only" id="details">${hidden > 0 ? `…and ${hidden} more` : "View entry details"}</button><div class="fullscreen-only">${fullParts.join("")}${singleDetail}<div class="actions"><button class="btn" id="close">Return to chat</button></div></div>` : ""}
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Your logged meals</span></div>
+    </article>`;
+                bindExpand();
+            }
+            function render(data) {
+                if (data.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Meals",
+                        "",
+                        "error",
+                        "Could not load these meals",
+                        "Something went wrong reading your logged meals. Try again in chat.",
+                    );
+                    return;
+                }
+                if (data.mode === "search") return renderSearch(data);
+                return renderDays(data);
+            }
+            initWidget({
+                name: "day-meals-widget",
+                displayModes: ["inline", "fullscreen"],
+                loading:
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Meals</span></div><div class="f-state"><strong>Loading meals</strong><span>Reading your logged meals…</span></div></article>',
+                coerce,
+                render,
+                sample: SAMPLE,
+                onReady(api) {
+                    API = api;
+                },
+            });
+        </script>
+    </body>
+</html>
