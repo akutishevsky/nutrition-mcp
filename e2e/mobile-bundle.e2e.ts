@@ -261,7 +261,12 @@ test("packaged bundle offline cold start renders the designed offline state", as
         "session stays saved on this device",
     );
     await expect(page.locator(".app-shell")).toBeVisible();
-    await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
+    // This spec also runs under the default config's desktop project,
+    // where the bottom nav is desktop-hidden by design; assert it only
+    // at phone widths (the Pixel 7 lane is the canonical one).
+    if ((page.viewportSize()?.width ?? 0) <= 900) {
+        await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
+    }
     await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
     await expect(page.locator(".loading-state")).toHaveCount(0);
     await context.setOffline(false);
@@ -295,7 +300,9 @@ test("packaged shell renders the can't-reach state when the API dies mid-session
     // the next view must render the designed can't-reach state with a
     // retry action — not a hanging spinner or a raw error.
     await page.route("**/api/app/**", (route) => route.abort());
-    await page.locator('.mobile-bottom-nav a[data-route="log"]').click();
+    // :visible picks the bottom nav at phone widths and the sidebar
+    // under the default config's desktop project.
+    await page.locator('a[data-route="log"]:visible').first().click();
     await expect(page.getByTestId("api-down-state")).toBeVisible();
     await expect(page.getByTestId("api-down-state")).toContainText(
         "Can't reach Munch",
@@ -309,7 +316,7 @@ test("packaged shell renders the can't-reach state when the API dies mid-session
     // When the API returns, navigating loads real content again and
     // the can't-reach state is gone (the session was never signed out).
     await page.unroute("**/api/app/**");
-    await page.locator('.mobile-bottom-nav a[data-route="today"]').click();
+    await page.locator('a[data-route="today"]:visible').first().click();
     await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
     await expect(page.getByTestId("api-down-state")).toHaveCount(0);
 });
