@@ -1,4 +1,6 @@
-import { requestJson as api } from "./app-api.js";
+import { installOfflineBanner, requestJson as api } from "./app-api.js";
+
+installOfflineBanner();
 
 const $ = (selector) => document.querySelector(selector);
 const enabledToggle = $("#pantry-enabled");

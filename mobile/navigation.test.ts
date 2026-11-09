@@ -26,8 +26,28 @@ describe("installed mobile navigation", () => {
             "/app/plan",
         );
         expect(installedRouteFromUrl("munch://application")).toBeNull();
-        expect(installedRouteFromUrl("https://munch.business/app")).toBeNull();
         expect(installedRouteFromUrl("garbage")).toBeNull();
+    });
+
+    test("maps verified https app links through the same allowlist", () => {
+        expect(installedRouteFromUrl("https://munch.business/app")).toBe(
+            "/app",
+        );
+        expect(
+            installedRouteFromUrl("https://munch.business/app/recipes"),
+        ).toBe("/app/recipes");
+        // The auth callback is not an app route; the handoff branch in
+        // the runtime owns it and this mapping must not claim it.
+        expect(
+            installedRouteFromUrl(
+                "https://munch.business/mobile/auth/callback?code=x",
+            ),
+        ).toBeNull();
+        expect(
+            installedRouteFromUrl("https://munch.business/pricing"),
+        ).toBeNull();
+        expect(installedRouteFromUrl("https://evil.example/app")).toBeNull();
+        expect(installedRouteFromUrl("http://munch.business/app")).toBeNull();
     });
 
     test("builds a safe installed login return URL", () => {

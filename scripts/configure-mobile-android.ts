@@ -117,6 +117,28 @@ if (!manifest.includes('android:pathPrefix="/mobile/auth/callback"')) {
         `${verifiedAuthLink}        </activity>`,
     );
 }
+// S4: verified app links for the /app allowlist itself, so an
+// https://munch.business/app/* link opens the shell and routes through
+// mobile/navigation.js. The auth callback filter above stays intact
+// and the runtime keeps owning that path.
+const verifiedAppLink = [
+    '            <intent-filter android:autoVerify="true">',
+    '                <action android:name="android.intent.action.VIEW" />',
+    '                <category android:name="android.intent.category.DEFAULT" />',
+    '                <category android:name="android.intent.category.BROWSABLE" />',
+    "                <data",
+    '                    android:scheme="https"',
+    '                    android:host="munch.business"',
+    '                    android:pathPrefix="/app" />',
+    "            </intent-filter>",
+    "",
+].join("\n");
+if (!manifest.includes('android:pathPrefix="/app"')) {
+    manifest = manifest.replace(
+        "        </activity>",
+        `${verifiedAppLink}        </activity>`,
+    );
+}
 if (!manifest.includes('android:allowBackup="false"')) {
     throw new Error(
         "Android backups were not disabled for installed credentials",

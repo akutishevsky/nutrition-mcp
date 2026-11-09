@@ -18,6 +18,17 @@ function setStatus(message, error = false) {
     status.classList.toggle("error", error);
 }
 
+// S4: the sign-in page carries the same designed offline state as the
+// shell — never a dead form. Sign-in attempts made offline surface the
+// runtime's can't-reach message through the normal status line.
+const offlineBanner = document.getElementById("offline-banner");
+function syncOfflineBanner() {
+    if (offlineBanner) offlineBanner.hidden = navigator.onLine !== false;
+}
+window.addEventListener("online", syncOfflineBanner);
+window.addEventListener("offline", syncOfflineBanner);
+syncOfflineBanner();
+
 const authError = new URLSearchParams(location.search).get("auth_error");
 if (authError) {
     setStatus(

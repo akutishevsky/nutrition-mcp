@@ -1,4 +1,9 @@
-import { requestJson } from "./app-api.js";
+import {
+    installOfflineBanner,
+    isConnectivityError,
+    isOffline,
+    requestJson,
+} from "./app-api.js";
 import { shouldShowAndroidBanner } from "./ads-policy.js";
 import {
     displayWeightUnit,
@@ -296,6 +301,15 @@ function setLoading(label = "Loading your Munch workspace…") {
 
 function errorState(error) {
     if (error?.name === "AbortError") return;
+    // S4: an unreachable API (device offline or service down) is a
+    // designed state, not a raw error or a hanging spinner. The session
+    // is untouched by connectivity failures — a stored session stays
+    // signed in and data loads when the connection returns. Writes are
+    // never queued (Decision 6); the transport says so at the attempt.
+    if (isConnectivityError(error) || isOffline()) {
+        content.innerHTML = `<div class="error-state offline-state" data-testid="api-down-state"><div><p class="section-kicker">Connection</p><h2>Can't reach Munch</h2><p>Munch can't load this view right now — you're offline, or the service is briefly unavailable. If you're signed in, your session stays saved on this device and your data will load as soon as the connection returns.</p><button class="button button-primary spacer-top" data-action="refresh">Try again</button></div></div>`;
+        return;
+    }
     content.innerHTML = `<div class="error-state"><div><h2>That view could not be loaded.</h2><p>${escapeHtml(error?.message || "An unexpected error occurred.")}</p><button class="button button-primary spacer-top" data-action="refresh">Try again</button></div></div>`;
 }
 
@@ -4916,4 +4930,10 @@ quickAction.addEventListener("click", () => {
     );
 });
 window.addEventListener("popstate", renderRoute);
+installOfflineBanner();
+window.addEventListener("online", () => {
+    if (content.querySelector('[data-testid="api-down-state"]')) {
+        void renderRoute();
+    }
+});
 renderRoute();

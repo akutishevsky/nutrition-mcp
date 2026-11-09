@@ -2130,7 +2130,8 @@
         place-items: center;
         border-radius: 10px;
         color: var(--ink-500);
-        font-size: 0.65rem;
+        /* S4 mobile_qc bright line: no text under 11px (was 0.65rem). */
+        font-size: 0.7rem;
         font-weight: 700;
     }
 
@@ -2353,5 +2354,42 @@
         transition-duration: 0.01ms !important;
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
+    }
+}
+
+/* S4 shell hardening — honest connectivity states + safe areas.
+   The offline banner is a designed state (mobile-discipline P7): it
+   floats above the mobile bottom nav, respects the gesture-bar inset
+   on every side, and never overlaps the sticky topbar. */
+.offline-banner {
+    position: fixed;
+    z-index: 400;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    border: 1px solid #d8cdb6;
+    border-radius: 14px;
+    background: #fdf3d7;
+    color: #5f4b12;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: center;
+    box-shadow: 0 12px 32px rgb(24 51 41 / 0.16);
+}
+.offline-banner[hidden] {
+    display: none;
+}
+@media (max-width: 900px) {
+    .offline-banner {
+        bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+    /* Sticky topbar content clears the status cutout in the packaged
+       shell (its translucent background still extends underneath). */
+    .app-topbar {
+        padding-top: calc(12px + env(safe-area-inset-top));
+    }
+    .toast-region {
+        bottom: calc(82px + env(safe-area-inset-bottom));
     }
 }

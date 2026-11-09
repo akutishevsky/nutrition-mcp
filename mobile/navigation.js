@@ -17,6 +17,16 @@ export function installedAppRoute(value) {
 export function installedRouteFromUrl(value) {
     try {
         const parsed = new URL(value);
+        // Verified app links: an https://munch.business URL routes into
+        // the shell only when its path is inside the same /app allowlist
+        // (the /mobile/auth/callback path is handled earlier by the
+        // auth-handoff branch and never reaches this mapping).
+        if (
+            parsed.protocol === "https:" &&
+            parsed.hostname === "munch.business"
+        ) {
+            return installedAppRoute(parsed.pathname);
+        }
         if (parsed.protocol !== "munch:") return null;
         const route = `/${[parsed.hostname, parsed.pathname]
             .filter(Boolean)

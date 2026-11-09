@@ -191,7 +191,13 @@ jobs:
             sleep 10
             adb exec-out screencap -p > boot-screenshot.png
             adb logcat -d > boot-logcat.txt || true
-            cd android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=business.munch.app.AppBootSmokeTest
+            cd android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=business.munch.app.AppBootSmokeTest,business.munch.app.AppDeepLinkSmokeTest && cd ..
+            # S4: the offline test disables the emulator network itself
+            # (airplane mode + radios via UiAutomation) and restores it
+            # in a finally block; it runs last and force-stops the app
+            # first so the offline run is a true cold start.
+            adb shell am force-stop business.munch.app || true
+            cd android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=business.munch.app.AppOfflineSmokeTest
       - name: Upload boot evidence (screenshot, logcat, test results)
         if: always()
         uses: actions/upload-artifact@v4

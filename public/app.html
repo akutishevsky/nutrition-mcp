@@ -268,5 +268,23 @@
                 enhanceMeals();
             }
         </script>
+        <script>
+            // S4 startup honesty: if the app bundle or the first data
+            // load never resolves, the skeleton must not spin forever.
+            // After 12s with the loading state still on screen, swap in
+            // an honest failure state with a reload action. A stored
+            // session is untouched by this — it stays on the device.
+            window.setTimeout(() => {
+                const content = document.getElementById("app-content");
+                if (!content || !content.querySelector(".loading-state")) {
+                    return;
+                }
+                content.innerHTML =
+                    '<div class="error-state" data-testid="startup-failure-state"><div><h2>Munch is taking too long to load</h2><p>The app did not finish loading — the bundle or the Munch service did not respond. Check your connection, then reload. Your session stays saved on this device.</p><button class="button button-primary spacer-top" type="button" id="startup-reload">Reload Munch</button></div></div>';
+                document
+                    .getElementById("startup-reload")
+                    ?.addEventListener("click", () => location.reload());
+            }, 12000);
+        </script>
     </body>
 </html>

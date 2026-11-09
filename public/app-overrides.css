@@ -971,3 +971,15 @@ dialog .auth-card {
 .meal-photo-capture .auth-actions .button {
     min-height: 48px;
 }
+/* S4: native capture actions injected into the meal-photo dialog in
+   the packaged shell (mobile/meal-photo-native.js). Two equal shares,
+   48px targets, 8px gap — the Pantry capture pattern. */
+.meal-photo-native-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.meal-photo-native-actions .button {
+    min-height: 48px;
+    width: 100%;
+}

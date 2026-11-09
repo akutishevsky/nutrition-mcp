@@ -1,4 +1,4 @@
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { expect, test } from "@playwright/test";
@@ -43,6 +43,42 @@ test.beforeAll(async () => {
     }
     server = createServer((request, response) => {
         const url = new URL(request.url ?? "/", "http://127.0.0.1");
+        // S4 stub-session fixtures: when a test replaces the packaged
+        // runtime with the session stub below, the app shell talks to
+        // this static origin with the web transport, so the bootstrap /
+        // Today / guidance reads are answered with minimal fixtures.
+        // The real packaged runtime calls https://munch.business and
+        // never touches these paths.
+        if (url.pathname.startsWith("/api/app/")) {
+            const fixtures: Record<string, unknown> = {
+                "/api/app/bootstrap": {
+                    profile: {
+                        timezone: "UTC",
+                        preferred_weight_unit: "lb",
+                    },
+                },
+                "/api/app/today": {
+                    totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+                    meals: [],
+                    water: { entries: [], totalMl: 0 },
+                    weight: [],
+                    goals: {},
+                    drafts: [],
+                    plannedMeals: [],
+                },
+                "/api/app/guidance/today": {
+                    source_status: "sparse_data",
+                    objective: "Track only",
+                    actions: [],
+                },
+            };
+            response.writeHead(200, {
+                "content-type": "application/json",
+                "cache-control": "no-store",
+            });
+            response.end(JSON.stringify(fixtures[url.pathname] ?? {}));
+            return;
+        }
         const relative = normalize(decodeURIComponent(url.pathname)).replace(
             /^(\.\.[/\\])+|^[/\\]+/,
             "",
@@ -112,6 +148,194 @@ test("packaged mobile bundle cold-starts to the sign-in shell", async ({
         .toBe(true);
 });
 
+/**
+ * S4: a test-only stand-in for the packaged mobile runtime. The real
+ * runtime's session lives in an Android Keystore plugin that a desktop
+ * browser cannot provide, so the in-shell tests swap the module for
+ * this stub: a stored session that is always present, on top of the
+ * REAL shared transport (public/app-api.js) and the REAL app.js. Only
+ * the native-bridge surface is faked; every behaviour asserted below
+ * (connectivity states, write honesty) is production code.
+ */
+const STUB_RUNTIME = `
+export {
+    getMunchPlatformKind,
+    installOfflineBanner,
+    isConnectivityError,
+    isOffline,
+    requestJson,
+    resolveMunchApiUrl,
+} from "./app-api.js";
+export function installedReturnRoute() {
+    return "/app";
+}
+export function currentInstalledAppRoute() {
+    return "/app";
+}
+export function installedLoginUrl() {
+    return "/mobile-login.html";
+}
+export async function restoreInstalledEntryRoute() {
+    return "/app";
+}
+export async function hasStoredSession() {
+    return true;
+}
+export async function getInstalledPlayBillingConfig() {
+    return { configured: false };
+}
+export async function getInstalledPremiumProduct() {
+    throw new Error("Play Billing is not configured in the bundle e2e");
+}
+export async function purchaseInstalledPremium() {
+    throw new Error("Play Billing is not configured in the bundle e2e");
+}
+export async function restoreInstalledPremium() {
+    return { state: "unavailable" };
+}
+export async function openInstalledSubscriptionManagement() {
+    return null;
+}
+export async function takeInstalledPhoto() {
+    throw new Error("Camera is unavailable in the bundle e2e");
+}
+export async function chooseInstalledPhoto() {
+    return null;
+}
+`;
+
+/**
+ * Playwright's offline mode blocks ALL network traffic, including the
+ * loopback document load — but the packaged app never loads its bundle
+ * over the network (it ships inside the APK). For offline tests this
+ * fulfils bundle assets from disk, mirroring the on-device packaging,
+ * while real API traffic still hits the (offline) network and fails.
+ */
+async function serveBundleFromDisk(page: import("@playwright/test").Page) {
+    await page.route(`${baseURL}/**`, async (route) => {
+        const url = new URL(route.request().url());
+        if (url.pathname.startsWith("/api/")) return route.fallback();
+        const relative = normalize(decodeURIComponent(url.pathname)).replace(
+            /^(\.\.[/\\])+|^[/\\]+/,
+            "",
+        );
+        const filePath = join(
+            bundleDir,
+            relative === "" ? "index.html" : relative,
+        );
+        if (
+            !filePath.startsWith(bundleDir) ||
+            !existsSync(filePath) ||
+            !statSync(filePath).isFile()
+        ) {
+            return route.fallback();
+        }
+        await route.fulfill({
+            contentType: MIME[extname(filePath)] ?? "application/octet-stream",
+            body: readFileSync(filePath),
+        });
+    });
+}
+
+async function stubPackagedSession(page: import("@playwright/test").Page) {
+    await page.route(/\/mobile-runtime\.js$/, (route) =>
+        route.fulfill({ contentType: "text/javascript", body: STUB_RUNTIME }),
+    );
+}
+
+test("packaged bundle offline cold start renders the designed offline state", async ({
+    page,
+    context,
+}) => {
+    await serveBundleFromDisk(page);
+    await context.setOffline(true);
+    await page.goto(`${baseURL}/`);
+    // The real shell renders (chrome + bottom nav), with the designed
+    // offline state in place of the data view — never a blank screen
+    // or an indefinite skeleton.
+    await expect(page.getByTestId("offline-state")).toBeVisible();
+    await expect(page.getByTestId("offline-state")).toContainText(
+        "You're offline",
+    );
+    await expect(page.getByTestId("offline-state")).toContainText(
+        "session stays saved on this device",
+    );
+    await expect(page.locator(".app-shell")).toBeVisible();
+    await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+    await expect(page.locator(".loading-state")).toHaveCount(0);
+    await context.setOffline(false);
+});
+
+test("packaged sign-in shows its offline banner while offline", async ({
+    page,
+    context,
+}) => {
+    await serveBundleFromDisk(page);
+    await context.setOffline(true);
+    await page.goto(`${baseURL}/mobile-login.html`);
+    await expect(page).toHaveTitle("Sign in · Munch");
+    await expect(page.getByTestId("offline-banner")).toBeVisible();
+    await expect(page.getByTestId("offline-banner")).toContainText(
+        "You're offline",
+    );
+    await context.setOffline(false);
+    await expect(page.getByTestId("offline-banner")).toBeHidden();
+});
+
+test("packaged shell renders the can't-reach state when the API dies mid-session", async ({
+    page,
+}) => {
+    await stubPackagedSession(page);
+    await page.goto(`${baseURL}/`);
+    // The stub session boots the real app shell onto Today.
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+
+    // The API becomes unreachable (server down / connection dropped):
+    // the next view must render the designed can't-reach state with a
+    // retry action — not a hanging spinner or a raw error.
+    await page.route("**/api/app/**", (route) => route.abort());
+    await page.locator('.mobile-bottom-nav a[data-route="log"]').click();
+    await expect(page.getByTestId("api-down-state")).toBeVisible();
+    await expect(page.getByTestId("api-down-state")).toContainText(
+        "Can't reach Munch",
+    );
+    await expect(
+        page
+            .getByTestId("api-down-state")
+            .getByRole("button", { name: "Try again" }),
+    ).toBeVisible();
+
+    // When the API returns, navigating loads real content again and
+    // the can't-reach state is gone (the session was never signed out).
+    await page.unroute("**/api/app/**");
+    await page.locator('.mobile-bottom-nav a[data-route="today"]').click();
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await expect(page.getByTestId("api-down-state")).toHaveCount(0);
+});
+
+test("a write attempted offline gets the honest message, never a queue or a success", async ({
+    page,
+    context,
+}) => {
+    await stubPackagedSession(page);
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+
+    await context.setOffline(true);
+    await expect(page.getByTestId("offline-banner")).toBeVisible();
+    await page.getByRole("button", { name: "Add water" }).click();
+    await page.locator('#water-form button[type="submit"]').click();
+    // Decision 6: no offline write queueing. The attempt surfaces the
+    // honest message; no success is reported and nothing claims to be
+    // saved or queued for later.
+    const toastRegion = page.locator("#toast-region");
+    await expect(toastRegion).toContainText("You're offline");
+    await expect(toastRegion).toContainText("Nothing was queued");
+    await expect(toastRegion).not.toContainText("Water added.");
+    await context.setOffline(false);
+});
+
 test("packaged bundle ships the mobile runtime and the Pantry page", async ({
     request,
 }) => {
@@ -125,4 +349,16 @@ test("packaged bundle ships the mobile runtime and the Pantry page", async ({
     expect(pantry.ok()).toBe(true);
     const pantryBody = await pantry.text();
     expect(pantryBody).toContain("/pantry-native.js");
+
+    // S4: the native meal-photo capture module ships in the bundle and
+    // carries the Pantry-pattern markers (pending-capture restore key,
+    // 8 MB cap, DataTransfer handoff into the existing dialog input).
+    const mealPhotoNative = await request.get(
+        `${baseURL}/meal-photo-native.js`,
+    );
+    expect(mealPhotoNative.ok()).toBe(true);
+    const mealPhotoBody = await mealPhotoNative.text();
+    expect(mealPhotoBody).toContain("munch.pendingMealPhotoCapture");
+    expect(mealPhotoBody).toContain("#meal-photo-file");
+    expect(mealPhotoBody).toContain("new DataTransfer()");
 });
