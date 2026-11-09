@@ -7,22 +7,11 @@
         <style>
             /*@include shared/tokens.css@*/
             /*@include shared/base.css@*/
-            .weight-card {
-                padding: 15px;
-            }
-            .hero {
-                display: flex;
-                align-items: flex-end;
-                justify-content: space-between;
-                gap: 12px;
-                margin-bottom: 8px;
-            }
-            .hero-value {
-                font-size: 29px;
-                line-height: 1;
-                font-weight: 760;
-                letter-spacing: -0.03em;
-                font-variant-numeric: tabular-nums;
+            /*@include shared/facts.css@*/
+            .f-section-title {
+                font-size: 15px;
+                font-weight: 650;
+                margin: 14px 0 4px;
             }
             .range-controls {
                 display: flex;
@@ -31,20 +20,13 @@
                 margin-bottom: 14px;
             }
             .range-controls .btn[aria-pressed="true"] {
-                background: var(--accent);
-                color: var(--accent-contrast);
-                border-color: var(--accent);
+                background: var(--facts-band);
+                color: var(--facts-band-ink);
+                border-color: var(--facts-band);
             }
-            .history {
-                display: grid;
-                grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
-                gap: 20px;
-                margin-top: 18px;
-            }
-            @media (max-width: 700px) {
-                .history {
-                    grid-template-columns: 1fr;
-                }
+            .history-table {
+                max-height: min(48vh, 520px);
+                overflow: auto;
             }
         </style>
     </head>
@@ -54,6 +36,7 @@
             "use strict";
             /*@include shared/bridge.js@*/
             /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
             function sample() {
                 const days = [];
                 for (let i = 30; i >= 0; i -= 2) {
@@ -76,10 +59,102 @@
             let DATA = null,
                 API = null,
                 RANGE = 30;
+            // get_weight_by_date_range is a text-output tool: its widget
+            // payload is { text } holding one "## YYYY-MM-DD" section per
+            // day, with an "(avg X unit, N entries)" header when a day has
+            // several weigh-ins. Parse that listing into the same series
+            // shape get_weight_trends returns, so the binding stays
+            // UI-meta-only on the server. A day's plotted weight is its
+            // average, matching how the trends series treats same-day
+            // weigh-ins. No target travels with this payload.
+            function parseWeightRangeText(text) {
+                if (typeof text !== "string") return null;
+                const emptyMatch = text.match(
+                    /no weight found between (\d{4}-\d{2}-\d{2}) and (\d{4}-\d{2}-\d{2})/i,
+                );
+                if (emptyMatch)
+                    return {
+                        end_date: emptyMatch[2],
+                        unit: "kg",
+                        target: null,
+                        default_range: 30,
+                        days: [],
+                    };
+                if (!/^##\s+\d{4}-\d{2}-\d{2}/m.test(text)) return null;
+                const days = [];
+                let unit = "kg";
+                let current = null;
+                const closeDay = () => {
+                    if (!current) return;
+                    const weight =
+                        current.avg != null ? current.avg : current.first;
+                    if (weight != null && Number.isFinite(weight))
+                        days.push({ date: current.date, weight });
+                    current = null;
+                };
+                for (const rawLine of text.split("\n")) {
+                    const line = rawLine.trim();
+                    const header = line.match(
+                        /^##\s+(\d{4}-\d{2}-\d{2})(?:\s+\(avg\s+([\d,]+(?:\.\d+)?)\s+(kg|lb),)?/,
+                    );
+                    if (header) {
+                        closeDay();
+                        current = {
+                            date: header[1],
+                            avg:
+                                header[2] != null
+                                    ? Number(header[2].replace(/,/g, ""))
+                                    : null,
+                            first: null,
+                        };
+                        if (header[3]) unit = header[3];
+                        continue;
+                    }
+                    const entry = line.match(
+                        /^-\s+([\d,]+(?:\.\d+)?)\s+(kg|lb)\b/,
+                    );
+                    if (entry && current) {
+                        if (current.first == null)
+                            current.first = Number(entry[1].replace(/,/g, ""));
+                        unit = entry[2];
+                    }
+                }
+                closeDay();
+                days.sort((a, b) => a.date.localeCompare(b.date));
+                return {
+                    end_date: days.length
+                        ? days[days.length - 1].date
+                        : undefined,
+                    unit,
+                    target: null,
+                    default_range: 30,
+                    days,
+                };
+            }
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
                 if (Array.isArray(payload.days)) return payload;
-                return payload.structuredContent || null;
+                if (typeof payload.text === "string") {
+                    const parsed = parseWeightRangeText(payload.text);
+                    if (parsed) return parsed;
+                    return { __error: payload.text };
+                }
+                if (Array.isArray(payload.content)) {
+                    const textPart = payload.content.find(
+                        (part) => part?.type === "text",
+                    );
+                    if (textPart) return coerce({ text: textPart.text });
+                }
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
+                return null;
             }
             function shift(date, days) {
                 const d = new Date(`${date}T12:00:00`);
@@ -91,29 +166,82 @@
                     .slice()
                     .sort((a, b) => a.date.localeCompare(b.date));
                 const end = DATA.end_date || all[all.length - 1]?.date;
+                if (!end) return [];
                 const cutoff = shift(end, -(RANGE - 1));
                 return all.filter((day) => day.date >= cutoff);
             }
+            function signedChange(change, unit) {
+                if (change === 0) return `No change`;
+                return `${change > 0 ? "+" : "−"}${fmt(Math.abs(change), 1)} ${unit}`;
+            }
+            function bindChrome() {
+                document
+                    .getElementById("details")
+                    ?.addEventListener("click", async () => {
+                        const result = await API?.requestDisplayMode(
+                            "fullscreen",
+                        ).catch(() => null);
+                        if (!result || result.unsupported)
+                            document.getElementById("details").textContent =
+                                "Details unavailable";
+                    });
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
+                document.querySelectorAll("[data-range]").forEach((button) =>
+                    button.addEventListener("click", () => {
+                        RANGE = Number(button.dataset.range);
+                        paint();
+                    }),
+                );
+            }
             function paint() {
+                const rangeLabel = `Last ${RANGE} days`;
+                if (DATA.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Weight trends",
+                        rangeLabel,
+                        "error",
+                        "Could not load weight trends",
+                        String(DATA.__error) ||
+                            "Something went wrong reading your weight entries. Try again in chat.",
+                    );
+                    return;
+                }
                 const slice = currentSlice();
                 if (!slice.length) {
                     document.getElementById("root").innerHTML =
-                        '<article class="card empty"><strong>No weigh-ins in this range</strong>Try a wider range or log a new weight.</article>';
+                        `<article class="card">${factsBand("Weight trends", rangeLabel)}${factsState("empty", "No weigh-ins in this range", "Try a wider range or log a new weight.")}<div class="f-foot"><span>Every number traces to its source</span><span>Your logged weight entries</span></div></article>`;
                     return;
                 }
                 const first = Number(slice[0].weight),
                     latest = Number(slice[slice.length - 1].weight),
+                    // The change line is last minus first of the plotted
+                    // entries. Framing stays neutral: the line reports the
+                    // recorded difference and never labels it good or bad.
                     change = latest - first,
                     target = DATA.target ?? null,
                     unit = DATA.unit || "kg";
-                const toward =
-                    target == null
-                        ? null
-                        : Math.abs(latest - target) < Math.abs(first - target);
                 const distance = target == null ? null : latest - target;
                 const points = slice.map((day) => ({
                     value: Number(day.weight),
                 }));
+                const single = slice.length === 1;
+                const heroSideV = single
+                    ? "First entry"
+                    : signedChange(change, unit);
+                const heroSideC = single
+                    ? humanDate(slice[0].date)
+                    : `since ${humanDate(slice[0].date)}`;
+                const note = single
+                    ? "One weigh-in in this window. Log another to see how the line moves."
+                    : target == null
+                      ? "No target set — this panel reports the recorded weights only."
+                      : Math.abs(distance) < 0.05
+                        ? "Latest weight is at the saved target."
+                        : `${fmt(Math.abs(distance), 1)} ${unit} ${distance > 0 ? "above" : "below"} target.`;
                 const rows = slice
                     .slice()
                     .reverse()
@@ -128,29 +256,70 @@
                             `<button class="btn btn-sm" data-range="${range}" aria-pressed="${RANGE === range}">${range} days</button>`,
                     )
                     .join("");
-                document.getElementById("root").innerHTML =
-                    `<article class="card weight-card"><div class="head"><div class="head-main"><div class="eyebrow">Weight</div><h1>${RANGE}-day trend</h1><div class="meta">${slice.length} weigh-in${slice.length === 1 ? "" : "s"} · ${esc(humanRange(slice[0].date, slice[slice.length - 1].date))}</div></div><button class="btn btn-sm inline-only" id="explore">Explore history</button></div><div class="fullscreen-only range-controls">${controls}</div>
- <div class="hero"><div><div class="caption">Latest</div><div class="hero-value">${fmt(latest, 1)} <span class="caption">${esc(unit)}</span></div></div><span class="chip${toward === true ? " good" : toward === false ? " warn" : ""}">${change === 0 ? "No change" : `${change > 0 ? "+" : "−"}${fmt(Math.abs(change), 1)} ${esc(unit)}`}</span></div>
- ${sparkline(points, { goal: target, label: `Weight over ${RANGE} days` })}<div class="row-between caption"><span>${esc(humanDate(slice[0].date))}</span><span>${target != null ? `target ${fmt(target, 1)} ${esc(unit)}` : "No target set"}</span><span>${esc(humanDate(slice[slice.length - 1].date))}</span></div>
- <div class="metrics" style="margin-top:12px">${metric("Latest", fmt(latest, 1), unit)}${metric("Change", `${change > 0 ? "+" : change < 0 ? "−" : ""}${fmt(Math.abs(change), 1)}`, unit)}${metric("Target", target == null ? "—" : fmt(target, 1), target == null ? "" : unit)}${metric("To target", distance == null ? "—" : fmt(Math.abs(distance), 1), distance == null ? "" : unit)}</div>
- <div class="notice" style="margin-top:12px">${target == null ? "Set a target to measure direction without labeling weight gain or loss as inherently good or bad." : Math.abs(distance) < 0.05 ? "Latest weight is at the saved target." : `${fmt(Math.abs(distance), 1)} ${esc(unit)} ${distance > 0 ? "above" : "below"} target${toward == null ? "" : toward ? " and moving toward it." : " and moving away from it in this window."}`}</div>
- <div class="fullscreen-only"><div class="history"><div><h2>Weight history</h2><div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Date</th><th>Weight</th></tr></thead><tbody>${rows}</tbody></table></div></div><div><h2>Interpretation</h2><div class="stack" style="margin-top:12px"><div class="notice">Daily weight fluctuates. Use the multi-day direction rather than a single reading.</div>${target != null ? progress("Distance closed", Math.max(0, Math.abs(first - target) - Math.abs(latest - target)), Math.abs(first - target) || 1, unit, "var(--accent)") : ""}</div></div></div><div class="actions"><button class="btn" id="close">Return to chat</button></div></div></article>`;
-                document
-                    .getElementById("explore")
-                    ?.addEventListener("click", () =>
-                        API?.requestDisplayMode("fullscreen"),
-                    );
-                document
-                    .getElementById("close")
-                    ?.addEventListener("click", () =>
-                        API?.requestDisplayMode("inline"),
-                    );
-                document.querySelectorAll("[data-range]").forEach((button) =>
-                    button.addEventListener("click", () => {
-                        RANGE = Number(button.dataset.range);
-                        paint();
+                const summaryRows = [
+                    factsTargetRow({
+                        name: "First entry",
+                        ofText: humanDate(slice[0].date),
+                        valueText: `${fmt(first, 1)} ${unit}`,
                     }),
-                );
+                    factsTargetRow({
+                        name: "Latest entry",
+                        ofText: humanDate(slice[slice.length - 1].date),
+                        valueText: `${fmt(latest, 1)} ${unit}`,
+                    }),
+                    factsTargetRow({
+                        name: "Change in window",
+                        ofText: `${slice.length} weigh-in${slice.length === 1 ? "" : "s"}`,
+                        valueText: signedChange(change, unit),
+                    }),
+                ];
+                if (target != null) {
+                    summaryRows.push(
+                        factsTargetRow({
+                            name: "Target",
+                            ofText: "standing target",
+                            valueText: `${fmt(target, 1)} ${unit}`,
+                        }),
+                    );
+                    summaryRows.push(
+                        factsTargetRow({
+                            name: "Distance to target",
+                            ofText:
+                                Math.abs(distance) < 0.05
+                                    ? "at target"
+                                    : distance > 0
+                                      ? "above target"
+                                      : "below target",
+                            valueText: `${fmt(Math.abs(distance), 1)} ${unit}`,
+                        }),
+                    );
+                }
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand("Weight trends", rangeLabel)}
+        <div class="f-body">
+        ${factsHero(`${fmt(latest, 1)} <span class="f-hero-unit">${esc(unit)}</span>`, `latest · ${esc(humanDate(slice[slice.length - 1].date))} · ${slice.length} weigh-in${slice.length === 1 ? "" : "s"}`, heroSideV, heroSideC)}
+        <div class="f-src">Source · <b>Your logged weight entries</b></div>
+        ${sparkline(points, { goal: target, label: `Weight over ${RANGE} days` })}
+        <div class="row-between caption"><span>${esc(humanDate(slice[0].date))}</span><span>${target != null ? `target ${fmt(target, 1)} ${esc(unit)}` : "No target set"}</span><span>${esc(humanDate(slice[slice.length - 1].date))}</span></div>
+        <div class="f-note">${esc(note)}</div>
+        <button class="f-more-row inline-only" id="details">View weight entries</button>
+        <div class="fullscreen-only">
+        <div class="fullscreen-only range-controls" role="group" aria-label="Weight range">${controls}</div>
+        <div class="f-rule-med"></div>
+        <h2 class="f-section-title">Weight entries</h2>
+        <div class="table-wrap history-table" style="margin-top:10px"><table><thead><tr><th>Date</th><th>Weight</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="f-rule-med"></div>
+        <h2 class="f-section-title">Window summary</h2>
+        <div class="f-src">Source · <b>Your logged weight entries</b></div>
+        ${summaryRows.join("")}
+        <div class="f-note">Daily weight fluctuates. Use the multi-day direction rather than a single reading.</div>
+        <div class="actions"><button class="btn" id="close">Return to chat</button></div>
+        </div>
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Your logged weight entries</span></div>
+    </article>`;
+                bindChrome();
             }
             function render(data) {
                 DATA = data;
@@ -162,7 +331,8 @@
             initWidget({
                 name: "weight-trends-widget",
                 displayModes: ["inline", "fullscreen"],
-                loading: '<div class="card empty">Loading weight trends…</div>',
+                loading:
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Weight trends</span></div><div class="f-state"><strong>Loading weight trends</strong><span>Reading your weight entries…</span></div></article>',
                 coerce,
                 render,
                 sample: SAMPLE,

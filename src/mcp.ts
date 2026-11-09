@@ -3020,6 +3020,10 @@ export function registerTools(
             description:
                 "Get all weight entries between two dates (inclusive), grouped by day with each day's average. Use this instead of multiple get_weight_by_date calls.",
             outputSchema: TEXT_OUTPUT_SCHEMA,
+            // Weight-trends widget (UI meta only; the widget parses the
+            // text payload this tool already returns, the same pattern as
+            // the goal-progress targets binding).
+            ...uiMeta(WEIGHT_TRENDS_WIDGET_URI),
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,

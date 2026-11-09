@@ -398,6 +398,109 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
         },
         error: { error: "Goal progress could not be read. Try again in chat." },
     },
+    trends: {
+        // Longest realistic payload: the full 30-day series at a 30-day
+        // default range (the height-gate fixture for the fold).
+        long: {
+            end_date: days[days.length - 1]!.date,
+            default_range: 30,
+            goals,
+            days,
+        },
+        // Partial coverage: a 14-day window with two explicit gap days
+        // (zeroed rows, as buildDailyBuckets emits for unlogged days).
+        gap: {
+            end_date: days[days.length - 1]!.date,
+            default_range: 14,
+            goals,
+            days: days.slice(-14).map((day, index) =>
+                index === 3 || index === 9
+                    ? {
+                          ...day,
+                          meal_count: 0,
+                          calories: 0,
+                          protein_g: 0,
+                          carbs_g: 0,
+                          fat_g: 0,
+                          fiber_g: 0,
+                          sugar_g: 0,
+                          water_ml: 0,
+                      }
+                    : day,
+            ),
+        },
+        empty: {
+            end_date: days[days.length - 1]!.date,
+            default_range: 14,
+            goals,
+            days: [],
+        },
+        error: { error: "Trends could not be read. Try again in chat." },
+    },
+    "weight-trends": {
+        // Longest realistic payload: a weigh-in on each of 30 days.
+        long: {
+            end_date: days[days.length - 1]!.date,
+            unit: "lb",
+            target: 165,
+            default_range: 30,
+            days: days.map((day, index) => ({
+                date: day.date,
+                weight: Math.round((178.4 - index * 0.22) * 10) / 10,
+            })),
+        },
+        empty: {
+            end_date: days[days.length - 1]!.date,
+            unit: "lb",
+            target: 165,
+            default_range: 30,
+            days: [],
+        },
+        single: {
+            end_date: days[days.length - 1]!.date,
+            unit: "lb",
+            target: 165,
+            default_range: 30,
+            days: [{ date: days[days.length - 1]!.date, weight: 172.3 }],
+        },
+        nogoal: {
+            end_date: days[days.length - 1]!.date,
+            unit: "lb",
+            target: null,
+            default_range: 30,
+            days: days
+                .filter((_, index) => index % 2 === 0)
+                .map((day, index) => ({
+                    date: day.date,
+                    weight: 178.4 - index * 0.22,
+                })),
+        },
+        // get_weight_by_date_range is a text-output tool; this is the exact
+        // payload shape its binding delivers ({ text } in the server's
+        // per-day listing format, one multi-entry day included).
+        range: {
+            text: [
+                "## 2026-07-27",
+                "- 178.4 lb at 2026-07-27T11:30:00.000Z [id: w-1]",
+                "",
+                "## 2026-07-29 (avg 177.9 lb, 2 entries)",
+                "- 178.2 lb at 2026-07-29T11:30:00.000Z [id: w-2]",
+                "- 177.6 lb at 2026-07-29T23:30:00.000Z [id: w-3]",
+                "",
+                "## 2026-08-02",
+                "- 176.8 lb at 2026-08-02T11:30:00.000Z [id: w-4]",
+                "",
+                "## 2026-08-05",
+                "- 175.9 lb at 2026-08-05T11:30:00.000Z [id: w-5]",
+            ].join("\n"),
+        },
+        "range-empty": {
+            text: "No weight found between 2026-07-07 and 2026-08-05.",
+        },
+        error: {
+            error: "Weight trends could not be read. Try again in chat.",
+        },
+    },
     "cook-summary": {
         // Longest realistic payload: 12 timeline events + 4 photos.
         // Inline must carry only the last 5 events; the photo grid and

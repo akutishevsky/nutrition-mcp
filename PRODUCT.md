@@ -18,6 +18,10 @@ Munch is a production remote MCP service for personal nutrition tracking: source
 
 Source-aware, confirm-first nutrition tracking. Every nutrition value traces to USDA FoodData Central or Open Food Facts, with provider results cached against immutable source snapshots, and no record is written until the user explicitly confirms it. Identity and data isolation are enforced by OAuth 2.1 authorization plus forced row-level security in PostgreSQL.
 
+Positioning is MCP-wide, never ChatGPT-branded (Michael, ruled 2026-11-09): Munch is persistent nutrition for the user's AI — headline "Persistent nutrition for your AI" — with ChatGPT, Claude, and any MCP app named in the subline as clients, never as the brand.
+
+Product shape (Michael, ruled 2026-11-09): the website portal is the structured home — logging via forms, history, recipes, billing — while AI interaction happens through MCP clients. The site's natural-language/smart inputs are removed under the same ruling; the portal keeps structured logging, history, recipes, and billing, and all AI happens through MCP clients.
+
 ## Operating Context
 
 Used inside AI chat clients over remote MCP (endpoint https://munch.business/mcp, OAuth 2.1), and on the website for account management and billing (Stripe Checkout/Portal, website only). An Android app exists as a wrapper presence; Google Play listing is a draft with no tracks. Policies live at munch.business/privacy, /terms, /help, /security. Support: support@munch.business.
@@ -25,6 +29,7 @@ Used inside AI chat clients over remote MCP (endpoint https://munch.business/mcp
 ## Capabilities and Constraints
 
 - Free tier is permanent; Premium is sold only on the Munch website via Stripe.
+- Premium is $2.99/month (Michael, ruled 2026-11-09, lowered from $4.99 now that AI interaction lives entirely in MCP clients and carries no inference cost on Munch's side). The 7-day free trial and the permanent free tier are unchanged; household extra seats stay +$2/member.
 - ChatGPT-facing surfaces (tool descriptions, results, widgets, listing) never advertise pricing or initiate checkout — both a product law and an OpenAI platform rule.
 - Consumer wellness product: no medical advice, diagnosis, treatment, or clinical determinations; health status is never inferred from indirect signals.
 - Account controls are user-operable: export, revoke access, delete account.
