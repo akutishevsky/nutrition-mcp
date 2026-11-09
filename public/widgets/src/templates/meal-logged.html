@@ -395,7 +395,11 @@
                             }),
                         )
                         .join("");
-                    itemsHtml = `${head}<details class="foods"><summary>View ${items.length} foods in full</summary><div class="f-section-title">Source & estimate</div>${items.map(itemRowFull).join("")}</details>`;
+                    const foodsSummary =
+                        items.length === 1
+                            ? "Food details"
+                            : `View ${items.length} foods in full`;
+                    itemsHtml = `${head}<details class="foods"><summary>${foodsSummary}</summary><div class="f-section-title">Source & estimate</div>${items.map(itemRowFull).join("")}</details>`;
                 }
                 let today = "";
                 if (data.has_goals && data.goals && data.totals) {
