@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { websiteAiModel } from "../website-ai-config.js";
+import {
+    openRouterReasoningParam,
+    providerErrorDetail,
+    websiteAiModel,
+} from "../website-ai-config.js";
 
 const locationSchema = z.preprocess(
     (value) => {
@@ -266,7 +270,7 @@ export async function previewInventoryImage(
             },
         },
         plugins: [{ id: "response-healing" }],
-        reasoning: { enabled: false },
+        ...openRouterReasoningParam(config.model),
         provider: { data_collection: "deny" },
         messages: [
             {
@@ -313,7 +317,7 @@ export async function previewInventoryImage(
             );
             if (!response.ok) {
                 throw new Error(
-                    `Pantry vision provider returned HTTP ${response.status}`,
+                    `Pantry vision provider returned HTTP ${response.status}${await providerErrorDetail(response)}`,
                 );
             }
             const payload = (await response.json()) as any;

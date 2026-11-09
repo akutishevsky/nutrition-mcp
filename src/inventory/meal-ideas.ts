@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { websiteAiModel } from "../website-ai-config.js";
+import {
+    openRouterReasoningParam,
+    providerErrorDetail,
+    websiteAiModel,
+} from "../website-ai-config.js";
 import { normalizeInventoryName } from "./matching.js";
 import {
     getPantryPlanningContext,
@@ -486,7 +490,7 @@ export async function requestPantryMealIdeas(
             },
         },
         plugins: [{ id: "response-healing" }],
-        reasoning: { enabled: false },
+        ...openRouterReasoningParam(config.model),
         provider: { data_collection: "deny" },
         messages: [
             {
@@ -524,7 +528,7 @@ export async function requestPantryMealIdeas(
             );
             if (!response.ok) {
                 throw new Error(
-                    `Pantry planning provider returned HTTP ${response.status}`,
+                    `Pantry planning provider returned HTTP ${response.status}${await providerErrorDetail(response)}`,
                 );
             }
             const payload = (await response.json()) as any;

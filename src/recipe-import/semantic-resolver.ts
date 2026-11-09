@@ -2,6 +2,8 @@ import { z } from "zod";
 import { summarizeFoodCandidate } from "../food-providers/service.js";
 import {
     DEFAULT_WEBSITE_AI_MODEL,
+    openRouterReasoningParam,
+    providerErrorDetail,
     websiteAiModel,
 } from "../website-ai-config.js";
 import type {
@@ -667,7 +669,7 @@ export class OpenRouterRecipeImportResolver implements RecipeImportSemanticResol
                         ...(this.config.responseHealing
                             ? { plugins: [{ id: "response-healing" }] }
                             : {}),
-                        reasoning: { enabled: false },
+                        ...openRouterReasoningParam(this.config.model),
                         stream: false,
                         max_tokens: this.config.maxTokens,
                         ...(this.config.temperature === undefined
@@ -690,7 +692,7 @@ export class OpenRouterRecipeImportResolver implements RecipeImportSemanticResol
             }
             if (!response.ok) {
                 throw new RecipeImportAiError(
-                    `The website AI service returned HTTP ${response.status}.`,
+                    `The website AI service returned HTTP ${response.status}.${await providerErrorDetail(response)}`,
                     "http_error",
                 );
             }

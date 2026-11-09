@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { websiteAiModel } from "../website-ai-config.js";
+import {
+    openRouterReasoningParam,
+    providerErrorDetail,
+    websiteAiModel,
+} from "../website-ai-config.js";
 
 /**
  * Meal-photo vision (S3, Full Parity App Program brief §3 stage 2).
@@ -218,7 +222,7 @@ async function postCompletion(
         });
         if (!response.ok) {
             throw new Error(
-                `Meal photo provider returned HTTP ${response.status}`,
+                `Meal photo provider returned HTTP ${response.status}${await providerErrorDetail(response)}`,
             );
         }
         return (await response.json()) as any;
@@ -264,7 +268,7 @@ export async function identifyMealPhoto(
             },
         },
         plugins: [{ id: "response-healing" }],
-        reasoning: { enabled: false },
+        ...openRouterReasoningParam(config.model),
         provider: { data_collection: "deny" },
         messages: [
             {
@@ -468,7 +472,7 @@ export async function chooseMealPhotoCandidates(
             },
         },
         plugins: [{ id: "response-healing" }],
-        reasoning: { enabled: false },
+        ...openRouterReasoningParam(config.model),
         provider: { data_collection: "deny" },
         messages: [
             {
