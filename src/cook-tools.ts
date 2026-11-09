@@ -747,6 +747,7 @@ export function registerCookTools(
                 expected_version: z.coerce.number().int().positive().optional(),
             },
             outputSchema: z.object({ cook: cookRecordSchema }),
+            ...widgetMeta(widgetsEnabled),
         },
         async (args) =>
             withAnalytics(
