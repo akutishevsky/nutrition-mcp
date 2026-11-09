@@ -83,7 +83,7 @@ export interface CreateCheckoutInput {
 
 function stripeSecretKey(): string {
     const key = process.env.STRIPE_SECRET_KEY?.trim();
-    if (!key?.startsWith("sk_")) {
+    if (!key?.startsWith("sk_") && !key?.startsWith("rk_")) {
         throw new Error("STRIPE_SECRET_KEY is missing or invalid");
     }
     return key;
