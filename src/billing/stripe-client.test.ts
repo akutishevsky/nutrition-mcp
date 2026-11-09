@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import {
     createStripeCheckoutSession,
+    createStripePortalSession,
     retrieveStripePrice,
     StripeRequestError,
 } from "./stripe-client.js";
@@ -114,6 +115,34 @@ describe("Stripe Checkout", () => {
         );
         expect(price.active).toBe(true);
         expect(price.type).toBe("recurring");
+    });
+
+    test("accepts a restricted (rk_) secret key for portal sessions", async () => {
+        process.env.STRIPE_SECRET_KEY = "rk_test_munch";
+        let authorization = "";
+        globalThis.fetch = mock(async (_url, init) => {
+            authorization = String(
+                (init?.headers as Record<string, string>)?.Authorization ??
+                    "",
+            );
+            return new Response(
+                JSON.stringify({
+                    id: "bps_test_munch",
+                    url: "https://billing.stripe.test/session",
+                }),
+                {
+                    status: 200,
+                    headers: { "content-type": "application/json" },
+                },
+            );
+        }) as unknown as typeof fetch;
+
+        const session = await createStripePortalSession({
+            customerId: "cus_munch",
+            returnUrl: "https://munch.test/account",
+        });
+        expect(session.url).toBe("https://billing.stripe.test/session");
+        expect(authorization).toBe("Bearer rk_test_munch");
     });
 
     test("preserves Stripe error details for actionable checkout diagnostics", async () => {
