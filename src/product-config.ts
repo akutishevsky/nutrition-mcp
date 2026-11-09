@@ -3,7 +3,9 @@ export const PRODUCT_CONFIG = Object.freeze({
     publicBaseUrl: "https://munch.business",
     premiumPriceMonthlyCents: 299,
     householdMemberPriceMonthlyCents: 200,
-    trialEnabled: false,
+    // The 7-day free trial is live: it is set on the Stripe price, so
+    // checkout code never passes trial parameters itself.
+    trialEnabled: true,
     freeTierEnabled: true,
     freeHistoryDays: 30,
     // Legacy saved-food infrastructure remains available to MCP clients while
