@@ -1,0 +1,30 @@
+{
+    "fixture_id": "restaurant-03-ramen",
+    "recorded": true,
+    "recording_note": "Hand-authored recorded fixture standing in for a live Muse Ember stage-2 (identify + portions) response. It is NOT a live model output; the nightly live eval replaces it. No nutrition values are present, per brief section 3 stage 2.",
+    "model": "meta/muse-ember-1.0",
+    "stage": "identify_and_portions",
+    "response": {
+        "items": [
+            {
+                "name": "ramen noodles in broth",
+                "cooking_method": "boiled in broth",
+                "quantity": 2.1,
+                "unit": "cup",
+                "portion_confidence": 0.65,
+                "assumptions": [
+                    "assumed pork-based broth",
+                    "assumed sliced pork in the bowl"
+                ]
+            },
+            {
+                "name": "egg, boiled",
+                "cooking_method": "boiled",
+                "quantity": 1,
+                "unit": "piece",
+                "portion_confidence": 0.85,
+                "assumptions": []
+            }
+        ]
+    }
+}

@@ -1,0 +1,15 @@
+{
+    "description": "Per-PR recorded-response subset for the S3 photo eval (brief section 3 CI split): 10 of the 40 fixtures run deterministically on every PR with recorded Ember responses; the full 40 run live nightly in S3's photo-eval workflow.",
+    "per_pr_fixture_ids": [
+        "single-01-banana",
+        "mixed-01-chicken-rice-broccoli",
+        "mixed-02-breakfast-eggs-bacon-toast",
+        "sauced-01-chicken-curry-rice",
+        "restaurant-01-burger-fries-large",
+        "packaged-01-granola-bar",
+        "drinks-01-black-coffee",
+        "poorly-lit-01-chicken-rice",
+        "partial-01-burger-fries-half",
+        "restaurant-03-ramen"
+    ]
+}

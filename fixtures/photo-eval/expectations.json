@@ -1,0 +1,880 @@
+{
+    "version": 1,
+    "description": "Golden expectations for the Munch S3 photo-logging eval (brief section 3). Portion ranges are honest estimator-hittable ranges (~\u00b130%). expected_provider is one of: local catalog | USDA | Open Food Facts | model_estimate (resolution order: local catalog first, then USDA + Open Food Facts, then model_estimate fallback).",
+    "fixtures": [
+        {
+            "id": "single-01-banana",
+            "file": "photos/single-01-banana.jpg",
+            "categories": ["single_item"],
+            "items": [
+                {
+                    "name": "banana",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "single-02-apple",
+            "file": "photos/single-02-apple.jpg",
+            "categories": ["single_item"],
+            "items": [
+                {
+                    "name": "apple",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "single-03-boiled-eggs",
+            "file": "photos/single-03-boiled-eggs.jpg",
+            "categories": ["single_item"],
+            "items": [
+                {
+                    "name": "egg, boiled",
+                    "portion": {
+                        "min_quantity": 1.6,
+                        "max_quantity": 2.4,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "single-04-avocado",
+            "file": "photos/single-04-avocado.jpg",
+            "categories": ["single_item"],
+            "items": [
+                {
+                    "name": "avocado",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "single-05-salmon",
+            "file": "photos/single-05-salmon.jpg",
+            "categories": ["single_item"],
+            "items": [
+                {
+                    "name": "salmon fillet",
+                    "portion": {
+                        "min_quantity": 120,
+                        "max_quantity": 200,
+                        "unit": "g"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "single-06-pancakes",
+            "file": "photos/single-06-pancakes.jpg",
+            "categories": ["single_item"],
+            "items": [
+                {
+                    "name": "pancakes",
+                    "portion": {
+                        "min_quantity": 2.4,
+                        "max_quantity": 3.6,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "mixed-01-chicken-rice-broccoli",
+            "file": "photos/mixed-01-chicken-rice-broccoli.jpg",
+            "categories": ["mixed_plate"],
+            "items": [
+                {
+                    "name": "grilled chicken breast",
+                    "portion": {
+                        "min_quantity": 120,
+                        "max_quantity": 200,
+                        "unit": "g"
+                    },
+                    "expected_provider": "local catalog"
+                },
+                {
+                    "name": "cooked white rice",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.4,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "local catalog"
+                },
+                {
+                    "name": "broccoli florets",
+                    "portion": {
+                        "min_quantity": 0.7,
+                        "max_quantity": 1.3,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "mixed-02-breakfast-eggs-bacon-toast",
+            "file": "photos/mixed-02-breakfast-eggs-bacon-toast.jpg",
+            "categories": ["mixed_plate"],
+            "items": [
+                {
+                    "name": "fried eggs",
+                    "portion": {
+                        "min_quantity": 1.6,
+                        "max_quantity": 2.4,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "local catalog"
+                },
+                {
+                    "name": "bacon",
+                    "portion": {
+                        "min_quantity": 2.4,
+                        "max_quantity": 3.6,
+                        "unit": "slice"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "toast",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "slice"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "mixed-03-burger-fries",
+            "file": "photos/mixed-03-burger-fries.jpg",
+            "categories": ["mixed_plate"],
+            "items": [
+                {
+                    "name": "beef burger",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "french fries",
+                    "portion": {
+                        "min_quantity": 70,
+                        "max_quantity": 130,
+                        "unit": "g"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "mixed-04-chicken-salad",
+            "file": "photos/mixed-04-chicken-salad.jpg",
+            "categories": ["mixed_plate"],
+            "items": [
+                {
+                    "name": "cherry tomatoes",
+                    "portion": {
+                        "min_quantity": 2,
+                        "max_quantity": 5,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "cucumber slices",
+                    "portion": {
+                        "min_quantity": 0.3,
+                        "max_quantity": 0.7,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "grilled chicken breast",
+                    "portion": {
+                        "min_quantity": 85,
+                        "max_quantity": 145,
+                        "unit": "g"
+                    },
+                    "expected_provider": "local catalog"
+                },
+                {
+                    "name": "mixed salad greens",
+                    "portion": {
+                        "min_quantity": 1.6,
+                        "max_quantity": 2.6,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "mixed-05-steak-potato-beans",
+            "file": "photos/mixed-05-steak-potato-beans.jpg",
+            "categories": ["mixed_plate", "restaurant-style portion"],
+            "items": [
+                {
+                    "name": "grilled steak",
+                    "portion": {
+                        "min_quantity": 140,
+                        "max_quantity": 230,
+                        "unit": "g"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "mashed potatoes",
+                    "portion": {
+                        "min_quantity": 0.7,
+                        "max_quantity": 1.2,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "green beans",
+                    "portion": {
+                        "min_quantity": 0.7,
+                        "max_quantity": 1.3,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "mixed-06-salmon-rice-asparagus",
+            "file": "photos/mixed-06-salmon-rice-asparagus.jpg",
+            "categories": ["mixed_plate"],
+            "items": [
+                {
+                    "name": "salmon fillet",
+                    "portion": {
+                        "min_quantity": 120,
+                        "max_quantity": 200,
+                        "unit": "g"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "cooked white rice",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.4,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "local catalog"
+                },
+                {
+                    "name": "asparagus spears",
+                    "portion": {
+                        "min_quantity": 4,
+                        "max_quantity": 7,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "mixed-07-pasta-meatballs-bread",
+            "file": "photos/mixed-07-pasta-meatballs-bread.jpg",
+            "categories": ["mixed_plate"],
+            "items": [
+                {
+                    "name": "cooked spaghetti",
+                    "portion": {
+                        "min_quantity": 1.2,
+                        "max_quantity": 2.0,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "local catalog"
+                },
+                {
+                    "name": "beef meatballs",
+                    "portion": {
+                        "min_quantity": 2.4,
+                        "max_quantity": 3.6,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "garlic bread",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "slice"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "sauced-01-chicken-curry-rice",
+            "file": "photos/sauced-01-chicken-curry-rice.jpg",
+            "categories": ["sauced_hidden"],
+            "items": [
+                {
+                    "name": "chicken curry",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.4,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "model_estimate"
+                },
+                {
+                    "name": "cooked white rice",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.4,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "sauced-02-beef-chili",
+            "file": "photos/sauced-02-beef-chili.jpg",
+            "categories": ["sauced_hidden"],
+            "items": [
+                {
+                    "name": "beef and bean chili",
+                    "portion": {
+                        "min_quantity": 1.2,
+                        "max_quantity": 2.0,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "model_estimate"
+                }
+            ]
+        },
+        {
+            "id": "sauced-03-lasagna",
+            "file": "photos/sauced-03-lasagna.jpg",
+            "categories": ["sauced_hidden"],
+            "items": [
+                {
+                    "name": "beef lasagna",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "model_estimate"
+                }
+            ]
+        },
+        {
+            "id": "sauced-04-chicken-alfredo",
+            "file": "photos/sauced-04-chicken-alfredo.jpg",
+            "categories": ["sauced_hidden"],
+            "items": [
+                {
+                    "name": "chicken alfredo pasta",
+                    "portion": {
+                        "min_quantity": 1.4,
+                        "max_quantity": 2.4,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "model_estimate"
+                }
+            ]
+        },
+        {
+            "id": "sauced-05-stirfry-noodles",
+            "file": "photos/sauced-05-stirfry-noodles.jpg",
+            "categories": ["sauced_hidden"],
+            "items": [
+                {
+                    "name": "stir-fried mixed vegetables",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.4,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "chicken breast pieces",
+                    "portion": {
+                        "min_quantity": 85,
+                        "max_quantity": 145,
+                        "unit": "g"
+                    },
+                    "expected_provider": "local catalog"
+                },
+                {
+                    "name": "cooked noodles",
+                    "portion": {
+                        "min_quantity": 1.0,
+                        "max_quantity": 1.8,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "restaurant-01-burger-fries-large",
+            "file": "photos/restaurant-01-burger-fries-large.jpg",
+            "categories": ["restaurant"],
+            "items": [
+                {
+                    "name": "beef burger",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "french fries",
+                    "portion": {
+                        "min_quantity": 110,
+                        "max_quantity": 190,
+                        "unit": "g"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "restaurant-02-pizza-salad",
+            "file": "photos/restaurant-02-pizza-salad.jpg",
+            "categories": ["restaurant"],
+            "items": [
+                {
+                    "name": "pepperoni pizza",
+                    "portion": {
+                        "min_quantity": 2.4,
+                        "max_quantity": 3.6,
+                        "unit": "slice"
+                    },
+                    "expected_provider": "model_estimate"
+                },
+                {
+                    "name": "side salad greens",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.4,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "cherry tomatoes",
+                    "portion": {
+                        "min_quantity": 2,
+                        "max_quantity": 5,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "restaurant-03-ramen",
+            "file": "photos/restaurant-03-ramen.jpg",
+            "categories": ["restaurant"],
+            "items": [
+                {
+                    "name": "ramen noodles in broth",
+                    "portion": {
+                        "min_quantity": 1.6,
+                        "max_quantity": 2.6,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "model_estimate"
+                },
+                {
+                    "name": "egg, boiled",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "restaurant-04-tacos",
+            "file": "photos/restaurant-04-tacos.jpg",
+            "categories": ["restaurant"],
+            "items": [
+                {
+                    "name": "beef tacos",
+                    "portion": {
+                        "min_quantity": 2.4,
+                        "max_quantity": 3.6,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "model_estimate"
+                }
+            ]
+        },
+        {
+            "id": "restaurant-05-sushi",
+            "file": "photos/restaurant-05-sushi.jpg",
+            "categories": ["restaurant"],
+            "items": [
+                {
+                    "name": "sushi rolls",
+                    "portion": {
+                        "min_quantity": 6.5,
+                        "max_quantity": 9.5,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "model_estimate"
+                }
+            ]
+        },
+        {
+            "id": "packaged-01-granola-bar",
+            "file": "photos/packaged-01-granola-bar.jpg",
+            "categories": ["packaged_label"],
+            "items": [
+                {
+                    "name": "granola bar",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "bar"
+                    },
+                    "expected_provider": "Open Food Facts"
+                }
+            ]
+        },
+        {
+            "id": "packaged-02-potato-chips",
+            "file": "photos/packaged-02-potato-chips.jpg",
+            "categories": ["packaged_label"],
+            "items": [
+                {
+                    "name": "potato chips",
+                    "portion": {
+                        "min_quantity": 22,
+                        "max_quantity": 38,
+                        "unit": "g"
+                    },
+                    "expected_provider": "Open Food Facts"
+                }
+            ]
+        },
+        {
+            "id": "packaged-03-mac-cheese-box",
+            "file": "photos/packaged-03-mac-cheese-box.jpg",
+            "categories": ["packaged_label"],
+            "items": [
+                {
+                    "name": "macaroni and cheese, boxed mix",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "box"
+                    },
+                    "expected_provider": "Open Food Facts"
+                }
+            ]
+        },
+        {
+            "id": "packaged-04-orange-juice-bottle",
+            "file": "photos/packaged-04-orange-juice-bottle.jpg",
+            "categories": ["packaged_label"],
+            "items": [
+                {
+                    "name": "orange juice",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "bottle"
+                    },
+                    "expected_provider": "Open Food Facts"
+                }
+            ]
+        },
+        {
+            "id": "packaged-05-chocolate-bar",
+            "file": "photos/packaged-05-chocolate-bar.jpg",
+            "categories": ["packaged_label"],
+            "items": [
+                {
+                    "name": "milk chocolate bar",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "bar"
+                    },
+                    "expected_provider": "Open Food Facts"
+                }
+            ]
+        },
+        {
+            "id": "drinks-01-black-coffee",
+            "file": "photos/drinks-01-black-coffee.jpg",
+            "categories": ["drinks"],
+            "items": [
+                {
+                    "name": "black coffee",
+                    "portion": {
+                        "min_quantity": 200,
+                        "max_quantity": 300,
+                        "unit": "ml"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "drinks-02-orange-juice",
+            "file": "photos/drinks-02-orange-juice.jpg",
+            "categories": ["drinks"],
+            "items": [
+                {
+                    "name": "orange juice",
+                    "portion": {
+                        "min_quantity": 200,
+                        "max_quantity": 300,
+                        "unit": "ml"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "drinks-03-cola-can",
+            "file": "photos/drinks-03-cola-can.jpg",
+            "categories": ["drinks"],
+            "items": [
+                {
+                    "name": "cola",
+                    "portion": {
+                        "min_quantity": 300,
+                        "max_quantity": 380,
+                        "unit": "ml"
+                    },
+                    "expected_provider": "Open Food Facts"
+                }
+            ]
+        },
+        {
+            "id": "drinks-04-berry-smoothie",
+            "file": "photos/drinks-04-berry-smoothie.jpg",
+            "categories": ["drinks"],
+            "items": [
+                {
+                    "name": "berry smoothie",
+                    "portion": {
+                        "min_quantity": 250,
+                        "max_quantity": 400,
+                        "unit": "ml"
+                    },
+                    "expected_provider": "model_estimate"
+                }
+            ]
+        },
+        {
+            "id": "poorly-lit-01-chicken-rice",
+            "file": "photos/poorly-lit-01-chicken-rice.jpg",
+            "categories": ["poorly_lit"],
+            "items": [
+                {
+                    "name": "grilled chicken breast",
+                    "portion": {
+                        "min_quantity": 120,
+                        "max_quantity": 200,
+                        "unit": "g"
+                    },
+                    "expected_provider": "local catalog"
+                },
+                {
+                    "name": "cooked white rice",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.4,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "poorly-lit-02-salad",
+            "file": "photos/poorly-lit-02-salad.jpg",
+            "categories": ["poorly_lit"],
+            "items": [
+                {
+                    "name": "cherry tomatoes",
+                    "portion": {
+                        "min_quantity": 2,
+                        "max_quantity": 5,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "cucumber slices",
+                    "portion": {
+                        "min_quantity": 0.3,
+                        "max_quantity": 0.7,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "mixed salad greens",
+                    "portion": {
+                        "min_quantity": 1.6,
+                        "max_quantity": 2.6,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "poorly-lit-03-sandwich",
+            "file": "photos/poorly-lit-03-sandwich.jpg",
+            "categories": ["poorly_lit"],
+            "items": [
+                {
+                    "name": "sandwich",
+                    "portion": {
+                        "min_quantity": 0.8,
+                        "max_quantity": 1.2,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "poorly-lit-04-tomato-soup",
+            "file": "photos/poorly-lit-04-tomato-soup.jpg",
+            "categories": ["poorly_lit"],
+            "items": [
+                {
+                    "name": "tomato soup",
+                    "portion": {
+                        "min_quantity": 1.0,
+                        "max_quantity": 1.8,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "partial-01-burger-fries-half",
+            "file": "photos/partial-01-burger-fries-half.jpg",
+            "categories": ["partially_eaten"],
+            "items": [
+                {
+                    "name": "beef burger",
+                    "portion": {
+                        "min_quantity": 0.35,
+                        "max_quantity": 0.65,
+                        "unit": "piece"
+                    },
+                    "expected_provider": "USDA"
+                },
+                {
+                    "name": "french fries",
+                    "portion": {
+                        "min_quantity": 35,
+                        "max_quantity": 75,
+                        "unit": "g"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        },
+        {
+            "id": "partial-02-pizza-remaining",
+            "file": "photos/partial-02-pizza-remaining.jpg",
+            "categories": ["partially_eaten"],
+            "items": [
+                {
+                    "name": "pepperoni pizza",
+                    "portion": {
+                        "min_quantity": 1.2,
+                        "max_quantity": 2.0,
+                        "unit": "slice"
+                    },
+                    "expected_provider": "model_estimate"
+                }
+            ]
+        },
+        {
+            "id": "partial-03-rice-chicken-half",
+            "file": "photos/partial-03-rice-chicken-half.jpg",
+            "categories": ["partially_eaten"],
+            "items": [
+                {
+                    "name": "cooked white rice",
+                    "portion": {
+                        "min_quantity": 0.4,
+                        "max_quantity": 0.8,
+                        "unit": "cup"
+                    },
+                    "expected_provider": "local catalog"
+                },
+                {
+                    "name": "grilled chicken breast",
+                    "portion": {
+                        "min_quantity": 60,
+                        "max_quantity": 110,
+                        "unit": "g"
+                    },
+                    "expected_provider": "local catalog"
+                }
+            ]
+        },
+        {
+            "id": "partial-04-chocolate-cake",
+            "file": "photos/partial-04-chocolate-cake.jpg",
+            "categories": ["partially_eaten"],
+            "items": [
+                {
+                    "name": "chocolate cake",
+                    "portion": {
+                        "min_quantity": 0.4,
+                        "max_quantity": 0.7,
+                        "unit": "slice"
+                    },
+                    "expected_provider": "USDA"
+                }
+            ]
+        }
+    ]
+}
