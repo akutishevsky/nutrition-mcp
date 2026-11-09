@@ -601,8 +601,13 @@ async function renderInsights() {
         : 30;
     const start = shiftDate(end, -(days - 1));
     const data = await api(`/api/app/insights?start=${start}&end=${end}`);
+    // The weekly check-in is a seven-day panel, so window its request to the
+    // most recent seven days of the selected range. The check-in endpoint
+    // only accepts one to seven days; passing the full 30/90-day trend range
+    // made this request fail and took the whole Insights view down with it.
+    const checkinStart = shiftDate(end, -6);
     const checkin = await api(
-        `/api/app/insights/checkin?start=${start}&end=${end}`,
+        `/api/app/insights/checkin?start=${checkinStart}&end=${end}`,
         { keepPrevious: true },
     );
     const vitals = data.vitals || {};
