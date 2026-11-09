@@ -7,130 +7,48 @@
         <style>
             /*@include shared/tokens.css@*/
             /*@include shared/base.css@*/
-            .receipt {
-                padding: 12px;
-            }
-            .receipt-main {
-                min-width: 0;
-                flex: 1;
-            }
-            .receipt-top {
-                align-items: flex-start;
-            }
-            .receipt-title {
-                margin-top: 1px;
+            /*@include shared/facts.css@*/
+            .f-section-title {
                 font-size: 15px;
-                font-weight: 700;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-            }
-            .receipt-kcal {
-                margin-left: auto;
-                flex: 0 0 auto;
-                font-size: 17px;
-                font-weight: 760;
-                font-variant-numeric: tabular-nums;
-            }
-            .macro-line {
-                margin-top: 3px;
-                color: var(--text-dim);
-                font-size: 12px;
-                font-variant-numeric: tabular-nums;
-            }
-            .today-line {
-                display: flex;
-                justify-content: space-between;
-                gap: 10px;
-                margin-top: 8px;
-                padding-top: 8px;
-                border-top: 1px solid var(--border);
-                color: var(--text-dim);
-                font-size: 11.5px;
-            }
-            .today-line strong {
-                color: var(--text);
-                font-variant-numeric: tabular-nums;
-            }
-            .foods,
-            .log-details {
-                margin-top: 7px;
-                border-top: 1px solid var(--border);
-            }
-            .foods > summary,
-            .log-details > summary {
-                min-height: 44px;
-                display: flex;
-                align-items: center;
-                cursor: pointer;
-                color: var(--text-dim);
                 font-weight: 650;
-                font-size: 12px;
+                margin: 14px 0 4px;
             }
-            .food-row {
-                padding: 7px 0;
-                border-top: 1px solid var(--border);
-            }
-            .food-row:first-of-type {
-                border-top: 0;
-            }
-            .food-head {
-                display: flex;
-                gap: 10px;
-                justify-content: space-between;
-                align-items: baseline;
-            }
-            .food-name {
-                min-width: 0;
-                font-weight: 650;
-                overflow-wrap: anywhere;
-            }
-            .food-kcal {
-                flex: 0 0 auto;
-                font-variant-numeric: tabular-nums;
-            }
-            .food-meta,
-            .food-source,
-            .log-detail-body {
+            .mr-meta {
+                font-size: 12.5px;
+                color: var(--text-dim);
                 margin-top: 2px;
-                color: var(--text-muted);
-                font-size: 11.5px;
-                line-height: 1.35;
+                font-variant-numeric: tabular-nums;
             }
-            .food-audit {
+            .mr-assump {
+                font-size: 12.5px;
+                color: var(--warn);
                 margin-top: 3px;
             }
-            .food-audit > summary {
+            .foods > summary {
                 min-height: 44px;
                 display: flex;
                 align-items: center;
-                width: fit-content;
                 cursor: pointer;
-                color: var(--text-muted);
-                font-size: 11px;
-                font-weight: 620;
-            }
-            .log-detail-body {
-                padding: 0 0 8px;
-            }
-            .receipt .actions {
-                margin-top: 5px;
+                color: var(--text-dim);
+                font-weight: 650;
+                font-size: 12.5px;
             }
             .receipt .status:empty {
                 min-height: 0;
                 margin-top: 0;
             }
-            @media (max-width: 420px) {
-                .receipt {
-                    padding: 10px;
-                }
-                .icon-badge {
-                    width: 30px;
-                    height: 30px;
-                }
-                .receipt-kcal {
-                    font-size: 16px;
-                }
+            /* Receipt density: the hero numeral steps down a size and
+               plain rows tighten so the whole receipt keeps its 440px
+               budget (brief, receipts row). */
+            .receipt .f-hero-num {
+                font-size: 34px;
+            }
+            .receipt .f-hero-num .f-hero-unit {
+                font-size: 17px;
+            }
+            .f-prow {
+                padding-top: 7px;
+                padding-bottom: 7px;
             }
         </style>
     </head>
@@ -140,6 +58,7 @@
             "use strict";
             /*@include shared/bridge.js@*/
             /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
             const SAMPLE = {
                 action: "logged",
                 date: "2026-08-05",
@@ -192,11 +111,105 @@
             };
             let DATA = null;
             let API = null;
+            // One receipt shape, four payload families (bindings are UI
+            // meta only; nothing server-side changes):
+            //  - log_meal / update_meal: { logged_meal, meal_items?,
+            //    has_goals, goals, totals } (meal_items may be absent).
+            //  - log_recipe: { logged_meal: { ..., items: [...] },
+            //    recipe_id, servings_consumed } — items nest in the meal.
+            //  - log_cook_portion: { result: { meal: <camelCase record>,
+            //    ... }, source_cook_id } — the raw logRecipe result.
+            //  - get_meal_details: { meal: { ..., items: [...] } } (read).
+            //  - get_nutrition_provenance: { coverage, sources, confidence,
+            //    contributors } — renders as the provenance receipt whose
+            //    detail section is fullscreen.
+            function normalizeItem(item) {
+                return {
+                    ...item,
+                    name: item.name || "Food",
+                    portion_label:
+                        item.portion_label ?? item.portionLabel ?? null,
+                    nutrients: item.nutrients || {},
+                    source_type: item.source_type ?? item.sourceType ?? null,
+                    provider: item.provider ?? null,
+                    confidence: item.confidence ?? null,
+                    assumptions: Array.isArray(item.assumptions)
+                        ? item.assumptions
+                        : [],
+                    source_snapshot:
+                        item.source_snapshot ?? item.sourceSnapshot ?? {},
+                };
+            }
+            function normalizeMeal(meal) {
+                return {
+                    description: meal.description || "Meal",
+                    meal_type: meal.meal_type ?? meal.mealType ?? null,
+                    calories: meal.calories ?? null,
+                    protein_g: meal.protein_g ?? meal.proteinG ?? null,
+                    carbs_g: meal.carbs_g ?? meal.carbsG ?? null,
+                    fat_g: meal.fat_g ?? meal.fatG ?? null,
+                    fiber_g: meal.fiber_g ?? meal.fiberG ?? null,
+                    sugar_g: meal.sugar_g ?? meal.sugarG ?? null,
+                };
+            }
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
+                if (
+                    payload.coverage &&
+                    Array.isArray(payload.sources) &&
+                    !payload.logged_meal
+                )
+                    return { __mode: "provenance", ...payload };
+                if (payload.meal && typeof payload.meal === "object")
+                    return {
+                        __mode: "read",
+                        action: "logged",
+                        date: payload.meal.logged_at || null,
+                        logged_meal: normalizeMeal(payload.meal),
+                        meal_items: (payload.meal.items || []).map(
+                            normalizeItem,
+                        ),
+                        legacy_aggregate: Boolean(
+                            payload.meal.legacy_aggregate,
+                        ),
+                        has_goals: false,
+                        goals: null,
+                        totals: null,
+                    };
+                if (payload.result?.meal)
+                    return {
+                        __mode: "receipt",
+                        action: "logged",
+                        date: payload.result.meal.loggedAt || null,
+                        logged_meal: normalizeMeal(payload.result.meal),
+                        meal_items: (payload.result.meal.items || []).map(
+                            normalizeItem,
+                        ),
+                        has_goals: false,
+                        goals: null,
+                        totals: null,
+                    };
                 if (payload.logged_meal || "has_goals" in payload)
-                    return payload;
-                return payload.structuredContent || null;
+                    return {
+                        __mode: "receipt",
+                        ...payload,
+                        logged_meal: normalizeMeal(payload.logged_meal || {}),
+                        meal_items: (
+                            payload.meal_items ||
+                            payload.logged_meal?.items ||
+                            []
+                        ).map(normalizeItem),
+                    };
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
+                return null;
             }
             function sourceLabel(item) {
                 if (item.source_type === "usda") return "USDA";
@@ -218,49 +231,123 @@
                     return "Provided data";
                 return item.provider || "Recorded source";
             }
-            function itemRows(items) {
-                if (!items.length) return "";
-                const summary =
-                    items.length === 1
-                        ? "Food details"
-                        : `View ${items.length} foods`;
-                return `<details class="foods"><summary>${summary}</summary>${items
-                    .map((item) => {
-                        const n = item.nutrients || {};
-                        const macro = [
-                            n.protein_g != null
-                                ? `${fmt(n.protein_g, 1)}P`
-                                : null,
-                            n.carbs_g != null ? `${fmt(n.carbs_g, 1)}C` : null,
-                            n.fat_g != null ? `${fmt(n.fat_g, 1)}F` : null,
-                        ]
-                            .filter(Boolean)
-                            .join(" · ");
-                        const confidence =
-                            item.confidence == null
-                                ? ""
-                                : `${Math.round(item.confidence * 100)}% confidence`;
-                        const assumptions = Array.isArray(item.assumptions)
-                            ? item.assumptions
-                            : [];
-                        const audit = [sourceLabel(item), confidence]
-                            .filter(Boolean)
-                            .join(" · ");
-                        return `<div class="food-row">
-                            <div class="food-head"><div class="food-name">${esc(item.name || "Food")}</div>${n.calories != null ? `<div class="food-kcal">${fmt(n.calories)} kcal</div>` : ""}</div>
-                            <div class="food-meta">${esc(item.portion_label || (item.quantity != null ? `Qty ${fmt(item.quantity, 1)}` : "Portion recorded"))}${macro ? ` · ${esc(macro)}` : ""}</div>
-                            <details class="food-audit"><summary>Source & estimate</summary><div class="food-source">${esc(audit)}${assumptions.length ? `<br />${assumptions.map((value) => esc(value)).join(" · ")}` : ""}</div></details>
-                        </div>`;
-                    })
-                    .join("")}</details>`;
+            function itemRowFull(item) {
+                const n = item.nutrients || {};
+                const macro = [
+                    n.protein_g != null ? `${fmt(n.protein_g, 1)}P` : null,
+                    n.carbs_g != null ? `${fmt(n.carbs_g, 1)}C` : null,
+                    n.fat_g != null ? `${fmt(n.fat_g, 1)}F` : null,
+                ]
+                    .filter(Boolean)
+                    .join(" · ");
+                const confidence =
+                    item.confidence == null
+                        ? ""
+                        : ` · ${Math.round(item.confidence * 100)}% confidence`;
+                const assumptions = Array.isArray(item.assumptions)
+                    ? item.assumptions
+                    : [];
+                return `<div class="f-lrow"><div class="f-lrow-top"><span class="f-lrow-name">${esc(item.name)}</span><span class="f-lrow-of">${esc(item.portion_label || (item.quantity != null ? `Qty ${fmt(item.quantity, 1)}` : "Portion recorded"))}</span>${n.calories != null ? `<span class="f-lrow-val num">${fmt(n.calories)} kcal</span>` : ""}</div><div class="f-src">Source · <b>${esc(sourceLabel(item))}</b>${esc(confidence)}${macro ? ` · ${esc(macro)}` : ""}</div>${assumptions.length ? `<div class="mr-assump">${assumptions.map((value) => esc(value)).join(" · ")}</div>` : ""}</div>`;
+            }
+            function renderProvenance(data) {
+                const coverage = data.coverage || {};
+                const sources = Array.isArray(data.sources) ? data.sources : [];
+                const confidence = data.confidence || {};
+                const contributors = data.contributors || {};
+                const rangeLabel = humanRange(data.start_date, data.end_date);
+                const provSourceLabel = (value) =>
+                    ({
+                        usda: "USDA",
+                        open_food_facts: "Open Food Facts",
+                        model_estimate: "Model estimate",
+                        published_restaurant: "Restaurant nutrition",
+                        saved_food: "Saved food",
+                        past_meal: "Past meal",
+                        user_supplied: "Provided data",
+                    })[value] || String(value || "").replaceAll("_", " ");
+                const sourceRows = sources
+                    .map(
+                        (source) =>
+                            `<div class="f-prow"><span class="f-lrow-name">${esc(provSourceLabel(source.source))}</span><span class="f-crow-meta">${fmt(source.item_count)} item${Number(source.item_count) === 1 ? "" : "s"}</span><span class="f-crow-val num">${fmt(source.calories)} kcal</span><span class="f-lrow-pct">${fmt(source.percent_of_items, 1)}%</span></div>`,
+                    )
+                    .join("");
+                const contributorHtml = Object.entries(contributors)
+                    .filter(
+                        ([, values]) => Array.isArray(values) && values.length,
+                    )
+                    .map(
+                        ([nutrient, values]) =>
+                            `<h2 class="f-section-title">Top contributors · ${esc(nutrient.replaceAll("_", " "))}</h2>${values
+                                .slice(0, 5)
+                                .map((value) =>
+                                    factsCompactRow({
+                                        name: value.name || "Food",
+                                        meta: value.provider
+                                            ? `${value.source || ""} · ${value.provider}`
+                                            : value.source || "",
+                                        valueText: fmt(value.value, 1),
+                                    }),
+                                )
+                                .join("")}`,
+                    )
+                    .join("");
+                const estimatedCount = Number(
+                    confidence.estimated_item_count || 0,
+                );
+                document.getElementById("root").innerHTML =
+                    `<article class="card receipt">
+        ${factsBand("Nutrition provenance", rangeLabel)}
+        <div class="f-body">
+        ${factsHero(`${fmt(coverage.itemized_calorie_percent, 1)} <span class="f-hero-unit">%</span>`, "of logged calories are itemized", `${fmt(coverage.item_count)}`, "food items")}
+        <div class="f-src">Source · <b>Your logged meals</b></div>
+        <div class="f-rule-heavy"></div>
+        ${sourceRows || factsState("empty", "No itemized foods in this range", "Meals logged with item-level detail will appear here.")}
+        ${estimatedCount ? factsBanner("warn", `<b>Partial — ${estimatedCount} item${estimatedCount === 1 ? " is an estimate" : "s are estimates"}.</b> Average confidence ${confidence.average == null ? "not recorded" : `${Math.round(confidence.average * 100)}%`} across ${fmt(confidence.recorded_item_count)} recorded items.`) : `<div class="f-note">Average confidence ${confidence.average == null ? "not recorded" : `${Math.round(confidence.average * 100)}%`} across ${fmt(confidence.recorded_item_count)} recorded items.</div>`}
+        ${contributorHtml ? `<button class="f-more-row inline-only" id="details">View top contributors</button><div class="fullscreen-only"><div class="f-rule-med"></div><div class="f-note" style="margin-top:0">${fmt(coverage.structured_meal_count)} itemized meals · ${fmt(coverage.legacy_meal_count)} earlier aggregate meals · ${fmt(coverage.meal_count)} meals in range</div>${contributorHtml}<div class="actions"><button class="btn" id="close">Return to chat</button></div></div>` : ""}
+        </div>
+    </article>`;
+                bindExpand();
+            }
+            function bindExpand() {
+                document
+                    .getElementById("details")
+                    ?.addEventListener("click", async () => {
+                        const result = await API?.requestDisplayMode(
+                            "fullscreen",
+                        ).catch(() => null);
+                        if (!result || result.unsupported)
+                            document.getElementById("details").textContent =
+                                "Details unavailable";
+                    });
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
             }
             function render(data) {
                 DATA = data;
+                if (data.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Meal logged",
+                        "",
+                        "error",
+                        "Could not load this meal",
+                        String(data.__error) ||
+                            "Something went wrong reading the meal. Try again in chat.",
+                    );
+                    return;
+                }
+                if (data.__mode === "provenance") {
+                    renderProvenance(data);
+                    return;
+                }
                 const meal = data.logged_meal || {};
                 const items = Array.isArray(data.meal_items)
                     ? data.meal_items
                     : [];
                 const structured = items.length > 0;
+                const readMode = data.__mode === "read";
                 const action = data.action === "updated" ? "updated" : "logged";
                 const originalTitle = meal.description || "Meal";
                 const primaryItem = items.length === 1 ? items[0] : null;
@@ -291,6 +378,25 @@
                 ]
                     .filter(Boolean)
                     .join(" · ");
+                // Whole receipt inline; past 6 items the rows go compact,
+                // and past 5 compact rows the rest wait behind one
+                // in-place disclosure so the receipt keeps its budget.
+                let itemsHtml = "";
+                if (items.length <= 6) {
+                    itemsHtml = items.map(itemRowFull).join("");
+                } else {
+                    const head = items
+                        .slice(0, 5)
+                        .map((item) =>
+                            factsCompactRow({
+                                name: item.name,
+                                meta: `${item.portion_label || "Portion recorded"} · ${sourceLabel(item)}`,
+                                valueText: `${fmt(item.nutrients?.calories)} kcal`,
+                            }),
+                        )
+                        .join("");
+                    itemsHtml = `${head}<details class="foods"><summary>View ${items.length} foods in full</summary><div class="f-section-title">Source & estimate</div>${items.map(itemRowFull).join("")}</details>`;
+                }
                 let today = "";
                 if (data.has_goals && data.goals && data.totals) {
                     const proteinPct = pct(
@@ -302,32 +408,44 @@
                         data.goals.calories,
                     );
                     if (proteinPct != null) {
-                        today = `<div class="today-line"><span>Today · protein</span><strong>${fmt(data.totals.protein_g, 1)} / ${fmt(data.goals.protein_g, 1)} g</strong></div>`;
+                        today = `<div class="f-prow"><span>Day so far · protein</span><span class="f-crow-val num">${fmt(data.totals.protein_g, 1)} / ${fmt(data.goals.protein_g, 1)} g</span></div>`;
                     } else if (caloriePct != null) {
-                        today = `<div class="today-line"><span>Today · calories</span><strong>${fmt(data.totals.calories)} / ${fmt(data.goals.calories)} kcal</strong></div>`;
+                        today = `<div class="f-prow"><span>Day so far · calories</span><span class="f-crow-val num">${fmt(data.totals.calories)} / ${fmt(data.goals.calories)} kcal</span></div>`;
                     }
+                } else if (data.totals) {
+                    today = `<div class="f-prow"><span>Day so far</span><span class="f-crow-val num">${fmt(data.totals.calories)} kcal</span></div>`;
                 }
                 const logDetails =
                     structured && originalTitle !== title
-                        ? `<details class="log-details"><summary>Log details</summary><div class="log-detail-body">${esc(originalTitle)}</div></details>`
+                        ? `<button class="f-more-row inline-only" id="details">View log details</button><div class="fullscreen-only"><div class="f-rule-med"></div><h2 class="f-section-title">Log details</h2><div class="f-note">${esc(originalTitle)}</div><div class="actions"><button class="btn" id="close">Return to chat</button></div></div>`
                         : "";
+                const legacyNote =
+                    !structured && data.legacy_aggregate
+                        ? `<div class="f-note">Item-level details were not recorded for this meal.</div>`
+                        : "";
+                const bandTitle = readMode ? "Meal details" : `Meal ${action}`;
+                const bandRight = meal.meal_type
+                    ? `${meal.meal_type} · ${action}`
+                    : data.date
+                      ? humanDate(String(data.date).slice(0, 10))
+                      : "";
                 document.getElementById("root").innerHTML =
                     `<article class="card receipt" aria-label="Meal ${action}">
-        <div class="row receipt-top">
-            <div class="icon-badge success" aria-hidden="true">✓</div>
-            <div class="receipt-main">
-                <div class="eyebrow">${meal.meal_type ? `${esc(meal.meal_type)} ${action}` : `Meal ${action}`}</div>
-                <div class="receipt-title">${esc(title)}</div>
-                ${macroLine ? `<div class="macro-line">${esc(macroLine)}</div>` : ""}
-            </div>
-            ${meal.calories != null ? `<div class="receipt-kcal">${fmt(meal.calories)} kcal</div>` : ""}
-        </div>
-        ${itemRows(items)}
-        ${logDetails}
+        ${factsBand(bandTitle, bandRight)}
+        <div class="f-body">
+        ${factsHero(`${fmt(meal.calories)} <span class="f-hero-unit">kcal</span>`, title, "", "")}
+        ${macroLine ? `<div class="mr-meta">${esc(macroLine)}</div>` : ""}
+        ${structured ? "" : `<div class="f-src">Source · <b>Your logged meals</b></div>`}
+        <div class="f-rule-heavy"></div>
+        ${itemsHtml}
+        ${legacyNote}
         ${today}
+        ${logDetails}
         <div class="actions single"><button class="btn btn-quiet" id="adjust">Adjust meal</button></div>
         <div class="status" id="status" role="status" aria-live="polite"></div>
+        </div>
     </article>`;
+                bindExpand();
                 document
                     .getElementById("adjust")
                     ?.addEventListener("click", async () => {
@@ -349,7 +467,9 @@
             }
             initWidget({
                 name: "meal-logged-widget",
-                loading: '<div class="card empty">Saving meal…</div>',
+                displayModes: ["inline", "fullscreen"],
+                loading:
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Meal logged</span></div><div class="f-state"><strong>Saving meal</strong><span>Recording it…</span></div></article>',
                 coerce,
                 render,
                 sample: SAMPLE,
