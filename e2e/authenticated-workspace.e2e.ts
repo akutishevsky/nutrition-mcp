@@ -53,11 +53,17 @@ test("protects private data and supports the core website journey", async ({
     await expect(
         page.getByRole("heading", { level: 1, name: "Plan & billing" }),
     ).toBeVisible();
-    await expect(page.getByText("AI task credits")).toBeVisible();
-    await expect(page.getByText("Balance this month")).toBeVisible();
-    await expect(page.getByText(/\d+ credits/)).toBeVisible();
+    // De-credit slice (Amendments C+D): no credits balance or price
+    // list, and AI features are free — the billing page carries the
+    // AI features group framed as included for every account.
+    await expect(page.getByText("AI task credits")).toHaveCount(0);
+    await expect(page.getByText("Balance this month")).toHaveCount(0);
+    await expect(
+        page.getByRole("heading", { name: "AI features" }),
+    ).toBeVisible();
+    await expect(page.getByText("Included for everyone")).toBeVisible();
     await page.screenshot({
-        path: "test-results/settings-ai-credits.png",
+        path: "test-results/settings-plan-billing.png",
         fullPage: true,
     });
 

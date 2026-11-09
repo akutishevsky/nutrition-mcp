@@ -281,8 +281,8 @@ async function billingPage(data, ctx) {
     let billingSummary = androidFree ? "Free on Android" : "Free";
     let detail = androidFree
         ? data.androidEntitlements?.adFree
-            ? "All non-AI Android features are included. Ads are off for this account through its existing entitlement."
-            : "All non-AI Android features are included. A separate ad-free subscription is not configured in Google Play yet."
+            ? "All Android features are included. Ads are off for this account through its existing entitlement."
+            : "All Android features are included. A separate ad-free subscription is not configured in Google Play yet."
         : "Munch Free remains available without a subscription.";
     if (householdProvided) {
         billingSummary = "Premium through household";
@@ -326,17 +326,14 @@ async function billingPage(data, ctx) {
                 ? `<button class="button button-primary" data-action="billing-play-manage">Manage in Google Play</button>`
                 : `<button class="button button-primary" data-action="billing-portal">Manage billing in Stripe</button>`
             : `<button class="button button-primary" data-action="billing-checkout">Get Premium — ${premiumPrice}/month</button>`;
-    const credits = data.aiCredits || null;
-    const creditsGroup = settingGroup(
-        "AI task credits",
-        "Credits pay for AI work Munch does for you — photo scans, meal ideas, recipe imports and plan suggestions — on the website and in the app. Manual entry never uses credits, and a failed AI call is always refunded.",
-        credits
-            ? `<div class="plan-summary"><div><span>Balance this month</span><strong>${esc(String(credits.balance))} credits</strong></div>${statusPill(credits.tier === "premium" ? "Premium pool" : "Free pool", credits.tier === "premium" ? "success" : "neutral")}</div><div class="account-detail-row"><span>Granted</span><strong>${esc(String(credits.granted))}</strong></div><div class="account-detail-row"><span>Spent</span><strong>${esc(String(credits.spent))}</strong></div><div class="account-detail-row"><span>Refunded</span><strong>${esc(String(credits.refunded))}</strong></div><p class="settings-note">Receipt scan 2 · Pantry photo 2 · Meal ideas 3 · Plan generation 4 · Recipe import 5. Credits reset monthly and do not roll over.</p>`
-            : `<p class="settings-note">Your credit balance is unavailable right now. Manual entry always works; please check again shortly.</p>`,
+    const aiFeaturesGroup = settingGroup(
+        "AI features",
+        "Photo scans, meal ideas, recipe imports, plan suggestions and meal-photo estimates are included for every account on the website and in the app — no per-use charges, no balances. Manual entry always works too.",
+        `<div class="plan-summary"><div><span>Access</span><strong>Included for everyone</strong></div>${statusPill("Included", "success")}</div>`,
     );
     return settingsShell(
         "settings-billing",
-        `${sectionHeading("Billing", "Plan & billing", androidFree ? "Android access and ads are managed separately from website billing." : "See exactly how your Munch access is funded. Manage payment and cancellation with the provider that owns the active subscription.")}<div class="settings-stack">${settingGroup(androidFree ? "Android access" : "Current plan", detail, `<div class="plan-summary"><div><span>${androidFree ? "Android plan" : "Plan"}</span><strong>${esc(androidFree ? (data.androidEntitlements?.adFree ? "Free · ad-free" : billingSummary) : billingSummary)}</strong></div>${statusPill(householdProvided ? "Household seat" : directPremium ? status || "Premium" : androidFree && data.androidEntitlements?.adFree ? "Ads off" : "Free", directPremium || householdProvided || (androidFree && data.androidEntitlements?.adFree) ? "success" : "neutral")}</div>${androidFree && data.subscription?.provider === "stripe" ? `<p class="settings-note">Your existing Munch Premium subscription remains active for website and connected-client access.</p>` : ""}${chargeCard}<div class="settings-actions">${action}</div>`)}${creditsGroup}${androidFree ? "" : settingGroup("Household pricing", "Discounted seats are part of a collaborative household, not standalone Premium accounts.", `<div class="pricing-rule"><strong>${premiumPrice}</strong><span>Premium owner</span></div><div class="pricing-rule"><strong>+${seatPrice}</strong><span>per additional active household member</span></div><p class="settings-note">Household recipes, meal plans and grocery lists are shared automatically while a discounted seat is active. Personal meals, water, weight and goals remain private.</p><a class="text-link" href="/app/household">Manage household →</a>`)}</div>`,
+        `${sectionHeading("Billing", "Plan & billing", androidFree ? "Android access and ads are managed separately from website billing." : "See exactly how your Munch access is funded. Manage payment and cancellation with the provider that owns the active subscription.")}<div class="settings-stack">${settingGroup(androidFree ? "Android access" : "Current plan", detail, `<div class="plan-summary"><div><span>${androidFree ? "Android plan" : "Plan"}</span><strong>${esc(androidFree ? (data.androidEntitlements?.adFree ? "Free · ad-free" : billingSummary) : billingSummary)}</strong></div>${statusPill(householdProvided ? "Household seat" : directPremium ? status || "Premium" : androidFree && data.androidEntitlements?.adFree ? "Ads off" : "Free", directPremium || householdProvided || (androidFree && data.androidEntitlements?.adFree) ? "success" : "neutral")}</div>${androidFree && data.subscription?.provider === "stripe" ? `<p class="settings-note">Your existing Munch Premium subscription remains active for website and connected-client access.</p>` : ""}${chargeCard}<div class="settings-actions">${action}</div>`)}${aiFeaturesGroup}${androidFree ? "" : settingGroup("Household pricing", "Discounted seats are part of a collaborative household, not standalone Premium accounts.", `<div class="pricing-rule"><strong>${premiumPrice}</strong><span>Premium owner</span></div><div class="pricing-rule"><strong>+${seatPrice}</strong><span>per additional active household member</span></div><p class="settings-note">Household recipes, meal plans and grocery lists are shared automatically while a discounted seat is active. Personal meals, water, weight and goals remain private.</p><a class="text-link" href="/app/household">Manage household →</a>`)}</div>`,
     );
 }
 

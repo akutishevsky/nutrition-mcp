@@ -25,7 +25,7 @@ export interface CapabilityContract {
      * The app is a packaged copy of the portal, so a complete app channel
      * reuses the web entry points — but it must be declared explicitly:
      * before S0, "web" was silently assumed to mean "app", which hid the
-     * Android AI-credit blocks and the website-only surfaces. A row may
+     * Android AI gates and the website-only surfaces. A row may
      * only omit app entry points via `intentionalChannelException`
      * (website-only by design) or a documented `gap` + `targetPr`.
      */
@@ -771,10 +771,10 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.recipeGenerate",
         mcp: complete(["validate_meal_plan_recipe"]),
         web: complete(["POST /api/app/planning/propose"]),
-        app: partial(["POST /api/app/planning/propose"]),
+        app: complete(["POST /api/app/planning/propose"]),
         intentionalChannelException: null,
-        gap: "The route exists in the packaged app, but the Android surface is blocked by the AI-task credits stub (503) until the credits ledger and Ember re-platform land. MCP hosts provide recipe proposals and Munch applies the same schema, nutrition resolution and constraints.",
-        targetPr: "S1 (credits ledger) + S2 (Ember re-platform)",
+        gap: null,
+        targetPr: null,
     },
     {
         id: "mealPlan.recipeCustomize",

@@ -3,7 +3,6 @@ import {
     androidFreeBaselineCapabilities,
     capabilitiesFromSubscription,
     failClosedMunchCapabilities,
-    FREE_HISTORY_DAYS,
     FREE_SAVED_FOOD_LIMIT,
 } from "./capabilities.js";
 
@@ -62,13 +61,18 @@ describe("Munch capability resolution", () => {
         expect(viewer.householdManage).toBe(false);
     });
 
-    test("gives permanent core access without a subscription", () => {
+    test("gives permanent, fully featured access without a subscription (Amendment D)", () => {
         const result = capabilitiesFromSubscription({ status: null }, now);
         expect(result.tier).toBe("free");
         expect(result.coreNutrition).toBe(true);
-        expect(result.historyDays).toBe(FREE_HISTORY_DAYS);
+        // Full history is free: no 30-day cap.
+        expect(result.historyDays).toBeNull();
+        // The saved-food cap is the one remaining free quantity limit.
         expect(result.savedFoodLimit).toBe(FREE_SAVED_FOOD_LIMIT);
-        expect(result.personalRecipesWrite).toBe(false);
+        expect(result.personalRecipesRead).toBe(true);
+        expect(result.personalRecipesWrite).toBe(true);
+        expect(result.personalPlanningRead).toBe(true);
+        expect(result.personalPlanningWrite).toBe(true);
         expect(result.householdWrite).toBe(false);
     });
 
@@ -119,13 +123,17 @@ describe("Munch capability resolution", () => {
         }
     });
 
-    test("fails closed for gated features when capability lookup is unavailable", () => {
+    test("fails closed to the fully featured free floor when capability lookup is unavailable", () => {
+        // Amendment D: the free floor IS fully featured for personal
+        // surfaces, so failing closed lands there; household access —
+        // the remaining subscription-gated surface — stays closed.
         const result = failClosedMunchCapabilities();
         expect(result.coreNutrition).toBe(true);
-        expect(result.personalRecipesRead).toBe(false);
-        expect(result.personalRecipesWrite).toBe(false);
-        expect(result.personalPlanningRead).toBe(false);
-        expect(result.personalPlanningWrite).toBe(false);
+        expect(result.tier).toBe("free");
+        expect(result.personalRecipesRead).toBe(true);
+        expect(result.personalRecipesWrite).toBe(true);
+        expect(result.personalPlanningRead).toBe(true);
+        expect(result.personalPlanningWrite).toBe(true);
         expect(result.householdRead).toBe(false);
         expect(result.householdWrite).toBe(false);
     });

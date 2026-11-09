@@ -48,7 +48,7 @@ for (const stale of [
         throw new Error(`Homepage contains stale commercial copy: ${stale}`);
     }
 }
-if (!normalizedHomepage.includes("$2.99")) {
+if (!normalizedHomepage.includes("$3.00")) {
     throw new Error("Homepage does not state the canonical monthly price");
 }
 if (
@@ -75,7 +75,7 @@ if (/\btrial\b/i.test(llms)) {
 }
 for (const phrase of [
     "permanent Free tier",
-    "Premium is $2.99/month",
+    "Premium is $3.00/month",
     "Additional household members are $2/month each",
     "https://munch.business/mcp",
 ]) {
@@ -102,7 +102,7 @@ const forbiddenAuthWords = [
     "pricing",
     "checkout",
     "stripe",
-    "$2.99",
+    "$3.00",
 ];
 for (const path of authSurfaces) {
     const text = (await Bun.file(path).text()).toLowerCase();
