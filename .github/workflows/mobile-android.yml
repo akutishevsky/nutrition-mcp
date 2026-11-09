@@ -100,6 +100,16 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 7
+      - name: Enforce APK size budget and bundle contents
+        run: bun scripts/android-apk-report.ts
+      - name: Upload APK size report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-android-apk-report
+          path: apk-size-report/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Remove temporary debug signing material
         if: always()
         run: |
@@ -107,6 +117,88 @@ jobs:
             rm -f -- "$MUNCH_ANDROID_DEBUG_KEYSTORE_PATH"
           fi
           rm -f -- "$RUNNER_TEMP/munch-internal-debug-password"
+
+  boot:
+    # S0 (Full Parity App Program) gap 1: an Android lane that actually
+    # BOOTS the packaged app. The validate job stops at lint + JVM tests +
+    # assemble; this job installs the debug APK on an emulator and runs
+    # the instrumented AppBootSmokeTest (cold start -> Capacitor WebView
+    # -> packaged .mobile-web bundle renders a Munch document), then
+    # captures a screenshot + logcat as boot evidence.
+    #
+    # Lane choice: GH-hosted emulator on PRs. Firebase Test Lab is the
+    # brief's preference for the nightly/release smoke suite, but Test
+    # Lab needs GCP credentials that are not wired as PR-available CI
+    # secrets in this repo (the Firebase service-account secret is only
+    # consumed on main by the distribute job), so PRs cannot use it.
+    # The Gradle-connected test structure added in this PR
+    # (AppBootSmokeTest) is exactly what Test Lab consumes, so a nightly
+    # Test Lab lane can adopt it without rework once credentials exist.
+    name: Android boot smoke (emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      MUNCH_ANDROID_VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify installed-app architecture
+        run: bun scripts/mobile-shell-smoke.ts
+      - name: Build local mobile web bundle
+        run: bun run mobile:web
+      - name: Synchronize Capacitor Android project
+        run: |
+          npx cap sync android
+          bun scripts/configure-mobile-android.ts
+      - name: Prepare Firebase fixture config
+        run: cp android/app/src/test/fixtures/google-services.json android/app/google-services.json
+      - name: Verify native project is reproducible
+        run: git diff --exit-code -- android package.json bun.lock
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Boot packaged app on emulator and run instrumented smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          disable-animations: true
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: |
+            cd android && ./gradlew assembleDebug assembleDebugAndroidTest && cd ..
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb shell am start -n business.munch.app/.MainActivity
+            sleep 10
+            adb exec-out screencap -p > boot-screenshot.png
+            adb logcat -d > boot-logcat.txt || true
+            cd android && ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=business.munch.app.AppBootSmokeTest
+      - name: Upload boot evidence (screenshot, logcat, test results)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-android-boot-evidence
+          path: |
+            boot-screenshot.png
+            boot-logcat.txt
+            android/app/build/outputs/androidTest-results/
+            android/app/build/reports/androidTests/
+          if-no-files-found: warn
+          retention-days: 14
 
   distribute:
     name: Firebase App Distribution

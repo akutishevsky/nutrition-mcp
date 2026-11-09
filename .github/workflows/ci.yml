@@ -55,6 +55,25 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  ai-fixture:
+    # S0 (Full Parity App Program): recorded OpenRouter responses replayed
+    # through the real AI modules with the transport mocked. Deterministic,
+    # secret-free, zero live spend — the per-PR AI contract gate. Live
+    # behaviour stays with the manual/nightly OpenRouter smoke workflows.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Replay recorded AI fixtures (vision, meal ideas, recipe import)
+        run: bun test tests/ai-fixtures/
+
   database:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -202,6 +221,10 @@ jobs:
         run: bun run db:migrate
       - name: Install Chromium and Linux dependencies
         run: bunx playwright install --with-deps chromium
+      - name: Build packaged mobile web bundle
+        run: bun run mobile:web
+      - name: Run packaged mobile bundle e2e at Pixel 7 size
+        run: bunx playwright test --config playwright.mobile.config.ts
       - name: Provision isolated reviewer account and run browser journeys
         run: |
           REVIEWER_EMAIL="e2e-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT@example.test"

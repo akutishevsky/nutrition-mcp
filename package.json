@@ -35,6 +35,7 @@
         "dev": "bun --watch src/index.ts",
         "test": "bun test",
         "test:e2e": "playwright test",
+        "test:e2e:mobile": "playwright test --config playwright.mobile.config.ts",
         "db:migrate": "bun scripts/migrate.ts",
         "maintenance": "bun scripts/maintenance.ts",
         "inspect": "bunx @modelcontextprotocol/inspector",

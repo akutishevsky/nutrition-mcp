@@ -20,6 +20,16 @@ export interface CapabilityContract {
     id: string;
     mcp: CapabilityChannel;
     web: CapabilityChannel;
+    /**
+     * The packaged Android app channel (S0, Full Parity App Program).
+     * The app is a packaged copy of the portal, so a complete app channel
+     * reuses the web entry points — but it must be declared explicitly:
+     * before S0, "web" was silently assumed to mean "app", which hid the
+     * Android AI-credit blocks and the website-only surfaces. A row may
+     * only omit app entry points via `intentionalChannelException`
+     * (website-only by design) or a documented `gap` + `targetPr`.
+     */
+    app: CapabilityChannel;
     intentionalChannelException: string | null;
     gap: string | null;
     targetPr: string | null;
@@ -60,6 +70,11 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/food-search",
             "GET /api/app/food-details",
         ]),
+        app: complete([
+            "POST /api/app/meals",
+            "GET /api/app/food-search",
+            "GET /api/app/food-details",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -72,6 +87,7 @@ export const CAPABILITY_MANIFEST = [
             "get_meals_by_date_range",
         ]),
         web: complete(["/api/app/today", "/api/app/meals"]),
+        app: complete(["/api/app/today", "/api/app/meals"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -88,6 +104,15 @@ export const CAPABILITY_MANIFEST = [
             "[data-patch-food-search-form]",
             "[data-patch-food-option]",
         ]),
+        app: complete([
+            "/api/app/meals/:id",
+            "/api/app/meals/:mealId/items/:itemId",
+            "/api/app/meals/:mealId/items",
+            "DELETE /api/app/meals/:mealId/items/:itemId",
+            '[data-action="edit-meal"]',
+            "[data-patch-food-search-form]",
+            "[data-patch-food-option]",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -96,6 +121,7 @@ export const CAPABILITY_MANIFEST = [
         id: "meal.delete",
         mcp: complete(["delete_meal"]),
         web: complete(["DELETE /api/app/meals/:id"]),
+        app: complete(["DELETE /api/app/meals/:id"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -104,6 +130,7 @@ export const CAPABILITY_MANIFEST = [
         id: "meal.copy",
         mcp: websiteOnly([]),
         web: complete(["POST /api/app/meals/:id/copy"]),
+        app: complete(["POST /api/app/meals/:id/copy"]),
         intentionalChannelException:
             "The website keeps structured duplication as a direct diary convenience; MCP can re-log through its normal meal tools.",
         gap: null,
@@ -113,6 +140,7 @@ export const CAPABILITY_MANIFEST = [
         id: "meal.search",
         mcp: complete(["search_meals"]),
         web: complete(["GET /api/app/meals?q=…", "#meal-history-search"]),
+        app: complete(["GET /api/app/meals?q=…", "#meal-history-search"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -124,6 +152,10 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/meals/:id",
             '[data-action="view-meal-details"]',
         ]),
+        app: complete([
+            "GET /api/app/meals/:id",
+            '[data-action="view-meal-details"]',
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -132,6 +164,7 @@ export const CAPABILITY_MANIFEST = [
         id: "nutrition.provenance",
         mcp: complete(["get_nutrition_provenance"]),
         web: complete(["GET /api/app/insights (provenance)", "/app/insights"]),
+        app: complete(["GET /api/app/insights (provenance)", "/app/insights"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -140,6 +173,7 @@ export const CAPABILITY_MANIFEST = [
         id: "nutrition.weeklyCheckin",
         mcp: complete(["get_weekly_checkin"]),
         web: complete(["GET /api/app/insights/checkin"]),
+        app: complete(["GET /api/app/insights/checkin"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -148,6 +182,7 @@ export const CAPABILITY_MANIFEST = [
         id: "nutrition.dailyGuidance",
         mcp: complete(["get_daily_guidance"]),
         web: complete(["GET /api/app/guidance/today"]),
+        app: complete(["GET /api/app/guidance/today"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -156,6 +191,11 @@ export const CAPABILITY_MANIFEST = [
         id: "meal.import",
         mcp: complete(["bulk_import_meals", "start_meal_import"]),
         web: complete([
+            "POST /api/app/import/parse",
+            "POST /api/app/import",
+            "/app/settings/data",
+        ]),
+        app: complete([
             "POST /api/app/import/parse",
             "POST /api/app/import",
             "/app/settings/data",
@@ -171,6 +211,10 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/meal-drafts",
             '[data-action="start-meal-draft"]',
         ]),
+        app: complete([
+            "POST /api/app/meal-drafts",
+            '[data-action="start-meal-draft"]',
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -179,6 +223,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealDraft.read",
         mcp: complete(["get_meal_draft"]),
         web: complete(["/api/app/today", "GET /api/app/meal-drafts/:id"]),
+        app: complete(["/api/app/today", "GET /api/app/meal-drafts/:id"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -187,6 +232,10 @@ export const CAPABILITY_MANIFEST = [
         id: "mealDraft.review",
         mcp: complete(["prepare_meal_confirmation"]),
         web: complete([
+            "GET /api/app/meal-drafts/:id",
+            "POST /api/app/meal-drafts/:id/prepare",
+        ]),
+        app: complete([
             "GET /api/app/meal-drafts/:id",
             "POST /api/app/meal-drafts/:id/prepare",
         ]),
@@ -209,6 +258,13 @@ export const CAPABILITY_MANIFEST = [
             "DELETE /api/app/meal-drafts/:draftId/items/:itemId",
             "POST /api/app/meal-drafts/:draftId/questions/:questionId/answer",
         ]),
+        app: complete([
+            "PATCH /api/app/meal-drafts/:id",
+            "POST /api/app/meal-drafts/:id/items",
+            "PATCH /api/app/meal-drafts/:draftId/items/:itemId",
+            "DELETE /api/app/meal-drafts/:draftId/items/:itemId",
+            "POST /api/app/meal-drafts/:draftId/questions/:questionId/answer",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -217,6 +273,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealDraft.confirm",
         mcp: complete(["confirm_meal_draft", "resolve_meal_review"]),
         web: complete(["POST /api/app/meal-drafts/:id/confirm"]),
+        app: complete(["POST /api/app/meal-drafts/:id/confirm"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -225,6 +282,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealDraft.cancel",
         mcp: complete(["cancel_meal_draft"]),
         web: complete(["POST /api/app/meal-drafts/:id/cancel"]),
+        app: complete(["POST /api/app/meal-drafts/:id/cancel"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -233,6 +291,7 @@ export const CAPABILITY_MANIFEST = [
         id: "food.search",
         mcp: complete(["search_foods"]),
         web: complete(["GET /api/app/food-search"]),
+        app: complete(["GET /api/app/food-search"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -241,6 +300,7 @@ export const CAPABILITY_MANIFEST = [
         id: "food.inspect",
         mcp: complete(["get_food_details"]),
         web: complete(["GET /api/app/food-details"]),
+        app: complete(["GET /api/app/food-details"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -249,6 +309,7 @@ export const CAPABILITY_MANIFEST = [
         id: "food.barcode",
         mcp: complete(["lookup_food_barcode", "lookup_barcode"]),
         web: complete(["GET /api/app/food-barcode"]),
+        app: complete(["GET /api/app/food-barcode"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -257,6 +318,7 @@ export const CAPABILITY_MANIFEST = [
         id: "food.saved.read",
         mcp: complete(["search_saved_foods", "list_saved_foods"]),
         web: complete(["GET /api/app/food-search", "GET /api/app/foods"]),
+        app: complete(["GET /api/app/food-search", "GET /api/app/foods"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -265,6 +327,14 @@ export const CAPABILITY_MANIFEST = [
         id: "food.saved.write",
         mcp: complete(["save_food", "delete_saved_food"]),
         web: complete([
+            "POST /api/app/foods",
+            "DELETE /api/app/foods/:id",
+            '[data-action="manage-saved-foods"]',
+            '[data-action="select-saved-food-candidate"]',
+            '[data-action="delete-saved-food"]',
+            "#saved-food-form",
+        ]),
+        app: complete([
             "POST /api/app/foods",
             "DELETE /api/app/foods/:id",
             '[data-action="manage-saved-foods"]',
@@ -285,6 +355,12 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/foods/:id/used",
             '[data-action="select-meal-option"]',
         ]),
+        app: complete([
+            "GET /api/app/food-search",
+            "POST /api/app/meals",
+            "POST /api/app/foods/:id/used",
+            '[data-action="select-meal-option"]',
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -293,6 +369,7 @@ export const CAPABILITY_MANIFEST = [
         id: "nutrition.summary",
         mcp: complete(["get_nutrition_summary"]),
         web: complete(["/api/app/today", "/api/app/meals"]),
+        app: complete(["/api/app/today", "/api/app/meals"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -301,6 +378,7 @@ export const CAPABILITY_MANIFEST = [
         id: "nutrition.goals",
         mcp: complete(["get_nutrition_goals", "set_nutrition_goals"]),
         web: complete(["/api/app/goals", "/app/settings/goals"]),
+        app: complete(["/api/app/goals", "/app/settings/goals"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -312,6 +390,10 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/guidance/context",
             "GET/PUT /api/app/guidance/preferences",
         ]),
+        app: complete([
+            "GET /api/app/guidance/context",
+            "GET/PUT /api/app/guidance/preferences",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -320,6 +402,7 @@ export const CAPABILITY_MANIFEST = [
         id: "guidance.goalPreview",
         mcp: complete(["preview_goal_change"]),
         web: complete(["POST /api/app/guidance/goals/preview"]),
+        app: complete(["POST /api/app/guidance/goals/preview"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -328,6 +411,7 @@ export const CAPABILITY_MANIFEST = [
         id: "guidance.goalCommit",
         mcp: complete(["commit_goal_change"]),
         web: complete(["POST /api/app/guidance/goals/commit"]),
+        app: complete(["POST /api/app/guidance/goals/commit"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -339,6 +423,10 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/guidance/goals/review",
             "GET /api/app/guidance/goals/history",
         ]),
+        app: complete([
+            "GET /api/app/guidance/goals/review",
+            "GET /api/app/guidance/goals/history",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -347,6 +435,7 @@ export const CAPABILITY_MANIFEST = [
         id: "nutrition.progress",
         mcp: complete(["get_goal_progress"]),
         web: complete(["GET /api/app/insights (progress)", "/api/app/today"]),
+        app: complete(["GET /api/app/insights (progress)", "/api/app/today"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -355,6 +444,7 @@ export const CAPABILITY_MANIFEST = [
         id: "nutrition.trends",
         mcp: complete(["get_trends"]),
         web: complete(["GET /api/app/insights (trends)", "/app/insights"]),
+        app: complete(["GET /api/app/insights (trends)", "/app/insights"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -363,6 +453,7 @@ export const CAPABILITY_MANIFEST = [
         id: "nutrition.patterns",
         mcp: complete(["get_meal_patterns"]),
         web: complete(["GET /api/app/insights (patterns)", "/app/insights"]),
+        app: complete(["GET /api/app/insights (patterns)", "/app/insights"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -371,6 +462,7 @@ export const CAPABILITY_MANIFEST = [
         id: "water.create",
         mcp: complete(["log_water"]),
         web: complete(["POST /api/app/water"]),
+        app: complete(["POST /api/app/water"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -383,6 +475,11 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/insights (water history)",
             "/app/insights",
         ]),
+        app: complete([
+            "/api/app/today",
+            "GET /api/app/insights (water history)",
+            "/app/insights",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -391,6 +488,7 @@ export const CAPABILITY_MANIFEST = [
         id: "water.update",
         mcp: complete(["update_water"]),
         web: complete(["PATCH /api/app/water/:id", "#water-history"]),
+        app: complete(["PATCH /api/app/water/:id", "#water-history"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -399,6 +497,7 @@ export const CAPABILITY_MANIFEST = [
         id: "water.delete",
         mcp: complete(["delete_water"]),
         web: complete(["DELETE /api/app/water/:id", "#water-history"]),
+        app: complete(["DELETE /api/app/water/:id", "#water-history"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -407,6 +506,7 @@ export const CAPABILITY_MANIFEST = [
         id: "weight.create",
         mcp: complete(["log_weight"]),
         web: complete(["POST /api/app/weight"]),
+        app: complete(["POST /api/app/weight"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -423,6 +523,11 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/insights (weight history)",
             "/app/insights",
         ]),
+        app: complete([
+            "/api/app/today",
+            "GET /api/app/insights (weight history)",
+            "/app/insights",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -431,6 +536,7 @@ export const CAPABILITY_MANIFEST = [
         id: "weight.update",
         mcp: complete(["update_weight"]),
         web: complete(["PATCH /api/app/weight/:id", "#weight-history"]),
+        app: complete(["PATCH /api/app/weight/:id", "#weight-history"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -439,6 +545,7 @@ export const CAPABILITY_MANIFEST = [
         id: "weight.delete",
         mcp: complete(["delete_weight"]),
         web: complete(["DELETE /api/app/weight/:id", "#weight-history"]),
+        app: complete(["DELETE /api/app/weight/:id", "#weight-history"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -450,6 +557,10 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/insights (weight trends)",
             "/app/insights",
         ]),
+        app: complete([
+            "GET /api/app/insights (weight trends)",
+            "/app/insights",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -458,6 +569,7 @@ export const CAPABILITY_MANIFEST = [
         id: "weight.units",
         mcp: complete(["get_weight_unit", "set_weight_unit"]),
         web: complete(["/app/settings/profile"]),
+        app: complete(["/app/settings/profile"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -466,6 +578,7 @@ export const CAPABILITY_MANIFEST = [
         id: "preference.widgets",
         mcp: complete(["get_widget_display", "set_widget_display"]),
         web: complete(["/app/settings/profile"]),
+        app: complete(["/app/settings/profile"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -474,6 +587,7 @@ export const CAPABILITY_MANIFEST = [
         id: "preference.alcohol",
         mcp: complete(["get_alcohol_tracking", "set_alcohol_tracking"]),
         web: complete(["/app/settings/profile"]),
+        app: complete(["/app/settings/profile"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -482,6 +596,7 @@ export const CAPABILITY_MANIFEST = [
         id: "preference.timezone",
         mcp: complete(["get_timezone", "set_timezone"]),
         web: complete(["/app/settings/profile"]),
+        app: complete(["/app/settings/profile"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -490,6 +605,7 @@ export const CAPABILITY_MANIFEST = [
         id: "recipe.create",
         mcp: complete(["save_recipe", "save_meal_as_recipe"]),
         web: complete(["POST /api/app/recipes", "/app/recipes"]),
+        app: complete(["POST /api/app/recipes", "/app/recipes"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -502,6 +618,11 @@ export const CAPABILITY_MANIFEST = [
             '[data-action="import-recipe-url"]',
             "/app/recipes",
         ]),
+        app: complete([
+            "POST /api/app/recipes/import-preview",
+            '[data-action="import-recipe-url"]',
+            "/app/recipes",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -510,6 +631,7 @@ export const CAPABILITY_MANIFEST = [
         id: "recipe.read",
         mcp: complete(["get_recipe"]),
         web: complete(["GET /api/app/recipes/:id"]),
+        app: complete(["GET /api/app/recipes/:id"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -518,6 +640,7 @@ export const CAPABILITY_MANIFEST = [
         id: "recipe.search",
         mcp: complete(["search_recipes"]),
         web: complete(["/api/app/planning", "#recipe-filter"]),
+        app: complete(["/api/app/planning", "#recipe-filter"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -526,6 +649,7 @@ export const CAPABILITY_MANIFEST = [
         id: "recipe.update",
         mcp: complete(["update_recipe"]),
         web: complete(["PATCH /api/app/recipes/:id"]),
+        app: complete(["PATCH /api/app/recipes/:id"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -534,6 +658,7 @@ export const CAPABILITY_MANIFEST = [
         id: "recipe.archive",
         mcp: complete(["delete_recipe"]),
         web: complete(["DELETE /api/app/recipes/:id"]),
+        app: complete(["DELETE /api/app/recipes/:id"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -542,6 +667,7 @@ export const CAPABILITY_MANIFEST = [
         id: "recipe.log",
         mcp: complete(["log_recipe"]),
         web: complete(["POST /api/app/recipes/:id/log"]),
+        app: complete(["POST /api/app/recipes/:id/log"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -550,6 +676,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.read",
         mcp: complete(["get_meal_plan"]),
         web: complete(["/api/app/planning"]),
+        app: complete(["/api/app/planning"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -558,6 +685,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.schedule",
         mcp: complete(["schedule_recipe"]),
         web: complete(["POST /api/app/recipes/:id/plan"]),
+        app: complete(["POST /api/app/recipes/:id/plan"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -570,6 +698,11 @@ export const CAPABILITY_MANIFEST = [
             "[data-action=compose-recipe]",
             "/app/recipes",
         ]),
+        app: complete([
+            "POST /api/app/recipes/compose",
+            "[data-action=compose-recipe]",
+            "/app/recipes",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -578,6 +711,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.draftCreate",
         mcp: complete(["create_meal_plan_draft"]),
         web: complete(["POST /api/app/planning/drafts"]),
+        app: complete(["POST /api/app/planning/drafts"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -590,6 +724,7 @@ export const CAPABILITY_MANIFEST = [
             "cancel_meal_plan_draft",
         ]),
         web: complete(["GET/PATCH/DELETE /api/app/planning/drafts/:id"]),
+        app: complete(["GET/PATCH/DELETE /api/app/planning/drafts/:id"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -598,6 +733,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.draftCommit",
         mcp: complete(["commit_meal_plan_draft"]),
         web: complete(["POST /api/app/planning/drafts/:id/commit"]),
+        app: complete(["POST /api/app/planning/drafts/:id/commit"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -606,15 +742,16 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.recipeGenerate",
         mcp: complete(["validate_meal_plan_recipe"]),
         web: complete(["POST /api/app/planning/propose"]),
-        intentionalChannelException:
-            "Website can call its configured model; MCP hosts provide recipe proposals and Munch applies the same schema, nutrition resolution and constraints.",
-        gap: null,
-        targetPr: null,
+        app: partial(["POST /api/app/planning/propose"]),
+        intentionalChannelException: null,
+        gap: "The route exists in the packaged app, but the Android surface is blocked by the AI-task credits stub (503) until the credits ledger and Ember re-platform land. MCP hosts provide recipe proposals and Munch applies the same schema, nutrition resolution and constraints.",
+        targetPr: "S1 (credits ledger) + S2 (Ember re-platform)",
     },
     {
         id: "mealPlan.recipeCustomize",
         mcp: complete(["customize_meal_plan_recipe"]),
         web: complete(["PATCH /api/app/planning/drafts/:id"]),
+        app: complete(["PATCH /api/app/planning/drafts/:id"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -623,6 +760,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.groceryPreview",
         mcp: complete(["preview_plan_groceries"]),
         web: complete(["GET /api/app/planning/drafts/:id/groceries"]),
+        app: complete(["GET /api/app/planning/drafts/:id/groceries"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -631,6 +769,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.groceryCommit",
         mcp: complete(["confirm_plan_groceries"]),
         web: complete(["POST /api/app/planning/drafts/:id/groceries/commit"]),
+        app: complete(["POST /api/app/planning/drafts/:id/groceries/commit"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -639,6 +778,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.swapPreview",
         mcp: complete(["preview_meal_swaps"]),
         web: complete(["GET /api/app/planning/:plannedMealId/swaps"]),
+        app: complete(["GET /api/app/planning/:plannedMealId/swaps"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -647,6 +787,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.swapCommit",
         mcp: complete(["commit_meal_swap"]),
         web: complete(["POST /api/app/planning/:plannedMealId/swap"]),
+        app: complete(["POST /api/app/planning/:plannedMealId/swap"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -655,6 +796,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mealPlan.swapUndo",
         mcp: complete(["undo_meal_swap"]),
         web: complete(["POST /api/app/planning/swaps/:changeId/undo"]),
+        app: complete(["POST /api/app/planning/swaps/:changeId/undo"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -663,6 +805,7 @@ export const CAPABILITY_MANIFEST = [
         id: "grocery.read",
         mcp: complete(["get_grocery_list"]),
         web: complete(["/api/app/planning"]),
+        app: complete(["/api/app/planning"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -671,6 +814,7 @@ export const CAPABILITY_MANIFEST = [
         id: "grocery.add",
         mcp: complete(["add_grocery_items"]),
         web: complete(["POST /api/app/groceries/items"]),
+        app: complete(["POST /api/app/groceries/items"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -679,6 +823,10 @@ export const CAPABILITY_MANIFEST = [
         id: "grocery.purchase",
         mcp: complete(["mark_grocery_item_purchased"]),
         web: complete([
+            "POST /api/app/groceries/items/:id/purchased",
+            "POST /api/app/groceries/clear-purchased",
+        ]),
+        app: complete([
             "POST /api/app/groceries/items/:id/purchased",
             "POST /api/app/groceries/clear-purchased",
         ]),
@@ -693,6 +841,10 @@ export const CAPABILITY_MANIFEST = [
             "PATCH /api/app/groceries/items/:id",
             "DELETE /api/app/groceries/items/:id",
         ]),
+        app: complete([
+            "PATCH /api/app/groceries/items/:id",
+            "DELETE /api/app/groceries/items/:id",
+        ]),
         intentionalChannelException:
             "The MCP catalog exposes explicit grocery additions and purchase state; direct item editing and removal are website list-management controls.",
         gap: null,
@@ -702,6 +854,7 @@ export const CAPABILITY_MANIFEST = [
         id: "nutrition.export",
         mcp: complete(["export_meals"]),
         web: complete(["POST /api/app/export/meals", "/app/settings/data"]),
+        app: complete(["POST /api/app/export/meals", "/app/settings/data"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -710,6 +863,7 @@ export const CAPABILITY_MANIFEST = [
         id: "account.delete",
         mcp: complete(["delete_account"]),
         web: complete(["/app/settings/account"]),
+        app: complete(["/app/settings/account"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -718,6 +872,7 @@ export const CAPABILITY_MANIFEST = [
         id: "connection.status",
         mcp: complete(["get_connection_status"]),
         web: complete(["/app/settings/connections"]),
+        app: complete(["/app/settings/connections"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -726,6 +881,7 @@ export const CAPABILITY_MANIFEST = [
         id: "billing.checkout",
         mcp: websiteOnly([]),
         web: complete(["/billing/checkout", "/app/settings/billing"]),
+        app: missing(),
         intentionalChannelException:
             "Billing is intentionally website-only and must not be advertised through MCP.",
         gap: null,
@@ -735,6 +891,7 @@ export const CAPABILITY_MANIFEST = [
         id: "billing.portal",
         mcp: websiteOnly([]),
         web: complete(["/billing/portal", "/app/settings/billing"]),
+        app: missing(),
         intentionalChannelException:
             "Stripe subscription management is intentionally website-only.",
         gap: null,
@@ -744,6 +901,7 @@ export const CAPABILITY_MANIFEST = [
         id: "mcp.connection.revoke",
         mcp: websiteOnly([]),
         web: complete(["DELETE /api/app/connections/:tokenFamilyId"]),
+        app: missing(),
         intentionalChannelException:
             "A user manages and revokes external connections from the website account settings.",
         gap: null,
@@ -753,6 +911,7 @@ export const CAPABILITY_MANIFEST = [
         id: "household.manage",
         mcp: websiteOnly([]),
         web: complete(["/api/app/household/manage", "/app/household"]),
+        app: missing(),
         intentionalChannelException:
             "Household administration is a website-centric account workflow; MCP only consumes shared planning data.",
         gap: null,
@@ -762,6 +921,7 @@ export const CAPABILITY_MANIFEST = [
         id: "account.export",
         mcp: websiteOnly([]),
         web: complete(["/account/portal"]),
+        app: missing(),
         intentionalChannelException:
             "The website account area owns complete-account export; MCP exposes focused meal export separately.",
         gap: null,
@@ -771,6 +931,7 @@ export const CAPABILITY_MANIFEST = [
         id: "cook.create",
         mcp: complete(["start_cook"]),
         web: complete(["POST /api/app/cooks"]),
+        app: complete(["POST /api/app/cooks"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -779,6 +940,11 @@ export const CAPABILITY_MANIFEST = [
         id: "cook.read",
         mcp: complete(["get_cook", "search_cooks"]),
         web: complete([
+            "GET /api/app/cooks",
+            "GET /api/app/cooks/:id",
+            "/app/cooks",
+        ]),
+        app: complete([
             "GET /api/app/cooks",
             "GET /api/app/cooks/:id",
             "/app/cooks",
@@ -803,6 +969,13 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/cooks/:id/outcome",
             "POST /api/app/cooks/:id/preferred",
         ]),
+        app: complete([
+            "POST /api/app/cooks/:id/updates",
+            "PATCH /api/app/cooks/:cookId/dishes/:dishId",
+            "PATCH /api/app/cooks/:cookId/events/:eventId",
+            "POST /api/app/cooks/:id/outcome",
+            "POST /api/app/cooks/:id/preferred",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -811,6 +984,11 @@ export const CAPABILITY_MANIFEST = [
         id: "cook.lifecycle",
         mcp: complete(["finish_cook", "reopen_cook", "delete_cook"]),
         web: complete([
+            "POST /api/app/cooks/:id/finish",
+            "POST /api/app/cooks/:id/reopen",
+            "DELETE /api/app/cooks/:id",
+        ]),
+        app: complete([
             "POST /api/app/cooks/:id/finish",
             "POST /api/app/cooks/:id/reopen",
             "DELETE /api/app/cooks/:id",
@@ -826,6 +1004,10 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/cooks/:id/repeat",
             "GET /api/app/cooks/compare",
         ]),
+        app: complete([
+            "POST /api/app/cooks/:id/repeat",
+            "GET /api/app/cooks/compare",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -837,6 +1019,10 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/cooks/:id/recipe-draft",
             "POST /api/app/cooks/:id/save-recipe",
         ]),
+        app: complete([
+            "POST /api/app/cooks/:id/recipe-draft",
+            "POST /api/app/cooks/:id/save-recipe",
+        ]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -845,6 +1031,10 @@ export const CAPABILITY_MANIFEST = [
         id: "cook.nutrition",
         mcp: complete(["log_cook_portion"]),
         web: complete([
+            "POST /api/app/recipes/:id/log",
+            '[data-action="log-cook-dish"]',
+        ]),
+        app: complete([
             "POST /api/app/recipes/:id/log",
             '[data-action="log-cook-dish"]',
         ]),
@@ -978,6 +1168,10 @@ export function assertCapabilityManifest(): string[] {
     const mappedTools = new Map<string, string>();
 
     for (const capability of CAPABILITY_MANIFEST) {
+        // Captured before the channel checks: the discriminant checks
+        // below narrow the manifest's literal union, and this id must
+        // stay reachable in every branch.
+        const capabilityId: string = capability.id;
         if (ids.has(capability.id)) {
             errors.push(`Duplicate capability id: ${capability.id}`);
         }
@@ -986,6 +1180,7 @@ export function assertCapabilityManifest(): string[] {
         for (const [channelName, channel] of [
             ["mcp", capability.mcp],
             ["web", capability.web],
+            ["app", capability.app],
         ] as const) {
             if (channel.available && channel.entryPoints.length === 0) {
                 errors.push(
@@ -999,9 +1194,27 @@ export function assertCapabilityManifest(): string[] {
             }
         }
 
+        if (
+            capability.app.coverage === "missing" &&
+            !capability.intentionalChannelException
+        ) {
+            errors.push(
+                `${capability.id}: app channel is missing without an explicit intentional channel exception`,
+            );
+        }
+        if (
+            !capability.intentionalChannelException &&
+            capability.app.coverage === "partial" &&
+            (!capability.gap || !capability.targetPr)
+        ) {
+            errors.push(
+                `${capability.id}: partial app coverage needs a documented gap and target PR`,
+            );
+        }
+
         if (capability.intentionalChannelException && capability.gap) {
             errors.push(
-                `${capability.id}: intentional channel exceptions cannot also be unresolved gaps`,
+                `${capabilityId}: intentional channel exceptions cannot also be unresolved gaps`,
             );
         }
         if (
