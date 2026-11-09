@@ -2,6 +2,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { dateOnlyString } from "./tz.js";
 import { withAnalytics } from "./analytics.js";
+import { WIDGET_RESOURCE_METADATA } from "./openai-submission.js";
+import { RECIPE_WIDGET_URI } from "./recipe-import-tools.js";
+import { getWidgetHtml } from "./widgets.js";
+
+const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
 import type { MunchCapabilities } from "./billing/capabilities.js";
 import { rankSavedRecipesForPantry } from "./inventory/meal-planning.js";
 import {
@@ -25,15 +30,11 @@ import {
     updateRecipe,
     type RecipeInput,
 } from "./planning/repository.js";
-import {
-    WIDGET_RESOURCE_METADATA,
-    widgetToolMeta,
-} from "./openai-submission.js";
-import { getWidgetHtml } from "./widgets.js";
+import { widgetToolMeta } from "./openai-submission.js";
 
+const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 const MEAL_PLAN_WIDGET_URI = "ui://widget/meal-plan.html";
 const GROCERY_LIST_WIDGET_URI = "ui://widget/grocery-list.html";
-const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
 
 const nutrientSchema = z.object({
     calories: z.number().nonnegative().optional(),
@@ -444,13 +445,42 @@ export function registerRecipePlanningTools(
             config: unknown,
             handler: (...args: any[]) => unknown,
         ) => unknown;
-        registerResource?: (
+        registerResource: (
             name: string,
             uri: string,
             config: unknown,
             handler: (...args: any[]) => unknown,
         ) => unknown;
     };
+    const recipeUiMeta = widgetsEnabled
+        ? { _meta: { ui: { resourceUri: RECIPE_WIDGET_URI } } }
+        : {};
+
+    toolServer.registerResource(
+        "recipe-widget",
+        RECIPE_WIDGET_URI,
+        {
+            title: "Recipe",
+            description:
+                "Recipe search results, a full recipe with ingredients, steps, and per-serving nutrition, and a parsed recipe import laid out for review before saving.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri: URL | string) => ({
+            contents: [
+                {
+                    uri: typeof uri === "string" ? uri : uri.href,
+                    mimeType: APP_UI_MIME_TYPE,
+                    text: await getWidgetHtml("recipe"),
+                    _meta: WIDGET_RESOURCE_METADATA,
+                },
+            ],
+        }),
+    );
+    // log_recipe renders the meal-logged receipt (audit Fix 4). UI meta
+    // only — annotations, behavior, and payloads unchanged.
+    const mealLoggedMeta = widgetsEnabled
+        ? widgetToolMeta(MEAL_LOGGED_WIDGET_URI)
+        : {};
     // Link a tool to its widget only when this user has widgets enabled
     // (UI meta only; annotations, behavior, and payloads are unchanged).
     const uiMeta = (resourceUri: string) =>
@@ -538,6 +568,7 @@ export function registerRecipePlanningTools(
                 max_minutes: z.number().int().positive().max(1440).optional(),
             },
             outputSchema: planningOutputSchemas.search_recipes,
+            ...recipeUiMeta,
         },
         async ({
             query,
@@ -631,6 +662,7 @@ export function registerRecipePlanningTools(
                 recipe_revision_id: z.string().uuid().optional(),
             },
             outputSchema: planningOutputSchemas.get_recipe,
+            ...recipeUiMeta,
         },
         async ({ recipe_id, recipe_revision_id }) =>
             withAnalytics(
@@ -835,6 +867,7 @@ export function registerRecipePlanningTools(
                 idempotency_key: z.string().min(1).max(255),
             },
             outputSchema: planningOutputSchemas.log_recipe,
+            ...mealLoggedMeta,
         },
         async (args) =>
             withAnalytics(

@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Food Label</title>
+        <style>
+            /*@include shared/tokens.css@*/
+            /*@include shared/base.css@*/
+            /*@include shared/facts.css@*/
+            .f-section-title {
+                font-size: 15px;
+                font-weight: 650;
+                margin: 14px 0 4px;
+            }
+            .fl-name-line {
+                font-size: 17px;
+                font-weight: 700;
+                line-height: 1.25;
+            }
+            .fl-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 10px 0 11px;
+                border-bottom: 1px solid var(--panel-border);
+            }
+            .fl-row:last-child {
+                border-bottom: 0;
+            }
+            .fl-main {
+                min-width: 0;
+            }
+            .fl-name {
+                font-weight: 650;
+                line-height: 1.3;
+            }
+            .fl-meta {
+                font-size: 12.5px;
+                color: var(--text-dim);
+                margin-top: 2px;
+            }
+            .fl-val {
+                margin-left: auto;
+                font-weight: 750;
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+                padding-top: 1px;
+            }
+            .fl-portion {
+                width: 100%;
+                min-height: 44px;
+                margin-top: 8px;
+                font: inherit;
+            }
+            .nutrient-rows .f-lrow {
+                padding: 3px 0 4px;
+            }
+            .nutrient-rows .f-src {
+                margin-top: 2px;
+            }
+            .f-hero-cap {
+                margin-top: 3px;
+            }
+            .f-rule-heavy {
+                margin-top: 8px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+        <script>
+            "use strict";
+            /*@include shared/bridge.js@*/
+            /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
+            const SAMPLE = {
+                query: "greek yogurt",
+                candidates: [
+                    {
+                        candidate_id: "usda:171284",
+                        name: "Greek Yogurt, Plain, Nonfat",
+                        brand: null,
+                        provider: "usda",
+                        provider_label: "USDA FoodData Central",
+                        data_kind: "generic",
+                        confidence: 0.94,
+                        default_portion: {
+                            id: "container",
+                            label: "1 container (170 g)",
+                            calories: 100,
+                            protein_g: 17,
+                            carbs_g: 6,
+                            fat_g: 0.7,
+                        },
+                    },
+                    {
+                        candidate_id: "open_food_facts:3017620422003",
+                        name: "Greek Yogurt 0%",
+                        brand: "Fage",
+                        provider: "open_food_facts",
+                        provider_label: "Open Food Facts",
+                        data_kind: "packaged",
+                        confidence: 0.88,
+                        default_portion: {
+                            id: "serving",
+                            label: "1 serving (150 g)",
+                            calories: 82,
+                            protein_g: 15,
+                            carbs_g: 5,
+                            fat_g: 0,
+                        },
+                    },
+                ],
+                provider_failures: [],
+            };
+            let API = null;
+            let SINGLE = null;
+            let PORTION_IDX = 0;
+            const NUTRIENTS = [
+                ["Protein", "protein_g", "g", 1],
+                ["Carbs", "carbs_g", "g", 1],
+                ["Fat", "fat_g", "g", 1],
+                ["Fiber", "fiber_g", "g", 1],
+                ["Sugar", "sugar_g", "g", 1],
+                ["Sodium", "sodium_mg", "mg", 0],
+                ["Saturated fat", "saturated_fat_g", "g", 1],
+                ["Cholesterol", "cholesterol_mg", "mg", 0],
+                ["Potassium", "potassium_mg", "mg", 0],
+                ["Alcohol", "alcohol_g", "g", 1],
+            ];
+            function sourceOf(item) {
+                return (
+                    item.provider_label ||
+                    (item.provider === "usda"
+                        ? "USDA FoodData Central"
+                        : item.provider === "open_food_facts"
+                          ? "Open Food Facts"
+                          : item.provider || "Food database")
+                );
+            }
+            function parseBarcodeText(text) {
+                if (/not a valid barcode/i.test(text))
+                    return { __error: text.split("\n")[0] };
+                if (/couldn't reach open food facts/i.test(text))
+                    return { __error: text.split("\n")[0] };
+                if (/no product found/i.test(text))
+                    return {
+                        __empty: {
+                            title: "No product found for that barcode",
+                            body: "Check the digits on the package, or search for the food by name instead.",
+                        },
+                    };
+                const lines = text
+                    .split("\n")
+                    .map((line) => line.trim())
+                    .filter(Boolean);
+                if (!lines.length) return null;
+                const grab = (label) => {
+                    const match = text.match(
+                        new RegExp(`${label}:\\s*([\\d.,]+|n/a)`, "i"),
+                    );
+                    if (!match || match[1] === "n/a") return null;
+                    return Number(match[1].replace(/,/g, ""));
+                };
+                const serving = (text.match(/Serving:\s*(.+)/i) || [])[1];
+                const barcode = (text.match(/barcode\s+([\d\s]+)\)/i) || [])[1];
+                const title = lines[0];
+                const brandMatch = title.match(/^(.*)\s\(([^)]+)\)$/);
+                return {
+                    mode: "single",
+                    food: {
+                        name: brandMatch ? brandMatch[1] : title,
+                        brand: brandMatch ? brandMatch[2] : null,
+                        provider_label: "Open Food Facts",
+                        barcode: barcode ? barcode.replace(/\s/g, "") : null,
+                        portions: [
+                            {
+                                id: "serving",
+                                label: serving || "1 serving",
+                                nutrients: {
+                                    calories: grab("Calories"),
+                                    protein_g: grab("Protein"),
+                                    carbs_g: grab("Carbs"),
+                                    fat_g: grab("Fat"),
+                                    fiber_g: grab("Fiber"),
+                                    sugar_g: grab("Sugar (?:\\(total\\) )?"),
+                                    alcohol_g: grab("Alcohol"),
+                                },
+                            },
+                        ],
+                        nutrients_per_100g: null,
+                    },
+                };
+            }
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
+                if (typeof payload.text === "string")
+                    return parseBarcodeText(payload.text);
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
+                if ("food" in payload) {
+                    if (!payload.food)
+                        return {
+                            __empty: {
+                                title: "That food is no longer available",
+                                body: "Run the search again to pick a current match.",
+                            },
+                        };
+                    return { mode: "single", food: payload.food };
+                }
+                if (Array.isArray(payload.candidates)) {
+                    const full = payload.candidates.filter((item) =>
+                        Array.isArray(item.portions),
+                    );
+                    if (
+                        payload.barcode &&
+                        full.length === 1 &&
+                        payload.candidates.length === 1
+                    )
+                        return { mode: "single", food: full[0] };
+                    return {
+                        mode: "results",
+                        title: payload.barcode
+                            ? "Barcode matches"
+                            : "Food results",
+                        query: payload.query || null,
+                        items: payload.candidates,
+                        failures: payload.provider_failures || [],
+                    };
+                }
+                if (Array.isArray(payload.saved_foods)) {
+                    const items = payload.saved_foods.map((entry) => ({
+                        ...entry.food,
+                        name: entry.label || entry.food?.name,
+                        saved: true,
+                        use_count: entry.use_count,
+                        last_used_at: entry.last_used_at,
+                        default_portion_id: entry.default_portion_id,
+                    }));
+                    const recent = (payload.recent_meal_items || []).map(
+                        (entry) => ({
+                            name: entry.name,
+                            recent: true,
+                            portion_label: entry.portion_label,
+                            nutrients: entry.nutrients,
+                            provider_label:
+                                entry.provider ||
+                                (entry.source_type || "").replaceAll("_", " "),
+                            logged_at: entry.logged_at,
+                        }),
+                    );
+                    return {
+                        mode: "results",
+                        title: "Saved foods",
+                        query: payload.query || null,
+                        items: [...items, ...recent],
+                        failures: [],
+                    };
+                }
+                return null;
+            }
+            function portionOf(item) {
+                if (item.recent)
+                    return {
+                        label: item.portion_label || "Logged portion",
+                        calories: item.nutrients?.calories ?? null,
+                    };
+                if (item.default_portion)
+                    return {
+                        label: item.default_portion.label,
+                        calories: item.default_portion.calories,
+                    };
+                if (Array.isArray(item.portions) && item.portions.length) {
+                    const chosen =
+                        item.portions.find(
+                            (portion) => portion.id === item.default_portion_id,
+                        ) || item.portions[0];
+                    return {
+                        label: chosen.label,
+                        calories: chosen.nutrients?.calories ?? null,
+                    };
+                }
+                return { label: "No declared serving", calories: null };
+            }
+            function richRow(item) {
+                const portion = portionOf(item);
+                const meta = [
+                    item.brand,
+                    portion.label,
+                    item.saved && item.last_used_at
+                        ? `last used ${humanDate(item.last_used_at)}`
+                        : item.saved
+                          ? "saved food"
+                          : item.recent && item.logged_at
+                            ? `logged ${humanDate(item.logged_at)}`
+                            : null,
+                ]
+                    .filter(Boolean)
+                    .join(" · ");
+                return `<div class="fl-row"><div class="fl-main"><div class="fl-name">${esc(item.name || "Food")}</div>${meta ? `<div class="fl-meta">${esc(meta)}</div>` : ""}<div class="f-src">Source · <b>${esc(sourceOf(item))}</b></div></div><div class="fl-val num">${portion.calories == null ? "—" : `${fmt(portion.calories)} kcal`}</div></div>`;
+            }
+            function compactRow(item) {
+                const portion = portionOf(item);
+                return factsCompactRow({
+                    name: item.name || "Food",
+                    meta: portion.label,
+                    valueText:
+                        portion.calories == null
+                            ? "—"
+                            : `${fmt(portion.calories)} kcal`,
+                });
+            }
+            function detailRows(items) {
+                return items
+                    .map((item) => {
+                        const bits = [
+                            item.data_kind ? `Kind: ${item.data_kind}` : null,
+                            item.barcode ? `Barcode: ${item.barcode}` : null,
+                            item.confidence != null
+                                ? `Match confidence: ${Math.round(item.confidence * 100)}%`
+                                : null,
+                            item.source_url
+                                ? "Full record at the source"
+                                : null,
+                        ].filter(Boolean);
+                        return `<div class="fl-row"><div class="fl-main"><div class="fl-name">${esc(item.name || "Food")}</div>${bits.length ? `<div class="fl-meta">${esc(bits.join(" · "))}</div>` : ""}<div class="f-src">Source · <b>${esc(sourceOf(item))}</b></div></div></div>`;
+                    })
+                    .join("");
+            }
+            function bindExpand() {
+                document
+                    .getElementById("details")
+                    ?.addEventListener("click", async () => {
+                        const result = await API?.requestDisplayMode(
+                            "fullscreen",
+                        ).catch(() => null);
+                        if (!result || result.unsupported)
+                            document.getElementById("details").textContent =
+                                "Details unavailable";
+                    });
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
+            }
+            function renderResults(data) {
+                const items = data.items || [];
+                const right = data.query
+                    ? `for “${data.query}”`
+                    : `${items.length} food${items.length === 1 ? "" : "s"}`;
+                if (!items.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand(data.title, data.query || "")}${factsState("empty", "No foods found", data.query ? `No matches for “${data.query}”. Try a shorter or more general name.` : "Nothing to show yet.")}<div class="f-foot"><span>Every number traces to its source</span><span>USDA FoodData Central · Open Food Facts</span></div></article>`;
+                    return;
+                }
+                const banner = data.failures?.length
+                    ? factsBanner(
+                          "warn",
+                          `<b>Partial results.</b> ${esc(data.failures.map((failure) => failure.provider).join(", "))} could not be reached, so some foods may be missing.`,
+                      )
+                    : "";
+                const compact = items.length > 6;
+                const folded = items.length > 12;
+                const inlineItems = folded ? items.slice(0, 5) : items;
+                const inlineRows = inlineItems
+                    .map((item) => (compact ? compactRow(item) : richRow(item)))
+                    .join("");
+                const moreRow = folded
+                    ? `<button class="f-more-row inline-only" id="details">…and ${items.length - 5} more</button>`
+                    : `<button class="f-more-row inline-only" id="details">Result details</button>`;
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand(data.title, right)}
+        <div class="f-body">
+        ${banner}
+        <div>${inlineRows}</div>
+        ${moreRow}
+        <div class="fullscreen-only">
+        <div class="f-rule-med"></div>
+        <h2 class="f-section-title">All ${items.length} results</h2>
+        <div>${items.map((item) => richRow(item)).join("")}</div>
+        <div class="f-rule-med"></div>
+        <h2 class="f-section-title">Result details</h2>
+        <div>${detailRows(items)}</div>
+        <div class="actions"><button class="btn" id="close">Return to chat</button></div>
+        </div>
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>USDA FoodData Central · Open Food Facts · your saved foods</span></div>
+    </article>`;
+                bindExpand();
+            }
+            function portionsOf(food) {
+                const portions = (food.portions || []).map((portion) => ({
+                    label: portion.label,
+                    nutrients: portion.nutrients || {},
+                }));
+                if (food.nutrients_per_100g)
+                    portions.push({
+                        label: "Per 100 g",
+                        nutrients: food.nutrients_per_100g,
+                    });
+                return portions;
+            }
+            function renderSingle(data) {
+                const food = data.food;
+                SINGLE = food;
+                const portions = portionsOf(food);
+                if (PORTION_IDX >= portions.length) PORTION_IDX = 0;
+                const portion = portions[PORTION_IDX] || {
+                    label: "1 serving",
+                    nutrients: {},
+                };
+                const nutrients = portion.nutrients || {};
+                const source = sourceOf(food);
+                const title = food.brand
+                    ? `${food.brand} — ${food.name}`
+                    : food.name || "Food";
+                const rows = NUTRIENTS.filter(
+                    ([, key]) => nutrients[key] != null,
+                ).map(([name, key, unit, digits]) =>
+                    factsLabelRow({
+                        name,
+                        valueText: `${fmt(nutrients[key], digits)} ${unit}`,
+                        showBar: false,
+                        source,
+                    }),
+                );
+                const inlineRows = rows.slice(0, 5).join("");
+                const extraRows = rows.slice(5).join("");
+                const selector =
+                    portions.length > 1
+                        ? `<label class="sr-only" for="portion">Portion</label><select class="fl-portion" id="portion">${portions.map((entry, index) => `<option value="${index}"${index === PORTION_IDX ? " selected" : ""}>${esc(entry.label)}</option>`).join("")}</select>`
+                        : "";
+                const lowConfidence =
+                    food.confidence != null && food.confidence < 0.8
+                        ? factsBanner(
+                              "warn",
+                              `<b>Lower-confidence match (${Math.round(food.confidence * 100)}%).</b> Check these numbers against the label on your package.`,
+                          )
+                        : "";
+                const extraMeta = [
+                    food.barcode ? `Barcode ${food.barcode}` : null,
+                    food.data_kind ? `Kind: ${food.data_kind}` : null,
+                    food.confidence != null
+                        ? `Match confidence ${Math.round(food.confidence * 100)}%`
+                        : null,
+                    food.source_license
+                        ? `License: ${food.source_license}`
+                        : null,
+                ].filter(Boolean);
+                const hasFullscreen = Boolean(extraRows || extraMeta.length);
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand("Food label", source)}
+        <div class="f-body">
+        <div class="fl-name-line">${esc(title)}</div>
+        ${factsHero(nutrients.calories == null ? "—" : `${fmt(nutrients.calories)} <span class="f-hero-unit">kcal</span>`, portion.label, "", "")}
+        ${selector}
+        ${lowConfidence}
+        <div class="f-rule-heavy"></div>
+        <div class="nutrient-rows">${inlineRows || factsState("empty", "No nutrient data", "This record lists no nutrient values.")}</div>
+        ${hasFullscreen ? `<button class="f-more-row inline-only" id="details">Full label details</button>` : ""}
+        <div class="fullscreen-only">
+        ${extraRows ? `<div class="nutrient-rows">${extraRows}</div>` : ""}
+        ${extraMeta.length ? `<div class="f-rule-med"></div><h2 class="f-section-title">About this record</h2><div class="f-note">${esc(extraMeta.join(" · "))}</div><div class="f-src">Source · <b>${esc(source)}</b></div>` : ""}
+        <div class="actions"><button class="btn" id="close">Return to chat</button></div>
+        </div>
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>${esc(source)}</span></div>
+    </article>`;
+                document
+                    .getElementById("portion")
+                    ?.addEventListener("change", (event) => {
+                        PORTION_IDX = Number(event.target.value) || 0;
+                        renderSingle({ food: SINGLE });
+                    });
+                bindExpand();
+            }
+            function render(data) {
+                PORTION_IDX = 0;
+                if (data.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Food label",
+                        "",
+                        "error",
+                        "Could not load this food",
+                        String(data.__error) ||
+                            "Something went wrong reading the food record. Try again in chat.",
+                    );
+                    return;
+                }
+                if (data.__empty) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Food label", "")}${factsState("empty", data.__empty.title, data.__empty.body)}<div class="f-foot"><span>Every number traces to its source</span><span>USDA FoodData Central · Open Food Facts</span></div></article>`;
+                    return;
+                }
+                if (data.mode === "single") renderSingle(data);
+                else renderResults(data);
+            }
+            initWidget({
+                name: "food-label-widget",
+                displayModes: ["inline", "fullscreen"],
+                loading:
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Food label</span></div><div class="f-state"><strong>Loading food</strong><span>Reading the food record…</span></div></article>',
+                coerce,
+                render,
+                sample: SAMPLE,
+                onReady(api) {
+                    API = api;
+                },
+            });
+        </script>
+    </body>
+</html>

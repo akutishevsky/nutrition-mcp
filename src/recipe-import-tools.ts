@@ -6,6 +6,8 @@ import { requireRecipeAccess } from "./mcp-capability-guard.js";
 import { previewRecipeUrl } from "./recipe-import/service.js";
 import { recipeImportDraftOutputSchema } from "./recipe-import/types.js";
 
+export const RECIPE_WIDGET_URI = "ui://widget/recipe.html";
+
 /**
  * URL import is deliberately preview-only. Saving stays behind the existing
  * save_recipe/save_recipe_and_plan tools so the MCP client must show the
@@ -15,6 +17,7 @@ export function registerRecipeImportTools(
     server: McpServer,
     userId: string,
     capabilities: MunchCapabilities,
+    widgetsEnabled = true,
 ): void {
     const toolServer = server as unknown as {
         registerTool: (
@@ -23,6 +26,9 @@ export function registerRecipeImportTools(
             handler: (...args: any[]) => unknown,
         ) => unknown;
     };
+    const uiMeta = widgetsEnabled
+        ? { _meta: { ui: { resourceUri: RECIPE_WIDGET_URI } } }
+        : {};
 
     toolServer.registerTool(
         "parse_recipe_url",
@@ -48,6 +54,7 @@ export function registerRecipeImportTools(
             outputSchema: z.object({
                 draft: recipeImportDraftOutputSchema,
             }),
+            ...uiMeta,
         },
         async ({ url }) =>
             withAnalytics(

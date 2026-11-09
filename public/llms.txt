@@ -1,8 +1,8 @@
 # Munch
 
-> Munch is a privacy-conscious, ChatGPT-first nutrition and cooking-history service. ChatGPT provides the conversation and reasoning; Munch provides persistent nutrition records, independent cooking-session history with durable photos and timelines, verified food search, saved foods, immutable reusable recipes, goals, water and weight history, trends, exports, deletion, billing entitlements, and OAuth-protected MCP tools.
+> Munch is a privacy-conscious, MCP-first nutrition and cooking-history service. Your AI assistant — ChatGPT, Claude, or any other MCP client — provides the conversation and reasoning; Munch provides persistent nutrition records, independent cooking-session history with durable photos and timelines, verified food search, saved foods, immutable reusable recipes, goals, water and weight history, trends, exports, deletion, billing entitlements, and OAuth-protected MCP tools.
 
-Munch is designed for use through ChatGPT and compatible MCP clients rather than as a standalone nutrition application. Users can describe meals and cooking sessions naturally, attach cooking photos, record editable timelines and results, search history across conversations, repeat and compare attempts, search USDA FoodData Central and Open Food Facts, look up barcodes, save single foods or multi-ingredient recipes, log exact recipe servings with historical source snapshots, review daily progress and longer-term trends, and manage their account through conversation.
+Munch is designed for use through ChatGPT, Claude, and other MCP clients, with the Munch website as the structured home for logging, history, recipes, and billing rather than as a standalone nutrition application. Users can describe meals and cooking sessions naturally, attach cooking photos, record editable timelines and results, search history across conversations, repeat and compare attempts, search USDA FoodData Central and Open Food Facts, look up barcodes, save single foods or multi-ingredient recipes, log exact recipe servings with historical source snapshots, review daily progress and longer-term trends, and manage their account through conversation.
 
 ## Cooking sessions
 
@@ -11,13 +11,13 @@ Munch is designed for use through ChatGPT and compatible MCP clients rather than
 - Users can start, update, finish, reopen, correct, delete, search, compare, repeat, and save a reviewed cook as a recipe through the Cooks website surface and MCP tools.
 - Completing a cook does not imply that food was eaten or that pantry inventory was used. Those are separate, explicit actions.
 
-Munch does not train a Munch model on nutrition records, sell nutrition data, or use Google Analytics or advertising trackers. OpenAI separately controls ChatGPT conversation processing, retention, and training choices according to the user's ChatGPT plan, settings, and OpenAI policies.
+Munch does not train a Munch model on nutrition records, sell nutrition data, or use Google Analytics or advertising trackers. Your AI provider separately controls its conversation processing, retention, and training choices according to your plan, settings, and the provider's policies.
 
 ## Access and billing
 
 - Munch has a permanent Free tier for core nutrition logging, daily progress, water and weight tracking, imports, exports, connections, and account deletion.
-- Optional Premium capabilities are managed on the Munch website. ChatGPT connection and MCP use do not require a subscription prompt or payment.
-- Premium is $4.99/month for the owner. Additional household members are $2/month each after they accept an invitation; invitations are free until accepted.
+- Optional Premium capabilities are managed on the Munch website. Connecting an MCP client does not require a subscription prompt or payment.
+- Premium is $2.99/month for the owner. Additional household members are $2/month each after they accept an invitation; invitations are free until accepted.
 - Checkout, recurring billing, payment methods, invoices, and cancellation are handled through Stripe on the website.
 
 ## Nutrition sources

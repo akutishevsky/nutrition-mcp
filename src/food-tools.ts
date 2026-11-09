@@ -1,6 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { withAnalytics } from "./analytics.js";
+import { WIDGET_RESOURCE_METADATA } from "./openai-submission.js";
+import { getWidgetHtml } from "./widgets.js";
+
+export const FOOD_LABEL_WIDGET_URI = "ui://widget/food-label.html";
+const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
 import {
     getFoodSearchService,
     summarizeFoodCandidate,
@@ -170,7 +175,11 @@ function serializeFailures(failures: FoodProviderFailure[]) {
     }));
 }
 
-export function registerFoodTools(server: McpServer, userId: string): void {
+export function registerFoodTools(
+    server: McpServer,
+    userId: string,
+    widgetsEnabled = true,
+): void {
     // Keep the expensive MCP SDK schema generic out of the native compiler's
     // hot path; runtime registration and MCP integration tests still validate
     // the complete schemas.
@@ -180,8 +189,38 @@ export function registerFoodTools(server: McpServer, userId: string): void {
             config: unknown,
             handler: (...args: any[]) => unknown,
         ) => unknown;
+        registerResource: (
+            name: string,
+            uri: string,
+            config: unknown,
+            handler: (...args: any[]) => unknown,
+        ) => unknown;
     };
+    const uiMeta = widgetsEnabled
+        ? { _meta: { ui: { resourceUri: FOOD_LABEL_WIDGET_URI } } }
+        : {};
     const service = getFoodSearchService();
+
+    toolServer.registerResource(
+        "food-label-widget",
+        FOOD_LABEL_WIDGET_URI,
+        {
+            title: "Food Label",
+            description:
+                "Food search and saved-food results built for comparison, and a single food's full nutrition label with its source on every row.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri: URL | string) => ({
+            contents: [
+                {
+                    uri: typeof uri === "string" ? uri : uri.href,
+                    mimeType: APP_UI_MIME_TYPE,
+                    text: await getWidgetHtml("food-label"),
+                    _meta: WIDGET_RESOURCE_METADATA,
+                },
+            ],
+        }),
+    );
 
     toolServer.registerTool(
         "search_foods",
@@ -204,6 +243,7 @@ export function registerFoodTools(server: McpServer, userId: string): void {
                 candidates: z.array(candidateSummarySchema),
                 provider_failures: z.array(providerFailureSchema),
             },
+            ...uiMeta,
         },
         async ({ query, limit }) =>
             withAnalytics(
@@ -264,6 +304,7 @@ export function registerFoodTools(server: McpServer, userId: string): void {
                 found: z.boolean(),
                 food: fullCandidateSchema.nullable(),
             },
+            ...uiMeta,
         },
         async ({ candidate_id }) =>
             withAnalytics(
@@ -312,6 +353,7 @@ export function registerFoodTools(server: McpServer, userId: string): void {
                 candidates: z.array(fullCandidateSchema),
                 provider_failures: z.array(providerFailureSchema),
             },
+            ...uiMeta,
         },
         async ({ barcode }) =>
             withAnalytics(

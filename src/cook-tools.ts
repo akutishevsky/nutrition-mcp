@@ -279,6 +279,24 @@ function widgetMeta(enabled: boolean) {
         : {};
 }
 
+const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
+
+// log_cook_portion renders the meal-logged receipt, not the cook card
+// (audit Fix 4). UI meta only — annotations, behavior, payloads unchanged.
+function mealLoggedMeta(enabled: boolean) {
+    return enabled
+        ? {
+              _meta: {
+                  ui: {
+                      resourceUri: MEAL_LOGGED_WIDGET_URI,
+                      visibility: ["model", "app"],
+                  },
+                  "openai/widgetAccessible": true,
+              },
+          }
+        : {};
+}
+
 export function registerCookTools(
     server: unknown,
     userId: string,
@@ -729,6 +747,7 @@ export function registerCookTools(
                 expected_version: z.coerce.number().int().positive().optional(),
             },
             outputSchema: z.object({ cook: cookRecordSchema }),
+            ...widgetMeta(widgetsEnabled),
         },
         async (args) =>
             withAnalytics(
@@ -1197,6 +1216,7 @@ export function registerCookTools(
                 recipe_id: z.string().uuid(),
                 recipe_revision_id: z.string().uuid(),
             }),
+            ...mealLoggedMeta(widgetsEnabled),
         },
         async (args) =>
             withAnalytics(
