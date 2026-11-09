@@ -28,9 +28,11 @@ import org.junit.runner.RunWith;
  * neither dropped nor opened externally.
  *
  * <p>The link is delivered exactly the way the OS delivers a browser
- * tap (am start VIEW after a force-stop), because ActivityScenario's
- * launch intent is not what reaches Capacitor's launch-URL bridge
- * when a singleTask activity already exists in the task.
+ * tap (am start VIEW), because ActivityScenario's launch intent is
+ * not what reaches Capacitor's launch-URL bridge when a singleTask
+ * activity already exists in the task. The test must never
+ * force-stop the app package: instrumentation runs inside the app
+ * process, so force-stopping it kills the test process itself.
  */
 @RunWith(AndroidJUnit4.class)
 public class AppDeepLinkSmokeTest {
@@ -74,13 +76,12 @@ public class AppDeepLinkSmokeTest {
     public void deepLinkLandsOnAllowlistedRoute() throws Exception {
         UiAutomation automation =
                 InstrumentationRegistry.getInstrumentation().getUiAutomation();
-        executeShell(automation, "am force-stop business.munch.app");
         executeShell(
                 automation,
                 "am start -a android.intent.action.VIEW"
                         + " -d \"munch://app/recipes\""
                         + " -n business.munch.app/.MainActivity");
-        // Let the cold start settle onto its first routed page before
+        // Let the delivery settle onto its routed page before
         // attaching the scenario used to inspect the WebView.
         Thread.sleep(2_000);
 
