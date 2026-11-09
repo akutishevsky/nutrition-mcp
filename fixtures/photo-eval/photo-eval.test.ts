@@ -2,6 +2,17 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+    groundMealPhotoItems,
+    type GroundedMealPhotoItem,
+} from "../../src/meal-photo/grounding.js";
+import {
+    aggregateScores,
+    scoreFixture,
+    splitBySource,
+    type PhotoEvalFixtureScore,
+} from "../../src/meal-photo/scoring.js";
+import type { FoodCandidate } from "../../src/food-providers/types.js";
 
 /**
  * S3 photo-eval fixture harness (skeleton, track T5).
@@ -60,6 +71,7 @@ interface ItemExpectation {
 interface FixtureExpectation {
     id: string;
     file: string;
+    source: string;
     categories: string[];
     items: ItemExpectation[];
 }
@@ -245,25 +257,235 @@ describe("per-PR recorded-response subset", () => {
 });
 
 // ---------------------------------------------------------------------------
-// TODO(S3): pipeline-stage assertions, owned by the S3 photo-logging slice.
-// These are declared (not silently absent) and become real tests when the
-// meal_photo pipeline lands:
-//   - grounding execution: each recorded item name resolves through the
-//     canonical food search in the expected order (local catalog, then
-//     USDA + Open Food Facts) or falls back to a labelled model_estimate;
-//   - draft shape: the pipeline produces a meal draft whose items,
-//     sources, and assumptions match the recorded response;
-//   - accuracy bars (brief section 3): item recall >= 90%, >= 80% of
-//     items provider-grounded, portions within +/-30% for >= 70% of
-//     items, zero fabricated provider IDs or nutrition values, calorie
-//     total within +/-25% on >= 75% of fixtures (nightly live eval).
+// S3 pipeline stages (resolved in the S3 slice): the recorded subset runs
+// the FULL deterministic pipeline per-PR — recorded stage-2 response →
+// grounding through a canonical-search seam → draft-item shape → §3 bar
+// scoring. The fake search below stands in for FoodSearchService (which
+// needs Postgres): it returns one provider candidate per expected item,
+// labelled by the expected provider family ("local catalog" and "USDA"
+// are the same USDA-backed family; the local catalog is cached provider
+// data), and NO candidate for items whose expectation is model_estimate.
+// Nutrition in the fake candidates is provider-supplied test data, so
+// the lane can prove draft nutrition derives from providers only.
+// The nightly LIVE lane (scripts/photo-eval-live.ts) measures the real
+// model + real providers against the same bars.
 // ---------------------------------------------------------------------------
-describe("S3 pipeline stages (owned by the S3 slice)", () => {
-    test.todo(
-        "grounding resolves recorded items via the canonical search order",
+
+function recordedItems(id: string): RecordedItem[] {
+    return readJson<{ response: { items: RecordedItem[] } }>(
+        join("recorded", `${id}.json`),
+    ).response.items;
+}
+
+function fakeCandidate(
+    fixtureId: string,
+    item: ItemExpectation,
+    index: number,
+): FoodCandidate | null {
+    if (item.expected_provider === "model_estimate") return null;
+    const provider =
+        item.expected_provider === "Open Food Facts"
+            ? ("open_food_facts" as const)
+            : ("usda" as const);
+    const mid = (item.portion.min_quantity + item.portion.max_quantity) / 2;
+    const nutrients = {
+        calories: 100,
+        protein_g: 10,
+        carbs_g: 12,
+        fat_g: 4,
+    };
+    return {
+        provider,
+        providerFoodId: `eval-${fixtureId}-${index}`,
+        name: item.name,
+        dataKind: "generic",
+        nutrientsPer100g: nutrients,
+        portions: [
+            {
+                id: "eval-portion",
+                amount: mid,
+                unit: item.portion.unit,
+                label: `${mid} ${item.portion.unit}`,
+                gramWeight: 100,
+                nutrients,
+            },
+        ],
+        attribution: {
+            label:
+                provider === "usda"
+                    ? "USDA FoodData Central"
+                    : "Open Food Facts",
+        },
+        confidence: 0.95,
+    };
+}
+
+function fakeSearchFor(fixture: FixtureExpectation) {
+    const candidates = fixture.items
+        .map((item, index) => fakeCandidate(fixture.id, item, index))
+        .filter((candidate): candidate is FoodCandidate => candidate !== null);
+    const returnedProviderIds = new Set(
+        candidates.map((candidate) => candidate.providerFoodId),
     );
-    test.todo(
-        "pipeline produces a confirmable meal draft from a recorded response",
+    const search = async (query: string) => ({
+        candidates: candidates.filter(
+            (candidate) =>
+                candidate.name.toLowerCase() === query.trim().toLowerCase(),
+        ),
+        failures: [],
+    });
+    return { search, returnedProviderIds };
+}
+
+async function runRecordedPipeline(fixture: FixtureExpectation): Promise<{
+    grounded: GroundedMealPhotoItem[];
+    returnedProviderIds: Set<string>;
+}> {
+    const { search, returnedProviderIds } = fakeSearchFor(fixture);
+    const grounded = await groundMealPhotoItems(recordedItems(fixture.id), {
+        search: search as never,
+    });
+    return { grounded, returnedProviderIds };
+}
+
+async function referenceCalories(fixture: FixtureExpectation): Promise<number> {
+    const { search } = fakeSearchFor(fixture);
+    const goldenItems = fixture.items.map((item) => ({
+        name: item.name,
+        cooking_method: null,
+        quantity: (item.portion.min_quantity + item.portion.max_quantity) / 2,
+        unit: item.portion.unit,
+        portion_confidence: 1,
+        assumptions: [] as string[],
+    }));
+    const grounded = await groundMealPhotoItems(goldenItems, {
+        search: search as never,
+    });
+    return grounded.reduce(
+        (sum, entry) => sum + (entry.draftItem.nutrients.calories ?? 0),
+        0,
     );
-    test.todo("fixture set meets the brief section 3 accuracy bars");
+}
+
+describe("S3 pipeline stages (recorded subset, deterministic)", () => {
+    test("every fixture declares a source (synthetic | real)", () => {
+        for (const fixture of expectations.fixtures) {
+            expect(["synthetic", "real"]).toContain(fixture.source);
+        }
+        const manifestById = new Map(
+            manifest.fixtures.map((entry) => [entry.id, entry]),
+        );
+        for (const fixture of expectations.fixtures) {
+            expect(manifestById.get(fixture.id)?.source).toBe(fixture.source);
+        }
+    });
+
+    test("grounding resolves recorded items via the canonical search order", async () => {
+        for (const id of subset.per_pr_fixture_ids) {
+            const fixture = fixturesById.get(id)!;
+            const { grounded } = await runRecordedPipeline(fixture);
+            expect(grounded).toHaveLength(fixture.items.length);
+            grounded.forEach((entry, index) => {
+                const expected = fixture.items[index]!;
+                if (expected.expected_provider === "model_estimate") {
+                    expect(entry.grounded).toBe(false);
+                    expect(entry.draftItem.sourceType).toBe("model_estimate");
+                    // Nutrition NEVER comes from the model: ungrounded
+                    // items carry empty nutrients, assumptions preserved.
+                    expect(entry.draftItem.nutrients).toEqual({});
+                    expect(entry.draftItem.assumptions).toEqual(
+                        entry.vision.assumptions,
+                    );
+                } else {
+                    expect(entry.grounded).toBe(true);
+                    const expectedFamily =
+                        expected.expected_provider === "Open Food Facts"
+                            ? "Open Food Facts"
+                            : "USDA";
+                    expect(entry.groundingSource).toBe(expectedFamily);
+                    expect(entry.draftItem.providerFoodId).toBe(
+                        `eval-${fixture.id}-${index}`,
+                    );
+                    // Draft nutrition is the provider's, scaled — never
+                    // the recorded response's (it carries none).
+                    expect(entry.draftItem.nutrients.calories).toBeGreaterThan(
+                        0,
+                    );
+                }
+            });
+        }
+    });
+
+    test("pipeline produces a confirmable meal draft shape from a recorded response", async () => {
+        for (const id of subset.per_pr_fixture_ids) {
+            const fixture = fixturesById.get(id)!;
+            const { grounded } = await runRecordedPipeline(fixture);
+            // Draft items: one per vision item, in order, each a valid
+            // StructuredMealItemInput shape for upsertMealDraftItem.
+            for (const entry of grounded) {
+                expect(entry.draftItem.name.length).toBeGreaterThan(0);
+                expect(entry.draftItem.quantity).toBe(entry.vision.quantity);
+                expect(entry.draftItem.portionLabel).toBe(
+                    `${entry.vision.quantity} ${entry.vision.unit}`,
+                );
+                expect(entry.draftItem.confidence).toBe(
+                    entry.vision.portion_confidence,
+                );
+            }
+            // Low-confidence items MUST surface as draft questions.
+            const lowConfidence = grounded.filter(
+                (entry) => entry.vision.portion_confidence < 0.7,
+            );
+            for (const entry of lowConfidence) {
+                expect(entry.needsQuestion).toBe(true);
+                expect(entry.question?.prompt).toContain(entry.vision.name);
+            }
+        }
+        // The poorly-lit and partially-eaten fixtures exercise the
+        // question path with real recorded confidences (0.5–0.65).
+        const poorlyLit = await runRecordedPipeline(
+            fixturesById.get("poorly-lit-01-chicken-rice")!,
+        );
+        expect(poorlyLit.grounded.every((entry) => entry.needsQuestion)).toBe(
+            true,
+        );
+    });
+
+    test("recorded subset meets the brief section 3 accuracy bars (split by source)", async () => {
+        const scores: PhotoEvalFixtureScore[] = [];
+        for (const id of subset.per_pr_fixture_ids) {
+            const fixture = fixturesById.get(id)!;
+            const { grounded, returnedProviderIds } =
+                await runRecordedPipeline(fixture);
+            scores.push(
+                scoreFixture({
+                    fixtureId: fixture.id,
+                    source: fixture.source,
+                    expected: fixture.items,
+                    grounded,
+                    returnedProviderIds,
+                    referenceCalories: await referenceCalories(fixture),
+                }),
+            );
+        }
+        const split = splitBySource(scores);
+        // Per-PR lane bars on the recorded subset: recall, grounding,
+        // portions, and the zero-fabrication hard bar. The calorie bar
+        // is scored and printed here; it is enforced on the full
+        // 40-fixture aggregate by the nightly live lane.
+        expect(split.combined.bars.recall).toBe(true);
+        expect(split.combined.bars.grounded).toBe(true);
+        expect(split.combined.bars.portions).toBe(true);
+        expect(split.combined.bars.fabrication).toBe(true);
+        expect(split.combined.fabricatedIds).toBe(0);
+        expect(split.combined.fabricatedNutrition).toBe(0);
+        // Source split is always printed; with zero real fixtures the
+        // real-photo ship criterion is UNMET by construction.
+        console.info(
+            `[photo-eval] per-PR subset synthetic n=${split.synthetic.fixtures} recall=${split.synthetic.recall.toFixed(2)} grounded=${split.synthetic.groundedShare.toFixed(2)} portions=${split.synthetic.portionWithin30Share.toFixed(2)} calorieWithin25=${split.synthetic.calorieWithin25Share === null ? "n/a" : split.synthetic.calorieWithin25Share.toFixed(2)} | real n=${split.real.fixtures} | real-photo ship criterion met: ${split.realPhotoShipCriterionMet}`,
+        );
+        expect(split.real.fixtures).toBe(0);
+        expect(split.realPhotoShipCriterionMet).toBe(false);
+        expect(aggregateScores(scores).fixtures).toBe(10);
+    });
 });

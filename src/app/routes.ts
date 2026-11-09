@@ -51,6 +51,13 @@ import {
     upsertProfile,
 } from "../storage.js";
 import { getFoodSearchService } from "../food-providers/service.js";
+import { createMealPhotoDraft } from "../meal-photo/pipeline.js";
+import {
+    chooseMealPhotoCandidates,
+    identifyMealPhoto,
+    mealPhotoVisionConfig,
+    MealPhotoNoFoodError,
+} from "../meal-photo/vision.js";
 import { RecipeImportError } from "../recipe-import/fetch.js";
 import { previewRecipeUrl } from "../recipe-import/service.js";
 import { getWebsiteRecipeImportSemanticResolver } from "../recipe-import/semantic-resolver.js";
@@ -201,6 +208,17 @@ function nonnegativeNumber(value: unknown): number | undefined {
 
 function privateJson(c: Context, data: unknown) {
     return c.json(data, 200, {
+        "Cache-Control": "no-store, private",
+        Pragma: "no-cache",
+    });
+}
+
+function privateJsonStatus(
+    c: Context,
+    data: unknown,
+    status: 400 | 422 | 502 | 503,
+) {
+    return c.json(data, status, {
         "Cache-Control": "no-store, private",
         Pragma: "no-cache",
     });
@@ -1390,6 +1408,152 @@ export function createAppRouter(): Hono {
             });
         },
     );
+
+    // S3 photo-logging decider pipeline (brief §3). The credit is
+    // reserved BEFORE any upload processing (task `meal_photo_log`,
+    // 4 credits — the AiTask name in src/billing/ai-credits.ts); the
+    // photo is processed transiently and never retained; failures
+    // refund, a completed estimate does not (the work was done), and
+    // nothing is logged until the user confirms the draft through the
+    // existing confirm path.
+    app.post("/api/app/meal-photo", requireSameOrigin, async (c) => {
+        const userId = c.get("munchUserId");
+        const visionConfig = mealPhotoVisionConfig();
+        if (!visionConfig) {
+            return privateJsonStatus(
+                c,
+                {
+                    error: "meal_photo_unavailable",
+                    message:
+                        "Photo logging is unavailable right now. Manual entry always works.",
+                    manual_entry_available: true,
+                },
+                503,
+            );
+        }
+        const form = await c.req.parseBody();
+        const uploaded = form.file;
+        if (
+            !uploaded ||
+            typeof uploaded !== "object" ||
+            typeof (uploaded as File).arrayBuffer !== "function"
+        ) {
+            return privateJsonStatus(
+                c,
+                {
+                    error: "meal_photo_invalid_image",
+                    message: "Choose a meal photo first.",
+                    manual_entry_available: true,
+                },
+                400,
+            );
+        }
+        const file = uploaded as File;
+        if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
+            return privateJsonStatus(
+                c,
+                {
+                    error: "meal_photo_invalid_image",
+                    message: "Meal photo must be JPEG, PNG, or WebP.",
+                    manual_entry_available: true,
+                },
+                400,
+            );
+        }
+        if (file.size < 1 || file.size > 8 * 1024 * 1024) {
+            return privateJsonStatus(
+                c,
+                {
+                    error: "meal_photo_invalid_image",
+                    message: "Meal photo must be between 1 byte and 8 MB.",
+                    manual_entry_available: true,
+                },
+                400,
+            );
+        }
+        const gate = await requireAiCredits(c, {
+            userId,
+            task: "meal_photo_log",
+            idempotencyKey:
+                typeof form.idempotency_key === "string"
+                    ? form.idempotency_key
+                    : undefined,
+        });
+        if (!gate.allowed) return gate.response;
+        const mealTypeValue =
+            typeof form.meal_type === "string" ? form.meal_type : undefined;
+        const mealType =
+            mealTypeValue === "breakfast" ||
+            mealTypeValue === "lunch" ||
+            mealTypeValue === "dinner" ||
+            mealTypeValue === "snack"
+                ? mealTypeValue
+                : undefined;
+        try {
+            const vision = await identifyMealPhoto(
+                {
+                    mimeType: file.type,
+                    bytes: new Uint8Array(await file.arrayBuffer()),
+                },
+                visionConfig,
+            );
+            const foodSearch = getFoodSearchService();
+            const result = await createMealPhotoDraft({
+                userId,
+                vision,
+                mealType,
+                loggedAt:
+                    typeof form.logged_at === "string"
+                        ? form.logged_at
+                        : undefined,
+                groundingDeps: {
+                    search: (query, limit) => foodSearch.search(query, limit),
+                    chooseCandidates: (requests) =>
+                        chooseMealPhotoCandidates(requests, visionConfig),
+                },
+            });
+            return privateJson(c, {
+                draft: serializeMealDraftForApp(result.draft),
+                transient_media: true,
+                photo_retained: false,
+                grounding: {
+                    items: result.grounded.length,
+                    provider_grounded: result.groundedCount,
+                    questions: result.questionCount,
+                },
+                credits: { task: "meal_photo_log", cost: 4 },
+            });
+        } catch (error) {
+            await refundAiCredits(gate.reservation);
+            if (error instanceof MealPhotoNoFoodError) {
+                return privateJsonStatus(
+                    c,
+                    {
+                        error: "meal_photo_no_food",
+                        message:
+                            "We couldn't find food in that photo — it may be too blurry or too dark. Try retaking it closer, or log the meal manually.",
+                        retake_available: true,
+                        manual_entry_available: true,
+                        transient_media: true,
+                        refunded: true,
+                    },
+                    422,
+                );
+            }
+            return privateJsonStatus(
+                c,
+                {
+                    error: "meal_photo_failed",
+                    message:
+                        "The photo estimate couldn't be completed, so nothing was charged and nothing was logged. You can try again or log the meal manually.",
+                    manual_entry_available: true,
+                    transient_media: true,
+                    refunded: true,
+                },
+                502,
+            );
+        }
+    });
 
     app.get("/api/app/insights", async (c) =>
         privateJson(

@@ -29,6 +29,7 @@ export const MOBILE_CAPABILITY_IDS = [
     "meal.details",
     "nutrition.provenance",
     "meal.import",
+    "meal.photoLog",
     "mealDraft.create",
     "mealDraft.read",
     "mealDraft.review",

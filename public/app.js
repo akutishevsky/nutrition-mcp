@@ -1898,7 +1898,7 @@ async function renderRoute() {
             if (actions && !actions.querySelector('[data-action="add-meal"]')) {
                 actions.insertAdjacentHTML(
                     "afterbegin",
-                    '<button class="button button-primary button-small" data-action="add-meal">Add meal</button><button class="button button-secondary button-small" data-action="start-meal-draft">Start draft</button>',
+                    '<button class="button button-primary button-small" data-action="add-meal">Add meal</button><button class="button button-secondary button-small" data-action="log-by-photo">Log by photo</button><button class="button button-secondary button-small" data-action="start-meal-draft">Start draft</button>',
                 );
             }
         }
@@ -2711,6 +2711,98 @@ async function openMealDraft(id) {
     searchDraftFoods("");
 }
 
+const mealPhotoCapture = { idempotencyKey: null, balance: null, cost: 4 };
+
+async function openMealPhotoDialog() {
+    mealPhotoCapture.idempotencyKey = `web-meal-photo:${crypto.randomUUID()}`;
+    mealPhotoCapture.balance = null;
+    openDialog(
+        "Log by photo",
+        `<div class="meal-photo-capture">
+            <p class="meal-photo-lede">Photograph your meal and Munch will estimate the items and portions into a reviewable draft. Nothing is logged until you confirm the draft, and the photo itself is processed transiently — it is never kept.</p>
+            <label class="field"><span>Meal photo</span><input id="meal-photo-file" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" /></label>
+            <label class="field"><span>Meal type</span><select id="meal-photo-meal-type"><option value="breakfast">Breakfast</option><option value="lunch" selected>Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
+            <p class="tiny" id="meal-photo-credits" role="status">Checking your AI credit balance…</p>
+            <p class="tiny meal-photo-status" id="meal-photo-status" role="alert"></p>
+            <div class="auth-actions">
+                <button class="button button-primary" type="button" data-action="submit-meal-photo" id="meal-photo-submit">Estimate my meal</button>
+                <button class="button button-secondary" type="button" data-action="meal-photo-manual">Log manually instead</button>
+            </div>
+        </div>`,
+    );
+    try {
+        const settings = await api("/api/app/settings", { keepPrevious: true });
+        const credits = settings.aiCredits;
+        const line = document.getElementById("meal-photo-credits");
+        if (!line) return;
+        if (!credits) {
+            line.textContent =
+                "AI credits could not be checked right now; the estimate will pause safely if the check fails. Manual entry always works.";
+            return;
+        }
+        mealPhotoCapture.balance = credits.balance;
+        mealPhotoCapture.cost = credits.taskCosts?.meal_photo_log ?? 4;
+        if (credits.balance < mealPhotoCapture.cost) {
+            line.textContent = `This estimate uses ${mealPhotoCapture.cost} AI credits and your balance is ${credits.balance}, so the photo estimate can't run this month. Manual entry always works and never uses credits.`;
+            const submit = document.getElementById("meal-photo-submit");
+            if (submit) submit.disabled = true;
+        } else {
+            line.textContent = `This estimate uses ${mealPhotoCapture.cost} AI credits — your balance is ${credits.balance}. You are only charged when an estimate is completed; a failed or unreadable photo is refunded.`;
+        }
+    } catch {
+        const line = document.getElementById("meal-photo-credits");
+        if (line) {
+            line.textContent =
+                "AI credits could not be checked right now; manual entry always works.";
+        }
+    }
+}
+
+async function submitMealPhoto() {
+    const status = document.getElementById("meal-photo-status");
+    const submit = document.getElementById("meal-photo-submit");
+    const input = document.getElementById("meal-photo-file");
+    const file = input?.files?.[0];
+    const say = (message) => {
+        if (status) status.textContent = message;
+    };
+    if (!file) return say("Choose a meal photo first.");
+    if (file.size > 8 * 1024 * 1024) {
+        return say("That photo is over the 8 MB limit — choose a smaller one.");
+    }
+    const form = new FormData();
+    form.append("file", file);
+    form.append(
+        "meal_type",
+        document.getElementById("meal-photo-meal-type")?.value || "lunch",
+    );
+    form.append("logged_at", `${state.date}T12:00:00.000Z`);
+    if (mealPhotoCapture.idempotencyKey) {
+        form.append("idempotency_key", mealPhotoCapture.idempotencyKey);
+    }
+    if (submit) submit.disabled = true;
+    say("Estimating items and portions…");
+    try {
+        const result = await api("/api/app/meal-photo", {
+            method: "POST",
+            body: form,
+        });
+        await openMealDraft(result.draft.id);
+    } catch (error) {
+        if (submit) submit.disabled = false;
+        if (error.status === 402) {
+            say(
+                `${error.message} Use “Log manually instead” below — it always works.`,
+            );
+        } else {
+            say(
+                error.message ||
+                    "The photo estimate failed. Nothing was logged.",
+            );
+        }
+    }
+}
+
 function foodTitle(food) {
     return [food.brand, food.name].filter(Boolean).join(" — ") || "Food";
 }
@@ -3295,6 +3387,9 @@ async function handleAction(button) {
         return renderRoute();
     if (action === "add-meal") return openMealComposer();
     if (action === "start-meal-draft") return openMealDraftComposer();
+    if (action === "log-by-photo") return openMealPhotoDialog();
+    if (action === "submit-meal-photo") return submitMealPhoto();
+    if (action === "meal-photo-manual") return openMealComposer();
     if (action === "new-cook") return openCookCreate();
     if (action === "add-cook-dish") {
         document

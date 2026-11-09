@@ -76,3 +76,19 @@ draft shape, accuracy bars) are declared in the test file as
 `test.todo` entries marked `TODO(S3)` — owned by the S3 slice, not
 silently absent. The nightly live eval over all 40 fixtures also belongs
 to S3.
+
+## S3 wiring (added with the pipeline)
+
+- `photo-eval.test.ts` now runs the FULL deterministic pipeline per-PR on
+  the 10-fixture recorded subset (stage-2 schema → grounding → draft
+  shape → §3 bars), via `src/meal-photo/`.
+- The nightly LIVE lane is `.github/workflows/photo-eval.yml` running
+  `scripts/photo-eval-live.ts` against all 40 fixtures; it uploads a
+  report artifact and maintains `trend.json` history in the artifact.
+- Every fixture carries a `source` field (`synthetic` | `real`) in both
+  `manifest.json` and `expectations.json`. Reports print scores SPLIT by
+  source plus combined. The set is 100% synthetic today (real n=0), so
+  the real-photo ship criterion — a real subset that exists AND passes
+  the bars — is UNMET by construction until Michael seeds real meal
+  photos (one JPEG + one manifest/expectations row per fixture).
+  Synthetic illustration scores are never photographic accuracy.

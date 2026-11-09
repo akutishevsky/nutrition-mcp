@@ -1,0 +1,20 @@
+{
+    "choices": [
+        {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+                "content": "{\"items\":[{\"name\":\"grilled chicken breast\",\"cooking_method\":\"grilled\",\"quantity\":160,\"unit\":\"g\",\"portion_confidence\":0.85,\"assumptions\":[\"assumed skinless breast\"]},{\"name\":\"cooked white rice\",\"cooking_method\":\"steamed\",\"quantity\":1.1,\"unit\":\"cup\",\"portion_confidence\":0.8,\"assumptions\":[]}]}",
+                "role": "assistant"
+            }
+        }
+    ],
+    "id": "chatcmpl-fixture-meal-photo",
+    "model": "meta/muse-ember",
+    "object": "chat.completion",
+    "usage": {
+        "completion_tokens": 118,
+        "prompt_tokens": 1210,
+        "total_tokens": 1328
+    }
+}
