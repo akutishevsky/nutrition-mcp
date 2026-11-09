@@ -39,5 +39,8 @@ direction round (Facts Panel direction; contract in
 geometry was drawn as SVG in-repo; the exploratory AI-generated comps in
 `.impeccable/mocks/` are decision records, not sources.
 
-Known follow-up: `public/og.png` (1200×630 social card) still composes
-the retired M mark and needs a redesign pass.
+Social card: `public/og.png` (1200×630) composes the primary glyph on
+`#FCFDF9` beside the headline "Persistent nutrition / for ChatGPT" (dark
+`#16221B` over brand green) and two subtext lines in `#55635B`. Its
+source is `public/og.svg` — copy preserved verbatim from the previous
+card; re-render with `ffmpeg -y -i public/og.svg public/og.png`.
