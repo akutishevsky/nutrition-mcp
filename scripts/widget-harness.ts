@@ -232,6 +232,59 @@ const RESULTS: Record<string, unknown> = {
         ],
         drink_unit: null,
     },
+    "cook-summary": {
+        cook: {
+            id: "00000000-0000-4000-8000-0000000000c1",
+            title: "Smoked brisket",
+            status: "finished",
+            cook_date: "2026-08-02",
+            notes: "Oak smoke, wrapped at the stall.",
+        },
+        dishes: [{ name: "Brisket" }, { name: "Burnt ends" }],
+        updates: [],
+        events: [
+            {
+                event_at: "2026-08-02T06:00:00Z",
+                event_type: "started",
+                note: "Brisket on the smoker",
+                setpoint_temperature: 250,
+                setpoint_unit: "F",
+            },
+            {
+                event_at: "2026-08-02T09:15:00Z",
+                event_type: "checked",
+                note: "Bark setting up",
+            },
+            {
+                event_at: "2026-08-02T12:30:00Z",
+                event_type: "wrapped",
+                note: "Wrapped in butcher paper",
+                internal_temperature: 165,
+                internal_unit: "F",
+            },
+            {
+                event_at: "2026-08-02T15:40:00Z",
+                event_type: "checked",
+                note: "Probe sliding in",
+            },
+            {
+                event_at: "2026-08-02T18:45:00Z",
+                event_type: "finished",
+                note: "Probe tender",
+                internal_temperature: 203,
+                internal_unit: "F",
+            },
+        ],
+        outcomes: [
+            {
+                dish_id: null,
+                written_feedback:
+                    "Tender and juicy; bark held up after the wrap.",
+                next_time_notes: "Rest a full hour before slicing.",
+            },
+        ],
+        media: [],
+    },
 };
 
 // Slice-1 state/longest fixtures for the Facts Panel port. Selected with
@@ -344,6 +397,221 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
             meals: [],
         },
         error: { error: "Goal progress could not be read. Try again in chat." },
+    },
+    "cook-summary": {
+        // Longest realistic payload: 12 timeline events + 4 photos.
+        // Inline must carry only the last 5 events; the photo grid and
+        // full timeline are fullscreen-only. Result line = written_feedback.
+        long: {
+            cook: {
+                id: "00000000-0000-4000-8000-0000000000c2",
+                title: "Low-and-slow pork shoulder for the family cookout",
+                status: "finished",
+                cook_date: "2026-08-09",
+                notes: "Hickory and oak.",
+            },
+            dishes: [
+                {
+                    name: "Pork shoulder",
+                    method: "smoked",
+                    equipment: "offset smoker",
+                },
+                { name: "Slaw" },
+            ],
+            updates: [],
+            events: Array.from({ length: 12 }, (_, i) => ({
+                event_at: `2026-08-09T${String(5 + i).padStart(2, "0")}:05:00Z`,
+                event_type: [
+                    "started",
+                    "checked",
+                    "spritzed",
+                    "checked",
+                    "wrapped",
+                    "checked",
+                    "checked",
+                    "rested",
+                    "checked",
+                    "pulled",
+                    "sauced",
+                    "finished",
+                ][i],
+                note: `Step ${i + 1} of the cook`,
+                internal_temperature: i === 11 ? 205 : undefined,
+                internal_unit: i === 11 ? "F" : undefined,
+            })),
+            outcomes: [
+                {
+                    dish_id: null,
+                    written_feedback: "Pulled clean, still juicy at serving.",
+                    next_time_notes: "Start an hour earlier next time.",
+                },
+            ],
+            media: [1, 2, 3, 4].map((n) => ({
+                url: `https://munch.business/cook-photos/long-${n}.jpg`,
+                caption: `Cook photo ${n}`,
+                file_name: `long-${n}.jpg`,
+            })),
+        },
+        // NEW empty state: zero-result search_cooks (audit Fix / slice 4).
+        "empty-search": { cooks: [] },
+        search: {
+            cooks: [
+                {
+                    title: "Smoked brisket",
+                    cook_date: "2026-08-02",
+                    status: "finished",
+                },
+                {
+                    title: "Weeknight chicken",
+                    cook_date: "2026-07-27",
+                    status: "finished",
+                },
+                {
+                    title: "Ribs, first attempt",
+                    cook_date: "2026-07-19",
+                    status: "finished",
+                },
+            ],
+        },
+        // finish_cook payload shape: { cook: <record> } only.
+        finish: {
+            cook: {
+                id: "00000000-0000-4000-8000-0000000000c3",
+                title: "Weeknight chicken",
+                status: "finished",
+                cook_date: "2026-08-10",
+            },
+        },
+        // Partial state: the cook saved, two photos need a retry.
+        "photo-fail": {
+            cook_id: "00000000-0000-4000-8000-0000000000c4",
+            recorded: true,
+            media_failures: [
+                {
+                    file_name: "IMG_2041.jpg",
+                    message: "The photo was not saved: download failed",
+                },
+                {
+                    file_name: "IMG_2042.jpg",
+                    message: "The photo was not saved: download failed",
+                },
+            ],
+            cook: {
+                cook: {
+                    id: "00000000-0000-4000-8000-0000000000c4",
+                    title: "Ribs, second attempt",
+                    status: "active",
+                    cook_date: "2026-08-11",
+                    notes: "",
+                },
+                dishes: [{ name: "Spare ribs" }],
+                updates: [],
+                events: [
+                    {
+                        event_at: "2026-08-11T10:00:00Z",
+                        event_type: "started",
+                        note: "Ribs on",
+                    },
+                ],
+                outcomes: [],
+                media: [],
+            },
+        },
+        error: { error: "The cook could not be read. Try again in chat." },
+    },
+    "import-meals": {
+        // bulk_import_meals direct payload (Fix 6): 8 rows -> 5 created,
+        // 1 deduplicated, 2 failed with per-row errors, 1 skipped by caller.
+        results: {
+            status: "partial_success",
+            dry_run: false,
+            summary: {
+                total: 8,
+                created: 5,
+                deduplicated: 1,
+                would_create: 0,
+                failed: 2,
+                not_attempted: 0,
+                duplicate_rows_in_file: 0,
+                rows_without_calories: 1,
+                skipped_by_caller: 1,
+            },
+            warnings: [
+                "1 row(s) had no meal type in the source; it was inferred from the time of day.",
+            ],
+            results: [
+                ...[2, 3, 4, 5, 6].map((line, i) => ({
+                    index: i,
+                    source_line: line,
+                    client_row_id: null,
+                    status: "created",
+                    meal_id: `m-${line}`,
+                    description: `Meal ${line}`,
+                    logged_at: "2026-08-01T12:00:00Z",
+                    meal_type: "lunch",
+                    meal_type_inferred: false,
+                    description_synthesized: false,
+                    logged_at_from_bare_date: false,
+                    error: null,
+                })),
+                {
+                    index: 5,
+                    source_line: 7,
+                    client_row_id: null,
+                    status: "deduplicated",
+                    meal_id: "m-7",
+                    description: "Meal 7",
+                    logged_at: "2026-08-01T18:00:00Z",
+                    meal_type: "dinner",
+                    meal_type_inferred: false,
+                    description_synthesized: false,
+                    logged_at_from_bare_date: false,
+                    error: null,
+                },
+                {
+                    index: 6,
+                    source_line: 8,
+                    client_row_id: null,
+                    status: "failed",
+                    meal_id: null,
+                    description: null,
+                    logged_at: null,
+                    meal_type: null,
+                    meal_type_inferred: false,
+                    description_synthesized: false,
+                    logged_at_from_bare_date: false,
+                    error: {
+                        code: "invalid_logged_at",
+                        field: "logged_at",
+                        message:
+                            "logged_at is invalid: that calendar date does not exist",
+                        suggested_fix: "Check for a day/month swap.",
+                        retryable: true,
+                    },
+                },
+                {
+                    index: 7,
+                    source_line: 9,
+                    client_row_id: null,
+                    status: "failed",
+                    meal_id: null,
+                    description: null,
+                    logged_at: null,
+                    meal_type: null,
+                    meal_type_inferred: false,
+                    description_synthesized: false,
+                    logged_at_from_bare_date: false,
+                    error: {
+                        code: "missing_description",
+                        field: "description",
+                        message:
+                            "description is required and could not be synthesized",
+                        suggested_fix: "Map a food-name column.",
+                        retryable: true,
+                    },
+                },
+            ],
+        },
     },
 };
 

@@ -1243,6 +1243,7 @@ export function registerTools(
                 idempotentHint: true,
                 openWorldHint: false,
             },
+            ...uiMeta(IMPORT_MEALS_WIDGET_URI),
         },
         async (args) => {
             return withAnalytics(
