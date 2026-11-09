@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Pantry</title>
+        <style>
+            /*@include shared/tokens.css@*/
+            /*@include shared/base.css@*/
+            /*@include shared/facts.css@*/
+            .pn-section {
+                font-size: 15px;
+                font-weight: 650;
+                margin: 14px 0 2px;
+            }
+            .pn-note {
+                font-size: 12.5px;
+                color: var(--text-dim);
+                margin-top: 3px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+        <script>
+            "use strict";
+            /*@include shared/bridge.js@*/
+            /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
+            const SAMPLE = {
+                enabled: true,
+                inventorySpaceId: "sample-space",
+                items: [
+                    {
+                        id: "sample-p1",
+                        name: "Rolled oats",
+                        quantity: 900,
+                        unit: "g",
+                        quantity_mode: "exact",
+                        stock_state: "available",
+                        location: "pantry",
+                        food_provider: "usda",
+                        note: null,
+                    },
+                    {
+                        id: "sample-p2",
+                        name: "Eggs",
+                        quantity: 6,
+                        unit: null,
+                        quantity_mode: "exact",
+                        stock_state: "low",
+                        location: "fridge",
+                        food_provider: null,
+                        note: null,
+                    },
+                    {
+                        id: "sample-p3",
+                        name: "Olive oil",
+                        quantity: 0.5,
+                        unit: "bottle",
+                        quantity_mode: "approximate",
+                        stock_state: "available",
+                        location: "pantry",
+                        food_provider: null,
+                        note: null,
+                    },
+                ],
+            };
+            let API = null;
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
+                if (Array.isArray(payload.operations))
+                    return { mode: "reconcile", ...payload };
+                if (Array.isArray(payload.lines) && payload.summary)
+                    return { mode: "purchase", ...payload };
+                if (Array.isArray(payload.items))
+                    return { mode: "list", ...payload };
+                if (payload.enabled === false)
+                    return { mode: "list", enabled: false, items: [] };
+                if (typeof payload.text === "string") {
+                    if (/not enabled/i.test(payload.text))
+                        return { mode: "list", enabled: false, items: [] };
+                    return { __error: payload.text };
+                }
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
+                return null;
+            }
+            function bindExpand() {
+                document
+                    .getElementById("details")
+                    ?.addEventListener("click", async () => {
+                        const result = await API?.requestDisplayMode(
+                            "fullscreen",
+                        ).catch(() => null);
+                        if (!result || result.unsupported)
+                            document.getElementById("details").textContent =
+                                "Details unavailable";
+                    });
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
+            }
+            function providerLabel(provider) {
+                if (!provider) return "Your pantry entries";
+                if (provider === "usda") return "USDA FoodData Central";
+                if (provider === "open_food_facts") return "Open Food Facts";
+                return provider;
+            }
+            function qtyText(item) {
+                if (item.quantity_mode === "presence_only") return "On hand";
+                if (item.quantity == null)
+                    return item.stock_state === "depleted"
+                        ? "Used up"
+                        : "On hand";
+                const prefix = item.quantity_mode === "approximate" ? "~" : "";
+                return `${prefix}${fmt(item.quantity, Number(item.quantity) % 1 ? 1 : 0)}${item.unit ? ` ${item.unit}` : ""}`;
+            }
+            function stockNote(item) {
+                if (item.stock_state === "low") return " · running low";
+                if (item.stock_state === "depleted") return " · used up";
+                return "";
+            }
+            function listLabelRow(item) {
+                return factsLabelRow({
+                    name: item.name,
+                    ofText: `${item.location || "pantry"}${stockNote(item)}`,
+                    valueText: qtyText(item),
+                    showBar: false,
+                    source: providerLabel(item.food_provider),
+                });
+            }
+            function renderList(data) {
+                if (data.enabled === false) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Pantry", "")}${factsState("empty", "Pantry is not turned on", "Turn on Pantry in your Munch account settings and your inventory will show up here.")}<div class="f-foot"><span>Every number traces to its source</span><span>Your pantry entries</span></div></article>`;
+                    return;
+                }
+                const items = Array.isArray(data.items)
+                    ? data.items.slice()
+                    : [];
+                if (!items.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Pantry", "")}${factsState("empty", "Your pantry is empty", "Add what you have on hand in chat and it will be listed here.")}<div class="f-foot"><span>Every number traces to its source</span><span>Your pantry entries</span></div></article>`;
+                    return;
+                }
+                const low = items.filter(
+                    (item) => item.stock_state === "low",
+                ).length;
+                const approximate = items.some(
+                    (item) => item.quantity_mode === "approximate",
+                );
+                const compact = items.length > 6;
+                const rowFor = compact
+                    ? (item) =>
+                          factsCompactRow({
+                              name: item.name,
+                              meta: `${item.location || "pantry"}${stockNote(item)}`,
+                              valueText: qtyText(item),
+                          })
+                    : listLabelRow;
+                // The estimates banner is inline content too, so it
+                // consumes one row of the fold budget when it shows.
+                const inlineItems = items.slice(0, approximate ? 4 : 5);
+                const restItems = items.slice(inlineItems.length);
+                const hidden = restItems.length;
+                const banner = approximate
+                    ? factsBanner(
+                          "",
+                          `<b>Amounts marked ~ are estimates.</b> You saved those quantities as approximate, so treat them as a guide rather than an exact count.`,
+                      )
+                    : "";
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand("Pantry", `${items.length} item${items.length === 1 ? "" : "s"}`)}
+        <div class="f-body">
+        ${factsHero(`${items.length} <span class="f-hero-unit">items</span>`, "on hand right now", low ? `${low}` : "", low ? `running low` : "")}
+        <div class="f-src">Source · <b>Your pantry entries</b></div>
+        ${banner}
+        <div class="f-rule-heavy"></div>
+        ${inlineItems.map(rowFor).join("")}
+        ${hidden > 0 ? `<button class="f-more-row inline-only" id="details">…and ${hidden} more</button><div class="fullscreen-only"><div class="f-rule-med"></div><h2 class="pn-section">${hidden} more item${hidden === 1 ? "" : "s"}</h2>${restItems.map((item) => `${listLabelRow(item)}${item.note ? `<div class="pn-note">${esc(item.note)}</div>` : ""}`).join("")}<div class="actions"><button class="btn" id="close">Return to chat</button></div></div>` : ""}
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Your pantry entries</span></div>
+    </article>`;
+                bindExpand();
+            }
+            const RECONCILE_GROUPS = [
+                {
+                    key: "added",
+                    title: "Added",
+                    actions: ["acquire"],
+                    verb: "Added",
+                },
+                {
+                    key: "removed",
+                    title: "Removed or used up",
+                    actions: [
+                        "consume",
+                        "consume_all",
+                        "discard",
+                        "mark_depleted",
+                    ],
+                    verb: "Removed",
+                },
+                {
+                    key: "adjusted",
+                    title: "Adjusted",
+                    actions: ["correct", "move", "mark_low"],
+                    verb: "Adjusted",
+                },
+            ];
+            const ACTION_LABEL = {
+                acquire: "Added",
+                consume: "Used some",
+                consume_all: "Used up",
+                discard: "Discarded",
+                mark_depleted: "Marked used up",
+                correct: "Quantity corrected",
+                move: "Moved",
+                mark_low: "Marked running low",
+            };
+            function groupOps(operations) {
+                const groups = RECONCILE_GROUPS.map((group) => ({
+                    ...group,
+                    ops: operations.filter((op) =>
+                        group.actions.includes(op.action),
+                    ),
+                }));
+                const known = new Set(
+                    RECONCILE_GROUPS.flatMap((group) => group.actions),
+                );
+                const other = operations.filter((op) => !known.has(op.action));
+                if (other.length)
+                    groups.push({
+                        key: "other",
+                        title: "Other changes",
+                        actions: [],
+                        verb: "Changed",
+                        ops: other,
+                    });
+                return groups.filter((group) => group.ops.length);
+            }
+            function renderReconcile(data) {
+                const operations = Array.isArray(data.operations)
+                    ? data.operations
+                    : [];
+                if (!operations.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Pantry update", "")}${factsState("empty", "No pantry changes", "This update did not change anything in your pantry.")}<div class="f-foot"><span>Every number traces to its source</span><span>Pantry changes you confirmed</span></div></article>`;
+                    return;
+                }
+                const groups = groupOps(operations);
+                const deduped = operations.filter(
+                    (op) => op.deduplicated,
+                ).length;
+                const groupRows = groups
+                    .map((group) =>
+                        factsCompactRow({
+                            name: group.title,
+                            valueText: `${group.ops.length} item${group.ops.length === 1 ? "" : "s"}`,
+                        }),
+                    )
+                    .join("");
+                const detail = groups
+                    .map(
+                        (group) =>
+                            `<h2 class="pn-section">${esc(group.title)} (${group.ops.length})</h2>${group.ops
+                                .map((op) =>
+                                    factsLabelRow({
+                                        name: op.item?.name || "Pantry item",
+                                        ofText:
+                                            ACTION_LABEL[op.action] ||
+                                            op.action,
+                                        valueText: op.item
+                                            ? qtyText(op.item)
+                                            : "",
+                                        showBar: false,
+                                        source: "Pantry change you confirmed",
+                                    }),
+                                )
+                                .join("")}`,
+                    )
+                    .join("");
+                const banner = deduped
+                    ? factsBanner(
+                          "",
+                          `<b>${deduped} change${deduped === 1 ? " was" : "s were"} already applied earlier</b> and ${deduped === 1 ? "was" : "were"} not repeated.`,
+                      )
+                    : "";
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand("Pantry update", "Review")}
+        <div class="f-body">
+        ${factsHero(`${operations.length} <span class="f-hero-unit">changes</span>`, "applied to your pantry", "", "")}
+        <div class="f-src">Source · <b>Pantry changes you confirmed</b></div>
+        ${banner}
+        <div class="f-rule-heavy"></div>
+        ${groupRows}
+        <button class="f-more-row inline-only" id="details">Review all ${operations.length} changes</button>
+        <div class="fullscreen-only">
+        ${detail}
+        <div class="actions"><button class="btn" id="close">Return to chat</button></div>
+        </div>
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Pantry changes you confirmed</span></div>
+    </article>`;
+                bindExpand();
+            }
+            const PURCHASE_GROUPS = [
+                {
+                    key: "grocery_matched",
+                    title: "Matched to your grocery list",
+                },
+                { key: "inventory_added", title: "Added to pantry" },
+                { key: "needs_review", title: "Needs your review" },
+                { key: "ignored_non_food", title: "Not food — skipped" },
+            ];
+            function renderPurchase(data) {
+                const lines = Array.isArray(data.lines) ? data.lines : [];
+                if (!lines.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Purchase check", "")}${factsState("empty", "Nothing to check", "This purchase had no lines to match against your list or pantry.")}<div class="f-foot"><span>Every number traces to its source</span><span>Your purchase list</span></div></article>`;
+                    return;
+                }
+                const groups = PURCHASE_GROUPS.map((group) => ({
+                    ...group,
+                    lines: lines.filter((line) => line.action === group.key),
+                })).filter((group) => group.lines.length);
+                const reviewCount = lines.filter(
+                    (line) => line.action === "needs_review",
+                ).length;
+                const groupRows = groups
+                    .map((group) =>
+                        factsCompactRow({
+                            name: group.title,
+                            valueText: `${group.lines.length} line${group.lines.length === 1 ? "" : "s"}`,
+                        }),
+                    )
+                    .join("");
+                const detail = groups
+                    .map(
+                        (group) =>
+                            `<h2 class="pn-section">${esc(group.title)} (${group.lines.length})</h2>${group.lines
+                                .map((line) =>
+                                    factsLabelRow({
+                                        name: line.name,
+                                        ofText:
+                                            line.confidence != null
+                                                ? `match confidence ${Math.round(Number(line.confidence) * 100)}%`
+                                                : "",
+                                        valueText:
+                                            line.quantity == null
+                                                ? line.unit || "—"
+                                                : `${fmt(line.quantity, Number(line.quantity) % 1 ? 1 : 0)}${line.unit ? ` ${line.unit}` : ""}`,
+                                        showBar: false,
+                                        source: "Your purchase list",
+                                    }),
+                                )
+                                .join("")}`,
+                    )
+                    .join("");
+                const banner =
+                    (reviewCount
+                        ? factsBanner(
+                              "warn",
+                              `<b>${reviewCount} line${reviewCount === 1 ? " needs" : "s need"} your review.</b> Check ${reviewCount === 1 ? "it" : "them"} in the full list.`,
+                          )
+                        : "") +
+                    (data.deduplicated
+                        ? factsBanner(
+                              "",
+                              `<b>This purchase was already checked earlier</b> — nothing was applied twice.`,
+                          )
+                        : "");
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand("Purchase check", `${lines.length} line${lines.length === 1 ? "" : "s"}`)}
+        <div class="f-body">
+        ${banner}
+        <div class="f-rule-heavy"></div>
+        ${groupRows}
+        <button class="f-more-row inline-only" id="details">Review all ${lines.length} lines</button>
+        <div class="fullscreen-only">
+        ${detail}
+        <div class="actions"><button class="btn" id="close">Return to chat</button></div>
+        </div>
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Your purchase list</span></div>
+    </article>`;
+                bindExpand();
+            }
+            function render(data) {
+                if (data.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Pantry",
+                        "",
+                        "error",
+                        "Could not load your pantry",
+                        "Something went wrong reading your pantry. Try again in chat.",
+                    );
+                    return;
+                }
+                if (data.mode === "reconcile") return renderReconcile(data);
+                if (data.mode === "purchase") return renderPurchase(data);
+                return renderList(data);
+            }
+            initWidget({
+                name: "pantry-widget",
+                displayModes: ["inline", "fullscreen"],
+                loading:
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Pantry</span></div><div class="f-state"><strong>Loading your pantry</strong><span>Reading your inventory…</span></div></article>',
+                coerce,
+                render,
+                sample: SAMPLE,
+                onReady(api) {
+                    API = api;
+                },
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Grocery List</title>
+        <style>
+            /*@include shared/tokens.css@*/
+            /*@include shared/base.css@*/
+            /*@include shared/facts.css@*/
+            .g-check {
+                flex: none;
+                width: 18px;
+                height: 18px;
+                border: 1.5px solid var(--text-dim);
+                border-radius: 4px;
+                display: inline-grid;
+                place-items: center;
+                align-self: center;
+                font-size: 12px;
+                font-weight: 800;
+                color: var(--facts-primary-ink);
+            }
+            .g-check.done {
+                background: var(--facts-fill);
+                border-color: var(--facts-fill);
+            }
+            .g-name-bought {
+                color: var(--text-dim);
+                text-decoration: line-through;
+            }
+            .g-section {
+                font-size: 15px;
+                font-weight: 650;
+                margin: 14px 0 2px;
+            }
+            .g-note {
+                font-size: 12.5px;
+                color: var(--text-dim);
+                margin-top: 3px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap" id="root"></div>
+        <script>
+            "use strict";
+            /*@include shared/bridge.js@*/
+            /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
+            const SAMPLE = {
+                grocery: {
+                    groceryListId: "sample-list",
+                    items: [
+                        {
+                            grocery_item_id: "sample-g1",
+                            name: "Rolled oats",
+                            quantity: 1,
+                            unit: "bag",
+                            note: null,
+                            purchased_at: null,
+                            source_recipe_id: "sample-recipe",
+                            source_planned_meal_id: null,
+                        },
+                        {
+                            grocery_item_id: "sample-g2",
+                            name: "Chicken breast",
+                            quantity: 800,
+                            unit: "g",
+                            note: null,
+                            purchased_at: null,
+                            source_recipe_id: "sample-recipe",
+                            source_planned_meal_id: null,
+                        },
+                        {
+                            grocery_item_id: "sample-g3",
+                            name: "Eggs",
+                            quantity: 12,
+                            unit: null,
+                            note: "Free-range if available",
+                            purchased_at: "2026-08-05T09:12:00Z",
+                            source_recipe_id: null,
+                            source_planned_meal_id: null,
+                        },
+                    ],
+                },
+            };
+            let API = null;
+            function coerce(payload) {
+                if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
+                if (payload.grocery && Array.isArray(payload.grocery.items))
+                    return payload;
+                if (Array.isArray(payload.items))
+                    return { grocery: { items: payload.items } };
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
+                return null;
+            }
+            function bindExpand() {
+                document
+                    .getElementById("details")
+                    ?.addEventListener("click", async () => {
+                        const result = await API?.requestDisplayMode(
+                            "fullscreen",
+                        ).catch(() => null);
+                        if (!result || result.unsupported)
+                            document.getElementById("details").textContent =
+                                "Details unavailable";
+                    });
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
+            }
+            function qtyText(item) {
+                if (item.quantity == null)
+                    return item.unit ? esc(item.unit) : "—";
+                const qty = fmt(
+                    item.quantity,
+                    Number(item.quantity) % 1 ? 1 : 0,
+                );
+                return item.unit ? `${qty} ${esc(item.unit)}` : qty;
+            }
+            function sourceOf(item) {
+                if (item.source_recipe_id) return "Planned recipe";
+                if (item.source_planned_meal_id) return "Meal plan";
+                return "Added to your list";
+            }
+            function labelRow(item) {
+                return `<div class="f-lrow"><div class="f-lrow-top"><span class="g-check${item.purchased_at ? " done" : ""}" aria-hidden="true">${item.purchased_at ? "✓" : ""}</span><span class="f-lrow-name${item.purchased_at ? " g-name-bought" : ""}">${esc(item.name)}</span><span class="f-lrow-val num">${qtyText(item)}</span></div>${item.note ? `<div class="g-note">${esc(item.note)}</div>` : ""}<div class="f-src">Source · <b>${esc(sourceOf(item))}</b></div></div>`;
+            }
+            function compactRow(item) {
+                return factsCompactRow({
+                    name: item.purchased_at ? `✓ ${item.name}` : item.name,
+                    meta:
+                        item.note ||
+                        (item.source_recipe_id
+                            ? "from a recipe"
+                            : item.purchased_at
+                              ? "purchased"
+                              : ""),
+                    valueText:
+                        item.quantity == null
+                            ? item.unit || "—"
+                            : `${fmt(item.quantity, Number(item.quantity) % 1 ? 1 : 0)}${item.unit ? ` ${item.unit}` : ""}`,
+                });
+            }
+            function render(data) {
+                if (data.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Grocery list",
+                        "",
+                        "error",
+                        "Could not load your grocery list",
+                        "Something went wrong reading the list. Try again in chat.",
+                    );
+                    return;
+                }
+                const items = Array.isArray(data.grocery?.items)
+                    ? data.grocery.items.slice()
+                    : [];
+                if (!items.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Grocery list", "")}${factsState("empty", "Your grocery list is empty", "Add items in chat, or plan a recipe and its ingredients will land here.")}<div class="f-foot"><span>Every number traces to its source</span><span>Your grocery list</span></div></article>`;
+                    return;
+                }
+                // Still-to-buy first (grouped by recipe source), purchased last.
+                const ordered = items.sort(
+                    (a, b) =>
+                        Number(!!a.purchased_at) - Number(!!b.purchased_at) ||
+                        Number(!!b.source_recipe_id) -
+                            Number(!!a.source_recipe_id),
+                );
+                const toBuy = ordered.filter((item) => !item.purchased_at);
+                const bought = ordered.filter((item) => item.purchased_at);
+                const compact = ordered.length > 6;
+                const rowFor = compact ? compactRow : labelRow;
+                const inlineItems = ordered.slice(0, 5);
+                const restItems = ordered.slice(5);
+                const hidden = restItems.length;
+                // Fullscreen carries only the items past the inline fold,
+                // grouped the same way (still to buy, then purchased).
+                const restToBuy = restItems.filter(
+                    (item) => !item.purchased_at,
+                );
+                const restBought = restItems.filter(
+                    (item) => item.purchased_at,
+                );
+                const fullSections = [];
+                if (restToBuy.length)
+                    fullSections.push(
+                        `<h2 class="g-section">Still to buy — ${restToBuy.length} more</h2>${restToBuy.map(labelRow).join("")}`,
+                    );
+                if (restBought.length)
+                    fullSections.push(
+                        `<h2 class="g-section">Purchased — ${restBought.length} more</h2>${restBought.map(labelRow).join("")}`,
+                    );
+                const note =
+                    bought.length && toBuy.length
+                        ? `<div class="f-note"><b>${bought.length} of ${ordered.length}</b> already purchased — purchased items sit after the ones still to buy.</div>`
+                        : "";
+                document.getElementById("root").innerHTML =
+                    `<article class="card">
+        ${factsBand("Grocery list", `${ordered.length} item${ordered.length === 1 ? "" : "s"}`)}
+        <div class="f-body">
+        ${factsHero(`${toBuy.length} <span class="f-hero-unit">items</span>`, "still to buy", `${ordered.length}`, "on the list")}
+        <div class="f-src">Source · <b>Your grocery list</b></div>
+        <div class="f-rule-heavy"></div>
+        ${inlineItems.map(rowFor).join("")}
+        ${note}
+        ${hidden > 0 ? `<button class="f-more-row inline-only" id="details">…and ${hidden} more</button><div class="fullscreen-only">${fullSections.join("")}<div class="actions"><button class="btn" id="close">Return to chat</button></div></div>` : ""}
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Your grocery list · read-only checklist</span></div>
+    </article>`;
+                bindExpand();
+            }
+            initWidget({
+                name: "grocery-list-widget",
+                displayModes: ["inline", "fullscreen"],
+                loading:
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Grocery list</span></div><div class="f-state"><strong>Loading your list</strong><span>Reading the grocery list…</span></div></article>',
+                coerce,
+                render,
+                sample: SAMPLE,
+                onReady(api) {
+                    API = api;
+                },
+            });
+        </script>
+    </body>
+</html>

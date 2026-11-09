@@ -102,6 +102,7 @@ const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 const TRENDS_WIDGET_URI = "ui://widget/trends.html";
 const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
 const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
+const DAY_MEALS_WIDGET_URI = "ui://widget/day-meals.html";
 
 // Sent to clients in the initialize response (SDK ServerOptions.instructions).
 // Advisory — not every client surfaces it, so the enforcement rule ("interview
@@ -1394,6 +1395,9 @@ export function registerTools(
             description: "Get all meals logged today",
             inputSchema: {},
             outputSchema: TEXT_OUTPUT_SCHEMA,
+            // Day list state of the day-meals widget (UI meta only; the
+            // widget parses the text payload this tool already returns).
+            ...uiMeta(DAY_MEALS_WIDGET_URI),
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -1439,6 +1443,9 @@ export function registerTools(
             title: "Get Meals by Date",
             description: "Get all meals for a specific date",
             outputSchema: TEXT_OUTPUT_SCHEMA,
+            // Day list state of the day-meals widget (UI meta only; the
+            // widget parses the text payload this tool already returns).
+            ...uiMeta(DAY_MEALS_WIDGET_URI),
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -1500,6 +1507,9 @@ export function registerTools(
             description:
                 "Get all meals between two dates (inclusive). Use this instead of multiple get_meals_by_date calls when you need meals for more than one day.",
             outputSchema: TEXT_OUTPUT_SCHEMA,
+            // Range list state of the day-meals widget (UI meta only; the
+            // widget parses the text payload this tool already returns).
+            ...uiMeta(DAY_MEALS_WIDGET_URI),
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -1592,6 +1602,9 @@ export function registerTools(
             description:
                 "Search the user's past logged meals by keyword (case-insensitive match on description and notes), newest first, grouped into recurring variations with counts, last-logged date, and typical macros. Use this BEFORE logging a meal from a photo: past variations reveal ingredients that aren't visible in the picture (raisins vs banana, milk vs water, added honey or oil) — turn each difference between variations into a question for the user rather than picking one silently, and ask those questions one at a time across several turns instead of batching them. Also use it for requests like 'log my usual breakfast': search, interview the user to pin down the variation and the amount, then log_meal. For a restaurant meal, search the restaurant name as well as the dish — a past visit to the same venue is stronger evidence than anything on the web. Pass short food keywords, not full sentences, and include the food name in every language the user may have logged in — always add an English alternative alongside the conversation language, e.g. [\"вівсянка\", \"oatmeal\"].",
             outputSchema: TEXT_OUTPUT_SCHEMA,
+            // List mode of the day-meals widget (UI meta only; the widget
+            // parses the text payload this tool already returns).
+            ...uiMeta(DAY_MEALS_WIDGET_URI),
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,
@@ -1796,6 +1809,31 @@ export function registerTools(
                         uri: uri.href,
                         mimeType: APP_UI_MIME_TYPE,
                         text: await getWidgetHtml("weight-trends"),
+                        _meta: WIDGET_RESOURCE_METADATA,
+                    },
+                ],
+            };
+        },
+    );
+
+    // UI resource for the day-meals widget (logged-meal entries for a day or
+    // a date range, and past-meal search matches). Same contract as above.
+    server.registerResource(
+        "day-meals-widget",
+        DAY_MEALS_WIDGET_URI,
+        {
+            title: "Meals by Day",
+            description:
+                "Interactive UI for get_meals_today, get_meals_by_date, get_meals_by_date_range, and search_meals: logged entries with per-entry sources and day totals, with automatic light/dark theming.",
+            mimeType: APP_UI_MIME_TYPE,
+        },
+        async (uri) => {
+            return {
+                contents: [
+                    {
+                        uri: uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await getWidgetHtml("day-meals"),
                         _meta: WIDGET_RESOURCE_METADATA,
                     },
                 ],

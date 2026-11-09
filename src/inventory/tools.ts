@@ -13,6 +13,14 @@ import {
     reconcilePurchase,
     type InventoryScope,
 } from "./repository.js";
+import {
+    WIDGET_RESOURCE_METADATA,
+    widgetToolMeta,
+} from "../openai-submission.js";
+import { getWidgetHtml } from "../widgets.js";
+
+const PANTRY_WIDGET_URI = "ui://widget/pantry.html";
+const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
 
 const locationSchema = z.enum(["pantry", "fridge", "freezer", "unspecified"]);
 const quantityModeSchema = z.enum(["exact", "approximate", "presence_only"]);
@@ -192,6 +200,7 @@ export function registerInventoryTools(
     server: McpServer,
     userId: string,
     capabilities: MunchCapabilities,
+    widgetsEnabled = true,
 ): void {
     const toolServer = server as unknown as {
         registerTool: (
@@ -199,7 +208,39 @@ export function registerInventoryTools(
             config: Record<string, unknown>,
             handler: (args: any) => Promise<any>,
         ) => unknown;
+        registerResource?: (
+            name: string,
+            uri: string,
+            config: Record<string, unknown>,
+            handler: (...args: any[]) => unknown,
+        ) => unknown;
     };
+    // Link a tool to its widget only when this user has widgets enabled
+    // (UI meta only; annotations, behavior, and payloads are unchanged).
+    const uiMeta = (resourceUri: string) =>
+        widgetsEnabled ? widgetToolMeta(resourceUri) : {};
+    if (typeof toolServer.registerResource === "function") {
+        toolServer.registerResource(
+            "pantry-widget",
+            PANTRY_WIDGET_URI,
+            {
+                title: "Pantry",
+                description:
+                    "Interactive UI for get_pantry, reconcile_pantry, and reconcile_purchase: on-hand inventory plus a review list of confirmed changes, with automatic light/dark theming.",
+                mimeType: APP_UI_MIME_TYPE,
+            },
+            async (uri: URL | string) => ({
+                contents: [
+                    {
+                        uri: typeof uri === "string" ? uri : uri.href,
+                        mimeType: APP_UI_MIME_TYPE,
+                        text: await getWidgetHtml("pantry"),
+                        _meta: WIDGET_RESOURCE_METADATA,
+                    },
+                ],
+            }),
+        );
+    }
 
     toolServer.registerTool(
         "get_pantry",
@@ -238,6 +279,7 @@ export function registerInventoryTools(
                     .optional(),
                 items: z.array(pantryItemOutputSchema),
             },
+            ...uiMeta(PANTRY_WIDGET_URI),
         },
         async (args: any) =>
             withAnalytics(
@@ -326,6 +368,7 @@ export function registerInventoryTools(
                     }),
                 ),
             },
+            ...uiMeta(PANTRY_WIDGET_URI),
         },
         async (args: any) =>
             withAnalytics(
@@ -419,6 +462,7 @@ export function registerInventoryTools(
                     needsReview: z.number().int().nonnegative(),
                 }),
             },
+            ...uiMeta(PANTRY_WIDGET_URI),
         },
         async (args: any) =>
             withAnalytics(
