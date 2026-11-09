@@ -25,6 +25,9 @@ import {
     updateRecipe,
     type RecipeInput,
 } from "./planning/repository.js";
+import { widgetToolMeta } from "./openai-submission.js";
+
+const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 
 const nutrientSchema = z.object({
     calories: z.number().nonnegative().optional(),
@@ -427,6 +430,7 @@ export function registerRecipePlanningTools(
     server: McpServer,
     userId: string,
     capabilities: MunchCapabilities,
+    widgetsEnabled = true,
 ): void {
     const toolServer = server as unknown as {
         registerTool: (
@@ -435,6 +439,11 @@ export function registerRecipePlanningTools(
             handler: (...args: any[]) => unknown,
         ) => unknown;
     };
+    // log_recipe renders the meal-logged receipt (audit Fix 4). UI meta
+    // only — annotations, behavior, and payloads unchanged.
+    const mealLoggedMeta = widgetsEnabled
+        ? widgetToolMeta(MEAL_LOGGED_WIDGET_URI)
+        : {};
 
     toolServer.registerTool(
         "search_recipes",
@@ -773,6 +782,7 @@ export function registerRecipePlanningTools(
                 idempotency_key: z.string().min(1).max(255),
             },
             outputSchema: planningOutputSchemas.log_recipe,
+            ...mealLoggedMeta,
         },
         async (args) =>
             withAnalytics(

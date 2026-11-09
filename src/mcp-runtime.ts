@@ -100,14 +100,15 @@ async function buildMunchMcpServer(
     );
     registerFoodTools(withCanonicalFoodSearch(optimizedServer), userId);
     registerSavedFoodTools(optimizedServer, userId, capabilities);
-    registerMealDetailTools(optimizedServer, userId);
+    registerMealDetailTools(optimizedServer, userId, widgetsEnabled);
     registerMealReviewTools(optimizedServer, userId, widgetsEnabled);
-    registerMealDraftTools(optimizedServer, userId);
+    registerMealDraftTools(optimizedServer, userId, widgetsEnabled);
     registerRecipeImportTools(optimizedServer, userId, capabilities);
     registerRecipePlanningTools(
         withRecipeNutritionResolution(optimizedServer),
         userId,
         capabilities,
+        widgetsEnabled,
     );
     registerMealToRecipeTool(optimizedServer, userId, capabilities);
     registerCookTools(optimizedServer, userId, widgetsEnabled);

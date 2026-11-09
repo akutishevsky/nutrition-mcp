@@ -13,6 +13,9 @@ import {
     upsertMealDraftItem,
     type MealDraft,
 } from "./meal-drafts/index.js";
+import { widgetToolMeta } from "./openai-submission.js";
+
+const MEAL_REVIEW_WIDGET_URI = "ui://widget/meal-review.html";
 
 const nutrientInput = z.object({
     calories: z.coerce.number().min(0).optional(),
@@ -113,7 +116,12 @@ const DRAFT_OUTPUT = {
 export function registerMealDraftTools(
     server: McpServer,
     userId: string,
+    widgetsEnabled = true,
 ): void {
+    // Draft-flow read/confirm points render the meal-review widget (audit
+    // Fix 1). UI meta only — annotations, behavior, and payloads unchanged;
+    // the widget normalizes the serializeDraft payload it already returns.
+    const uiMeta = widgetsEnabled ? widgetToolMeta(MEAL_REVIEW_WIDGET_URI) : {};
     // Keep the expensive MCP SDK schema generic out of the native compiler's
     // hot path; runtime registration and MCP integration tests still validate
     // the complete schemas.
@@ -192,6 +200,8 @@ export function registerMealDraftTools(
                 found: z.boolean(),
                 draft: z.record(z.string(), z.unknown()).nullable(),
             },
+            // Draft state of the meal-review widget (UI meta only).
+            ...uiMeta,
         },
         async ({ draft_id }) =>
             withAnalytics(
@@ -426,6 +436,8 @@ export function registerMealDraftTools(
                 accept_remaining_assumptions: z.boolean().optional(),
             },
             outputSchema: DRAFT_OUTPUT,
+            // Confirm state of the meal-review widget (UI meta only).
+            ...uiMeta,
         },
         async (args) =>
             withAnalytics(
