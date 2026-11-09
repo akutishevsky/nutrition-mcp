@@ -5,6 +5,14 @@ import {
     resolveRequestMunchCapabilities,
 } from "../billing/capabilities.js";
 import {
+    refundAiCredits,
+    requireAiCredits,
+} from "../billing/android-ai-credits.js";
+import {
+    getAiCreditUsage,
+    type AiCreditReservation,
+} from "../billing/ai-credits.js";
+import {
     getHouseholdSeatCoverage,
     ownerCanPurchaseHouseholdSeats,
 } from "../billing/household-seats.js";
@@ -1444,16 +1452,39 @@ export function createAppRouter(): Hono {
             ) {
                 throw new Error("Recipe capability is unavailable");
             }
-            const draft = await previewRecipeUrl(
-                typeof body.url === "string" ? body.url : "",
-                {
-                    rateLimitKey: userId,
-                    semanticResolver:
-                        capabilitySurfaceFromRequest(c) === "android"
-                            ? undefined
-                            : getWebsiteRecipeImportSemanticResolver(),
-                },
-            );
+            const semanticResolver =
+                capabilitySurfaceFromRequest(c) === "android"
+                    ? undefined
+                    : getWebsiteRecipeImportSemanticResolver();
+            // Meter only when the semantic (model) resolver actually runs;
+            // the deterministic parse path never spends credits. Reserve
+            // before the call and refund if the preview fails (brief §2).
+            let reservation: AiCreditReservation | undefined;
+            if (semanticResolver) {
+                const gate = await requireAiCredits(c, {
+                    userId,
+                    task: "recipe_import",
+                    idempotencyKey:
+                        typeof body.idempotency_key === "string"
+                            ? body.idempotency_key
+                            : undefined,
+                });
+                if (!gate.allowed) return gate.response;
+                reservation = gate.reservation;
+            }
+            let draft: Awaited<ReturnType<typeof previewRecipeUrl>>;
+            try {
+                draft = await previewRecipeUrl(
+                    typeof body.url === "string" ? body.url : "",
+                    {
+                        rateLimitKey: userId,
+                        semanticResolver,
+                    },
+                );
+            } catch (error) {
+                if (reservation) await refundAiCredits(reservation);
+                throw error;
+            }
             return privateJson(c, { draft });
         },
     );
@@ -2241,8 +2272,8 @@ export function createAppRouter(): Hono {
 
     app.get("/api/app/settings", async (c) => {
         const userId = c.get("munchUserId");
-        const [bootstrap, goals, subscription, connections] = await Promise.all(
-            [
+        const [bootstrap, goals, subscription, connections, aiCredits] =
+            await Promise.all([
                 getAppBootstrap(
                     userId,
                     c.get("munchUserEmail"),
@@ -2251,13 +2282,14 @@ export function createAppRouter(): Hono {
                 getNutritionGoals(userId),
                 getDirectSubscriptionSnapshot(userId),
                 listOAuthConnections(userId),
-            ],
-        );
+                getAiCreditUsage(userId),
+            ]);
         return privateJson(c, {
             ...bootstrap,
             goals,
             subscription,
             connections,
+            aiCredits,
         });
     });
 

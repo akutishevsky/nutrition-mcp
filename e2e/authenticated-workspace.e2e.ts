@@ -49,6 +49,18 @@ test("protects private data and supports the core website journey", async ({
         page.getByRole("heading", { level: 1, name: "Meal Plan" }),
     ).toBeVisible();
 
+    await page.goto("/app/settings/billing");
+    await expect(
+        page.getByRole("heading", { level: 1, name: "Plan & billing" }),
+    ).toBeVisible();
+    await expect(page.getByText("AI task credits")).toBeVisible();
+    await expect(page.getByText("Balance this month")).toBeVisible();
+    await expect(page.getByText(/\d+ credits/)).toBeVisible();
+    await page.screenshot({
+        path: "test-results/settings-ai-credits.png",
+        fullPage: true,
+    });
+
     await page.goto("/app/insights");
     await expect(
         page.getByRole("heading", { level: 1, name: "Insights" }),

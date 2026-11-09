@@ -3,7 +3,10 @@ import { z } from "zod";
 import { requireSameOrigin } from "../accounts/csrf.js";
 import { requireWebSession } from "../accounts/session.js";
 import { resolveRequestMunchCapabilities } from "../billing/capabilities.js";
-import { androidAiTaskCreditsUnavailable } from "../billing/android-ai-credits.js";
+import {
+    refundAiCredits,
+    requireAiCredits,
+} from "../billing/android-ai-credits.js";
 import {
     requirePlanningAccess,
     requirePlanningScope,
@@ -426,12 +429,39 @@ export function createGuidanceRouter(): Hono {
     );
 
     app.post("/api/app/planning/propose", requireSameOrigin, async (c) => {
-        const unavailable = androidAiTaskCreditsUnavailable(c);
-        if (unavailable) return unavailable;
-        return privateJson(
-            c,
-            await proposeRecipes(c, currentUserId(c), await c.req.json()),
-        );
+        const userId = currentUserId(c);
+        const body = await c.req.json();
+        // One credit meter for web + app (brief §2, Decision 3): reserve
+        // before the model call; a manual_fallback result means the AI
+        // call failed or was unavailable, so the spend is refunded — a
+        // user never pays for an outage.
+        const gate = await requireAiCredits(c, {
+            userId,
+            task: "plan_generation",
+            idempotencyKey:
+                body &&
+                typeof body === "object" &&
+                typeof (body as Record<string, unknown>).idempotency_key ===
+                    "string"
+                    ? ((body as Record<string, unknown>)
+                          .idempotency_key as string)
+                    : undefined,
+        });
+        if (!gate.allowed) return gate.response;
+        try {
+            const result = await proposeRecipes(c, userId, body);
+            if (
+                result &&
+                typeof result === "object" &&
+                (result as { status?: unknown }).status === "manual_fallback"
+            ) {
+                await refundAiCredits(gate.reservation);
+            }
+            return privateJson(c, result);
+        } catch (error) {
+            await refundAiCredits(gate.reservation);
+            throw error;
+        }
     });
     app.post("/api/app/planning/drafts", requireSameOrigin, async (c) => {
         const userId = currentUserId(c);
