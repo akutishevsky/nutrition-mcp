@@ -29,6 +29,8 @@
 
             /*@include shared/macros.css@*/
 
+            /*@include shared/facts.css@*/
+
             .gal {
                 padding: 16px;
                 display: grid;
@@ -76,6 +78,18 @@
             }
 
             /*@include shared/macros.js@*/
+
+            // facts.js needs these two in scope (same contract as ui.js).
+            function pct(value, goal) {
+                if (value == null || goal == null || Number(goal) <= 0)
+                    return null;
+                return Math.round((Number(value) / Number(goal)) * 100);
+            }
+            function clamp(value, min, max) {
+                return Math.max(min, Math.min(max, value));
+            }
+
+            /*@include shared/facts.js@*/
 
             // One day's worth of fixture data for the macro components below.
             const GOALS = {
@@ -251,6 +265,54 @@
                           }`,
                   )
                   .join("")}
+            </section>
+
+            <section class="card">
+              <h3>Facts Panel: band, hero, rule cascade</h3>
+              ${factsBand("Component gallery", "Facts Panel", "span")}
+              <div class="f-body">
+                ${factsHero('2,035 <span class="f-hero-unit">kcal</span>', "average per logged day", "6 of 7", "days logged")}
+                <div class="f-src">Source · <b>Your logged meals</b></div>
+                <div class="f-rule-heavy"></div>
+                <div class="f-note" style="margin-top:8px">8px heavy rule above, hairlines between rows, 3px rule below.</div>
+                <div class="f-rule-med"></div>
+              </div>
+            </section>
+
+            <section class="card">
+              <h3>Facts Panel: label rows (with bar, over, no target, target-only)</h3>
+              <div class="f-body" style="padding-top:0">
+                ${factsLabelRow({ name: "Protein", ofText: "of 160 g", valueText: "148 g", value: 148, goal: 160, source: "Your logged meals" })}
+                ${factsLabelRow({ name: "Sugar", ofText: "of 45 g limit", valueText: "51 g", value: 51, goal: 45, source: "Your logged meals" })}
+                ${factsLabelRow({ name: "Fiber", ofText: "no target set", valueText: "24.6 g", value: 24.6, goal: null, source: "Your logged meals" })}
+                ${factsTargetRow({ name: "Calories", ofText: "per day", valueText: "2,200 kcal", source: "Goals you set in Munch" })}
+              </div>
+            </section>
+
+            <section class="card">
+              <h3>Facts Panel: compact rows and more row</h3>
+              <div class="f-body" style="padding-top:0">
+                ${factsCompactRow({ name: "Aug 5", meta: "4 meals", valueText: "1,905 kcal" })}
+                ${factsCompactRow({ name: "Grilled chicken and rice bowl", meta: "lunch", valueText: "650 kcal" })}
+                <button class="f-more-row">…and 9 more</button>
+              </div>
+            </section>
+
+            <section class="card">
+              <h3>Facts Panel: sticky action bar (confirm copy lives in the bar)</h3>
+              ${factsStickyBar("g-primary", "Log meal", "g-secondary", "Adjust", "<b>Nothing is saved until you tap Log meal.</b> Check the items above first.")}
+            </section>
+
+            <section class="card">
+              <h3>Facts Panel: state blocks and banners</h3>
+              ${factsBand("States", "Facts Panel", "span")}
+              ${factsState("empty", "Nothing logged yet", "Your first meal or water entry will appear here.")}
+              ${factsState("error", "Could not load this view", "Something went wrong reading your log. Try again in chat.")}
+              <div class="f-body" style="padding-top:0">
+                ${factsBanner("warn", "<b>Partial — 6 of 7 days logged.</b> Averages cover logged days only.")}
+                ${factsBanner("", "A neutral banner on the same surface.")}
+              </div>
+              <div class="f-foot"><span>Every number traces to its source</span><span>Logged meals · USDA FoodData Central · Open Food Facts</span></div>
             </section>
 
             <section class="card">

@@ -234,12 +234,126 @@ const RESULTS: Record<string, unknown> = {
     },
 };
 
+// Slice-1 state/longest fixtures for the Facts Panel port. Selected with
+// ?fixture=<name> on the host page; the default RESULT above stays the
+// primary fixture for each widget.
+function coveredAverage(
+    series: typeof days,
+    key:
+        | "calories"
+        | "protein_g"
+        | "carbs_g"
+        | "fat_g"
+        | "fiber_g"
+        | "sugar_g"
+        | "water_ml",
+): number {
+    const logged = series.filter((day) => day.meal_count > 0);
+    const mean =
+        logged.reduce((sum, day) => sum + (day[key] ?? 0), 0) / logged.length;
+    return key === "calories" || key === "water_ml"
+        ? Math.round(mean)
+        : Math.round(mean * 10) / 10;
+}
+
+const GOALS_TEXT = [
+    "Current daily goals:",
+    "- Calories: 2200 kcal",
+    "- Protein: 160g",
+    "- Carbs: 220g",
+    "- Fat: 70g",
+    "- Fiber: 30g",
+    "- Sugar (total, max): 45g",
+    "- Water: 2500 ml",
+    "- Target weight: 165 lb",
+].join("\n");
+
+const FIXTURES: Record<string, Record<string, unknown>> = {
+    "nutrition-summary": {
+        // Longest realistic payload: the full 30-day series. Averages are
+        // computed from the series here so fixture arithmetic is exact.
+        long: {
+            start_date: days[0]!.date,
+            end_date: days[days.length - 1]!.date,
+            logged_days: days.filter((day) => day.meal_count > 0).length,
+            goals,
+            averages: {
+                calories: coveredAverage(days, "calories"),
+                protein_g: coveredAverage(days, "protein_g"),
+                carbs_g: coveredAverage(days, "carbs_g"),
+                fat_g: coveredAverage(days, "fat_g"),
+                fiber_g: coveredAverage(days, "fiber_g"),
+                sugar_g: coveredAverage(days, "sugar_g"),
+                alcohol_g: null,
+                water_ml: coveredAverage(days, "water_ml"),
+            },
+            recorded_days: {
+                fiber_g: days.filter((day) => day.meal_count > 0).length,
+                sugar_g: days.filter((day) => day.meal_count > 0).length,
+                alcohol_g: null,
+            },
+            days,
+            meals,
+        },
+        empty: {
+            start_date: days[0]!.date,
+            end_date: days[6]!.date,
+            logged_days: 0,
+            goals,
+            averages: {
+                calories: 0,
+                protein_g: 0,
+                carbs_g: 0,
+                fat_g: 0,
+                fiber_g: 0,
+                sugar_g: 0,
+                alcohol_g: null,
+                water_ml: 0,
+            },
+            days: [],
+            meals: [],
+        },
+        error: { error: "The summary could not be read. Try again in chat." },
+    },
+    "goal-progress": {
+        // The goals tools are text-output tools; this is the exact payload
+        // shape their binding delivers ({ text } from formatGoals).
+        targets: { text: GOALS_TEXT },
+        "targets-updated": {
+            text: `Goals updated.\n\n${GOALS_TEXT}`,
+        },
+        "targets-empty": {
+            text: "No nutrition goals set. Use set_nutrition_goals to define daily targets.",
+        },
+        empty: {
+            date: "2026-08-05",
+            meal_count: 0,
+            water_entries: 0,
+            goals,
+            totals: {
+                calories: 0,
+                protein_g: 0,
+                carbs_g: 0,
+                fat_g: 0,
+                fiber_g: 0,
+                sugar_g: 0,
+                alcohol_g: null,
+                water_ml: 0,
+            },
+            weight: null,
+            meals: [],
+        },
+        error: { error: "Goal progress could not be read. Try again in chat." },
+    },
+};
+
 function indexPage(): string {
     return `<!doctype html><html><head><meta charset="utf-8"><title>Munch widget harness</title><style>body{font:14px/1.5 system-ui;margin:32px;max-width:760px}li{margin:6px 0}</style></head><body><h1>Munch widget harness</h1><ul>${KEYS.map((key) => `<li><a href="/host?widget=${encodeURIComponent(key)}">${key}</a></li>`).join("")}</ul></body></html>`;
 }
 
-function hostPage(widget: string): string {
-    const result = RESULTS[widget] ?? { probe: true };
+function hostPage(widget: string, fixture?: string): string {
+    const result = (fixture ? FIXTURES[widget]?.[fixture] : undefined) ??
+        RESULTS[widget] ?? { probe: true };
     return `<!doctype html><html><head><meta charset="utf-8"><title>${widget}</title><style>
 body{margin:0;background:#f3f3f3;font:13px/1.4 system-ui;color:#222}.bar{position:sticky;top:0;z-index:2;display:flex;gap:8px;align-items:center;padding:8px 12px;background:#fff;border-bottom:1px solid #ddd}.bar span{color:#666}.stage{padding:12px}.frame{display:block;width:100%;height:150px;border:0;background:transparent}.stage.fullscreen{position:fixed;inset:0;z-index:5;padding:0;background:#fff}.stage.fullscreen .frame{height:100vh}.log{position:fixed;right:8px;bottom:8px;z-index:8;width:min(440px,calc(100vw - 16px));max-height:140px;overflow:auto;padding:8px;border-radius:8px;background:#111;color:#b7ffbf;font:10px/1.4 ui-monospace,monospace;white-space:pre-wrap;opacity:.88}</style></head><body>
 <div class="bar"><strong>${widget}</strong><span>strict MCP Apps host</span><button id="theme">Toggle theme</button></div>
@@ -251,7 +365,7 @@ window.addEventListener("message",async(event)=>{if(event.source!==frame.content
 if(data.method==="ui/initialize"){log("initialize "+JSON.stringify({appInfo:data.params?.appInfo,appCapabilities:data.params?.appCapabilities}));send({jsonrpc:"2.0",id:data.id,result:{protocolVersion:"2026-01-26",hostInfo:{name:"munch-harness",version:"2.0.0"},hostCapabilities:{serverTools:{}},hostContext:{theme,displayMode:mode,availableDisplayModes:["inline","fullscreen"]}}});return}
 if(data.method==="ui/notifications/initialized"){log("initialized; delivering result");send({jsonrpc:"2.0",method:"ui/notifications/tool-result",params:{structuredContent:RESULT}});return}
 if(data.method==="ui/notifications/size-changed"){if(mode==="inline")frame.style.height=Math.max(80,data.params?.height||150)+"px";return}
-if(data.method==="ui/request-display-mode"){mode=data.params?.mode==="fullscreen"?"fullscreen":"inline";stage.classList.toggle("fullscreen",mode==="fullscreen");log("display mode -> "+mode);send({jsonrpc:"2.0",id:data.id,result:{displayMode:mode}});send({jsonrpc:"2.0",method:"ui/notifications/host-context-changed",params:{hostContext:{theme,displayMode:mode,availableDisplayModes:["inline","fullscreen"]}}});return}
+if(data.method==="ui/request-display-mode"){mode=data.params?.mode==="fullscreen"?"fullscreen":"inline";stage.classList.toggle("fullscreen",mode==="fullscreen");if(mode==="fullscreen")frame.style.height="";log("display mode -> "+mode);send({jsonrpc:"2.0",id:data.id,result:{displayMode:mode}});send({jsonrpc:"2.0",method:"ui/notifications/host-context-changed",params:{hostContext:{theme,displayMode:mode,availableDisplayModes:["inline","fullscreen"]}}});return}
 if(data.method==="ui/message"){log("message: "+(data.params?.content?.[0]?.text||""));send({jsonrpc:"2.0",id:data.id,result:{}});return}
 if(data.method==="ui/update-model-context"){log("context: "+(data.params?.content?.[0]?.text||""));send({jsonrpc:"2.0",id:data.id,result:{}});return}
 if(data.method==="tools/call"){const name=data.params?.name;log("tool call: "+name);let structuredContent={};if(name==="confirm_meal_draft")structuredContent={status:"confirmed"};else if(name==="bulk_import_meals"){const args=data.params?.arguments||{};structuredContent={status:"success",dry_run:!!args.dry_run,summary:{created:args.dry_run?0:(args.meals||[]).length,deduplicated:0,failed:0},results:(args.meals||[]).map((row,index)=>({index,source_line:row.source_line,status:args.dry_run?"would_create":"created"}))}}send({jsonrpc:"2.0",id:data.id,result:{content:[{type:"text",text:"ok"}],structuredContent}});return}
@@ -271,7 +385,8 @@ Bun.serve({
         }
         if (url.pathname === "/host") {
             const widget = url.searchParams.get("widget") || KEYS[0]!;
-            return new Response(hostPage(widget), {
+            const fixture = url.searchParams.get("fixture") || undefined;
+            return new Response(hostPage(widget, fixture), {
                 headers: { "content-type": "text/html; charset=utf-8" },
             });
         }

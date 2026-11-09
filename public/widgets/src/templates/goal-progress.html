@@ -7,33 +7,11 @@
         <style>
             /*@include shared/tokens.css@*/
             /*@include shared/base.css@*/
-            .snapshot {
-                padding: 15px;
-            }
-            .focus {
-                display: grid;
-                grid-template-columns: 1fr auto;
-                gap: 14px;
-                align-items: center;
-                padding: 13px;
-                border-radius: var(--radius-sm);
-                background: var(--panel-muted);
-            }
-            .focus-value {
-                font-size: 25px;
-                font-weight: 760;
-                letter-spacing: -0.025em;
-                font-variant-numeric: tabular-nums;
-            }
-            .macro-list {
-                display: grid;
-                gap: 13px;
-                margin-top: 14px;
-            }
-            .weight-note {
-                margin-top: 13px;
-                padding-top: 12px;
-                border-top: 1px solid var(--panel-border);
+            /*@include shared/facts.css@*/
+            .f-section-title {
+                font-size: 15px;
+                font-weight: 650;
+                margin: 14px 0 4px;
             }
         </style>
     </head>
@@ -43,6 +21,7 @@
             "use strict";
             /*@include shared/bridge.js@*/
             /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
             const SAMPLE = {
                 date: "2026-08-05",
                 meal_count: 4,
@@ -52,6 +31,8 @@
                     protein_g: 160,
                     carbs_g: 220,
                     fat_g: 70,
+                    fiber_g: 30,
+                    sugar_g: 45,
                     water_ml: 2500,
                 },
                 totals: {
@@ -59,6 +40,8 @@
                     protein_g: 148,
                     carbs_g: 231,
                     fat_g: 74,
+                    fiber_g: 24.6,
+                    sugar_g: 51,
                     water_ml: 2100,
                 },
                 weight: {
@@ -68,38 +51,270 @@
                     logged_on: "2026-08-04",
                 },
             };
+            let API = null;
+            // The goals tools (get_nutrition_goals / set_nutrition_goals) are
+            // text-output tools: their widget payload is { text } holding the
+            // formatGoals listing. Parse that listing into a targets payload
+            // so the binding stays UI-meta-only on the server.
+            function parseGoalsText(text) {
+                if (typeof text !== "string") return null;
+                if (/no nutrition goals set/i.test(text))
+                    return { mode: "targets", goals: null, targetWeight: null };
+                if (!/daily goals:/i.test(text)) return null;
+                const goals = {
+                    calories: null,
+                    protein_g: null,
+                    carbs_g: null,
+                    fat_g: null,
+                    fiber_g: null,
+                    sugar_g: null,
+                    alcohol_g: null,
+                    water_ml: null,
+                };
+                let targetWeight = null;
+                const num = (line) => {
+                    const match = line.match(/(\d[\d,]*(?:\.\d+)?)/);
+                    return match ? Number(match[1].replace(/,/g, "")) : null;
+                };
+                for (const rawLine of text.split("\n")) {
+                    const line = rawLine.trim();
+                    if (!line.startsWith("-")) continue;
+                    const body = line.slice(1).trim();
+                    const value = /not set/i.test(body) ? null : num(body);
+                    if (/^calories:/i.test(body)) goals.calories = value;
+                    else if (/^protein:/i.test(body)) goals.protein_g = value;
+                    else if (/^carbs:/i.test(body)) goals.carbs_g = value;
+                    else if (/^fat:/i.test(body)) goals.fat_g = value;
+                    else if (/^fiber:/i.test(body)) goals.fiber_g = value;
+                    else if (/^sugar/i.test(body)) goals.sugar_g = value;
+                    else if (/^alcohol/i.test(body)) goals.alcohol_g = value;
+                    else if (/^water:/i.test(body)) goals.water_ml = value;
+                    else if (/^target weight:/i.test(body)) {
+                        if (value != null)
+                            targetWeight = {
+                                value,
+                                unit: /lb/i.test(body) ? "lb" : "kg",
+                            };
+                    }
+                }
+                return { mode: "targets", goals, targetWeight };
+            }
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
                 if (payload.totals || payload.date) return payload;
-                return payload.structuredContent || null;
+                if (payload.mode === "targets" || payload.targets)
+                    return {
+                        mode: "targets",
+                        goals: payload.goals || payload.targets || null,
+                        targetWeight: payload.targetWeight || null,
+                    };
+                if (
+                    payload.goals &&
+                    !payload.totals &&
+                    !payload.averages &&
+                    !payload.date
+                )
+                    return {
+                        mode: "targets",
+                        goals: payload.goals,
+                        targetWeight: payload.targetWeight || null,
+                    };
+                if (
+                    payload.daily_calories !== undefined ||
+                    payload.daily_protein_g !== undefined
+                )
+                    return {
+                        mode: "targets",
+                        goals: {
+                            calories: payload.daily_calories ?? null,
+                            protein_g: payload.daily_protein_g ?? null,
+                            carbs_g: payload.daily_carbs_g ?? null,
+                            fat_g: payload.daily_fat_g ?? null,
+                            fiber_g: payload.daily_fiber_g ?? null,
+                            sugar_g: payload.daily_sugar_g ?? null,
+                            alcohol_g: payload.daily_alcohol_g ?? null,
+                            water_ml: payload.daily_water_ml ?? null,
+                        },
+                        targetWeight: null,
+                    };
+                if (typeof payload.text === "string") {
+                    const parsed = parseGoalsText(payload.text);
+                    if (parsed) return parsed;
+                    return { __error: payload.text };
+                }
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
+                return null;
+            }
+            function bindExpand() {
+                document
+                    .getElementById("details")
+                    ?.addEventListener("click", async () => {
+                        const result = await API?.requestDisplayMode(
+                            "fullscreen",
+                        ).catch(() => null);
+                        if (!result || result.unsupported)
+                            document.getElementById("details").textContent =
+                                "Details unavailable";
+                    });
+                document
+                    .getElementById("close")
+                    ?.addEventListener("click", () =>
+                        API?.requestDisplayMode("inline"),
+                    );
+            }
+            function renderTargets(data) {
+                const goals = data.goals || {};
+                const rows = [];
+                const add = (name, value, unit, ofText) => {
+                    if (value == null) return;
+                    rows.push(
+                        factsTargetRow({
+                            name,
+                            ofText,
+                            valueText: `${fmt(value, unit === "kcal" || unit === "ml" ? 0 : 1)} ${unit}`,
+                        }),
+                    );
+                };
+                add("Calories", goals.calories, "kcal", "per day");
+                add("Protein", goals.protein_g, "g", "per day");
+                add("Carbs", goals.carbs_g, "g", "per day");
+                add("Fat", goals.fat_g, "g", "per day");
+                add("Fiber", goals.fiber_g, "g", "per day");
+                add("Sugar", goals.sugar_g, "g", "daily limit");
+                add("Alcohol", goals.alcohol_g, "g", "daily limit");
+                add("Water", goals.water_ml, "ml", "per day");
+                if (data.targetWeight)
+                    rows.push(
+                        factsTargetRow({
+                            name: "Target weight",
+                            ofText: "standing target",
+                            valueText: `${fmt(data.targetWeight.value, 1)} ${data.targetWeight.unit}`,
+                        }),
+                    );
+                if (!rows.length) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Nutrition goals", "Daily targets")}${factsState("empty", "No nutrition goals set yet", "Set daily targets in chat and they will be listed here.")}<div class="f-foot"><span>Every number traces to its source</span><span>Goals you set in Munch</span></div></article>`;
+                    return;
+                }
+                document.getElementById("root").innerHTML =
+                    `<article class="card">${factsBand("Nutrition goals", "Daily targets")}<div class="f-body"><div class="f-hero-cap" style="margin-top:0">The daily targets saved for your account. Amounts logged today are on the goal progress view.</div><div class="f-src">Source · <b>Goals you set in Munch</b></div><div class="f-rule-heavy"></div>${rows.join("")}</div><div class="f-foot"><span>Every number traces to its source</span><span>Goals you set in Munch</span></div></article>`;
             }
             function render(data) {
+                if (data.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Goal progress",
+                        "",
+                        "error",
+                        "Could not load goal progress",
+                        "Something went wrong reading today's log. Try again in chat.",
+                    );
+                    return;
+                }
+                if (data.mode === "targets") {
+                    renderTargets(data);
+                    return;
+                }
                 const meals = Number(data.meal_count || 0);
                 const waters = Number(data.water_entries || 0);
                 const totals = data.totals || {};
                 const goals = data.goals || {};
-                const caloriePct = pct(totals.calories, goals.calories);
-                const headline =
-                    caloriePct == null
-                        ? `${fmt(totals.calories)} kcal logged`
-                        : `${caloriePct}% of calorie target`;
-                const insightCandidates = [];
-                for (const entry of [
-                    ["Protein", totals.protein_g, goals.protein_g, "g"],
-                    ["Carbs", totals.carbs_g, goals.carbs_g, "g"],
-                    ["Fat", totals.fat_g, goals.fat_g, "g"],
-                    ["Water", totals.water_ml, goals.water_ml, "ml"],
-                ]) {
-                    const percentage = pct(entry[1], entry[2]);
-                    if (percentage != null)
-                        insightCandidates.push({
-                            label: entry[0],
-                            percentage,
-                            value: entry[1],
-                            goal: entry[2],
-                            unit: entry[3],
-                        });
+                const dateLabel = data.date ? humanDate(data.date) : "Today";
+                const nothing =
+                    meals === 0 &&
+                    waters === 0 &&
+                    !Object.values(totals).some((value) => Number(value) > 0);
+                if (nothing) {
+                    document.getElementById("root").innerHTML =
+                        `<article class="card">${factsBand("Goal progress", dateLabel)}${factsState("empty", "Nothing logged yet", "Your first meal or water entry will appear here.")}<div class="f-foot"><span>Every number traces to its source</span><span>Your logged meals</span></div></article>`;
+                    return;
                 }
+                const caloriePct = pct(totals.calories, goals.calories);
+                const candidates = [
+                    [
+                        "Protein",
+                        totals.protein_g,
+                        goals.protein_g,
+                        "g",
+                        "Your logged meals",
+                        "per day",
+                    ],
+                    [
+                        "Carbs",
+                        totals.carbs_g,
+                        goals.carbs_g,
+                        "g",
+                        "Your logged meals",
+                        "per day",
+                    ],
+                    [
+                        "Fat",
+                        totals.fat_g,
+                        goals.fat_g,
+                        "g",
+                        "Your logged meals",
+                        "per day",
+                    ],
+                    [
+                        "Water",
+                        totals.water_ml,
+                        goals.water_ml,
+                        "ml",
+                        "Your logged water entries",
+                        "per day",
+                    ],
+                    [
+                        "Fiber",
+                        totals.fiber_g,
+                        goals.fiber_g,
+                        "g",
+                        "Your logged meals",
+                        "per day",
+                    ],
+                    [
+                        "Sugar",
+                        totals.sugar_g,
+                        goals.sugar_g,
+                        "g",
+                        "Your logged meals",
+                        "daily limit",
+                    ],
+                    [
+                        "Alcohol",
+                        totals.alcohol_g,
+                        goals.alcohol_g,
+                        "g",
+                        "Your logged meals",
+                        "daily limit",
+                    ],
+                ];
+                const present = candidates.filter(
+                    (entry) =>
+                        entry[2] != null ||
+                        (entry[1] != null && Number(entry[1]) > 0),
+                );
+                // Inline carries the primary rows; fiber, sugar, and
+                // alcohol rows are fullscreen detail (fold rule).
+                const primaryNames = ["Protein", "Carbs", "Fat", "Water"];
+                const rowDefs = present.filter((entry) =>
+                    primaryNames.includes(entry[0]),
+                );
+                const secondaryDefs = present.filter(
+                    (entry) => !primaryNames.includes(entry[0]),
+                );
+                const insightCandidates = rowDefs
+                    .map((entry) => ({
+                        label: entry[0],
+                        percentage: pct(entry[1], entry[2]),
+                    }))
+                    .filter((entry) => entry.percentage != null);
                 insightCandidates.sort(
                     (a, b) =>
                         Math.abs(100 - b.percentage) -
@@ -108,41 +323,77 @@
                 const notable = insightCandidates[0];
                 const insight = notable
                     ? notable.percentage > 110
-                        ? `${notable.label} is ${notable.percentage - 100}% above today’s target.`
+                        ? `${notable.label} is ${notable.percentage - 100}% above today's target.`
                         : notable.percentage < 75
-                          ? `${notable.label} is at ${notable.percentage}% of today’s target.`
-                          : "Today’s logged intake is close to the targets shown below."
-                    : "Set nutrition goals to compare today’s intake with your targets.";
+                          ? `${notable.label} is at ${notable.percentage}% of today's target.`
+                          : "Today's logged intake is close to the targets shown above."
+                    : "Set nutrition goals to compare today's intake with your targets.";
+                const labelRow = (entry, withSource) =>
+                    factsLabelRow({
+                        name: entry[0],
+                        ofText:
+                            entry[2] != null
+                                ? `of ${fmt(entry[2], entry[3] === "ml" ? 0 : 1)} ${entry[3]} ${entry[5] === "daily limit" ? "limit" : "target"}`
+                                : "no target set",
+                        valueText: `${fmt(entry[1] || 0, entry[3] === "ml" ? 0 : 1)} ${entry[3]}`,
+                        value: entry[1] || 0,
+                        goal: entry[2],
+                        source: withSource ? entry[4] : undefined,
+                    });
+                const rows = rowDefs
+                    .map((entry) => labelRow(entry, false))
+                    .join("");
+                const secondaryRows = secondaryDefs
+                    .map((entry) => labelRow(entry, true))
+                    .join("");
                 const weight = data.weight;
                 const weightHtml =
                     weight?.current != null
-                        ? `<div class="weight-note row-between"><div><strong>Latest weight</strong><div class="caption">${weight.logged_on ? humanDate(weight.logged_on) : "Most recent entry"}</div></div><div class="num"><strong>${fmt(weight.current, 1)} ${esc(weight.unit || "kg")}</strong>${weight.target != null ? `<div class="caption">target ${fmt(weight.target, 1)}</div>` : ""}</div></div>`
+                        ? `<div class="f-prow"><span class="f-lrow-name">Latest weight</span><span class="f-crow-meta">${weight.logged_on ? `logged ${esc(humanDate(weight.logged_on))}` : "most recent entry"}${weight.target != null ? ` · target ${fmt(weight.target, 1)} ${esc(weight.unit || "kg")}` : ""}</span><span class="f-crow-val num">${fmt(weight.current, 1)} ${esc(weight.unit || "kg")}</span></div><div class="f-src">Source · <b>Your logged weight entries</b></div>`
                         : "";
-                const nothing =
-                    meals === 0 &&
-                    waters === 0 &&
-                    !Object.values(totals).some((value) => Number(value) > 0);
-                if (nothing) {
-                    document.getElementById("root").innerHTML =
-                        `<article class="card"><div class="head card-pad"><div><div class="eyebrow">Today</div><h1>Goal progress</h1><div class="meta">${esc(humanDate(data.date))}</div></div></div><div class="empty"><strong>Nothing logged yet</strong>Your first meal or water entry will appear here.</div></article>`;
-                    return;
-                }
+                const mealHtml =
+                    Array.isArray(data.meals) && data.meals.length
+                        ? `<h2 class="f-section-title">Meals that day</h2>${data.meals
+                              .map((meal) =>
+                                  factsCompactRow({
+                                      name: meal.description || "Meal",
+                                      meta: meal.meal_type || "",
+                                      valueText: `${fmt(meal.calories)} kcal`,
+                                  }),
+                              )
+                              .join("")}`
+                        : "";
+                const detailHtml =
+                    weightHtml || mealHtml || secondaryRows
+                        ? `<div class="fullscreen-only"><div class="f-rule-med"></div>${secondaryRows}${weightHtml}${mealHtml}<div class="actions"><button class="btn" id="close">Return to chat</button></div></div>`
+                        : "";
                 document.getElementById("root").innerHTML =
-                    `<article class="card snapshot">
-        <div class="head"><div class="head-main"><div class="eyebrow">Today</div><h1>Goal progress</h1><div class="meta">${esc(humanDate(data.date))} · ${meals} meal${meals === 1 ? "" : "s"} · ${waters} water entr${waters === 1 ? "y" : "ies"}</div></div></div>
-        <div class="focus"><div><div class="caption">Calories</div><div class="focus-value">${fmt(totals.calories)} <span class="caption">kcal</span></div><div class="caption">${goals.calories ? `of ${fmt(goals.calories)} target` : "No calorie target set"}</div></div><span class="chip${caloriePct != null && caloriePct > 110 ? " warn" : " good"}">${caloriePct == null ? "Logged" : `${caloriePct}%`}</span></div>
-        <div class="notice" style="margin-top:12px">${esc(insight)}</div>
-        <div class="macro-list">${progress("Protein", totals.protein_g || 0, goals.protein_g, "g", "var(--protein)")}${progress("Carbs", totals.carbs_g || 0, goals.carbs_g, "g", "var(--carbs)")}${progress("Fat", totals.fat_g || 0, goals.fat_g, "g", "var(--fat)")}${totals.water_ml || goals.water_ml ? progress("Water", totals.water_ml || 0, goals.water_ml, "ml", "var(--water)") : ""}</div>
-        ${weightHtml}
+                    `<article class="card">
+        ${factsBand("Goal progress", dateLabel)}
+        <div class="f-body">
+        ${factsHero(`${fmt(totals.calories)} <span class="f-hero-unit">kcal</span>`, `logged so far · ${meals} meal${meals === 1 ? "" : "s"} · ${waters} water entr${waters === 1 ? "y" : "ies"}`, caloriePct == null ? "" : `${caloriePct}%`, goals.calories ? `of ${fmt(goals.calories)} kcal target` : "no calorie target set")}
+        <div class="f-src">Source · <b>Your logged meals</b></div>
+        <div class="f-rule-heavy"></div>
+        ${rows}
+        <div class="f-note">${esc(insight)}</div>
+        ${detailHtml ? `<button class="f-more-row inline-only" id="details">View details</button>` : ""}
+        ${detailHtml}
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Logged meals · USDA FoodData Central · Open Food Facts</span></div>
     </article>`;
+                bindExpand();
             }
             initWidget({
                 name: "goal-progress-widget",
+                displayModes: ["inline", "fullscreen"],
                 loading:
-                    '<div class="card empty">Loading today’s progress…</div>',
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Goal progress</span></div><div class="f-state"><strong>Loading progress</strong><span>Reading today\u2019s log…</span></div></article>',
                 coerce,
                 render,
                 sample: SAMPLE,
+                onReady(api) {
+                    API = api;
+                },
             });
         </script>
     </body>

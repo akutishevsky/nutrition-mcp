@@ -21,6 +21,19 @@
     --fiber: #0f766e;
     --sugar: #64820f;
     --alcohol: #9333a8;
+    /* Facts Panel grammar (shared/facts.css). The band is constant in both
+       modes by contract: deep green ground, cream glyph. Only the rule
+       cascade and track flip with the card ground. */
+    --facts-band: #0b3d24;
+    --facts-band-ink: #f5efe2;
+    --facts-band-dim: #bcd2c0;
+    --facts-leaf: #5da85f;
+    --facts-fill: #0b8f4d;
+    --facts-primary: #0a7f42;
+    --facts-primary-ink: #ffffff;
+    --facts-heavy: #0b3d24;
+    --facts-med: #16241b;
+    --facts-track: #e8ece3;
     --radius: var(--border-radius-lg, 14px);
     --radius-sm: var(--border-radius-md, 10px);
     --space-1: 4px;
@@ -53,6 +66,13 @@
         --fiber: #5ed5c7;
         --sugar: #b8d96c;
         --alcohol: #e28bf3;
+        /* Band stays deep green with the cream glyph in dark mode too. */
+        --facts-band: #0b3d24;
+        --facts-band-ink: #f5efe2;
+        --facts-band-dim: #bcd2c0;
+        --facts-heavy: #0b8f4d;
+        --facts-med: #f5efe2;
+        --facts-track: #35383d;
     }
 }
 
@@ -81,4 +101,11 @@
     --fiber: #5ed5c7;
     --sugar: #b8d96c;
     --alcohol: #e28bf3;
+    /* Band stays deep green with the cream glyph in dark mode too. */
+    --facts-band: #0b3d24;
+    --facts-band-ink: #f5efe2;
+    --facts-band-dim: #bcd2c0;
+    --facts-heavy: #0b8f4d;
+    --facts-med: #f5efe2;
+    --facts-track: #35383d;
 }
