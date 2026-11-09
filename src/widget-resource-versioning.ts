@@ -21,6 +21,10 @@ const WIDGET_DESCRIPTIONS: Record<string, string> = {
         "A Munch meal-history importer that lets the user map, preview, validate, and confirm an uploaded export before anything is saved.",
     "ui://widget/cook-summary.html":
         "A compact Munch cook-history card showing saved photos, dishes, timeline events, and user-authored results with expandable detail.",
+    "ui://widget/food-label.html":
+        "A Munch food label showing search and saved-food results built for comparison, or one food's full nutrition panel, with the source named on every row.",
+    "ui://widget/recipe.html":
+        "A Munch recipe card showing recipe search results, a full recipe with ingredients, steps, and per-serving nutrition, or a parsed recipe import laid out for review before saving.",
 };
 
 export function versionWidgetResourceUri(uri: string): string {

@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { withAnalytics } from "./analytics.js";
+import { FOOD_LABEL_WIDGET_URI } from "./food-tools.js";
 import type { MunchCapabilities } from "./billing/capabilities.js";
 import { serializeFoodCandidate } from "./food-tools.js";
 import { getFoodSearchService } from "./food-providers/service.js";
@@ -76,6 +77,7 @@ export function registerSavedFoodTools(
     server: McpServer,
     userId: string,
     capabilities: MunchCapabilities,
+    widgetsEnabled = true,
 ): void {
     const toolServer = server as unknown as {
         registerTool: (
@@ -84,6 +86,9 @@ export function registerSavedFoodTools(
             handler: (...args: any[]) => unknown,
         ) => unknown;
     };
+    const uiMeta = widgetsEnabled
+        ? { _meta: { ui: { resourceUri: FOOD_LABEL_WIDGET_URI } } }
+        : {};
     toolServer.registerTool(
         "save_food",
         {
@@ -160,6 +165,7 @@ export function registerSavedFoodTools(
                 saved_foods: z.array(savedFoodSchema),
                 recent_meal_items: z.array(historySchema),
             },
+            ...uiMeta,
         },
         async ({ query, limit }) =>
             withAnalytics(
@@ -224,6 +230,7 @@ export function registerSavedFoodTools(
             outputSchema: {
                 saved_foods: z.array(savedFoodSchema),
             },
+            ...uiMeta,
         },
         async ({ limit }) =>
             withAnalytics(

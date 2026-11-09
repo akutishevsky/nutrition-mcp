@@ -19,6 +19,8 @@ export const USER_WIDGET_TEMPLATES: Record<string, string> = {
     "weight-trends": "weight-trends.html",
     "import-meals": "import-meals.html",
     "cook-summary": "cook-summary.html",
+    "food-label": "food-label.html",
+    recipe: "recipe.html",
 };
 
 export const DEVELOPMENT_WIDGET_TEMPLATES: Record<string, string> = {

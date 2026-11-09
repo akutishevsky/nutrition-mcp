@@ -102,6 +102,7 @@ const MEAL_LOGGED_WIDGET_URI = "ui://widget/meal-logged.html";
 const TRENDS_WIDGET_URI = "ui://widget/trends.html";
 const WEIGHT_TRENDS_WIDGET_URI = "ui://widget/weight-trends.html";
 const IMPORT_MEALS_WIDGET_URI = "ui://widget/import-meals.html";
+const FOOD_LABEL_WIDGET_URI = "ui://widget/food-label.html";
 
 // Sent to clients in the initialize response (SDK ServerOptions.instructions).
 // Advisory — not every client surfaces it, so the enforcement rule ("interview
@@ -1328,6 +1329,7 @@ export function registerTools(
                         "Product barcode digits (EAN-8/13, UPC-A/E, or GTIN-14). Spaces and separators are ignored.",
                     ),
             },
+            ...uiMeta(FOOD_LABEL_WIDGET_URI),
         },
         async ({ barcode }) => {
             return withAnalytics(
