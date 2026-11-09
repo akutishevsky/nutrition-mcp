@@ -72,12 +72,19 @@ if (
     );
 }
 const normalizedRoutes = routes.replace(/\s+/g, " ");
+if (!normalizedRoutes.includes("resolveRequestMunchCapabilities(c, userId)")) {
+    throw new Error(
+        "Pantry route is missing capability resolution for household scope authorization",
+    );
+}
 if (
-    !normalizedRoutes.includes("resolveRequestMunchCapabilities(c, userId)") ||
-    !normalizedRoutes.includes("if (!capabilities.personalPlanningRead)")
+    routes.includes("premium_required") ||
+    routes.includes("premiumContext") ||
+    js.includes("premium-message") ||
+    html.includes("premium-message")
 ) {
     throw new Error(
-        "Pantry route is missing surface-specific planning capability enforcement",
+        "Pantry carries a Premium wall; Pantry is free for every account (Amendment D)",
     );
 }
 if (!routes.includes("8 * 1024 * 1024")) {
@@ -138,4 +145,4 @@ if (
     throw new Error("Pantry image-processing privacy disclosure is incomplete");
 }
 
-console.log("Munch premium Pantry web surface static smoke test passed.");
+console.log("Munch Pantry web surface static smoke test passed.");

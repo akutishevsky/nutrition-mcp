@@ -657,10 +657,6 @@ async function renderFoods() {
     content.innerHTML = `<div class="page-heading"><div><h2>Saved foods</h2><p>${data.total} reusable food${data.total === 1 ? "" : "s"}${data.limit ? ` of ${data.limit}` : ""}.</p></div><div class="auth-actions"><input class="input" id="food-filter" type="search" placeholder="Filter saved foods" aria-label="Filter saved foods" /></div></div><section class="panel"><div id="food-list">${data.foods.length ? `<div class="data-table-wrap"><table class="data-table"><thead><tr><th>Food</th><th>Source</th><th>Default portion</th><th>Used</th><th>Last used</th></tr></thead><tbody>${data.foods.map((food) => `<tr data-food-label="${escapeHtml(food.label.toLowerCase())}"><td><strong>${escapeHtml(food.label)}</strong><br /><small>${escapeHtml(food.food?.brand || food.food?.name || "")}</small></td><td>${sourceBadge(food.provider)}</td><td>${escapeHtml(food.defaultPortionId || "Choose when logging")}</td><td>${number(food.useCount)}</td><td>${food.lastUsedAt ? escapeHtml(formatDate(food.lastUsedAt.slice(0, 10), { year: true })) : "Never"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state"><div><h3>No saved foods yet</h3><p>Confirm a provider food in your AI assistant, then save it for reuse.</p></div></div>`}</div></section>`;
 }
 
-function premiumUnavailable(title, description) {
-    return `<div class="empty-state"><div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(description)}</p><a class="button button-primary spacer-top" href="/app/settings/billing">View website options</a></div></div>`;
-}
-
 async function planningData() {
     const start = shiftDate(
         state.date,
@@ -672,13 +668,6 @@ async function planningData() {
 async function renderRecipes() {
     setLoading("Loading recipes…");
     const data = await planningData();
-    if (!data.available) {
-        content.innerHTML = premiumUnavailable(
-            "Recipe workspace is not available for this account",
-            "Recipes are managed from the Munch website when the account has recipe capability.",
-        );
-        return;
-    }
     const canCreate = Boolean(
         state.bootstrap?.capabilities?.recipeWrite ||
         state.bootstrap?.capabilities?.householdRecipeWrite,
@@ -1243,13 +1232,6 @@ function weekDays(start) {
 async function renderPlan() {
     setLoading("Loading the meal plan…");
     const data = await planningData();
-    if (!data.available) {
-        content.innerHTML = premiumUnavailable(
-            "Meal planning is not available for this account",
-            "The website meal calendar appears when the account has planning capability.",
-        );
-        return;
-    }
     const start = shiftDate(
         state.date,
         -((new Date(`${state.date}T12:00:00Z`).getUTCDay() + 6) % 7),
@@ -1480,13 +1462,6 @@ async function previewMealSwap(button) {
 async function renderGroceries() {
     setLoading("Loading grocery lists…");
     const data = await planningData();
-    if (!data.available) {
-        content.innerHTML = premiumUnavailable(
-            "Grocery lists are not available for this account",
-            "The shopping workspace appears when the account has planning capability.",
-        );
-        return;
-    }
     const lists = (data.groceries || [])
         .map((list) => {
             const editable = Boolean(data.permissions?.[list.scope]);
@@ -2716,18 +2691,16 @@ async function openMealDraft(id) {
     searchDraftFoods("");
 }
 
-const mealPhotoCapture = { idempotencyKey: null, balance: null, cost: 4 };
+const mealPhotoCapture = { idempotencyKey: null };
 
 async function openMealPhotoDialog() {
     mealPhotoCapture.idempotencyKey = `web-meal-photo:${crypto.randomUUID()}`;
-    mealPhotoCapture.balance = null;
     openDialog(
         "Log by photo",
         `<div class="meal-photo-capture">
             <p class="meal-photo-lede">Photograph your meal and Munch will estimate the items and portions into a reviewable draft. Nothing is logged until you confirm the draft, and the photo itself is processed transiently — it is never kept.</p>
             <label class="field"><span>Meal photo</span><input id="meal-photo-file" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" /></label>
             <label class="field"><span>Meal type</span><select id="meal-photo-meal-type"><option value="breakfast">Breakfast</option><option value="lunch" selected>Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
-            <p class="tiny" id="meal-photo-credits" role="status">Checking your AI credit balance…</p>
             <p class="tiny meal-photo-status" id="meal-photo-status" role="alert"></p>
             <div class="auth-actions">
                 <button class="button button-primary" type="button" data-action="submit-meal-photo" id="meal-photo-submit">Estimate my meal</button>
@@ -2735,32 +2708,6 @@ async function openMealPhotoDialog() {
             </div>
         </div>`,
     );
-    try {
-        const settings = await api("/api/app/settings", { keepPrevious: true });
-        const credits = settings.aiCredits;
-        const line = document.getElementById("meal-photo-credits");
-        if (!line) return;
-        if (!credits) {
-            line.textContent =
-                "AI credits could not be checked right now; the estimate will pause safely if the check fails. Manual entry always works.";
-            return;
-        }
-        mealPhotoCapture.balance = credits.balance;
-        mealPhotoCapture.cost = credits.taskCosts?.meal_photo_log ?? 4;
-        if (credits.balance < mealPhotoCapture.cost) {
-            line.textContent = `This estimate uses ${mealPhotoCapture.cost} AI credits and your balance is ${credits.balance}, so the photo estimate can't run this month. Manual entry always works and never uses credits.`;
-            const submit = document.getElementById("meal-photo-submit");
-            if (submit) submit.disabled = true;
-        } else {
-            line.textContent = `This estimate uses ${mealPhotoCapture.cost} AI credits — your balance is ${credits.balance}. You are only charged when an estimate is completed; a failed or unreadable photo is refunded.`;
-        }
-    } catch {
-        const line = document.getElementById("meal-photo-credits");
-        if (line) {
-            line.textContent =
-                "AI credits could not be checked right now; manual entry always works.";
-        }
-    }
 }
 
 async function submitMealPhoto() {
@@ -2795,16 +2742,7 @@ async function submitMealPhoto() {
         await openMealDraft(result.draft.id);
     } catch (error) {
         if (submit) submit.disabled = false;
-        if (error.status === 402) {
-            say(
-                `${error.message} Use “Log manually instead” below — it always works.`,
-            );
-        } else {
-            say(
-                error.message ||
-                    "The photo estimate failed. Nothing was logged.",
-            );
-        }
+        say(error.message || "The photo estimate failed. Nothing was logged.");
     }
 }
 

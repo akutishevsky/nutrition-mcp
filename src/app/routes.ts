@@ -5,14 +5,6 @@ import {
     resolveRequestMunchCapabilities,
 } from "../billing/capabilities.js";
 import {
-    refundAiCredits,
-    requireAiCredits,
-} from "../billing/android-ai-credits.js";
-import {
-    getAiCreditUsage,
-    type AiCreditReservation,
-} from "../billing/ai-credits.js";
-import {
     getHouseholdSeatCoverage,
     ownerCanPurchaseHouseholdSeats,
 } from "../billing/household-seats.js";
@@ -1410,13 +1402,11 @@ export function createAppRouter(): Hono {
         },
     );
 
-    // S3 photo-logging decider pipeline (brief §3). The credit is
-    // reserved BEFORE any upload processing (task `meal_photo_log`,
-    // 4 credits — the AiTask name in src/billing/ai-credits.ts); the
-    // photo is processed transiently and never retained; failures
-    // refund, a completed estimate does not (the work was done), and
-    // nothing is logged until the user confirms the draft through the
-    // existing confirm path.
+    // S3 photo-logging decider pipeline (brief §3). AI features are
+    // free for every account (Amendment D): no credits, no meter, no
+    // entitlement check at this call site. The photo is processed
+    // transiently and never retained, and nothing is logged until the
+    // user confirms the draft through the existing confirm path.
     app.post("/api/app/meal-photo", requireSameOrigin, async (c) => {
         const userId = c.get("munchUserId");
         const visionConfig = mealPhotoVisionConfig();
@@ -1472,15 +1462,6 @@ export function createAppRouter(): Hono {
                 400,
             );
         }
-        const gate = await requireAiCredits(c, {
-            userId,
-            task: "meal_photo_log",
-            idempotencyKey:
-                typeof form.idempotency_key === "string"
-                    ? form.idempotency_key
-                    : undefined,
-        });
-        if (!gate.allowed) return gate.response;
         const mealTypeValue =
             typeof form.meal_type === "string" ? form.meal_type : undefined;
         const mealType =
@@ -1524,10 +1505,8 @@ export function createAppRouter(): Hono {
                     provider_grounded: result.groundedCount,
                     questions: result.questionCount,
                 },
-                credits: { task: "meal_photo_log", cost: 4 },
             });
         } catch (error) {
-            await refundAiCredits(gate.reservation);
             if (error instanceof MealPhotoNoFoodError) {
                 return privateJsonStatus(
                     c,
@@ -1538,7 +1517,6 @@ export function createAppRouter(): Hono {
                         retake_available: true,
                         manual_entry_available: true,
                         transient_media: true,
-                        refunded: true,
                     },
                     422,
                 );
@@ -1548,10 +1526,9 @@ export function createAppRouter(): Hono {
                 {
                     error: "meal_photo_failed",
                     message:
-                        "The photo estimate couldn't be completed, so nothing was charged and nothing was logged. You can try again or log the meal manually.",
+                        "The photo estimate couldn't be completed and nothing was logged. You can try again or log the meal manually.",
                     manual_entry_available: true,
                     transient_media: true,
-                    refunded: true,
                 },
                 502,
             );
@@ -1623,50 +1600,19 @@ export function createAppRouter(): Hono {
                 capabilitySurfaceFromRequest(c) === "android"
                     ? undefined
                     : getWebsiteRecipeImportSemanticResolver();
-            // Meter only when the semantic (model) resolver actually runs;
-            // the deterministic parse path never spends credits. Reserve
-            // before the call and refund if the preview fails (brief §2).
-            let reservation: AiCreditReservation | undefined;
-            if (semanticResolver) {
-                const gate = await requireAiCredits(c, {
-                    userId,
-                    task: "recipe_import",
-                    idempotencyKey:
-                        typeof body.idempotency_key === "string"
-                            ? body.idempotency_key
-                            : undefined,
-                });
-                if (!gate.allowed) return gate.response;
-                reservation = gate.reservation;
-            }
-            let draft: Awaited<ReturnType<typeof previewRecipeUrl>>;
-            try {
-                draft = await previewRecipeUrl(
-                    typeof body.url === "string" ? body.url : "",
-                    {
-                        rateLimitKey: userId,
-                        semanticResolver,
-                    },
-                );
-            } catch (error) {
-                if (reservation) await refundAiCredits(reservation);
-                throw error;
-            }
-            // The preview service falls back to deterministic matching
-            // when the semantic resolver's normalize call fails
-            // (warning `semantic_ai_unavailable`); in that case no model
-            // call succeeded and assignment was disabled, so the spend
-            // is refunded — a user never pays for an outage (brief §2).
-            // Partial failures after a successful normalize keep the
-            // spend: the model did the interpretation work.
-            if (
-                reservation &&
-                draft.warnings.some(
-                    (warning) => warning.code === "semantic_ai_unavailable",
-                )
-            ) {
-                await refundAiCredits(reservation);
-            }
+            // The semantic (model) resolver is an AI feature and —
+            // like every AI feature — free for every account
+            // (Amendment D): no entitlement check and no meter here.
+            // When the resolver's normalize call fails the preview
+            // service falls back to deterministic matching with a
+            // `semantic_ai_unavailable` warning.
+            const draft = await previewRecipeUrl(
+                typeof body.url === "string" ? body.url : "",
+                {
+                    rateLimitKey: userId,
+                    semanticResolver,
+                },
+            );
             return privateJson(c, { draft });
         },
     );
@@ -2454,8 +2400,8 @@ export function createAppRouter(): Hono {
 
     app.get("/api/app/settings", async (c) => {
         const userId = c.get("munchUserId");
-        const [bootstrap, goals, subscription, connections, aiCredits] =
-            await Promise.all([
+        const [bootstrap, goals, subscription, connections] = await Promise.all(
+            [
                 getAppBootstrap(
                     userId,
                     c.get("munchUserEmail"),
@@ -2464,14 +2410,13 @@ export function createAppRouter(): Hono {
                 getNutritionGoals(userId),
                 getDirectSubscriptionSnapshot(userId),
                 listOAuthConnections(userId),
-                getAiCreditUsage(userId),
-            ]);
+            ],
+        );
         return privateJson(c, {
             ...bootstrap,
             goals,
             subscription,
             connections,
-            aiCredits,
         });
     });
 

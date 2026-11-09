@@ -144,8 +144,8 @@ if (!homepage.includes("7-day free trial")) {
 if (homepage.toLowerCase().includes("seven-day trial")) {
     fail('homepage carries stale trial wording ("seven-day trial")');
 }
-if (!homepage.includes("$2.99")) {
-    fail("homepage does not state the canonical $2.99 price");
+if (!homepage.includes("$3.00")) {
+    fail("homepage does not state the canonical $3.00 price");
 }
 if (homepage.includes("demo-avatar") || homepage.includes("capability-icon")) {
     fail(

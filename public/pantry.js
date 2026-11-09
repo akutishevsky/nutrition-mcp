@@ -3,7 +3,6 @@ import { requestJson as api } from "./app-api.js";
 const $ = (selector) => document.querySelector(selector);
 const enabledToggle = $("#pantry-enabled");
 const workspace = $("#workspace");
-const premiumMessage = $("#premium-message");
 const statusEl = $("#status");
 const inventoryEl = $("#inventory");
 const emptyEl = $("#empty");
@@ -19,7 +18,6 @@ const mealIdeaForm = $("#meal-idea-form");
 const mealIdeaStatusEl = $("#meal-idea-status");
 const mealIdeasEl = $("#meal-ideas");
 
-let premium = false;
 let reviewState = null;
 
 function status(message, error = false) {
@@ -39,7 +37,6 @@ function currentScope() {
 async function loadSettings() {
     try {
         const settings = await api("/api/app/pantry/settings");
-        premium = settings.premium === true;
         enabledToggle.checked = settings.enabled === true;
         if (
             settings.household_available &&
@@ -50,17 +47,9 @@ async function loadSettings() {
             option.textContent = "Household Pantry";
             scopeEl.append(option);
         }
-        premiumMessage.classList.toggle("hidden", premium);
-        workspace.classList.toggle("hidden", !premium || !settings.enabled);
+        workspace.classList.toggle("hidden", !settings.enabled);
         if (settings.enabled) await loadPantry();
     } catch (error) {
-        if (error.status === 403) {
-            premium = false;
-            premiumMessage.classList.remove("hidden");
-            enabledToggle.disabled = true;
-            workspace.classList.add("hidden");
-            return;
-        }
         status(error.message, true);
     }
 }
@@ -139,7 +128,7 @@ function renderInventory(items) {
 }
 
 async function loadPantry() {
-    if (!premium || !enabledToggle.checked) return;
+    if (!enabledToggle.checked) return;
     try {
         status("Loading Pantry…");
         const query = new URLSearchParams({ scope: currentScope() });

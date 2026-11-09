@@ -11,8 +11,8 @@ export interface RecipeImportCorpusEntry {
  *
  * This list is used by the manual corpus smoke workflows. It is intentionally
  * not fetched by ordinary PR CI: third-party pages change independently of
- * Munch, and the website-only OpenRouter path must never spend credits during
- * a normal pull request.
+ * Munch, and the website-only OpenRouter path must never make live model
+ * calls during a normal pull request.
  */
 export const RECIPE_IMPORT_CORPUS = [
     {

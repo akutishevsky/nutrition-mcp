@@ -2,10 +2,6 @@ import { Hono, type Context } from "hono";
 import { requireSameOrigin } from "../accounts/csrf.js";
 import { requireWebSession } from "../accounts/session.js";
 import {
-    refundAiCredits,
-    requireAiCredits,
-} from "../billing/android-ai-credits.js";
-import {
     resolveRequestMunchCapabilities,
     type MunchCapabilities,
 } from "../billing/capabilities.js";
@@ -42,13 +38,16 @@ function objectValue(value: unknown, label: string): Record<string, unknown> {
     return value as Record<string, unknown>;
 }
 
-async function premiumContext(c: Context) {
+/**
+ * Request context for Pantry routes. Pantry is free for every account
+ * (Amendment D): capabilities are resolved only to authorize the
+ * household scope, never to wall the personal workspace or its AI
+ * features behind Premium.
+ */
+async function pantryContext(c: Context) {
     const userId = c.get("munchUserId") as string;
     const capabilities = await resolveRequestMunchCapabilities(c, userId);
-    if (!capabilities.personalPlanningRead) {
-        return { userId, capabilities, premium: false as const };
-    }
-    return { userId, capabilities, premium: true as const };
+    return { userId, capabilities };
 }
 
 function scopeFromValue(
@@ -276,25 +275,19 @@ export function createInventoryRouter(): Hono {
     app.use("/api/app/purchases/*", requireWebSession);
 
     app.get("/api/app/pantry/settings", async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { premium: false, enabled: false }, 403);
+        const context = await pantryContext(c);
         return privateJson(c, {
-            premium: true,
             enabled: await getPantryPreference(context.userId),
             household_available: Boolean(context.capabilities.householdRead),
         });
     });
 
     app.patch("/api/app/pantry/settings", requireSameOrigin, async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
+        const context = await pantryContext(c);
         const body = objectValue(await c.req.json(), "Pantry settings");
         if (typeof body.enabled !== "boolean")
             throw new Error("Pantry enabled must be boolean");
         return privateJson(c, {
-            premium: true,
             enabled: await setPantryPreference({
                 userId: context.userId,
                 enabled: body.enabled,
@@ -303,9 +296,7 @@ export function createInventoryRouter(): Hono {
     });
 
     app.get("/api/app/pantry", async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
+        const context = await pantryContext(c);
         const scope = scopeFromValue(
             c.req.query("scope"),
             context.capabilities,
@@ -342,9 +333,7 @@ export function createInventoryRouter(): Hono {
     });
 
     app.post("/api/app/pantry/reconcile", requireSameOrigin, async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
+        const context = await pantryContext(c);
         const body = objectValue(await c.req.json(), "Pantry reconciliation");
         const sourceType = body.source_type;
         if (
@@ -382,9 +371,7 @@ export function createInventoryRouter(): Hono {
     });
 
     app.post("/api/app/purchases/reconcile", requireSameOrigin, async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
+        const context = await pantryContext(c);
         const body = objectValue(await c.req.json(), "Purchase reconciliation");
         if (typeof body.idempotency_key !== "string")
             throw new Error("Purchase idempotency key is required");
@@ -415,7 +402,9 @@ export function createInventoryRouter(): Hono {
     });
 
     app.post("/api/app/pantry/meal-ideas", requireSameOrigin, async (c) => {
-        const context = await premiumContext(c);
+        const context = await pantryContext(c);
+        // AI features are free for every account (Amendment D):
+        // no entitlement check and no meter at this call site.
         if (!(await getPantryPreference(context.userId)))
             return privateJson(c, { error: "pantry_not_enabled" }, 409);
         if (!pantryPlanningEnabled())
@@ -448,40 +437,23 @@ export function createInventoryRouter(): Hono {
                   .slice(0, 20)
             : [];
         const scope = scopeFromValue(body.scope, context.capabilities, false);
-        // One credit meter for web + app (brief §2, Decision 3): reserve
-        // before the model call; refund if generation fails.
-        const gate = await requireAiCredits(c, {
+        const generated = await generatePantryMealIdeas({
             userId: context.userId,
-            task: "meal_ideas",
-            idempotencyKey:
-                typeof body.idempotency_key === "string"
-                    ? body.idempotency_key
-                    : undefined,
+            scope,
+            goal,
+            mealType,
+            servings: numberValue(body.servings, "Servings"),
+            maxMinutes: numberValue(body.max_minutes, "Maximum minutes"),
+            allowMissingItems:
+                body.allow_missing_items === undefined
+                    ? 1
+                    : numberValue(
+                          body.allow_missing_items,
+                          "Allowed missing items",
+                          true,
+                      ),
+            assumedStaples,
         });
-        if (!gate.allowed) return gate.response;
-        let generated: Awaited<ReturnType<typeof generatePantryMealIdeas>>;
-        try {
-            generated = await generatePantryMealIdeas({
-                userId: context.userId,
-                scope,
-                goal,
-                mealType,
-                servings: numberValue(body.servings, "Servings"),
-                maxMinutes: numberValue(body.max_minutes, "Maximum minutes"),
-                allowMissingItems:
-                    body.allow_missing_items === undefined
-                        ? 1
-                        : numberValue(
-                              body.allow_missing_items,
-                              "Allowed missing items",
-                              true,
-                          ),
-                assumedStaples,
-            });
-        } catch (error) {
-            await refundAiCredits(gate.reservation);
-            throw error;
-        }
         return privateJson(c, {
             result: generated.result,
             context_summary: {
@@ -494,7 +466,9 @@ export function createInventoryRouter(): Hono {
     });
 
     async function imagePreview(c: Context, mode: "receipt" | "pantry_photo") {
-        const context = await premiumContext(c);
+        const context = await pantryContext(c);
+        // AI features are free for every account (Amendment D):
+        // no entitlement check and no meter at this call site.
         if (!(await getPantryPreference(context.userId)))
             return privateJson(c, { error: "pantry_not_enabled" }, 409);
         const form = await c.req.parseBody();
@@ -509,23 +483,11 @@ export function createInventoryRouter(): Hono {
         const file = uploaded as File;
         if (file.size > 8 * 1024 * 1024)
             throw new Error("Image exceeds the 8 MB Pantry limit");
-        // Reserve before the vision call; refund on failure (brief §2).
-        const gate = await requireAiCredits(c, {
-            userId: context.userId,
-            task: mode === "receipt" ? "receipt_scan" : "pantry_photo_scan",
+        const preview = await previewInventoryImage({
+            mode,
+            mimeType: file.type,
+            bytes: new Uint8Array(await file.arrayBuffer()),
         });
-        if (!gate.allowed) return gate.response;
-        let preview: Awaited<ReturnType<typeof previewInventoryImage>>;
-        try {
-            preview = await previewInventoryImage({
-                mode,
-                mimeType: file.type,
-                bytes: new Uint8Array(await file.arrayBuffer()),
-            });
-        } catch (error) {
-            await refundAiCredits(gate.reservation);
-            throw error;
-        }
         return privateJson(c, {
             file_name: file.name.slice(0, 200),
             transient_media: true,

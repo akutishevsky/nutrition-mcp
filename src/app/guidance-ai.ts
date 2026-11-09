@@ -16,8 +16,8 @@ import type { WebsiteGuidanceAiConfig } from "../website-ai-config.js";
  * budget, strict zod validation of every proposed item against the
  * requested slots, and ONE bounded retry on unparseable output. A call
  * that still cannot be used resolves to the deterministic
- * `manual_fallback` result — manual entry always works, no recipe is
- * ever fabricated, and the route refunds the credit reservation.
+ * `manual_fallback` result — manual entry always works and no recipe
+ * is ever fabricated.
  */
 
 export interface GuidanceProposalSlot {
