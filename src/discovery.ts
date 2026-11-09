@@ -5,6 +5,14 @@ import { getBaseUrl } from "./url.js";
 export const MCP_PATH = "/mcp";
 export const BETTER_AUTH_ISSUER_PATH = "/api/auth";
 
+// Public proof for official MCP Registry domain authentication of the
+// business.munch/* namespace (see server.json). The matching Ed25519 private
+// key is held outside this repository; the proof string itself is designed to
+// be public — the same value is published in the munch.business DNS TXT
+// record used for the registry's DNS authentication method.
+export const MCP_REGISTRY_AUTH_PROOF =
+    "v=MCPv1; k=ed25519; p=gSSU0H15wTtv+BFu/h1Z8y4E5C/73K659dfJb4ZqV2U=";
+
 export function mcpResourceUrl(baseUrl: string): string {
     return `${baseUrl}${MCP_PATH}`;
 }
@@ -76,6 +84,35 @@ export function registerDiscoveryRoutes(app: Hono): void {
             "Content-Type": "text/plain; charset=utf-8",
             "Cache-Control": "no-store",
         });
+    });
+
+    // Official MCP Registry HTTP domain authentication for the
+    // business.munch/* namespace. The proof is public by design; publishing
+    // the same value as a DNS TXT record is the alternative proof method.
+    app.get("/.well-known/mcp-registry-auth", (c) => {
+        return c.text(MCP_REGISTRY_AUTH_PROOF, 200, {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "public, max-age=300",
+        });
+    });
+
+    // Glama connector ownership claim. GLAMA_CLAIM_TOKEN is the opaque
+    // "glama_claim_..." token Glama shows during its Claim ownership flow;
+    // the route stays dark (404) until the token is configured, matching the
+    // openai-apps-challenge pattern above. Glama re-checks this file daily.
+    app.get("/.well-known/glama.json", (c) => {
+        const claim = process.env.GLAMA_CLAIM_TOKEN?.trim();
+        if (!claim) return c.notFound();
+        return c.json(
+            {
+                $schema: "https://glama.ai/mcp/schemas/connector.json",
+                claim,
+            },
+            200,
+            {
+                "Cache-Control": "public, max-age=300",
+            },
+        );
     });
 
     app.get(
