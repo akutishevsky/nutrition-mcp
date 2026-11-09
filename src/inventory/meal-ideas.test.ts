@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
     pantryMealIdeasResponseJsonSchema,
     pantryPlanningModelConfig,
+    requestPantryMealIdeas,
     validateMealIdeaGrounding,
     type PantryMealIdeasResponse,
 } from "./meal-ideas.js";
@@ -165,13 +166,61 @@ test("Pantry planning documents a strict runtime response contract", () => {
     ).toEqual(["ready_now", "likely_ready", "almost_there"]);
 });
 
+describe("Pantry meal idea model request (S2 reliability pattern)", () => {
+    const modelConfig = {
+        apiKey: "test-key",
+        model: "meta/muse-ember",
+        baseUrl: "https://openrouter.invalid/v1",
+        timeoutMs: 1_000,
+        maxTokens: 2_000,
+    };
+
+    function envelope(content: string): Response {
+        return new Response(
+            JSON.stringify({ choices: [{ message: { content } }] }),
+            { status: 200, headers: { "content-type": "application/json" } },
+        );
+    }
+
+    test("retries once on unparseable output, then returns grounded ideas", async () => {
+        let calls = 0;
+        const result = await requestPantryMealIdeas(
+            modelConfig,
+            context as any,
+            {
+                fetcher: async () => {
+                    calls += 1;
+                    return envelope(
+                        calls === 1 ? "not json" : JSON.stringify(response()),
+                    );
+                },
+            },
+        );
+        expect(calls).toBe(2);
+        expect(result.candidates).toHaveLength(1);
+    });
+
+    test("fails after the single retry when output stays unparseable", async () => {
+        let calls = 0;
+        await expect(
+            requestPantryMealIdeas(modelConfig, context as any, {
+                fetcher: async () => {
+                    calls += 1;
+                    return envelope("still not json");
+                },
+            }),
+        ).rejects.toThrow("invalid JSON");
+        expect(calls).toBe(2);
+    });
+});
+
 test("website planning requires both the feature flag and OpenRouter key", () => {
     expect(
         pantryPlanningModelConfig({
             MUNCH_PANTRY_PLANNING_ENABLED: "true",
             OPENROUTER_API_KEY: "test-key",
         })?.model,
-    ).toBe("qwen/qwen3.7-flash");
+    ).toBe("meta/muse-ember");
     expect(
         pantryPlanningModelConfig({
             MUNCH_PANTRY_PLANNING_ENABLED: "true",

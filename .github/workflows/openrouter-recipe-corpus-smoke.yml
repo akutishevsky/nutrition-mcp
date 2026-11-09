@@ -6,7 +6,7 @@ on:
             model:
                 description: "Shared Munch website OpenRouter model ID"
                 required: false
-                default: "qwen/qwen3.7-flash"
+                default: "meta/muse-ember"
                 type: string
             limit:
                 description: "Number of corpus URLs to exercise"
@@ -33,7 +33,7 @@ jobs:
         timeout-minutes: 30
         env:
             OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-            MUNCH_AI_MODEL: ${{ inputs.model || 'qwen/qwen3.7-flash' }}
+            MUNCH_AI_MODEL: ${{ inputs.model || 'meta/muse-ember' }}
             MUNCH_RECIPE_IMPORT_AI_ENABLED: "true"
             MUNCH_RECIPE_IMPORT_AI_RESPONSE_FORMAT: "json_object"
             MUNCH_RECIPE_IMPORT_AI_RESPONSE_HEALING: "true"

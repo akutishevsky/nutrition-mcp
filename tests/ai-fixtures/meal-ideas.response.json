@@ -8,7 +8,7 @@
         }
     ],
     "id": "fixture-meal-ideas",
-    "model": "meta/muse-ember-1.0",
+    "model": "meta/muse-ember",
     "usage": {
         "completion_tokens": 388,
         "prompt_tokens": 1930,

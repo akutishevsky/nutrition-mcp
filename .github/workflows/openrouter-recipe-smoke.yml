@@ -6,7 +6,7 @@ on:
             model:
                 description: "Shared Munch website OpenRouter model ID"
                 required: false
-                default: "qwen/qwen3.7-flash"
+                default: "meta/muse-ember"
                 type: string
             timeout_ms:
                 description: "Per-call timeout in milliseconds"

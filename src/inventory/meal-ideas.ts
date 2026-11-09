@@ -38,12 +38,14 @@ const mealIdeaSchema = z
     })
     .strict();
 
-const responseSchema = z
+export const pantryMealIdeasResponseSchema = z
     .object({
         candidates: z.array(mealIdeaSchema).min(1).max(5),
         planning_notes: z.array(z.string().min(1).max(300)).max(6),
     })
     .strict();
+
+const responseSchema = pantryMealIdeasResponseSchema;
 
 export const pantryMealIdeasResponseJsonSchema = {
     type: "object",
@@ -200,11 +202,14 @@ export interface PantryMealIdeaRequest {
     assumedStaples?: string[];
 }
 
+export const DEFAULT_PANTRY_PLANNING_MAX_TOKENS = 4_000;
+
 interface PlanningModelConfig {
     apiKey: string;
     model: string;
     baseUrl: string;
     timeoutMs: number;
+    maxTokens: number;
     appUrl?: string;
 }
 
@@ -245,6 +250,12 @@ export function pantryPlanningModelConfig(
             45_000,
             5_000,
             90_000,
+        ),
+        maxTokens: boundedInteger(
+            env.MUNCH_PANTRY_PLANNING_MAX_TOKENS,
+            DEFAULT_PANTRY_PLANNING_MAX_TOKENS,
+            500,
+            8_000,
         ),
         appUrl: env.MUNCH_APP_BASE_URL?.trim(),
     };
@@ -427,6 +438,137 @@ function systemPrompt() {
     return `You are Munch's deliberate kitchen planning engine. Recommend actual coherent dishes, not piles of high-macro ingredients. Inspect the entire provided kitchen context: proteins, vegetables, starches, dairy, sauces, condiments, spices, herbs, acids, aromatics, cooking fats, quantities, locations, and saved recipes. A nutrition goal such as high protein is a ranking goal, not candidate-generation logic. Prefer saved recipes when they fit well, but do not force them. Treat missing core ingredients much more seriously than optional garnish. Use seasonings and flavor systems intentionally. Produce genuinely diverse candidates across protein, cuisine/flavor direction, cooking method, or meal format when the Pantry supports diversity. Never claim an ingredient is on hand unless it appears in pantry. Never claim an assumed staple unless it appears in assumed_staples. Put unavailable ingredients only in missing_required or missing_optional. Do not fabricate precise nutrition when the context is uncertain; use null or reasonable rounded estimates. Return JSON only.`;
 }
 
+function safeLogValue(value: string): string {
+    return value.replace(/[^a-zA-Z0-9._/-]+/g, "_").slice(0, 80) || "unknown";
+}
+
+function logPlanningPhase(
+    status: "success" | "error",
+    model: string,
+    startedAt: number,
+    callsUsed: number,
+): void {
+    console.info(
+        `[pantry_planning] phase=meal_ideas status=${status} model=${safeLogValue(model)} duration_ms=${Math.max(0, Math.round(Date.now() - startedAt))} calls_used=${callsUsed}`,
+    );
+}
+
+/**
+ * Transport core for meal ideas, split from `generatePantryMealIdeas`
+ * so the recorded-fixture lane can replay provider responses through
+ * the real request/schema/grounding path without a database context.
+ *
+ * S2 reliability pattern (recipe resolver is the reference): strict
+ * structured-output schema in the request, the OpenRouter
+ * response-healing plugin, temperature 0 (extractive grounding rules
+ * apply to the output), a per-flow max-token cap, and ONE bounded retry
+ * on unparseable output. Grounding validation stays deterministic and
+ * outside the retry: an ungrounded response is unusable, throws, and
+ * the route refunds the credit reservation.
+ */
+export async function requestPantryMealIdeas(
+    config: PlanningModelConfig,
+    context: Awaited<ReturnType<typeof buildMealIdeaContext>>,
+    dependencies: PantryMealIdeaDependencies = {},
+): Promise<PantryMealIdeasResponse> {
+    const startedAt = Date.now();
+    const fetcher = dependencies.fetcher ?? fetch;
+    const requestBody = JSON.stringify({
+        model: config.model,
+        temperature: 0,
+        max_tokens: config.maxTokens,
+        response_format: {
+            type: "json_schema",
+            json_schema: {
+                name: "munch_pantry_meal_ideas",
+                strict: true,
+                schema: pantryMealIdeasResponseJsonSchema,
+            },
+        },
+        plugins: [{ id: "response-healing" }],
+        reasoning: { enabled: false },
+        provider: { data_collection: "deny" },
+        messages: [
+            {
+                role: "system",
+                content: `${systemPrompt()}\n\nYour response MUST be one JSON object matching this schema exactly. The only top-level keys are candidates and planning_notes; do not rename, wrap, or replace them.\n${JSON.stringify(pantryMealIdeasResponseJsonSchema)}`,
+            },
+            {
+                role: "user",
+                content: `Plan ${context.request.meal_type} deliberately from this JSON context. Use only source=saved_recipe or generated and readiness=ready_now, likely_ready, or almost_there. estimated_nutrition must contain the five scalar nullable fields in the schema; flavor_system and why_it_fits are arrays.\n\n${JSON.stringify(context)}`,
+            },
+        ],
+    });
+    let callsUsed = 0;
+    let lastParseError: unknown;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+        try {
+            callsUsed += 1;
+            const response = await fetcher(
+                `${config.baseUrl}/chat/completions`,
+                {
+                    method: "POST",
+                    signal: controller.signal,
+                    headers: {
+                        authorization: `Bearer ${config.apiKey}`,
+                        "content-type": "application/json",
+                        ...(config.appUrl
+                            ? { "http-referer": config.appUrl }
+                            : {}),
+                        "x-title": "Munch Pantry Planning",
+                    },
+                    body: requestBody,
+                },
+            );
+            if (!response.ok) {
+                throw new Error(
+                    `Pantry planning provider returned HTTP ${response.status}`,
+                );
+            }
+            const payload = (await response.json()) as any;
+            const text = responseText(payload?.choices?.[0]?.message?.content);
+            if (!text) {
+                lastParseError = new Error(
+                    "Pantry planning returned no structured content",
+                );
+                continue;
+            }
+            let decoded: unknown;
+            try {
+                decoded = JSON.parse(text);
+            } catch {
+                lastParseError = new Error(
+                    "Pantry planning returned invalid JSON",
+                );
+                continue;
+            }
+            let parsed: PantryMealIdeasResponse;
+            try {
+                parsed = responseSchema.parse(decoded);
+            } catch (error) {
+                lastParseError = error;
+                continue;
+            }
+            const grounded = validateMealIdeaGrounding(parsed, context);
+            logPlanningPhase("success", config.model, startedAt, callsUsed);
+            return grounded;
+        } catch (error) {
+            // HTTP/transport failures and grounding failures keep
+            // single-attempt semantics; only unparseable output retries.
+            logPlanningPhase("error", config.model, startedAt, callsUsed);
+            throw error;
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+    logPlanningPhase("error", config.model, startedAt, callsUsed);
+    throw lastParseError instanceof Error
+        ? lastParseError
+        : new Error("Pantry planning returned unusable output");
+}
+
 export async function generatePantryMealIdeas(
     input: PantryMealIdeaRequest,
     config = pantryPlanningModelConfig(),
@@ -440,57 +582,6 @@ export async function generatePantryMealIdeas(
     if (!context.pantry.length) {
         throw new Error("Pantry has no available foods to plan with");
     }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
-    const fetcher = dependencies.fetcher ?? fetch;
-    try {
-        const response = await fetcher(`${config.baseUrl}/chat/completions`, {
-            method: "POST",
-            signal: controller.signal,
-            headers: {
-                authorization: `Bearer ${config.apiKey}`,
-                "content-type": "application/json",
-                ...(config.appUrl ? { "http-referer": config.appUrl } : {}),
-                "x-title": "Munch Pantry Planning",
-            },
-            body: JSON.stringify({
-                model: config.model,
-                response_format: { type: "json_object" },
-                reasoning: { enabled: false },
-                provider: { data_collection: "deny" },
-                messages: [
-                    {
-                        role: "system",
-                        content: `${systemPrompt()}\n\nYour response MUST be one JSON object matching this schema exactly. The only top-level keys are candidates and planning_notes; do not rename, wrap, or replace them.\n${JSON.stringify(pantryMealIdeasResponseJsonSchema)}`,
-                    },
-                    {
-                        role: "user",
-                        content: `Plan ${context.request.meal_type} deliberately from this JSON context. Use only source=saved_recipe or generated and readiness=ready_now, likely_ready, or almost_there. estimated_nutrition must contain the five scalar nullable fields in the schema; flavor_system and why_it_fits are arrays.\n\n${JSON.stringify(context)}`,
-                    },
-                ],
-            }),
-        });
-        if (!response.ok) {
-            throw new Error(
-                `Pantry planning provider returned HTTP ${response.status}`,
-            );
-        }
-        const payload = (await response.json()) as any;
-        const text = responseText(payload?.choices?.[0]?.message?.content);
-        if (!text)
-            throw new Error("Pantry planning returned no structured content");
-        let decoded: unknown;
-        try {
-            decoded = JSON.parse(text);
-        } catch {
-            throw new Error("Pantry planning returned invalid JSON");
-        }
-        const parsed = responseSchema.parse(decoded);
-        return {
-            context,
-            result: validateMealIdeaGrounding(parsed, context),
-        };
-    } finally {
-        clearTimeout(timeout);
-    }
+    const result = await requestPantryMealIdeas(config, context, dependencies);
+    return { context, result };
 }

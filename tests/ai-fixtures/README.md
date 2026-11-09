@@ -1,4 +1,10 @@
-# AI recorded fixtures (S0 — Full Parity App Program)
+# AI recorded fixtures (S0 — Full Parity App Program; S2 completed the set)
+
+All four website AI flows are covered: pantry vision (receipt + pantry
+photo), pantry meal ideas, the recipe-import semantic resolver, and
+guidance recipe proposals (`guidance-propose.response.json`, replayed
+through `src/app/guidance-ai.ts`). Every fixture's recorded model is the
+program's target model, `meta/muse-ember`.
 
 Golden OpenRouter chat-completion envelopes used by the deterministic,
 secret-free `ai-fixture` CI job (`tests/ai-fixtures/ai-fixtures.test.ts`).

@@ -22,6 +22,127 @@ describe("inventory vision", () => {
         ).toBe("test");
     });
 
+    test("defaults to Ember and lets the shared model variable override it", () => {
+        expect(
+            inventoryVisionConfig({
+                OPENROUTER_API_KEY: "test",
+                MUNCH_PANTRY_VISION_ENABLED: "true",
+            })?.model,
+        ).toBe("meta/muse-ember");
+        expect(
+            inventoryVisionConfig({
+                OPENROUTER_API_KEY: "test",
+                MUNCH_PANTRY_VISION_ENABLED: "true",
+                MUNCH_AI_MODEL: "custom/model",
+            })?.model,
+        ).toBe("custom/model");
+    });
+
+    test("sends the structured schema, healing plugin, and token cap", async () => {
+        let requestBody: Record<string, any> = {};
+        await previewInventoryImage(
+            {
+                mode: "receipt",
+                mimeType: "image/jpeg",
+                bytes: new Uint8Array([1]),
+            },
+            config,
+            {
+                fetcher: async (_url, init) => {
+                    requestBody = JSON.parse(String(init?.body ?? "{}"));
+                    return new Response(
+                        JSON.stringify({
+                            choices: [
+                                {
+                                    message: {
+                                        content: JSON.stringify({
+                                            lines: [],
+                                            notes: [],
+                                        }),
+                                    },
+                                },
+                            ],
+                        }),
+                        {
+                            status: 200,
+                            headers: { "content-type": "application/json" },
+                        },
+                    );
+                },
+            },
+        );
+        expect(requestBody.response_format?.type).toBe("json_schema");
+        expect(requestBody.response_format?.json_schema?.strict).toBe(true);
+        expect(requestBody.plugins).toEqual([{ id: "response-healing" }]);
+        expect(requestBody.temperature).toBe(0);
+        expect(requestBody.max_tokens).toBe(4000);
+    });
+
+    test("retries once on unparseable output, then succeeds", async () => {
+        let calls = 0;
+        const preview = await previewInventoryImage(
+            {
+                mode: "receipt",
+                mimeType: "image/jpeg",
+                bytes: new Uint8Array([1]),
+            },
+            config,
+            {
+                fetcher: async () => {
+                    calls += 1;
+                    const content =
+                        calls === 1
+                            ? "not json at all"
+                            : JSON.stringify({ lines: [], notes: [] });
+                    return new Response(
+                        JSON.stringify({
+                            choices: [{ message: { content } }],
+                        }),
+                        {
+                            status: 200,
+                            headers: { "content-type": "application/json" },
+                        },
+                    );
+                },
+            },
+        );
+        expect(calls).toBe(2);
+        expect(preview.lines).toEqual([]);
+    });
+
+    test("fails after the single retry when output stays unparseable", async () => {
+        let calls = 0;
+        await expect(
+            previewInventoryImage(
+                {
+                    mode: "receipt",
+                    mimeType: "image/jpeg",
+                    bytes: new Uint8Array([1]),
+                },
+                config,
+                {
+                    fetcher: async () => {
+                        calls += 1;
+                        return new Response(
+                            JSON.stringify({
+                                choices: [
+                                    { message: { content: "still not json" } },
+                                ],
+                            }),
+                            {
+                                status: 200,
+                                headers: {
+                                    "content-type": "application/json",
+                                },
+                            },
+                        );
+                    },
+                },
+            ),
+        ).rejects.toThrow("invalid JSON");
+        expect(calls).toBe(2);
+    });
+
     test("parses a receipt preview without persisting raw media", async () => {
         let requestBody = "";
         const preview = await previewInventoryImage(

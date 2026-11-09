@@ -1485,6 +1485,21 @@ export function createAppRouter(): Hono {
                 if (reservation) await refundAiCredits(reservation);
                 throw error;
             }
+            // The preview service falls back to deterministic matching
+            // when the semantic resolver's normalize call fails
+            // (warning `semantic_ai_unavailable`); in that case no model
+            // call succeeded and assignment was disabled, so the spend
+            // is refunded — a user never pays for an outage (brief §2).
+            // Partial failures after a successful normalize keep the
+            // spend: the model did the interpretation work.
+            if (
+                reservation &&
+                draft.warnings.some(
+                    (warning) => warning.code === "semantic_ai_unavailable",
+                )
+            ) {
+                await refundAiCredits(reservation);
+            }
             return privateJson(c, { draft });
         },
     );
