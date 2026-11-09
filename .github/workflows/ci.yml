@@ -36,6 +36,8 @@ jobs:
         run: bun run submission:check
       - name: Verify responsive UI surfaces
         run: bun scripts/ui-surface-smoke.ts
+      - name: Verify connect page routes do not shadow OAuth
+        run: bun scripts/connect-route-smoke.ts
       - name: Verify premium Pantry web surface
         run: bun scripts/pantry-ui-smoke.ts
       - name: Verify ChatGPT widget contracts

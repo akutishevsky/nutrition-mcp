@@ -223,6 +223,15 @@ app.get("/.well-known/security.txt", async (c) =>
 );
 
 app.get("/", async (c) => c.html(await Bun.file("./public/index.html").text()));
+// Bare /connect is the public connect-instructions page. It is an exact
+// route only: the OAuth namespace below it (/connect/sign-in,
+// /connect/consent, /connect/request, /connect/confirm) is registered by
+// the auth router and must keep reaching auth untouched. The regression
+// check in scripts/connect-route-smoke.ts pins this.
+app.get("/connect", async (c) =>
+    c.html(await Bun.file("./public/connect.html").text()),
+);
+app.get("/connect/", (c) => c.redirect("/connect", 301));
 app.get("/privacy", async (c) =>
     c.html(await Bun.file("./public/privacy.html").text()),
 );
@@ -239,12 +248,8 @@ app.get("/help", async (c) =>
     c.html(await Bun.file("./public/help.html").text()),
 );
 app.get("/help/", (c) => c.redirect("/help", 301));
-app.get("/help/connect-chatgpt", async (c) =>
-    c.html(await Bun.file("./public/help-connect.html").text()),
-);
-app.get("/help/connect-chatgpt/", (c) =>
-    c.redirect("/help/connect-chatgpt", 301),
-);
+app.get("/help/connect-chatgpt", (c) => c.redirect("/connect", 301));
+app.get("/help/connect-chatgpt/", (c) => c.redirect("/connect", 301));
 app.get("/security", async (c) =>
     c.html(await Bun.file("./public/security.html").text()),
 );
@@ -270,6 +275,11 @@ for (const route of LEGACY_PUBLIC_ROUTES) {
 
 app.get("/styles.css", async (c) =>
     c.body(await Bun.file("./public/styles.css").text(), 200, {
+        "Content-Type": "text/css",
+    }),
+);
+app.get("/editorial.css", async (c) =>
+    c.body(await Bun.file("./public/editorial.css").text(), 200, {
         "Content-Type": "text/css",
     }),
 );
