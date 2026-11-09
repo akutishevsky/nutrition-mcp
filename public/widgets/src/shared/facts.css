@@ -1,0 +1,333 @@
+/* Facts Panel grammar — the shared visual language for every Munch widget.
+   One bordered surface on the host background, no shadows. Parts:
+   band, rule cascade, hero, label rows, compact rows, sticky action bar,
+   fold helpers, and state blocks (empty / error / partial banner).
+   Markup builders live in shared/facts.js (factsBand, factsLabelRow, ...).
+   Band colours come from the --facts-* tokens in shared/tokens.css: the
+   band stays deep green with the cream glyph in light and dark modes. */
+
+/* --- Band ------------------------------------------------------------ */
+.f-band {
+    background: var(--facts-band);
+    color: var(--facts-band-ink);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    min-height: 56px;
+}
+.f-band-mark {
+    width: 30px;
+    height: 30px;
+    flex: none;
+    display: block;
+}
+.f-band-title {
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin: 0;
+    min-width: 0;
+}
+.f-band-right {
+    margin-left: auto;
+    font-size: 12.5px;
+    color: var(--facts-band-dim);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- Body + rule cascade (8px heavy -> 3px rule -> 1px hairlines) ---- */
+.f-body {
+    padding: 14px 20px 16px;
+}
+.f-rule-heavy {
+    height: 8px;
+    background: var(--facts-heavy);
+    border-radius: 1px;
+    margin: 12px 0 2px;
+}
+.f-rule-med {
+    height: 3px;
+    background: var(--facts-med);
+    margin: 10px 0 2px;
+}
+
+/* --- Hero numeral ----------------------------------------------------- */
+.f-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+}
+.f-hero-num {
+    font-size: 46px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+.f-hero-num .f-hero-unit {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+.f-hero-cap {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 5px;
+}
+.f-hero-side {
+    text-align: right;
+    padding-bottom: 2px;
+    flex: none;
+}
+.f-hero-side-v {
+    font-size: 21px;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.f-hero-side-c {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 3px;
+}
+
+/* --- Label rows: name / value / right-aligned % share column ---------- */
+.f-lrow {
+    padding: 7px 0 8px;
+    border-bottom: 1px solid var(--panel-border);
+}
+.f-lrow:last-child {
+    border-bottom: 0;
+}
+.f-lrow-top {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    line-height: 1.3;
+}
+.f-lrow-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+.f-lrow-of {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.f-lrow-val {
+    margin-left: auto;
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.f-lrow-pct {
+    width: 46px;
+    flex: none;
+    text-align: right;
+    font-size: 13px;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+.f-lrow-pct.over {
+    color: var(--over);
+    font-weight: 700;
+}
+.f-bar {
+    height: 8px;
+    background: var(--facts-track);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+}
+.f-bar-fill {
+    display: block;
+    height: 100%;
+    background: var(--facts-fill);
+}
+.f-bar-fill.over {
+    background: var(--over);
+}
+
+/* --- Source line (every number carries its source, on the row) -------- */
+.f-src {
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 5px;
+}
+.f-src b {
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* --- Compact rows: one line per item ---------------------------------- */
+.f-crow {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-height: 44px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--panel-border);
+}
+.f-crow:last-child {
+    border-bottom: 0;
+}
+.f-crow-name {
+    font-weight: 600;
+    min-width: 0;
+}
+.f-crow-meta {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+.f-crow-val {
+    margin-left: auto;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.f-crow-marker {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--facts-fill);
+    align-self: center;
+}
+.f-more-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-dim);
+    font-weight: 650;
+    cursor: pointer;
+}
+
+/* --- Plain row + note + footer ---------------------------------------- */
+.f-prow {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--panel-border);
+}
+.f-prow:last-child {
+    border-bottom: 0;
+}
+.f-note {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 12px;
+}
+.f-note b {
+    color: var(--text);
+}
+.f-foot {
+    border-top: 1px solid var(--panel-border);
+    padding: 11px 20px 13px;
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* --- Sticky action bar (write surfaces) --------------------------------
+   Pinned to the card's bottom edge in both display modes. The confirm
+   copy lives inside the bar zone so it can never scroll away from the
+   button it describes. Every control here is at least 44px tall. */
+.f-sticky-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--panel);
+    border-top: 1px solid var(--panel-border);
+    padding: 12px 20px 14px;
+    display: grid;
+    gap: 8px;
+}
+.f-sticky-actions {
+    display: flex;
+    gap: 10px;
+}
+.f-sticky-confirm {
+    font-size: 12.5px;
+    color: var(--text-dim);
+}
+.f-sticky-confirm b {
+    color: var(--text);
+}
+.f-btn-primary {
+    flex: 1;
+    min-height: 48px;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+    border: 1px solid var(--facts-primary);
+    background: var(--facts-primary);
+    color: var(--facts-primary-ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.f-btn-primary:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+}
+.f-expand {
+    min-height: 44px;
+    margin-top: 14px;
+    width: 100%;
+}
+
+/* --- State blocks: empty / error / partial banner ---------------------- */
+.f-state {
+    padding: 22px 20px 24px;
+    text-align: center;
+    color: var(--text-dim);
+}
+.f-state strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text);
+    font-size: 15px;
+}
+.f-state-error strong {
+    color: var(--over);
+}
+.f-banner {
+    padding: 10px 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-sm);
+    background: var(--panel-muted);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 12px;
+}
+.f-banner b {
+    color: var(--text);
+}
+.f-banner.warn {
+    border-color: color-mix(in srgb, var(--warn) 38%, var(--panel-border));
+    color: var(--text);
+}
+.f-banner.error {
+    border-color: color-mix(in srgb, var(--over) 38%, var(--panel-border));
+    color: var(--over);
+}

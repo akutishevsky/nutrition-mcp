@@ -2034,6 +2034,9 @@ export function registerTools(
             description:
                 "Set the user's daily calorie and macro targets, and optionally a target body weight. Pass only the fields you want to update — omitted fields keep their previous value. Pass null explicitly to clear a target. Set confirm=true only after the user explicitly approves the exact change. Calories, protein, carbs, fat, fiber and water are targets to REACH; sugar and alcohol are limits to STAY UNDER, and progress against them is worded accordingly. Targets are the user's own choice; this server does not provide medical or dietary advice.",
             outputSchema: TEXT_OUTPUT_SCHEMA,
+            // Targets state of the goal-progress widget (UI meta only; the
+            // widget parses the text payload this tool already returns).
+            ...uiMeta(GOAL_PROGRESS_WIDGET_URI),
             annotations: {
                 readOnlyHint: false,
                 destructiveHint: false,
@@ -2229,6 +2232,9 @@ export function registerTools(
                 "Get the user's current daily calorie and macro targets.",
             inputSchema: {},
             outputSchema: TEXT_OUTPUT_SCHEMA,
+            // Targets state of the goal-progress widget (UI meta only; the
+            // widget parses the text payload this tool already returns).
+            ...uiMeta(GOAL_PROGRESS_WIDGET_URI),
             annotations: {
                 readOnlyHint: true,
                 destructiveHint: false,

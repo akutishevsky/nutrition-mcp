@@ -7,44 +7,11 @@
         <style>
             /*@include shared/tokens.css@*/
             /*@include shared/base.css@*/
-            .summary {
-                padding: 15px;
-            }
-            .coverage {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 12px;
-                margin-bottom: 12px;
-            }
-            .detail-grid {
-                display: grid;
-                grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
-                gap: 18px;
-                margin-top: 18px;
-            }
-            .day-list {
-                display: grid;
-                gap: 7px;
-            }
-            .day-row {
-                display: grid;
-                grid-template-columns: 92px 1fr auto;
-                gap: 10px;
-                align-items: center;
-                padding: 9px 0;
-                border-bottom: 1px solid var(--panel-border);
-            }
-            .day-row:last-child {
-                border-bottom: 0;
-            }
-            @media (max-width: 700px) {
-                .detail-grid {
-                    grid-template-columns: 1fr;
-                }
-                .day-row {
-                    grid-template-columns: 74px 1fr auto;
-                }
+            /*@include shared/facts.css@*/
+            .f-section-title {
+                font-size: 15px;
+                font-weight: 650;
+                margin: 14px 0 4px;
             }
         </style>
     </head>
@@ -54,6 +21,7 @@
             "use strict";
             /*@include shared/bridge.js@*/
             /*@include shared/ui.js@*/
+            /*@include shared/facts.js@*/
             const SAMPLE = {
                 start_date: "2026-07-30",
                 end_date: "2026-08-05",
@@ -63,12 +31,14 @@
                     protein_g: 160,
                     carbs_g: 220,
                     fat_g: 70,
+                    water_ml: 2500,
                 },
                 averages: {
                     calories: 2035,
                     protein_g: 148,
                     carbs_g: 205,
                     fat_g: 74,
+                    water_ml: 2110,
                 },
                 days: [
                     {
@@ -113,9 +83,18 @@
             let API = null;
             function coerce(payload) {
                 if (!payload || typeof payload !== "object") return null;
+                if (payload.error || payload.__error)
+                    return {
+                        __error:
+                            payload.error?.message ||
+                            payload.error ||
+                            payload.__error,
+                    };
                 if (payload.averages || Array.isArray(payload.days))
                     return payload;
-                return payload.structuredContent || null;
+                if (payload.structuredContent)
+                    return coerce(payload.structuredContent);
+                return null;
             }
             function observation(data) {
                 const avg = data.averages || {};
@@ -134,8 +113,32 @@
                     return `Calories averaged ${fmt(Math.abs(caloriesDelta))} kcal ${caloriesDelta < 0 ? "below" : "above"} target.`;
                 return "Logged-day averages were close to the selected targets.";
             }
+            function metricRow(name, value, goal, unit) {
+                return factsLabelRow({
+                    name,
+                    ofText:
+                        goal != null
+                            ? `of ${fmt(goal, unit === "ml" ? 0 : 1)} ${unit}`
+                            : "no target set",
+                    valueText: `${fmt(value, unit === "kcal" || unit === "ml" ? 0 : 1)} ${unit}`,
+                    value,
+                    goal,
+                });
+            }
             function render(data) {
                 DATA = data;
+                const rangeLabel = humanRange(data.start_date, data.end_date);
+                if (data.__error) {
+                    document.getElementById("root").innerHTML = factsCardState(
+                        "Nutrition summary",
+                        rangeLabel,
+                        "error",
+                        "Could not load this summary",
+                        String(data.__error) ||
+                            "Something went wrong reading your logged meals. Try again in chat.",
+                    );
+                    return;
+                }
                 const days = Array.isArray(data.days)
                     ? data.days
                           .slice()
@@ -143,10 +146,11 @@
                     : [];
                 if (!days.length) {
                     document.getElementById("root").innerHTML =
-                        '<article class="card empty"><strong>No nutrition data in this range</strong>Log a meal or choose another date range.</article>';
+                        `<article class="card">${factsBand("Nutrition summary", rangeLabel)}${factsState("empty", "No nutrition data in this range", "Log a meal or choose another date range.")}<div class="f-foot"><span>Every number traces to its source</span><span>Your logged meals</span></div></article>`;
                     return;
                 }
                 const avg = data.averages || {};
+                const goals = data.goals || {};
                 const rangeDays = Math.max(
                     1,
                     Math.round(
@@ -159,23 +163,64 @@
                     data.logged_days ??
                     days.filter((day) => Number(day.meal_count || 0) > 0)
                         .length;
+                const partial = logged < rangeDays;
                 const points = days.map((day) => ({
                     value: day.calories || 0,
                 }));
                 const dayRows = days
-                    .map(
-                        (day) =>
-                            `<div class="day-row"><span class="caption">${esc(humanDate(day.date))}</span><span>${Number(day.meal_count || 0)} meal${Number(day.meal_count || 0) === 1 ? "" : "s"}</span><strong class="num">${fmt(day.calories)} kcal</strong></div>`,
+                    .map((day) =>
+                        factsCompactRow({
+                            name: humanDate(day.date),
+                            meta: `${Number(day.meal_count || 0)} meal${Number(day.meal_count || 0) === 1 ? "" : "s"}`,
+                            valueText: `${fmt(day.calories)} kcal`,
+                        }),
                     )
                     .join("");
+                const insight = partial
+                    ? factsBanner(
+                          "warn",
+                          `<b>Partial — ${logged} of ${rangeDays} days logged.</b> ${esc(observation(data))}`,
+                      )
+                    : `<div class="f-note">${esc(observation(data))}</div>`;
+                const recorded = data.recorded_days;
+                const recordedNote =
+                    recorded &&
+                    (recorded.fiber_g != null || recorded.sugar_g != null)
+                        ? `<div class="f-note">Fiber recorded on ${fmt(recorded.fiber_g)} of ${fmt(logged)} logged days · Sugar recorded on ${fmt(recorded.sugar_g)} of ${fmt(logged)} logged days. Averages for those nutrients cover recorded days only.</div>`
+                        : "";
                 document.getElementById("root").innerHTML =
-                    `<article class="card summary">
-        <div class="head"><div class="head-main"><div class="eyebrow">Range summary</div><h1>Nutrition summary</h1><div class="meta">${esc(humanRange(data.start_date, data.end_date))}</div></div><button class="btn btn-sm" id="details">Explore summary</button></div>
-        <div class="coverage"><span class="caption">Data coverage</span><span class="chip${logged < rangeDays * 0.7 ? " warn" : " good"}">${logged} of ${rangeDays} days logged</span></div>
-        <div class="metrics">${nutrientMetrics(avg)}</div>
-        <div style="margin-top:12px">${sparkline(points, { goal: data.goals?.calories, label: "Calories by logged day" })}<div class="row-between caption"><span>${esc(humanDate(days[0].date))}</span><span>${esc(humanDate(days[days.length - 1].date))}</span></div></div>
-        <div class="notice" style="margin-top:12px">${esc(observation(data))}</div>
-        <div class="fullscreen-only"><div class="detail-grid"><div><h2>Daily calories</h2><div class="day-list">${dayRows}</div></div><div><h2>Average versus target</h2><div class="stack" style="margin-top:12px">${progress("Calories", avg.calories || 0, data.goals?.calories, "kcal", "var(--calories)")}${progress("Protein", avg.protein_g || 0, data.goals?.protein_g, "g", "var(--protein)")}${progress("Carbs", avg.carbs_g || 0, data.goals?.carbs_g, "g", "var(--carbs)")}${progress("Fat", avg.fat_g || 0, data.goals?.fat_g, "g", "var(--fat)")}</div></div></div><div class="actions"><button class="btn" id="close">Return to chat</button></div></div>
+                    `<article class="card">
+        ${factsBand("Nutrition summary", rangeLabel)}
+        <div class="f-body">
+        ${factsHero(`${fmt(avg.calories)} <span class="f-hero-unit">kcal</span>`, "average per logged day", `${logged} of ${rangeDays}`, "days logged")}
+        <div class="f-src">Source · <b>Your logged meals</b></div>
+        <div class="f-rule-heavy"></div>
+        ${metricRow("Protein", avg.protein_g || 0, goals.protein_g, "g")}
+        ${metricRow("Carbs", avg.carbs_g || 0, goals.carbs_g, "g")}
+        ${metricRow("Fat", avg.fat_g || 0, goals.fat_g, "g")}
+        ${avg.water_ml != null || goals.water_ml != null ? metricRow("Water", avg.water_ml || 0, goals.water_ml, "ml") : ""}
+        ${insight}
+        <button class="f-more-row inline-only" id="details">View daily breakdown</button>
+        <div class="fullscreen-only">
+        <div class="f-rule-med"></div>
+        <h2 class="f-section-title">Daily calories</h2>
+        ${sparkline(points, { goal: goals.calories, label: "Calories by logged day" })}
+        <div class="row-between caption"><span>${esc(humanDate(days[0].date))}</span><span>${esc(humanDate(days[days.length - 1].date))}</span></div>
+        <div>${dayRows}</div>
+        <div class="f-rule-med"></div>
+        <h2 class="f-section-title">Average versus target</h2>
+        ${metricRow("Calories", avg.calories || 0, goals.calories, "kcal")}
+        ${metricRow("Protein", avg.protein_g || 0, goals.protein_g, "g")}
+        ${metricRow("Carbs", avg.carbs_g || 0, goals.carbs_g, "g")}
+        ${metricRow("Fat", avg.fat_g || 0, goals.fat_g, "g")}
+        ${avg.fiber_g != null || goals.fiber_g != null ? metricRow("Fiber", avg.fiber_g || 0, goals.fiber_g, "g") : ""}
+        ${avg.sugar_g != null || goals.sugar_g != null ? metricRow("Sugar", avg.sugar_g || 0, goals.sugar_g, "g") : ""}
+        ${avg.water_ml != null || goals.water_ml != null ? metricRow("Water", avg.water_ml || 0, goals.water_ml, "ml") : ""}
+        ${recordedNote}
+        <div class="actions"><button class="btn" id="close">Return to chat</button></div>
+        </div>
+        </div>
+        <div class="f-foot"><span>Every number traces to its source</span><span>Logged meals · USDA FoodData Central · Open Food Facts</span></div>
     </article>`;
                 document
                     .getElementById("details")
@@ -197,7 +242,7 @@
                 name: "nutrition-summary-widget",
                 displayModes: ["inline", "fullscreen"],
                 loading:
-                    '<div class="card empty">Loading nutrition summary…</div>',
+                    '<article class="card"><div class="f-band"><span class="f-band-title">Nutrition summary</span></div><div class="f-state"><strong>Loading summary</strong><span>Reading your logged meals…</span></div></article>',
                 coerce,
                 render,
                 sample: SAMPLE,
