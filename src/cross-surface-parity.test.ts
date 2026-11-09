@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { calculateDateRangeDays } from "./analytics.js";
+import { CAPABILITY_MANIFEST } from "./capability-manifest.js";
 import { rangeAverages, sumMeals } from "./mcp.js";
 import {
     buildNutritionRangeContract,
@@ -114,6 +115,39 @@ describe("cross-surface nutrition parity", () => {
         expect(mcp.recordedDays.sugar_g).toBe(web.nutrientCoverage.sugarDays);
         expect(mcp.recordedDays.alcohol_g).toBe(
             web.nutrientCoverage.alcoholDays,
+        );
+    });
+
+    test("MCP, web, and app entry points stay in parity per capability", () => {
+        // S0 (Full Parity App Program): the manifest's explicit `app`
+        // channel replaces the old assumption that "web" meant "app".
+        // Every MCP-complete outcome must be reachable on web, and in the
+        // packaged app too — unless the row carries an explicit exception
+        // (website-only by design) or a documented gap with a target slice.
+        for (const capability of CAPABILITY_MANIFEST) {
+            if (capability.mcp.coverage !== "complete") continue;
+            expect(capability.web.coverage).toBe("complete");
+            if (capability.app.coverage !== "complete") {
+                const explained =
+                    capability.intentionalChannelException !== null ||
+                    (capability.gap !== null && capability.targetPr !== null);
+                expect(explained).toBe(true);
+            }
+            if (capability.app.coverage === "complete") {
+                expect(capability.app.entryPoints.length).toBeGreaterThan(0);
+                expect(capability.app.entryPoints).toEqual(
+                    capability.web.entryPoints,
+                );
+            }
+        }
+        const appComplete = CAPABILITY_MANIFEST.filter(
+            (capability) => capability.app.coverage === "complete",
+        );
+        // The packaged app is the portal bundle: nearly every row is
+        // app-complete today; the known exceptions are the website-only
+        // rows and the Android AI-credit block (mealPlan.recipeGenerate).
+        expect(appComplete.length).toBeGreaterThanOrEqual(
+            CAPABILITY_MANIFEST.length - 6,
         );
     });
 

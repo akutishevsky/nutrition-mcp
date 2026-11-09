@@ -26,4 +26,28 @@ describe("cross-surface capability manifest", () => {
             expect(capability.web.coverage).toBe("complete");
         }
     });
+
+    test("every capability declares an explicit app channel", () => {
+        for (const capability of CAPABILITY_MANIFEST) {
+            expect(capability.app).toBeDefined();
+            if (capability.app.available) {
+                expect(capability.app.entryPoints.length).toBeGreaterThan(0);
+            } else {
+                // An unavailable app channel is only honest as a declared
+                // website-only exception, never a silent omission.
+                expect(capability.app.coverage).toBe("missing");
+                expect(capability.intentionalChannelException).not.toBeNull();
+            }
+        }
+    });
+
+    test("app channel reuses the web entry points it claims parity with", () => {
+        for (const capability of CAPABILITY_MANIFEST) {
+            if (capability.app.coverage === "complete") {
+                expect(capability.app.entryPoints).toEqual(
+                    capability.web.entryPoints,
+                );
+            }
+        }
+    });
 });

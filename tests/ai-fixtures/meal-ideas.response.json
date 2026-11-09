@@ -1,0 +1,17 @@
+{
+    "choices": [
+        {
+            "message": {
+                "content": "{\"candidates\":[{\"name\":\"Smoky beef bowl\",\"description\":\"Seasoned beef bowl\",\"source\":\"saved_recipe\",\"saved_recipe_id\":\"11111111-1111-4111-8111-111111111111\",\"readiness\":\"ready_now\",\"estimated_nutrition\":{\"calories\":550,\"protein_g\":45,\"carbs_g\":40,\"fat_g\":22,\"fiber_g\":5},\"total_minutes\":30,\"on_hand_ingredients\":[\"ground beef\",\"smoked paprika\"],\"assumed_staples\":[\"salt\"],\"missing_required\":[],\"missing_optional\":[],\"flavor_system\":[\"smoked paprika\",\"black pepper\"],\"why_it_fits\":[\"High protein and fully supported by Pantry\"],\"confidence\":0.93},{\"name\":\"Invented avocado toast\",\"description\":\"Uses an ingredient the pantry does not hold\",\"source\":\"generated\",\"saved_recipe_id\":null,\"readiness\":\"ready_now\",\"estimated_nutrition\":{\"calories\":320,\"protein_g\":9,\"carbs_g\":30,\"fat_g\":18,\"fiber_g\":7},\"total_minutes\":10,\"on_hand_ingredients\":[\"ground beef\",\"avocado\"],\"assumed_staples\":[],\"missing_required\":[],\"missing_optional\":[],\"flavor_system\":[],\"why_it_fits\":[\"Quick to assemble\"],\"confidence\":0.61}],\"planning_notes\":[\"One candidate was recorded ungrounded on purpose: the fixture lane must prove grounding filters it.\"]}",
+                "role": "assistant"
+            }
+        }
+    ],
+    "id": "fixture-meal-ideas",
+    "model": "meta/muse-ember-1.0",
+    "usage": {
+        "completion_tokens": 388,
+        "prompt_tokens": 1930,
+        "total_tokens": 2318
+    }
+}
