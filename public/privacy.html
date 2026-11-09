@@ -104,15 +104,15 @@
                                 grocery-list items.
                             </li>
                             <li>
-                                Optional Premium Pantry inventory, exact or
-                                approximate quantities, storage locations,
-                                inventory-event history, structured purchase or
-                                receipt reconciliation results, and refreshable
-                                planning profiles that can include compact
-                                nutrition facts, food-source identifiers, and
-                                culinary categories or roles. Munch does not
-                                retain raw Pantry or receipt images after the
-                                website extraction request is processed.
+                                Optional Pantry inventory, exact or approximate
+                                quantities, storage locations, inventory-event
+                                history, structured purchase or receipt
+                                reconciliation results, and refreshable planning
+                                profiles that can include compact nutrition
+                                facts, food-source identifiers, and culinary
+                                categories or roles. Munch does not retain raw
+                                Pantry or receipt images after the website
+                                extraction request is processed.
                             </li>
                             <li>
                                 Household names, display names, membership
@@ -145,31 +145,31 @@
                         </p>
                         <h3>Pantry and receipt images</h3>
                         <p>
-                            When an eligible Premium user uploads a Pantry,
-                            refrigerator, freezer, or grocery-receipt image
-                            through the Munch website, Munch sends that image
-                            transiently to its configured AI processor to
-                            extract structured food or purchase candidates. The
-                            raw image is not written to the Munch PostgreSQL
-                            database or account export. Uncertain detections are
-                            presented for review before they can change Pantry
-                            inventory. Images uploaded directly to ChatGPT are
-                            handled by ChatGPT under OpenAI's policies; Munch
-                            receives only the structured tool arguments ChatGPT
-                            sends to the connected Munch app.
+                            When a user uploads a Pantry, refrigerator, freezer,
+                            or grocery-receipt image through the Munch website,
+                            Munch sends that image transiently to its configured
+                            AI processor to extract structured food or purchase
+                            candidates. The raw image is not written to the
+                            Munch PostgreSQL database or account export.
+                            Uncertain detections are presented for review before
+                            they can change Pantry inventory. Images uploaded
+                            directly to ChatGPT are handled by ChatGPT under
+                            OpenAI's policies; Munch receives only the
+                            structured tool arguments ChatGPT sends to the
+                            connected Munch app.
                         </p>
                         <h3>Pantry meal planning</h3>
                         <p>
-                            When an eligible Premium user asks the Munch website
-                            for Pantry meal ideas, Munch can send the relevant
-                            structured Pantry inventory, compact planning
-                            profiles, explicit assumed staples, request goals,
-                            and saved-recipe candidate facts to its configured
-                            AI processor. This request is used to rank or
-                            generate grounded meal ideas. Raw Pantry or receipt
-                            images are not included in this meal-planning
-                            request, and the recommendation does not change
-                            Pantry, Grocery, or recipe records by itself.
+                            When a user asks the Munch website for Pantry meal
+                            ideas, Munch can send the relevant structured Pantry
+                            inventory, compact planning profiles, explicit
+                            assumed staples, request goals, and saved-recipe
+                            candidate facts to its configured AI processor. This
+                            request is used to rank or generate grounded meal
+                            ideas. Raw Pantry or receipt images are not included
+                            in this meal-planning request, and the
+                            recommendation does not change Pantry, Grocery, or
+                            recipe records by itself.
                         </p>
                         <h3>Why it is stored</h3>
                         <p>

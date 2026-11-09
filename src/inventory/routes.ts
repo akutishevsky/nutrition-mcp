@@ -1,7 +1,6 @@
 import { Hono, type Context } from "hono";
 import { requireSameOrigin } from "../accounts/csrf.js";
 import { requireWebSession } from "../accounts/session.js";
-import { requirePremiumAi } from "../billing/ai-entitlement.js";
 import {
     resolveRequestMunchCapabilities,
     type MunchCapabilities,
@@ -39,13 +38,16 @@ function objectValue(value: unknown, label: string): Record<string, unknown> {
     return value as Record<string, unknown>;
 }
 
-async function premiumContext(c: Context) {
+/**
+ * Request context for Pantry routes. Pantry is free for every account
+ * (Amendment D): capabilities are resolved only to authorize the
+ * household scope, never to wall the personal workspace or its AI
+ * features behind Premium.
+ */
+async function pantryContext(c: Context) {
     const userId = c.get("munchUserId") as string;
     const capabilities = await resolveRequestMunchCapabilities(c, userId);
-    if (!capabilities.personalPlanningRead) {
-        return { userId, capabilities, premium: false as const };
-    }
-    return { userId, capabilities, premium: true as const };
+    return { userId, capabilities };
 }
 
 function scopeFromValue(
@@ -273,25 +275,19 @@ export function createInventoryRouter(): Hono {
     app.use("/api/app/purchases/*", requireWebSession);
 
     app.get("/api/app/pantry/settings", async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { premium: false, enabled: false }, 403);
+        const context = await pantryContext(c);
         return privateJson(c, {
-            premium: true,
             enabled: await getPantryPreference(context.userId),
             household_available: Boolean(context.capabilities.householdRead),
         });
     });
 
     app.patch("/api/app/pantry/settings", requireSameOrigin, async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
+        const context = await pantryContext(c);
         const body = objectValue(await c.req.json(), "Pantry settings");
         if (typeof body.enabled !== "boolean")
             throw new Error("Pantry enabled must be boolean");
         return privateJson(c, {
-            premium: true,
             enabled: await setPantryPreference({
                 userId: context.userId,
                 enabled: body.enabled,
@@ -300,9 +296,7 @@ export function createInventoryRouter(): Hono {
     });
 
     app.get("/api/app/pantry", async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
+        const context = await pantryContext(c);
         const scope = scopeFromValue(
             c.req.query("scope"),
             context.capabilities,
@@ -339,9 +333,7 @@ export function createInventoryRouter(): Hono {
     });
 
     app.post("/api/app/pantry/reconcile", requireSameOrigin, async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
+        const context = await pantryContext(c);
         const body = objectValue(await c.req.json(), "Pantry reconciliation");
         const sourceType = body.source_type;
         if (
@@ -379,9 +371,7 @@ export function createInventoryRouter(): Hono {
     });
 
     app.post("/api/app/purchases/reconcile", requireSameOrigin, async (c) => {
-        const context = await premiumContext(c);
-        if (!context.premium)
-            return privateJson(c, { error: "premium_required" }, 403);
+        const context = await pantryContext(c);
         const body = objectValue(await c.req.json(), "Purchase reconciliation");
         if (typeof body.idempotency_key !== "string")
             throw new Error("Purchase idempotency key is required");
@@ -412,12 +402,9 @@ export function createInventoryRouter(): Hono {
     });
 
     app.post("/api/app/pantry/meal-ideas", requireSameOrigin, async (c) => {
-        const context = await premiumContext(c);
-        // AI feature (Amendment C): Premium entitlement only, resolved
-        // from the account's actual subscription tier on both surfaces —
-        // never the Android free baseline in `context.capabilities`.
-        const gate = await requirePremiumAi(c, { userId: context.userId });
-        if (!gate.allowed) return gate.response;
+        const context = await pantryContext(c);
+        // AI features are free for every account (Amendment D):
+        // no entitlement check and no meter at this call site.
         if (!(await getPantryPreference(context.userId)))
             return privateJson(c, { error: "pantry_not_enabled" }, 409);
         if (!pantryPlanningEnabled())
@@ -479,12 +466,9 @@ export function createInventoryRouter(): Hono {
     });
 
     async function imagePreview(c: Context, mode: "receipt" | "pantry_photo") {
-        const context = await premiumContext(c);
-        // AI feature (Amendment C): Premium entitlement only, resolved
-        // from the account's actual subscription tier on both surfaces —
-        // never the Android free baseline in `context.capabilities`.
-        const gate = await requirePremiumAi(c, { userId: context.userId });
-        if (!gate.allowed) return gate.response;
+        const context = await pantryContext(c);
+        // AI features are free for every account (Amendment D):
+        // no entitlement check and no meter at this call site.
         if (!(await getPantryPreference(context.userId)))
             return privateJson(c, { error: "pantry_not_enabled" }, 409);
         const form = await c.req.parseBody();

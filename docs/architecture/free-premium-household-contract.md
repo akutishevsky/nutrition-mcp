@@ -4,11 +4,11 @@ Munch is a factual food, macro, recipe, planning, grocery, and household data se
 
 ## Free
 
-Every active account can connect through OAuth and use core food search, barcode lookup, meal logging, daily summaries, 30 days of conversational history, up to 25 saved foods, export, revocation, and account deletion. OAuth and MCP never initiate Stripe Checkout or promote an upgrade.
+Every active account can connect through OAuth and use core food search, barcode lookup, meal logging, daily summaries, full conversational history with no day limit, structured recipes, recipe nutrition arithmetic, meal calendars, grocery lists, Pantry, and every Munch-supplied AI feature on the website and in the app (photo estimates, meal ideas, receipt and pantry scans, plan suggestions, recipe-import resolution) — free and unmetered, with no entitlement gate (Amendment D, 2026-11-09). Free also includes export, revocation, and account deletion. The one remaining free-tier quantity limit is up to 25 saved foods. OAuth and MCP never initiate Stripe Checkout or promote an upgrade.
 
 ## Premium
 
-Premium is purchased independently on the Munch website for $3.00 per month. It adds unlimited personal history and saved foods, structured recipes, recipe nutrition arithmetic, meal calendars, grocery lists, and household ownership. Existing direct subscribers receive these capabilities automatically after authentication.
+Premium is purchased independently on the Munch website for $3.00 per month. Its identity is ad-free in the app, the future in-app AI chat agent, and MCP access, plus household ownership and unlimited saved foods. Existing direct subscribers receive these capabilities automatically after authentication.
 
 ## Paid household seats
 

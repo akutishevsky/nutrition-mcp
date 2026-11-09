@@ -281,8 +281,8 @@ async function billingPage(data, ctx) {
     let billingSummary = androidFree ? "Free on Android" : "Free";
     let detail = androidFree
         ? data.androidEntitlements?.adFree
-            ? "All non-AI Android features are included. Ads are off for this account through its existing entitlement."
-            : "All non-AI Android features are included. A separate ad-free subscription is not configured in Google Play yet."
+            ? "All Android features are included. Ads are off for this account through its existing entitlement."
+            : "All Android features are included. A separate ad-free subscription is not configured in Google Play yet."
         : "Munch Free remains available without a subscription.";
     if (householdProvided) {
         billingSummary = "Premium through household";
@@ -326,11 +326,10 @@ async function billingPage(data, ctx) {
                 ? `<button class="button button-primary" data-action="billing-play-manage">Manage in Google Play</button>`
                 : `<button class="button button-primary" data-action="billing-portal">Manage billing in Stripe</button>`
             : `<button class="button button-primary" data-action="billing-checkout">Get Premium — ${premiumPrice}/month</button>`;
-    const aiPremium = data.aiPremium === true;
     const aiFeaturesGroup = settingGroup(
         "AI features",
-        "Photo scans, meal ideas, recipe imports, plan suggestions and meal-photo estimates are Premium features on the website and in the app — included with the subscription, with no per-use charges or balances. Manual entry always works on every plan.",
-        `<div class="plan-summary"><div><span>AI features</span><strong>${aiPremium ? "Included with Premium" : "Premium"}</strong></div>${statusPill(aiPremium ? "Included" : "Not included", aiPremium ? "success" : "neutral")}</div>`,
+        "Photo scans, meal ideas, recipe imports, plan suggestions and meal-photo estimates are included for every account on the website and in the app — no per-use charges, no balances. Manual entry always works too.",
+        `<div class="plan-summary"><div><span>Access</span><strong>Included for everyone</strong></div>${statusPill("Included", "success")}</div>`,
     );
     return settingsShell(
         "settings-billing",

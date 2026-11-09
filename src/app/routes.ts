@@ -5,10 +5,6 @@ import {
     resolveRequestMunchCapabilities,
 } from "../billing/capabilities.js";
 import {
-    hasPremiumAiEntitlement,
-    requirePremiumAi,
-} from "../billing/ai-entitlement.js";
-import {
     getHouseholdSeatCoverage,
     ownerCanPurchaseHouseholdSeats,
 } from "../billing/household-seats.js";
@@ -1405,12 +1401,11 @@ export function createAppRouter(): Hono {
         },
     );
 
-    // S3 photo-logging decider pipeline (brief §3), gated by Premium
-    // entitlement only (Amendment C — no credits, no meter): Premium
-    // subscribers run unmetered, Free users get the premium_required
-    // gate and the manual path. The photo is processed transiently and
-    // never retained, and nothing is logged until the user confirms
-    // the draft through the existing confirm path.
+    // S3 photo-logging decider pipeline (brief §3). AI features are
+    // free for every account (Amendment D): no credits, no meter, no
+    // entitlement check at this call site. The photo is processed
+    // transiently and never retained, and nothing is logged until the
+    // user confirms the draft through the existing confirm path.
     app.post("/api/app/meal-photo", requireSameOrigin, async (c) => {
         const userId = c.get("munchUserId");
         const visionConfig = mealPhotoVisionConfig();
@@ -1466,8 +1461,6 @@ export function createAppRouter(): Hono {
                 400,
             );
         }
-        const gate = await requirePremiumAi(c, { userId });
-        if (!gate.allowed) return gate.response;
         const mealTypeValue =
             typeof form.meal_type === "string" ? form.meal_type : undefined;
         const mealType =
@@ -1604,17 +1597,12 @@ export function createAppRouter(): Hono {
                 capabilitySurfaceFromRequest(c) === "android"
                     ? undefined
                     : getWebsiteRecipeImportSemanticResolver();
-            // Gate only the semantic (model) resolver path — that is
-            // the AI feature (Amendment C: Premium entitlement only,
-            // unmetered for subscribers). The deterministic parse path
-            // runs no model and is never gated here; when the resolver's
-            // normalize call fails the preview service already falls
-            // back to deterministic matching with a
+            // The semantic (model) resolver is an AI feature and —
+            // like every AI feature — free for every account
+            // (Amendment D): no entitlement check and no meter here.
+            // When the resolver's normalize call fails the preview
+            // service falls back to deterministic matching with a
             // `semantic_ai_unavailable` warning.
-            if (semanticResolver) {
-                const gate = await requirePremiumAi(c, { userId });
-                if (!gate.allowed) return gate.response;
-            }
             const draft = await previewRecipeUrl(
                 typeof body.url === "string" ? body.url : "",
                 {
@@ -2409,8 +2397,8 @@ export function createAppRouter(): Hono {
 
     app.get("/api/app/settings", async (c) => {
         const userId = c.get("munchUserId");
-        const [bootstrap, goals, subscription, connections, aiPremium] =
-            await Promise.all([
+        const [bootstrap, goals, subscription, connections] = await Promise.all(
+            [
                 getAppBootstrap(
                     userId,
                     c.get("munchUserEmail"),
@@ -2419,18 +2407,13 @@ export function createAppRouter(): Hono {
                 getNutritionGoals(userId),
                 getDirectSubscriptionSnapshot(userId),
                 listOAuthConnections(userId),
-                // Surface-independent AI entitlement (Amendment C): the
-                // bootstrap capabilities above follow the request
-                // surface (Android free baseline), so AI-feature UI
-                // reads this flag — the account's actual Premium tier.
-                hasPremiumAiEntitlement(userId),
-            ]);
+            ],
+        );
         return privateJson(c, {
             ...bootstrap,
             goals,
             subscription,
             connections,
-            aiPremium,
         });
     });
 

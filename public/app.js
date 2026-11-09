@@ -657,10 +657,6 @@ async function renderFoods() {
     content.innerHTML = `<div class="page-heading"><div><h2>Saved foods</h2><p>${data.total} reusable food${data.total === 1 ? "" : "s"}${data.limit ? ` of ${data.limit}` : ""}.</p></div><div class="auth-actions"><input class="input" id="food-filter" type="search" placeholder="Filter saved foods" aria-label="Filter saved foods" /></div></div><section class="panel"><div id="food-list">${data.foods.length ? `<div class="data-table-wrap"><table class="data-table"><thead><tr><th>Food</th><th>Source</th><th>Default portion</th><th>Used</th><th>Last used</th></tr></thead><tbody>${data.foods.map((food) => `<tr data-food-label="${escapeHtml(food.label.toLowerCase())}"><td><strong>${escapeHtml(food.label)}</strong><br /><small>${escapeHtml(food.food?.brand || food.food?.name || "")}</small></td><td>${sourceBadge(food.provider)}</td><td>${escapeHtml(food.defaultPortionId || "Choose when logging")}</td><td>${number(food.useCount)}</td><td>${food.lastUsedAt ? escapeHtml(formatDate(food.lastUsedAt.slice(0, 10), { year: true })) : "Never"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state"><div><h3>No saved foods yet</h3><p>Confirm a provider food in your AI assistant, then save it for reuse.</p></div></div>`}</div></section>`;
 }
 
-function premiumUnavailable(title, description) {
-    return `<div class="empty-state"><div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(description)}</p><a class="button button-primary spacer-top" href="/app/settings/billing">View website options</a></div></div>`;
-}
-
 async function planningData() {
     const start = shiftDate(
         state.date,
@@ -672,13 +668,6 @@ async function planningData() {
 async function renderRecipes() {
     setLoading("Loading recipes…");
     const data = await planningData();
-    if (!data.available) {
-        content.innerHTML = premiumUnavailable(
-            "Recipe workspace is not available for this account",
-            "Recipes are managed from the Munch website when the account has recipe capability.",
-        );
-        return;
-    }
     const canCreate = Boolean(
         state.bootstrap?.capabilities?.recipeWrite ||
         state.bootstrap?.capabilities?.householdRecipeWrite,
@@ -1243,13 +1232,6 @@ function weekDays(start) {
 async function renderPlan() {
     setLoading("Loading the meal plan…");
     const data = await planningData();
-    if (!data.available) {
-        content.innerHTML = premiumUnavailable(
-            "Meal planning is not available for this account",
-            "The website meal calendar appears when the account has planning capability.",
-        );
-        return;
-    }
     const start = shiftDate(
         state.date,
         -((new Date(`${state.date}T12:00:00Z`).getUTCDay() + 6) % 7),
@@ -1480,13 +1462,6 @@ async function previewMealSwap(button) {
 async function renderGroceries() {
     setLoading("Loading grocery lists…");
     const data = await planningData();
-    if (!data.available) {
-        content.innerHTML = premiumUnavailable(
-            "Grocery lists are not available for this account",
-            "The shopping workspace appears when the account has planning capability.",
-        );
-        return;
-    }
     const lists = (data.groceries || [])
         .map((list) => {
             const editable = Boolean(data.permissions?.[list.scope]);
@@ -2726,7 +2701,6 @@ async function openMealPhotoDialog() {
             <p class="meal-photo-lede">Photograph your meal and Munch will estimate the items and portions into a reviewable draft. Nothing is logged until you confirm the draft, and the photo itself is processed transiently — it is never kept.</p>
             <label class="field"><span>Meal photo</span><input id="meal-photo-file" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" /></label>
             <label class="field"><span>Meal type</span><select id="meal-photo-meal-type"><option value="breakfast">Breakfast</option><option value="lunch" selected>Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
-            <p class="tiny" id="meal-photo-premium" role="status"></p>
             <p class="tiny meal-photo-status" id="meal-photo-status" role="alert"></p>
             <div class="auth-actions">
                 <button class="button button-primary" type="button" data-action="submit-meal-photo" id="meal-photo-submit">Estimate my meal</button>
@@ -2734,27 +2708,6 @@ async function openMealPhotoDialog() {
             </div>
         </div>`,
     );
-    try {
-        const settings = await api("/api/app/settings", { keepPrevious: true });
-        const line = document.getElementById("meal-photo-premium");
-        if (!line) return;
-        if (settings.aiPremium === false) {
-            // Premium gate framing: no cost framing, the manual path is
-            // offered right here — never a dead end.
-            line.textContent =
-                "Meal-photo estimates are a Premium feature. You can log the meal manually instead — manual entry always works.";
-            const submit = document.getElementById("meal-photo-submit");
-            if (submit) submit.disabled = true;
-        }
-        // Premium subscribers see no cost framing at all: the line
-        // stays empty and the estimate simply runs.
-    } catch {
-        const line = document.getElementById("meal-photo-premium");
-        if (line) {
-            line.textContent =
-                "If the photo estimate is unavailable, manual entry always works.";
-        }
-    }
 }
 
 async function submitMealPhoto() {
@@ -2789,19 +2742,7 @@ async function submitMealPhoto() {
         await openMealDraft(result.draft.id);
     } catch (error) {
         if (submit) submit.disabled = false;
-        if (
-            error.status === 403 &&
-            error.payload?.error === "premium_required"
-        ) {
-            say(
-                `${error.message} Use “Log manually instead” below — it always works.`,
-            );
-        } else {
-            say(
-                error.message ||
-                    "The photo estimate failed. Nothing was logged.",
-            );
-        }
+        say(error.message || "The photo estimate failed. Nothing was logged.");
     }
 }
 

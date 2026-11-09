@@ -3,7 +3,6 @@ import { z } from "zod";
 import { requireSameOrigin } from "../accounts/csrf.js";
 import { requireWebSession } from "../accounts/session.js";
 import { resolveRequestMunchCapabilities } from "../billing/capabilities.js";
-import { requirePremiumAi } from "../billing/ai-entitlement.js";
 import {
     requirePlanningAccess,
     requirePlanningScope,
@@ -182,7 +181,7 @@ async function proposeRecipes(c: any, userId: string, body: unknown) {
     };
     // The model call itself lives in guidance-ai.ts behind an injectable
     // transport (recorded-fixture seam, S2); this handler keeps auth,
-    // scope, context building, and the Premium AI gate.
+    // scope, and context building.
     return generateGuidanceProposals({
         config,
         slots,
@@ -305,13 +304,10 @@ export function createGuidanceRouter(): Hono {
     app.post("/api/app/planning/propose", requireSameOrigin, async (c) => {
         const userId = currentUserId(c);
         const body = await c.req.json();
-        // AI feature (Amendment C): Premium entitlement only, resolved
-        // from the account's actual subscription tier on both surfaces.
-        // Subscribers run unmetered; a manual_fallback result simply
-        // means the AI call was unavailable — manual planning always
-        // works and nothing is charged either way.
-        const gate = await requirePremiumAi(c, { userId });
-        if (!gate.allowed) return gate.response;
+        // AI features are free for every account (Amendment D):
+        // no entitlement check and no meter at this call site. A
+        // manual_fallback result simply means the AI call was
+        // unavailable — manual planning always works too.
         return privateJson(c, await proposeRecipes(c, userId, body));
     });
     app.post("/api/app/planning/drafts", requireSameOrigin, async (c) => {

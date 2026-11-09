@@ -72,15 +72,23 @@ export function capabilitiesFromSubscription(
     now = new Date(),
 ): MunchCapabilities {
     const premium = subscriptionProvidesPremium(subscription, now);
+    // Amendment D (Michael, 2026-11-09): Free is fully featured on the
+    // website and in the app — personal recipes, planning, and full
+    // history are free for every account, and every AI feature is free
+    // and unmetered (there is no entitlement check at AI call sites).
+    // The one remaining free-tier quantity limit is the saved-food cap
+    // below; Premium's remaining differences are household ownership,
+    // unlimited saved foods, ad-free, and subscription-gated MCP
+    // protected tools.
     return {
         tier: premium ? "premium" : "free",
         coreNutrition: true,
-        historyDays: premium ? null : PRODUCT_CONFIG.freeHistoryDays,
+        historyDays: null,
         savedFoodLimit: premium ? null : PRODUCT_CONFIG.freeSavedFoodLimit,
-        personalRecipesRead: premium,
-        personalRecipesWrite: premium,
-        personalPlanningRead: premium,
-        personalPlanningWrite: premium,
+        personalRecipesRead: true,
+        personalRecipesWrite: true,
+        personalPlanningRead: true,
+        personalPlanningWrite: true,
         householdRead: false,
         householdWrite: false,
         householdManage: false,
