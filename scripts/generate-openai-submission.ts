@@ -26,7 +26,7 @@ function annotationJustifications(entry: ToolInventoryEntry) {
         : "Creates or updates records inside the authenticated user's private Munch account or household workspace.";
     const openWorld = entry.openWorldHint
         ? (OPEN_WORLD_JUSTIFICATIONS[entry.name] ??
-            "May communicate with a configured external data provider as part of the requested workflow.")
+          "May communicate with a configured external data provider as part of the requested workflow.")
         : "Does not publish content or change publicly visible internet state or third-party systems.";
     const destructive = entry.destructiveHint
         ? "Can permanently delete, revoke, or cancel selected private Munch data after the tool's confirmation safeguard is satisfied."

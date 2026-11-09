@@ -11,15 +11,15 @@ Construction: a single apple silhouette (viewBox 0 0 192 192), the label
 lines as true transparent knockouts (`fill-rule="evenodd"`), a stroked stem,
 and a filled leaf. One geometry serves every variant; only fills change.
 
-| File | Use |
-|---|---|
-| `public/brand/munch-mark.svg` | Primary: apple `#0B8F4D`, leaf `#A8D90F` — light surfaces |
-| `public/brand/munch-mark-dark.svg` | Apple `#07502F`, leaf `#A8D90F` |
-| `public/brand/munch-mark-light.svg` | Apple `#FFFFFF`, leaf `#D9FF5B` — dark surfaces |
-| `public/brand/munch-mark-white.svg` | Apple `#FFFFFF`, leaf `#A8D90F` |
-| `public/brand/munch-mark-192.png` / `-512.png` | Primary glyph, transparent |
-| `public/apple-touch-icon.png` | Primary glyph on `#FCFDF9` |
-| `public/favicon.ico` | Primary glyph, 16–64 px |
+| File                                           | Use                                                       |
+| ---------------------------------------------- | --------------------------------------------------------- |
+| `public/brand/munch-mark.svg`                  | Primary: apple `#0B8F4D`, leaf `#A8D90F` — light surfaces |
+| `public/brand/munch-mark-dark.svg`             | Apple `#07502F`, leaf `#A8D90F`                           |
+| `public/brand/munch-mark-light.svg`            | Apple `#FFFFFF`, leaf `#D9FF5B` — dark surfaces           |
+| `public/brand/munch-mark-white.svg`            | Apple `#FFFFFF`, leaf `#A8D90F`                           |
+| `public/brand/munch-mark-192.png` / `-512.png` | Primary glyph, transparent                                |
+| `public/apple-touch-icon.png`                  | Primary glyph on `#FCFDF9`                                |
+| `public/favicon.ico`                           | Primary glyph, 16–64 px                                   |
 
 Tile treatment (app-icon and directory contexts): the apple in cream
 `#F5EFE2` with a `#5DA85F` leaf on a deep green `#0B3D24` field, lines
