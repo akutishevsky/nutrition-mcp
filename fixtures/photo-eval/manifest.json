@@ -1,0 +1,286 @@
+{
+    "version": 1,
+    "generator": "fixtures/photo-eval/generate_fixtures.py (Pillow, synthetic illustrations only; no scraped or stock imagery)",
+    "fixtures": [
+        {
+            "id": "single-01-banana",
+            "file": "photos/single-01-banana.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "single-02-apple",
+            "file": "photos/single-02-apple.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "single-03-boiled-eggs",
+            "file": "photos/single-03-boiled-eggs.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "single-04-avocado",
+            "file": "photos/single-04-avocado.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "single-05-salmon",
+            "file": "photos/single-05-salmon.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "single-06-pancakes",
+            "file": "photos/single-06-pancakes.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "mixed-01-chicken-rice-broccoli",
+            "file": "photos/mixed-01-chicken-rice-broccoli.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "mixed-02-breakfast-eggs-bacon-toast",
+            "file": "photos/mixed-02-breakfast-eggs-bacon-toast.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "mixed-03-burger-fries",
+            "file": "photos/mixed-03-burger-fries.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "mixed-04-chicken-salad",
+            "file": "photos/mixed-04-chicken-salad.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "mixed-05-steak-potato-beans",
+            "file": "photos/mixed-05-steak-potato-beans.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "mixed-06-salmon-rice-asparagus",
+            "file": "photos/mixed-06-salmon-rice-asparagus.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "mixed-07-pasta-meatballs-bread",
+            "file": "photos/mixed-07-pasta-meatballs-bread.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "sauced-01-chicken-curry-rice",
+            "file": "photos/sauced-01-chicken-curry-rice.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "sauced-02-beef-chili",
+            "file": "photos/sauced-02-beef-chili.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "sauced-03-lasagna",
+            "file": "photos/sauced-03-lasagna.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "sauced-04-chicken-alfredo",
+            "file": "photos/sauced-04-chicken-alfredo.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "sauced-05-stirfry-noodles",
+            "file": "photos/sauced-05-stirfry-noodles.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "restaurant-01-burger-fries-large",
+            "file": "photos/restaurant-01-burger-fries-large.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "restaurant-02-pizza-salad",
+            "file": "photos/restaurant-02-pizza-salad.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "restaurant-03-ramen",
+            "file": "photos/restaurant-03-ramen.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "restaurant-04-tacos",
+            "file": "photos/restaurant-04-tacos.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "restaurant-05-sushi",
+            "file": "photos/restaurant-05-sushi.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "packaged-01-granola-bar",
+            "file": "photos/packaged-01-granola-bar.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "packaged-02-potato-chips",
+            "file": "photos/packaged-02-potato-chips.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "packaged-03-mac-cheese-box",
+            "file": "photos/packaged-03-mac-cheese-box.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "packaged-04-orange-juice-bottle",
+            "file": "photos/packaged-04-orange-juice-bottle.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "packaged-05-chocolate-bar",
+            "file": "photos/packaged-05-chocolate-bar.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "drinks-01-black-coffee",
+            "file": "photos/drinks-01-black-coffee.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "drinks-02-orange-juice",
+            "file": "photos/drinks-02-orange-juice.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "drinks-03-cola-can",
+            "file": "photos/drinks-03-cola-can.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "drinks-04-berry-smoothie",
+            "file": "photos/drinks-04-berry-smoothie.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "poorly-lit-01-chicken-rice",
+            "file": "photos/poorly-lit-01-chicken-rice.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "poorly-lit-02-salad",
+            "file": "photos/poorly-lit-02-salad.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "poorly-lit-03-sandwich",
+            "file": "photos/poorly-lit-03-sandwich.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "poorly-lit-04-tomato-soup",
+            "file": "photos/poorly-lit-04-tomato-soup.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "partial-01-burger-fries-half",
+            "file": "photos/partial-01-burger-fries-half.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "partial-02-pizza-remaining",
+            "file": "photos/partial-02-pizza-remaining.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "partial-03-rice-chicken-half",
+            "file": "photos/partial-03-rice-chicken-half.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        },
+        {
+            "id": "partial-04-chocolate-cake",
+            "file": "photos/partial-04-chocolate-cake.jpg",
+            "source": "synthetic",
+            "license": "Generated for this project (Pillow illustration); no third-party content",
+            "note": "Procedurally generated stylised food illustration, generator: generate_fixtures.py"
+        }
+    ]
+}
