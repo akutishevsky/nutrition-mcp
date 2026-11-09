@@ -9,8 +9,10 @@ function normalizedText(source: string): string {
         .trim();
 }
 
-if (PRODUCT_CONFIG.trialEnabled) {
-    errors.push("PRODUCT_CONFIG.trialEnabled must remain false");
+if (!PRODUCT_CONFIG.trialEnabled) {
+    errors.push(
+        "PRODUCT_CONFIG.trialEnabled must remain true (the 7-day free trial is live on the Stripe price)",
+    );
 }
 if (!PRODUCT_CONFIG.freeTierEnabled) {
     errors.push("The permanent Free tier must remain enabled");
@@ -18,11 +20,11 @@ if (!PRODUCT_CONFIG.freeTierEnabled) {
 
 // The 7-day free trial is a settled product fact (PRODUCT.md, ruled
 // 2026-11-09: "The 7-day free trial and the permanent free tier are
-// unchanged"; homepage-connect brief Hard Floor 2: the trial lives on
-// the Stripe price, so checkout code still never sets trial params and
-// trialEnabled stays false). The two Persuade marketing surfaces — the
-// homepage and /connect — may state that fact; trial language stays
-// forbidden on every other public page (app, auth, help, legal).
+// unchanged"). The trial lives on the Stripe price, so checkout code
+// still never sets trial params, and PRODUCT_CONFIG.trialEnabled is
+// true because the trial is real. The two Persuade marketing surfaces
+// — the homepage and /connect — may state that fact; trial language
+// stays forbidden on every other public page (app, auth, help, legal).
 const trialFactSurfaces = new Set(["public/index.html", "public/connect.html"]);
 
 const publicHtml = new Bun.Glob("public/**/*.html");
