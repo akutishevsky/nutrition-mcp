@@ -63,6 +63,7 @@ alter table munch.ai_credit_ledger force row level security;
 
 -- App role: a user sees their own pool, rows they acted in, and the pool of
 -- a household they actively belong to (the owner's pool funds members).
+drop policy if exists ai_credit_ledger_app_select on munch.ai_credit_ledger;
 create policy ai_credit_ledger_app_select
     on munch.ai_credit_ledger
     for select
@@ -82,12 +83,14 @@ create policy ai_credit_ledger_app_select
         )
     );
 
+drop policy if exists ai_credit_ledger_app_insert on munch.ai_credit_ledger;
 create policy ai_credit_ledger_app_insert
     on munch.ai_credit_ledger
     for insert
     to munch_app
     with check (actor_user_id = munch.current_user_id());
 
+drop policy if exists ai_credit_ledger_billing_all on munch.ai_credit_ledger;
 create policy ai_credit_ledger_billing_all
     on munch.ai_credit_ledger
     for all
@@ -95,6 +98,7 @@ create policy ai_credit_ledger_billing_all
     using (true)
     with check (true);
 
+drop policy if exists ai_credit_ledger_auth_all on munch.ai_credit_ledger;
 create policy ai_credit_ledger_auth_all
     on munch.ai_credit_ledger
     for all
