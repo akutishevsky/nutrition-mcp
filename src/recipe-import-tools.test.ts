@@ -32,7 +32,7 @@ describe("recipe URL import MCP surface", () => {
             readOnlyHint: true,
             destructiveHint: false,
             idempotentHint: true,
-            openWorldHint: false,
+            openWorldHint: true,
         });
         expect(tool?.inputSchema).toBeDefined();
         expect(tool?.outputSchema).toBeDefined();

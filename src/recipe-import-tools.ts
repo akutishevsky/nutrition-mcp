@@ -34,7 +34,7 @@ export function registerRecipeImportTools(
                 readOnlyHint: true,
                 destructiveHint: false,
                 idempotentHint: true,
-                openWorldHint: false,
+                openWorldHint: true,
             },
             inputSchema: {
                 url: z

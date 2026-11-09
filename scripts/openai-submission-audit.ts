@@ -5,6 +5,24 @@ const inventory = await collectToolInventory();
 const errors: string[] = [];
 const warnings: string[] = [];
 
+// Tools approved to declare openWorldHint: true because they reach the
+// public internet or open-ended external entities (OpenAI app-review
+// definition): public food databases (USDA FoodData Central, Open Food
+// Facts), arbitrary user-supplied recipe URLs, and client-supplied cook
+// photo download URLs, which the server fetches without a host allowlist.
+// Every other tool is limited to the authenticated user's private Munch
+// records and must declare false. Keep this set in sync with the tool
+// definitions in src/; the audit enforces it in both directions.
+const OPEN_WORLD_TOOLS = new Set([
+    "parse_recipe_url",
+    "search_foods",
+    "get_food_details",
+    "lookup_food_barcode",
+    "lookup_barcode",
+    "start_cook",
+    "update_cook",
+]);
+
 if (inventory.length === 0)
     errors.push("No exposed MCP tools were discovered.");
 
@@ -23,9 +41,14 @@ for (const tool of inventory) {
         errors.push(`${tool.name}: missing readOnlyHint`);
     if (tool.openWorldHint === null)
         errors.push(`${tool.name}: missing openWorldHint`);
-    if (tool.openWorldHint === true) {
+    if (tool.openWorldHint === true && !OPEN_WORLD_TOOLS.has(tool.name)) {
         errors.push(
-            `${tool.name}: openWorldHint must be false because no Munch MCP tool publishes, sends, or mutates public or third-party state`,
+            `${tool.name}: openWorldHint is true but the tool is not in the approved OPEN_WORLD_TOOLS set; only tools that reach the public internet may declare it`,
+        );
+    }
+    if (tool.openWorldHint === false && OPEN_WORLD_TOOLS.has(tool.name)) {
+        errors.push(
+            `${tool.name}: openWorldHint must be true because this tool reaches the public internet or open-ended external entities`,
         );
     }
     if (tool.destructiveHint === null)

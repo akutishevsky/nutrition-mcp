@@ -25,7 +25,7 @@ Generated from the production MCP source. Do not edit manually.
 | `get_alcohol_tracking`        | `src/mcp.ts`                     |      true |      false |       false |       true |          true |
 | `get_connection_status`       | `src/connection-status-tools.ts` |      true |      false |       false |       true |          true |
 | `get_cook`                    | `src/cook-tools.ts`              |      true |      false |       false |       true |          true |
-| `get_food_details`            | `src/food-tools.ts`              |      true |      false |       false |       true |          true |
+| `get_food_details`            | `src/food-tools.ts`              |      true |       true |       false |       true |          true |
 | `get_goal_progress`           | `src/mcp.ts`                     |      true |      false |       false |       true |          true |
 | `get_grocery_list`            | `src/recipe-planning-tools.ts`   |      true |      false |       false |       true |          true |
 | `get_meal_details`            | `src/meal-detail-tools.ts`       |      true |      false |       false |       true |          true |
@@ -56,11 +56,11 @@ Generated from the production MCP source. Do not edit manually.
 | `log_recipe`                  | `src/recipe-planning-tools.ts`   |     false |      false |       false |       true |          true |
 | `log_water`                   | `src/mcp.ts`                     |     false |      false |       false |      false |          true |
 | `log_weight`                  | `src/mcp.ts`                     |     false |      false |       false |      false |          true |
-| `lookup_barcode`              | `src/mcp.ts`                     |      true |      false |       false |       true |          true |
-| `lookup_food_barcode`         | `src/food-tools.ts`              |      true |      false |       false |       true |          true |
+| `lookup_barcode`              | `src/mcp.ts`                     |      true |       true |       false |       true |          true |
+| `lookup_food_barcode`         | `src/food-tools.ts`              |      true |       true |       false |       true |          true |
 | `mark_grocery_item_purchased` | `src/recipe-planning-tools.ts`   |     false |      false |       false |       true |          true |
 | `mark_saved_food_used`        | `src/saved-food-tools.ts`        |     false |      false |       false |      false |          true |
-| `parse_recipe_url`            | `src/recipe-import-tools.ts`     |      true |      false |       false |       true |          true |
+| `parse_recipe_url`            | `src/recipe-import-tools.ts`     |      true |       true |       false |       true |          true |
 | `prepare_cook_recipe_draft`   | `src/cook-tools.ts`              |      true |      false |       false |       true |          true |
 | `prepare_meal_confirmation`   | `src/meal-draft-tools.ts`        |     false |      false |       false |      false |          true |
 | `prepare_meal_review`         | `src/meal-review-tools.ts`       |     false |      false |       false |       true |          true |
@@ -78,7 +78,7 @@ Generated from the production MCP source. Do not edit manually.
 | `save_recipe_and_plan`        | `src/recipe-planning-tools.ts`   |     false |      false |       false |       true |          true |
 | `schedule_recipe`             | `src/recipe-planning-tools.ts`   |     false |      false |       false |       true |          true |
 | `search_cooks`                | `src/cook-tools.ts`              |      true |      false |       false |       true |          true |
-| `search_foods`                | `src/food-tools.ts`              |      true |      false |       false |       true |          true |
+| `search_foods`                | `src/food-tools.ts`              |      true |       true |       false |       true |          true |
 | `search_meals`                | `src/mcp.ts`                     |      true |      false |       false |       true |          true |
 | `search_recipes`              | `src/recipe-planning-tools.ts`   |      true |      false |       false |       true |          true |
 | `search_saved_foods`          | `src/saved-food-tools.ts`        |      true |      false |       false |       true |          true |
@@ -88,10 +88,10 @@ Generated from the production MCP source. Do not edit manually.
 | `set_timezone`                | `src/mcp.ts`                     |     false |      false |       false |       true |          true |
 | `set_weight_unit`             | `src/mcp.ts`                     |     false |      false |       false |       true |          true |
 | `set_widget_display`          | `src/mcp.ts`                     |     false |      false |       false |       true |          true |
-| `start_cook`                  | `src/cook-tools.ts`              |     false |      false |       false |       true |          true |
+| `start_cook`                  | `src/cook-tools.ts`              |     false |       true |       false |       true |          true |
 | `start_meal_draft`            | `src/meal-draft-tools.ts`        |     false |      false |       false |      false |          true |
 | `start_meal_import`           | `src/mcp.ts`                     |      true |      false |       false |       true |          true |
-| `update_cook`                 | `src/cook-tools.ts`              |     false |      false |       false |       true |          true |
+| `update_cook`                 | `src/cook-tools.ts`              |     false |       true |       false |       true |          true |
 | `update_cook_dish`            | `src/cook-tools.ts`              |     false |      false |       false |      false |          true |
 | `update_meal`                 | `src/mcp.ts`                     |     false |      false |       false |       true |          true |
 | `update_meal_draft`           | `src/meal-draft-tools.ts`        |     false |      false |       false |       true |          true |
