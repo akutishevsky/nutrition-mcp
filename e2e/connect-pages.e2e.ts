@@ -58,7 +58,16 @@ test("OAuth subpaths still reach auth, not the marketing page", async ({
     expect(signInBody).toContain('action="/connect/request"');
     expect(signInBody).not.toContain(MARKETING_MARKER);
 
-    const confirm = await request.get("/connect/confirm");
+    // Bare /connect/confirm reaches the auth error page (no token);
+    // with a token it renders the auth confirmation form. Both are
+    // auth-owned responses — neither is the marketing page.
+    const confirmBare = await request.get("/connect/confirm");
+    expect(confirmBare.status()).toBe(200);
+    const confirmBareBody = await confirmBare.text();
+    expect(confirmBareBody).toContain("This connection could not be completed");
+    expect(confirmBareBody).not.toContain(MARKETING_MARKER);
+
+    const confirm = await request.get("/connect/confirm?token=e2e-probe");
     expect(confirm.status()).toBe(200);
     const confirmBody = await confirm.text();
     expect(confirmBody).toContain("Continue signing in");
