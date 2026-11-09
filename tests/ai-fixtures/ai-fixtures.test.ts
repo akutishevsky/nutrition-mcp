@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { generateGuidanceProposals } from "../../src/app/guidance-ai.js";
 import { previewInventoryImage } from "../../src/inventory/vision.js";
+import { identifyMealPhoto } from "../../src/meal-photo/vision.js";
 import {
     requestPantryMealIdeas,
     validateMealIdeaGrounding,
@@ -256,5 +257,31 @@ describe("ai-fixture: guidance proposals (recorded response)", () => {
                 "Fixture Herb Chicken",
             );
         }
+    });
+});
+
+describe("ai-fixture: meal photo identify (recorded response)", () => {
+    test("recorded Ember envelope parses through the strict stage-2 schema with no nutrition", async () => {
+        const fixture = await loadFixture("meal-photo.response.json");
+        expect(fixture.model).toBe("meta/muse-ember");
+        const result = await identifyMealPhoto(
+            {
+                mimeType: "image/jpeg",
+                bytes: new Uint8Array([7, 8, 9]),
+            },
+            visionConfig,
+            { fetcher: recordedFetcher(fixture) },
+        );
+        expect(result.items).toHaveLength(2);
+        expect(result.items[0]).toMatchObject({
+            name: "grilled chicken breast",
+            cooking_method: "grilled",
+            quantity: 160,
+            unit: "g",
+            portion_confidence: 0.85,
+        });
+        expect(JSON.stringify(result)).not.toMatch(
+            /calories|protein_g|carbs_g|fat_g/,
+        );
     });
 });

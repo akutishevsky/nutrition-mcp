@@ -10,6 +10,9 @@ const MCP_ENTRY = resolve(SRC_ROOT, "mcp-runtime.ts");
 const FORBIDDEN_MCP_MODULES = new Set([
     "inventory/meal-ideas.ts",
     "inventory/vision.ts",
+    "meal-photo/vision.ts",
+    "meal-photo/grounding.ts",
+    "meal-photo/pipeline.ts",
     "recipe-import/semantic-resolver.ts",
 ]);
 

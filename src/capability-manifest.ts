@@ -205,6 +205,35 @@ export const CAPABILITY_MANIFEST = [
         targetPr: null,
     },
     {
+        // S3 photo-logging decider (brief §3): the server sees the meal
+        // photo, identifies items + portions with Ember vision, grounds
+        // deterministically, and lands a confirmable draft. The MCP
+        // achieves the same OUTCOME through the client-model draft path
+        // (the client's model is the decider; the draft tools are
+        // contract-owned by the mealDraft.* rows, and the manifest's
+        // one-tool-one-row invariant forbids listing them twice), so —
+        // following the meal.copy precedent — the mcp channel is encoded
+        // websiteOnly-style with the path named here. The server pipeline
+        // itself is web/app-only and is fenced off the MCP runtime by
+        // host-ai-boundary.test.ts.
+        id: "meal.photoLog",
+        mcp: websiteOnly([]),
+        web: complete([
+            "POST /api/app/meal-photo",
+            '[data-action="log-by-photo"]',
+            "POST /api/app/meal-drafts/:id/confirm",
+        ]),
+        app: partial([
+            "POST /api/app/meal-photo",
+            '[data-action="log-by-photo"]',
+            "POST /api/app/meal-drafts/:id/confirm",
+        ]),
+        intentionalChannelException:
+            "MCP photo logging is complete via the client-model draft path (start_meal_draft → upsert_meal_draft_item with model_estimate items → confirm_meal_draft, owned by the mealDraft.* contracts); the S3 server decider pipeline is a web/app surface.",
+        gap: null,
+        targetPr: null,
+    },
+    {
         id: "mealDraft.create",
         mcp: complete(["start_meal_draft", "prepare_meal_review"]),
         web: complete([

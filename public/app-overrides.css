@@ -920,3 +920,37 @@ dialog .auth-card {
         padding-bottom: max(24px, env(safe-area-inset-bottom));
     }
 }
+
+/* Meal-photo capture (S3) — born in Editorial Serif per the direction
+   contract: Georgia display lede, hairline rule, restrained green. The
+   dialog reuses the portal's .button/.field primitives (44px+ targets);
+   only the capture block's typographic voice is Serif. */
+.meal-photo-capture {
+    display: grid;
+    gap: 16px;
+}
+.meal-photo-lede {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 17px;
+    line-height: 1.55;
+    margin: 0;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #d8cdb6;
+}
+.meal-photo-capture input[type="file"] {
+    min-height: 48px;
+    width: 100%;
+}
+.meal-photo-status {
+    color: #8c2f22;
+    min-height: 20px;
+    margin: 0;
+}
+.meal-photo-capture .auth-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.meal-photo-capture .auth-actions .button {
+    min-height: 48px;
+}

@@ -145,9 +145,11 @@ describe("cross-surface nutrition parity", () => {
         );
         // The packaged app is the portal bundle: nearly every row is
         // app-complete today; the known exceptions are the website-only
-        // rows and the Android AI-credit block (mealPlan.recipeGenerate).
+        // rows, the Android AI-credit block (mealPlan.recipeGenerate),
+        // and meal.photoLog, whose packaged-app verification is S5's
+        // job (S3 ships the web flow; the bundle carries it unverified).
         expect(appComplete.length).toBeGreaterThanOrEqual(
-            CAPABILITY_MANIFEST.length - 6,
+            CAPABILITY_MANIFEST.length - 7,
         );
     });
 

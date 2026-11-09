@@ -1,0 +1,5 @@
+{
+    "note": "Nightly photo-eval trend (S3). Each live run appends one entry in its report artifact (photo-eval-report/trend.json carries the accumulated history). Scores are split by fixture source; the set is 100% synthetic illustrations until Michael seeds real meal photos, and synthetic scores are never photographic accuracy.",
+    "runs": [],
+    "version": 1
+}
