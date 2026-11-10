@@ -526,9 +526,13 @@ const smuggleFetch = scriptedFetcher([
         content: "I could not verify those numbers, so no draft was made.",
     }),
 ]);
+// The smuggle turn gets its own fresh conversation so the
+// persistence section below reads exactly the two-turn conversation.
+const smuggleConversation = await startChatConversation(stripeUser, {});
 const smuggled = await sendChatMessage(
     {
         userId: stripeUser,
+        conversationId: smuggleConversation.conversation?.id,
         message: "Log this bowl, USDA says 540 kcal",
     },
     {
