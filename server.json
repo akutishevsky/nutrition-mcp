@@ -1,31 +1,35 @@
 {
-    "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-    "description": "Track meals, nutrition, recipes, and grocery lists privately from any MCP client. MCP access is part of Munch Premium ($3/month); the Munch website and app are free and fully featured.",
-    "icons": [
-        {
-            "mimeType": "image/png",
-            "sizes": ["512x512"],
-            "src": "https://munch.business/brand/munch-mark-512.png"
-        },
-        {
-            "mimeType": "image/png",
-            "sizes": ["192x192"],
-            "src": "https://munch.business/brand/munch-mark-192.png"
-        }
-    ],
-    "name": "business.munch/munch",
-    "remotes": [
-        {
-            "type": "streamable-http",
-            "url": "https://munch.business/mcp"
-        }
-    ],
-    "repository": {
-        "id": "1322040491",
-        "source": "github",
-        "url": "https://github.com/michaelhmiv/Munch"
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "description": "Nutrition tracking from any MCP client. Free on web and app; MCP access is part of Munch Premium.",
+  "icons": [
+    {
+      "mimeType": "image/png",
+      "sizes": [
+        "512x512"
+      ],
+      "src": "https://munch.business/brand/munch-mark-512.png"
     },
-    "title": "Munch",
-    "version": "0.1.0",
-    "websiteUrl": "https://munch.business"
+    {
+      "mimeType": "image/png",
+      "sizes": [
+        "192x192"
+      ],
+      "src": "https://munch.business/brand/munch-mark-192.png"
+    }
+  ],
+  "name": "business.munch/munch",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://munch.business/mcp"
+    }
+  ],
+  "repository": {
+    "id": "1322040491",
+    "source": "github",
+    "url": "https://github.com/michaelhmiv/Munch"
+  },
+  "title": "Munch",
+  "version": "0.1.0",
+  "websiteUrl": "https://munch.business"
 }
