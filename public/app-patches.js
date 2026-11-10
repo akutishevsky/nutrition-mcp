@@ -77,7 +77,7 @@ async function fetchMealDetail(id) {
 }
 
 function showPatchedDialog(title, body) {
-    patchDialog.innerHTML = `<div class="auth-card"><div class="panel-title"><h2 style="font-size:1.6rem">${patchEscape(title)}</h2><button class="button button-quiet button-small" type="button" data-patch-close aria-label="Close dialog">Close</button></div>${body}</div>`;
+    patchDialog.innerHTML = `<div class="auth-card"><div class="panel-title"><h2 style="font-size:1.6rem">${patchEscape(title)}</h2><button class="button button-quiet button-small dialog-close" type="button" data-patch-close aria-label="Close dialog">Close</button></div>${body}</div>`;
     patchDialog.showModal();
 }
 

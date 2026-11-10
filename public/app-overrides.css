@@ -983,3 +983,741 @@ dialog .auth-card {
     min-height: 48px;
     width: 100%;
 }
+
+/* =====================================================================
+   S6 slice 1 — Editorial Serif fusion for Today + Food Log, and the
+   shared portal chrome every later S6 slice inherits (Amendment F:
+   no screen ships unthemed; an unthemed screen is a mobile_qc
+   BLOCKER). Direction contract + tightened mocks:
+   ~/workspace/munch-prep/homepage-connect/direction-contract.md and
+   selected/src/{today,food-log}/theme4-tight.html.
+   Grammar (editorial.css tokens): paper #f6f1e7, paper-card #fffdf8,
+   ink #2b2620, ink-soft #4a4237, hairline #d8cdb6, rule #8a7c63,
+   green #176b3a, green-deep #0b3d24, danger #8c2f22, Georgia serif.
+   DENSITY LAW: dead space tightened maximally short of a wall of
+   text; density comes from structure/grouping/spacing only — type
+   never below 11px, tap targets never below 44px.
+   Scope: shell chrome + dialog frame + toasts + global error/loading
+   states are themed globally (shared chrome — later slices inherit
+   the frame); surface content is scoped to .operate-view (Today,
+   Food Log, Saved Foods) so untouched surfaces keep their current
+   content styling until their own fusion slice.
+   ===================================================================== */
+
+/* ---------- Shared chrome: shell ---------- */
+
+body.app-page {
+    background: #f6f1e7;
+    color: #2b2620;
+}
+
+.app-sidebar {
+    background: #f6f1e7;
+    border-right: 1px solid #d8cdb6;
+}
+
+.app-sidebar .brand {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #2b2620;
+}
+
+.app-nav a {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16px;
+    color: #4a4237;
+    border-radius: 0;
+}
+
+.app-nav a.is-active {
+    color: #176b3a;
+    font-weight: 700;
+    box-shadow: inset 3px 0 0 #176b3a;
+    background: transparent;
+}
+
+.app-topbar {
+    background: #f6f1e7;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.app-topbar h1 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #2b2620;
+}
+
+.section-kicker {
+    color: #176b3a;
+}
+
+.mobile-bottom-nav {
+    background: #f6f1e7;
+    border-top: 1px solid #d8cdb6;
+}
+
+.mobile-bottom-nav a {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    color: #5d5344;
+}
+
+.mobile-bottom-nav a.is-active {
+    color: #176b3a;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+/* ---------- Shared chrome: buttons ---------- */
+
+.button-primary {
+    background: #176b3a;
+    border-color: #176b3a;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.button-primary:hover {
+    background: #0b3d24;
+    border-color: #0b3d24;
+}
+
+.button-secondary {
+    background: transparent;
+    border-color: #8a7c63;
+    color: #2b2620;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.button-quiet {
+    color: #4a4237;
+    border-radius: 4px;
+}
+
+/* S3-deferred MINOR, decided in S6 slice 1 (portal-wide chrome): the
+   shared openDialog Close button measured 69x40px — visual height
+   under the 44px bright line. The .dialog-close class (applied by
+   openDialog and the legacy patches frame, which share #app-dialog)
+   brings the visual box to a full 44px target without changing the
+   .button-small grammar other surfaces still use. */
+.dialog-close {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ---------- Shared chrome: dialog frame ---------- */
+
+dialog {
+    border-radius: 8px;
+}
+
+dialog::backdrop {
+    background: rgb(43 38 32 / 0.48);
+    backdrop-filter: none;
+}
+
+dialog .auth-card {
+    background: #fffdf8;
+    border: 1px solid #d8cdb6;
+    border-radius: 8px;
+    color: #2b2620;
+}
+
+dialog .auth-card .panel-title h2 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #2b2620;
+}
+
+dialog .panel-title h3,
+dialog .panel-title h4 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+dialog .input,
+dialog input,
+dialog select,
+dialog textarea {
+    border-color: #8a7c63;
+    border-radius: 4px;
+    background: #fffdf8;
+    color: #2b2620;
+}
+
+dialog .field > span {
+    color: #4a4237;
+}
+
+/* Meal-draft review (incl. the photo-draft review — the Amendment F
+   BLOCKER from ADD-TO-DRAFT) inherits the themed frame above; its own
+   sections take the hairline rule grammar here so the whole review,
+   including the "Anything else to add?" section (which carries no
+   tokens of its own), reads in Editorial Serif. */
+.meal-draft-section {
+    border-top-color: #d8cdb6;
+}
+
+.meal-draft-question {
+    border-color: #d8cdb6;
+    border-radius: 4px;
+    background: #f6f1e7;
+}
+
+.meal-draft-actions {
+    border-top-color: #d8cdb6;
+}
+
+.meal-draft-abandon-note {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+    color: #8c2f22;
+}
+
+.meal-draft-abandon-confirm {
+    background: #8c2f22;
+    border-color: #8c2f22;
+}
+
+.meal-draft-abandon-confirm:hover {
+    background: #6e241a;
+    border-color: #6e241a;
+}
+
+/* ---------- Shared chrome: toasts + global states ---------- */
+
+.toast {
+    background: #fffdf8;
+    border: 1px solid #d8cdb6;
+    border-left: 3px solid #176b3a;
+    border-radius: 4px;
+    color: #2b2620;
+    box-shadow: 0 8px 24px rgb(43 38 32 / 0.14);
+}
+
+.loading-state h2,
+.error-state h2,
+.empty-state h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #2b2620;
+}
+
+.empty-state {
+    color: #4a4237;
+}
+
+.skeleton {
+    background: #e3dac4;
+}
+
+/* Same B4 family as .tiny: the shared checkbox label sat at 0.82rem. */
+.checkbox-row {
+    font-size: 0.875rem;
+}
+
+/* ---------- Operate surfaces: Today + Food Log + Saved Foods ------ */
+
+.operate-view {
+    line-height: 1.45;
+}
+
+.operate-view .page-heading {
+    margin-bottom: 4px;
+}
+
+.operate-view .page-heading h2 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 33px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.12;
+    color: #2b2620;
+}
+
+.operate-view .page-heading p {
+    font-size: 15px;
+    color: #4a4237;
+}
+
+/* Scoped target floor: inside this slice's surfaces every button —
+   including .button-small — reaches the 44px bright line. Density is
+   carried by row padding and grouping, never by shrinking targets. */
+.operate-view .button {
+    min-height: 44px;
+}
+
+.operate-view .panel {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 10px 0 4px;
+    margin-top: 10px;
+}
+
+.operate-view .dashboard-grid {
+    gap: 0 22px;
+}
+
+.operate-view .panel-title {
+    margin-bottom: 4px;
+}
+
+.operate-view .panel-title h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 21px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.operate-view .panel-title > span,
+.operate-view .panel-title > div > span {
+    font-size: 13px;
+    color: #5d5344;
+}
+
+/* Totals become rule rows (tightened mock grammar): one hairline per
+   metric, the day's big number in serif, no card boxes. */
+.operate-view .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+}
+
+.operate-view .summary-card {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 0;
+    padding: 6px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.operate-view .summary-card > span {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #5d5344;
+    flex: 0 0 auto;
+}
+
+.operate-view .summary-card > strong {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: #2b2620;
+    margin-left: auto;
+}
+
+.operate-view .summary-card.primary > strong {
+    font-size: 36px;
+}
+
+.operate-view .summary-card > small {
+    font-size: 13px;
+    color: #5d5344;
+}
+
+.operate-view .summary-card .progress {
+    flex: 1 1 100%;
+    height: 4px;
+    background: #e3dac4;
+    border-radius: 0;
+}
+
+.operate-view .summary-card .progress > span {
+    background: #176b3a;
+}
+
+/* Daily details keeps its two-up Water/Weight cards (inline grid)
+   readable at the same rule grammar via the rules above. */
+
+/* Meals: group headers + food rule rows, no nested cards. */
+.operate-view .meal-groups {
+    gap: 4px;
+}
+
+.operate-view .meal-group {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+}
+
+.operate-view .meal-group-header {
+    padding: 11px 0 3px;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16.5px;
+    color: #2b2620;
+}
+
+.operate-view .meal-group-header > span {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 13px;
+    font-style: italic;
+    color: #5d5344;
+}
+
+.operate-view .meal-card {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 6px 0 8px;
+}
+
+.operate-view .meal-card-head h4 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.operate-view .meal-meta {
+    font-size: 13px;
+    color: #5d5344;
+    gap: 8px;
+}
+
+.operate-view .meal-macros {
+    gap: 4px 12px;
+    margin: 2px 0;
+}
+
+.operate-view .macro-chip {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    font-size: 13px;
+    font-style: italic;
+    color: #5d5344;
+}
+
+.operate-view .food-row {
+    padding: 6px 0;
+    border-bottom: 1px solid #d8cdb6;
+    gap: 10px;
+}
+
+.operate-view .food-row strong {
+    font-size: 15px;
+    color: #2b2620;
+}
+
+.operate-view .food-row small {
+    display: inline;
+    font-size: 13px;
+    color: #5d5344;
+    margin-left: 6px;
+}
+
+/* Provenance reads as marginalia, not pills (tightened mock .src). */
+.operate-view .source-chip,
+.operate-view .confidence-chip {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #5d5344;
+    white-space: nowrap;
+}
+
+.operate-view .demo-source-row {
+    display: inline;
+    margin-left: 6px;
+}
+
+/* The app.html density enhancer folds provenance into a details
+   disclosure; keep its summary a full 44px row inside this slice. */
+.operate-view .food-audit > summary,
+.operate-view .meal-audit > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #176b3a;
+    cursor: pointer;
+}
+
+.operate-view .input {
+    min-height: 48px;
+    border-color: #8a7c63;
+    border-radius: 4px;
+    background: #fffdf8;
+    color: #2b2620;
+}
+
+.operate-view .data-table th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #5d5344;
+}
+
+.operate-view .data-table th,
+.operate-view .data-table td {
+    border-bottom: 1px solid #d8cdb6;
+    padding: 6px;
+    font-size: 15px;
+}
+
+/* Food Log range choice: one deliberate single row at phone width
+   (P1/P2 — segmented-choice grammar, intentional scroll, never a
+   ragged 3-then-2 wrap). */
+.operate-view .log-range-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.operate-view .log-range-row .button {
+    flex: 0 0 auto;
+}
+
+/* ---------- The single ad slot (Today only) ---------- */
+
+/* In-flow reserve directly under Today's guidance (Amendment D final
+   placement law). Rendered only when the ADS-FOUNDATION flag is on
+   for a free packaged account — otherwise the element does not exist
+   and reserves nothing. Fixed slim height: the Today layout is final
+   from first render and never shifts around the ad decision. */
+.today-ad-slot {
+    background: #fffdf8;
+    border-top: 2px solid #176b3a;
+    border-bottom: 1px solid #d8cdb6;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 6px 16px;
+    margin-top: 10px;
+}
+
+.today-ad-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #176b3a;
+    border: 1.5px solid #176b3a;
+    border-radius: 3px;
+    padding: 2px 7px;
+    line-height: 1.3;
+}
+
+.today-ad-label {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-style: italic;
+    font-size: 13.5px;
+    color: #5d5344;
+}
+
+@media (max-width: 899px) {
+    .operate-view .page-heading h2 {
+        font-size: 27px;
+    }
+
+    .operate-view .summary-card.primary > strong {
+        font-size: 32px;
+    }
+}
+
+/* ---------- S6 slice 1 QC fixes (first capture pass, 390x844) ------
+   Found by this slice's own mobile_qc pass and fixed in-slice:
+   (1) the meal-card action row carried a more specific 40px rule —
+   the bright line wins inside this slice's surfaces;
+   (2) the draft review's metric cards still wore the old white-card
+   grammar inside the themed dialog frame;
+   (3) at phone width the page-heading action group stacked six
+   full-width buttons (~55% of the first screen, P1/P5) and the
+   bottom nav's 7 destinations wrapped 6+1 in a 6-column grid (P1). */
+
+/* (1) Meal-card actions reach 44px on Today/Food Log. */
+.operate-view .meal-card > .auth-actions .button {
+    min-height: 44px;
+}
+
+/* (2) Metric cards inside any dialog take the rule grammar, so the
+   meal-draft review (incl. photo drafts) is themed end to end. */
+dialog .summary-grid {
+    gap: 0 16px;
+}
+
+dialog .summary-card {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 0;
+    padding: 6px 0;
+}
+
+dialog .summary-card > strong {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+dialog .summary-card > span,
+dialog .summary-card > small {
+    color: #5d5344;
+}
+
+/* Flat is the house grammar — no drop shadows on chrome buttons. */
+.button-primary,
+.button-secondary,
+.button-quiet {
+    box-shadow: none;
+}
+
+@media (max-width: 899px) {
+    /* (3a) Heading actions: one deliberate single row with
+       intentional horizontal scroll (P1/P7) instead of a six-high
+       full-width stack. Every action stays one tap away; the row
+       costs 44px of height, not ~350px. */
+    .operate-view .page-heading .auth-actions {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 8px;
+        width: 100%;
+        padding-bottom: 4px;
+    }
+
+    .operate-view .page-heading .auth-actions .button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    /* (3b) Bottom nav: seven destinations, seven equal columns, one
+       row. Labels sit at 11px (the floor) so nothing wraps or
+       truncates at 390px. */
+    .mobile-bottom-nav {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        backdrop-filter: none;
+    }
+
+    .mobile-bottom-nav a {
+        min-width: 0;
+        font-size: 11px;
+        white-space: nowrap;
+    }
+
+    /* Topbar earns fewer pixels at phone width (P5). */
+    .app-topbar {
+        min-height: 0;
+        padding: 8px 14px;
+        backdrop-filter: none;
+    }
+
+    .app-topbar h1 {
+        font-size: 24px;
+    }
+}
+
+/* ---------- S6 slice 1 QC fixes, pass 2 (density) ------------------
+   The first Food Log capture fit ZERO food items on the first screen
+   where the tightened mock fits three: the search form wrapped its
+   Search button onto its own full-width row, and the day totals took
+   four full rule rows where the mock folds them into one compact
+   block. Fixes are grouping/spacing only — no type or target shrinks. */
+
+/* Search is one row at every width: field + submit side by side.
+   (The shared composer search row collapses to one column at phone
+   widths; this form keeps its two-column grid.) */
+.operate-view #meal-history-search-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px;
+}
+
+.operate-view #meal-history-search-form .field {
+    min-width: 0;
+}
+
+.operate-view #meal-history-search-form .auth-actions {
+    flex-wrap: nowrap;
+}
+
+/* Food Log totals fold into a compact 2x2 rule grid (the mock's
+   one-block totals, in this surface's component grammar). Today
+   keeps its stacked rule rows, as its mock does. */
+.log-view .summary-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+}
+
+.log-view .summary-card {
+    display: block;
+    padding: 5px 0;
+}
+
+.log-view .summary-card > span {
+    display: block;
+    font-size: 11px;
+}
+
+.log-view .summary-card > strong {
+    font-size: 22px;
+    margin-left: 0;
+}
+
+.log-view .summary-card.primary > strong {
+    font-size: 26px;
+}
+
+.log-view .summary-card > small {
+    display: block;
+}
+
+/* On Food Log every totals card's small line is the same
+   "No target set" text (this surface passes no targets) — pure
+   repetition, so the line is not rendered here (P5). Today keeps
+   its real target lines. */
+.log-view .summary-card > small {
+    display: none;
+}
+
+/* Guidance bullets keep their markers inside the content box. */
+.operate-view .panel ul {
+    padding-inline-start: 18px;
+    margin: 4px 0;
+}
+
+/* Meal group headers sit on the paper, not on a tinted band. */
+.operate-view .meal-group-header {
+    background: transparent;
+}
+
+/* Food rows sit on the paper like the mock's rules — no tint band. */
+.operate-view .food-row {
+    background: transparent;
+    border-radius: 0;
+}
