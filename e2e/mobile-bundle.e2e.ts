@@ -374,6 +374,20 @@ test("packaged bundle ships the mobile runtime and the Pantry page", async ({
     expect(pantry.ok()).toBe(true);
     const pantryBody = await pantry.text();
     expect(pantryBody).toContain("/pantry-native.js");
+    // App-shell fix batch: the standalone Pantry page carries the
+    // shell's bottom nav (it stranded users without one), with its
+    // links rewritten to packaged routes.
+    expect(pantryBody).toContain("mobile-bottom-nav");
+    expect(pantryBody).toContain('href="/index.html?route=%2Fapp%2Fgroceries"');
+
+    // The retired header band (kicker/title, Refresh, "Use with your
+    // AI") stays out of the packaged shell.
+    const shell = await request.get(`${baseURL}/index.html`);
+    expect(shell.ok()).toBe(true);
+    const shellBody = await shell.text();
+    expect(shellBody).not.toContain("app-topbar");
+    expect(shellBody).not.toContain("quick-action");
+    expect(shellBody).not.toContain("refresh-button");
 
     // S4: the native meal-photo capture module ships in the bundle and
     // carries the Pantry-pattern markers (pending-capture restore key,
