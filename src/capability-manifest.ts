@@ -279,6 +279,40 @@ export const CAPABILITY_MANIFEST = [
         targetPr: null,
     },
     {
+        // S8 chat agent (Amendment D): the conversational, Premium-only
+        // AI thinking partner inside the app — pantry/goals/history
+        // aware, grounded, logging only through meal drafts. There is
+        // no MCP outcome here by design: the MCP channel is where users
+        // bring their OWN AI (and MCP access is itself Premium-gated);
+        // the in-app agent is the app's own surface, fenced off the
+        // MCP runtime like every other website AI module.
+        id: "nutrition.chatAgent",
+        mcp: websiteOnly([]),
+        web: complete([
+            "GET /api/app/chat",
+            "POST /api/app/chat/messages",
+            '[data-route="chat"]',
+        ]),
+        app: complete([
+            "GET /api/app/chat",
+            "POST /api/app/chat/messages",
+            '[data-route="chat"]',
+        ]),
+        ios: complete([
+            "GET /api/app/chat",
+            "POST /api/app/chat/messages",
+            '[data-route="chat"]',
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency. The entitlement gate is server-side and rail-neutral, so an App Store Premium subscription counts exactly like Stripe or Play.",
+        iosGap: null,
+        iosTargetPr: null,
+        intentionalChannelException:
+            "The chat agent is an in-app surface by design (Amendment D: Premium = ad-free + MCP access + the in-app chat agent). MCP users converse with their own client model; no MCP tool row exists for the agent itself.",
+        gap: null,
+        targetPr: null,
+    },
+    {
         id: "meal.import",
         mcp: complete(["bulk_import_meals", "start_meal_import"]),
         web: complete([

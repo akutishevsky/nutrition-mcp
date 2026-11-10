@@ -489,6 +489,12 @@ function accountPage(data) {
 
 function morePage() {
     const items = [
+        [
+            "/app/chat",
+            "Chat",
+            "The Premium AI chat agent — a thinking partner over your pantry, goals and history",
+            "✎",
+        ],
         ["/app/insights", "Insights", "Patterns and progress", "↗"],
         ["/app/recipes", "Recipes", "Your structured recipe library", "◇"],
         ["/app/household", "Household", "Members and shared features", "⌂"],

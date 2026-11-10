@@ -9,7 +9,13 @@ export type MealDraftStatus =
     | "expired";
 
 export type MealDraftSourceMode =
-    "text" | "photo" | "barcode" | "restaurant" | "saved_food" | "history";
+    | "text"
+    | "photo"
+    | "barcode"
+    | "restaurant"
+    | "saved_food"
+    | "history"
+    | "chat";
 
 export interface MealDraftQuestion {
     id: string;
