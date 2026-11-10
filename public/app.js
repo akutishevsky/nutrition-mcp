@@ -2271,7 +2271,7 @@ function chatMessageMarkup(message) {
 }
 
 function chatGateMarkup() {
-    return `<div class="operate-view chat-view"><div class="page-heading"><div><h2>Chat</h2><p>The AI chat agent is part of Munch Premium.</p></div></div><section class="panel chat-gate" data-testid="chat-gate"><h3>A Premium feature</h3><p>${escapeHtml(chatState.gateMessage || "The Munch chat agent is part of Munch Premium ($3/month).")}</p><ul class="chat-premium-list"><li>Ad-free in the app</li><li>MCP access for your own AI</li><li>This chat agent — a thinking partner over your pantry, goals, and history</li></ul><div class="auth-actions"><a class="button button-primary" href="/app/settings/billing">View plan &amp; billing</a></div></section></div>`;
+    return `<div class="operate-view chat-view"><div class="page-heading"><div><h2>Chat</h2><p>The AI chat agent is part of Munch Premium.</p></div></div><section class="panel chat-gate" data-testid="chat-gate"><h3>A Premium feature</h3><p>${escapeHtml(chatState.gateMessage || "The Munch chat agent is part of Munch Premium ($2.99/month).")}</p><ul class="chat-premium-list"><li>Ad-free in the app</li><li>MCP access for your own AI</li><li>This chat agent — a thinking partner over your pantry, goals, and history</li></ul><div class="auth-actions"><a class="button button-primary" href="/app/settings/billing">View plan &amp; billing</a></div></section></div>`;
 }
 
 function chatUnavailableMarkup() {

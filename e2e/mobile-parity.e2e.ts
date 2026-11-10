@@ -1394,7 +1394,7 @@ test.beforeAll(async () => {
                     JSON.stringify({
                         error: "premium_required",
                         message:
-                            "The Munch chat agent is part of Munch Premium ($3/month) — one of three Premium features, alongside ad-free in the app and MCP access. Every other Munch feature, including photo logging, meal ideas, meal plans, and recipe import, is free. Premium is managed on the Munch website: open https://munch.business, sign in with this same account, and manage Premium from Settings → Plan & billing there. No purchase can be started from this chat surface.",
+                            "The Munch chat agent is part of Munch Premium ($2.99/month) — one of three Premium features, alongside ad-free in the app and MCP access. Every other Munch feature, including photo logging, meal ideas, meal plans, and recipe import, is free. Premium is managed on the Munch website: open https://munch.business, sign in with this same account, and manage Premium from Settings → Plan & billing there. No purchase can be started from this chat surface.",
                         premium_required: true,
                         subscribe_url:
                             "https://munch.business/app/settings/billing",

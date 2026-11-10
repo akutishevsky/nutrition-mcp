@@ -26,7 +26,7 @@ import type { MunchCapabilities } from "./billing/capabilities.js";
  * website, by the user's own action there.
  */
 export const MCP_PREMIUM_REQUIRED_MESSAGE =
-    "Munch MCP access is part of Munch Premium ($3/month), so this connection cannot use Munch tools on a Free account. The Munch website and app remain free and fully featured. Premium is managed on the Munch website — open https://munch.business and sign in with this same account to start Premium there, then reconnect. No purchase can be started from this MCP client.";
+    "Munch MCP access is part of Munch Premium ($2.99/month), so this connection cannot use Munch tools on a Free account. The Munch website and app remain free and fully featured. Premium is managed on the Munch website — open https://munch.business and sign in with this same account to start Premium there, then reconnect. No purchase can be started from this MCP client.";
 
 /** JSON-RPC server-error code used for entitlement refusals. */
 export const MCP_PREMIUM_REQUIRED_CODE = -32001;

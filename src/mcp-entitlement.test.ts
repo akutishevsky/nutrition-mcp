@@ -46,7 +46,7 @@ describe("MCP Premium entitlement gate (Amendment D)", () => {
         expect(refusal!.body.id).toBe(7);
         expect(refusal!.body.error.code).toBe(MCP_PREMIUM_REQUIRED_CODE);
         expect(refusal!.body.error.message).toContain("Premium");
-        expect(refusal!.body.error.message).toContain("$3/month");
+        expect(refusal!.body.error.message).toContain("$2.99/month");
         expect(refusal!.body.error.message).toContain("https://munch.business");
         // The refusal routes to the website; it initiates no purchase.
         expect(refusal!.body.error.message).not.toContain("checkout");
@@ -156,7 +156,7 @@ describe("handleMcp entitlement enforcement", () => {
         };
         expect(body.error.code).toBe(MCP_PREMIUM_REQUIRED_CODE);
         expect(body.error.message).toContain("Premium");
-        expect(body.error.message).toContain("$3/month");
+        expect(body.error.message).toContain("$2.99/month");
     });
 
     test("(b) a Premium user's tools/list passes the gate and returns the catalog", async () => {

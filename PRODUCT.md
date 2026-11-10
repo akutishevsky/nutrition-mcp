@@ -29,11 +29,11 @@ Used inside AI chat clients over remote MCP (endpoint https://munch.business/mcp
 ## Capabilities and Constraints
 
 - Free tier is permanent; Premium is sold only on the Munch website via Stripe.
-- Premium is $2.99/month (Michael, re-ruled 2026-11-10: the price is $2.99 on EVERY channel — Stripe, Play, and all copy — superseding the $3.00 figure from the 2026-11-09 ruling, Amendments C+D — AI credits ditched, and Free is fully featured: every AI feature on the website and in the app is free for every account, unmetered, with no entitlement gate; Premium's identity is ad-free, the future in-app AI chat agent, and MCP access, plus household ownership and unlimited saved foods). The 7-day free trial and the permanent free tier are unchanged; household extra seats stay +$2/member.
+- Premium is $2.99/month (Michael, re-ruled 2026-11-10: the price is $2.99 on EVERY channel — Stripe, Play, and all copy — superseding the $3.00 figure from the 2026-11-09 ruling, Amendments C+D — AI credits ditched, and Free is fully featured: every AI feature on the website and in the app is free for every account, unmetered, with no entitlement gate; Premium's identity is ad-free, the in-app AI chat agent, and MCP access, plus household ownership and unlimited saved foods). The 7-day free trial and the permanent free tier are unchanged; household extra seats stay +$2/member.
 - ChatGPT-facing surfaces (tool descriptions, results, widgets, listing) never advertise pricing or initiate checkout — both a product law and an OpenAI platform rule.
 - Consumer wellness product: no medical advice, diagnosis, treatment, or clinical determinations; health status is never inferred from indirect signals.
 - Account controls are user-operable: export, revoke access, delete account.
-- Tool inventory is large (95 tools) and every tool carries read/write annotation and a plain-language title.
+- Tool inventory is large (115 tools) and every tool carries read/write annotation and a plain-language title.
 
 ## Brand Commitments
 

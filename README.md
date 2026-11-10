@@ -8,7 +8,7 @@ Production MCP endpoint: `https://munch.business/mcp`
 
 ## Product model
 
-Munch has a permanent Free tier — the website and app are free and fully featured — and an optional Premium subscription ($3/month: ad-free in the app, the in-app AI chat agent when it launches, and MCP access). Premium is purchased and managed only through the Munch website. MCP access is a Premium entitlement (Amendment D, 2026-11-09): the OAuth consent page states that plainly and a Free account cannot approve a connection, and every MCP request re-checks the current entitlement, refusing Free tool calls with an explanation that routes to the website. No MCP surface, tool result, or embedded widget initiates checkout.
+Munch has a permanent Free tier — the website and app are free and fully featured — and an optional Premium subscription ($2.99/month: ad-free in the app, the in-app AI chat agent, and MCP access). Premium is purchased and managed only through the Munch website. MCP access is a Premium entitlement (Amendment D, 2026-11-09): the OAuth consent page states that plainly and a Free account cannot approve a connection, and every MCP request re-checks the current entitlement, refusing Free tool calls with an explanation that routes to the website. No MCP surface, tool result, or embedded widget initiates checkout.
 
 Munch is a consumer wellness product. It provides factual nutrition records and source-aware estimates; it does not provide medical advice, diagnosis, treatment, emergency guidance, or clinical dosing.
 

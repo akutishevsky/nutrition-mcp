@@ -8,11 +8,11 @@ Every active account can use core food search, barcode lookup, meal logging, dai
 
 ## Premium
 
-Premium is purchased independently on the Munch website for $3.00 per month. Its identity is ad-free in the app, the future in-app AI chat agent, and MCP access, plus household ownership. Existing direct subscribers receive these capabilities automatically after authentication.
+Premium is purchased independently on the Munch website for $2.99 per month. Its identity is ad-free in the app, the in-app AI chat agent, and MCP access, plus household ownership. Existing direct subscribers receive these capabilities automatically after authentication.
 
 ## Paid household seats
 
-A directly paid Premium account may own one household with up to six connected accounts total: the owner plus up to five additional members. The owner is included in the $3.00 Premium price. Each active non-owner household membership adds one $2.00 per month recurring seat to the owner's Stripe subscription. Pending invitations are not billed; the seat is added, with Stripe proration, when an invitation is accepted.
+A directly paid Premium account may own one household with up to six connected accounts total: the owner plus up to five additional members. The owner is included in the $2.99 Premium price. Each active non-owner household membership adds one $2.00 per month recurring seat to the owner's Stripe subscription. Pending invitations are not billed; the seat is added, with Stripe proration, when an invitation is accepted.
 
 A paid household seat grants that member full Premium only while the member remains in the household and the owner's active subscription contains enough paid household seats to cover the active non-owner roster. A household seat is not a standalone $2 Premium plan. Leaving or being removed from the household ends household-provided Premium unless the member also has an independent active Premium entitlement.
 
