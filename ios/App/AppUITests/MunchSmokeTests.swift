@@ -36,9 +36,10 @@ final class MunchSmokeTests: XCTestCase {
     func test01_BootSignInAndCoreFlows() throws {
         // Step 1 — cold boot renders the sign-in surfaces, not a blank
         // webview and not the signed-in shell.
-        XCTAssertTrue(
-            waitForText("Welcome back.", timeout: 60),
-            "Sign-in heading never appeared after cold launch"
+        XCTAssertEqual(
+            waitForBootSurface(timeout: 60),
+            .signIn,
+            "Cold launch did not settle on the sign-in page"
         )
         XCTAssertTrue(
             buttons(containing: "Email me a sign-in link").firstMatch.exists,
@@ -217,7 +218,28 @@ final class MunchSmokeTests: XCTestCase {
     /// rendered. Branching on whichever ready marker arrives first
     /// removes the race deterministically; it is a correct wait, not
     /// a retry.
+    ///
+    /// If NEITHER surface renders within the window — the
+    /// nothing-rendered signature of a stalled cold start (run
+    /// 42747596417: the failure hierarchy showed a webview whose
+    /// accessibility tree held only scroll bars for the full 60 s,
+    /// on a process that was alive and rendered Today fine minutes
+    /// later in the same run) — the app is relaunched ONCE and the
+    /// wait repeated. A wedged first WebContent spin-up does not
+    /// recover by waiting on the same process; a fresh launch is
+    /// the deterministic remedy. This is not retry-until-green: it
+    /// fires only when nothing rendered at all, and a second
+    /// no-render still fails the test.
     private func waitForBootSurface(timeout: TimeInterval = 60) -> BootSurface? {
+        if let surface = pollForBootSurface(timeout: timeout) {
+            return surface
+        }
+        app.terminate()
+        app.launch()
+        return pollForBootSurface(timeout: timeout)
+    }
+
+    private func pollForBootSurface(timeout: TimeInterval) -> BootSurface? {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
             if anyElement(containingText: "Add water").exists { return .today }
