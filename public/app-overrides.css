@@ -3518,3 +3518,274 @@ dialog .guided-grocery-row input[type="checkbox"] {
     border-radius: 0;
     background: transparent;
 }
+
+/* =====================================================================
+   S6 SLICE 7 — Insights fusion (Operate surface 7)
+   ---------------------------------------------------------------------
+   Insights is touched exactly once: parity + Editorial Serif +
+   mobile_qc. Inherits slice 1's shared dialog chrome (themed
+   openDialog frame, .dialog-close at 44px, portal .tiny at 0.875rem,
+   toasts, global loading/error/empty states) — no second frame is
+   invented here. Grammar and tokens are the direction contract's:
+   paper #f6f1e7, paper-card #fffdf8, ink #2b2620, hairline #d8cdb6,
+   rule #8a7c63, green #176b3a, danger #8c2f22, Georgia serif.
+   Reference: selected/src/insights/theme4-tight.html.
+   DENSITY LAW: metric facts are hairline rule rows (the mock's
+   .rule grammar), the daily-calories spark sits at the mock's 60px
+   height, merged panels carry the mock's groupings, and dead space
+   is tightened from grouping/spacing only — type never below 11px,
+   tap targets never below 44px (inherited .operate-view floor).
+   NO ADS on this surface — the Insights banner placement is RETIRED
+   by the final ad law; the app's only ad slot is on Today.
+   ===================================================================== */
+
+/* Range choice: one deliberate single row at phone width (P1/P2 —
+   segmented-choice grammar, intentional scroll, never a ragged wrap),
+   the Food Log range row's pattern. */
+.insights-view .insights-range-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 4px;
+    margin-top: 6px;
+}
+
+.insights-view .insights-range-row .button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* The mock's two-up panels (Daily calories | Weight trend, Hydration
+   history | Weight history) stack to one column at phone width. */
+.insights-view .insights-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 22px;
+}
+
+.insights-view .insights-grid > .panel {
+    min-width: 0;
+}
+
+@media (max-width: 700px) {
+    .insights-view .insights-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Metric facts as rule rows (the mock's .rule): label left, serif
+   tabular value right, one hairline per fact. */
+.insights-view .insight-rule {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 6px 0;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.insights-view .insight-rule > span {
+    font-size: 15px;
+    color: #2b2620;
+}
+
+.insights-view .insight-rule > b {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #2b2620;
+    text-align: right;
+}
+
+.insights-view .insight-rule > b small {
+    font-size: 13px;
+    font-weight: 400;
+    color: #5d5344;
+}
+
+.insights-view .insight-target {
+    font-size: 13px;
+    color: #5d5344;
+}
+
+.insights-view .insight-rule .progress {
+    flex: 1 1 100%;
+    height: 4px;
+    background: #e3dac4;
+    border-radius: 0;
+}
+
+.insights-view .insight-rule .progress > span {
+    display: block;
+    height: 100%;
+    background: #176b3a;
+}
+
+/* In-panel subheads (the mock's h3 inside a panel): Average intake,
+   Hydration, Largest calorie contributors. */
+.insights-view .insights-subhead {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16.5px;
+    font-weight: 600;
+    color: #2b2620;
+    margin: 11px 0 3px;
+}
+
+/* Daily-calories spark at the tightened mock's height (60px). */
+.insights-view .insights-spark {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 60px;
+    margin-top: 4px;
+}
+
+.insights-view .insights-spark-bar {
+    flex: 1;
+    min-width: 0;
+    display: block;
+    background: #176b3a;
+}
+
+.insights-view .insights-spark-bar.is-empty {
+    opacity: 0.25;
+}
+
+/* Weekly check-in observations: quiet serif-adjacent list under the
+   rules (deterministic server text, rendered verbatim). */
+.insights-view .insights-observations {
+    font-size: 14px;
+    color: #4a4237;
+}
+
+/* Trend / pattern narratives read as open prose panels (the mock's
+   grammar), never a wall: one paragraph per panel at body size. */
+.insights-view .insights-narrative p {
+    font-size: 15px;
+    color: #2b2620;
+    margin: 2px 0 4px;
+}
+
+/* Weight chart sits at the compact height its generator now emits;
+   its explanation disclosure keeps a 44px summary row. */
+.insights-view #weight-history details > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+/* Entry rows (water / weight) keep the operate rule grammar; their
+   Edit / Delete actions ride the row at the 44px floor. */
+.insights-view .food-row .auth-actions .button {
+    min-height: 44px;
+}
+
+/* Entry rows wrap deliberately inside Insights: the entry text
+   takes the full row width and Edit / Delete ride one row beneath
+   it at natural widths, instead of squeezing the text into the
+   narrow column beside a stacked action group (first capture pass:
+   "750 ml" split across three fragments). Today keeps its aside
+   grammar — this is scoped to .insights-view. */
+.insights-view .food-row {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.insights-view .food-row .auth-actions {
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: flex-start;
+}
+
+.insights-view .food-row .auth-actions .button {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+}
+
+/* ---------- Inline confirmations (S6 slice 1 pattern) ---------- */
+
+/* Replaces the native window.confirm() on the water/weight Delete
+   actions. The confirmation is a full-width box directly under the
+   entry row (the Groceries pattern); the rows are shared with
+   Today, so the grammar is scoped to .operate-view (both surfaces'
+   scope). */
+.operate-view .vital-inline-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0 8px;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.operate-view .vital-inline-confirm .button {
+    min-height: 44px;
+}
+
+.operate-view .vital-confirm-note {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+    color: #8c2f22;
+}
+
+.operate-view .vital-confirm-danger {
+    background: #8c2f22;
+    border-color: #8c2f22;
+}
+
+.operate-view .vital-confirm-danger:hover {
+    background: #6e241a;
+    border-color: #6e241a;
+}
+
+/* ---------- Insights dialogs (add / edit water + weight) -------- */
+
+/* These dialogs ride slice 1's themed frame (rows 51 in the theme
+   inventory); their own controls reach the 44px floor here, scoped
+   to the four form ids (the shared .button-small grammar sits at
+   40px; slice 1 fixed the shared Close via .dialog-close and left
+   per-surface controls to their slices). */
+#water-form .button,
+#weight-form .button,
+#edit-water-form .button,
+#edit-weight-form .button {
+    min-height: 44px;
+}
+
+#water-form input,
+#weight-form input,
+#weight-form select,
+#edit-water-form input,
+#edit-water-form textarea,
+#edit-weight-form input,
+#edit-weight-form select,
+#edit-weight-form textarea {
+    min-height: 44px;
+}
+
+/* ---------- S6 slice 7 QC fixes (first capture pass, 390x844) ------
+   The first default capture fit 4 rule rows in the first viewport
+   against the tightened mock's 8: the check-in observations carried
+   default list spacing and the spark caption sat at full note size.
+   Fixes are spacing/type-style only — no content removed, no type
+   below the floors. (The remaining gap is structural: the live
+   topbar the mock omits, plus the observations the real check-in
+   payload carries and the mock elides — recorded in the audit.) */
+.insights-view .insights-observations {
+    margin: 4px 0 0;
+    line-height: 1.4;
+}
+
+.insights-view .insights-observations li {
+    margin: 0;
+}
+
+.insights-view .insights-spark + .tiny {
+    font-size: 13px;
+    font-style: italic;
+    margin-top: 5px;
+}

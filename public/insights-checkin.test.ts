@@ -19,6 +19,17 @@ const renderInsightsSource = appSource.match(
 const shiftDateSource = appSource.match(
     /function shiftDate\(date, days\) \{[\s\S]*?\n\}/,
 )![0];
+// S6 slice 7: renderInsights now builds its rule rows through these
+// pure helpers — the harness runs the real helpers alongside it.
+const percentSource = appSource.match(
+    /function percent\(value, target\) \{[\s\S]*?\n\}/,
+)![0];
+const insightRuleSource = appSource.match(
+    /function insightRule\(label, valueHtml\) \{[\s\S]*?\n\}/,
+)![0];
+const insightProgressRuleSource = appSource.match(
+    /function insightProgressRule\(label, value, unit, target\) \{[\s\S]*?\n\}/,
+)![0];
 
 const insightsFixture = {
     vitals: {
@@ -84,7 +95,7 @@ async function runRenderInsights(insightsDays: number) {
         barChart: () => "",
     };
     await runInNewContext(
-        `${shiftDateSource}\n${renderInsightsSource}\nrenderInsights();`,
+        `${shiftDateSource}\n${percentSource}\n${insightRuleSource}\n${insightProgressRuleSource}\n${renderInsightsSource}\nrenderInsights();`,
         context,
     );
     return { calls, html: content.innerHTML };
