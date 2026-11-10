@@ -169,7 +169,13 @@
     small,
     .tiny {
         color: var(--ink-500);
-        font-size: 0.82rem;
+        /* S6 slice 1 portal-wide decision (the S3/ADD-TO-DRAFT deferred
+           MINOR): .tiny was 0.82rem ≈ 13.1px, under the 14px label/body
+           guidance (mobile_qc B4). It now sits at the guidance size,
+           0.875rem = 14px, everywhere the shared class is used — one
+           portal-wide change in the shared class, never a per-dialog
+           patch (P8). The 11px hard floor is untouched. */
+        font-size: 0.875rem;
         line-height: 1.45;
     }
 

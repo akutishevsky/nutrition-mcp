@@ -67,6 +67,10 @@ type HouseholdVariant = "none" | "owner";
 let settingsVariant: SettingsVariant = "android-free";
 let householdVariant: HouseholdVariant = "none";
 let connectionsFixture: Record<string, unknown>[] = [];
+/** S6 slice 1: a pending draft card on Today, removed by a cancel. */
+let pendingDraftOnToday = false;
+/** S6 slice 1: the ADS-FOUNDATION remote flag as the server sends it. */
+let adsFlagOn = false;
 
 const PRODUCT_POLICY = {
     premiumPriceMonthlyCents: 300,
@@ -91,6 +95,11 @@ function bootstrapFixture() {
         // DEFAULT OFF (MUNCH_ADS_ENABLED unset on the server).
         ads: { enabled: false },
         user: { email: "parity-fixture@example.test" },
+        androidEntitlements: { adFree: false },
+        // ADS-FOUNDATION contract: bootstrap.ads.enabled is the
+        // server-driven remote flag (DEFAULT OFF — absent unless the
+        // server explicitly enables it).
+        ...(adsFlagOn ? { ads: { enabled: true } } : {}),
     };
 }
 
@@ -183,8 +192,38 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
             water: { entries: [], totalMl: 0 },
             weight: [],
             goals: {},
-            drafts: [],
+            drafts: pendingDraftOnToday
+                ? [
+                      {
+                          id: "fixture-pending-draft",
+                          description: "Fixture pending meal",
+                          status: "awaiting_confirmation",
+                          openQuestionCount: 0,
+                          itemCount: 1,
+                          sourceMode: "photo",
+                      },
+                  ]
+                : [],
             plannedMeals: [],
+        };
+    }
+    if (pathname === "/api/app/meal-drafts/fixture-pending-draft") {
+        return {
+            draft: { ...PHOTO_DRAFT, id: "fixture-pending-draft" },
+        };
+    }
+    if (
+        pathname === "/api/app/meal-drafts/fixture-pending-draft/cancel" &&
+        method === "POST"
+    ) {
+        pendingDraftOnToday = false;
+        return {
+            draft: {
+                ...PHOTO_DRAFT,
+                id: "fixture-pending-draft",
+                status: "cancelled",
+                version: PHOTO_DRAFT.version + 1,
+            },
         };
     }
     if (pathname === "/api/app/guidance/today") {
@@ -418,7 +457,10 @@ export {
     resolveMunchApiUrl,
 } from "./app-api.js";
 window.MunchAds = Object.freeze({
-    setBannerVisible: async () => ({}),
+    setBannerVisible: async (options) => {
+        (window.__adCalls ??= []).push(options);
+        return {};
+    },
     showPrivacyOptions: async () => ({ available: false }),
 });
 export function installedReturnRoute() {
@@ -493,6 +535,8 @@ test.beforeEach(() => {
     observed.length = 0;
     settingsVariant = "android-free";
     householdVariant = "none";
+    pendingDraftOnToday = false;
+    adsFlagOn = false;
     connectionsFixture = [
         {
             clientName: "Fixture MCP Client",
@@ -775,4 +819,139 @@ test("meal.photoLog runs end to end in the packaged bundle", async ({
             "/api/app/meal-drafts/fixture-photo-draft/confirm",
         ),
     ).toBe(true);
+});
+
+test("S6 slice 1 regression: Abandon draft dismisses a pending draft with no native confirm", async ({
+    page,
+}) => {
+    // The 2026-11-09 production defect: "Abandon draft" gated on the
+    // native window.confirm() dialog. Any environment that dismisses
+    // or never answers that dialog (automated browsers by default,
+    // WebViews without a JS-dialog handler) turned the click into a
+    // silent no-op — no request, no feedback, draft still pending —
+    // while the in-page Close worked. This test records AND dismisses
+    // every native dialog: the abandon flow must complete entirely
+    // through in-dialog UI, so on the old code it fails twice over
+    // (a native confirm fires, and no inline confirmation exists).
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    pendingDraftOnToday = true;
+    await bootPackagedApp(page);
+
+    await page.getByRole("button", { name: "Review draft" }).click();
+    const abandon = page.locator('[data-action="cancel-meal-draft"]');
+    await expect(abandon).toBeVisible();
+    await abandon.click();
+
+    // In-dialog confirmation appears; nothing has been sent yet.
+    const confirmAbandon = page.locator(
+        '[data-action="confirm-cancel-meal-draft"]',
+    );
+    await expect(confirmAbandon).toBeVisible();
+    await expect(
+        page.getByText("Abandon this meal draft? No meal will be logged."),
+    ).toBeVisible();
+    expect(
+        observedRequest(
+            "POST",
+            "/api/app/meal-drafts/fixture-pending-draft/cancel",
+        ),
+    ).toBe(false);
+    expect(nativeDialogs).toEqual([]);
+
+    // "Keep draft" restores the review actions without any request.
+    await page.locator('[data-action="dismiss-abandon-draft"]').click();
+    await expect(abandon).toBeVisible();
+    expect(
+        observedRequest(
+            "POST",
+            "/api/app/meal-drafts/fixture-pending-draft/cancel",
+        ),
+    ).toBe(false);
+
+    // Confirming abandons: cancel posts, the dialog closes, the toast
+    // lands, and Today re-renders without the pending draft.
+    await abandon.click();
+    await confirmAbandon.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Meal draft abandoned.",
+    );
+    expect(
+        observedRequest(
+            "POST",
+            "/api/app/meal-drafts/fixture-pending-draft/cancel",
+        ),
+    ).toBe(true);
+    await expect(page.locator("#app-dialog")).not.toHaveAttribute("open");
+    await expect(
+        page.getByRole("button", { name: "Review draft" }),
+    ).toHaveCount(0);
+    expect(nativeDialogs).toEqual([]);
+});
+
+test("S6 slice 1: the single ad slot lives on Today, flag-gated and Premium-hidden", async ({
+    page,
+}) => {
+    // Flag OFF (the shipped default): no slot element at all on Today,
+    // and the native banner is never asked to show.
+    await bootPackagedApp(page);
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    let adCalls = await page.evaluate(
+        () => (window as unknown as { __adCalls?: unknown[] }).__adCalls ?? [],
+    );
+    expect(adCalls.length).toBeGreaterThan(0);
+    expect(
+        adCalls.every(
+            (call) =>
+                (call as { visible?: boolean }).visible === false &&
+                (call as { adsEnabled?: boolean }).adsEnabled === false,
+        ),
+    ).toBe(true);
+
+    // Flag ON for a free packaged account: exactly one slot, in-flow
+    // directly under Today's guidance and above Meals; the native
+    // banner is requested visible with the flag forwarded.
+    adsFlagOn = true;
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    const slot = page.locator('[data-testid="today-ad-slot"]');
+    await expect(slot).toHaveCount(1);
+    await expect(slot).toBeVisible();
+    const slotBox = await slot.boundingBox();
+    const guidanceBox = await page
+        .getByRole("heading", { name: "Today’s guidance" })
+        .boundingBox();
+    const mealsBox = await page
+        .getByRole("heading", { name: "Meals" })
+        .boundingBox();
+    expect(slotBox).not.toBeNull();
+    expect(guidanceBox).not.toBeNull();
+    expect(mealsBox).not.toBeNull();
+    expect(slotBox!.y).toBeGreaterThanOrEqual(guidanceBox!.y);
+    expect(slotBox!.y + slotBox!.height).toBeLessThanOrEqual(mealsBox!.y);
+    // Slim and stable: the reserve is the mock's 54px grammar.
+    expect(slotBox!.height).toBeGreaterThanOrEqual(54);
+    expect(slotBox!.height).toBeLessThan(64);
+    adCalls = await page.evaluate(
+        () => (window as unknown as { __adCalls?: unknown[] }).__adCalls ?? [],
+    );
+    expect(
+        adCalls.some(
+            (call) =>
+                (call as { visible?: boolean }).visible === true &&
+                (call as { adsEnabled?: boolean }).adsEnabled === true,
+        ),
+    ).toBe(true);
+
+    // Nowhere else: the Food Log carries no slot and the banner hides.
+    await gotoRoute(page, "/app/log");
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    adCalls = await page.evaluate(
+        () => (window as unknown as { __adCalls?: unknown[] }).__adCalls ?? [],
+    );
+    const lastCall = adCalls[adCalls.length - 1] as { visible?: boolean };
+    expect(lastCall.visible).toBe(false);
 });
