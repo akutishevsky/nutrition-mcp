@@ -89,7 +89,6 @@ if (!robots.includes("Sitemap: https://munch.business/sitemap.xml")) {
 }
 
 const authSurfaces = [
-    "src/auth/connect-routes.ts",
     "src/auth/email.ts",
     "src/auth/password-routes.ts",
 ];
