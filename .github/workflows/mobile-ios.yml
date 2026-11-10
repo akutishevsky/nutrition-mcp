@@ -9,6 +9,13 @@ name: iOS
 #                  bundle Android packages, `cap sync ios`, and build the
 #                  Capacitor App target for the iOS Simulator unsigned
 #                  (CODE_SIGNING_ALLOWED=NO). No secrets, no signing.
+#   smoke        — IOS-SMOKE: XCUITest journey (ios/App/AppUITests) that
+#                  boots the packaged app on a simulator and exercises
+#                  sign-in, Today, the log-a-meal composer, the Log view,
+#                  Pantry, and Settings against the fixture runtime in
+#                  scripts/ios-smoke/ (production renderers, fixture
+#                  data/session, no real credentials). Per-step
+#                  screenshots + console/crash logs are artifacts.
 #   asc-probe    — workflow_dispatch only: report-only ASC check (GET
 #                  apps + bundleIds for business.munch.app) via
 #                  scripts/asc-probe.py; creates nothing.
@@ -31,6 +38,7 @@ on:
       - "bun.lock"
       - "scripts/build-mobile-web.ts"
       - "scripts/asc-probe.py"
+      - "scripts/ios-smoke/**"
       - ".github/workflows/mobile-ios.yml"
   push:
     branches:
@@ -43,6 +51,7 @@ on:
       - "bun.lock"
       - "scripts/build-mobile-web.ts"
       - "scripts/asc-probe.py"
+      - "scripts/ios-smoke/**"
       - ".github/workflows/mobile-ios.yml"
   workflow_dispatch:
     inputs:
@@ -109,6 +118,108 @@ jobs:
           path: build/ios-simulator/Build/Products/Debug-iphonesimulator/App.app
           if-no-files-found: error
           retention-days: 7
+
+  smoke:
+    name: Smoke (Simulator boot + core flows)
+    if: github.event_name != 'workflow_dispatch' || inputs.build_mode == 'simulator' || inputs.build_mode == 'app-store-ipa'
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1
+      - name: Confirm Apple toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcode-select -p
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build local mobile web bundle
+        run: bun run mobile:web
+      - name: Swap in the iOS smoke fixture runtime
+        run: |
+          set -euo pipefail
+          # Test-only: replace the native-bridge module inside the
+          # CI-built bundle copy (the repo bundle is never touched) so
+          # the simulator app runs the production renderers against
+          # fixture data with a fixture session. No real credentials.
+          cp scripts/ios-smoke/stub-runtime.js .mobile-web/mobile-runtime.js
+      - name: Synchronize Capacitor iOS project
+        run: npx cap sync ios
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App
+      - name: Select and boot an iPhone simulator
+        run: |
+          set -euo pipefail
+          udid="$(xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)
+          for runtime, devices in data["devices"].items():
+              if "iOS" not in runtime:
+                  continue
+              for device in devices:
+                  if device["name"].startswith("iPhone"):
+                      print(device["udid"])
+                      sys.exit(0)
+          sys.exit("no iPhone simulator available")
+          ')"
+          echo "SIM_UDID=$udid" >> "$GITHUB_ENV"
+          xcrun simctl boot "$udid" || true
+          xcrun simctl bootstatus "$udid" -b
+          # Guarantee the cold-start state the smoke asserts: no prior
+          # install, no stored fixture session.
+          xcrun simctl uninstall "$udid" business.munch.app || true
+      - name: Capture the app console log
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios-smoke
+          nohup xcrun simctl spawn "$SIM_UDID" log stream --level debug --style compact --predicate 'process == "App"' > build/ios-smoke/app-console.log 2>&1 &
+          disown || true
+      - name: Run the boot/flow smoke (XCUITest)
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          xcodebuild test \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath build/ios-smoke-derived \
+            -resultBundlePath build/ios-smoke/MunchSmoke.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build/ios-smoke/xcodebuild-test.log
+      - name: Export step screenshots from the result bundle
+        if: always()
+        run: |
+          set -euo pipefail
+          if [[ -d build/ios-smoke/MunchSmoke.xcresult ]]; then
+            xcrun xcresulttool export attachments \
+              --path build/ios-smoke/MunchSmoke.xcresult \
+              --output-path build/ios-smoke/screenshots || true
+          fi
+      - name: Collect crash reports and stop log capture
+        if: always()
+        run: |
+          set -euo pipefail
+          pkill -f "log stream" || true
+          crash_src="$HOME/Library/Developer/CoreSimulator/Devices/$SIM_UDID/data/Library/Logs/CrashReporter"
+          if [[ -d "$crash_src" ]]; then
+            mkdir -p build/ios-smoke/crash-reports
+            cp -R "$crash_src/." build/ios-smoke/crash-reports/ || true
+          fi
+          find build/ios-smoke -maxdepth 2 | head -50 || true
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-ios-smoke-${{ github.run_number }}
+          path: build/ios-smoke/
+          if-no-files-found: warn
+          retention-days: 14
 
   asc-probe:
     name: ASC probe (report-only)
