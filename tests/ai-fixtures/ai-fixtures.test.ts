@@ -5,6 +5,9 @@ import { generateGuidanceProposals } from "../../src/app/guidance-ai.js";
 import { previewInventoryImage } from "../../src/inventory/vision.js";
 import { assertNoOpenBlockingQuestions } from "../../src/meal-drafts/blocking.js";
 import type { MealDraft } from "../../src/meal-drafts/types.js";
+import { resolveDraftAdd } from "../../src/meal-photo/draft-add.js";
+import { parseDraftAddTextWithModel } from "../../src/meal-photo/draft-add-parse.js";
+import { parseDraftAddTextDeterministic } from "../../src/meal-photo/draft-add-text.js";
 import { estimateMealPhotoNutrients } from "../../src/meal-photo/estimate.js";
 import {
     groundMealPhotoItems,
@@ -290,6 +293,100 @@ describe("ai-fixture: meal photo identify (recorded response)", () => {
         });
         expect(JSON.stringify(result)).not.toMatch(
             /calories|protein_g|carbs_g|fat_g/,
+        );
+    });
+});
+
+describe("ai-fixture: meal photo draft add — conversational add-to-draft (Amendment E item 3)", () => {
+    const butterCandidate: FoodCandidate = {
+        provider: "usda",
+        providerFoodId: "173430",
+        name: "Butter, salted",
+        dataKind: "generic",
+        nutrientsPer100g: {
+            calories: 717,
+            protein_g: 0.85,
+            carbs_g: 0.06,
+            fat_g: 81.1,
+        },
+        portions: [
+            {
+                id: "tbsp",
+                amount: 1,
+                unit: "tbsp",
+                label: "1 tbsp",
+                gramWeight: 14.2,
+                nutrients: {
+                    calories: 102,
+                    protein_g: 0.12,
+                    carbs_g: 0.01,
+                    fat_g: 11.5,
+                },
+            },
+        ],
+        attribution: {
+            label: "USDA FoodData Central",
+            url: "https://fdc.nal.usda.gov/food/173430",
+        },
+        confidence: 0.95,
+    };
+    const search = async (query: string) =>
+        query.includes("butter")
+            ? { candidates: [butterCandidate], failures: [] }
+            : { candidates: [], failures: [] };
+
+    test("deterministic-first: 'I added a good bit of butter' grounds with ZERO model-parse calls", async () => {
+        let modelCalls = 0;
+        const resolution = await resolveDraftAdd(
+            "I added a good bit of butter",
+            {
+                search: search as never,
+                parseWithModel: async () => {
+                    modelCalls += 1;
+                    throw new Error("fallback must not fire");
+                },
+            },
+        );
+        expect(modelCalls).toBe(0);
+        expect(resolution.kind).toBe("ready");
+        if (resolution.kind !== "ready") return;
+        expect(resolution.parseSource).toBe("deterministic");
+        expect(resolution.grounded[0]?.draftItem.nutrients.calories).toBe(102);
+        expect(resolution.grounded[0]?.draftItem.assumptions[0]).toContain(
+            "Added by you",
+        );
+    });
+
+    test("recorded Ember parse fixture replays the fallback for prose the deterministic parser refuses", async () => {
+        const text = "oh I totally forgot the butter, like a decent knob of it";
+        // The deterministic parser must refuse this prose first —
+        // that refusal is what licenses the model call.
+        expect(parseDraftAddTextDeterministic(text)).toBeNull();
+        const fixture = await loadFixture(
+            "meal-photo-draft-add-parse.response.json",
+        );
+        expect(fixture.model).toBe("meta/muse-ember");
+        const resolution = await resolveDraftAdd(text, {
+            search: search as never,
+            parseWithModel: (value) =>
+                parseDraftAddTextWithModel(value, visionConfig, {
+                    fetcher: recordedFetcher(fixture),
+                }),
+        });
+        expect(resolution.kind).toBe("ready");
+        if (resolution.kind !== "ready") return;
+        expect(resolution.parseSource).toBe("model");
+        const [added] = resolution.grounded;
+        expect(added?.grounded).toBe(true);
+        expect(added?.draftItem.sourceType).toBe("usda");
+        expect(added?.draftItem.nutrients.calories).toBe(102);
+        expect(
+            added?.draftItem.assumptions.some((assumption) =>
+                assumption.includes("a decent knob"),
+            ),
+        ).toBe(true);
+        expect(added?.draftItem.sourceSnapshot?.draft_add_parse_source).toBe(
+            "model",
         );
     });
 });

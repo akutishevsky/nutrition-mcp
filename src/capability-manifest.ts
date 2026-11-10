@@ -221,11 +221,15 @@ export const CAPABILITY_MANIFEST = [
         web: complete([
             "POST /api/app/meal-photo",
             '[data-action="log-by-photo"]',
+            "POST /api/app/meal-drafts/:id/add-text",
+            '[data-action="add-draft-text"]',
             "POST /api/app/meal-drafts/:id/confirm",
         ]),
         app: partial([
             "POST /api/app/meal-photo",
             '[data-action="log-by-photo"]',
+            "POST /api/app/meal-drafts/:id/add-text",
+            '[data-action="add-draft-text"]',
             "POST /api/app/meal-drafts/:id/confirm",
         ]),
         intentionalChannelException:

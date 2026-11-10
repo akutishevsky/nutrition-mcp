@@ -371,6 +371,224 @@ if (!blockedMeal || blockedMeal.calories !== 205) {
     throw new Error("Resolved blocking draft logged the wrong totals");
 }
 
+// Amendment E item 3: conversational add-to-draft on a photo draft,
+// exercised end-to-end against the real draft machinery with stub
+// grounding deps (recorded data only — no live model calls).
+const { addTextToPhotoDraft } = await import("../src/meal-photo/draft-add.js");
+const butterCandidate = {
+    provider: "usda",
+    providerFoodId: "173430",
+    name: "Butter, salted",
+    dataKind: "generic",
+    nutrientsPer100g: {
+        calories: 717,
+        protein_g: 0.85,
+        carbs_g: 0.06,
+        fat_g: 81.1,
+    },
+    portions: [
+        {
+            id: "tbsp",
+            amount: 1,
+            unit: "tbsp",
+            label: "1 tbsp",
+            gramWeight: 14.2,
+            nutrients: {
+                calories: 102,
+                protein_g: 0.12,
+                carbs_g: 0.01,
+                fat_g: 11.5,
+            },
+        },
+    ],
+    attribution: {
+        label: "USDA FoodData Central",
+        url: "https://fdc.nal.usda.gov/food/173430",
+    },
+    confidence: 0.95,
+};
+const broccoliCandidate = {
+    ...butterCandidate,
+    providerFoodId: "170379",
+    name: "Broccoli, cooked",
+    nutrientsPer100g: {
+        calories: 35,
+        protein_g: 2.4,
+        carbs_g: 7.2,
+        fat_g: 0.4,
+    },
+    portions: [
+        {
+            id: "serving",
+            amount: 1,
+            unit: "serving",
+            label: "1 serving",
+            gramWeight: 100,
+            nutrients: {
+                calories: 35,
+                protein_g: 2.4,
+                carbs_g: 7.2,
+                fat_g: 0.4,
+            },
+        },
+    ],
+    attribution: {
+        label: "USDA FoodData Central",
+        url: "https://fdc.nal.usda.gov/food/170379",
+    },
+};
+const addSearch = async (query: string) => {
+    if (query.includes("butter")) {
+        return { candidates: [butterCandidate], failures: [] };
+    }
+    if (query.includes("broccoli")) {
+        return { candidates: [broccoliCandidate], failures: [] };
+    }
+    return { candidates: [], failures: [] };
+};
+
+let photoAdd = await createMealDraft({
+    userId: userA,
+    sourceMode: "photo",
+    description: "Photo estimate — check portions",
+    mealType: "dinner",
+});
+photoAdd = await upsertMealDraftItem({
+    userId: userA,
+    draftId: photoAdd.id,
+    expectedVersion: photoAdd.version,
+    position: 0,
+    item: {
+        name: "grilled chicken breast",
+        quantity: 160,
+        portionLabel: "160 g",
+        nutrients: { calories: 264, protein_g: 49.6, carbs_g: 0, fat_g: 5.8 },
+        sourceType: "usda",
+        confidence: 0.85,
+        assumptions: ["assumed skinless breast"],
+        sourceSnapshot: { resolution_layer: "meal_photo_grounding" },
+    },
+});
+const addedOutcome = await addTextToPhotoDraft({
+    userId: userA,
+    draft: photoAdd,
+    text: "I added a good bit of butter",
+    deps: { search: addSearch as never },
+});
+if (addedOutcome.status !== "added") {
+    throw new Error(`Butter add did not land: ${addedOutcome.status}`);
+}
+photoAdd = addedOutcome.draft;
+const butterItem = photoAdd.items.find((record) =>
+    record.item.name.includes("Butter"),
+);
+if (
+    photoAdd.items.length !== 2 ||
+    !butterItem ||
+    butterItem.item.nutrients.calories !== 102 ||
+    !butterItem.item.assumptions.some((value) =>
+        value.startsWith('Added by you: "I added a good bit of butter"'),
+    ) ||
+    !butterItem.item.assumptions.some((value) => value.includes("a good bit"))
+) {
+    throw new Error(
+        "Butter add was not persisted with provenance + assumption",
+    );
+}
+const photoTotal = photoAdd.items.reduce(
+    (sum, record) => sum + (record.item.nutrients.calories ?? 0),
+    0,
+);
+if (photoTotal !== 366) {
+    throw new Error(`Photo draft totals did not recompute: ${photoTotal}`);
+}
+
+// Weak ungrounded add → draft question, items unchanged.
+const questionOutcome = await addTextToPhotoDraft({
+    userId: userA,
+    draft: photoAdd,
+    text: "added qwixle",
+    deps: { search: addSearch as never },
+});
+if (questionOutcome.status !== "question") {
+    throw new Error("Weak ungrounded add did not become a question");
+}
+photoAdd = questionOutcome.draft;
+if (
+    photoAdd.items.length !== 2 ||
+    !photoAdd.questions.some(
+        (question) =>
+            question.status === "open" &&
+            question.questionKey.startsWith("photo_draft_add_unresolved_"),
+    )
+) {
+    throw new Error("Unresolved add question was not persisted on the draft");
+}
+
+// Unparseable add → honest no-add, draft completely unchanged.
+const versionBeforeNoAdd = photoAdd.version;
+const noAddOutcome = await addTextToPhotoDraft({
+    userId: userA,
+    draft: photoAdd,
+    text: "the weather is nice today",
+    deps: {
+        search: addSearch as never,
+        parseWithModel: async () => ({ items: [], replaces: null }),
+    },
+});
+if (
+    noAddOutcome.status !== "no_add" ||
+    noAddOutcome.draft.version !== versionBeforeNoAdd ||
+    noAddOutcome.draft.items.length !== 2
+) {
+    throw new Error("Unparseable add changed the draft");
+}
+
+// Replacement rides remove+add: chicken out, broccoli in.
+const replaceOutcome = await addTextToPhotoDraft({
+    userId: userA,
+    draft: photoAdd,
+    text: "actually steamed broccoli, not grilled chicken breast",
+    deps: { search: addSearch as never },
+});
+if (
+    replaceOutcome.status !== "added" ||
+    replaceOutcome.replacedItemName !== "grilled chicken breast"
+) {
+    throw new Error("Replacement add did not report the removed item");
+}
+photoAdd = replaceOutcome.draft;
+if (
+    photoAdd.items.some((record) =>
+        record.item.name.includes("chicken breast"),
+    ) ||
+    !photoAdd.items.some((record) => record.item.name.includes("Broccoli"))
+) {
+    throw new Error("Replacement did not swap the draft items");
+}
+
+// Confirm-before-save is unchanged: the open add question must be
+// accepted through the existing path before confirmation succeeds,
+// and the logged meal carries butter + broccoli only (102 + 35).
+photoAdd = await prepareMealDraftConfirmation({
+    userId: userA,
+    draftId: photoAdd.id,
+    expectedVersion: photoAdd.version,
+    acceptRemainingAssumptions: true,
+});
+photoAdd = await confirmMealDraft({
+    userId: userA,
+    draftId: photoAdd.id,
+    expectedVersion: photoAdd.version,
+    confirmed: true,
+});
+const photoMeal = await getStructuredMeal(userA, photoAdd.confirmedMealId!);
+if (!photoMeal || photoMeal.calories !== 137 || photoMeal.items.length !== 2) {
+    throw new Error(
+        `Confirmed photo-add draft logged wrong totals: ${photoMeal?.calories}`,
+    );
+}
+
 await closePlatformDatabase();
 console.log(
     "Munch meal draft state, confirmation, idempotency, and RLS smoke test passed.",
