@@ -386,7 +386,14 @@ function setActiveRoute(route) {
     document.title = `${title} — Munch`;
 }
 
-function metricCard(label, value, unit, target, primary = false, detail = null) {
+function metricCard(
+    label,
+    value,
+    unit,
+    target,
+    primary = false,
+    detail = null,
+) {
     const progress = percent(value, target);
     const targetText = target
         ? `${number(target, 1)} ${escapeHtml(unit)} target`
@@ -430,7 +437,9 @@ function mealMetricDetail(meals, field, unit, { groupByDay = false } = {}) {
         }
         rows = [...byDay.entries()]
             .sort(([a], [b]) => (a < b ? -1 : 1))
-            .map(([day, value]) => metricDetailRow(formatDate(day), format(value)))
+            .map(([day, value]) =>
+                metricDetailRow(formatDate(day), format(value)),
+            )
             .join("");
     } else {
         rows = list
@@ -4808,13 +4817,10 @@ async function handleAction(button) {
     }
     if (action === "confirm-delete-meal") {
         button.disabled = true;
-        await api(
-            `/api/app/meals/${encodeURIComponent(button.dataset.id)}`,
-            {
-                method: "DELETE",
-                keepPrevious: true,
-            },
-        );
+        await api(`/api/app/meals/${encodeURIComponent(button.dataset.id)}`, {
+            method: "DELETE",
+            keepPrevious: true,
+        });
         toast("Meal deleted.");
         return renderRoute();
     }

@@ -634,11 +634,7 @@ test.beforeAll(async () => {
                 if (meal && typeof body.description === "string") {
                     meal.description = body.description;
                 }
-                sendApiJson(
-                    response,
-                    200,
-                    meal ? fixtureMealDetail(meal) : {},
-                );
+                sendApiJson(response, 200, meal ? fixtureMealDetail(meal) : {});
             });
             return;
         }
@@ -649,9 +645,7 @@ test.beforeAll(async () => {
         }
         sendApiJson(response, 200, {});
     });
-    await new Promise<void>((resolve) =>
-        apiServer.listen(0, () => resolve()),
-    );
+    await new Promise<void>((resolve) => apiServer.listen(0, () => resolve()));
     const address = apiServer.address();
     if (!address || typeof address === "string") {
         throw new Error("Fixture API server did not bind a port");
@@ -701,7 +695,9 @@ test("UX wave F1: the meal editor opens and saves in the packaged bundle", async
     resetFixtureApi();
     await stubMobileApiSession(page);
     await page.goto(`${baseURL}/`);
-    const card = page.locator(`article.meal-card[data-meal-id="${FIXTURE_MEAL_ID}"]`);
+    const card = page.locator(
+        `article.meal-card[data-meal-id="${FIXTURE_MEAL_ID}"]`,
+    );
     await expect(card).toBeVisible();
     await expect(card.locator("h4")).toHaveText("Bundle E2E Lunch");
 
@@ -713,9 +709,7 @@ test("UX wave F1: the meal editor opens and saves in the packaged bundle", async
     );
     await expect(description).toHaveValue("Bundle E2E Lunch");
     await description.fill("Bundle E2E Lunch — edited");
-    await dialog
-        .getByRole("button", { name: "Save meal details" })
-        .click();
+    await dialog.getByRole("button", { name: "Save meal details" }).click();
 
     await expect(page.locator("#toast-region")).toContainText("Meal updated.");
     expect(
@@ -728,13 +722,13 @@ test("UX wave F1: the meal editor opens and saves in the packaged bundle", async
     await expect(card.locator("h4")).toHaveText("Bundle E2E Lunch — edited");
 });
 
-test("UX wave F1: Duplicate works in the packaged bundle", async ({
-    page,
-}) => {
+test("UX wave F1: Duplicate works in the packaged bundle", async ({ page }) => {
     resetFixtureApi();
     await stubMobileApiSession(page);
     await page.goto(`${baseURL}/`);
-    const card = page.locator(`article.meal-card[data-meal-id="${FIXTURE_MEAL_ID}"]`);
+    const card = page.locator(
+        `article.meal-card[data-meal-id="${FIXTURE_MEAL_ID}"]`,
+    );
     await expect(card).toBeVisible();
 
     await card.getByRole("button", { name: "Duplicate" }).click();
@@ -763,7 +757,9 @@ test("UX wave F4: delete-meal completes through the inline confirm in the packag
         void dialog.dismiss();
     });
     await page.goto(`${baseURL}/`);
-    const card = page.locator(`article.meal-card[data-meal-id="${FIXTURE_MEAL_ID}"]`);
+    const card = page.locator(
+        `article.meal-card[data-meal-id="${FIXTURE_MEAL_ID}"]`,
+    );
     await expect(card).toBeVisible();
 
     await card.getByRole("button", { name: "Delete" }).click();
@@ -772,9 +768,7 @@ test("UX wave F4: delete-meal completes through the inline confirm in the packag
     await expect(confirmBox).toContainText(
         "Permanently delete Bundle E2E Lunch?",
     );
-    await confirmBox
-        .getByRole("button", { name: "Yes, delete meal" })
-        .click();
+    await confirmBox.getByRole("button", { name: "Yes, delete meal" }).click();
 
     await expect(page.locator("article.meal-card")).toHaveCount(0);
     expect(

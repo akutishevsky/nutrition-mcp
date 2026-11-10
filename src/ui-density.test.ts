@@ -22,7 +22,7 @@ test("web diary meal cards keep their own description and inline provenance (UX 
     // The canonical card renders the meal's own description as its
     // heading and each item's source badge inline.
     expect(appJs).toContain(
-        "<h4>${escapeHtml(meal.description || \"Untitled meal\")}</h4>",
+        '<h4>${escapeHtml(meal.description || "Untitled meal")}</h4>',
     );
     expect(appJs).toContain('class="demo-source-row"');
     expect(css).toContain(".food-audit");
