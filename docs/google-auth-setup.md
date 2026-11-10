@@ -76,3 +76,29 @@ additionally requires the web credentials (`src/auth/config.ts`).
 initiation against a migrated database and asserts the consent URL
 carries the production web client ID and the
 `https://munch.business/api/auth/callback/google` redirect.
+
+## Account linking (Amendment I)
+
+Signed-in users can link Google (and, once IOS-AUTH configures it, Apple)
+to their existing account from Settings → "Sign-in methods". The backend
+is `src/auth/sign-in-methods.ts` + `sign-in-methods-routes.ts`:
+
+- `GET /api/app/sign-in-methods` — Email link / Google / Apple with
+  linked state and a masked identity. Email link has no
+  `auth_accounts` row (the magic-link plugin verifies against the
+  account email); Google/Apple are `auth_accounts` rows keyed by
+  `(provider_id, account_id)`.
+- `POST /api/app/sign-in-methods/:provider/link` — Better Auth
+  `linkSocial` against the current session (redirect consent URL, or
+  immediate link with a native `idToken`).
+- `POST /api/app/sign-in-methods/:provider/unlink` — server-enforced
+  guardrails: the last account-backed method cannot be unlinked, and a
+  provider identity owned by a different account refuses as a conflict
+  (no silent merges — the `(provider_id, account_id)` unique constraint
+  is the storage backstop). Explicit linking allows different emails
+  (`accountLinking.allowDifferentEmails`) because it keys on provider
+  identity, never email matching (Apple private-relay safe).
+
+`scripts/better-auth-sign-in-methods-smoke.ts` (CI database job) covers
+the read model, both guardrails, and link initiation against real
+Postgres.

@@ -16,6 +16,7 @@ import {
     MUNCH_OAUTH_SCOPES,
     munchMcpResourceUrl,
 } from "./oauth-scopes.js";
+import { appleSignInConfigured } from "./social-sign-in.js";
 
 const MOBILE_HANDOFF_IDENTIFIER_PREFIX = "munch-mobile-handoff:";
 const MOBILE_HANDOFF_TTL_MS = 2 * 60 * 1000;
@@ -155,14 +156,28 @@ function createMunchBetterAuth() {
             accountLinking: {
                 // Google ID tokens with verified email addresses may link to
                 // matching Munch accounts. Unverified providers cannot claim
-                // existing accounts by email. Enabled whenever the Google
-                // provider itself is registered (web client credentials):
+                // existing accounts by email. Enabled whenever a social
+                // provider itself is registered (Google web client
+                // credentials, or the Apple identifier set IOS-AUTH lands):
                 // the web redirect flow signs in through the same provider,
                 // so requiring the Android client here would silently split
                 // a web Google sign-in from the account it belongs to.
-                enabled: Boolean(
-                    config.googleWebClientId && config.googleClientSecret,
-                ),
+                enabled:
+                    Boolean(
+                        config.googleWebClientId && config.googleClientSecret,
+                    ) || appleSignInConfigured(config),
+                // Amendment I guardrail (c): EXPLICIT linking (the Settings
+                // linkSocial flow, against an already signed-in account)
+                // keys on provider identity, never email matching. Better
+                // Auth's default refuses a link whose provider email
+                // differs from the account email — which would break
+                // exactly the legitimate cases Amendment I names (a Google
+                // identity on a different mailbox, an Apple private-relay
+                // address). The session-bound link is the ownership proof
+                // for both sides, so different emails are allowed HERE.
+                // Implicit sign-in linking is a separate path and keeps
+                // its verified-email gates (defaults unchanged).
+                allowDifferentEmails: true,
             },
         },
         ...(config.googleWebClientId && config.googleClientSecret

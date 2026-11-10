@@ -9,6 +9,10 @@ export interface BetterAuthRuntimeConfig {
     googleWebClientId?: string;
     googleAndroidClientId?: string;
     googleClientSecret?: string;
+    appleServicesId?: string;
+    appleKeyId?: string;
+    appleTeamId?: string;
+    applePrivateKey?: string;
 }
 
 function required(name: string): string {
@@ -86,6 +90,28 @@ export function getBetterAuthRuntimeConfig(): BetterAuthRuntimeConfig {
         );
     }
 
+    // Sign in with Apple identifiers (Amendment H, IOS-AUTH): the Services
+    // ID, key ID, team ID, and .p8 private key are configured together or
+    // not at all — the server generates the expiring Apple client-secret
+    // JWT from these, so a partial set can never configure the provider.
+    // Parsing them here lets the account-linking read model report Apple
+    // as configured exactly when IOS-AUTH's provider registration can run.
+    const appleServicesId = optional("MUNCH_APPLE_SERVICES_ID");
+    const appleKeyId = optional("MUNCH_APPLE_KEY_ID");
+    const appleTeamId = optional("MUNCH_APPLE_TEAM_ID");
+    const applePrivateKey = optional("MUNCH_APPLE_PRIVATE_KEY");
+    const appleValues = [
+        appleServicesId,
+        appleKeyId,
+        appleTeamId,
+        applePrivateKey,
+    ];
+    if (appleValues.some(Boolean) && !appleValues.every(Boolean)) {
+        throw new Error(
+            "MUNCH_APPLE_SERVICES_ID, MUNCH_APPLE_KEY_ID, MUNCH_APPLE_TEAM_ID, and MUNCH_APPLE_PRIVATE_KEY must be configured together",
+        );
+    }
+
     return {
         baseUrl: parsedBaseUrl.origin,
         databaseUrl: required("DATABASE_URL"),
@@ -98,5 +124,9 @@ export function getBetterAuthRuntimeConfig(): BetterAuthRuntimeConfig {
         googleWebClientId,
         googleAndroidClientId,
         googleClientSecret,
+        appleServicesId,
+        appleKeyId,
+        appleTeamId,
+        applePrivateKey,
     };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { BetterAuthRuntimeConfig } from "./config.js";
 import {
+    appleSignInConfigured,
     buildSocialProviderRequest,
     googleAndroidSignInConfigured,
     googleSignInButtonHtml,
@@ -83,6 +84,32 @@ describe("social provider initiation requests", () => {
         expect(request.body.oauth_query).toBe(
             "client_id=client-1&scope=nutrition.read&sig=abc",
         );
+    });
+
+    test("apple requires the full identifier set together", () => {
+        const full = {
+            appleServicesId: "business.munch.signin",
+            appleKeyId: "KEY123",
+            appleTeamId: "TEAM123",
+            applePrivateKey: "unused",
+        };
+        expect(appleSignInConfigured(config(full))).toBe(true);
+        expect(appleSignInConfigured(config())).toBe(false);
+        expect(
+            appleSignInConfigured(
+                config({ appleServicesId: full.appleServicesId }),
+            ),
+        ).toBe(false);
+    });
+
+    test("link mode can name a different provider (Amendment I provider-generic shape)", () => {
+        const request = buildSocialProviderRequest({
+            mode: "link",
+            provider: "apple",
+            callbackURL: "/app/settings",
+        });
+        expect(request.path).toBe(SOCIAL_LINK_PATH);
+        expect(request.body.provider).toBe("apple");
     });
 
     test("link mode reuses the same body against the link-social endpoint", () => {
