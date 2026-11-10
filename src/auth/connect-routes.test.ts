@@ -27,7 +27,11 @@ describe("Better Auth consent continuation", () => {
         expect(boundedOAuthQuery("x".repeat(12_001))).toBeUndefined();
     });
 
-    test("does not couple the consent route to Stripe or entitlements", async () => {
+    test("consent carries the Premium entitlement gate without coupling to Stripe checkout", async () => {
+        // Amendment D (2026-11-09) supersedes the old no-entitlement stance
+        // for this route: MCP access is part of Premium, so consent must
+        // state that plainly and refuse approval for a Free account. What
+        // still must never happen here is a purchase: no checkout coupling.
         const source = await Bun.file(
             new URL("./connect-routes.ts", import.meta.url),
         ).text();
@@ -35,7 +39,8 @@ describe("Better Auth consent continuation", () => {
         expect(source).not.toContain("createCheckoutForUser");
         expect(source).not.toContain("decideEntitlement");
         expect(source).not.toContain("getSubscriptionSnapshot");
-        expect(source).not.toContain("Premium");
+        expect(source).toContain("resolveMunchCapabilitiesSafe");
+        expect(source).toContain("MCP access is part of Premium");
         expect(source).toContain("Connected Munch account");
     });
 });

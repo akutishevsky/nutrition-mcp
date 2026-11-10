@@ -3,6 +3,7 @@ import {
     createOAuthConsentCsrfToken,
     requireSameOrigin,
 } from "../accounts/csrf.js";
+import { resolveMunchCapabilitiesSafe } from "../billing/capabilities.js";
 import { getMunchBetterAuth } from "./auth.js";
 import { safeMagicLinkReturnPath } from "./magic-link-url.js";
 import { describeOAuthScope } from "./oauth-scopes.js";
@@ -87,7 +88,7 @@ export function createBetterAuthConnectRouter(): Hono {
             c,
             shell(
                 "Sign in",
-                `<h1>Connect Munch to ChatGPT</h1><p>Use your email to continue. We will send a secure, single-use sign-in link.</p><form class="auth-form" method="post" action="/connect/request"><input type="hidden" name="return_to" value="${escapeHtml(returnTo)}">${oauthQuery ? `<input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}">` : ""}<label class="field" for="email"><span>Email address</span><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required maxlength="320"></label><button class="button button-primary" type="submit">Send sign-in link</button></form><p class="auth-footnote">No password is created or stored.</p><p class="auth-footnote"><a href="${escapeHtml(passwordHref)}">Use a username and password instead</a></p>`,
+                `<h1>Connect Munch to ChatGPT</h1><p>Use your email to continue. We will send a secure, single-use sign-in link.</p><form class="auth-form" method="post" action="/connect/request"><input type="hidden" name="return_to" value="${escapeHtml(returnTo)}">${oauthQuery ? `<input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}">` : ""}<label class="field" for="email"><span>Email address</span><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required maxlength="320"></label><button class="button button-primary" type="submit">Send sign-in link</button></form><p class="auth-footnote">No password is created or stored.</p><p class="auth-footnote"><a href="${escapeHtml(passwordHref)}">Use a username and password instead</a></p>${oauthQuery ? `<p class="auth-footnote">Connecting Munch to an AI app uses MCP access, which is part of Munch Premium.</p>` : ""}`,
                 "Secure connection",
             ),
         );
@@ -218,6 +219,27 @@ export function createBetterAuthConnectRouter(): Hono {
             // Authorization remains bound to Better Auth's signed transaction.
         }
 
+        // MCP entitlement gate (Amendment D, 2026-11-09): MCP access is part
+        // of Premium, so a Free account cannot approve a new connection —
+        // and therefore cannot mint a new token. Already-issued tokens are
+        // covered at the MCP tool layer, where every request re-resolves
+        // the current entitlement. Premium itself is started and managed
+        // only on the Munch website; this page explains and routes, it
+        // never starts a purchase.
+        const capabilityResolution = await resolveMunchCapabilitiesSafe(
+            session.user.id,
+        );
+        if (capabilityResolution.capabilities.tier !== "premium") {
+            return privateHtml(
+                c,
+                shell(
+                    "MCP access is part of Premium",
+                    `<h1>MCP access is part of Premium</h1><div class="consent-account"><span>Connected Munch account</span><strong>${escapeHtml(session.user.email)}</strong></div><p>Connecting ${escapeHtml(clientName)} to Munch uses Munch's MCP tools, and MCP access is one of the things Munch Premium covers ($3/month). This account does not have Premium, so this connection cannot be approved.</p><p>The Munch website and app stay free and fully featured on this account. Premium is started and managed on the Munch website, never inside an AI app.</p><div class="auth-actions"><a class="button button-primary" href="/app/settings/billing">Go to Plan &amp; billing on Munch</a><a class="button button-quiet" href="/">Munch home</a></div><p class="auth-footnote">Once Premium is active on this account, return to your AI app and choose Connect again.</p>`,
+                    "About MCP access",
+                ),
+            );
+        }
+
         const scopes = scope
             .split(/\s+/)
             .map((item) => item.trim())
@@ -233,7 +255,7 @@ export function createBetterAuthConnectRouter(): Hono {
             c,
             shell(
                 "Authorize Munch",
-                `<h1>Connect ${escapeHtml(clientName)}</h1><div class="consent-account"><span>Connected Munch account</span><strong>${escapeHtml(session.user.email)}</strong></div><p>ChatGPT is requesting the permissions listed below. It does not receive unrelated ChatGPT conversations.</p><ul class="consent-scope-list">${scopeItems}</ul><form class="consent-actions" method="post" action="/connect/consent"><input type="hidden" name="client_id" value="${escapeHtml(clientId)}"><input type="hidden" name="scope" value="${escapeHtml(scope)}"><input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}"><input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken)}"><button class="button button-primary" type="submit" name="decision" value="approve">Approve connection</button><button class="button button-quiet" type="submit" name="decision" value="deny">Deny</button></form><p class="auth-footnote">You can revoke this connection later from your Munch account.</p>`,
+                `<h1>Connect ${escapeHtml(clientName)}</h1><div class="consent-account"><span>Connected Munch account</span><strong>${escapeHtml(session.user.email)}</strong></div><p>ChatGPT is requesting the permissions listed below. It does not receive unrelated ChatGPT conversations.</p><p>MCP access is part of Munch Premium, which is active on this account.</p><ul class="consent-scope-list">${scopeItems}</ul><form class="consent-actions" method="post" action="/connect/consent"><input type="hidden" name="client_id" value="${escapeHtml(clientId)}"><input type="hidden" name="scope" value="${escapeHtml(scope)}"><input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}"><input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken)}"><button class="button button-primary" type="submit" name="decision" value="approve">Approve connection</button><button class="button button-quiet" type="submit" name="decision" value="deny">Deny</button></form><p class="auth-footnote">You can revoke this connection later from your Munch account.</p>`,
                 "Review permissions",
             ),
         );

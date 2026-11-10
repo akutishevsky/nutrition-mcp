@@ -28,4 +28,4 @@ Munch requires authentication and derives identity from the authorized account. 
 
 ## Commercial boundary
 
-Munch Free is permanent. Munch Premium is optional and is purchased and managed only on the Munch website. The OAuth connection flow, MCP tools, tool results, and embedded ChatGPT widgets do not advertise prices or initiate checkout.
+Munch Free is permanent and covers the website and app in full. Munch Premium is optional, is purchased and managed only on the Munch website, and is what MCP access itself is part of: a Free account cannot approve an MCP connection, and MCP tool calls without an active Premium entitlement are refused with an explanation that routes to the website. No MCP tool, tool result, or embedded ChatGPT widget initiates checkout.
