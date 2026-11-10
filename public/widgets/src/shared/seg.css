@@ -29,5 +29,5 @@
 }
 .seg-btn.active {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-contrast);
 }

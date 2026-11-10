@@ -1,10 +1,12 @@
-/* Facts Panel grammar — the shared visual language for every Munch widget.
-   One bordered surface on the host background, no shadows. Parts:
+/* Facts Panel grammar — the shared visual language for every Munch widget,
+   now in the Editorial Serif house theme (Amendment F): one hairline-ruled
+   paper surface, no shadows, serif type throughout. Parts:
    band, rule cascade, hero, label rows, compact rows, sticky action bar,
    fold helpers, and state blocks (empty / error / partial banner).
    Markup builders live in shared/facts.js (factsBand, factsLabelRow, ...).
    Band colours come from the --facts-* tokens in shared/tokens.css: the
-   band stays deep green with the cream glyph in light and dark modes. */
+   band stays deep green with the paper-cream glyph in every host mode —
+   it is the brand mark's Nutrition-Facts panel, not a host surface. */
 
 /* --- Band ------------------------------------------------------------ */
 .f-band {
@@ -23,8 +25,8 @@
     display: block;
 }
 .f-band-title {
-    font-size: 16px;
-    font-weight: 650;
+    font-size: 17px;
+    font-weight: 600;
     letter-spacing: -0.01em;
     margin: 0;
     min-width: 0;
@@ -63,7 +65,9 @@
 .f-hero-num {
     font-size: 46px;
     line-height: 1;
-    font-weight: 800;
+    /* Georgia tops out at 700; the Facts hero numeral is bold serif,
+       not the old sans 800. */
+    font-weight: 700;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
 }
