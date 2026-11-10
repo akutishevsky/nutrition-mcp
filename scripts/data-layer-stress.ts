@@ -34,6 +34,12 @@
  * This script is a manual/nightly evidence tool. It is NOT wired into the
  * per-PR CI gate (see .github/workflows/data-layer-stress.yml, which is
  * workflow_dispatch-only).
+ *
+ * Phase 2 extension (same corpus, same concurrency matrix): stub provider
+ * calls are counted per workload, and a `legacy.lookupBarcode-repeat`
+ * workload drives the legacy MCP barcode path (src/foods.ts) against the
+ * stub-backed FoodSearchService, reporting whether its hits land in the
+ * canonical catalog (and not in the siloed munch.food_cache).
  */
 import { SQL } from "bun";
 import path from "node:path";
@@ -46,6 +52,7 @@ import type {
     FoodProvider,
 } from "../src/food-providers/types.js";
 import { importUsdaBulkFile } from "../src/food-providers/usda-bulk.js";
+import { lookupBarcode as legacyLookupBarcode } from "../src/foods.js";
 import { closePlatformDatabase } from "../src/platform/database.js";
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
@@ -277,10 +284,14 @@ function buildCorpus(): FoodCandidate[] {
 // Stub providers (transport layer stubbed; DB is the system under test)
 // ---------------------------------------------------------------------------
 
+const providerCalls = { search: 0, barcode: 0, details: 0 };
+const corpusBarcodes = new Set<string>();
+
 function stubProvider(name: "usda" | "open_food_facts"): FoodProvider {
     return {
         name,
         async search(input) {
+            providerCalls.search += 1;
             // Deterministic per-query candidates with fresh provider IDs,
             // so a local miss exercises upsertMany + recordSearch writes.
             const seed = [...input.query].reduce(
@@ -297,6 +308,7 @@ function stubProvider(name: "usda" | "open_food_facts"): FoodProvider {
             );
         },
         async getDetails(input) {
+            providerCalls.details += 1;
             return candidate({
                 provider: name,
                 providerFoodId: input.providerFoodId,
@@ -304,6 +316,14 @@ function stubProvider(name: "usda" | "open_food_facts"): FoodProvider {
             });
         },
         async lookupBarcode(input) {
+            providerCalls.barcode += 1;
+            // USDA only "carries" GTINs from the seeded corpus; OFF is
+            // the barcode authority for everything else. (A provider
+            // returning a candidate for every barcode would hide the
+            // cross-provider barcode dedupe the registry performs.)
+            if (name === "usda" && !corpusBarcodes.has(input.barcode)) {
+                return null;
+            }
             return candidate({
                 provider: name,
                 providerFoodId: input.barcode,
@@ -347,6 +367,7 @@ interface WorkloadResult {
     p95_ms: number;
     p99_ms: number;
     max_ms: number;
+    provider_calls: { search: number; barcode: number; details: number };
 }
 
 async function runWorkload(
@@ -357,6 +378,7 @@ async function runWorkload(
     const durations: number[] = [];
     let errors = 0;
     let next = 0;
+    const callsBefore = { ...providerCalls };
     const startedAt = performance.now();
     await Promise.all(
         Array.from({ length: concurrency }, async () => {
@@ -388,6 +410,11 @@ async function runWorkload(
         p95_ms: percentile(durations, 0.95),
         p99_ms: percentile(durations, 0.99),
         max_ms: Number(Math.max(...durations).toFixed(2)),
+        provider_calls: {
+            search: providerCalls.search - callsBefore.search,
+            barcode: providerCalls.barcode - callsBefore.barcode,
+            details: providerCalls.details - callsBefore.details,
+        },
     };
 }
 
@@ -445,6 +472,9 @@ const monitorLoop = (async () => {
 // ---------------------------------------------------------------------------
 
 const corpus = buildCorpus();
+for (const entry of corpus) {
+    if (entry.barcode) corpusBarcodes.add(entry.barcode);
+}
 const seedStartedAt = performance.now();
 for (let i = 0; i < corpus.length; i += 500) {
     await repository.upsertMany(corpus.slice(i, i + 500));
@@ -491,6 +521,10 @@ for (const query of lexicalQueries.slice(0, 10)) {
 // ---------------------------------------------------------------------------
 
 const hotCandidates = corpus.slice(0, 10);
+// A barcode that is NOT in the seeded corpus: the first legacy lookup must
+// go to the (stubbed) providers, repeats must resolve from the canonical
+// catalog the canonical service writes back to.
+const legacyBarcode = `301234567890${ean13CheckDigit("301234567890")}`;
 const results: WorkloadResult[] = [];
 for (const concurrency of CONCURRENCY_LEVELS) {
     results.push(
@@ -554,6 +588,14 @@ for (const concurrency of CONCURRENCY_LEVELS) {
         await runWorkload("upsertMany-hot-rows", concurrency, async () => {
             await repository.upsertMany(hotCandidates);
         }),
+        await runWorkload(
+            "legacy.lookupBarcode-repeat",
+            concurrency,
+            async () => {
+                const food = await legacyLookupBarcode(legacyBarcode, service);
+                if (!food) throw new Error("legacy barcode lookup missed");
+            },
+        ),
     );
 }
 
@@ -591,11 +633,9 @@ explains["searchLocal-trigram"] = await explain(`
       and (normalized_name % 'bananna' or normalized_name like '%bananna%')
     order by similarity(normalized_name, 'bananna') desc limit 50
 `);
-explains["findByBarcode-update"] = await explain(`
-    update munch.food_catalog_entries
-    set last_accessed_at = now(), access_count = access_count + 1
+explains["findByBarcode-select"] = await explain(`
+    select id from munch.food_catalog_entries
     where barcode = '${hotBarcode}' and deprecated_at is null
-    returning id
 `);
 explains["query-cache-join"] = await explain(`
     select entry.id from munch.food_catalog_query_cache cache
@@ -604,7 +644,21 @@ explains["query-cache-join"] = await explain(`
     where cache.expires_at > now() limit 10
 `);
 
+const legacyCatalogRows = await monitor<Array<{ count: number | string }>>`
+    select count(*) as count from munch.food_catalog_entries
+    where barcode = ${legacyBarcode}
+`;
+const legacySiloRows = await monitor<Array<{ count: number | string }>>`
+    select count(*) as count from munch.food_cache
+    where source_id = ${legacyBarcode}
+`;
+
 const report = {
+    legacy_barcode: {
+        barcode: legacyBarcode,
+        catalog_rows_after_workloads: Number(legacyCatalogRows[0]?.count ?? 0),
+        food_cache_rows_after_workloads: Number(legacySiloRows[0]?.count ?? 0),
+    },
     corpus: {
         generated_candidates: corpus.length,
         bulk_fixture_written: bulkStats.written,

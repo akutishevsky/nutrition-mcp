@@ -248,35 +248,41 @@ export class FoodCatalogRepository {
         providerFoodId: string,
     ): Promise<CatalogHit | null> {
         if (!this.config.readsEnabled) return null;
-        return withServiceDatabase(async (tx) => {
-            const rows = await tx<CatalogRow[]>`
-                update munch.food_catalog_entries
-                set last_accessed_at = now(), access_count = access_count + 1
+        const rows = await withServiceDatabase(
+            async (tx) =>
+                tx<CatalogRow[]>`
+                select id, provider, provider_food_id, source_snapshot, refresh_after
+                from munch.food_catalog_entries
                 where provider = ${provider}
                   and provider_food_id = ${providerFoodId}
                   and deprecated_at is null
-                returning id, provider, provider_food_id, source_snapshot, refresh_after
-            `;
-            const row = rows[0];
-            return row ? hitFromRow(row) : null;
-        });
+            `,
+        );
+        const row = rows[0];
+        if (!row) return null;
+        // Read paths never write synchronously (Phase 2, item 1): access
+        // tracking is folded into the same debounced scheduleTouch batch
+        // searchLocal already uses, so a hot row takes no write lock.
+        this.scheduleTouch([row.id]);
+        return hitFromRow(row);
     }
 
     async findByBarcode(barcode: string): Promise<CatalogHit[]> {
         if (!this.config.readsEnabled) return [];
-        return withServiceDatabase(async (tx) => {
-            const rows = await tx<CatalogRow[]>`
-                update munch.food_catalog_entries
-                set last_accessed_at = now(), access_count = access_count + 1
+        const rows = await withServiceDatabase(
+            async (tx) =>
+                tx<CatalogRow[]>`
+                select id, provider, provider_food_id, source_snapshot, refresh_after
+                from munch.food_catalog_entries
                 where barcode = ${barcode}
                   and deprecated_at is null
-                returning id, provider, provider_food_id, source_snapshot, refresh_after
-            `;
-            const now = Date.now();
-            return rows.flatMap((row) => {
-                const hit = hitFromRow(row, now);
-                return hit ? [hit] : [];
-            });
+            `,
+        );
+        this.scheduleTouch(rows.map((row) => row.id));
+        const now = Date.now();
+        return rows.flatMap((row) => {
+            const hit = hitFromRow(row, now);
+            return hit ? [hit] : [];
         });
     }
 
