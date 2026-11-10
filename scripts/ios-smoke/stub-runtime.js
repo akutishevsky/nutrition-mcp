@@ -107,11 +107,6 @@ const FIXTURES = {
 export async function requestJson(path, options = {}) {
     void options;
     const pathname = String(path).split("?")[0];
-    // NEGATIVE CONTROL (temporary): Today data fails, so the smoke
-    // must go red. Reverted immediately after the control run.
-    if (pathname === "/api/app/today") {
-        throw new Error("negative control: today fixture disabled");
-    }
     const fixture = FIXTURES[pathname];
     // Unknown reads get an empty object, like the web e2e fixture
     // server's fallthrough; writes are acknowledged without effect.
