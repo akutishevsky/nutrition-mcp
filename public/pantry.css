@@ -396,9 +396,9 @@ button:disabled {
     bottom: calc(12px + env(safe-area-inset-bottom));
     left: max(12px, env(safe-area-inset-left));
     border: 1px solid #d8cdb6;
-    border-radius: 14px;
-    background: #fdf3d7;
-    color: #5f4b12;
+    border-radius: 4px;
+    background: #fffdf8;
+    color: #2b2620;
     padding: 12px 16px;
     font-size: 14px;
     line-height: 1.45;

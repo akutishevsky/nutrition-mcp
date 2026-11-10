@@ -471,5 +471,24 @@ requireText(
     "env(safe-area-inset-top)",
     "Safe-area aware sticky chrome",
 );
+// Amendment F: the S4 shell states (API-down, startup failure,
+// offline cold start) carry the Editorial Serif house theme.
+for (const testId of ["api-down-state", "startup-failure-state"]) {
+    requireText(
+        appStyles,
+        `.error-state[data-testid="${testId}"]`,
+        `Editorial Serif themed ${testId}`,
+    );
+}
+requireText(
+    appStyles,
+    ".error-state.offline-state",
+    "Editorial Serif themed offline state",
+);
+requireText(
+    appStyles,
+    'Georgia, "Times New Roman", Times, serif',
+    "Editorial Serif display type in shell states",
+);
 
 console.log("Installed Android architecture smoke checks passed.");
