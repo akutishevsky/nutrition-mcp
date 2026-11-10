@@ -168,3 +168,96 @@ describe("Better Auth password email delivery", () => {
         expect(String(body.html)).toContain("Reset password");
     });
 });
+
+describe("Editorial Serif email theme (Amendment F, email scope)", () => {
+    async function capture(
+        send: (fetchImpl: typeof fetch) => Promise<void>,
+    ): Promise<Record<string, unknown>> {
+        configureDelivery();
+        let requestInit: RequestInit | undefined;
+        const fetchImpl = mock(
+            async (_request: string | URL | Request, init?: RequestInit) => {
+                requestInit = init;
+                return new Response(JSON.stringify({ id: "email_theme" }), {
+                    status: 200,
+                });
+            },
+        ) as unknown as typeof fetch;
+        await send(fetchImpl);
+        return JSON.parse(String(requestInit?.body)) as Record<string, unknown>;
+    }
+
+    function expectThemed(body: Record<string, unknown>) {
+        const html = String(body.html);
+        // Serif display type on the title, paper ground + card, brand
+        // green action, hairline rules, hosted apple mark with alt text.
+        expect(html).toContain(
+            "font-family: Georgia, 'Times New Roman', Times, serif",
+        );
+        expect(html).toContain("#f6f1e7");
+        expect(html).toContain("#fffdf8");
+        expect(html).toContain("#176b3a");
+        expect(html).toContain("#0b3d24");
+        expect(html).toContain("#d8cdb6");
+        expect(html).toContain(
+            'src="https://munch.business/brand/munch-mark-192.png"',
+        );
+        expect(html).toContain('alt="Munch"');
+        // Table layout only; no external CSS or custom properties.
+        expect(html).toContain('role="presentation"');
+        expect(html).not.toContain("<link");
+        expect(html).not.toContain("var(--");
+        // The retired Arial/white-card theme is gone.
+        expect(html).not.toContain("#f4f7f3");
+        expect(html).not.toContain("#2f7d4a");
+        expect(html).not.toContain("#173d25");
+        expect(html).not.toContain("border-radius: 18px");
+        // Plain-text part stays in step with the HTML part.
+        expect(String(body.text)).toContain(
+            "If you did not request this email, you can ignore it.",
+        );
+        expect(String(body.html)).toContain(
+            "If you did not request this email, you can ignore it.",
+        );
+    }
+
+    test("magic-link email is themed and keeps its link and expiry", async () => {
+        const body = await capture((fetchImpl) =>
+            sendBetterAuthMagicLink(input, fetchImpl),
+        );
+        expectThemed(body);
+        expect(String(body.html)).toContain(input.loginUrl);
+        expect(String(body.text)).toContain(input.loginUrl);
+        expect(String(body.html)).toContain(input.expiresAt.toISOString());
+        expect(String(body.text)).toContain(input.expiresAt.toISOString());
+    });
+
+    test("verification email is themed", async () => {
+        const body = await capture((fetchImpl) =>
+            sendBetterAuthVerificationEmail(
+                {
+                    email: "person@example.com",
+                    verificationUrl:
+                        "https://munch.example/account/password?verified=1",
+                },
+                fetchImpl,
+            ),
+        );
+        expectThemed(body);
+        expect(String(body.html)).toContain("Verify email address");
+    });
+
+    test("password-reset email is themed", async () => {
+        const body = await capture((fetchImpl) =>
+            sendBetterAuthPasswordReset(
+                {
+                    email: "person@example.com",
+                    resetUrl: "https://munch.example/account/password/reset",
+                },
+                fetchImpl,
+            ),
+        );
+        expectThemed(body);
+        expect(String(body.html)).toContain("Reset password");
+    });
+});
