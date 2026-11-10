@@ -136,11 +136,15 @@ if (pantryLinks.length < 2) {
 if (!appStyles.includes("grid-template-columns: repeat(6, 1fr)")) {
     throw new Error("Mobile app navigation was not sized for the Pantry entry");
 }
+// The disclosure phrases are prose: HTML line wrapping (Prettier) may split
+// them across lines, so match prose phrases against whitespace-collapsed
+// text. The <strong> markup check stays against the raw HTML.
+const privacyProse = privacy.replace(/\s+/g, " ");
 if (
-    !privacy.includes("Pantry and receipt images") ||
-    !privacy.includes("Pantry meal planning") ||
+    !privacyProse.includes("Pantry and receipt images") ||
+    !privacyProse.includes("Pantry meal planning") ||
     !privacy.includes("<strong>OpenRouter</strong>") ||
-    !privacy.includes("not a promise of zero retention")
+    !privacyProse.includes("not a promise of zero retention")
 ) {
     throw new Error("Pantry image-processing privacy disclosure is incomplete");
 }
