@@ -89,6 +89,72 @@ let householdGone = false;
 /** S8: chat agent fixture states — Premium thread vs the Free gate. */
 let chatVariant: "premium" | "free" = "premium";
 let chatSent = false;
+/** Chat v2: the entry surface of the currently seeded conversation. */
+let chatSeedSurface: string | null = null;
+
+/** Chat v2 seed fixtures — the shape src/chat/seeds.ts returns. */
+const CHAT_SEED_FIXTURES: Record<
+    string,
+    {
+        surface: string;
+        summary: string;
+        opener: string;
+        starters: string[];
+    }
+> = {
+    today: {
+        surface: "today",
+        summary: "Today so far: 0 kcal across 0 meals · goal 2,000 kcal.",
+        opener: "Nothing is logged yet today. Tell me what you've eaten and I'll prepare it as a draft for you to confirm — or ask how to shape the rest of the day.",
+        starters: [
+            "How is today looking against my goals?",
+            "What should dinner be to land the day well?",
+            "Log what I just ate",
+        ],
+    },
+    meal_plan: {
+        surface: "meal_plan",
+        summary: "0 of 7 days have something planned · Monday is empty.",
+        opener: "This week has a gap on Monday. I can suggest filling it from your recipes or what's in the pantry — or explain or adjust any day's plan.",
+        starters: [
+            "Fill the gaps in this plan",
+            "Explain this week's plan",
+            "Build the grocery list from this plan",
+        ],
+    },
+    pantry: {
+        surface: "pantry",
+        summary: "2 items on hand — including Chicken thighs, Spinach.",
+        opener: "You have 2 items on hand — Chicken thighs, Spinach among them. Ask what to cook tonight, what to use up first, or what's missing for a full meal.",
+        starters: [
+            "What can I cook tonight from this?",
+            "What should I use up first?",
+            "What am I missing for a full meal?",
+        ],
+    },
+    insights: {
+        surface: "insights",
+        summary: "Last 7 days: 0 kcal logged across 0 meals.",
+        opener: "Here's your last seven days. Ask me to explain the pattern, find where protein dipped, or suggest one change for next week.",
+        starters: [
+            "Explain my week",
+            "Where did my protein dip?",
+            "What one change helps most next week?",
+        ],
+    },
+};
+
+function chatConversationFixture(entrySurface: string | null) {
+    return {
+        id: entrySurface
+            ? `fixture-chat-${entrySurface}-conversation`
+            : "fixture-chat-conversation",
+        title: null,
+        entrySurface,
+        createdAt: "2026-11-10T12:00:00.000Z",
+        updatedAt: "2026-11-10T12:00:00.000Z",
+    };
+}
 
 const CHAT_USER_MESSAGE = {
     id: "fixture-chat-user-message",
@@ -98,6 +164,7 @@ const CHAT_USER_MESSAGE = {
     model: null,
     draftId: null,
     groundingTrace: [],
+    toolTrace: [],
     createdAt: "2026-11-10T12:00:00.000Z",
 };
 
@@ -109,6 +176,10 @@ const CHAT_ASSISTANT_MESSAGE = {
         "Set up as a draft — review it and confirm before anything is logged.",
     model: "meta/muse-ember",
     draftId: "fixture-chat-draft",
+    toolTrace: [
+        { name: "search_foods", outcome: "ok" },
+        { name: "prepare_meal_review", outcome: "ok" },
+    ],
     groundingTrace: [
         {
             name: "Grilled chicken breast",
@@ -767,18 +838,22 @@ const PHOTO_DRAFT = {
 
 function fixtureJson(pathname: string, method: string): unknown | undefined {
     if (pathname === "/api/app/bootstrap") return bootstrapFixture();
+    // Pantry page bootstrap (chat v2 placement journey): settings
+    // unlocks the workspace; the inventory payload is minimal.
+    if (pathname === "/api/app/pantry/settings" && method === "GET") {
+        return { enabled: true, household_available: false };
+    }
+    if (pathname === "/api/app/pantry" && method === "GET") {
+        return { items: [] };
+    }
     if (pathname === "/api/app/chat" && method === "GET") {
         return {
             premium: true,
-            conversation: {
-                id: "fixture-chat-conversation",
-                title: null,
-                createdAt: "2026-11-10T12:00:00.000Z",
-                updatedAt: "2026-11-10T12:00:00.000Z",
-            },
+            conversation: chatConversationFixture(chatSeedSurface),
             messages: chatSent
                 ? [CHAT_USER_MESSAGE, CHAT_ASSISTANT_MESSAGE]
                 : [],
+            seed: chatSeedSurface ? CHAT_SEED_FIXTURES[chatSeedSurface] : null,
         };
     }
     if (pathname === "/api/app/chat/messages" && method === "POST") {
@@ -786,9 +861,8 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
         return {
             premium: true,
             conversation: {
-                id: "fixture-chat-conversation",
+                ...chatConversationFixture(chatSeedSurface),
                 title: "Log 150 g grilled chicken and a moon soup for lunch",
-                createdAt: "2026-11-10T12:00:00.000Z",
                 updatedAt: "2026-11-10T12:00:05.000Z",
             },
             user_message: CHAT_USER_MESSAGE,
@@ -797,16 +871,16 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
         };
     }
     if (pathname === "/api/app/chat/conversations" && method === "POST") {
+        // Reached only if the server-block handler did not consume
+        // the request (it reads the body for the surface); the
+        // unseeded shape is the safe default.
         chatSent = false;
+        chatSeedSurface = null;
         return {
             premium: true,
-            conversation: {
-                id: "fixture-chat-conversation",
-                title: null,
-                createdAt: "2026-11-10T12:00:00.000Z",
-                updatedAt: "2026-11-10T12:00:00.000Z",
-            },
+            conversation: chatConversationFixture(null),
             messages: [],
+            seed: null,
         };
     }
     if (pathname === "/api/app/meal-drafts/fixture-chat-draft") {
@@ -1330,6 +1404,48 @@ test.beforeAll(async () => {
             }
             if (
                 method === "POST" &&
+                url.pathname === "/api/app/chat/conversations"
+            ) {
+                // Chat v2: the client posts { surface } when entering
+                // from a contextual entry; the fixture answers with
+                // that surface's seeded conversation + seed, exactly
+                // the shape src/chat/service.ts returns.
+                const chunks: Buffer[] = [];
+                request.on("data", (chunk) => chunks.push(chunk as Buffer));
+                request.on("end", () => {
+                    let surface: string | null = null;
+                    try {
+                        const parsed = JSON.parse(
+                            Buffer.concat(chunks).toString("utf8") || "{}",
+                        ) as { surface?: unknown };
+                        if (
+                            typeof parsed.surface === "string" &&
+                            CHAT_SEED_FIXTURES[parsed.surface]
+                        ) {
+                            surface = parsed.surface;
+                        }
+                    } catch {
+                        surface = null;
+                    }
+                    chatSeedSurface = surface;
+                    chatSent = false;
+                    response.writeHead(200, {
+                        "content-type": "application/json",
+                        "cache-control": "no-store",
+                    });
+                    response.end(
+                        JSON.stringify({
+                            premium: true,
+                            conversation: chatConversationFixture(surface),
+                            messages: [],
+                            seed: surface ? CHAT_SEED_FIXTURES[surface] : null,
+                        }),
+                    );
+                });
+                return;
+            }
+            if (
+                method === "POST" &&
                 url.pathname === "/api/app/sign-in-methods/google/unlink" &&
                 signInMethodsVariant === "refusal"
             ) {
@@ -1616,6 +1732,7 @@ test.beforeEach(() => {
     householdGone = false;
     chatVariant = "premium";
     chatSent = false;
+    chatSeedSurface = null;
     cookFinished = false;
     cookDeleted = false;
     vitalsRemovedIds.clear();
@@ -3280,6 +3397,14 @@ test("S8 chat: Premium round-trip — send, grounded draft proposal, draft revie
     await expect(page.locator(".chat-thread")).toContainText(
         "Set up as a draft",
     );
+    // Chat v2: the reply shows the MCP tools the agent used (the
+    // persisted tool trace), so the work is visible on the surface.
+    await expect(page.locator(".chat-tool-trace")).toContainText(
+        "search_foods",
+    );
+    await expect(page.locator(".chat-tool-trace")).toContainText(
+        "prepare_meal_review",
+    );
     await expect(page.locator(".chat-message-user")).toContainText("moon soup");
     const card = page.locator(".chat-draft-card");
     await expect(card).toContainText("Grilled chicken breast");
@@ -3331,4 +3456,70 @@ test("S8 chat: Free gate state — honest Premium explanation, no fake chat box,
     await expect(page.locator("#chat-input")).toHaveCount(0);
     await expect(page.locator("#chat-form")).toHaveCount(0);
     expect(observedRequest("POST", "/api/app/chat/messages")).toBe(false);
+});
+
+test("chat v2 placement: contextual entries only — no global entry, seeded openings", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+
+    // No global chat entry anywhere: no sidebar/mobile nav item with
+    // the chat route, and no More-row card.
+    await expect(page.locator('[data-route="chat"]')).toHaveCount(0);
+    await gotoRoute(page, "/app/more");
+    await expect(page.locator(".more-card", { hasText: "Chat" })).toHaveCount(
+        0,
+    );
+
+    // Today: the entry sits inside the guidance panel, labelled for
+    // its surface, under the guidance it attaches to.
+    await gotoRoute(page, "/app");
+    const todayEntry = page.getByTestId("chat-entry-today");
+    await expect(todayEntry).toBeVisible();
+    await expect(todayEntry).toContainText("Ask about today");
+    await expect(todayEntry).toContainText(
+        "Opens with today's log and goals attached",
+    );
+
+    // Meal Plan and Insights carry their own entries.
+    await gotoRoute(page, "/app/plan");
+    await expect(page.getByTestId("chat-entry-meal_plan")).toContainText(
+        "Adjust or explain this plan",
+    );
+    await gotoRoute(page, "/app/insights");
+    await expect(page.getByTestId("chat-entry-insights")).toContainText(
+        "Explain my week",
+    );
+
+    // Entering from Today opens the seeded conversation: context
+    // strip, the opener written from that context, its starters.
+    await gotoRoute(page, "/app");
+    await page.getByTestId("chat-entry-today").click();
+    await expect(page).toHaveURL(/\/app\/chat\?surface=today/);
+    await expect(page.getByTestId("chat-seed")).toBeVisible();
+    await expect(page.getByTestId("chat-seed")).toContainText(
+        "Today so far: 0 kcal across 0 meals",
+    );
+    await expect(page.locator(".chat-thread")).toContainText(
+        "Nothing is logged yet today",
+    );
+    await expect(page.locator(".chat-starters-seeded")).toContainText(
+        "How is today looking against my goals?",
+    );
+    await expect(page.locator(".page-heading")).toContainText(
+        "started from Today",
+    );
+    expect(observedRequest("POST", "/api/app/chat/conversations")).toBe(true);
+
+    // Pantry is the second packaged page: its entry is present with
+    // the seeded href (presence + target asserted; a click would
+    // leave the SPA shell by design of the two-page bundle).
+    await page.goto(`${baseURL}/pantry.html`);
+    const pantryEntry = page.getByTestId("chat-entry-pantry");
+    await expect(pantryEntry).toBeVisible();
+    await expect(pantryEntry).toContainText("Cook from what's here");
+    await expect(pantryEntry).toHaveAttribute(
+        "href",
+        "/app/chat?surface=pantry",
+    );
 });

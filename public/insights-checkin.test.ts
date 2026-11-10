@@ -30,6 +30,12 @@ const insightRuleSource = appSource.match(
 const insightProgressRuleSource = appSource.match(
     /function insightProgressRule\(label, value, unit, target\) \{[\s\S]*?\n\}/,
 )![0];
+// Chat v2: renderInsights appends the contextual chat entry row via
+// chatEntryRow — the harness runs the real helper alongside it,
+// same as the S6 helpers above.
+const chatEntryRowSource = appSource.match(
+    /function chatEntryRow\(surface, label, subline\) \{[\s\S]*?\n\}/,
+)![0];
 
 const insightsFixture = {
     vitals: {
@@ -95,7 +101,7 @@ async function runRenderInsights(insightsDays: number) {
         barChart: () => "",
     };
     await runInNewContext(
-        `${shiftDateSource}\n${percentSource}\n${insightRuleSource}\n${insightProgressRuleSource}\n${renderInsightsSource}\nrenderInsights();`,
+        `${shiftDateSource}\n${percentSource}\n${insightRuleSource}\n${insightProgressRuleSource}\n${chatEntryRowSource}\n${renderInsightsSource}\nrenderInsights();`,
         context,
     );
     return { calls, html: content.innerHTML };
@@ -134,6 +140,10 @@ describe("Insights weekly check-in window", () => {
         });
         expect(html).toContain("Weekly check-in");
         expect(html).toContain("Last 30 days");
+        // Chat v2 placement: the Insights chat entry rides at the
+        // foot of the weekly panel.
+        expect(html).toContain("Explain my week");
+        expect(html).toContain('data-testid="chat-entry-insights"');
     });
 
     test("a 90-day load also windows the check-in to the most recent 7 days", async () => {
