@@ -1,0 +1,435 @@
+name: iOS
+
+# IOS-PREP (Wave 3, Amendment H): iOS readiness in pure parity with the
+# Android lane (.github/workflows/mobile-android.yml) and PitTech's
+# .github/workflows/ios-build.yml signing pattern.
+#
+# Jobs:
+#   validate     — PR/push/simulator leg: assemble the same .mobile-web
+#                  bundle Android packages, `cap sync ios`, and build the
+#                  Capacitor App target for the iOS Simulator unsigned
+#                  (CODE_SIGNING_ALLOWED=NO). No secrets, no signing.
+#   asc-probe    — workflow_dispatch only: report-only ASC check (GET
+#                  apps + bundleIds for business.munch.app) via
+#                  scripts/asc-probe.py; creates nothing.
+#   distribute   — workflow_dispatch only: PitTech's signing flow —
+#                  ES256 JWT (openssl + Python stdlib), free the previous
+#                  CI distribution-cert slot, mint a fresh distribution
+#                  cert + "Munch App Store CI" provisioning profile via
+#                  the ASC API, sign, export, and upload to App Store
+#                  Connect / TestFlight. No fastlane, no match, no
+#                  local-Mac step. Stops at the secrets gate until
+#                  ASC_KEY_ID / ASC_ISSUER_ID / ASC_PRIVATE_KEY exist.
+
+on:
+  pull_request:
+    paths:
+      - "ios/**"
+      - "mobile/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "bun.lock"
+      - "scripts/build-mobile-web.ts"
+      - "scripts/asc-probe.py"
+      - ".github/workflows/mobile-ios.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "ios/**"
+      - "mobile/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "bun.lock"
+      - "scripts/build-mobile-web.ts"
+      - "scripts/asc-probe.py"
+      - ".github/workflows/mobile-ios.yml"
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: Simulator build, ASC probe (report-only), or signed build + upload to App Store Connect.
+        required: true
+        type: choice
+        options:
+          - simulator
+          - asc-probe
+          - app-store-ipa
+        default: simulator
+
+permissions:
+  contents: read
+
+concurrency:
+  group: munch-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate (Simulator build)
+    if: github.event_name != 'workflow_dispatch' || inputs.build_mode == 'simulator' || inputs.build_mode == 'app-store-ipa'
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1
+      - name: Confirm Apple toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcode-select -p
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build local mobile web bundle
+        run: bun run mobile:web
+      - name: Synchronize Capacitor iOS project
+        run: npx cap sync ios
+      - name: Verify native project is reproducible
+        run: git diff --exit-code -- ios package.json bun.lock
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App
+      - name: Build for iOS Simulator (unsigned)
+        run: >-
+          xcodebuild
+          -project ios/App/App.xcodeproj
+          -scheme App
+          -configuration Debug
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/ios-simulator
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - name: Upload Simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-ios-simulator
+          path: build/ios-simulator/Build/Products/Debug-iphonesimulator/App.app
+          if-no-files-found: error
+          retention-days: 7
+
+  asc-probe:
+    name: ASC probe (report-only)
+    if: github.event_name == 'workflow_dispatch' && inputs.build_mode == 'asc-probe'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require App Store Connect API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          for secret_name in \
+            ASC_KEY_ID \
+            ASC_ISSUER_ID \
+            ASC_PRIVATE_KEY; do
+            if [[ -z "${!secret_name}" ]]; then
+              echo "::error::Configure ${secret_name} in this repository's Actions secrets before running the ASC probe."
+              exit 1
+            fi
+          done
+      - name: Probe ASC for the Munch app record and bundle ID
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          key_path="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s' "$ASC_PRIVATE_KEY" > "$key_path"
+          chmod 600 "$key_path"
+          trap 'rm -f "$key_path"' EXIT
+          ASC_PRIVATE_KEY_PATH="$key_path" python3 scripts/asc-probe.py
+
+  distribute:
+    name: Build and upload to App Store Connect
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' && inputs.build_mode == 'app-store-ipa'
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require App Store Connect API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          for secret_name in \
+            ASC_KEY_ID \
+            ASC_ISSUER_ID \
+            ASC_PRIVATE_KEY; do
+            if [[ -z "${!secret_name}" ]]; then
+              echo "::error::Configure ${secret_name} in this repository's Actions secrets before requesting an App Store build."
+              exit 1
+            fi
+          done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Build local mobile web bundle
+        run: bun run mobile:web
+      - name: Synchronize Capacitor iOS project
+        run: npx cap sync ios
+
+      - name: Generate signing material with the App Store Connect API
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          sign_dir="$RUNNER_TEMP/munch-signing"
+          mkdir -p "$sign_dir"
+          printf '%s' "$ASC_PRIVATE_KEY" > "$sign_dir/AuthKey.p8"
+          SIGN_DIR="$sign_dir" python3 - <<'PYASC'
+          import base64, json, os, pathlib, subprocess, time
+          import urllib.request, urllib.error
+
+          sign_dir = pathlib.Path(os.environ["SIGN_DIR"])
+          key_id = os.environ["ASC_KEY_ID"]
+          issuer_id = os.environ["ASC_ISSUER_ID"]
+
+          # ES256 JWT signed with openssl + stdlib only (runner Python is
+          # externally managed, so pip installs are not an option).
+          def b64url(data):
+              return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+          now = int(time.time())
+          header = b64url(json.dumps({"alg": "ES256", "kid": key_id, "typ": "JWT"}, separators=(",", ":")).encode())
+          payload = b64url(json.dumps({"iss": issuer_id, "iat": now, "exp": now + 1200,
+                                       "aud": "appstoreconnect-v1"}, separators=(",", ":")).encode())
+          (sign_dir / "jwt-input.bin").write_bytes(f"{header}.{payload}".encode())
+          subprocess.run(["openssl", "dgst", "-sha256", "-sign", str(sign_dir / "AuthKey.p8"),
+                          "-out", str(sign_dir / "jwt-sig.der"), str(sign_dir / "jwt-input.bin")], check=True)
+          der = (sign_dir / "jwt-sig.der").read_bytes()
+          idx = 2 + (der[1] & 0x7F) if der[1] & 0x80 else 2
+
+          def read_int(buf, i):
+              length = buf[i + 1]
+              value = buf[i + 2:i + 2 + length].lstrip(b"\x00").rjust(32, b"\x00")
+              return value, i + 2 + length
+
+          r, idx = read_int(der, idx)
+          s, idx = read_int(der, idx)
+          token = f"{header}.{payload}.{b64url(r + s)}"
+          headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+          api = "https://api.appstoreconnect.apple.com/v1"
+
+          def call(method, path, payload=None):
+              data = json.dumps(payload).encode() if payload is not None else None
+              request = urllib.request.Request(api + path, data=data, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(request, timeout=60) as response:
+                      body = response.read()
+                      return json.loads(body) if body else {}
+              except urllib.error.HTTPError as error:
+                  raise SystemExit(f"ASC API {method} {path} failed ({error.code}): {error.read().decode()[:600]}")
+
+          # Free the distribution-certificate slot held by the previous CI run.
+          # Apple overrides the subject name on distribution certs, so the CI
+          # cert cannot be found by name; find it through the CI profile, whose
+          # name IS ours to choose, then delete the profile and revoke its cert.
+          old_profiles = call("GET", "/profiles?filter[name]=Munch%20App%20Store%20CI&limit=50").get("data", [])
+          old_cert_ids = []
+          for old_profile in old_profiles:
+              linked = call("GET", f"/profiles/{old_profile['id']}/certificates").get("data", [])
+              old_cert_ids.extend(cert["id"] for cert in linked)
+          for old_profile in old_profiles:
+              call("DELETE", f"/profiles/{old_profile['id']}")
+              print(f"Deleted previous CI profile {old_profile['id']}")
+          for cert_id in dict.fromkeys(old_cert_ids):
+              call("DELETE", f"/certificates/{cert_id}")
+              print(f"Revoked previous CI certificate {cert_id}")
+
+          # A run that dies between minting its certificate and creating its
+          # profile leaves that certificate orphaned: no profile references
+          # it, so the pass above cannot find it, and it holds the
+          # distribution slot against every later POST /certificates. Sweep
+          # for it: revoke distribution-family certificates that NO
+          # provisioning profile references. A certificate any profile
+          # references is never touched, whatever its type or owner, and no
+          # profile is modified here. On a healthy run this finds nothing.
+          def get_all(path):
+              items = []
+              while path is not None:
+                  page = call("GET", path)
+                  items.extend(page.get("data", []))
+                  next_link = page.get("links", {}).get("next")
+                  path = next_link[len(api):] if next_link else None
+              return items
+
+          referenced_cert_ids = set()
+          for any_profile in get_all("/profiles?limit=200"):
+              linked = call("GET", f"/profiles/{any_profile['id']}/certificates").get("data", [])
+              referenced_cert_ids.update(cert["id"] for cert in linked)
+          distribution_types = {"DISTRIBUTION", "IOS_DISTRIBUTION", "MAC_APP_DISTRIBUTION"}
+          orphan_candidates = []
+          for certificate in get_all("/certificates?limit=200"):
+              cert_type = certificate.get("attributes", {}).get("certificateType")
+              if cert_type not in distribution_types:
+                  continue
+              if certificate["id"] in referenced_cert_ids:
+                  print(f"Distribution certificate {certificate['id']} ({cert_type}) is referenced "
+                        "by a profile; leaving it alone")
+              else:
+                  orphan_candidates.append(certificate)
+                  print(f"Orphan candidate: distribution certificate {certificate['id']} "
+                        f"({cert_type}) is referenced by no profile")
+          for orphan in orphan_candidates:
+              call("DELETE", f"/certificates/{orphan['id']}")
+              print(f"Revoked orphaned distribution certificate {orphan['id']}")
+          if not orphan_candidates:
+              print("No orphaned distribution certificates found")
+
+          # Fresh key + CSR on this runner; the private key never leaves it.
+          subprocess.run(["openssl", "genrsa", "-out", str(sign_dir / "ci.key"), "2048"], check=True)
+          subprocess.run(["openssl", "req", "-new", "-key", str(sign_dir / "ci.key"),
+                          "-out", str(sign_dir / "ci.csr"), "-subj", "/CN=Munch CI"], check=True)
+          csr = (sign_dir / "ci.csr").read_text()
+          created = call("POST", "/certificates", payload={"data": {"type": "certificates", "attributes": {
+              "certificateType": "DISTRIBUTION", "csrContent": csr}}})["data"]
+          (sign_dir / "ci.cer").write_bytes(base64.b64decode(created["attributes"]["certificateContent"]))
+          print(f"Created distribution certificate {created['id']}")
+
+          bundle_records = call("GET", "/bundleIds?filter[identifier]=business.munch.app&limit=200").get("data", [])
+          exact_matches = [record for record in bundle_records
+                           if record.get("attributes", {}).get("identifier") == "business.munch.app"]
+          if len(exact_matches) != 1:
+              returned = ", ".join(
+                  f"{record.get('attributes', {}).get('identifier')} ({record.get('id')})"
+                  for record in bundle_records) or "none"
+              raise SystemExit(
+                  "Expected exactly one bundle ID record with identifier business.munch.app; "
+                  f"the identifier filter returned {len(bundle_records)} record(s): {returned}")
+          bundle_id = exact_matches[0]["id"]
+
+          profiles = call("GET", "/profiles?filter[name]=Munch%20App%20Store%20CI&limit=50").get("data", [])
+          for profile in profiles:
+              call("DELETE", f"/profiles/{profile['id']}")
+              print(f"Deleted previous CI profile {profile['id']}")
+          profile = call("POST", "/profiles", payload={"data": {"type": "profiles", "attributes": {
+              "name": "Munch App Store CI", "profileType": "IOS_APP_STORE"}, "relationships": {
+              "bundleId": {"data": {"type": "bundleIds", "id": bundle_id}},
+              "certificates": {"data": [{"type": "certificates", "id": created["id"]}]}}}})["data"]
+          (sign_dir / "Munch.mobileprovision").write_bytes(base64.b64decode(profile["attributes"]["profileContent"]))
+          print(f"Created provisioning profile {profile['id']}")
+
+          # Bundle cert + key into a .p12 for the keychain install step.
+          subprocess.run(["openssl", "x509", "-inform", "DER", "-in", str(sign_dir / "ci.cer"),
+                          "-out", str(sign_dir / "ci.pem")], check=True)
+          p12_password = base64.b64encode(os.urandom(24)).decode()
+          subprocess.run(["openssl", "pkcs12", "-export", "-inkey", str(sign_dir / "ci.key"),
+                          "-in", str(sign_dir / "ci.pem"), "-out", str(sign_dir / "distribution.p12"),
+                          "-passout", f"pass:{p12_password}", "-name", "Munch CI"], check=True)
+          with open(os.environ["GITHUB_ENV"], "a") as env_file:
+              env_file.write(f"MUNCH_P12_PATH={sign_dir / 'distribution.p12'}\n")
+              env_file.write(f"MUNCH_P12_PASSWORD={p12_password}\n")
+              env_file.write(f"MUNCH_PROFILE_PATH={sign_dir / 'Munch.mobileprovision'}\n")
+          PYASC
+
+      - name: Install signing certificate and provisioning profile
+        run: |
+          set -euo pipefail
+          keychain_path="$RUNNER_TEMP/munch-signing.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+          cp "$MUNCH_P12_PATH" "$RUNNER_TEMP/distribution.p12"
+          cp "$MUNCH_PROFILE_PATH" "$RUNNER_TEMP/Munch.mobileprovision"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$RUNNER_TEMP/distribution.p12" -P "$MUNCH_P12_PASSWORD" -A -t cert -f pkcs12 -k "$keychain_path"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+          security default-keychain -d user -s "$keychain_path"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          security cms -D -i "$RUNNER_TEMP/Munch.mobileprovision" > "$RUNNER_TEMP/Munch-profile.plist"
+          profile_uuid=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/Munch-profile.plist")
+          profile_name=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/Munch-profile.plist")
+          app_identifier=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/Munch-profile.plist")
+          if [[ "$app_identifier" != "R42LWFBXBH.business.munch.app" ]]; then
+            echo "::error::The provisioning profile must match team R42LWFBXBH and bundle ID business.munch.app. Got application-identifier: $app_identifier"
+            exit 1
+          fi
+          cp "$RUNNER_TEMP/Munch.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
+          echo "MUNCH_PROFILE_NAME=$profile_name" >> "$GITHUB_ENV"
+          echo "MUNCH_KEYCHAIN_PATH=$keychain_path" >> "$GITHUB_ENV"
+
+      - name: Install the App Store Connect API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys" "$RUNNER_TEMP/asc"
+          printf '%s' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/asc/AuthKey_${ASC_KEY_ID}.p8"
+          cp "$RUNNER_TEMP/asc/AuthKey_${ASC_KEY_ID}.p8" "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/asc/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Resolve Swift packages
+        run: xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App
+
+      - name: Archive for App Store Connect
+        run: >-
+          xcodebuild archive
+          -project ios/App/App.xcodeproj
+          -scheme App
+          -configuration Release
+          -destination 'generic/platform=iOS'
+          -archivePath build/Munch.xcarchive
+          -derivedDataPath build/ios-release
+          CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"
+          CODE_SIGNING_KEYCHAIN="$MUNCH_KEYCHAIN_PATH"
+          CODE_SIGNING_ALLOWED=YES
+
+      - name: Export and upload to App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>destination</key><string>upload</string>
+            <key>method</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>teamID</key><string>R42LWFBXBH</string>
+            <key>provisioningProfiles</key><dict>
+              <key>business.munch.app</key><string>$MUNCH_PROFILE_NAME</string>
+            </dict>
+            <key>stripSwiftSymbols</key><true/>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          /usr/libexec/PlistBuddy -c "Set :provisioningProfiles:business.munch.app $MUNCH_PROFILE_NAME" "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive \
+            -archivePath build/Munch.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Upload signed archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-ios-app-store-${{ github.run_number }}
+          path: build/Munch.xcarchive
+          if-no-files-found: error
+          retention-days: 30

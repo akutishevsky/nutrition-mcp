@@ -15,10 +15,15 @@ public/map-data.json
 # Java, Groovy, XML, and generated native metadata are validated by Android CI.
 android/
 
+# Native iOS project files are generated and maintained by Capacitor/Xcode;
+# Swift, plist, XML, and generated native metadata are validated by iOS CI.
+ios/
+
 # Workflow and deployment assets are maintained separately from application
 # formatting because they are executed/reviewed as operational artifacts.
 .github/workflows/ci.yml
 .github/workflows/mobile-android.yml
+.github/workflows/mobile-ios.yml
 docs/deployment/better-auth-cutover.md
 scripts/certification/public.ts
 
