@@ -58,6 +58,28 @@ export function googleAndroidSignInConfigured(
     );
 }
 
+export const APPLE_SOCIAL_PROVIDER = "apple";
+
+/**
+ * Sign in with Apple is configured when the full Apple identifier set
+ * exists (Services ID + key ID + team ID + private key — `src/auth/config.ts`
+ * enforces the all-or-nothing rule). This predicate is the exact condition
+ * under which the IOS-AUTH slice can register the Better Auth `apple`
+ * social provider; until then the account-linking read model honestly
+ * reports Apple as not configured instead of offering a link that cannot
+ * start.
+ */
+export function appleSignInConfigured(
+    config: BetterAuthRuntimeConfig,
+): boolean {
+    return Boolean(
+        config.appleServicesId &&
+        config.appleKeyId &&
+        config.appleTeamId &&
+        config.applePrivateKey,
+    );
+}
+
 export interface SocialProviderRequest {
     path: string;
     body: {
@@ -73,11 +95,15 @@ export function buildSocialProviderRequest(input: {
     callbackURL: string;
     errorCallbackURL?: string;
     oauthQuery?: string;
+    /** Social provider id; defaults to Google. Provider-generic so the
+     * account-linking flow (Amendment I) can initiate an Apple link
+     * through the same helper once IOS-AUTH registers that provider. */
+    provider?: string;
 }): SocialProviderRequest {
     return {
         path: input.mode === "link" ? SOCIAL_LINK_PATH : SOCIAL_SIGN_IN_PATH,
         body: {
-            provider: GOOGLE_SOCIAL_PROVIDER,
+            provider: input.provider ?? GOOGLE_SOCIAL_PROVIDER,
             callbackURL: input.callbackURL,
             ...(input.errorCallbackURL
                 ? { errorCallbackURL: input.errorCallbackURL }

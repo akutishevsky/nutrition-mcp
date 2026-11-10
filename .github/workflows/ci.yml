@@ -124,6 +124,10 @@ jobs:
         env:
           NODE_ENV: test
         run: bun scripts/better-auth-google-sign-in-smoke.ts
+      - name: Exercise sign-in methods read model, link initiation, and unlink guardrails
+        env:
+          NODE_ENV: test
+        run: bun scripts/better-auth-sign-in-methods-smoke.ts
       - name: Exercise Better Auth connection listing and revocation
         run: bun scripts/better-auth-connections-smoke.ts
       - name: Provision and exercise marketplace reviewer account

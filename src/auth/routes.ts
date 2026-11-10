@@ -7,10 +7,12 @@ import { createMobileAuthRouter } from "./mobile-routes.js";
 import { createOAuthContinuationRouter } from "./oauth-continuation-routes.js";
 import { createPasswordRouter } from "./password-routes.js";
 import { createReviewerRouter } from "./reviewer-routes.js";
+import { createSignInMethodsRouter } from "./sign-in-methods-routes.js";
 
 export function registerBetterAuthRoutes(app: Hono): void {
     app.route("/", createOAuthContinuationRouter());
     app.route("/", createBetterAuthConnectRouter());
+    app.route("/", createSignInMethodsRouter());
     app.route("/", createMobileAuthRouter());
     app.route("/", createPasswordRouter());
     app.route("/", createReviewerRouter());
