@@ -327,14 +327,24 @@ document.addEventListener(
             return;
         }
 
-        const removeItem = event.target.closest("[data-patch-delete-item]");
-        if (removeItem) {
+        // UX fix wave F4: removing a food from the editor uses the
+        // same inline-confirmation pattern as the rest of the app
+        // (app.js's showInlineConfirm markup/classes) instead of the
+        // native window.confirm() — the native dialog silently reads
+        // as "no" in WebViews without a JS-dialog handler, which made
+        // this button a dead end in the installed app. First click
+        // only asks, in place; the confirm click sends the DELETE;
+        // dismiss re-renders the editor from server data, restoring
+        // the item forms exactly (nothing was sent).
+        const removeConfirm = event.target.closest(
+            "[data-patch-delete-item-confirm]",
+        );
+        if (removeConfirm) {
             event.preventDefault();
             event.stopImmediatePropagation();
-            const mealId = removeItem.dataset.mealId || "";
-            const itemId = removeItem.dataset.itemId || "";
-            const itemName = removeItem.dataset.itemName || "this food";
-            if (!confirm(`Remove ${itemName} from this meal?`)) return;
+            const mealId = removeConfirm.dataset.mealId || "";
+            const itemId = removeConfirm.dataset.itemId || "";
+            removeConfirm.disabled = true;
             try {
                 await patchApi(
                     `/api/app/meals/${encodeURIComponent(mealId)}/items/${encodeURIComponent(itemId)}`,
@@ -345,7 +355,54 @@ document.addEventListener(
                 refreshCurrentView();
             } catch (error) {
                 patchToast(error.message || "Could not remove food", "error");
+                await showMealEditor(mealId);
             }
+            return;
+        }
+
+        const removeDismiss = event.target.closest(
+            "[data-patch-delete-item-dismiss]",
+        );
+        if (removeDismiss) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            await showMealEditor(removeDismiss.dataset.mealId || "");
+            return;
+        }
+
+        const removeItem = event.target.closest("[data-patch-delete-item]");
+        if (removeItem) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (removeItem.dataset.confirmPending) return;
+            removeItem.dataset.confirmPending = "true";
+            removeItem.style.display = "none";
+            const mealId = removeItem.dataset.mealId || "";
+            const itemId = removeItem.dataset.itemId || "";
+            const itemName = removeItem.dataset.itemName || "this food";
+            const box = document.createElement("div");
+            box.className = "plan-inline-confirm";
+            const note = document.createElement("p");
+            note.className = "plan-inline-note is-destructive";
+            note.setAttribute("role", "alert");
+            note.textContent = `Remove ${itemName} from this meal?`;
+            const confirmButton = document.createElement("button");
+            confirmButton.type = "button";
+            confirmButton.className =
+                "button button-primary plan-inline-confirm-danger";
+            confirmButton.dataset.patchDeleteItemConfirm = "";
+            confirmButton.dataset.mealId = mealId;
+            confirmButton.dataset.itemId = itemId;
+            confirmButton.textContent = "Yes, remove food";
+            const dismissButton = document.createElement("button");
+            dismissButton.type = "button";
+            dismissButton.className = "button button-secondary";
+            dismissButton.dataset.patchDeleteItemDismiss = "";
+            dismissButton.dataset.mealId = mealId;
+            dismissButton.textContent = "Keep food";
+            box.append(note, confirmButton, dismissButton);
+            removeItem.insertAdjacentElement("afterend", box);
+            confirmButton.focus();
             return;
         }
 

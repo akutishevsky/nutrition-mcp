@@ -466,6 +466,10 @@ function weightChart(days, unit, target) {
 }
 
 function mealCard(meal) {
+    mealDescriptionsById.set(
+        String(meal.id),
+        meal.description || "Untitled meal",
+    );
     const type = meal.meal_type || "snack";
     return `<article class="meal-card" data-meal-id="${escapeHtml(meal.id)}"><div class="meal-card-head"><div><h4>${escapeHtml(meal.description || "Untitled meal")}</h4><div class="meal-meta"><span>${escapeHtml(formatTime(meal.logged_at))}</span><span>${escapeHtml(type)}</span>${meal.notes ? `<span>${escapeHtml(meal.notes)}</span>` : ""}</div></div><strong>${meal.calories == null ? "—" : `${number(meal.calories)} kcal`}</strong></div><div class="meal-macros"><span class="macro-chip">Protein ${number(meal.protein_g, 1)}g</span><span class="macro-chip">Carbs ${number(meal.carbs_g, 1)}g</span><span class="macro-chip">Fat ${number(meal.fat_g, 1)}g</span>${meal.fiber_g == null ? "" : `<span class="macro-chip">Fiber ${number(meal.fiber_g, 1)}g</span>`}${meal.sugar_g == null ? "" : `<span class="macro-chip">Sugar ${number(meal.sugar_g, 1)}g</span>`}</div>${mealItems(meal.items)}<div class="auth-actions"><button class="button button-secondary button-small" data-action="view-meal-details" data-id="${escapeHtml(meal.id)}">View details</button><button class="button button-secondary button-small" data-action="edit-meal" data-id="${escapeHtml(meal.id)}">Edit</button><button class="button button-quiet button-small" data-action="duplicate-meal" data-id="${escapeHtml(meal.id)}">Duplicate</button><button class="button button-quiet button-small" data-action="delete-meal" data-id="${escapeHtml(meal.id)}">Delete</button></div></article>`;
 }
@@ -2513,7 +2517,16 @@ function navigate(href) {
     renderRoute();
 }
 
+// UX fix wave F4: meal names come from the meal data captured at
+// render time (mealCard receives the meal object), never from the
+// card's DOM heading — the heading is presentation, and reading the
+// name back out of it is how the delete prompt once named a meal
+// "1 food" after the density rewrite.
+const mealDescriptionsById = new Map();
+
 function findMeal(id) {
+    const fromData = mealDescriptionsById.get(String(id));
+    if (fromData) return fromData;
     const card = document.querySelector(`[data-meal-id="${CSS.escape(id)}"]`);
     return card ? card.querySelector("h4")?.textContent || "Meal" : "Meal";
 }
@@ -3963,12 +3976,21 @@ async function handleAction(button) {
         return;
     }
     if (action === "delete-saved-food") {
-        if (
-            !confirm(
-                "Remove this saved food? Existing meal history will be preserved.",
-            )
-        )
-            return;
+        // UX fix wave F4: inline confirmation instead of the native
+        // window.confirm() (same pattern and rationale as delete-meal
+        // below). The first click only asks; nothing is sent yet.
+        showInlineConfirm(button, {
+            note: "Remove this saved food? Existing meal history will be preserved.",
+            confirmLabel: "Yes, remove food",
+            confirmAction: "confirm-delete-saved-food",
+            confirmAttrs: { id: button.dataset.id },
+            dismissLabel: "Keep food",
+            destructive: true,
+        });
+        return;
+    }
+    if (action === "confirm-delete-saved-food") {
+        button.disabled = true;
         const result = await api(
             `/api/app/foods/${encodeURIComponent(button.dataset.id)}`,
             {
@@ -4330,12 +4352,30 @@ async function handleAction(button) {
         return;
     }
     if (action === "remove-draft-item") {
+        // UX fix wave F4: inline confirmation instead of the native
+        // window.confirm() (same pattern and rationale as delete-meal
+        // below). The first click only asks; nothing is sent yet.
         const draft = mealDraftReview.draft;
         if (!draft) return;
         const index = Number(button.dataset.index);
         const record = draft.items[index];
-        if (!record || !confirm(`Remove ${record.name} from this draft?`))
-            return;
+        if (!record) return;
+        showInlineConfirm(button, {
+            note: `Remove ${record.name} from this draft?`,
+            confirmLabel: "Yes, remove item",
+            confirmAction: "confirm-remove-draft-item",
+            confirmAttrs: { index: String(index) },
+            dismissLabel: "Keep item",
+            destructive: true,
+        });
+        return;
+    }
+    if (action === "confirm-remove-draft-item") {
+        const draft = mealDraftReview.draft;
+        if (!draft) return;
+        const record = draft.items[Number(button.dataset.index)];
+        if (!record) return;
+        button.disabled = true;
         const result = await api(
             `/api/app/meal-drafts/${encodeURIComponent(draft.id)}/items/${encodeURIComponent(record.id)}`,
             {
@@ -4603,12 +4643,32 @@ async function handleAction(button) {
         return;
     }
     if (action === "delete-meal") {
-        const id = button.dataset.id;
-        if (!confirm(`Permanently delete ${findMeal(id)}?`)) return;
-        await api(`/api/app/meals/${encodeURIComponent(id)}`, {
-            method: "DELETE",
-            keepPrevious: true,
+        // UX fix wave F4: the inline-confirmation pattern (slice 1's
+        // pattern via showInlineConfirm) instead of the native
+        // window.confirm() — the native dialog silently no-ops
+        // wherever it is dismissed or never answered (automated
+        // browsers, WebViews without a JS-dialog handler), which in
+        // the installed app read as a dead Delete button. The meal
+        // name comes from render-time data (findMeal), not the DOM.
+        showInlineConfirm(button, {
+            note: `Permanently delete ${findMeal(button.dataset.id)}?`,
+            confirmLabel: "Yes, delete meal",
+            confirmAction: "confirm-delete-meal",
+            confirmAttrs: { id: button.dataset.id },
+            dismissLabel: "Keep meal",
+            destructive: true,
         });
+        return;
+    }
+    if (action === "confirm-delete-meal") {
+        button.disabled = true;
+        await api(
+            `/api/app/meals/${encodeURIComponent(button.dataset.id)}`,
+            {
+                method: "DELETE",
+                keepPrevious: true,
+            },
+        );
         toast("Meal deleted.");
         return renderRoute();
     }
