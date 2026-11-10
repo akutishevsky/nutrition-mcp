@@ -1,5 +1,14 @@
 import { safeLocalRedirectPath } from "../accounts/redirect.js";
 
+/**
+ * The signed-in home every sign-in flow lands on when no explicit local
+ * return target was supplied. The retired "/account/portal" landing was
+ * never rebuilt after the app shell replaced it and answers 404, so it
+ * must never reappear as a default here (pinned by magic-link-url.test.ts
+ * and the accounts router test: "/account/portal" itself redirects here).
+ */
+export const SIGNED_IN_HOME_PATH = "/app";
+
 export function buildScannerSafeMagicLink(input: {
     generatedUrl: string;
     baseUrl: string;
@@ -12,7 +21,7 @@ export function buildScannerSafeMagicLink(input: {
         generated.searchParams.get("callbackURL") ??
         generated.searchParams.get("callbackUrl") ??
         undefined;
-    const returnTo = safeLocalRedirectPath(callback, "/account/portal");
+    const returnTo = safeLocalRedirectPath(callback, SIGNED_IN_HOME_PATH);
     const confirmation = new URL("/connect/confirm", input.baseUrl);
     confirmation.searchParams.set("token", token);
     confirmation.searchParams.set("return_to", returnTo);
@@ -22,6 +31,6 @@ export function buildScannerSafeMagicLink(input: {
 export function safeMagicLinkReturnPath(value: unknown): string {
     return safeLocalRedirectPath(
         typeof value === "string" ? value : undefined,
-        "/account/portal",
+        SIGNED_IN_HOME_PATH,
     );
 }

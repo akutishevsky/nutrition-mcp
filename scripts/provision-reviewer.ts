@@ -79,7 +79,7 @@ if (!userId) {
             email,
             password,
             name,
-            callbackURL: "/account/portal",
+            callbackURL: "/app",
             ...(username ? { username } : {}),
         },
     });
@@ -92,7 +92,7 @@ if (!userId) {
                 email,
                 password,
                 rememberMe: false,
-                callbackURL: "/account/portal",
+                callbackURL: "/app",
             },
         });
     } catch {

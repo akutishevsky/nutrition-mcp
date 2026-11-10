@@ -147,7 +147,7 @@ async function createIdentity(label: string): Promise<Identity> {
             email,
             password,
             rememberMe: false,
-            callbackURL: "/account/portal",
+            callbackURL: "/app",
         }),
     });
     if (!signIn.ok) {
