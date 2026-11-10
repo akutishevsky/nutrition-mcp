@@ -44,6 +44,7 @@
         "format:check": "bunx prettier --check .",
         "typecheck": "bun run scripts/typecheck.ts",
         "brand:check": "bun run scripts/brand-check.ts",
+        "icons:generate": "python3 scripts/generate-app-icons.py",
         "commerce:check": "bun scripts/commerce-boundary-check.ts",
         "submission:generate": "bun scripts/generate-openai-submission.ts",
         "submission:audit": "bun scripts/openai-submission-audit.ts",

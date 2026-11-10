@@ -32,6 +32,8 @@ jobs:
         run: bun scripts/capability-manifest-check.ts
       - name: Enforce connection commerce boundary
         run: bun run commerce:check
+      - name: Verify brand assets (no stock placeholder art)
+        run: bun run brand:check
       - name: Verify OpenAI submission package
         run: bun run submission:check
       - name: Verify responsive UI surfaces

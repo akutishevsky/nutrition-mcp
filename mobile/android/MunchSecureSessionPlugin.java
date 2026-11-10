@@ -14,7 +14,6 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
-import java.security.SecureRandom;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -105,6 +104,23 @@ public class MunchSecureSessionPlugin extends Plugin {
     }
 
     private SecretKey key() throws Exception {
+        return loadOrCreateKey();
+    }
+
+    private String encrypt(String value) throws Exception {
+        return encrypt(key(), value);
+    }
+
+    private String decrypt(String value) throws Exception {
+        return decrypt(key(), value);
+    }
+
+    // Package-private static seam: the instrumented SecureSessionCryptoTest
+    // drives these exact production code paths against a real
+    // AndroidKeyStore key on a device/emulator. JVM unit tests cannot —
+    // AndroidKeyStore does not exist off-device, which is how the
+    // caller-IV defect shipped unnoticed.
+    static SecretKey loadOrCreateKey() throws Exception {
         KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
         keyStore.load(null);
         if (keyStore.containsAlias(KEY_ALIAS)) {
@@ -129,18 +145,27 @@ public class MunchSecureSessionPlugin extends Plugin {
         return generator.generateKey();
     }
 
-    private String encrypt(String value) throws Exception {
-        byte[] iv = new byte[IV_BYTES];
-        new SecureRandom().nextBytes(iv);
+    static String encrypt(SecretKey key, String value) throws Exception {
+        // AndroidKeyStore forbids caller-specified IVs for GCM
+        // encryption ("Caller-provided IV not permitted" — the
+        // 2026-11-10 sign-in defect, reproduced by
+        // SecureSessionCryptoTest): the provider generates the IV, and
+        // the writer reads it back via cipher.getIV(). Specifying the
+        // stored IV on DECRYPT stays legal and is unchanged below, so
+        // the envelope format is identical either way.
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.ENCRYPT_MODE, key(), new GCMParameterSpec(GCM_TAG_BITS, iv));
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] iv = cipher.getIV();
+        if (iv == null || iv.length != IV_BYTES) {
+            throw new IllegalStateException("Unexpected GCM IV from provider");
+        }
         byte[] encrypted = cipher.doFinal(value.getBytes(StandardCharsets.UTF_8));
         return Base64.encodeToString(iv, Base64.NO_WRAP)
             + "."
             + Base64.encodeToString(encrypted, Base64.NO_WRAP);
     }
 
-    private String decrypt(String value) throws Exception {
+    static String decrypt(SecretKey key, String value) throws Exception {
         String[] parts = value.split("\\.", 2);
         if (parts.length != 2) throw new IllegalArgumentException("Invalid session envelope");
         byte[] iv = Base64.decode(parts[0], Base64.NO_WRAP);
@@ -148,7 +173,7 @@ public class MunchSecureSessionPlugin extends Plugin {
         if (iv.length != IV_BYTES) throw new IllegalArgumentException("Invalid session IV");
 
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, key(), new GCMParameterSpec(GCM_TAG_BITS, iv));
+        cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
         return new String(cipher.doFinal(encrypted), StandardCharsets.UTF_8);
     }
 }

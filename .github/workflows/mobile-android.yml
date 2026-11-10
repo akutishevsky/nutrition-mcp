@@ -201,7 +201,7 @@ jobs:
             sleep 10
             adb exec-out screencap -p > boot-screenshot.png
             adb logcat -d > boot-logcat.txt || true
-            cd android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=business.munch.app.AppBootSmokeTest,business.munch.app.AppDeepLinkSmokeTest && cd ..
+            cd android && ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=business.munch.app.AppBootSmokeTest,business.munch.app.AppDeepLinkSmokeTest,business.munch.app.SecureSessionCryptoTest && cd ..
             # S4: the offline test disables the emulator network itself
             # (airplane mode + radios via UiAutomation) and restores it
             # in a finally block; it runs last and force-stops the app
