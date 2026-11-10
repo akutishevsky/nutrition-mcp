@@ -1157,8 +1157,12 @@ export async function handleAccountAction(button, ctx) {
             return true;
         }
         button.disabled = true;
-        await ctx.api("/account/portal/delete", {
-            method: "POST",
+        // The live route is DELETE /api/app/account
+        // (src/accounts/lifecycle-routes.ts): same-origin web session
+        // plus the typed confirmation phrase in the JSON body. The old
+        // POST /account/portal/delete target no longer exists (404).
+        await ctx.api("/api/app/account", {
+            method: "DELETE",
             body: JSON.stringify({ confirmation }),
             keepPrevious: true,
         });

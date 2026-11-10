@@ -951,8 +951,11 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
         googleUnlinked = true;
         return { status: true, methods: signInMethodsFixture().methods };
     }
-    if (pathname === "/account/portal/delete" && method === "POST") {
-        return {};
+    if (pathname === "/api/app/account" && method === "DELETE") {
+        // The real lifecycle route (src/accounts/lifecycle-routes.ts)
+        // answers { deleted: true } once the typed confirmation in the
+        // request body matches; the fixture mirrors that success shape.
+        return { deleted: true };
     }
     if (pathname === "/api/app/household/manage") return householdFixture();
     if (pathname === "/api/app/meals") return { meals: [], totals: {} };
@@ -2293,14 +2296,14 @@ test("S6 slice 9 regression: unlink and account deletion use inline confirmation
         '[data-action="confirm-account-delete"]',
     );
     await expect(confirmDelete).toBeVisible();
-    expect(observedRequest("POST", "/account/portal/delete")).toBe(false);
+    expect(observedRequest("DELETE", "/api/app/account")).toBe(false);
     await page.locator('[data-action="dismiss-settings-confirm"]').click();
     await expect(deleteButton).toBeVisible();
-    expect(observedRequest("POST", "/account/portal/delete")).toBe(false);
+    expect(observedRequest("DELETE", "/api/app/account")).toBe(false);
     await deleteButton.click();
     await confirmDelete.click();
     await expect
-        .poll(() => observedRequest("POST", "/account/portal/delete"))
+        .poll(() => observedRequest("DELETE", "/api/app/account"))
         .toBe(true);
     await expect(page).toHaveURL(/deleted=1/);
     expect(nativeDialogs).toEqual([]);
