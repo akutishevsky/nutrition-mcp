@@ -401,3 +401,388 @@ test("packaged bundle ships the mobile runtime and the Pantry page", async ({
     expect(mealPhotoBody).toContain("#meal-photo-file");
     expect(mealPhotoBody).toContain("new DataTransfer()");
 });
+
+// ---------------------------------------------------------------------------
+// UX fix wave (F1/F4) — the packaged-bundle regression gate for the
+// meal-editor transport defect class.
+//
+// On device the app origin is https://localhost and the API lives on
+// a different origin entirely; the web e2e can never see that split
+// (page origin == API origin), which is exactly why F1 shipped:
+// app-patches.js's patchApi() used a raw RELATIVE fetch and every
+// editor request 404'd against the local asset server. These tests
+// reproduce the split inside the bundle harness: the bundle is
+// served from one loopback origin while a stub mobile runtime points
+// the shared transport at a SECOND loopback origin (the API server
+// below, with an in-memory meal store). An explicit route 404s any
+// same-origin /api/app/** request, so a regression to a relative
+// fetch fails here the way it failed on the phone.
+// ---------------------------------------------------------------------------
+
+const FIXTURE_MEAL_ID = "b0000000-0000-4000-8000-000000000001";
+const FIXTURE_COPY_ID = "b0000000-0000-4000-8000-000000000002";
+
+let apiServer: Server;
+let apiBaseUrl = "";
+const apiRequests: { method: string; path: string }[] = [];
+let mealStore = new Map<string, Record<string, unknown>>();
+
+function fixtureListMeal(id: string, description: string) {
+    return {
+        id,
+        description,
+        meal_type: "lunch",
+        logged_at: "2026-11-10T17:00:00.000Z",
+        notes: null,
+        calories: 700,
+        protein_g: 40,
+        carbs_g: 60,
+        fat_g: 30,
+        fiber_g: 5,
+        sugar_g: 8,
+        items: [
+            {
+                name: "Grilled chicken",
+                portionLabel: "1 breast",
+                quantity: 1,
+                calories: 400,
+                sourceType: "usda",
+                confidence: "high",
+                assumptions: [],
+            },
+            {
+                name: "Rice bowl",
+                portionLabel: "1 bowl",
+                quantity: 1,
+                calories: 300,
+                sourceType: "usda",
+                confidence: "high",
+                assumptions: [],
+            },
+        ],
+    };
+}
+
+function fixtureMealDetail(meal: Record<string, unknown>) {
+    return {
+        meal: {
+            id: meal.id,
+            description: meal.description,
+            mealType: "lunch",
+            loggedAt: "2026-11-10T17:00:00.000Z",
+            notes: "",
+            calories: 700,
+            proteinG: 40,
+            carbsG: 60,
+            fatG: 30,
+            items: [
+                {
+                    id: "b0000000-0000-4000-8000-000000000011",
+                    name: "Grilled chicken",
+                    portionLabel: "1 breast",
+                    quantity: 1,
+                    gramWeight: 180,
+                    nutrients: {
+                        calories: 400,
+                        protein_g: 38,
+                        carbs_g: 0,
+                        fat_g: 9,
+                    },
+                    sourceType: "usda",
+                    confidence: "high",
+                    assumptions: [],
+                    sourceSnapshot: null,
+                },
+                {
+                    id: "b0000000-0000-4000-8000-000000000012",
+                    name: "Rice bowl",
+                    portionLabel: "1 bowl",
+                    quantity: 1,
+                    gramWeight: 250,
+                    nutrients: {
+                        calories: 300,
+                        protein_g: 6,
+                        carbs_g: 60,
+                        fat_g: 3,
+                    },
+                    sourceType: "usda",
+                    confidence: "high",
+                    assumptions: [],
+                    sourceSnapshot: null,
+                },
+            ],
+        },
+    };
+}
+
+function resetFixtureApi() {
+    mealStore = new Map([
+        [FIXTURE_MEAL_ID, fixtureListMeal(FIXTURE_MEAL_ID, "Bundle E2E Lunch")],
+    ]);
+    apiRequests.length = 0;
+}
+
+function sendApiJson(
+    response: import("node:http").ServerResponse,
+    status: number,
+    payload: unknown,
+) {
+    response.writeHead(status, {
+        "content-type": "application/json",
+        "cache-control": "no-store",
+        "access-control-allow-origin": "*",
+    });
+    response.end(JSON.stringify(payload));
+}
+
+test.beforeAll(async () => {
+    apiServer = createServer((request, response) => {
+        if (request.method === "OPTIONS") {
+            response.writeHead(204, {
+                "access-control-allow-origin": "*",
+                "access-control-allow-methods": "*",
+                "access-control-allow-headers": "*",
+            });
+            response.end();
+            return;
+        }
+        const url = new URL(request.url ?? "/", "http://localhost");
+        const path = url.pathname;
+        apiRequests.push({ method: request.method ?? "", path });
+        const mealMatch = path.match(/^\/api\/app\/meals\/([^/]+)$/);
+        const copyMatch = path.match(/^\/api\/app\/meals\/([^/]+)\/copy$/);
+        const readBody = (done: (body: Record<string, unknown>) => void) => {
+            const chunks: Buffer[] = [];
+            request.on("data", (chunk: Buffer) => chunks.push(chunk));
+            request.on("end", () => {
+                try {
+                    done(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+                } catch {
+                    done({});
+                }
+            });
+        };
+        if (path === "/api/app/bootstrap") {
+            sendApiJson(response, 200, {
+                profile: { timezone: "UTC", preferred_weight_unit: "lb" },
+            });
+            return;
+        }
+        if (path === "/api/app/today") {
+            const meals = [...mealStore.values()];
+            sendApiJson(response, 200, {
+                totals: {
+                    calories: meals.reduce(
+                        (sum, meal) => sum + Number(meal.calories ?? 0),
+                        0,
+                    ),
+                    proteinG: 40 * meals.length,
+                    carbsG: 60 * meals.length,
+                    fatG: 30 * meals.length,
+                },
+                meals,
+                water: { entries: [], totalMl: 0 },
+                weight: [],
+                goals: {},
+                drafts: [],
+                plannedMeals: [],
+            });
+            return;
+        }
+        if (path === "/api/app/guidance/today") {
+            sendApiJson(response, 200, {
+                source_status: "sparse_data",
+                objective: "Track only",
+                actions: [],
+            });
+            return;
+        }
+        if (path === "/api/app/food-search") {
+            sendApiJson(response, 200, {
+                candidates: [],
+                savedFoods: [],
+                recentMealItems: [],
+            });
+            return;
+        }
+        if (copyMatch && request.method === "POST") {
+            const original = mealStore.get(copyMatch[1]);
+            if (original) {
+                mealStore.set(
+                    FIXTURE_COPY_ID,
+                    fixtureListMeal(
+                        FIXTURE_COPY_ID,
+                        String(original.description),
+                    ),
+                );
+            }
+            sendApiJson(response, 200, {});
+            return;
+        }
+        if (mealMatch && request.method === "GET") {
+            const meal = mealStore.get(mealMatch[1]);
+            if (!meal) {
+                sendApiJson(response, 404, { error: "Meal not found." });
+                return;
+            }
+            sendApiJson(response, 200, fixtureMealDetail(meal));
+            return;
+        }
+        if (mealMatch && request.method === "PATCH") {
+            readBody((body) => {
+                const meal = mealStore.get(mealMatch[1]);
+                if (meal && typeof body.description === "string") {
+                    meal.description = body.description;
+                }
+                sendApiJson(
+                    response,
+                    200,
+                    meal ? fixtureMealDetail(meal) : {},
+                );
+            });
+            return;
+        }
+        if (mealMatch && request.method === "DELETE") {
+            mealStore.delete(mealMatch[1]);
+            sendApiJson(response, 200, {});
+            return;
+        }
+        sendApiJson(response, 200, {});
+    });
+    await new Promise<void>((resolve) =>
+        apiServer.listen(0, () => resolve()),
+    );
+    const address = apiServer.address();
+    if (!address || typeof address === "string") {
+        throw new Error("Fixture API server did not bind a port");
+    }
+    // The shared transport only allows plain HTTP for the hostname
+    // "localhost" — the packaged split this suite reproduces.
+    apiBaseUrl = `http://localhost:${address.port}`;
+});
+
+test.afterAll(async () => {
+    await new Promise<void>((resolve) => apiServer.close(() => resolve()));
+});
+
+/** STUB_RUNTIME plus a mobile platform adapter aimed at the fixture API. */
+async function stubMobileApiSession(page: import("@playwright/test").Page) {
+    const body = `
+import { setMunchPlatformAdapter } from "./app-api.js";
+setMunchPlatformAdapter({
+    kind: "mobile",
+    apiBaseUrl: ${JSON.stringify(apiBaseUrl)},
+    getAccessToken: async () => "bundle-e2e-token",
+    onAuthenticationRequired: async () => {
+        throw new Error("bundle e2e: unexpected sign-in redirect");
+    },
+});
+${STUB_RUNTIME}`;
+    await page.route(/\/mobile-runtime\.js$/, (route) =>
+        route.fulfill({ contentType: "text/javascript", body }),
+    );
+    // The packaged app has no same-origin API: a raw relative fetch
+    // (the pre-F1 patchApi shape) must fail here like it did on
+    // device, never silently succeed against the static fixtures.
+    await page.route(`${baseURL}/api/app/**`, (route) =>
+        route.fulfill({
+            status: 404,
+            contentType: "application/json",
+            body: JSON.stringify({
+                error: "no same-origin API in the packaged app",
+            }),
+        }),
+    );
+}
+
+test("UX wave F1: the meal editor opens and saves in the packaged bundle", async ({
+    page,
+}) => {
+    resetFixtureApi();
+    await stubMobileApiSession(page);
+    await page.goto(`${baseURL}/`);
+    const card = page.locator(`article.meal-card[data-meal-id="${FIXTURE_MEAL_ID}"]`);
+    await expect(card).toBeVisible();
+    await expect(card.locator("h4")).toHaveText("Bundle E2E Lunch");
+
+    await card.getByRole("button", { name: "Edit" }).click();
+    const dialog = page.locator("#app-dialog");
+    await expect(dialog).toBeVisible();
+    const description = dialog.locator(
+        '#edit-meal-form textarea[name="description"]',
+    );
+    await expect(description).toHaveValue("Bundle E2E Lunch");
+    await description.fill("Bundle E2E Lunch — edited");
+    await dialog
+        .getByRole("button", { name: "Save meal details" })
+        .click();
+
+    await expect(page.locator("#toast-region")).toContainText("Meal updated.");
+    expect(
+        apiRequests.some(
+            (entry) =>
+                entry.method === "PATCH" &&
+                entry.path === `/api/app/meals/${FIXTURE_MEAL_ID}`,
+        ),
+    ).toBe(true);
+    await expect(card.locator("h4")).toHaveText("Bundle E2E Lunch — edited");
+});
+
+test("UX wave F1: Duplicate works in the packaged bundle", async ({
+    page,
+}) => {
+    resetFixtureApi();
+    await stubMobileApiSession(page);
+    await page.goto(`${baseURL}/`);
+    const card = page.locator(`article.meal-card[data-meal-id="${FIXTURE_MEAL_ID}"]`);
+    await expect(card).toBeVisible();
+
+    await card.getByRole("button", { name: "Duplicate" }).click();
+
+    await expect(page.locator("#toast-region")).toContainText(
+        "Meal duplicated with its original food sources.",
+    );
+    expect(
+        apiRequests.some(
+            (entry) =>
+                entry.method === "POST" &&
+                entry.path === `/api/app/meals/${FIXTURE_MEAL_ID}/copy`,
+        ),
+    ).toBe(true);
+    await expect(page.locator("article.meal-card")).toHaveCount(2);
+});
+
+test("UX wave F4: delete-meal completes through the inline confirm in the packaged bundle", async ({
+    page,
+}) => {
+    resetFixtureApi();
+    await stubMobileApiSession(page);
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    await page.goto(`${baseURL}/`);
+    const card = page.locator(`article.meal-card[data-meal-id="${FIXTURE_MEAL_ID}"]`);
+    await expect(card).toBeVisible();
+
+    await card.getByRole("button", { name: "Delete" }).click();
+    const confirmBox = page.locator(".plan-inline-confirm");
+    await expect(confirmBox).toBeVisible();
+    await expect(confirmBox).toContainText(
+        "Permanently delete Bundle E2E Lunch?",
+    );
+    await confirmBox
+        .getByRole("button", { name: "Yes, delete meal" })
+        .click();
+
+    await expect(page.locator("article.meal-card")).toHaveCount(0);
+    expect(
+        apiRequests.some(
+            (entry) =>
+                entry.method === "DELETE" &&
+                entry.path === `/api/app/meals/${FIXTURE_MEAL_ID}`,
+        ),
+    ).toBe(true);
+    expect(nativeDialogs).toEqual([]);
+});
