@@ -267,6 +267,10 @@ app.get("/open-source", async (c) =>
     c.html(await Bun.file("./public/open-source.html").text()),
 );
 app.get("/open-source/", (c) => c.redirect("/open-source", 301));
+app.get("/delete-account", async (c) =>
+    c.html(await Bun.file("./public/delete-account.html").text()),
+);
+app.get("/delete-account/", (c) => c.redirect("/delete-account", 301));
 
 const LEGACY_PUBLIC_ROUTES = [
     "/alternatives",
