@@ -736,6 +736,8 @@ dialog .auth-card {
 
 .grocery-item-main {
     min-width: 0;
+    /* UX fix wave F11: the name toggles purchase like the checkbox. */
+    cursor: pointer;
 }
 
 .grocery-item-main > strong {
@@ -1698,6 +1700,25 @@ dialog .summary-card > small {
         gap: 8px;
         width: 100%;
         padding-bottom: 4px;
+        /* UX fix wave F10: the row already scrolled deliberately —
+           it lacked any affordance, so buttons clipped mid-label
+           with no hint of more. A trailing edge fade plus a hidden
+           scrollbar signals the scroll without adding chrome. */
+        scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(
+            to right,
+            #000 calc(100% - 28px),
+            transparent 100%
+        );
+        mask-image: linear-gradient(
+            to right,
+            #000 calc(100% - 28px),
+            transparent 100%
+        );
+    }
+
+    .operate-view .page-heading .auth-actions::-webkit-scrollbar {
+        display: none;
     }
 
     .operate-view .page-heading .auth-actions .button {

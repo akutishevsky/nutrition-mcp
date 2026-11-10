@@ -1806,7 +1806,7 @@ function groceryItemGroup(item) {
 
 function groceryItemRowMarkup(item, scope, editable) {
     const detail = `${item.quantity == null ? "" : ` · ${number(item.quantity, 2)} ${escapeHtml(item.unit || "")}`}${item.note ? ` · ${escapeHtml(item.note)}` : ""}${item.added_by ? ` · Added by ${escapeHtml(item.added_by)}` : ""}`;
-    return `<article class="grocery-item-row ${item.purchased_at ? "is-purchased" : ""}" data-grocery-item-id="${escapeHtml(item.grocery_item_id)}" data-quantity="${escapeHtml(item.quantity ?? "")}" data-unit="${escapeHtml(item.unit || "")}" data-note="${escapeHtml(item.note || "")}"><label class="grocery-check"><input class="grocery-check-input" type="checkbox" data-action="toggle-grocery-purchased" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}" ${item.purchased_at ? "checked" : ""} ${editable ? "" : "disabled"} aria-label="${escapeHtml(item.name)} purchased" /></label><div class="grocery-item-main"><strong>${escapeHtml(item.name)}</strong><span class="grocery-item-detail">${detail}</span></div>${editable ? `<div class="grocery-item-actions"><button class="button button-secondary button-small" type="button" data-action="edit-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Edit</button><button class="button button-quiet button-small" type="button" data-action="remove-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Remove</button></div>` : ""}</article>`;
+    return `<article class="grocery-item-row ${item.purchased_at ? "is-purchased" : ""}" data-grocery-item-id="${escapeHtml(item.grocery_item_id)}" data-quantity="${escapeHtml(item.quantity ?? "")}" data-unit="${escapeHtml(item.unit || "")}" data-note="${escapeHtml(item.note || "")}"><label class="grocery-check"><input class="grocery-check-input" type="checkbox" data-action="toggle-grocery-purchased" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}" ${item.purchased_at ? "checked" : ""} ${editable ? "" : "disabled"} aria-label="${escapeHtml(item.name)} purchased" /></label><div class="grocery-item-main" data-action="toggle-grocery-by-name"><strong>${escapeHtml(item.name)}</strong><span class="grocery-item-detail">${detail}</span></div>${editable ? `<div class="grocery-item-actions"><button class="button button-secondary button-small" type="button" data-action="edit-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Edit</button><button class="button button-quiet button-small" type="button" data-action="remove-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Remove</button></div>` : ""}</article>`;
 }
 
 // S6 slice 6 — inline confirmations for the Groceries destructive
@@ -4999,6 +4999,17 @@ async function handleAction(button) {
         );
         toast("Grocery item removed.");
         return renderRoute();
+    }
+    if (action === "toggle-grocery-by-name") {
+        // UX fix wave F11: tapping the item's name toggles purchase
+        // exactly like its checkbox — routed through the checkbox's
+        // own click so there is one toggle path. A disabled checkbox
+        // (read-only list) makes this a no-op.
+        const input = button
+            .closest(".grocery-item-row")
+            ?.querySelector(".grocery-check-input");
+        if (input && !input.disabled) input.click();
+        return;
     }
     if (action === "toggle-grocery-purchased") {
         const purchased = Boolean(button.checked);
