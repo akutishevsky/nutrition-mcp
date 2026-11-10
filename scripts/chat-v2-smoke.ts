@@ -383,8 +383,11 @@ assert(
     draft1.status !== "confirmed" && draft1.confirmedMealId === null,
     "A chat draft must never be a confirmed meal",
 );
-const groundedItem = draft1.items.find((entry) =>
-    entry.item.name.includes("Chicken"),
+// The grounded rewrite keeps the model's phrasing for the item name
+// ("grilled chicken breast") and takes values + provenance from the
+// provider record — match on the provenance, not the name's case.
+const groundedItem = draft1.items.find(
+    (entry) => entry.item.providerFoodId === "171688",
 );
 assert(groundedItem, "Grounded draft item missing");
 assert(
