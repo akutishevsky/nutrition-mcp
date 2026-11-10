@@ -3,18 +3,21 @@ package business.munch.app;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
 import android.app.UiAutomation;
 import android.os.ParcelFileDescriptor;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
-import androidx.test.core.app.ActivityScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry;
+import androidx.test.runner.lifecycle.Stage;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,12 +30,16 @@ import org.junit.runner.RunWith;
  * return_to, so sign-in continues to /app/recipes — the link is
  * neither dropped nor opened externally.
  *
- * <p>The link is delivered exactly the way the OS delivers a browser
- * tap (am start VIEW), because ActivityScenario's launch intent is
- * not what reaches Capacitor's launch-URL bridge when a singleTask
- * activity already exists in the task. The test must never
- * force-stop the app package: instrumentation runs inside the app
- * process, so force-stopping it kills the test process itself.
+ * <p>Delivery and observation are both deliberately non-invasive,
+ * after two CI iterations taught why: the link is sent with
+ * {@code am start} (the OS browser-tap path), because
+ * ActivityScenario's launch intent does not reach Capacitor's
+ * launch-URL bridge the same way; and the WebView is observed through
+ * the lifecycle monitor registry instead of an ActivityScenario,
+ * because launching a scenario reloads the WebView under a plain
+ * MAIN intent and erases the routed state under test. The test also
+ * never force-stops the app package: instrumentation runs inside the
+ * app process, so force-stopping it kills the test process itself.
  */
 @RunWith(AndroidJUnit4.class)
 public class AppDeepLinkSmokeTest {
@@ -72,6 +79,26 @@ public class AppDeepLinkSmokeTest {
         }
     }
 
+    private static String resumedWebViewUrl() {
+        AtomicReference<String> urlRef = new AtomicReference<>();
+        InstrumentationRegistry.getInstrumentation()
+                .runOnMainSync(
+                        () -> {
+                            Collection<Activity> resumed =
+                                    ActivityLifecycleMonitorRegistry.getInstance()
+                                            .getActivitiesInStage(Stage.RESUMED);
+                            for (Activity activity : resumed) {
+                                WebView webView =
+                                        findWebView(
+                                                activity.getWindow().getDecorView());
+                                if (webView != null) {
+                                    urlRef.set(webView.getUrl());
+                                }
+                            }
+                        });
+        return urlRef.get();
+    }
+
     @Test
     public void deepLinkLandsOnAllowlistedRoute() throws Exception {
         UiAutomation automation =
@@ -79,37 +106,25 @@ public class AppDeepLinkSmokeTest {
         // No quotes around the URI: UiAutomation's shell does not
         // strip them, and the intent data would literally arrive as
         // "\"munch://app/recipes\"" — an unparseable URL (observed in
-        // the boot-evidence logcat on the previous CI run).
+        // the boot-evidence logcat on the first CI iteration).
         executeShell(
                 automation,
                 "am start -a android.intent.action.VIEW"
                         + " -d munch://app/recipes"
                         + " -n business.munch.app/.MainActivity");
-        // Let the delivery settle onto its routed page before
-        // attaching the scenario used to inspect the WebView.
-        Thread.sleep(2_000);
 
         AtomicReference<String> urlRef = new AtomicReference<>();
-        try (ActivityScenario<MainActivity> scenario =
-                ActivityScenario.launch(MainActivity.class)) {
-            long deadlineMs = System.currentTimeMillis() + 30_000;
-            while (System.currentTimeMillis() < deadlineMs) {
-                scenario.onActivity(
-                        activity -> {
-                            WebView webView =
-                                    findWebView(activity.getWindow().getDecorView());
-                            if (webView != null) {
-                                urlRef.set(webView.getUrl());
-                            }
-                        });
-                String url = urlRef.get();
-                if (url != null
-                        && url.contains("mobile-login.html")
+        long deadlineMs = System.currentTimeMillis() + 45_000;
+        while (System.currentTimeMillis() < deadlineMs) {
+            String url = resumedWebViewUrl();
+            if (url != null) {
+                urlRef.set(url);
+                if (url.contains("mobile-login.html")
                         && decode(url).contains("/app/recipes")) {
                     break;
                 }
-                Thread.sleep(250);
             }
+            Thread.sleep(250);
         }
 
         String url = urlRef.get();
