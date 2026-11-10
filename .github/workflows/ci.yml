@@ -124,6 +124,10 @@ jobs:
         env:
           NODE_ENV: test
         run: bun scripts/better-auth-google-sign-in-smoke.ts
+      - name: Exercise Apple social sign-in provider wiring and linking readiness
+        env:
+          NODE_ENV: test
+        run: bun scripts/better-auth-apple-sign-in-smoke.ts
       - name: Exercise sign-in methods read model, link initiation, and unlink guardrails
         env:
           NODE_ENV: test

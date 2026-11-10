@@ -7,6 +7,7 @@ import {
 import { getBetterAuthRuntimeConfig } from "./config.js";
 import {
     googleAndroidSignInConfigured,
+    googleIosSignInConfigured,
     googleWebSignInConfigured,
 } from "./social-sign-in.js";
 
@@ -139,6 +140,7 @@ export function createMobileAuthRouter(): Hono {
         // platform no longer reports configured just because Android is.
         const webConfigured = googleWebSignInConfigured(config);
         const androidConfigured = googleAndroidSignInConfigured(config);
+        const iosConfigured = googleIosSignInConfigured(config);
         privateResponse(c);
         return c.json({
             configured: androidConfigured,
@@ -152,6 +154,19 @@ export function createMobileAuthRouter(): Hono {
                 },
                 android: {
                     configured: androidConfigured,
+                },
+                ios: {
+                    configured: iosConfigured,
+                    // The iOS client ID is a public identifier the native
+                    // plugin configures Google Sign-In with; the web
+                    // client ID rides along as the serverClientID the
+                    // SDK needs to mint server-audience ID tokens. Both
+                    // are handed out only when the iOS flow is fully
+                    // configured, matching the Android top-level rule.
+                    clientId: iosConfigured ? config.googleIosClientId : null,
+                    webClientId: iosConfigured
+                        ? config.googleWebClientId
+                        : null,
                 },
             },
         });

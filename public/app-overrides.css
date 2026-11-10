@@ -2744,6 +2744,782 @@ dialog .guided-grocery-row input[type="checkbox"] {
 }
 
 /* =====================================================================
+   S6 slice 6 — Editorial Serif fusion for Groceries (Operate surface
+   6), inheriting S6 slice 1's shared dialog chrome (themed openDialog
+   frame, .dialog-close at 44px, portal .tiny at 0.875rem, toasts and
+   global states — inherited, not reinvented). Direction contract +
+   tightened mock: selected/src/groceries/theme4-tight.html.
+   Grammar (editorial.css tokens): paper #f6f1e7, paper-card #fffdf8,
+   ink #2b2620, ink-soft #4a4237, hairline #d8cdb6, rule #8a7c63,
+   green #176b3a, green-deep #0b3d24, danger #8c2f22, Georgia serif.
+   DENSITY LAW: Groceries is the program's canonical density surface.
+   The mock's grouped checklist grammar carries it — items group by
+   source (meal plan / recipe / manual, the real data dimension), each
+   item is ONE hairline row at the checkbox's 44px height, quantity /
+   note / added-by merge into the name's line, and the list totals
+   merge into the heading line. Type never below 11px, tap targets
+   never below 44px — the checkbox measures exactly 44x44, as in the
+   tightened mock. NO ADS on this surface (the app's only ad slot is
+   on Today — final ad law).
+   Scope: surface content is scoped to .groceries-view; this section
+   supersedes the legacy .grocery-* card grammar earlier in this file
+   for the fused surface. The add/edit dialogs use the grocery form
+   ids inside the already-themed shared dialog frame.
+   ===================================================================== */
+
+/* ---------- Grocery list ---------- */
+
+/* The fused surface tightens the shared operate grammar a step
+   further (this is the canonical density surface): the heading keeps
+   no bottom margin and the list panel starts 4px sooner. */
+.groceries-view .page-heading {
+    margin-bottom: 0;
+}
+
+.groceries-view .panel {
+    padding-top: 6px;
+    margin-top: 6px;
+}
+
+/* The list title stacks deliberately: title + counts on their own
+   line, then the list actions as one natural-width row. (The legacy
+   phone rule squeezed the title into a narrow column beside a
+   full-width Add button and dropped Clear purchased onto a centred
+   third line — the first capture pass measured that ragged stack.) */
+.groceries-view .grocery-list .panel-title {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.groceries-view .grocery-list-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+}
+
+.groceries-view .grocery-list-actions .button {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+}
+
+/* Source groups are the mock's section panels: a serif group head on
+   a hairline, then the checklist rows. */
+.groceries-view .grocery-group {
+    margin-top: 4px;
+}
+
+.groceries-view .grocery-group-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 2px 0 1px;
+}
+
+.groceries-view .grocery-group-head h4 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16.5px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.groceries-view .grocery-group-count {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #5d5344;
+    white-space: nowrap;
+}
+
+.groceries-view .grocery-items {
+    display: block;
+}
+
+/* One item = one hairline row at the checkbox's height (the mock's
+   .growline): no card, no border box, no stacked action row. */
+.groceries-view .grocery-item-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 1px 0;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    background: transparent;
+}
+
+/* The checkbox IS the tap target: exactly 44x44, as measured in the
+   tightened mock — never shrunk for density. */
+.groceries-view .grocery-check {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    flex: 0 0 auto;
+}
+
+.groceries-view .grocery-check-input {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 44px;
+    accent-color: #176b3a;
+    cursor: pointer;
+}
+
+.groceries-view .grocery-item-main {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 15px;
+    line-height: 1.35;
+    color: #2b2620;
+}
+
+.groceries-view .grocery-item-main > strong {
+    overflow: visible;
+    text-overflow: clip;
+    font-weight: 700;
+}
+
+.groceries-view .grocery-item-row.is-purchased {
+    background: transparent;
+}
+
+.groceries-view .grocery-item-row.is-purchased .grocery-item-main {
+    color: #5d5344;
+}
+
+.groceries-view .grocery-item-row.is-purchased .grocery-item-main > strong {
+    color: #5d5344;
+    text-decoration: line-through;
+}
+
+.groceries-view .grocery-item-detail {
+    color: #5d5344;
+}
+
+/* Edit / Remove ride the row as compact 44px actions (the mock's
+   .edit link grammar), never a second stacked row. */
+.groceries-view .grocery-item-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 2px;
+    border-top: 0;
+    padding-top: 0;
+}
+
+.groceries-view .grocery-item-actions .button {
+    min-height: 44px;
+    padding-left: 8px;
+    padding-right: 8px;
+    white-space: nowrap;
+}
+
+/* ---------- Inline confirmations (S6 slice 1 pattern) ---------- */
+
+/* Replaces both native window.confirm() flows on this surface
+   (remove item, clear purchased). The row sits in the items flow
+   directly under the item / list title it belongs to. */
+.grocery-inline-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0 8px;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.grocery-inline-note {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+    color: #8c2f22;
+}
+
+.grocery-inline-confirm .button {
+    min-height: 44px;
+}
+
+.grocery-inline-confirm-danger {
+    background: #8c2f22;
+    border-color: #8c2f22;
+}
+
+.grocery-inline-confirm-danger:hover {
+    background: #6e241a;
+    border-color: #6e241a;
+}
+
+/* ---------- Grocery dialogs (add / edit, inside the frame) ------ */
+
+/* This surface's dialog controls reach the 44px floor (the shared
+   .button-small grammar sits at 40px; slice 1 fixed the shared Close
+   via .dialog-close and left per-surface controls to their slices). */
+#grocery-add-form .button,
+#grocery-edit-form .button {
+    min-height: 44px;
+}
+
+#grocery-add-form input,
+#grocery-add-form textarea,
+#grocery-edit-form input,
+#grocery-edit-form textarea {
+    min-height: 44px;
+}
+
+/* Shopping mode (this surface's own toggle): the chrome drops away
+   (shared .shopping-mode rules) and the checklist rows grow a step —
+   the mode exists for one-handed in-store checking. */
+.shopping-mode .groceries-view .grocery-item-main {
+    font-size: 17px;
+}
+
+.shopping-mode .groceries-view .grocery-item-row {
+    padding: 5px 0;
+}
+
+/* =====================================================================
+   S6 slice 9 — Settings fusion (Operate surface touched once: parity
+   + Editorial Serif + mobile_qc). Settings renders inside slice 1's
+   .operate-view scope plus this .settings-view scope; the shared
+   dialog chrome, .dialog-close (44px), portal .tiny (0.875rem),
+   toasts and global states are inherited, not reinvented. Grammar
+   follows the tightened mock (selected/src/settings/theme4-tight.html):
+   panels become hairline rules on paper, headings are Georgia serif,
+   secondary lines merge into the rows they describe. Density law:
+   dead space out — never below the 11px type floor or the 44px tap
+   floor (the inherited .operate-view button rule holds the latter).
+   Household and More do not render in this scope and are untouched.
+   ===================================================================== */
+
+.settings-view .settings-layout {
+    gap: 22px;
+}
+
+.settings-view .settings-page-head {
+    margin-bottom: 10px;
+}
+
+.settings-view .settings-page-head h2 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 33px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.12;
+    color: #2b2620;
+}
+
+.settings-view .settings-page-head p:not(.settings-eyebrow) {
+    font-size: 15px;
+    color: #4a4237;
+    margin-top: 4px;
+}
+
+.settings-view .settings-eyebrow,
+.settings-view .settings-card-label {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: #176b3a;
+}
+
+/* Local nav: serif hairline rows instead of pill cards. */
+.settings-view .settings-local-nav {
+    gap: 0;
+}
+
+.settings-view .settings-local-link {
+    border-radius: 0;
+    border-bottom: 1px solid #d8cdb6;
+    padding: 8px 10px;
+    min-height: 44px;
+    color: #4a4237;
+}
+
+.settings-view .settings-local-link span {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.settings-view .settings-local-link small {
+    font-size: 12px;
+    color: #7a6a53;
+}
+
+.settings-view .settings-local-link:hover,
+.settings-view .settings-local-link.is-active {
+    background: transparent;
+    color: #176b3a;
+    box-shadow: inset 2px 0 0 #176b3a;
+}
+
+.settings-view .settings-mobile-back {
+    color: #176b3a;
+    min-height: 44px;
+    align-items: center;
+}
+
+/* Index + More cards become rule rows: label marginalia, serif title,
+   one merged description line, chevron. */
+.settings-view .settings-index-card,
+.settings-view .more-card {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 52px;
+    padding: 7px 0;
+    gap: 12px;
+}
+
+.settings-view .settings-index-card:hover,
+.settings-view .more-card:hover {
+    background: transparent;
+    border-color: #d8cdb6;
+    color: inherit;
+}
+
+.settings-view .settings-index-card h3,
+.settings-view .more-card h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.settings-view .settings-index-card p,
+.settings-view .more-card p {
+    font-size: 13px;
+    color: #6d6151;
+    margin-top: 1px;
+}
+
+.settings-view .settings-card-label {
+    color: #7a6a53;
+}
+
+.settings-view .settings-chevron {
+    color: #7a6a53;
+}
+
+/* Groups are panels in the mock's grammar: a hairline on top, no box. */
+.settings-view .settings-group,
+.settings-view .account-identity-card,
+.settings-view .settings-empty {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.settings-view .settings-stack {
+    gap: 10px;
+}
+
+.settings-view .settings-group > header {
+    border-bottom: 0;
+    padding: 10px 0 2px;
+}
+
+.settings-view .settings-group > header h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 21px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.settings-view .settings-group > header p {
+    font-size: 13.5px;
+    color: #6d6151;
+    margin-top: 2px;
+}
+
+.settings-view .settings-group-body {
+    gap: 10px;
+    padding: 8px 0 4px;
+}
+
+.settings-view .account-identity-card {
+    padding: 10px 0;
+    margin-bottom: 6px;
+}
+
+.settings-view .account-avatar,
+.settings-view .connection-icon {
+    background: transparent;
+    border: 1px solid #d8cdb6;
+    border-radius: 999px;
+    color: #176b3a;
+    font-family: Georgia, "Times New Roman", Times, serif;
+}
+
+/* Fields: paper-card inputs with the mock's square-ish corners. */
+.settings-view .settings-field {
+    gap: 3px;
+    font-size: 14px;
+}
+
+.settings-view .settings-field input,
+.settings-view .settings-field select,
+.settings-view .settings-field textarea {
+    border: 1px solid #8a7c63;
+    border-radius: 4px;
+    background: #fffdf8;
+    min-height: 48px;
+}
+
+.settings-view .input-with-unit {
+    border: 1px solid #8a7c63;
+    border-radius: 4px;
+    background: #fffdf8;
+}
+
+.settings-view .input-with-unit > span {
+    background: transparent;
+    border-left: 1px solid #d8cdb6;
+    color: #7a6a53;
+}
+
+.settings-view .segmented-control {
+    border: 1px solid #8a7c63;
+    border-radius: 4px;
+    background: #e9e1cd;
+}
+
+.settings-view .segmented-control span {
+    border-radius: 2px;
+    min-height: 44px;
+}
+
+.settings-view .segmented-control input:checked + span {
+    background: #fffdf8;
+    color: #0b3d24;
+    box-shadow: none;
+}
+
+.settings-view .settings-toggle-row {
+    min-height: 52px;
+    border-top: 1px solid #d8cdb6;
+    padding-top: 8px;
+}
+
+.settings-view .switch input:checked + span {
+    background: #176b3a;
+}
+
+.settings-view .settings-form-grid {
+    gap: 8px 18px;
+}
+
+/* Plan summary + detail rows are rule rows. */
+.settings-view .plan-summary,
+.settings-view .account-detail-row {
+    border-bottom: 1px solid #d8cdb6;
+    padding: 6px 0;
+}
+
+.settings-view .plan-summary span,
+.settings-view .account-detail-row span,
+.settings-view .billing-price > span {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7a6a53;
+}
+
+.settings-view .account-status {
+    border: 1px solid #d8cdb6;
+    border-radius: 999px;
+    background: #fffdf8;
+    color: #176b3a;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+}
+
+.settings-view .account-status-warning {
+    color: #8a6100;
+}
+
+.settings-view .account-status-neutral {
+    color: #7a6a53;
+}
+
+.settings-view .billing-price {
+    background: transparent;
+    border-radius: 0;
+    padding: 8px 0 2px;
+    margin-top: 8px;
+}
+
+.settings-view .billing-price > strong {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 36px;
+    font-weight: 600;
+    color: #2b2620;
+    letter-spacing: 0;
+}
+
+.settings-view .pricing-rule {
+    border-bottom: 1px solid #d8cdb6;
+    padding: 7px 0;
+}
+
+.settings-view .pricing-rule strong {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    color: #176b3a;
+}
+
+.settings-view .settings-note {
+    font-size: 13.5px;
+    font-style: italic;
+    color: #6d6151;
+    margin-top: 6px;
+}
+
+.settings-view .settings-actions {
+    margin-top: 10px;
+    gap: 8px;
+}
+
+/* Connections + sign-in methods: one hairline row per entry. */
+.settings-view .connection-list {
+    gap: 0;
+}
+
+.settings-view .connection-card {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 8px 0;
+}
+
+.settings-view .connection-card h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.settings-view .sign-in-method-list {
+    display: grid;
+}
+
+.settings-view .sign-in-method-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #d8cdb6;
+    padding: 7px 0;
+    min-height: 52px;
+}
+
+.settings-view .sign-in-method-copy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 10px;
+    min-width: 0;
+}
+
+.settings-view .sign-in-method-copy strong {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.settings-view .sign-in-method-copy small {
+    font-size: 13px;
+    color: #6d6151;
+}
+
+.settings-view .sign-in-method-copy .sign-in-method-state {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #176b3a;
+}
+
+.settings-view .settings-inline-alert {
+    border-left: 3px solid #b3261e;
+    background: #fffdf8;
+    color: #8c2f22;
+    font-size: 14px;
+    padding: 10px 12px;
+    margin-top: 10px;
+}
+
+/* Data action rows: hairlines, not boxes. */
+.settings-view .settings-action-list {
+    gap: 0;
+}
+
+.settings-view .settings-action-row {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    min-height: 52px;
+    padding: 7px 0;
+}
+
+.settings-view .settings-action-row:hover {
+    background: transparent;
+    border-color: #d8cdb6;
+    color: #176b3a;
+}
+
+.settings-view .settings-empty {
+    min-height: 0;
+    padding: 18px 0;
+}
+
+.settings-view .settings-empty h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 19px;
+    font-weight: 600;
+}
+
+/* Danger zone: the mock's red rule. */
+.settings-view .settings-danger {
+    border-top: 2px solid #b3261e;
+}
+
+.settings-view .settings-danger > header {
+    background: transparent;
+}
+
+.settings-view .settings-danger > header h3 {
+    color: #b3261e;
+}
+
+.settings-view .settings-danger > header p {
+    color: #6d6151;
+}
+
+.settings-view .button-danger {
+    background: transparent;
+    border-color: #b3261e;
+    color: #b3261e;
+    border-radius: 4px;
+}
+
+/* Inline confirmations (slice 1 pattern, this surface's rows). */
+.settings-inline-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    flex-basis: 100%;
+}
+
+.settings-inline-note {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+    color: #8c2f22;
+}
+
+.settings-inline-confirm .button {
+    min-height: 44px;
+}
+
+.settings-inline-danger {
+    background: #8c2f22;
+    border-color: #8c2f22;
+}
+
+.settings-inline-danger:hover {
+    background: #6e241a;
+    border-color: #6e241a;
+}
+
+/* The goals review panel rides .operate-view .panel already; its
+   inner food rows tighten to the rule grammar. */
+.settings-view #goal-guidance-review .food-row {
+    border-bottom: 1px solid #d8cdb6;
+    padding: 6px 0;
+}
+
+@media (max-width: 620px) {
+    .settings-view .settings-page-head h2 {
+        font-size: 27px;
+    }
+
+    .settings-view .settings-index-card .settings-card-label {
+        display: none;
+    }
+
+    .settings-view .sign-in-method-row {
+        flex-wrap: wrap;
+    }
+
+    .settings-view .sign-in-method-row .button {
+        width: 100%;
+    }
+}
+
+/* Audit fixes (first capture pass, s6-slice9-qc): the Profile
+   identity card's "View plan" link measured 19px high at phone
+   width; long emails / client ids overflowed the 390px viewport by
+   ~21px because flex/grid children could not shrink below their
+   longest unbreakable word. */
+.settings-view .account-identity-card > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+
+.settings-view .account-detail-row strong,
+.settings-view .account-identity-card strong {
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.settings-view .connection-card > div {
+    min-width: 0;
+}
+
+.settings-view .connection-card p {
+    max-width: 100%;
+}
+
+/* Audit fix (first capture pass): at phone width the index card's
+   label is display:none (account-settings.css) but its grid column
+   still sized, leaving the chevron floating at a content-dependent
+   x. Two columns on phone: text, then the chevron at the edge. */
+@media (max-width: 620px) {
+    .settings-view .settings-index-card,
+    .settings-view .more-card {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+}
+
+/* Audit fix (first capture pass): the unit-suffixed inputs showed a
+   double frame — this section's field rule out-specifies the base
+   .input-with-unit reset in account-settings.css. The unit box owns
+   the frame; the input inside it is frameless. */
+.settings-view .input-with-unit input {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+/* =====================================================================
    S6 SLICE 7 — Insights fusion (Operate surface 7)
    ---------------------------------------------------------------------
    Insights is touched exactly once: parity + Editorial Serif +

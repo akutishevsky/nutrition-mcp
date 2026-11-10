@@ -8,6 +8,7 @@ export interface BetterAuthRuntimeConfig {
     databasePoolSize: number;
     googleWebClientId?: string;
     googleAndroidClientId?: string;
+    googleIosClientId?: string;
     googleClientSecret?: string;
     appleServicesId?: string;
     appleKeyId?: string;
@@ -78,6 +79,12 @@ export function getBetterAuthRuntimeConfig(): BetterAuthRuntimeConfig {
 
     const googleWebClientId = optional("MUNCH_GOOGLE_WEB_CLIENT_ID");
     const googleAndroidClientId = optional("MUNCH_GOOGLE_ANDROID_CLIENT_ID");
+    // The iOS OAuth client: a native iOS Google sign-in presents ID tokens
+    // whose audience is this client ID, so the server must accept it as a
+    // Google ID-token audience alongside the web/Android clients. It is a
+    // public identifier with no secret of its own — the shared web client
+    // secret stays the provider's only secret.
+    const googleIosClientId = optional("MUNCH_GOOGLE_IOS_CLIENT_ID");
     const googleClientSecret = optional("MUNCH_GOOGLE_CLIENT_SECRET");
     if (Boolean(googleWebClientId) !== Boolean(googleClientSecret)) {
         throw new Error(
@@ -87,6 +94,11 @@ export function getBetterAuthRuntimeConfig(): BetterAuthRuntimeConfig {
     if (googleAndroidClientId && !googleWebClientId) {
         throw new Error(
             "MUNCH_GOOGLE_ANDROID_CLIENT_ID requires Google web client credentials",
+        );
+    }
+    if (googleIosClientId && !googleWebClientId) {
+        throw new Error(
+            "MUNCH_GOOGLE_IOS_CLIENT_ID requires Google web client credentials",
         );
     }
 
@@ -123,6 +135,7 @@ export function getBetterAuthRuntimeConfig(): BetterAuthRuntimeConfig {
         databasePoolSize,
         googleWebClientId,
         googleAndroidClientId,
+        googleIosClientId,
         googleClientSecret,
         appleServicesId,
         appleKeyId,

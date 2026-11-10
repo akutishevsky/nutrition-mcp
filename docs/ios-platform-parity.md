@@ -87,13 +87,68 @@ closest automated proxies:
   regenerated from npm dependencies on every `cap sync`), so this
   needs a first-party plugin package published as an npm dependency,
   not a slice-local edit. Owner: IOS-PLATFORM follow-up.
-- `ios.native.googleSignIn` — no Swift counterpart of the Android
-  Credential Manager plugin; Sign in with Apple not wired. Owner:
-  IOS-AUTH.
+- `ios.native.googleSignIn` — the SERVER half is wired (IOS-AUTH):
+  the Better Auth Apple provider registers from the `MUNCH_APPLE_*`
+  env set with both ID-token audiences (Services ID + bundle ID) and a
+  server-generated client-secret JWT, and the Google provider accepts
+  the iOS client ID (`MUNCH_GOOGLE_IOS_CLIENT_ID`) as an ID-token
+  audience. What remains is the native half: no Swift counterpart of
+  the Android Credential Manager plugin and no ASAuthorization plugin,
+  so the packaged app cannot yet obtain or hand off an ID token.
+  Owner: IOS-AUTH follow-up — a first-party iOS auth plugin package
+  (see below).
 - `ios.native.storeBilling` — no StoreKit plugin; reflected in the
   `billing.*` ios verdicts. Owner: IOS-BILLING.
 - `ios.native.ads` — no Swift counterpart of the Android AdMob/UMP
   plugin; no capability row carries advertising. Owner: IOS-ADS.
+
+## The IOS-AUTH native follow-up (scoped, not built by the server slice)
+
+The server endpoints the native flow hands off to already exist and are
+proven with fixture identifiers in CI
+(`scripts/better-auth-apple-sign-in-smoke.ts`): `POST
+/api/auth/sign-in/social` with `{ provider, idToken: { token, nonce } }`
+(the exact shape the Android runtime already uses for Google) and the
+session-bound link endpoint. The follow-up is a first-party Capacitor
+plugin package — an npm dependency, because `cap sync` regenerates the
+SPM manifest from npm dependencies (the same constraint recorded for
+the secure-session plugin above):
+
+- A Swift plugin (working name `MunchAppleGoogleSignIn`, mirroring the
+  Android `MunchGoogleSignInPlugin`'s JS surface) exposing:
+    - `signInWithApple()` — `ASAuthorizationAppleIDProvider` request with
+      a server-matched nonce, returning the identity token + authorization
+      code to JS; the packaged bundle's runtime gains the iOS twin of
+      Android's `signInWithGoogle()` hand-off.
+    - `signInWithGoogle()` — Google Sign-In SDK (or AppAuth) configured
+      with the iOS client ID + web `serverClientID` from
+      `/mobile/auth/google-config`'s `platforms.ios`, returning the ID
+      token to JS for the same hand-off.
+    - Session persistence rides the secure-session plugin's Keychain
+      store (IOS-PLATFORM follow-up) — the auth plugin returns tokens;
+      it does not grow its own storage.
+- Entitlements/config: the Sign in with Apple entitlement on the App
+  target; URL scheme for the iOS Google client in `Info.plist`.
+- Estimated shape: one npm package (`ios/` Swift sources + a JS/TS
+  wrapper mirroring `mobile/runtime.js`'s plugin registration), ~2
+  classes of Swift plus the runtime bridge section — comparable to the
+  Android plugin set it mirrors, plus App Store review surface for the
+  Apple capability.
+
+**Acceptance test it will need (named gap, per the program testing
+law):** real Apple/Google ID-token verification is impossible in
+GitHub Actions (no Apple ID / Google account can complete a native
+consent on a runner, and Apple's token endpoint is unreachable with
+fixture keys). The closest automated proxies, in order: (1) the
+server half is already fixture-proven in CI (this slice); (2) an
+IOS-SMOKE-style simulator lane that boots the packaged app, invokes
+each plugin, and asserts the ASAuthorization / Google consent surface
+actually presents (presentation is assertable headlessly; completion
+is not); (3) the completion leg is a real-device gate — Dani's iPhone
+via TestFlight, one Apple sign-in + one Google sign-in + one Apple
+link from Settings, recorded as device evidence before the build is
+called done. Silence is not an option: until (3) runs, the native
+flow's state is "server-proven, device-unproven".
 
 ## What Actions cannot exercise here
 

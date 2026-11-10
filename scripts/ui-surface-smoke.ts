@@ -413,6 +413,47 @@ if (!appOverridesSource.includes(".recipes-view .recipe-panel")) {
     throw new Error("Recipes fusion styles are missing from app-overrides.css");
 }
 
+// S6 slice 6 (Groceries fusion): the list renders inside the shared
+// .operate-view Editorial Serif scope grouped by source, the checkbox
+// is the 44px tap target, and both destructive flows (remove item,
+// clear purchased) use slice 1's inline confirmation — never the
+// native confirm. The surface carries no ad markup (the app's only
+// ad slot is on Today — final ad law).
+for (const pin of [
+    "operate-view groceries-view",
+    "confirm-remove-grocery",
+    "confirm-clear-purchased",
+    "dismiss-grocery-confirm",
+    "grocery-item-row",
+    "grocery-check-input",
+    "groceryItemGroup",
+]) {
+    if (!appSource.includes(pin)) {
+        throw new Error(`Groceries fusion is missing its pin: ${pin}`);
+    }
+}
+for (const stale of [
+    'confirm("Remove this grocery item from the list?")',
+    'confirm("Remove all purchased items from this list?")',
+]) {
+    if (appSource.includes(stale)) {
+        throw new Error(
+            `Groceries still gates a destructive flow on the native confirm(): ${stale}`,
+        );
+    }
+}
+for (const pin of [
+    ".groceries-view .grocery-item-row",
+    ".groceries-view .grocery-check-input",
+    ".grocery-inline-confirm",
+]) {
+    if (!appOverridesSource.includes(pin)) {
+        throw new Error(
+            `Groceries fusion styles are missing from app-overrides.css: ${pin}`,
+        );
+    }
+}
+
 // S6 slice 5 (Cooks fusion): the list renders inside the shared
 // .operate-view Editorial Serif scope, delete + finish use slice 1's
 // inline confirmation (never the native confirm), and the surface
@@ -548,6 +589,60 @@ if (accountModule.includes("Advanced account controls")) {
     throw new Error(
         "Unified settings still exposes the legacy advanced account UX",
     );
+}
+
+// S6 slice 9 (Settings fusion): the Settings routes render inside
+// the shared .operate-view scope plus .settings-view, the Sign-in
+// methods section (Amendment I) consumes PR #207's backend, and this
+// surface's destructive flows (connection revoke, sign-in method
+// unlink, account deletion, goal-change commit) use slice 1's inline
+// confirmation — never the native confirm. (Household's confirm()
+// calls live in the same module but belong to slice 8's surface and
+// are deliberately not pinned here.)
+for (const pin of [
+    "operate-view settings-view",
+    "Sign-in methods",
+    "/api/app/sign-in-methods",
+    "sign-in-method-link",
+    "sign-in-method-unlink",
+    "confirm-sign-in-method-unlink",
+    "confirm-connection-revoke",
+    "confirm-account-delete",
+    "dismiss-settings-confirm",
+    "showSettingsInlineConfirm",
+    "billing-apple-manage",
+]) {
+    if (!accountModule.includes(pin)) {
+        throw new Error(`Settings fusion is missing its pin: ${pin}`);
+    }
+}
+for (const stale of [
+    "if (!confirm(`Revoke ${name}?`))",
+    '!confirm(\n                "Permanently delete your Munch account and personal data? This cannot be undone."',
+]) {
+    if (accountModule.includes(stale)) {
+        throw new Error(
+            `Settings still gates a destructive flow on the native confirm(): ${stale}`,
+        );
+    }
+}
+if (
+    appSource.includes(
+        'confirm("Confirm and save these exact target changes?")',
+    )
+) {
+    throw new Error(
+        "Goal-change commit still gates on the native confirm() dialog",
+    );
+}
+for (const pin of [
+    ".settings-view .settings-group",
+    ".settings-view .sign-in-method-row",
+    ".settings-inline-confirm",
+]) {
+    if (!appOverridesSource.includes(pin)) {
+        throw new Error(`Settings fusion styles are missing: ${pin}`);
+    }
 }
 
 const accountCss = await Bun.file("public/account-settings.css").text();

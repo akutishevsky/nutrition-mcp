@@ -1663,10 +1663,10 @@ export const IOS_CHANNEL_NATIVE_GAPS = [
     {
         id: "ios.native.googleSignIn",
         summary:
-            "No iOS counterpart of the Android MunchGoogleSignIn plugin (Credential Manager) exists, and Sign in with Apple is not wired yet; magic-link sign-in is the iOS path today. No manifest row is a sign-in outcome, so no row verdict changes, but packaged-app Google/Apple sign-in is not available on iOS.",
-        owner: "IOS-AUTH (Amendment H auth parity)",
+            "Server side is wired (IOS-AUTH): the Better Auth Apple provider is registered from the MUNCH_APPLE_* env set with both ID-token audiences (Services ID for web, bundle ID for the packaged app), and the Google provider accepts the iOS client ID as an ID-token audience alongside web/Android. What does not exist is the native half: no iOS counterpart of the Android MunchGoogleSignIn plugin (Credential Manager) and no ASAuthorization plugin, so the packaged app cannot yet obtain or hand off an Apple/Google ID token; magic-link sign-in is the packaged iOS path today. No manifest row is a sign-in outcome, so no row verdict changes.",
+        owner: "IOS-AUTH follow-up — first-party iOS auth plugin package (native half); server wiring landed with IOS-AUTH",
         closestProxy:
-            "Web Google sign-in initiation is proven in CI (PR #198 smoke); the iOS native flow is exercised only when IOS-AUTH lands its plugin.",
+            "CI proves the server half end to end with fixture identifiers (Apple provider registration, generated client secret, initiation, Amendment I link flip; Google iOS audience in the provider + google-config). The native flow is exercisable only when the plugin package lands; its acceptance test is named in the IOS-AUTH PR body.",
     },
     {
         id: "ios.native.storeBilling",
