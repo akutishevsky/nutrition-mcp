@@ -386,9 +386,98 @@ function setActiveRoute(route) {
     document.title = `${title} — Munch`;
 }
 
-function metricCard(label, value, unit, target, primary = false) {
+function metricCard(label, value, unit, target, primary = false, detail = null) {
     const progress = percent(value, target);
-    return `<article class="summary-card ${primary ? "primary" : ""}"><span>${escapeHtml(label)}</span><strong>${number(value, 1)}${unit ? `<small>${escapeHtml(unit)}</small>` : ""}</strong><small>${target ? `${number(target, 1)} ${escapeHtml(unit)} target` : "No target set"}</small>${progress == null ? "" : `<div class="progress" aria-label="${progress}% of target"><span style="width:${progress}%"></span></div>`}</article>`;
+    const targetText = target
+        ? `${number(target, 1)} ${escapeHtml(unit)} target`
+        : "No target set";
+    if (!detail) {
+        return `<article class="summary-card ${primary ? "primary" : ""}"><span>${escapeHtml(label)}</span><strong>${number(value, 1)}${unit ? `<small>${escapeHtml(unit)}</small>` : ""}</strong><small>${targetText}</small>${progress == null ? "" : `<div class="progress" aria-label="${progress}% of target"><span style="width:${progress}%"></span></div>`}</article>`;
+    }
+    // UX fix wave F2: a totals card with a decomposition is a toggle —
+    // one tap expands the breakdown inline under the totals (Michael's
+    // ruling), a second tap collapses it. No navigation, no sheet.
+    // F9: on Today the target line links to Settings → Nutrition
+    // targets, the surface that owns the values it displays.
+    const targetLine = detail.targetLink
+        ? `<a class="metric-target-link" href="/app/settings/goals">${targetText}</a>`
+        : targetText;
+    return `<article class="summary-card ${primary ? "primary" : ""}"><button type="button" class="summary-card-toggle" data-action="toggle-metric-detail" aria-expanded="false" aria-controls="metric-detail-${detail.key}"><span>${escapeHtml(label)}</span><strong>${number(value, 1)}${unit ? `<small>${escapeHtml(unit)}</small>` : ""}</strong><span class="metric-chevron" aria-hidden="true">▾</span></button><small>${targetLine}</small>${progress == null ? "" : `<div class="progress" aria-label="${progress}% of target"><span style="width:${progress}%"></span></div>`}<div class="metric-detail" id="metric-detail-${detail.key}" hidden>${detail.body}</div></article>`;
+}
+
+function metricDetailRow(label, valueText) {
+    return `<div class="metric-detail-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(valueText)}</strong></div>`;
+}
+
+// The decomposition behind a meal-based total (F2): every meal's
+// contribution, so the aggregate visibly adds up. Multi-day ranges
+// group by day — a per-meal list for a 90-day total would bury the
+// math it exists to show.
+function mealMetricDetail(meals, field, unit, { groupByDay = false } = {}) {
+    const list = meals || [];
+    if (!list.length)
+        return `<p class="metric-detail-empty">No meals logged for this period.</p>`;
+    const digits = field === "calories" ? 0 : 1;
+    const format = (value) => `${number(value || 0, digits)}${unit}`;
+    let total = 0;
+    let rows = "";
+    if (groupByDay) {
+        const byDay = new Map();
+        for (const meal of list) {
+            const day = String(meal.logged_at || "").slice(0, 10);
+            byDay.set(day, (byDay.get(day) || 0) + (meal[field] || 0));
+            total += meal[field] || 0;
+        }
+        rows = [...byDay.entries()]
+            .sort(([a], [b]) => (a < b ? -1 : 1))
+            .map(([day, value]) => metricDetailRow(formatDate(day), format(value)))
+            .join("");
+    } else {
+        rows = list
+            .map((meal) => {
+                total += meal[field] || 0;
+                return metricDetailRow(
+                    `${formatTime(meal.logged_at)} · ${meal.description || "Untitled meal"}`,
+                    format(meal[field]),
+                );
+            })
+            .join("");
+    }
+    return `${rows}<div class="metric-detail-row metric-detail-total"><span>Total</span><strong>${escapeHtml(format(total))}</strong></div>`;
+}
+
+// F8 via F2: the Water card's decomposition carries the day's entries
+// and the Add water action, so both live one tap from the top of
+// Today instead of below the entire Meals list.
+function waterMetricDetail(entries) {
+    const rows = [...(entries || [])]
+        .reverse()
+        .map((entry) =>
+            metricDetailRow(
+                `${formatTime(entry.logged_at ?? entry.loggedAt)}${entry.notes ? ` · ${entry.notes}` : ""}`,
+                `${number(entry.amount_ml ?? entry.amountMl)} ml`,
+            ),
+        )
+        .join("");
+    return `${rows || `<p class="metric-detail-empty">No water entries yet today.</p>`}<div class="auth-actions metric-detail-actions"><button class="button button-secondary button-small" type="button" data-action="add-water">Add water</button></div>`;
+}
+
+function weightMetricDetail(entries, unit) {
+    const rows = [...(entries || [])]
+        .reverse()
+        .map((entry) => {
+            const value =
+                entry.value ??
+                (entry.weight_g == null
+                    ? null
+                    : weightFromGrams(entry.weight_g, unit));
+            return metricDetailRow(
+                `${formatTime(entry.logged_at ?? entry.loggedAt)}${entry.notes ? ` · ${entry.notes}` : ""}`,
+                value == null ? "—" : `${number(value, 1)} ${unit}`,
+            );
+        })
+        .join("");
+    return `${rows || `<p class="metric-detail-empty">No weight entries yet today.</p>`}<div class="auth-actions metric-detail-actions"><button class="button button-secondary button-small" type="button" data-action="add-weight">Add weight</button></div>`;
 }
 
 function mealItems(items) {
@@ -526,7 +615,7 @@ async function renderToday() {
     // heading → day totals → Today's guidance → the single ad slot →
     // Meals / Daily details. The ad slot markup is empty unless the
     // ADS-FOUNDATION flag is on for a free packaged account.
-    content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><p>Your structured nutrition record for this day.</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", goals.daily_calories, true)}${metricCard("Protein", data.totals.proteinG, "g", goals.daily_protein_g)}${metricCard("Carbohydrates", data.totals.carbsG, "g", goals.daily_carbs_g)}${metricCard("Fat", data.totals.fatG, "g", goals.daily_fat_g)}</div></section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml)}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null)}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span></div>`).join("")}` : ""}</aside></div></div>`;
+    content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><p>Your structured nutrition record for this day.</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", goals.daily_calories, true, { key: "today-calories", targetLink: true, body: mealMetricDetail(data.meals, "calories", " kcal") })}${metricCard("Protein", data.totals.proteinG, "g", goals.daily_protein_g, false, { key: "today-protein", targetLink: true, body: mealMetricDetail(data.meals, "protein_g", "g") })}${metricCard("Carbohydrates", data.totals.carbsG, "g", goals.daily_carbs_g, false, { key: "today-carbs", targetLink: true, body: mealMetricDetail(data.meals, "carbs_g", "g") })}${metricCard("Fat", data.totals.fatG, "g", goals.daily_fat_g, false, { key: "today-fat", targetLink: true, body: mealMetricDetail(data.meals, "fat_g", "g") })}</div></section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml, false, { key: "today-water", targetLink: true, body: waterMetricDetail(data.water.entries) })}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null, false, { key: "today-weight", body: weightMetricDetail(data.weight, weightUnit) })}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span></div>`).join("")}` : ""}</aside></div></div>`;
 }
 
 function mealSearchSummary(search) {
@@ -559,7 +648,7 @@ async function renderLog() {
     const resultText = query
         ? `${number(data.meals.length)} matching meal${data.meals.length === 1 ? "" : "s"} from ${escapeHtml(formatDate(start))} through ${escapeHtml(formatDate(state.date))}.`
         : `Review meals, item-level provenance, notes, and totals from ${escapeHtml(formatDate(start))} through ${escapeHtml(formatDate(state.date))}.`;
-    content.innerHTML = `<div class="operate-view log-view"><div class="page-heading"><div><h2>${escapeHtml(heading)}</h2><p>${resultText}</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="manage-saved-foods">Saved foods</button><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><form id="meal-history-search-form" class="meal-composer-search-row"><label class="field" style="flex:1"><span>Search meal history</span><input class="input" id="meal-history-search" name="query" type="search" value="${escapeHtml(query)}" placeholder="Search chicken, peanut butter, restaurant…" autocomplete="off" /></label><div class="auth-actions"><button class="button button-primary button-small" type="submit">Search</button>${query ? '<button class="button button-quiet button-small" type="button" data-action="clear-meal-search">Clear</button>' : ""}</div></form><div class="auth-actions spacer-top log-range-row" role="group" aria-label="History range">${rangeButtons}</div></section><section class="panel spacer-top"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", null, true)}${metricCard("Protein", data.totals.proteinG, "g", null)}${metricCard("Carbohydrates", data.totals.carbsG, "g", null)}${metricCard("Fat", data.totals.fatG, "g", null)}</div></section>${mealSearchSummary(data.search)}<div class="spacer-top">${data.meals.length ? groupedMeals(data.meals) : `<div class="empty-state"><div><h3>${query ? "No matching meals" : "No meals logged"}</h3><p>${query ? "Try another keyword or expand the date range." : "Log a meal to build your history."}</p></div></div>`}</div></div>`;
+    content.innerHTML = `<div class="operate-view log-view"><div class="page-heading"><div><h2>${escapeHtml(heading)}</h2><p>${resultText}</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="manage-saved-foods">Saved foods</button><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><form id="meal-history-search-form" class="meal-composer-search-row"><label class="field" style="flex:1"><span>Search meal history</span><input class="input" id="meal-history-search" name="query" type="search" value="${escapeHtml(query)}" placeholder="Search chicken, peanut butter, restaurant…" autocomplete="off" /></label><div class="auth-actions"><button class="button button-primary button-small" type="submit">Search</button>${query ? '<button class="button button-quiet button-small" type="button" data-action="clear-meal-search">Clear</button>' : ""}</div></form><div class="auth-actions spacer-top log-range-row" role="group" aria-label="History range">${rangeButtons}</div></section><section class="panel spacer-top"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", null, true, { key: "log-calories", body: mealMetricDetail(data.meals, "calories", " kcal", { groupByDay: historyDays > 1 }) })}${metricCard("Protein", data.totals.proteinG, "g", null, false, { key: "log-protein", body: mealMetricDetail(data.meals, "protein_g", "g", { groupByDay: historyDays > 1 }) })}${metricCard("Carbohydrates", data.totals.carbsG, "g", null, false, { key: "log-carbs", body: mealMetricDetail(data.meals, "carbs_g", "g", { groupByDay: historyDays > 1 }) })}${metricCard("Fat", data.totals.fatG, "g", null, false, { key: "log-fat", body: mealMetricDetail(data.meals, "fat_g", "g", { groupByDay: historyDays > 1 }) })}</div></section>${mealSearchSummary(data.search)}<div class="spacer-top">${data.meals.length ? groupedMeals(data.meals) : `<div class="empty-state"><div><h3>${query ? "No matching meals" : "No meals logged"}</h3><p>${query ? "Try another keyword or expand the date range." : "Log a meal to build your history."}</p></div></div>`}</div></div>`;
 }
 
 function savedFoodListMarkup(foods) {
@@ -3669,6 +3758,18 @@ async function handleAction(button) {
     if (await handleAccountAction(button, accountContext())) return;
     if (action === "close-dialog") {
         dialog.close();
+        return;
+    }
+    if (action === "toggle-metric-detail") {
+        // UX fix wave F2: expand/collapse the totals card's inline
+        // decomposition. Pure disclosure — no fetch, no navigation.
+        const card = button.closest(".summary-card");
+        const panel = card?.querySelector(".metric-detail");
+        if (!panel) return;
+        const expanded = button.getAttribute("aria-expanded") === "true";
+        button.setAttribute("aria-expanded", String(!expanded));
+        panel.hidden = expanded;
+        card.classList.toggle("is-expanded", !expanded);
         return;
     }
     if (action === "chat-new") return startNewChat();

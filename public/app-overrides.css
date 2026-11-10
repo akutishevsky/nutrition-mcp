@@ -1324,6 +1324,118 @@ dialog .field > span {
     background: #176b3a;
 }
 
+/* UX fix wave F2/F8/F9: a totals card with a decomposition is a
+   toggle — the label + value row is the tap target (≥44px), the
+   breakdown expands inline under the totals, and on Today the
+   target line links to the Nutrition targets settings that own it.
+   The toggle row reproduces the plain card's geometry exactly:
+   label left, value right, target line after it. */
+.operate-view .summary-card-toggle {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-height: 44px;
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.operate-view .summary-card-toggle > span:first-child {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #5d5344;
+    flex: 0 0 auto;
+}
+
+.operate-view .summary-card-toggle > strong {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: #2b2620;
+    margin-left: auto;
+}
+
+.operate-view .summary-card.primary .summary-card-toggle > strong {
+    font-size: 36px;
+}
+
+.operate-view .metric-chevron {
+    font-size: 11px;
+    color: #5d5344;
+    transition: transform 160ms ease;
+}
+
+.operate-view .summary-card.is-expanded .metric-chevron {
+    transform: rotate(180deg);
+}
+
+.operate-view .metric-detail {
+    flex: 1 1 100%;
+    padding: 2px 0 6px;
+}
+
+.metric-detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 3px 0;
+    font-size: 13.5px;
+    color: #2b2620;
+}
+
+.metric-detail-row > strong {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.metric-detail-total {
+    border-top: 1px solid #d8cdb6;
+    margin-top: 2px;
+    padding-top: 5px;
+}
+
+.metric-detail-empty {
+    font-size: 13px;
+    color: #5d5344;
+    padding: 3px 0;
+}
+
+.metric-detail-actions {
+    padding-top: 6px;
+}
+
+a.metric-target-link {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* Food Log folds its totals 2x2 (see .log-view .summary-grid below);
+   the toggle keeps that fold: label on its own line, value under
+   it, chevron trailing the value. */
+.log-view .summary-card-toggle {
+    flex-wrap: wrap;
+    row-gap: 0;
+}
+
+.log-view .summary-card-toggle > span:first-child {
+    flex: 1 1 100%;
+    font-size: 11px;
+}
+
+.log-view .summary-card-toggle > strong {
+    font-size: 22px;
+    margin-left: 0;
+}
+
 /* Daily details keeps its two-up Water/Weight cards (inline grid)
    readable at the same rule grammar via the rules above. */
 
