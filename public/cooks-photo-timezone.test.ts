@@ -42,7 +42,9 @@ test("cook details expose original photo and submit the cook timezone", () => {
         },
     };
     const html = runInNewContext(
-        fn("cookDetailMarkup") + "; cookDetailMarkup(detail)",
+        fn("cookDetailActionsMarkup") +
+            fn("cookDetailMarkup") +
+            "; cookDetailMarkup(detail)",
         context,
     );
     expect(html).toContain('aria-label="Open original cook photo"');

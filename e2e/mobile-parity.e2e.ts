@@ -73,6 +73,111 @@ let pendingDraftOnToday = false;
 let adsFlagOn = false;
 /** S6 slice 4: the fixture salmon recipe, removed by an archive. */
 let recipeArchived = false;
+/** S6 slice 5: the fixture active cook, finished / deleted in tests. */
+let cookFinished = false;
+let cookDeleted = false;
+
+const COOK_FIXTURES = [
+    {
+        id: "fixture-chicken-rice",
+        title: "Weeknight Chicken & Rice",
+        cook_date: "2026-11-09",
+        status: "active",
+        source_cook_id: null,
+        notes: "",
+        latest_photo_url: null,
+        photo_count: 0,
+    },
+    {
+        id: "fixture-salmon-cook",
+        title: "Sheet-Pan Salmon & Broccoli",
+        cook_date: "2026-11-08",
+        status: "finished",
+        source_cook_id: null,
+        notes: "",
+        latest_photo_url: null,
+        photo_count: 2,
+    },
+    {
+        id: "fixture-wings",
+        title: "Smoked Lemon Pepper Wings",
+        cook_date: "2026-11-07",
+        status: "finished",
+        source_cook_id: null,
+        notes: "",
+        latest_photo_url: null,
+        photo_count: 3,
+    },
+    {
+        id: "fixture-chili",
+        title: "Turkey Chili",
+        cook_date: "2026-11-04",
+        status: "finished",
+        source_cook_id: "fixture-earlier-chili",
+        notes: "",
+        latest_photo_url: null,
+        photo_count: 1,
+    },
+];
+
+function cookDetailFixture() {
+    return {
+        cook: {
+            id: "fixture-chicken-rice",
+            title: "Weeknight Chicken & Rice",
+            status: cookFinished ? "finished" : "active",
+            cook_date: "2026-11-09",
+            timezone: "UTC",
+            version: 1,
+            notes: "",
+            original_message:
+                "I'm starting this chicken and rice. I heated the skillet a couple minutes ago.",
+            source_cook_id: null,
+        },
+        dishes: [
+            {
+                id: "fixture-dish-1",
+                name: "Chicken & Rice",
+                method: "Stovetop",
+                flavor: "Garlic & herb",
+                equipment: "Skillet",
+                ingredient_or_cut: "Chicken thighs",
+                recipe_id: null,
+                recipe_revision_id: null,
+            },
+        ],
+        media: [],
+        events: [
+            {
+                id: "fixture-event-1",
+                event_type: "food_on",
+                event_at: "2026-11-09T17:48:00.000Z",
+                submitted_at: "2026-11-09T17:50:00.000Z",
+                time_precision: "approximate",
+                note: "Chicken went into the hot skillet.",
+                original_message:
+                    "I'm starting this chicken and rice. I heated the skillet a couple minutes ago.",
+                relative_phrase: "a couple minutes ago",
+                setpoint_temperature: null,
+                setpoint_unit: null,
+                ambient_temperature: null,
+                ambient_unit: null,
+                internal_temperature: null,
+                internal_unit: null,
+            },
+        ],
+        outcomes: [],
+        updates: [
+            {
+                submitted_at: "2026-11-09T17:50:00.000Z",
+                source: "web",
+                raw_message:
+                    "I'm starting this chicken and rice. I heated the skillet a couple minutes ago.",
+                media_status: "saved",
+            },
+        ],
+    };
+}
 
 const RECIPE_FIXTURES = [
     {
@@ -388,7 +493,26 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
     if (pathname === "/api/app/groceries") {
         return { groceries: [], permissions: {} };
     }
-    if (pathname === "/api/app/cooks") return { cooks: [] };
+    if (pathname === "/api/app/cooks") {
+        const cooks = COOK_FIXTURES.filter(
+            (cook) => !(cookDeleted && cook.id === "fixture-chicken-rice"),
+        ).map((cook) =>
+            cookFinished && cook.id === "fixture-chicken-rice"
+                ? { ...cook, status: "finished" }
+                : cook,
+        );
+        return { cooks };
+    }
+    if (pathname === "/api/app/cooks/fixture-chicken-rice") {
+        return cookDetailFixture();
+    }
+    if (
+        pathname === "/api/app/cooks/fixture-chicken-rice/finish" &&
+        method === "POST"
+    ) {
+        cookFinished = true;
+        return {};
+    }
     if (pathname === "/api/app/insights") {
         return {
             vitals: { water: { entries: [] }, weight: { entries: [] } },
@@ -503,6 +627,15 @@ test.beforeAll(async () => {
                 url.pathname.startsWith("/api/app/recipes/")
             ) {
                 recipeArchived = true;
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end("{}");
+                return;
+            }
+            if (
+                method === "DELETE" &&
+                url.pathname.startsWith("/api/app/cooks/")
+            ) {
+                cookDeleted = true;
                 response.writeHead(200, { "content-type": "application/json" });
                 response.end("{}");
                 return;
@@ -676,6 +809,8 @@ test.beforeEach(() => {
     pendingDraftOnToday = false;
     adsFlagOn = false;
     recipeArchived = false;
+    cookFinished = false;
+    cookDeleted = false;
     connectionsFixture = [
         {
             clientName: "Fixture MCP Client",
@@ -1206,5 +1341,154 @@ test("S6 slice 4 regression: Archive recipe uses inline confirmation with no nat
     await expect(page.locator("#app-dialog")).not.toHaveAttribute("open");
     await expect(page.locator(".recipe-panel")).toHaveCount(3);
     await expect(salmonPanel).toHaveCount(0);
+    expect(nativeDialogs).toEqual([]);
+});
+
+test("S6 slice 5: Cooks list renders themed panels with row actions and no ad slot", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/cooks");
+
+    // The fused list: one themed panel per fixture cook (the tightened
+    // mock's four cooks), the active cook leading, each panel carrying
+    // Open + Finish/Reopen + the Compare toggle on its action row.
+    const panels = page.locator(".cook-panel");
+    await expect(panels).toHaveCount(4);
+    const activePanel = page.locator(
+        '.cook-panel[data-cook-id="fixture-chicken-rice"]',
+    );
+    await expect(activePanel).toContainText("Weeknight Chicken & Rice");
+    await expect(activePanel).toContainText("Active");
+    await expect(
+        activePanel.locator('[data-action="open-cook"]'),
+    ).toBeVisible();
+    await expect(
+        activePanel.locator('[data-action="finish-cook"]'),
+    ).toBeVisible();
+    await expect(activePanel.locator("[data-cook-select]")).toBeVisible();
+    const chiliPanel = page.locator(
+        '.cook-panel[data-cook-id="fixture-chili"]',
+    );
+    await expect(chiliPanel).toContainText("based on an earlier attempt");
+    await expect(
+        chiliPanel.locator('[data-action="reopen-cook"]'),
+    ).toBeVisible();
+
+    // No ad slot on Cooks — not with the flag off, and not with it on
+    // either (the app's only slot is on Today). The native banner is
+    // never asked to show here.
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    adsFlagOn = true;
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await gotoRoute(page, "/app/cooks");
+    await expect(panels).toHaveCount(4);
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    const adCalls = await page.evaluate(
+        () => (window as unknown as { __adCalls?: unknown[] }).__adCalls ?? [],
+    );
+    const lastCall = adCalls[adCalls.length - 1] as { visible?: boolean };
+    expect(lastCall.visible).toBe(false);
+
+    // The active cook opens into the themed detail: dishes, timeline,
+    // and the NL update form all render inside the shared frame.
+    await activePanel.locator('[data-action="open-cook"]').click();
+    await expect(page.locator("#app-dialog")).toContainText("Chicken & Rice");
+    await expect(page.locator("#app-dialog")).toContainText(
+        "Chicken went into the hot skillet.",
+    );
+    await expect(page.locator("#cook-update-form")).toBeVisible();
+});
+
+test("S6 slice 5 regression: Finish and Delete cooks use inline confirmation with no native confirm", async ({
+    page,
+}) => {
+    // Same defect family as slice 1's Abandon fix: the native
+    // window.confirm() silently no-ops wherever that dialog is
+    // dismissed or never answered. Delete gated on it; Finish now
+    // follows the same inline pattern. This test records AND dismisses
+    // every native dialog: both flows must complete entirely through
+    // in-page UI, so on the old code they fail twice over.
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/cooks");
+
+    // Finish, from the list card: first click only asks, in place.
+    const activePanel = page.locator(
+        '.cook-panel[data-cook-id="fixture-chicken-rice"]',
+    );
+    const finish = activePanel.locator('[data-action="finish-cook"]');
+    await finish.click();
+    const confirmFinish = activePanel.locator(
+        '[data-action="confirm-finish-cook"]',
+    );
+    await expect(confirmFinish).toBeVisible();
+    await expect(
+        page.getByText("Finish this cook? You can reopen it later."),
+    ).toBeVisible();
+    expect(
+        observedRequest("POST", "/api/app/cooks/fixture-chicken-rice/finish"),
+    ).toBe(false);
+    expect(nativeDialogs).toEqual([]);
+
+    // "Keep cooking" restores the card actions without any request.
+    await activePanel.locator('[data-action="dismiss-cook-confirm"]').click();
+    await expect(finish).toBeVisible();
+    expect(
+        observedRequest("POST", "/api/app/cooks/fixture-chicken-rice/finish"),
+    ).toBe(false);
+
+    // Confirming finishes: the POST lands, the toast shows, and the
+    // card re-renders as a finished cook.
+    await finish.click();
+    await confirmFinish.click();
+    await expect(page.locator("#toast-region")).toContainText("Cook finished.");
+    expect(
+        observedRequest("POST", "/api/app/cooks/fixture-chicken-rice/finish"),
+    ).toBe(true);
+    await expect(
+        activePanel.locator('[data-action="reopen-cook"]'),
+    ).toBeVisible();
+
+    // Delete, from the cook detail: first click only asks, in place.
+    await activePanel.locator('[data-action="open-cook"]').click();
+    await expect(page.locator("#app-dialog")).toContainText("Timeline");
+    const deleteButton = page.locator('[data-action="delete-cook"]');
+    await deleteButton.click();
+    const confirmDelete = page.locator('[data-action="confirm-delete-cook"]');
+    await expect(confirmDelete).toBeVisible();
+    await expect(
+        page.getByText(
+            "Delete this cook, its timeline, results, and saved photos? This cannot be undone.",
+        ),
+    ).toBeVisible();
+    expect(
+        observedRequest("DELETE", "/api/app/cooks/fixture-chicken-rice"),
+    ).toBe(false);
+    expect(nativeDialogs).toEqual([]);
+
+    // "Keep cook" restores the detail actions without any request.
+    await page.locator('[data-action="dismiss-cook-confirm"]').click();
+    await expect(deleteButton).toBeVisible();
+    expect(
+        observedRequest("DELETE", "/api/app/cooks/fixture-chicken-rice"),
+    ).toBe(false);
+
+    // Confirming deletes: the DELETE lands, the dialog closes, the
+    // toast shows, and the list re-renders without the cook.
+    await deleteButton.click();
+    await confirmDelete.click();
+    await expect(page.locator("#toast-region")).toContainText("Cook deleted.");
+    expect(
+        observedRequest("DELETE", "/api/app/cooks/fixture-chicken-rice"),
+    ).toBe(true);
+    await expect(page.locator("#app-dialog")).not.toHaveAttribute("open");
+    await expect(page.locator(".cook-panel")).toHaveCount(3);
+    await expect(activePanel).toHaveCount(0);
     expect(nativeDialogs).toEqual([]);
 });

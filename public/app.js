@@ -1531,6 +1531,46 @@ async function renderGroceries() {
     content.innerHTML = `<div class="page-heading"><div><h2>Groceries</h2><p>Explicit shopping lists only. Munch does not infer pantry inventory.</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="shopping-mode">Shopping mode</button></div></div><div class="dashboard-grid">${lists}</div>`;
 }
 
+function cookCardActionsMarkup(cook) {
+    const statusAction =
+        cook.status === "active"
+            ? '<button class="button button-secondary button-small" type="button" data-action="finish-cook" data-id="' +
+              escapeHtml(cook.id) +
+              '">Finish</button>'
+            : '<button class="button button-secondary button-small" type="button" data-action="reopen-cook" data-id="' +
+              escapeHtml(cook.id) +
+              '">Reopen</button>';
+    return (
+        '<button class="button button-primary button-small" type="button" data-action="open-cook" data-id="' +
+        escapeHtml(cook.id) +
+        '">Open cook</button>' +
+        statusAction
+    );
+}
+
+function cookDetailActionsMarkup(cook) {
+    const lifecycle =
+        cook.status === "active"
+            ? '<button class="button button-secondary button-small" type="button" data-action="finish-cook" data-id="' +
+              escapeHtml(cook.id) +
+              '">Finish</button>'
+            : '<button class="button button-secondary button-small" type="button" data-action="reopen-cook" data-id="' +
+              escapeHtml(cook.id) +
+              '">Reopen</button>';
+    return (
+        '<button class="button button-secondary button-small" type="button" data-action="edit-cook" data-id="' +
+        escapeHtml(cook.id) +
+        '">Edit details</button>' +
+        lifecycle +
+        '<button class="button button-quiet button-small" type="button" data-action="repeat-cook" data-id="' +
+        escapeHtml(cook.id) +
+        '">Cook again</button>' +
+        '<button class="button button-quiet button-small" type="button" data-action="delete-cook" data-id="' +
+        escapeHtml(cook.id) +
+        '">Delete</button>'
+    );
+}
+
 function cookSummaryCard(cook) {
     const photo = cook.latest_photo_url
         ? '<img class="cook-card-photo" src="' +
@@ -1538,20 +1578,18 @@ function cookSummaryCard(cook) {
           '" alt="Saved photo from ' +
           escapeHtml(cook.title) +
           '" loading="lazy" />'
-        : '<div class="cook-card-photo cook-card-photo-empty" aria-hidden="true">♨</div>';
+        : "";
     const sourceNote = cook.source_cook_id
         ? " · based on an earlier attempt"
         : "";
-    const statusAction =
-        cook.status === "active"
-            ? '<button class="button button-quiet button-small" type="button" data-action="finish-cook" data-id="' +
-              escapeHtml(cook.id) +
-              '">Finish</button>'
-            : '<button class="button button-quiet button-small" type="button" data-action="reopen-cook" data-id="' +
-              escapeHtml(cook.id) +
-              '">Reopen</button>';
-    const note = cook.notes ? " · " + escapeHtml(cook.notes) : "";
-    return `<article class="cook-card" data-cook-id="${escapeHtml(cook.id)}"><div class="cook-card-main">${photo}<div class="cook-card-copy"><div class="cook-card-head"><div><h3>${escapeHtml(cook.title)}</h3><p class="tiny">${escapeHtml(formatDate(cook.cook_date, { year: true }))} · ${escapeHtml(cook.status)}${sourceNote}</p></div><label class="cook-select"><input type="checkbox" data-cook-select="${escapeHtml(cook.id)}" aria-label="Select ${escapeHtml(cook.title)} for comparison" /> Compare</label></div><p class="cook-card-meta">${number(cook.photo_count)} saved photo${Number(cook.photo_count) === 1 ? "" : "s"}${note}</p><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="open-cook" data-id="${escapeHtml(cook.id)}">Open cook</button>${statusAction}</div></div></div></article>`;
+    const meta =
+        escapeHtml(formatDate(cook.cook_date, { year: true })) +
+        " · " +
+        number(cook.photo_count) +
+        " saved photo" +
+        (Number(cook.photo_count) === 1 ? "" : "s") +
+        sourceNote;
+    return `<article class="cook-card cook-panel" data-cook-id="${escapeHtml(cook.id)}"><div class="cook-card-main">${photo}<div class="cook-card-copy"><span class="cook-status">${cook.status === "active" ? "Active" : "Finished"}</span><h3 class="cook-title">${escapeHtml(cook.title)}</h3><p class="cook-card-meta">${meta}</p>${cook.notes ? '<p class="cook-notes">' + escapeHtml(cook.notes) + "</p>" : ""}</div></div><div class="cook-card-actions-row"><div class="auth-actions cook-actions" data-cook-actions data-context="card" data-id="${escapeHtml(cook.id)}" data-status="${escapeHtml(cook.status)}">${cookCardActionsMarkup(cook)}</div><label class="cook-select"><input type="checkbox" data-cook-select="${escapeHtml(cook.id)}" aria-label="Select ${escapeHtml(cook.title)} for comparison" /> Compare</label></div></article>`;
 }
 
 async function renderCooks() {
@@ -1571,18 +1609,30 @@ async function renderCooks() {
     const cooks = data.cooks || [];
     const active = cooks.filter((cook) => cook.status === "active");
     const finished = cooks.filter((cook) => cook.status !== "active");
+    const hasFilters = Boolean(
+        query ||
+        filters.dish ||
+        filters.method ||
+        filters.flavor ||
+        filters.dateFrom ||
+        filters.dateTo ||
+        filters.status !== "all",
+    );
     const activeMarkup = active.length
         ? '<section class="panel"><div class="panel-title"><div><h3>Active cooks</h3><span>Continue an in-progress session</span></div><span class="source-chip source-saved">Live</span></div><div class="cook-list">' +
           active.map(cookSummaryCard).join("") +
           "</div></section>"
         : "";
-    const historyMarkup =
-        finished.length || active.length
-            ? '<div class="cook-list">' +
-              finished.map(cookSummaryCard).join("") +
-              "</div>"
+    const historyMarkup = finished.length
+        ? '<div class="cook-list">' +
+          finished.map(cookSummaryCard).join("") +
+          "</div>"
+        : hasFilters
+          ? '<div class="empty-state"><div><h3>No matching cooks</h3><p>Try another keyword, or clear the search and filters.</p><button class="button button-secondary button-small spacer-top" type="button" data-action="clear-cook-search">Clear search</button></div></div>'
+          : active.length
+            ? '<p class="cook-none-line">No finished cooks yet.</p>'
             : '<div class="empty-state"><div><h3>No cooks yet</h3><p>Start before cooking, add a photo and message while cooking, or record a past attempt.</p><button class="button button-primary button-small spacer-top" type="button" data-action="new-cook">Start your first cook</button></div></div>';
-    content.innerHTML = `<div class="page-heading"><div><h2>Cooks</h2><p>Persistent cooking sessions with photos, timeline, results, and attempts—separate from food logging.</p></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="new-cook">Start cook</button><button class="button button-secondary button-small" type="button" data-action="compare-cooks">Compare selected</button></div></div><section class="panel cook-search-panel"><form id="cook-search-form" class="inline-form"><input class="input" name="query" type="search" value="${escapeHtml(state.cookQuery)}" placeholder="Search wings, notes, updates…" /><input class="input" name="dish" value="${escapeHtml(filters.dish)}" placeholder="Dish" /><input class="input" name="method" value="${escapeHtml(filters.method)}" placeholder="Method" /><input class="input" name="flavor" value="${escapeHtml(filters.flavor)}" placeholder="Flavor / seasoning" /><label class="tiny">From <input name="date_from" type="date" value="${escapeHtml(filters.dateFrom)}" /></label><label class="tiny">To <input name="date_to" type="date" value="${escapeHtml(filters.dateTo)}" /></label><select name="status" aria-label="Cook status"><option value="all" ${filters.status === "all" ? "selected" : ""}>All statuses</option><option value="active" ${filters.status === "active" ? "selected" : ""}>Active</option><option value="finished" ${filters.status === "finished" ? "selected" : ""}>Finished</option></select><button class="button button-secondary button-small" type="submit">Search history</button></form><p class="tiny">Searches cook history directly, including original updates, timeline notes, results, dish labels, seasoning, method, and date.</p></section>${activeMarkup}<section class="panel"><div class="panel-title"><div><h3>${query || filters.dish || filters.method || filters.flavor || filters.dateFrom || filters.dateTo ? "Matching history" : "Recent history"}</h3><span>${cooks.length} cook${cooks.length === 1 ? "" : "s"}</span></div></div>${historyMarkup}</section>`;
+    content.innerHTML = `<div class="operate-view cooks-view"><div class="page-heading"><div><h2>Cooks</h2><p>Persistent cooking sessions with photos, timeline, results, and attempts—separate from food logging.</p></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="new-cook">Start cook</button><button class="button button-secondary button-small" type="button" data-action="compare-cooks">Compare selected</button></div></div><section class="panel cook-search-panel"><form id="cook-search-form" class="cook-search-form"><div class="cook-search-row"><label class="field cook-search-query"><span>Search history</span><input class="input" name="query" type="search" value="${escapeHtml(state.cookQuery)}" placeholder="Search wings, notes, updates…" autocomplete="off" /></label><button class="button button-primary button-small" type="submit">Search history</button></div><details class="cook-filters"${hasFilters ? " open" : ""}><summary>Filters${[filters.dish, filters.method, filters.flavor, filters.dateFrom, filters.dateTo].filter(Boolean).length + (filters.status !== "all" ? 1 : 0) ? ` · ${[filters.dish, filters.method, filters.flavor, filters.dateFrom, filters.dateTo].filter(Boolean).length + (filters.status !== "all" ? 1 : 0)} set` : ""}</summary><div class="cook-filter-grid"><label class="field"><span>Dish</span><input class="input" name="dish" value="${escapeHtml(filters.dish)}" placeholder="Dish" /></label><label class="field"><span>Method</span><input class="input" name="method" value="${escapeHtml(filters.method)}" placeholder="Method" /></label><label class="field"><span>Flavor / seasoning</span><input class="input" name="flavor" value="${escapeHtml(filters.flavor)}" placeholder="Flavor / seasoning" /></label><label class="field"><span>Status</span><select name="status" aria-label="Cook status"><option value="all" ${filters.status === "all" ? "selected" : ""}>All statuses</option><option value="active" ${filters.status === "active" ? "selected" : ""}>Active</option><option value="finished" ${filters.status === "finished" ? "selected" : ""}>Finished</option></select></label><label class="field"><span>From</span><input class="input" name="date_from" type="date" value="${escapeHtml(filters.dateFrom)}" /></label><label class="field"><span>To</span><input class="input" name="date_to" type="date" value="${escapeHtml(filters.dateTo)}" /></label></div></details>${hasFilters ? '<div class="auth-actions cook-search-actions"><button class="button button-quiet button-small" type="button" data-action="clear-cook-search">Clear search</button></div>' : ""}<p class="tiny cook-search-note">Searches cook history directly, including original updates, timeline notes, results, dish labels, seasoning, method, and date.</p></form></section>${activeMarkup}<section class="panel"><div class="panel-title"><div><h3>${hasFilters ? "Matching history" : "Recent history"}</h3><span>${cooks.length} cook${cooks.length === 1 ? "" : "s"}</span></div></div>${historyMarkup}</section></div>`;
 }
 
 function cookDishFormMarkup() {
@@ -1676,7 +1726,7 @@ function cookDetailMarkup(detail) {
     const dishes = detail.dishes
         .map(
             (dish) =>
-                '<article class="cook-dish"><strong>' +
+                '<article class="cook-dish"><div class="cook-dish-main"><strong>' +
                 escapeHtml(dish.name) +
                 "</strong><span>" +
                 escapeHtml(
@@ -1690,6 +1740,12 @@ function cookDetailMarkup(detail) {
                         .join(" · ") || "No labels yet",
                 ) +
                 "</span>" +
+                (dish.recipe_id
+                    ? "<small>Linked recipe revision " +
+                      escapeHtml(dish.recipe_revision_id || "") +
+                      "</small>"
+                    : "") +
+                '</div><div class="auth-actions cook-dish-actions">' +
                 '<button class="button button-quiet button-small" type="button" data-action="edit-cook-dish" data-id="' +
                 escapeHtml(dish.id) +
                 '" data-cook-id="' +
@@ -1698,15 +1754,13 @@ function cookDetailMarkup(detail) {
                 escapeHtml(detail.cook.version) +
                 '">Edit dish</button>' +
                 (dish.recipe_id
-                    ? "<small>Linked recipe revision " +
-                      escapeHtml(dish.recipe_revision_id || "") +
-                      '</small><button class="button button-quiet button-small" type="button" data-action="log-cook-dish" data-id="' +
+                    ? '<button class="button button-quiet button-small" type="button" data-action="log-cook-dish" data-id="' +
                       escapeHtml(dish.recipe_id) +
                       '" data-revision="' +
                       escapeHtml(dish.recipe_revision_id || "") +
                       '">Log eaten portion</button>'
                     : "") +
-                "</article>",
+                "</div></article>",
         )
         .join("");
     const outcome =
@@ -1735,15 +1789,7 @@ function cookDetailMarkup(detail) {
               .join("") +
           "</details>"
         : "";
-    const lifecycle =
-        cook.status === "active"
-            ? '<button class="button button-secondary button-small" type="button" data-action="finish-cook" data-id="' +
-              escapeHtml(cook.id) +
-              '">Finish</button>'
-            : '<button class="button button-secondary button-small" type="button" data-action="reopen-cook" data-id="' +
-              escapeHtml(cook.id) +
-              '">Reopen</button>';
-    return `<div class="cook-detail-view"><div class="cook-detail-head"><div><p class="section-kicker">${escapeHtml(cook.status === "active" ? "Active cook" : "Completed cook")}</p><h2>${escapeHtml(cook.title)}</h2><p class="tiny">${escapeHtml(formatDate(cook.cook_date, { year: true }))} · ${escapeHtml(cook.timezone)} · version ${number(cook.version)}</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="edit-cook" data-id="${escapeHtml(cook.id)}">Edit details</button>${lifecycle}<button class="button button-quiet button-small" type="button" data-action="repeat-cook" data-id="${escapeHtml(cook.id)}">Cook again</button><button class="button button-quiet button-small" type="button" data-action="delete-cook" data-id="${escapeHtml(cook.id)}">Delete</button></div></div>${cook.original_message ? '<details class="cook-original"><summary>Original context</summary><p>' + escapeHtml(cook.original_message) + "</p></details>" : ""}<section class="cook-detail-section"><div class="panel-title"><div><h3>Dishes</h3><span>${detail.dishes.length} recorded</span></div></div><div class="cook-dishes">${dishes}</div></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Photos</h3><span>${detail.media.length} saved</span></div></div>${photoMarkup}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Timeline</h3><span>${detail.events.length} event${detail.events.length === 1 ? "" : "s"}</span></div></div>${cookTimelineMarkup(detail)}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Record an update</h3><span>One message can add multiple events and photos.</span></div></div><form id="cook-update-form" class="auth-form" data-id="${escapeHtml(cook.id)}" enctype="multipart/form-data"><input type="hidden" name="timezone" value="${escapeHtml(cook.timezone)}" /><label class="field"><span>What happened?</span><textarea name="message" rows="3" maxlength="20000" placeholder="A couple minutes ago I wrapped the wings. Internal temp was 155°F."></textarea></label><label class="field"><span>Add photos</span><input name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple /></label><button class="button button-primary" type="submit">Record update</button></form></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Result</h3><span>User observations stay separate from suggestions.</span></div></div><form id="cook-outcome-form" class="auth-form" data-id="${escapeHtml(cook.id)}" data-version="${escapeHtml(outcome?.version || "")}"><label class="field"><span>Feedback</span><textarea name="written_feedback" rows="3" maxlength="20000" placeholder="What did it taste and feel like?">${escapeHtml(outcome?.written_feedback || "")}</textarea></label><div class="meal-composer-grid"><label class="field"><span>Overall assessment (1–5)</span><input name="overall_assessment" type="number" min="1" max="5" step="0.1" value="${escapeHtml(outcome?.overall_assessment || "")}" /></label><label class="field"><span>Characteristics JSON</span><input name="characteristics" value="${escapeHtml(JSON.stringify(outcome?.characteristics || {}))}" placeholder='{"smoke_intensity":"medium"}' /></label></div><label class="field"><span>What worked</span><textarea name="worked" rows="2" maxlength="10000">${escapeHtml(outcome?.worked || "")}</textarea></label><label class="field"><span>What disappointed you</span><textarea name="disappointed" rows="2" maxlength="10000">${escapeHtml(outcome?.disappointed || "")}</textarea></label><label class="field"><span>Change next time</span><textarea name="next_time_notes" rows="2" maxlength="10000">${escapeHtml(outcome?.next_time_notes || "")}</textarea></label><label class="checkbox-row"><input name="is_preferred" type="checkbox" ${outcome?.is_preferred ? "checked" : ""} /> Preferred attempt</label><button class="button button-primary" type="submit">Save result</button></form></section><section class="cook-detail-section"><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="cook-recipe-draft" data-id="${escapeHtml(cook.id)}">Save as recipe</button><button class="button button-secondary button-small" type="button" data-action="set-preferred-cook" data-id="${escapeHtml(cook.id)}">Choose preferred attempt</button></div>${updateMarkup}</section></div>`;
+    return `<div class="cook-detail-view"><div class="cook-detail-head"><div><p class="section-kicker">${escapeHtml(cook.status === "active" ? "Active cook" : "Completed cook")}</p><h2>${escapeHtml(cook.title)}</h2><p class="tiny">${escapeHtml(formatDate(cook.cook_date, { year: true }))} · ${escapeHtml(cook.timezone)} · version ${number(cook.version)}</p></div><div class="auth-actions cook-actions" data-cook-actions data-context="detail" data-id="${escapeHtml(cook.id)}" data-status="${escapeHtml(cook.status)}">${cookDetailActionsMarkup(cook)}</div></div>${cook.original_message ? '<details class="cook-original"><summary>Original context</summary><p>' + escapeHtml(cook.original_message) + "</p></details>" : ""}<section class="cook-detail-section"><div class="panel-title"><div><h3>Dishes</h3><span>${detail.dishes.length} recorded</span></div></div><div class="cook-dishes">${dishes}</div></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Photos</h3><span>${detail.media.length} saved</span></div></div>${photoMarkup}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Timeline</h3><span>${detail.events.length} event${detail.events.length === 1 ? "" : "s"}</span></div></div>${cookTimelineMarkup(detail)}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Record an update</h3><span>One message can add multiple events and photos.</span></div></div><form id="cook-update-form" class="auth-form" data-id="${escapeHtml(cook.id)}" enctype="multipart/form-data"><input type="hidden" name="timezone" value="${escapeHtml(cook.timezone)}" /><label class="field"><span>What happened?</span><textarea name="message" rows="3" maxlength="20000" placeholder="A couple minutes ago I wrapped the wings. Internal temp was 155°F."></textarea></label><label class="field"><span>Add photos</span><input name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple /></label><button class="button button-primary" type="submit">Record update</button></form></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Result</h3><span>User observations stay separate from suggestions.</span></div></div><form id="cook-outcome-form" class="auth-form" data-id="${escapeHtml(cook.id)}" data-version="${escapeHtml(outcome?.version || "")}"><label class="field"><span>Feedback</span><textarea name="written_feedback" rows="3" maxlength="20000" placeholder="What did it taste and feel like?">${escapeHtml(outcome?.written_feedback || "")}</textarea></label><div class="meal-composer-grid"><label class="field"><span>Overall assessment (1–5)</span><input name="overall_assessment" type="number" min="1" max="5" step="0.1" value="${escapeHtml(outcome?.overall_assessment || "")}" /></label><label class="field"><span>Characteristics JSON</span><input name="characteristics" value="${escapeHtml(JSON.stringify(outcome?.characteristics || {}))}" placeholder='{"smoke_intensity":"medium"}' /></label></div><label class="field"><span>What worked</span><textarea name="worked" rows="2" maxlength="10000">${escapeHtml(outcome?.worked || "")}</textarea></label><label class="field"><span>What disappointed you</span><textarea name="disappointed" rows="2" maxlength="10000">${escapeHtml(outcome?.disappointed || "")}</textarea></label><label class="field"><span>Change next time</span><textarea name="next_time_notes" rows="2" maxlength="10000">${escapeHtml(outcome?.next_time_notes || "")}</textarea></label><label class="checkbox-row"><input name="is_preferred" type="checkbox" ${outcome?.is_preferred ? "checked" : ""} /> Preferred attempt</label><button class="button button-primary" type="submit">Save result</button></form></section><section class="cook-detail-section"><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="cook-recipe-draft" data-id="${escapeHtml(cook.id)}">Save as recipe</button><button class="button button-secondary button-small" type="button" data-action="set-preferred-cook" data-id="${escapeHtml(cook.id)}">Choose preferred attempt</button></div>${updateMarkup}</section></div>`;
 }
 
 function openCookDishEditor(dish, cookId, cookVersion) {
@@ -3417,28 +3463,76 @@ async function handleAction(button) {
         openCookDishEditor(dish, button.dataset.cookId, detail.cook.version);
         return;
     }
-    if (action === "finish-cook" || action === "reopen-cook") {
-        const verb = action === "finish-cook" ? "finish" : "reopen";
+    if (action === "finish-cook") {
+        // S6 slice 5: finishing follows slice 1's inline-confirmation
+        // pattern (the pattern slice 4 applied to recipe archive) —
+        // the first click swaps the action row in place to a themed
+        // confirmation; only the confirm click posts the finish.
+        const box = button.closest("[data-cook-actions]");
+        if (!box) return;
+        box.innerHTML = `<p class="cook-confirm-note" role="alert">Finish this cook? You can reopen it later.</p><button class="button button-primary" type="button" data-action="confirm-finish-cook" data-id="${escapeHtml(button.dataset.id)}">Yes, finish cook</button><button class="button button-secondary" type="button" data-action="dismiss-cook-confirm">Keep cooking</button>`;
+        box.querySelector('[data-action="confirm-finish-cook"]')?.focus();
+        return;
+    }
+    if (action === "confirm-finish-cook") {
+        button.disabled = true;
         await api(
-            `/api/app/cooks/${encodeURIComponent(button.dataset.id)}/${verb}`,
+            `/api/app/cooks/${encodeURIComponent(button.dataset.id)}/finish`,
             {
                 method: "POST",
                 body: JSON.stringify({}),
                 keepPrevious: true,
             },
         );
-        toast(verb === "finish" ? "Cook finished." : "Cook reopened.");
+        toast("Cook finished.");
+        if (dialog.open) await openCook(button.dataset.id);
+        else await renderRoute();
+        return;
+    }
+    if (action === "reopen-cook") {
+        await api(
+            `/api/app/cooks/${encodeURIComponent(button.dataset.id)}/reopen`,
+            {
+                method: "POST",
+                body: JSON.stringify({}),
+                keepPrevious: true,
+            },
+        );
+        toast("Cook reopened.");
         if (dialog.open) await openCook(button.dataset.id);
         else await renderRoute();
         return;
     }
     if (action === "delete-cook") {
-        if (
-            !confirm(
-                "Delete this cook, its timeline, results, and saved photos? This cannot be undone.",
-            )
-        )
-            return;
+        // S6 slice 5: deleting is this surface's destructive action, so
+        // it follows slice 1's inline-confirmation pattern instead of
+        // the native window.confirm() — the native dialog silently
+        // no-ops wherever it is dismissed or never answered (automated
+        // browsers, WebViews without a JS-dialog handler). The first
+        // click swaps the detail action row in place to a themed
+        // confirmation; only the confirm click sends the DELETE.
+        const box = button.closest("[data-cook-actions]");
+        if (!box) return;
+        box.innerHTML = `<p class="cook-confirm-note cook-delete-note" role="alert">Delete this cook, its timeline, results, and saved photos? This cannot be undone.</p><button class="button button-primary cook-delete-confirm" type="button" data-action="confirm-delete-cook" data-id="${escapeHtml(button.dataset.id)}">Yes, delete cook</button><button class="button button-secondary" type="button" data-action="dismiss-cook-confirm">Keep cook</button>`;
+        box.querySelector('[data-action="confirm-delete-cook"]')?.focus();
+        return;
+    }
+    if (action === "dismiss-cook-confirm") {
+        // Restore the action row exactly as it was (both row shapes are
+        // deterministic from the cook's id + status, carried on the
+        // container); nothing was sent and any open form is untouched.
+        const box = button.closest("[data-cook-actions]");
+        if (!box) return;
+        const cook = { id: box.dataset.id, status: box.dataset.status };
+        box.innerHTML =
+            box.dataset.context === "detail"
+                ? cookDetailActionsMarkup(cook)
+                : cookCardActionsMarkup(cook);
+        box.querySelector("button")?.focus();
+        return;
+    }
+    if (action === "confirm-delete-cook") {
+        button.disabled = true;
         await api(`/api/app/cooks/${encodeURIComponent(button.dataset.id)}`, {
             method: "DELETE",
             body: "{}",
@@ -3447,6 +3541,19 @@ async function handleAction(button) {
         toast("Cook deleted.");
         if (dialog.open) dialog.close();
         await renderRoute();
+        return;
+    }
+    if (action === "clear-cook-search") {
+        state.cookQuery = "";
+        state.cookFilters = {
+            dish: "",
+            method: "",
+            flavor: "",
+            dateFrom: "",
+            dateTo: "",
+            status: "all",
+        };
+        await renderCooks();
         return;
     }
     if (action === "repeat-cook") {

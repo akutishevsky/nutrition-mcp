@@ -2069,3 +2069,474 @@ dialog .recipe-ingredient-editor {
     border-color: #8c2f22;
     color: #8c2f22;
 }
+
+/* =====================================================================
+   S6 SLICE 5 — Cooks fusion (Operate surface 5)
+   ---------------------------------------------------------------------
+   Cooks is touched exactly once: parity + Editorial Serif + mobile_qc.
+   Inherits slice 1's shared dialog chrome (.dialog-close, themed
+   openDialog frame, toasts, global states) — no second frame is
+   invented here. Grammar and tokens are the direction contract's:
+   paper #f6f1e7, paper-card #fffdf8, ink #2b2620, hairline #d8cdb6,
+   rule #8a7c63, green #176b3a, danger #8c2f22, Georgia serif.
+   Reference: selected/src/cooks/theme4-tight.html.
+   DENSITY LAW: the list is hairline panels (the mock's grammar), the
+   card's facts merge into one meta line, and the search filters take
+   one deliberate even grid — density from grouping/spacing only;
+   type never below 11px, tap targets never below 44px (inherited
+   .operate-view button floor; dialog buttons scoped below).
+   NO ADS on this surface — the app's only ad slot is on Today.
+   ===================================================================== */
+
+/* ---------- Cook list ---------- */
+
+.cooks-view .cook-list {
+    display: block;
+}
+
+.cooks-view .cook-panel {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 10px 0 8px;
+    margin-top: 10px;
+    overflow: visible;
+}
+
+.cooks-view .cook-card-main {
+    display: flex;
+    gap: 12px;
+    padding: 0;
+}
+
+.cooks-view .cook-card-photo {
+    width: 56px;
+    height: 56px;
+    flex: 0 0 56px;
+    border-radius: 4px;
+    background: #e3dac4;
+}
+
+.cooks-view .cook-card-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+/* Status reads as marginalia, like the mock's .src line. */
+.cooks-view .cook-status {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #5d5344;
+}
+
+.cooks-view .cook-title {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #2b2620;
+    margin-top: 2px;
+}
+
+/* One merged meta line carries date, photo count, and the
+   based-on-an-earlier-attempt note — the mock's density move. */
+.cooks-view .cook-card-meta {
+    font-size: 13.5px;
+    font-style: italic;
+    color: #5d5344;
+    margin: 2px 0 0;
+}
+
+.cooks-view .cook-notes {
+    font-size: 13.5px;
+    color: #4a4237;
+    margin: 2px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.cooks-view .cook-none-line {
+    font-size: 13.5px;
+    font-style: italic;
+    color: #5d5344;
+    margin: 4px 0;
+}
+
+/* Card actions: Open / Finish|Reopen as one deliberate equal-share row
+   (the mock's chip row), with the Compare toggle riding the same row
+   as a full 44px label — never three stacked full-width rows. */
+.cooks-view .cook-card-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.cooks-view .cook-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.cooks-view .cook-card-actions-row .cook-actions .button {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.cooks-view .cook-select {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #176b3a;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.cooks-view .cook-select input {
+    width: 20px;
+    height: 20px;
+    accent-color: #176b3a;
+}
+
+/* ---------- Search history ---------- */
+
+.cooks-view .cook-search-form {
+    display: block;
+}
+
+/* Search is one row at every width: field + submit side by side
+   (slice 1's Food Log search grammar) — the submit never wraps onto
+   its own full-width row. */
+.cooks-view .cook-search-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 8px;
+}
+
+.cooks-view .cook-search-query {
+    gap: 3px;
+    min-width: 0;
+}
+
+.cooks-view .cook-search-query > span,
+.cooks-view .cook-filter-grid .field > span {
+    font-size: 13px;
+    color: #4a4237;
+}
+
+/* Filters are one deliberate even grid (P1): two columns at phone
+   width, three on wider screens — never the legacy 8-across row that
+   collapsed into a ragged wrap. */
+.cooks-view .cook-filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+    margin-top: 8px;
+}
+
+@media (min-width: 700px) {
+    .cooks-view .cook-filter-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.cooks-view .cook-filter-grid .field {
+    gap: 3px;
+    min-width: 0;
+}
+
+.cooks-view .cook-filter-grid select {
+    min-height: 48px;
+    padding: 10px 12px;
+    font-size: 16px;
+    width: 100%;
+    border: 1px solid #8a7c63;
+    border-radius: 4px;
+    background: #fffdf8;
+    color: #2b2620;
+}
+
+/* The six filter fields fold behind one deliberate disclosure row
+   (P7: overflow is a decision) — closed when unused so the cook list
+   leads the screen, open whenever any filter is applied so applied
+   filters stay visible (P2). The summary is a full 44px tap row. */
+.cooks-view .cook-filters > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #176b3a;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.cooks-view .cook-search-actions {
+    margin-top: 10px;
+}
+
+.cooks-view .cook-search-note {
+    margin-top: 8px;
+}
+
+/* ---------- Inline confirmations (slice 1's pattern) ---------- */
+
+/* The note takes a full row in the action group; the delete note and
+   its confirm button carry the danger ink. */
+.cook-confirm-note {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.cook-delete-note {
+    color: #8c2f22;
+}
+
+.cook-delete-confirm {
+    background: #8c2f22;
+    border-color: #8c2f22;
+}
+
+.cook-delete-confirm:hover {
+    background: #6e241a;
+    border-color: #6e241a;
+}
+
+/* In the detail head the action group wraps under the title block at
+   phone width instead of squeezing beside it. The legacy phone rule
+   stacks .auth-actions buttons full-width — four stacked rows is
+   exactly the dead space the density law removes — so the head
+   actions are one deliberate wrapping row of natural-width 44px
+   targets. */
+.cook-detail-head {
+    flex-wrap: wrap;
+}
+
+.cook-detail-head .cook-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cook-detail-head .cook-actions .button {
+    flex: 0 1 auto;
+}
+
+/* Same legacy stack rule, other detail action rows: dish actions and
+   the Save-as-recipe / preferred row are natural-width wrapping rows,
+   not stacked full-width rows. */
+.cook-detail-view .auth-actions .button {
+    flex: 0 1 auto;
+}
+
+/* ---------- Cook detail (inside slice 1's shared dialog frame) --- */
+
+.cook-detail-view {
+    gap: 10px;
+}
+
+.cook-detail-view h2 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    color: #2b2620;
+}
+
+.cook-detail-section {
+    border-top: 1px solid #d8cdb6;
+    padding-top: 10px;
+}
+
+/* Dishes are hairline rules: name + labels, then the dish actions as
+   their own left-aligned row at the 44px floor (a squeezed side
+   column wrapped "Log eaten portion" into three lines on the first
+   capture pass — the actions get the full row instead). */
+.cook-dish {
+    display: grid;
+    gap: 2px;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    padding: 6px 0;
+}
+
+.cook-dish-main {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+}
+
+.cook-dish-main strong {
+    font-size: 15px;
+    color: #2b2620;
+}
+
+.cook-dish-main span,
+.cook-dish-main small {
+    font-size: 13px;
+    color: #5d5344;
+}
+
+.cook-dish-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-start;
+}
+
+.cook-gallery figure {
+    min-width: 104px;
+}
+
+.cook-gallery img {
+    width: 104px;
+    height: 104px;
+    border-radius: 4px;
+}
+
+.cook-gallery figcaption {
+    color: #5d5344;
+    font-size: 11px;
+}
+
+/* Timeline events are hairline rules: type + time, the note, and the
+   Correct action — one row on wide screens, stacked at phone width
+   (the legacy single-column phone rule already stacks them). */
+.cook-timeline {
+    gap: 0;
+}
+
+.cook-event-row {
+    border-bottom: 1px solid #d8cdb6;
+    padding: 6px 0;
+    gap: 8px;
+}
+
+.cook-event-row strong {
+    font-size: 14px;
+    color: #2b2620;
+    text-transform: capitalize;
+}
+
+.cook-event-row small {
+    display: block;
+    font-size: 12.5px;
+    color: #5d5344;
+}
+
+.cook-event-row p {
+    font-size: 14.5px;
+    color: #2b2620;
+}
+
+.cook-original {
+    border: 1px solid #d8cdb6;
+    border-radius: 4px;
+    background: #f6f1e7;
+    padding: 8px 10px;
+}
+
+.cook-original summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #176b3a;
+}
+
+/* Comparison columns are hairline panels, not white cards. */
+.cook-compare-column {
+    border: 0;
+    border-top: 1px solid #d8cdb6;
+    border-radius: 0;
+    padding: 10px 0 4px;
+}
+
+.cook-compare-column h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 19px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.cook-compare-column h4 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2b2620;
+    margin-top: 8px;
+}
+
+.cook-compare-photos img {
+    border-radius: 4px;
+}
+
+/* The create dialog's dish blocks are paper panels on a hairline —
+   the NL "What are you doing?" entry rides this same form, unchanged. */
+.cook-create-dish {
+    border: 1px solid #d8cdb6;
+    border-radius: 4px;
+    background: #f6f1e7;
+    padding: 10px;
+}
+
+/* Every button inside a cook-owned dialog reaches the 44px floor
+   (the shared .button-small grammar sits at 40px; slice 1 fixed the
+   shared Close via .dialog-close and left per-surface buttons to
+   their own slices — these are this surface's). */
+.cook-detail-view .button,
+.cook-comparison .button,
+#cook-create-form .button,
+#cook-edit-form .button,
+#cook-dish-edit-form .button,
+#cook-event-edit-form .button,
+#cook-recipe-form .button {
+    min-height: 44px;
+}
+
+/* Form controls inside cook-owned dialogs reach the same floor (the
+   shared dialog input grammar sits at ~41px), and the outcome form's
+   Preferred-attempt check row is a real 44px row, not a 22px inline
+   label (the slice 3 check-row fix, applied to this surface). */
+.cook-detail-view input,
+.cook-detail-view select,
+#cook-create-form input,
+#cook-create-form select,
+#cook-edit-form input,
+#cook-edit-form select,
+#cook-dish-edit-form input,
+#cook-dish-edit-form select,
+#cook-event-edit-form input,
+#cook-event-edit-form select,
+#cook-recipe-form input,
+#cook-recipe-form select {
+    min-height: 44px;
+}
+
+.cook-detail-view .checkbox-row {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cook-detail-view .checkbox-row input {
+    width: 20px;
+    height: 20px;
+    min-height: 0;
+    accent-color: #176b3a;
+}
