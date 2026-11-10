@@ -1,3 +1,7 @@
+import {
+    APPLE_APP_BUNDLE_IDENTIFIER,
+    generateAppleClientSecret,
+} from "./apple-client-secret.js";
 import type { BetterAuthRuntimeConfig } from "./config.js";
 
 /**
@@ -78,6 +82,89 @@ export function appleSignInConfigured(
         config.appleTeamId &&
         config.applePrivateKey,
     );
+}
+
+/**
+ * The packaged iOS flow additionally needs the iOS OAuth client: Google
+ * verifies the app's bundle ID against it before returning an ID token,
+ * and that token's audience is the iOS client ID.
+ */
+export function googleIosSignInConfigured(
+    config: BetterAuthRuntimeConfig,
+): boolean {
+    return (
+        googleWebSignInConfigured(config) && Boolean(config.googleIosClientId)
+    );
+}
+
+/**
+ * Every Google client ID whose ID tokens the server must accept. Better
+ * Auth's Google provider verifies an ID token's audience against this
+ * exact list (`verifyIdToken` reads `options.clientId`), so listing the
+ * web, Android, and iOS clients here is the whole server-side wiring for
+ * native Google sign-in on each platform — the web redirect flow uses the
+ * first (web) entry as its authorization client.
+ */
+export function googleProviderClientIds(
+    config: BetterAuthRuntimeConfig,
+): string[] {
+    return [
+        config.googleWebClientId,
+        config.googleAndroidClientId,
+        config.googleIosClientId,
+    ].filter((value): value is string => Boolean(value));
+}
+
+export interface AppleProviderOptions {
+    clientId: string;
+    clientSecret: string;
+    appBundleIdentifier: string;
+    audience: string[];
+}
+
+/**
+ * The Better Auth Apple provider registration (IOS-AUTH), or null when
+ * Apple is not configured — the provider is then ABSENT from the auth
+ * instance and every Apple surface keeps its inert `not_configured`
+ * behaviour. Configuration alone flips it on; no code change rides with
+ * the values when Michael enters them.
+ *
+ * Audience handling — the two audiences are not interchangeable:
+ *
+ * - The **web** flow (authorization-code round-trip through Apple) is a
+ *   Services ID client: its ID tokens carry `aud` = the Services ID.
+ * - The **packaged iOS app** presents ID tokens from the native
+ *   ASAuthorization flow whose `aud` is the app's bundle ID
+ *   (`business.munch.app`), never the Services ID.
+ *
+ * Better Auth's Apple provider verifies ID tokens against its `audience`
+ * option when one is set (falling back to `appBundleIdentifier`, then
+ * `clientId`), so the audience list carries BOTH identifiers and either
+ * flow's token verifies. `clientId` stays the Services ID: it is the
+ * primary client for the web authorization URL and the `sub` of the
+ * generated client-secret JWT. `appBundleIdentifier` is set as well so
+ * the intent survives any future audience-option change.
+ *
+ * The client secret is generated here from the `.p8` key material (see
+ * `apple-client-secret.ts`) — an expiring ES256 JWT, never a stored
+ * pre-generated secret.
+ */
+export function appleProviderOptions(
+    config: BetterAuthRuntimeConfig,
+): AppleProviderOptions | null {
+    if (!appleSignInConfigured(config)) return null;
+    const servicesId = config.appleServicesId!;
+    return {
+        clientId: servicesId,
+        clientSecret: generateAppleClientSecret({
+            servicesId,
+            keyId: config.appleKeyId!,
+            teamId: config.appleTeamId!,
+            privateKey: config.applePrivateKey!,
+        }),
+        appBundleIdentifier: APPLE_APP_BUNDLE_IDENTIFIER,
+        audience: [servicesId, APPLE_APP_BUNDLE_IDENTIFIER],
+    };
 }
 
 export interface SocialProviderRequest {

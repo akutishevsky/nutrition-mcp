@@ -16,7 +16,11 @@ import {
     MUNCH_OAUTH_SCOPES,
     munchMcpResourceUrl,
 } from "./oauth-scopes.js";
-import { appleSignInConfigured } from "./social-sign-in.js";
+import {
+    appleProviderOptions,
+    appleSignInConfigured,
+    googleProviderClientIds,
+} from "./social-sign-in.js";
 
 const MOBILE_HANDOFF_IDENTIFIER_PREFIX = "munch-mobile-handoff:";
 const MOBILE_HANDOFF_TTL_MS = 2 * 60 * 1000;
@@ -56,10 +60,14 @@ function createMunchBetterAuth() {
     });
     authDatabase = database;
 
-    const googleClientIds = [
-        config.googleWebClientId,
-        config.googleAndroidClientId,
-    ].filter((value): value is string => Boolean(value));
+    const googleClientIds = googleProviderClientIds(config);
+
+    // Sign in with Apple (IOS-AUTH): registered only when the full
+    // MUNCH_APPLE_* set is configured — otherwise the provider is absent
+    // and behaviour is byte-for-byte the pre-IOS-AUTH instance. The
+    // options builder owns the audience pair (Services ID for web,
+    // bundle ID for the packaged app) and the generated client secret.
+    const appleOptions = appleProviderOptions(config);
 
     async function activateVerifiedUser(userId: string): Promise<void> {
         await database.query(
@@ -180,13 +188,19 @@ function createMunchBetterAuth() {
                 allowDifferentEmails: true,
             },
         },
-        ...(config.googleWebClientId && config.googleClientSecret
+        ...((config.googleWebClientId && config.googleClientSecret) ||
+        appleOptions
             ? {
                   socialProviders: {
-                      google: {
-                          clientId: googleClientIds,
-                          clientSecret: config.googleClientSecret,
-                      },
+                      ...(config.googleWebClientId && config.googleClientSecret
+                          ? {
+                                google: {
+                                    clientId: googleClientIds,
+                                    clientSecret: config.googleClientSecret,
+                                },
+                            }
+                          : {}),
+                      ...(appleOptions ? { apple: appleOptions } : {}),
                   },
               }
             : {}),

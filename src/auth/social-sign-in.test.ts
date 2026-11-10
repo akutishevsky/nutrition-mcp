@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import { generateKeyPairSync } from "node:crypto";
 import type { BetterAuthRuntimeConfig } from "./config.js";
 import {
+    appleProviderOptions,
     appleSignInConfigured,
     buildSocialProviderRequest,
     googleAndroidSignInConfigured,
+    googleIosSignInConfigured,
+    googleProviderClientIds,
     googleSignInButtonHtml,
     googleWebSignInConfigured,
     SOCIAL_LINK_PATH,
@@ -33,6 +37,9 @@ const WEB = {
 const ANDROID = {
     googleAndroidClientId: "android-id.apps.googleusercontent.com",
 };
+const IOS = {
+    googleIosClientId: "ios-id.apps.googleusercontent.com",
+};
 
 describe("social sign-in configuration predicates", () => {
     test("web requires the web client ID and the shared secret together", () => {
@@ -56,6 +63,82 @@ describe("social sign-in configuration predicates", () => {
             googleAndroidSignInConfigured(config({ ...WEB, ...ANDROID })),
         ).toBe(true);
         expect(googleAndroidSignInConfigured(config(ANDROID))).toBe(false);
+    });
+
+    test("ios additionally requires the iOS client ID", () => {
+        expect(googleIosSignInConfigured(config(WEB))).toBe(false);
+        expect(googleIosSignInConfigured(config({ ...WEB, ...IOS }))).toBe(
+            true,
+        );
+        expect(googleIosSignInConfigured(config(IOS))).toBe(false);
+    });
+
+    test("the provider audience list carries every configured client ID", () => {
+        expect(googleProviderClientIds(config())).toEqual([]);
+        expect(googleProviderClientIds(config(WEB))).toEqual([
+            WEB.googleWebClientId,
+        ]);
+        expect(
+            googleProviderClientIds(config({ ...WEB, ...ANDROID, ...IOS })),
+        ).toEqual([
+            WEB.googleWebClientId,
+            ANDROID.googleAndroidClientId,
+            IOS.googleIosClientId,
+        ]);
+    });
+});
+
+describe("Apple provider registration (IOS-AUTH)", () => {
+    const fixtureKey = generateKeyPairSync("ec", { namedCurve: "P-256" })
+        .privateKey.export({ type: "pkcs8", format: "pem" })
+        .toString();
+    const APPLE = {
+        appleServicesId: "business.munch.signin",
+        appleKeyId: "FIXTUREKEY1",
+        appleTeamId: "TEAMFIXTURE",
+        applePrivateKey: fixtureKey,
+    };
+
+    test("inert without the full identifier set: no provider options at all", () => {
+        expect(appleProviderOptions(config())).toBeNull();
+        expect(
+            appleProviderOptions(
+                config({ appleServicesId: APPLE.appleServicesId }),
+            ),
+        ).toBeNull();
+    });
+
+    test("configured by fixture envs alone, with both ID-token audiences", () => {
+        const options = appleProviderOptions(config(APPLE))!;
+        // clientId is the Services ID — the web flow's client and the
+        // client-secret JWT's subject.
+        expect(options.clientId).toBe("business.munch.signin");
+        expect(options.appBundleIdentifier).toBe("business.munch.app");
+        // Web tokens carry aud = Services ID; the packaged iOS app's
+        // native tokens carry aud = bundle ID. Both must verify.
+        expect(options.audience).toEqual([
+            "business.munch.signin",
+            "business.munch.app",
+        ]);
+        // The secret is a generated JWT (three segments) whose claims are
+        // Apple's, never a stored pre-generated value from the env.
+        const segments = options.clientSecret.split(".");
+        expect(segments).toHaveLength(3);
+        const claims = JSON.parse(
+            Buffer.from(segments[1]!, "base64url").toString("utf8"),
+        ) as {
+            iss: string;
+            sub: string;
+            aud: string;
+            exp: number;
+            iat: number;
+        };
+        expect(claims.iss).toBe("TEAMFIXTURE");
+        expect(claims.sub).toBe("business.munch.signin");
+        expect(claims.aud).toBe("https://appleid.apple.com");
+        expect(claims.exp - claims.iat).toBeGreaterThan(0);
+        expect(options.clientSecret).not.toContain("FIXTUREKEY1".toLowerCase());
+        expect(options.clientSecret).not.toBe(fixtureKey);
     });
 });
 
