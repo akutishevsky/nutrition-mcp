@@ -274,7 +274,7 @@ final class MunchSmokeTests: XCTestCase {
     }
 }
 
-private extension XCUIElementQuery {
+extension XCUIElementQuery {
     func matching(labelContaining text: String) -> XCUIElementQuery {
         matching(NSPredicate(format: "label CONTAINS[c] %@", text))
     }
