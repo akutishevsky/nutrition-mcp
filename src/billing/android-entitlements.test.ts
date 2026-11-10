@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { androidEntitlementsFromLegacyStripePremium } from "./android-entitlements.js";
+import {
+    androidEntitlementsFromLegacyStripePremium,
+    resolveAndroidEntitlements,
+} from "./android-entitlements.js";
+import { chooseDirectSubscription } from "./subscription-sources.js";
 
 const now = new Date("2026-10-10T12:00:00.000Z");
 
@@ -58,5 +62,70 @@ describe("Android ad-free entitlement", () => {
         expect(androidEntitlementsFromLegacyStripePremium(null, now)).toEqual({
             adFree: false,
         });
+    });
+});
+
+describe("resolveAndroidEntitlements (merged rail-neutral snapshot)", () => {
+    test("(a) Stripe Premium resolves ad-free, unchanged", async () => {
+        const result = await resolveAndroidEntitlements(
+            "stripe-user",
+            async () =>
+                chooseDirectSubscription(
+                    [{ provider: "stripe", status: "active" }],
+                    now,
+                ),
+        );
+        expect(result).toEqual({ adFree: true });
+    });
+
+    test("(b) store-rail-only Premium (google_play, no Stripe record) resolves ad-free", async () => {
+        const result = await resolveAndroidEntitlements("play-user", async () =>
+            chooseDirectSubscription(
+                [
+                    {
+                        provider: "google_play",
+                        productId: "munch_premium_monthly",
+                        status: "active",
+                        currentPeriodEnd: new Date("2026-11-10T12:00:00.000Z"),
+                    },
+                ],
+                now,
+            ),
+        );
+        expect(result).toEqual({ adFree: true });
+    });
+
+    test("merged snapshot prefers an active Play subscription over a canceled Stripe record", async () => {
+        const result = await resolveAndroidEntitlements("play-user", async () =>
+            chooseDirectSubscription(
+                [
+                    { provider: "stripe", status: "canceled" },
+                    {
+                        provider: "google_play",
+                        productId: "munch_premium_monthly",
+                        status: "trialing",
+                    },
+                ],
+                now,
+            ),
+        );
+        expect(result).toEqual({ adFree: true });
+    });
+
+    test("(c) no subscription resolves not ad-free", async () => {
+        const result = await resolveAndroidEntitlements("free-user", async () =>
+            chooseDirectSubscription([], now),
+        );
+        expect(result).toEqual({ adFree: false });
+    });
+
+    test("(d) a failing snapshot source fails soft to null, without throwing", async () => {
+        const result = await resolveAndroidEntitlements(
+            "unlucky-user",
+            async () => {
+                throw new Error("billing storage unavailable");
+            },
+        );
+        expect(result).toEqual({ adFree: null });
     });
 });
