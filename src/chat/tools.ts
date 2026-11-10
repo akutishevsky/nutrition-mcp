@@ -468,9 +468,7 @@ export class ChatToolExecutor {
             text,
             isError: Boolean(result.isError),
             outcome: result.isError ? "error" : "ok",
-            draftId: result.isError
-                ? undefined
-                : extractDraftId(name, result),
+            draftId: result.isError ? undefined : extractDraftId(name, result),
         };
     }
 
