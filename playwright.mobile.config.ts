@@ -8,7 +8,7 @@ import { defineConfig, devices } from "@playwright/test";
  */
 export default defineConfig({
     testDir: "./e2e",
-    testMatch: "mobile-bundle.e2e.ts",
+    testMatch: "mobile-*.e2e.ts",
     fullyParallel: false,
     forbidOnly: Boolean(process.env.CI),
     retries: process.env.CI ? 1 : 0,

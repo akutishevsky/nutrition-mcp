@@ -233,7 +233,10 @@ export const CAPABILITY_MANIFEST = [
             '[data-action="add-draft-text"]',
             "POST /api/app/meal-drafts/:id/confirm",
         ]),
-        app: partial([
+        // S5: app channel verified complete — the packaged bundle runs
+        // the full flow (native capture → POST meal-photo → draft
+        // review → add-text → confirm) in e2e/mobile-parity.e2e.ts.
+        app: complete([
             "POST /api/app/meal-photo",
             '[data-action="log-by-photo"]',
             "POST /api/app/meal-drafts/:id/add-text",
@@ -272,14 +275,12 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "mealDraft.review",
         mcp: complete(["prepare_meal_confirmation"]),
-        web: complete([
-            "GET /api/app/meal-drafts/:id",
-            "POST /api/app/meal-drafts/:id/prepare",
-        ]),
-        app: complete([
-            "GET /api/app/meal-drafts/:id",
-            "POST /api/app/meal-drafts/:id/prepare",
-        ]),
+        // S5 correction: the standalone POST /meal-drafts/:id/prepare
+        // route exists server-side but no client calls it — on web/app
+        // the prepare step runs server-side inside POST …/confirm, and
+        // the review surface itself is the draft read below.
+        web: complete(["GET /api/app/meal-drafts/:id"]),
+        app: complete(["GET /api/app/meal-drafts/:id"]),
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -390,16 +391,18 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "food.saved.reuse",
         mcp: complete(["mark_saved_food_used"]),
+        // S5 correction: reuse is recorded server-side when the meal is
+        // logged (markSavedFoodUsed inside the meal-create paths); the
+        // standalone POST /foods/:id/used route is not a client entry
+        // point on either surface.
         web: complete([
             "GET /api/app/food-search",
             "POST /api/app/meals",
-            "POST /api/app/foods/:id/used",
             '[data-action="select-meal-option"]',
         ]),
         app: complete([
             "GET /api/app/food-search",
             "POST /api/app/meals",
-            "POST /api/app/foods/:id/used",
             '[data-action="select-meal-option"]',
         ]),
         intentionalChannelException: null,
@@ -942,9 +945,13 @@ export const CAPABILITY_MANIFEST = [
         id: "mcp.connection.revoke",
         mcp: websiteOnly([]),
         web: complete(["DELETE /api/app/connections/:tokenFamilyId"]),
-        app: missing(),
-        intentionalChannelException:
-            "A user manages and revokes external connections from the website account settings.",
+        // S5: the S0 website-only declaration was stale — the packaged
+        // SPA's Connections settings surface renders in the bundle and
+        // revokes through this exact route over the bearer transport
+        // (exercised in e2e/mobile-parity.e2e.ts). MCP itself still
+        // cannot revoke connections.
+        app: complete(["DELETE /api/app/connections/:tokenFamilyId"]),
+        intentionalChannelException: null,
         gap: null,
         targetPr: null,
     },
@@ -952,19 +959,26 @@ export const CAPABILITY_MANIFEST = [
         id: "household.manage",
         mcp: websiteOnly([]),
         web: complete(["/api/app/household/manage", "/app/household"]),
-        app: missing(),
-        intentionalChannelException:
-            "Household administration is a website-centric account workflow; MCP only consumes shared planning data.",
+        // S5: stale S0 declaration — the Household surface lives inside
+        // the packaged SPA (create form, member list, invite form all
+        // exercised in e2e/mobile-parity.e2e.ts over bearer transport).
+        app: complete(["/api/app/household/manage", "/app/household"]),
+        intentionalChannelException: null,
         gap: null,
         targetPr: null,
     },
     {
         id: "account.export",
         mcp: websiteOnly([]),
-        web: complete(["/account/portal"]),
-        app: missing(),
-        intentionalChannelException:
-            "The website account area owns complete-account export; MCP exposes focused meal export separately.",
+        // S5 correction: the complete-account export surface is
+        // Settings → Data on both surfaces (the old "/account/portal"
+        // web entry point named the post-login landing, not export).
+        // The packaged app posts for the export and hands the returned
+        // download URL out of the WebView (Capacitor opens
+        // non-localhost navigations in the system browser).
+        web: complete(["POST /api/app/export", "/app/settings/data"]),
+        app: complete(["POST /api/app/export", "/app/settings/data"]),
+        intentionalChannelException: null,
         gap: null,
         targetPr: null,
     },
