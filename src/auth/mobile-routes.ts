@@ -25,8 +25,51 @@ function isCodeChallenge(value: unknown): value is string {
     return typeof value === "string" && /^[A-Za-z0-9_-]{43}$/.test(value);
 }
 
+/**
+ * Apple Team ID for the apple-app-site-association appID. The in-repo
+ * fallback is the team the iOS distribution leg already signs with —
+ * `.github/workflows/mobile-ios.yml` refuses any provisioning profile
+ * whose application-identifier is not `R42LWFBXBH.business.munch.app`
+ * and exports with teamID R42LWFBXBH. `MUNCH_APPLE_TEAM_ID` overrides
+ * it (e.g. a future team change lands by env first); a value that is
+ * not a plausible team ID is never served — the route 404s instead of
+ * publishing a wrong appID.
+ */
+const APPLE_TEAM_ID_PATTERN = /^[A-Z0-9]{10}$/;
+const IN_REPO_APPLE_TEAM_ID = "R42LWFBXBH";
+const MUNCH_IOS_BUNDLE_ID = "business.munch.app";
+
+export function appleAppSiteAssociation() {
+    const teamId = (
+        process.env.MUNCH_APPLE_TEAM_ID || IN_REPO_APPLE_TEAM_ID
+    ).trim();
+    if (!APPLE_TEAM_ID_PATTERN.test(teamId)) return null;
+    return {
+        applinks: {
+            apps: [],
+            details: [
+                {
+                    appID: `${teamId}.${MUNCH_IOS_BUNDLE_ID}`,
+                    // Mirrors the Android verified-link surface
+                    // (AndroidManifest autoVerify filters): the /app
+                    // allowlist plus the mobile auth callback.
+                    paths: ["/mobile/auth/callback", "/app", "/app/*"],
+                },
+            ],
+        },
+    };
+}
+
 export function createMobileAuthRouter(): Hono {
     const router = new Hono();
+
+    router.get("/.well-known/apple-app-site-association", (c) => {
+        const association = appleAppSiteAssociation();
+        if (!association) return c.notFound();
+        return c.json(association, 200, {
+            "Cache-Control": "public, max-age=300",
+        });
+    });
 
     router.get("/.well-known/assetlinks.json", (c) => {
         const fingerprints = (

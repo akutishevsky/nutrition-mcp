@@ -104,6 +104,15 @@ const appExceptions = CAPABILITY_MANIFEST.filter(
 const appPartial = CAPABILITY_MANIFEST.filter(
     (capability) => capability.app.coverage === "partial",
 ).length;
+const iosComplete = CAPABILITY_MANIFEST.filter(
+    (capability) => capability.ios.coverage === "complete",
+).length;
+const iosExceptions = CAPABILITY_MANIFEST.filter(
+    (capability) => capability.ios.coverage === "missing",
+).length;
+const iosPartial = CAPABILITY_MANIFEST.filter(
+    (capability) => capability.ios.coverage === "partial",
+).length;
 console.log(
-    `Cross-surface capability manifest passed: ${discovered.size} MCP tools (${MCP_INFRASTRUCTURE_TOOLS.size} infrastructure, ${Object.keys(conditionalToolMap).length} conditional premium), ${new Set([...Object.values(MCP_TOOL_CAPABILITY_MAP), ...Object.values(conditionalToolMap)]).size} outcome capabilities, Android/iOS parity declared, app channel declared on all ${CAPABILITY_MANIFEST.length} rows (${appComplete} complete, ${appPartial} partial with documented gap, ${appExceptions} explicit website-only exceptions).`,
+    `Cross-surface capability manifest passed: ${discovered.size} MCP tools (${MCP_INFRASTRUCTURE_TOOLS.size} infrastructure, ${Object.keys(conditionalToolMap).length} conditional premium), ${new Set([...Object.values(MCP_TOOL_CAPABILITY_MAP), ...Object.values(conditionalToolMap)]).size} outcome capabilities, Android/iOS parity declared, app channel declared on all ${CAPABILITY_MANIFEST.length} rows (${appComplete} complete, ${appPartial} partial with documented gap, ${appExceptions} explicit website-only exceptions), ios channel declared on all ${CAPABILITY_MANIFEST.length} rows (${iosComplete} complete, ${iosPartial} partial with documented iosGap, ${iosExceptions} explicit website-only exceptions).`,
 );

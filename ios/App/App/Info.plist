@@ -66,5 +66,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Munch uses the camera to photograph meals, receipts, and pantry items and to scan food barcodes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Munch lets you choose meal, receipt, and pantry photos from your photo library so you can log and reconcile them.</string>
 </dict>
 </plist>

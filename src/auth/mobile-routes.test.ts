@@ -9,6 +9,7 @@ const envKeys = [
     "MUNCH_GOOGLE_ANDROID_CLIENT_ID",
     "MUNCH_GOOGLE_CLIENT_SECRET",
     "MUNCH_ANDROID_APP_LINK_SHA256_FINGERPRINTS",
+    "MUNCH_APPLE_TEAM_ID",
 ] as const;
 
 async function withAuthEnvironment(run: () => Promise<void>) {
@@ -142,6 +143,59 @@ describe("mobile auth routes", () => {
                     },
                 },
             ]);
+        });
+    });
+
+    test("publishes Apple universal links with the in-repo team ID", async () => {
+        await withAuthEnvironment(async () => {
+            delete process.env.MUNCH_APPLE_TEAM_ID;
+            const response = await createMobileAuthRouter().request(
+                "/.well-known/apple-app-site-association",
+            );
+            expect(response.status).toBe(200);
+            expect(response.headers.get("content-type")).toContain(
+                "application/json",
+            );
+            // The team ID is the one the iOS distribution leg signs
+            // with (.github/workflows/mobile-ios.yml: profile check +
+            // ExportOptions teamID); the bundle ID is capacitor's appId.
+            expect(await response.json()).toEqual({
+                applinks: {
+                    apps: [],
+                    details: [
+                        {
+                            appID: "R42LWFBXBH.business.munch.app",
+                            paths: ["/mobile/auth/callback", "/app", "/app/*"],
+                        },
+                    ],
+                },
+            });
+        });
+    });
+
+    test("honours a valid MUNCH_APPLE_TEAM_ID override", async () => {
+        await withAuthEnvironment(async () => {
+            process.env.MUNCH_APPLE_TEAM_ID = "ABC1234567";
+            const response = await createMobileAuthRouter().request(
+                "/.well-known/apple-app-site-association",
+            );
+            expect(response.status).toBe(200);
+            const body = await response.json();
+            expect(body.applinks.details[0].appID).toBe(
+                "ABC1234567.business.munch.app",
+            );
+        });
+    });
+
+    test("never serves a malformed Apple team ID", async () => {
+        await withAuthEnvironment(async () => {
+            process.env.MUNCH_APPLE_TEAM_ID = "not-a-team-id";
+            const response = await createMobileAuthRouter().request(
+                "/.well-known/apple-app-site-association",
+            );
+            // Unconfigured/malformed states 404 rather than publishing
+            // an appID Apple would reject (or worse, another team's).
+            expect(response.status).toBe(404);
         });
     });
 

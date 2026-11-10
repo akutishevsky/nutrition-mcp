@@ -157,6 +157,57 @@ describe("cross-surface nutrition parity", () => {
         );
     });
 
+    test("ios entry points stay in parity per capability (IOS-PLATFORM)", () => {
+        // IOS-PLATFORM (Amendment H): the manifest's ios channel is a
+        // first-class citizen with the same floor discipline as the
+        // app channel in S5. iOS packages the same .mobile-web bundle
+        // as Android, so an MCP-complete outcome must be ios-complete
+        // too — unless the row carries the standing website-only
+        // exception or a named iOS gap with an owning follow-up.
+        for (const capability of CAPABILITY_MANIFEST) {
+            if (capability.mcp.coverage !== "complete") continue;
+            if (capability.ios.coverage !== "complete") {
+                const explained =
+                    capability.intentionalChannelException !== null ||
+                    (capability.iosGap !== null &&
+                        capability.iosTargetPr !== null);
+                expect(explained).toBe(true);
+            }
+            if (capability.ios.coverage === "complete") {
+                expect(capability.ios.entryPoints.length).toBeGreaterThan(0);
+                expect(capability.ios.entryPoints).toEqual(
+                    capability.app.entryPoints,
+                );
+            }
+        }
+        // The floor is exact, not approximate: the only rows allowed
+        // out of ios-complete are the verified divergences named here.
+        // Any future row slipping out of ios-complete — or a named
+        // divergence silently healing without updating this list —
+        // fails CI instead of rotting quietly.
+        const iosMissing = CAPABILITY_MANIFEST.filter(
+            (capability) => capability.ios.coverage === "missing",
+        ).map((capability) => capability.id);
+        const iosPartial = CAPABILITY_MANIFEST.filter(
+            (capability) => capability.ios.coverage === "partial",
+        ).map((capability) => capability.id);
+        expect(iosMissing.sort()).toEqual(
+            ["billing.checkout", "billing.portal"].sort(),
+        );
+        expect(iosPartial.sort()).toEqual(
+            ["account.export", "meal.photoLog", "nutrition.export"].sort(),
+        );
+        const iosComplete = CAPABILITY_MANIFEST.filter(
+            (capability) => capability.ios.coverage === "complete",
+        );
+        expect(iosComplete.length).toBe(
+            CAPABILITY_MANIFEST.length - iosMissing.length - iosPartial.length,
+        );
+        expect(iosComplete.length).toBeGreaterThanOrEqual(
+            CAPABILITY_MANIFEST.length - 5,
+        );
+    });
+
     test("analytics and web date ranges stay inclusive", () => {
         const ranges = [
             ["2026-08-01", "2026-08-01"],

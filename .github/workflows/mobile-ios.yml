@@ -16,6 +16,13 @@ name: iOS
 #                  scripts/ios-smoke/ (production renderers, fixture
 #                  data/session, no real credentials). Per-step
 #                  screenshots + console/crash logs are artifacts.
+#   IOS-PLATFORM — the capability manifest's ios channel is asserted in
+#                  CI's quality job (capability-manifest check + the
+#                  cross-surface parity test's exact ios floor); this
+#                  workflow's PR/push triggers include the manifest,
+#                  its tests, and the mobile-routes module (AASA +
+#                  assetlinks) so an ios-channel change also gates on
+#                  the simulator build + smoke lanes below.
 #   asc-probe    — workflow_dispatch only: report-only ASC check (GET
 #                  apps + bundleIds for business.munch.app) via
 #                  scripts/asc-probe.py; creates nothing.
@@ -39,6 +46,12 @@ on:
       - "scripts/build-mobile-web.ts"
       - "scripts/asc-probe.py"
       - "scripts/ios-smoke/**"
+      - "src/capability-manifest.ts"
+      - "src/capability-manifest.test.ts"
+      - "src/cross-surface-parity.test.ts"
+      - "src/auth/mobile-routes.ts"
+      - "src/auth/mobile-routes.test.ts"
+      - "scripts/capability-manifest-check.ts"
       - ".github/workflows/mobile-ios.yml"
   push:
     branches:
@@ -52,6 +65,12 @@ on:
       - "scripts/build-mobile-web.ts"
       - "scripts/asc-probe.py"
       - "scripts/ios-smoke/**"
+      - "src/capability-manifest.ts"
+      - "src/capability-manifest.test.ts"
+      - "src/cross-surface-parity.test.ts"
+      - "src/auth/mobile-routes.ts"
+      - "src/auth/mobile-routes.test.ts"
+      - "scripts/capability-manifest-check.ts"
       - ".github/workflows/mobile-ios.yml"
   workflow_dispatch:
     inputs:

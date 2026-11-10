@@ -50,4 +50,37 @@ describe("cross-surface capability manifest", () => {
             }
         }
     });
+
+    test("every capability declares an explicit ios channel with a basis", () => {
+        for (const capability of CAPABILITY_MANIFEST) {
+            expect(capability.ios).toBeDefined();
+            // IOS-PLATFORM: no verdict without a stated basis — a
+            // silently copied Android verdict is exactly what the
+            // channel exists to prevent.
+            expect(capability.iosBasis.trim().length).toBeGreaterThan(0);
+            if (capability.ios.available) {
+                expect(capability.ios.entryPoints.length).toBeGreaterThan(0);
+            } else {
+                expect(capability.ios.coverage).toBe("missing");
+                expect(capability.intentionalChannelException).not.toBeNull();
+            }
+            if (capability.ios.coverage === "partial") {
+                expect(capability.iosGap).not.toBeNull();
+                expect(capability.iosTargetPr).not.toBeNull();
+            }
+            if (capability.ios.coverage === "complete") {
+                expect(capability.iosGap).toBeNull();
+            }
+        }
+    });
+
+    test("ios channel reuses the app entry points it claims parity with", () => {
+        for (const capability of CAPABILITY_MANIFEST) {
+            if (capability.ios.coverage === "complete") {
+                expect(capability.ios.entryPoints).toEqual(
+                    capability.app.entryPoints,
+                );
+            }
+        }
+    });
 });
