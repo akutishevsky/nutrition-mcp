@@ -364,26 +364,16 @@ dialog .auth-card {
     padding-inline: 11px;
 }
 
-/* Structured meals no longer repeat the long aggregate description above the
-   canonical food rows. A concise count is shown; the original text remains in
-   the Log details disclosure added by the progressive-enhancement script. */
-.app-content .meal-card.is-structured .meal-card-head h4 {
-    max-width: 34ch;
-    overflow: hidden;
-    color: var(--ink-600);
-    font-size: 0.82rem;
-    font-weight: 680;
-    letter-spacing: 0;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+/* UX fix wave F3: meal cards carry their own description as the
+   heading again and the whole card is the View-details tap target
+   (see the click delegation in app.js), so the card reads as
+   tappable. The density pass's heading rewrite and its "Log details"
+   / "Source & estimate" disclosures are gone; description, notes,
+   secondary nutrients and source badges render inline as before. */
+.operate-view .meal-card[data-meal-id] {
+    cursor: pointer;
 }
 
-.app-content .meal-card.is-structured .demo-source-row,
-.app-content .meal-card.is-structured .demo-source-row + small {
-    margin-top: 0;
-}
-
-.meal-audit,
 .food-audit {
     border-top: 1px solid var(--ink-100);
 }
@@ -393,7 +383,6 @@ dialog .auth-card {
     border-top: 0;
 }
 
-.meal-audit > summary,
 .food-audit > summary {
     min-height: 40px;
     display: flex;
@@ -411,7 +400,6 @@ dialog .auth-card {
     font-size: 0.72rem;
 }
 
-.meal-audit-body,
 .food-audit-body {
     display: grid;
     gap: 6px;

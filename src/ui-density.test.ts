@@ -4,19 +4,27 @@ async function source(path: string): Promise<string> {
     return Bun.file(path).text();
 }
 
-test("web diary uses progressive disclosure for structured meal audit data", async () => {
-    const [html, css] = await Promise.all([
+test("web diary meal cards keep their own description and inline provenance (UX fix wave F3)", async () => {
+    const [html, css, appJs] = await Promise.all([
         source("./public/app.html"),
         source("./public/app-overrides.css"),
+        source("./public/app.js"),
     ]);
 
-    expect(html).toContain('card.classList.add("is-structured")');
-    expect(html).toContain("heading.textContent = `${rows.length} food");
-    expect(html).toContain('auditSummary.textContent = "Log details"');
-    expect(html).toContain('summary.textContent = "Source & estimate"');
-    expect(html).toContain('label.textContent = "Original description"');
-    expect(css).toContain(".meal-card.is-structured");
-    expect(css).toContain(".meal-audit");
+    // The density pass's card rewrite is gone: no heading replacement
+    // with a food count, and no "Log details" / "Source & estimate"
+    // disclosures burying description, notes and source badges.
+    expect(html).not.toContain("enhanceMealCard");
+    expect(html).not.toContain('auditSummary.textContent = "Log details"');
+    expect(html).not.toContain('summary.textContent = "Source & estimate"');
+    expect(html).not.toContain("heading.textContent = `${rows.length} food");
+    expect(css).not.toContain(".meal-card.is-structured");
+    // The canonical card renders the meal's own description as its
+    // heading and each item's source badge inline.
+    expect(appJs).toContain(
+        "<h4>${escapeHtml(meal.description || \"Untitled meal\")}</h4>",
+    );
+    expect(appJs).toContain('class="demo-source-row"');
     expect(css).toContain(".food-audit");
     expect(css).toContain(".settings-index-card");
 });

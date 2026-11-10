@@ -4862,6 +4862,27 @@ document.addEventListener("click", async (event) => {
         navigate(link.getAttribute("href"));
         return;
     }
+    // UX fix wave F3: the whole meal card is the View-details tap
+    // target (Michael's ruling) — a tap anywhere on the card that did
+    // not land on an interactive element (the card's own buttons,
+    // links, form controls, summaries, or an open inline confirmation)
+    // opens the meal's details. The buttons keep their own handlers
+    // via the [data-action] delegation below, and their taps never
+    // reach this branch, so nothing double-triggers.
+    const mealCardEl = event.target.closest(".meal-card[data-meal-id]");
+    if (
+        mealCardEl &&
+        !event.target.closest(
+            "button, a, input, select, textarea, summary, details, .plan-inline-confirm, .vital-inline-confirm",
+        )
+    ) {
+        try {
+            await openMealDetails(mealCardEl.dataset.mealId);
+        } catch (error) {
+            toast(error.message || "Could not load meal", "error");
+        }
+        return;
+    }
     const button = event.target.closest("[data-action]");
     if (!button) return;
     try {
