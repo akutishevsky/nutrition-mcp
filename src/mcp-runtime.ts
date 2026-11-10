@@ -1,7 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import type { Context } from "hono";
-import { resolveMunchCapabilitiesSafe } from "./billing/capabilities.js";
+import {
+    resolveMunchCapabilitiesSafe,
+    type MunchCapabilityResolution,
+} from "./billing/capabilities.js";
+import { mcpEntitlementRefusal } from "./mcp-entitlement.js";
 import { withCanonicalFoodSearch } from "./canonical-food-search.js";
 import { getAccountIdentity } from "./accounts/repository.js";
 import { registerConnectionStatusTools } from "./connection-status-tools.js";
@@ -39,6 +43,7 @@ const COOK_SERVER_INSTRUCTIONS = `Cooks are persistent cooking occasions indepen
 async function buildMunchMcpServer(
     c: Context,
     userId: string,
+    preResolvedCapabilities?: MunchCapabilityResolution,
 ): Promise<McpServer> {
     const proto = c.req.header("x-forwarded-proto") || "http";
     const host =
@@ -71,7 +76,7 @@ async function buildMunchMcpServer(
             });
             return null;
         }),
-        resolveMunchCapabilitiesSafe(userId),
+        preResolvedCapabilities ?? resolveMunchCapabilitiesSafe(userId),
         getAccountIdentity(userId).catch((error) => {
             console.warn(
                 "Munch account identity lookup failed during MCP setup",
@@ -143,28 +148,71 @@ async function buildMunchMcpServer(
     return server;
 }
 
-export const handleMcp = async (c: Context) => {
-    if (c.req.method !== "POST") {
-        return c.json(
-            {
-                jsonrpc: "2.0",
-                id: null,
-                error: {
-                    code: -32000,
-                    message:
-                        "Method Not Allowed: this endpoint serves POST only and offers no SSE stream",
-                },
-            },
-            405,
-            { Allow: "POST" },
-        );
-    }
+export interface McpRuntimeDeps {
+    resolveCapabilities?: (
+        userId: string,
+    ) => Promise<MunchCapabilityResolution>;
+}
 
-    const userId = c.get("userId") as string;
-    const transport = new WebStandardStreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-    });
-    const server = await buildMunchMcpServer(c, userId);
-    await server.connect(transport);
-    return transport.handleRequest(c.req.raw);
-};
+export const createHandleMcp =
+    (deps: McpRuntimeDeps = {}) =>
+    async (c: Context) => {
+        if (c.req.method !== "POST") {
+            return c.json(
+                {
+                    jsonrpc: "2.0",
+                    id: null,
+                    error: {
+                        code: -32000,
+                        message:
+                            "Method Not Allowed: this endpoint serves POST only and offers no SSE stream",
+                    },
+                },
+                405,
+                { Allow: "POST" },
+            );
+        }
+
+        const userId = c.get("userId") as string;
+
+        // MCP entitlement gate (Amendment D, 2026-11-09): MCP access is part of
+        // Premium. Capabilities are resolved fresh on every request through the
+        // same source of truth as the web side, so an already-connected client
+        // whose entitlement lapses — or that connected before this gate — is
+        // refused on its next gated request. Only the initialize handshake,
+        // pings, and notifications pass without Premium, so a client can
+        // negotiate and surface the refusal; every tools/list, tools/call,
+        // resource, and prompt request requires an active Premium entitlement.
+        // Capability lookup failures resolve fail-closed (Free), matching the
+        // repo's existing capability doctrine.
+        const capabilityResolution = await (
+            deps.resolveCapabilities ?? resolveMunchCapabilitiesSafe
+        )(userId);
+        let payload: unknown;
+        try {
+            const rawBody = await c.req.raw.clone().text();
+            payload = rawBody ? JSON.parse(rawBody) : undefined;
+        } catch {
+            payload = undefined;
+        }
+        if (payload !== undefined) {
+            const refusal = mcpEntitlementRefusal(
+                capabilityResolution.capabilities,
+                payload,
+            );
+            if (refusal) return c.json(refusal.body, refusal.status);
+        }
+
+        const transport = new WebStandardStreamableHTTPServerTransport({
+            sessionIdGenerator: undefined,
+        });
+        const server = await buildMunchMcpServer(
+            c,
+            userId,
+            capabilityResolution,
+        );
+        await server.connect(transport);
+        return transport.handleRequest(c.req.raw);
+    };
+
+export const handleMcp = createHandleMcp();

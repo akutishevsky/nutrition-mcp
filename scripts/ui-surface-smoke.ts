@@ -91,7 +91,6 @@ if (!robots.includes("Sitemap: https://munch.business/sitemap.xml")) {
 
 const authSurfaces = [
     "public/help-connect.html",
-    "src/auth/connect-routes.ts",
     "src/auth/email.ts",
     "src/auth/password-routes.ts",
 ];
@@ -113,6 +112,28 @@ for (const path of authSurfaces) {
             );
         }
     }
+}
+
+// Amendment D (2026-11-09) exception, deliberately narrow: the OAuth
+// consent route must state plainly that MCP access is part of Premium and
+// refuse approval for a Free account, so "premium" language is allowed in
+// connect-routes.ts. Selling still is not: checkout, Stripe, trial, and
+// the canonical price stay banned there — Premium starts only on the
+// website, never inside the connection flow.
+const connectRoutesText = (
+    await Bun.file("src/auth/connect-routes.ts").text()
+).toLowerCase();
+for (const term of ["checkout", "stripe", "trial", "$3.00"]) {
+    if (connectRoutesText.includes(term)) {
+        throw new Error(
+            `src/auth/connect-routes.ts contains protected commerce term: ${term}`,
+        );
+    }
+}
+if (!connectRoutesText.includes("mcp access is part of")) {
+    throw new Error(
+        "src/auth/connect-routes.ts is missing the consent Premium statement (Amendment D)",
+    );
 }
 
 const accountRoutes = await Bun.file("src/accounts/routes.ts").text();

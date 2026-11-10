@@ -35,3 +35,26 @@ does not expose internal user IDs, billing records, or entitlement sources.
   an additional product-access boundary, not a replacement for RLS.
 - Web account settings and OAuth consent identify the active Munch email so the
   user can compare it with the account whose records they expect.
+
+## Amendment D update (2026-11-09) — MCP access itself is Premium-gated
+
+Michael's Amendment D ruling supersedes this ADR's stance that authentication
+alone establishes a usable MCP connection and that entitlement refusals stay
+neutral. MCP access is now one of the three things Premium covers, because a
+free MCP would bypass the ad-supported free tier. Concretely:
+
+- The OAuth consent page states plainly that MCP access is part of Premium
+  and offers no approval to a Free account, so no new Free connection or
+  token can be created.
+- Every MCP request re-resolves the current entitlement; gated JSON-RPC
+  methods (tools/list, tools/call, resources, prompts) from a Free account
+  return a 403 JSON-RPC refusal that explains the Premium model and routes
+  to the Munch website. Only initialize, ping, and notifications are exempt,
+  so a client can negotiate and surface that refusal. This also covers
+  already-connected clients whose entitlement lapses — no reconnect needed.
+- Premium connections are unchanged: same catalog, same contracts,
+  unmetered. Feature-level guards inside tools (recipes, planning,
+  household scopes) keep their neutral message; only the MCP-access
+  entitlement refusal names Premium.
+- The commerce boundary is unchanged: the refusal explains and routes to
+  the website; no MCP or connection surface initiates checkout.
