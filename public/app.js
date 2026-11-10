@@ -1294,14 +1294,31 @@ async function renderPlan() {
         data.plannedMeals,
         (meal) => meal.planned_date,
     );
-    content.innerHTML = `<div class="page-heading"><div><h2>Week of ${escapeHtml(formatDate(start))}</h2><p>Planned meals stay separate from foods you actually logged.</p></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="guided-planner">Guided planner</button><button class="button button-secondary button-small" type="button" data-action="guidance-preferences">Preferences</button><button class="button button-secondary button-small" data-action="date-week-prev">Previous week</button><button class="button button-secondary button-small" data-action="date-today">This week</button><button class="button button-secondary button-small" data-action="date-week-next">Next week</button></div></div><div class="meal-groups">${weekDays(
+    // S6 slice 3 (density law): the week summary is merged into the
+    // heading line — planned count, days covered, and the daily
+    // average on planned days — instead of a separate summary panel
+    // pushing the week's rows down (the tightened mock carries the
+    // same facts in its heading block).
+    const plannedCount = data.plannedMeals.length;
+    const daysPlanned = weekDays(start).filter(
+        (date) => (byDate[date] || []).length,
+    ).length;
+    const totalCalories = data.plannedMeals.reduce(
+        (sum, meal) =>
+            sum + (meal.nutrition_per_serving?.calories || 0) * meal.servings,
+        0,
+    );
+    const weekSummary = plannedCount
+        ? ` ${number(plannedCount)} planned across ${daysPlanned} of 7 days · ${number(totalCalories / Math.max(daysPlanned, 1))} kcal daily average on planned days.`
+        : "";
+    content.innerHTML = `<div class="operate-view plan-view"><div class="page-heading"><div><h2>Week of ${escapeHtml(formatDate(start))}</h2><p>Planned meals stay separate from foods you actually logged.${weekSummary}</p></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="guided-planner">Guided planner</button><button class="button button-secondary button-small" type="button" data-action="guidance-preferences">Preferences</button><button class="button button-secondary button-small" data-action="date-week-prev">Previous week</button><button class="button button-secondary button-small" data-action="date-today">This week</button><button class="button button-secondary button-small" data-action="date-week-next">Next week</button></div></div><div class="meal-groups">${weekDays(
         start,
     )
         .map(
             (date) =>
-                `<section class="meal-group"><header class="meal-group-header"><div><strong>${escapeHtml(formatDate(date, { weekday: true }))}</strong></div><span>${(byDate[date] || []).length} planned</span></header>${(byDate[date] || []).length ? (byDate[date] || []).map((meal) => `<article class="meal-card"><div class="meal-card-head"><div><h4>${escapeHtml(meal.recipe_name)}</h4><div class="meal-meta"><span>${escapeHtml(meal.meal_slot || "Meal")}</span><span>${escapeHtml(meal.ownership)}</span>${meal.created_by ? `<span>Added by ${escapeHtml(meal.created_by)}</span>` : ""}</div></div><strong>${number(meal.servings, 1)} servings</strong></div><div class="meal-macros"><span class="macro-chip">${number((meal.nutrition_per_serving?.calories || 0) * meal.servings)} kcal</span><span class="macro-chip">P ${number((meal.nutrition_per_serving?.protein_g || 0) * meal.servings, 1)}g</span></div><div class="auth-actions spacer-top"><button class="button button-secondary button-small" type="button" data-action="meal-swap" data-id="${escapeHtml(meal.planned_meal_id)}" data-version="${escapeHtml(meal.version)}">Swap recipe</button></div></article>`).join("") : `<div class="meal-card"><p>No meals planned.</p></div>`}</section>`,
+                `<section class="meal-group plan-day"><header class="meal-group-header"><div><strong>${escapeHtml(formatDate(date, { weekday: true }))}</strong></div><span>${(byDate[date] || []).length} planned</span></header>${(byDate[date] || []).length ? (byDate[date] || []).map((meal) => `<article class="meal-card plan-meal-card"><div class="meal-card-head"><div><h4>${escapeHtml(meal.recipe_name)}</h4><div class="meal-meta"><span>${escapeHtml(meal.meal_slot || "Meal")}</span><span>${escapeHtml(meal.ownership)}</span>${meal.created_by ? `<span>Added by ${escapeHtml(meal.created_by)}</span>` : ""}</div></div><strong class="plan-servings">${number(meal.servings, 1)} servings</strong></div><div class="meal-macros"><span class="macro-chip">${number((meal.nutrition_per_serving?.calories || 0) * meal.servings)} kcal</span><span class="macro-chip">P ${number((meal.nutrition_per_serving?.protein_g || 0) * meal.servings, 1)}g</span></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="meal-swap" data-id="${escapeHtml(meal.planned_meal_id)}" data-version="${escapeHtml(meal.version)}">Swap recipe</button></div></article>`).join("") : `<p class="plan-empty">No meals planned.</p>`}</section>`,
         )
-        .join("")}</div>`;
+        .join("")}</div></div>`;
 }
 
 function currentWeekStart() {
@@ -1382,7 +1399,7 @@ async function openGuidedPlanner() {
         : "";
     openDialog(
         "Guided weekly plan",
-        `<p>Choose saved recipes for any days, or ask the website model for recipe proposals. Every proposal is checked and its nutrition is resolved by Munch before you review it.</p>${existingPlanNote}<div class="auth-actions spacer-top"><button class="button button-secondary button-small" type="button" data-action="guidance-preferences">Edit preferences</button></div><form id="guided-plan-form" class="auth-form" data-start="${weekStart}" data-end="${weekEnd}">${scopeSelector}<div class="spacer-top">${rows}</div><label class="check-row spacer-top"><input type="checkbox" name="replace_existing" /><span>Replace existing meals in the date and meal slots I include</span></label><details class="spacer-top"><summary>Temporary plan overrides</summary><p class="tiny">Enable a field to replace its saved preference for this plan only.</p>${["allergies", "excluded_ingredients", "equipment"].map((key) => `<label class="check-row"><input type="checkbox" data-guided-override="${key}" /><span>Override ${key.replaceAll("_", " ")}</span></label><label class="field"><span>${key.replaceAll("_", " ")}</span><input class="input" name="override_${key}" placeholder="Comma-separated list" /></label>`).join("")}</details><label class="field spacer-top"><span>Optional request for recipe variety</span><textarea class="input" name="request" maxlength="800" rows="2" placeholder="For example, include two vegetarian dinners"></textarea></label><div class="auth-actions"><button class="button button-primary" type="submit">Create saved-recipe draft</button><button class="button button-secondary" type="button" data-action="guided-ai-create">Suggest recipes with AI</button></div>${recipes.length ? "" : `<p class="tiny">No saved recipes yet. Use AI suggestions or create recipes in the Recipe library first.</p>`}</form>`,
+        `<p>Choose saved recipes for any days, or ask the website model for recipe proposals. Every proposal is checked and its nutrition is resolved by Munch before you review it.</p>${existingPlanNote}<div class="auth-actions spacer-top guided-plan-pref-action"><button class="button button-secondary button-small" type="button" data-action="guidance-preferences">Edit preferences</button></div><form id="guided-plan-form" class="auth-form" data-start="${weekStart}" data-end="${weekEnd}">${scopeSelector}<div class="spacer-top">${rows}</div><label class="check-row spacer-top"><input type="checkbox" name="replace_existing" /><span>Replace existing meals in the date and meal slots I include</span></label><details class="spacer-top"><summary>Temporary plan overrides</summary><p class="tiny">Enable a field to replace its saved preference for this plan only.</p>${["allergies", "excluded_ingredients", "equipment"].map((key) => `<label class="check-row"><input type="checkbox" data-guided-override="${key}" /><span>Override ${key.replaceAll("_", " ")}</span></label><label class="field"><span>${key.replaceAll("_", " ")}</span><input class="input" name="override_${key}" placeholder="Comma-separated list" /></label>`).join("")}</details><label class="field spacer-top"><span>Optional request for recipe variety</span><textarea class="input" name="request" maxlength="800" rows="2" placeholder="For example, include two vegetarian dinners"></textarea></label><div class="auth-actions"><button class="button button-primary" type="submit">Create saved-recipe draft</button><button class="button button-secondary" type="button" data-action="guided-ai-create">Suggest recipes with AI</button></div>${recipes.length ? "" : `<p class="tiny">No saved recipes yet. Use AI suggestions or create recipes in the Recipe library first.</p>`}</form>`,
     );
 }
 
@@ -1444,6 +1461,104 @@ function savedRecipeChoices(currentId, currentRevision, recipes) {
         .join("");
 }
 
+// S6 slice 3 — inline confirmations for Meal Plan flows, following
+// S6 slice 1's pattern for the meal-draft Abandon fix: the native
+// window.confirm() is gone from every Meal Plan flow in this slice
+// (draft commit, draft cancel, grocery commit, swap apply, swap
+// undo, guidance-preferences save). Where a JS-dialog handler is
+// dismissed or never answers — automated browsers by default,
+// WebViews without one — confirm() reads as "no" and the click
+// silently no-ops. The confirmation is now in-dialog UI, identical
+// everywhere and covered by the packaged-bundle e2e regressions.
+// Two shapes: a single anchor button is hidden and an inline
+// confirmation row takes its place (showInlineConfirm); the draft
+// review's three-button action row is swapped whole
+// (showPlanDraftInlineConfirm), so unsaved edits and scroll survive.
+function showInlineConfirm(
+    anchor,
+    {
+        note,
+        confirmLabel,
+        confirmAction,
+        confirmAttrs = {},
+        dismissLabel,
+        destructive = false,
+    },
+) {
+    if (!anchor || anchor.dataset.confirmPending) return;
+    anchor.dataset.confirmPending = "true";
+    anchor.style.display = "none";
+    const box = document.createElement("div");
+    box.className = "plan-inline-confirm";
+    const noteElement = document.createElement("p");
+    noteElement.className = destructive
+        ? "plan-inline-note is-destructive"
+        : "plan-inline-note";
+    noteElement.setAttribute("role", "alert");
+    noteElement.textContent = note;
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "button";
+    confirmButton.className = destructive
+        ? "button button-primary plan-inline-confirm-danger"
+        : "button button-primary";
+    confirmButton.dataset.action = confirmAction;
+    for (const [key, value] of Object.entries(confirmAttrs))
+        confirmButton.dataset[key] = value;
+    confirmButton.textContent = confirmLabel;
+    const dismissButton = document.createElement("button");
+    dismissButton.type = "button";
+    dismissButton.className = "button button-secondary";
+    dismissButton.dataset.action = "dismiss-plan-inline-confirm";
+    dismissButton.textContent = dismissLabel;
+    box.append(noteElement, confirmButton, dismissButton);
+    anchor.insertAdjacentElement("afterend", box);
+    confirmButton.focus();
+}
+
+function dismissInlineConfirm(button) {
+    const box = button.closest(".plan-inline-confirm");
+    const anchor = box?.previousElementSibling;
+    if (anchor instanceof HTMLElement) {
+        anchor.style.display = "";
+        delete anchor.dataset.confirmPending;
+        anchor.focus();
+    }
+    box?.remove();
+}
+
+function planDraftActionsMarkup(blockers) {
+    return `<button class="button button-secondary" type="submit">Save edits and recheck</button><button class="button button-primary" type="button" data-action="guided-draft-commit" ${blockers.length ? "disabled" : ""}>Confirm plan</button><button class="button button-quiet" type="button" data-action="guided-draft-cancel">Cancel draft</button>`;
+}
+
+function showPlanDraftInlineConfirm(kind) {
+    const actions = document.querySelector(
+        "#guided-plan-edit-form .auth-actions",
+    );
+    if (!actions || actions.dataset.confirmKind) return;
+    actions.dataset.confirmKind = kind;
+    actions.innerHTML =
+        kind === "commit"
+            ? `<p class="plan-inline-note" role="alert">Confirm and schedule this plan? It will not be recorded as food eaten.</p><button class="button button-primary" type="button" data-action="guided-draft-commit-confirm">Yes, schedule plan</button><button class="button button-secondary" type="button" data-action="guided-draft-confirm-dismiss">Keep reviewing</button>`
+            : `<p class="plan-inline-note is-destructive" role="alert">Cancel this plan draft? The calendar will not change.</p><button class="button button-primary plan-inline-confirm-danger" type="button" data-action="guided-draft-cancel-confirm">Yes, cancel draft</button><button class="button button-secondary" type="button" data-action="guided-draft-confirm-dismiss">Keep draft</button>`;
+    actions
+        .querySelector(
+            '[data-action="guided-draft-commit-confirm"], [data-action="guided-draft-cancel-confirm"]',
+        )
+        ?.focus();
+}
+
+function dismissPlanDraftInlineConfirm() {
+    const actions = document.querySelector(
+        "#guided-plan-edit-form .auth-actions",
+    );
+    if (!actions) return;
+    const blockers = (state.guided.draft?.items || []).flatMap(
+        (item) => item.blockers || [],
+    );
+    delete actions.dataset.confirmKind;
+    actions.innerHTML = planDraftActionsMarkup(blockers);
+}
+
 async function renderGuidedDraftReview(draft) {
     if (
         !state.guided.context ||
@@ -1461,6 +1576,11 @@ async function renderGuidedDraftReview(draft) {
     state.guided.draft = draft;
     const recipes = state.guided.context?.saved_recipes || [];
     const blockers = draft.items.flatMap((item) => item.blockers || []);
+    // S6 slice 3 (density): the recipe-proposal textarea renders only
+    // where it can carry a proposal — generated items, and any item
+    // in mixed mode (its source can switch to generated). A saved
+    // item in a saved-only draft previously showed a large empty
+    // disabled box: dead space with nothing to edit or read.
     const items = draft.items
         .map((item) => {
             const isGenerated = item.source_type === "generated";
@@ -1469,12 +1589,12 @@ async function renderGuidedDraftReview(draft) {
                     ? `<label class="field"><span>Recipe source</span><select class="input" name="source_type"><option value="saved" ${isGenerated ? "" : "selected"}>Saved recipe</option><option value="generated" ${isGenerated ? "selected" : ""}>Recipe draft</option></select></label>`
                     : `<input type="hidden" name="source_type" value="${isGenerated ? "generated" : "saved"}" />`;
             const nutrition = item.nutrition?.per_serving || {};
-            return `<div class="meal-card guided-draft-item" data-guided-item="${item.position}"><input type="hidden" name="date" value="${escapeHtml(item.date)}" /><div class="meal-card-head"><strong>${escapeHtml(formatDate(item.date, { weekday: true }))} · ${escapeHtml(item.meal_slot)}</strong><span>${escapeHtml(item.nutrition_status)}</span></div>${sourceControl}${!isGenerated || draft.mode === "mixed" ? `<label class="field"><span>Saved recipe</span><select class="input" name="recipe_choice"><option value="">Choose a saved recipe</option>${savedRecipeChoices(item.recipe_id, item.recipe_revision_id, recipes)}</select></label>` : ""}<label class="field"><span>${isGenerated ? "Editable recipe proposal (nutrition is calculated separately)" : "Recipe proposal"}</span><textarea class="input" name="generated_recipe" rows="8" ${isGenerated ? "" : "disabled"}>${isGenerated ? escapeHtml(JSON.stringify(item.generated_recipe, null, 2)) : ""}</textarea></label><div class="meal-macros"><span class="macro-chip">${number(nutrition.calories)} kcal/serving</span><span class="macro-chip">P ${number(nutrition.protein_g, 1)}g</span><span class="macro-chip">C ${number(nutrition.carbs_g, 1)}g</span><span class="macro-chip">F ${number(nutrition.fat_g, 1)}g</span></div>${item.blockers?.length ? `<p class="error-text">Blocked: ${item.blockers.map(escapeHtml).join("; ")}</p>` : ""}${item.warnings?.length ? `<ul class="tiny">${item.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}</ul>` : ""}</div>`;
+            return `<div class="meal-card guided-draft-item" data-guided-item="${item.position}"><input type="hidden" name="date" value="${escapeHtml(item.date)}" /><div class="meal-card-head"><strong>${escapeHtml(formatDate(item.date, { weekday: true }))} · ${escapeHtml(item.meal_slot)}</strong><span>${escapeHtml(item.nutrition_status)}</span></div>${sourceControl}${!isGenerated || draft.mode === "mixed" ? `<label class="field"><span>Saved recipe</span><select class="input" name="recipe_choice"><option value="">Choose a saved recipe</option>${savedRecipeChoices(item.recipe_id, item.recipe_revision_id, recipes)}</select></label>` : ""}${isGenerated || draft.mode === "mixed" ? `<label class="field"><span>${isGenerated ? "Editable recipe proposal (nutrition is calculated separately)" : "Recipe proposal"}</span><textarea class="input" name="generated_recipe" rows="8" ${isGenerated ? "" : "disabled"}>${isGenerated ? escapeHtml(JSON.stringify(item.generated_recipe, null, 2)) : ""}</textarea></label>` : ""}<div class="meal-macros"><span class="macro-chip">${number(nutrition.calories)} kcal/serving</span><span class="macro-chip">P ${number(nutrition.protein_g, 1)}g</span><span class="macro-chip">C ${number(nutrition.carbs_g, 1)}g</span><span class="macro-chip">F ${number(nutrition.fat_g, 1)}g</span></div>${item.blockers?.length ? `<p class="error-text">Blocked: ${item.blockers.map(escapeHtml).join("; ")}</p>` : ""}${item.warnings?.length ? `<ul class="tiny">${item.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}</ul>` : ""}</div>`;
         })
         .join("");
     const editForm =
         draft.status === "draft"
-            ? `<form id="guided-plan-edit-form" class="auth-form" data-version="${draft.version}">${items}<div class="auth-actions"><button class="button button-secondary" type="submit">Save edits and recheck</button><button class="button button-primary" type="button" data-action="guided-draft-commit" ${blockers.length ? "disabled" : ""}>Confirm plan</button><button class="button button-quiet" type="button" data-action="guided-draft-cancel">Cancel draft</button></div></form>`
+            ? `<form id="guided-plan-edit-form" class="auth-form" data-version="${draft.version}">${items}<div class="auth-actions">${planDraftActionsMarkup(blockers)}</div></form>`
             : `<div class="meal-groups">${items}</div><div class="auth-actions spacer-top"><button class="button button-primary" type="button" data-action="guided-groceries">Review groceries separately</button></div><p class="tiny spacer-top">The plan is scheduled. Nothing has been logged as eaten, and no groceries have been added.</p>`;
     openDialog(
         draft.status === "committed" ? "Plan committed" : "Review meal plan",
@@ -1494,7 +1614,7 @@ async function previewGuidedGroceries() {
     const suggestions = preview.suggestions || [];
     openDialog(
         "Review grocery suggestions",
-        `<p>Select the items to add. This separate step will add only the checked items to your grocery list.</p>${suggestions.length ? `<div class="meal-groups">${suggestions.map((item) => `<label class="meal-card check-row"><input type="checkbox" data-guided-grocery-index="${item.index}" ${item.already_on_list ? "disabled" : "checked"} /><span><strong>${escapeHtml(item.name)}</strong><small>${item.quantity == null ? "Quantity unavailable" : `${number(item.quantity, 2)} ${escapeHtml(item.unit || "")}`} · ${escapeHtml((item.recipes || []).join(", "))}${item.already_on_list ? " · already on list" : ""}</small></span></label>`).join("")}</div>` : `<div class="empty-state"><div><h3>No quantity-based suggestions</h3><p>Ingredients without a known amount need manual entry.</p></div></div>`}<div class="auth-actions spacer-top"><button class="button button-primary" type="button" data-action="guided-grocery-commit" ${suggestions.length ? "" : "disabled"}>Add selected groceries</button></div><p class="tiny">This does not change pantry inventory or mark anything as eaten.</p>`,
+        `<p>Select the items to add. This separate step will add only the checked items to your grocery list.</p>${suggestions.length ? `<div class="meal-groups">${suggestions.map((item) => `<label class="meal-card check-row guided-grocery-row"><input type="checkbox" data-guided-grocery-index="${item.index}" ${item.already_on_list ? "disabled" : "checked"} /><span><strong>${escapeHtml(item.name)}</strong><small>${item.quantity == null ? "Quantity unavailable" : `${number(item.quantity, 2)} ${escapeHtml(item.unit || "")}`} · ${escapeHtml((item.recipes || []).join(", "))}${item.already_on_list ? " · already on list" : ""}</small></span></label>`).join("")}</div>` : `<div class="empty-state"><div><h3>No quantity-based suggestions</h3><p>Ingredients without a known amount need manual entry.</p></div></div>`}<div class="auth-actions spacer-top"><button class="button button-primary" type="button" data-action="guided-grocery-commit" ${suggestions.length ? "" : "disabled"}>Add selected groceries</button></div><p class="tiny">This does not change pantry inventory or mark anything as eaten.</p>`,
     );
 }
 
@@ -1505,7 +1625,7 @@ async function previewMealSwap(button) {
     );
     const candidates = preview.candidates || [];
     const body = candidates.length
-        ? `<div class="meal-groups">${candidates.map((item) => `<article class="meal-card"><div class="meal-card-head"><h3>${escapeHtml(item.recipe_name)}</h3><span>${escapeHtml(item.nutrition_status)}</span></div><p>${number(item.calories_per_serving)} kcal/serving (${item.calories_delta_per_serving == null ? "unknown change" : `${number(item.calories_delta_per_serving, 1)} kcal change`}) · Protein ${number(item.protein_g_per_serving, 1)}g (${item.protein_delta_per_serving == null ? "unknown change" : `${number(item.protein_delta_per_serving, 1)}g change`})</p>${item.warnings?.length ? `<p class="tiny">${item.warnings.map(escapeHtml).join("; ")}</p>` : ""}<button class="button button-secondary button-small" type="button" data-action="meal-swap-apply" data-meal-id="${escapeHtml(preview.planned_meal_id)}" data-version="${preview.expected_version}" data-recipe-id="${escapeHtml(item.recipe_id)}" data-revision-id="${escapeHtml(item.recipe_revision_id)}">Apply swap</button></article>`).join("")}</div>`
+        ? `<div class="meal-groups">${candidates.map((item) => `<article class="meal-card swap-candidate"><div class="meal-card-head"><h3>${escapeHtml(item.recipe_name)}</h3><span>${escapeHtml(item.nutrition_status)}</span></div><p>${number(item.calories_per_serving)} kcal/serving (${item.calories_delta_per_serving == null ? "unknown change" : `${number(item.calories_delta_per_serving, 1)} kcal change`}) · Protein ${number(item.protein_g_per_serving, 1)}g (${item.protein_delta_per_serving == null ? "unknown change" : `${number(item.protein_delta_per_serving, 1)}g change`})</p>${item.warnings?.length ? `<p class="tiny">${item.warnings.map(escapeHtml).join("; ")}</p>` : ""}<button class="button button-secondary button-small" type="button" data-action="meal-swap-apply" data-meal-id="${escapeHtml(preview.planned_meal_id)}" data-version="${preview.expected_version}" data-recipe-id="${escapeHtml(item.recipe_id)}" data-revision-id="${escapeHtml(item.recipe_revision_id)}">Apply swap</button></article>`).join("")}</div>`
         : `<div class="empty-state"><div><h3>No suitable saved recipes</h3><p>Save another recipe with nutrition data to see swap choices.</p></div></div>`;
     openDialog(
         `Swap ${escapeHtml(preview.current.recipe_name)}`,
@@ -3102,6 +3222,13 @@ async function handleAction(button) {
     }
     if (action === "guided-planner") return openGuidedPlanner();
     if (action === "guidance-preferences") return openGuidancePreferences();
+    if (action === "guidance-preferences-confirm") {
+        const form = document.querySelector("#guidance-preferences-form");
+        if (!form) return;
+        button.disabled = true;
+        await saveGuidancePreferences(form);
+        return;
+    }
     if (action === "confirm-goal-change") {
         const preview = state.goalPreview;
         if (
@@ -3182,15 +3309,19 @@ async function handleAction(button) {
             candidateItems,
         );
     }
+    if (action === "dismiss-plan-inline-confirm") {
+        dismissInlineConfirm(button);
+        return;
+    }
     if (action === "guided-draft-commit") {
+        if (!state.guided.draft) return;
+        showPlanDraftInlineConfirm("commit");
+        return;
+    }
+    if (action === "guided-draft-commit-confirm") {
         const draft = state.guided.draft;
-        if (
-            !draft ||
-            !confirm(
-                "Confirm and schedule this plan? It will not be recorded as food eaten.",
-            )
-        )
-            return;
+        if (!draft) return;
+        button.disabled = true;
         const result = await api(
             `/api/app/planning/drafts/${encodeURIComponent(draft.id)}/commit`,
             {
@@ -3206,12 +3337,14 @@ async function handleAction(button) {
         return renderGuidedDraftReview(result.draft);
     }
     if (action === "guided-draft-cancel") {
+        if (!state.guided.draft) return;
+        showPlanDraftInlineConfirm("cancel");
+        return;
+    }
+    if (action === "guided-draft-cancel-confirm") {
         const draft = state.guided.draft;
-        if (
-            !draft ||
-            !confirm("Cancel this plan draft? The calendar will not change.")
-        )
-            return;
+        if (!draft) return;
+        button.disabled = true;
         await api(`/api/app/planning/drafts/${encodeURIComponent(draft.id)}`, {
             method: "DELETE",
             body: JSON.stringify({
@@ -3223,6 +3356,10 @@ async function handleAction(button) {
         dialog.close();
         state.guided.draft = null;
         toast("Plan draft cancelled.");
+        return;
+    }
+    if (action === "guided-draft-confirm-dismiss") {
+        dismissPlanDraftInlineConfirm();
         return;
     }
     if (action === "guided-groceries") return previewGuidedGroceries();
@@ -3238,12 +3375,27 @@ async function handleAction(button) {
             toast("Select at least one grocery item.", "error");
             return;
         }
-        if (
-            !confirm(
-                `Add ${selected.length} selected item${selected.length === 1 ? "" : "s"} to the grocery list?`,
-            )
-        )
+        showInlineConfirm(button, {
+            note: `Add ${selected.length} selected item${selected.length === 1 ? "" : "s"} to the grocery list?`,
+            confirmLabel: "Yes, add groceries",
+            confirmAction: "guided-grocery-commit-confirm",
+            dismissLabel: "Keep reviewing",
+        });
+        return;
+    }
+    if (action === "guided-grocery-commit-confirm") {
+        const draft = state.guided.draft;
+        const preview = state.guided.groceries;
+        if (!draft || !preview)
+            throw new Error("Review grocery suggestions first.");
+        const selected = [
+            ...document.querySelectorAll("[data-guided-grocery-index]:checked"),
+        ].map((input) => Number(input.dataset.guidedGroceryIndex));
+        if (!selected.length) {
+            toast("Select at least one grocery item.", "error");
             return;
+        }
+        button.disabled = true;
         const result = await api(
             `/api/app/planning/drafts/${encodeURIComponent(draft.id)}/groceries/commit`,
             {
@@ -3265,8 +3417,22 @@ async function handleAction(button) {
     }
     if (action === "meal-swap") return previewMealSwap(button);
     if (action === "meal-swap-apply") {
-        if (!confirm("Apply this saved-recipe swap to the planned meal?"))
-            return;
+        showInlineConfirm(button, {
+            note: "Apply this saved-recipe swap to the planned meal?",
+            confirmLabel: "Yes, apply swap",
+            confirmAction: "meal-swap-apply-confirm",
+            confirmAttrs: {
+                mealId: button.dataset.mealId,
+                version: button.dataset.version,
+                recipeId: button.dataset.recipeId,
+                revisionId: button.dataset.revisionId,
+            },
+            dismissLabel: "Keep current recipe",
+        });
+        return;
+    }
+    if (action === "meal-swap-apply-confirm") {
+        button.disabled = true;
         const result = await api(
             `/api/app/planning/${encodeURIComponent(button.dataset.mealId)}/swap`,
             {
@@ -3293,8 +3459,19 @@ async function handleAction(button) {
         return;
     }
     if (action === "meal-swap-undo") {
+        if (!state.guided.latestSwap) return;
+        showInlineConfirm(button, {
+            note: "Restore the previous recipe?",
+            confirmLabel: "Yes, restore it",
+            confirmAction: "meal-swap-undo-confirm",
+            dismissLabel: "Keep the swap",
+        });
+        return;
+    }
+    if (action === "meal-swap-undo-confirm") {
         const swap = state.guided.latestSwap;
-        if (!swap || !confirm("Restore the previous recipe?")) return;
+        if (!swap) return;
+        button.disabled = true;
         await api(
             `/api/app/planning/swaps/${encodeURIComponent(swap.changeId)}/undo`,
             {
@@ -4177,65 +4354,77 @@ function mealComposerPayload() {
     );
 }
 
+async function saveGuidancePreferences(form) {
+    try {
+        const arrayKeys = [
+            "allergies",
+            "excluded_ingredients",
+            "disliked_ingredients",
+            "liked_ingredients",
+            "cuisines",
+            "flavors",
+            "equipment",
+            "preferred_methods",
+            "avoided_methods",
+        ];
+        const preferences = {
+            objective: form.elements.objective.value,
+            suggestions_enabled: form.elements.suggestions_enabled.checked,
+            ...Object.fromEntries(
+                arrayKeys.map((key) => [
+                    key,
+                    csvList(form.elements[key].value),
+                ]),
+            ),
+            difficulty: form.elements.difficulty.value,
+            max_prep_minutes:
+                form.elements.max_prep_minutes.value === ""
+                    ? null
+                    : Number(form.elements.max_prep_minutes.value),
+            max_total_minutes:
+                form.elements.max_total_minutes.value === ""
+                    ? null
+                    : Number(form.elements.max_total_minutes.value),
+            servings: Number(form.elements.servings.value),
+            allow_repeats: form.elements.allow_repeats.checked,
+            repeat_window_days: Number(form.elements.repeat_window_days.value),
+        };
+        const result = await api("/api/app/guidance/preferences", {
+            method: "PUT",
+            body: JSON.stringify({
+                preferences,
+                expected_version: Number(form.dataset.version),
+                confirm: true,
+            }),
+            keepPrevious: true,
+        });
+        dialog.close();
+        state.guided.context = null;
+        toast(
+            `Guidance preferences saved (version ${result.preferences.version}).`,
+        );
+    } catch (error) {
+        toast(error.message || "Preferences could not be saved.", "error");
+    }
+}
+
 document.addEventListener("submit", async (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
     if (form.id === "guidance-preferences-form") {
         event.preventDefault();
-        try {
-            if (!confirm("Save these guidance preferences?")) return;
-            const arrayKeys = [
-                "allergies",
-                "excluded_ingredients",
-                "disliked_ingredients",
-                "liked_ingredients",
-                "cuisines",
-                "flavors",
-                "equipment",
-                "preferred_methods",
-                "avoided_methods",
-            ];
-            const preferences = {
-                objective: form.elements.objective.value,
-                suggestions_enabled: form.elements.suggestions_enabled.checked,
-                ...Object.fromEntries(
-                    arrayKeys.map((key) => [
-                        key,
-                        csvList(form.elements[key].value),
-                    ]),
-                ),
-                difficulty: form.elements.difficulty.value,
-                max_prep_minutes:
-                    form.elements.max_prep_minutes.value === ""
-                        ? null
-                        : Number(form.elements.max_prep_minutes.value),
-                max_total_minutes:
-                    form.elements.max_total_minutes.value === ""
-                        ? null
-                        : Number(form.elements.max_total_minutes.value),
-                servings: Number(form.elements.servings.value),
-                allow_repeats: form.elements.allow_repeats.checked,
-                repeat_window_days: Number(
-                    form.elements.repeat_window_days.value,
-                ),
-            };
-            const result = await api("/api/app/guidance/preferences", {
-                method: "PUT",
-                body: JSON.stringify({
-                    preferences,
-                    expected_version: Number(form.dataset.version),
-                    confirm: true,
-                }),
-                keepPrevious: true,
-            });
-            dialog.close();
-            state.guided.context = null;
-            toast(
-                `Guidance preferences saved (version ${result.preferences.version}).`,
-            );
-        } catch (error) {
-            toast(error.message || "Preferences could not be saved.", "error");
-        }
+        // S6 slice 3: the native confirm() is replaced by the same
+        // inline confirmation as the other Meal Plan flows — the
+        // first submit only asks, in place; the inline confirm button
+        // (data-action="guidance-preferences-confirm") saves.
+        if (form.querySelector(".plan-inline-confirm")) return;
+        const submitButton = form.querySelector('button[type="submit"]');
+        showInlineConfirm(submitButton, {
+            note: "Save these guidance preferences?",
+            confirmLabel: "Yes, save preferences",
+            confirmAction: "guidance-preferences-confirm",
+            dismissLabel: "Keep editing",
+        });
         return;
     }
     if (form.id === "guided-plan-form") {
