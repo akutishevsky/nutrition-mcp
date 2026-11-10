@@ -4,7 +4,10 @@ import {
     isOffline,
     requestJson,
 } from "./app-api.js";
-import { shouldShowAndroidBanner } from "./ads-policy.js";
+import {
+    shouldRenderTodayAdSlot,
+    shouldShowAndroidBanner,
+} from "./ads-policy.js";
 import {
     displayWeightUnit,
     savedWeightUnit,
@@ -302,6 +305,24 @@ function syncAndroidAdPlacement() {
     }).catch(() => {});
 }
 
+// S6 slice 1: the app's single ad slot (Amendment D final placement
+// law) — an in-flow reserve on Today, directly under the "Today's
+// guidance" panel and above Meals. Behind the ADS-FOUNDATION remote
+// flag (DEFAULT OFF): while the flag is off, for Premium, or on the
+// website (no native ad surface), this returns an empty string and the
+// slot renders nothing at all — no element, no reserved space.
+function todayAdSlotMarkup() {
+    const show = shouldRenderTodayAdSlot({
+        route: state.route,
+        adsEnabled: state.bootstrap?.ads?.enabled,
+        adFree: state.bootstrap?.androidEntitlements?.adFree,
+        nativeAdsAvailable:
+            typeof window.MunchAds?.setBannerVisible === "function",
+    });
+    if (!show) return "";
+    return `<div class="today-ad-slot" data-testid="today-ad-slot" role="complementary" aria-label="Advertisement"><span class="today-ad-tag" aria-hidden="true">Ad</span><span class="today-ad-label" aria-hidden="true">Advertisement</span></div>`;
+}
+
 function setLoading(label = "Loading your Munch workspace…") {
     content.innerHTML = `<div class="loading-state"><div><div class="skeleton" style="width:180px;height:18px"></div><div class="skeleton spacer-top" style="width:min(70vw,360px);height:54px"></div><p class="spacer-top">${escapeHtml(label)}</p></div></div>`;
 }
@@ -483,7 +504,11 @@ async function renderToday() {
         ? weightFromGrams(latestWeight.weight_g, weightUnit)
         : null;
     const guidancePanel = `<section class="panel panel-span-12"><div class="panel-title"><div><h3>Today’s guidance</h3><span>${guidance.source_status === "sparse_data" ? "Limited recorded data" : "Based on recorded data"}</span></div><span class="source-chip source-saved">${escapeHtml(guidance.objective || "Track only")}</span></div><ul>${(guidance.actions || []).map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul><p class="tiny spacer-top">Planned meals are not counted as eaten. Unlogged meals remain unknown.</p></section>`;
-    content.innerHTML = `<div class="page-heading"><div><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><p>Your structured nutrition record for this day.</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><div class="dashboard-grid">${guidancePanel}<section class="panel panel-span-12"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", goals.daily_calories, true)}${metricCard("Protein", data.totals.proteinG, "g", goals.daily_protein_g)}${metricCard("Carbohydrates", data.totals.carbsG, "g", goals.daily_carbs_g)}${metricCard("Fat", data.totals.fatG, "g", goals.daily_fat_g)}</div></section><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml)}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null)}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span></div>`).join("")}` : ""}</aside></div>`;
+    // S6 slice 1 (Editorial Serif fusion, tightened Today mock): order is
+    // heading → day totals → Today's guidance → the single ad slot →
+    // Meals / Daily details. The ad slot markup is empty unless the
+    // ADS-FOUNDATION flag is on for a free packaged account.
+    content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><p>Your structured nutrition record for this day.</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", goals.daily_calories, true)}${metricCard("Protein", data.totals.proteinG, "g", goals.daily_protein_g)}${metricCard("Carbohydrates", data.totals.carbsG, "g", goals.daily_carbs_g)}${metricCard("Fat", data.totals.fatG, "g", goals.daily_fat_g)}</div></section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml)}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null)}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span></div>`).join("")}` : ""}</aside></div></div>`;
 }
 
 function mealSearchSummary(search) {
@@ -516,7 +541,7 @@ async function renderLog() {
     const resultText = query
         ? `${number(data.meals.length)} matching meal${data.meals.length === 1 ? "" : "s"} from ${escapeHtml(formatDate(start))} through ${escapeHtml(formatDate(state.date))}.`
         : `Review meals, item-level provenance, notes, and totals from ${escapeHtml(formatDate(start))} through ${escapeHtml(formatDate(state.date))}.`;
-    content.innerHTML = `<div class="page-heading"><div><h2>${escapeHtml(heading)}</h2><p>${resultText}</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="manage-saved-foods">Saved foods</button><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><form id="meal-history-search-form" class="meal-composer-search-row"><label class="field" style="flex:1"><span>Search meal history</span><input class="input" id="meal-history-search" name="query" type="search" value="${escapeHtml(query)}" placeholder="Search chicken, peanut butter, restaurant…" autocomplete="off" /></label><div class="auth-actions"><button class="button button-primary button-small" type="submit">Search</button>${query ? '<button class="button button-quiet button-small" type="button" data-action="clear-meal-search">Clear</button>' : ""}</div></form><div class="auth-actions spacer-top">${rangeButtons}</div></section><section class="panel spacer-top"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", null, true)}${metricCard("Protein", data.totals.proteinG, "g", null)}${metricCard("Carbohydrates", data.totals.carbsG, "g", null)}${metricCard("Fat", data.totals.fatG, "g", null)}</div></section>${mealSearchSummary(data.search)}<div class="spacer-top">${data.meals.length ? groupedMeals(data.meals) : `<div class="empty-state"><div><h3>${query ? "No matching meals" : "No meals logged"}</h3><p>${query ? "Try another keyword or expand the date range." : "Log a meal to build your history."}</p></div></div>`}</div>`;
+    content.innerHTML = `<div class="operate-view log-view"><div class="page-heading"><div><h2>${escapeHtml(heading)}</h2><p>${resultText}</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="manage-saved-foods">Saved foods</button><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><form id="meal-history-search-form" class="meal-composer-search-row"><label class="field" style="flex:1"><span>Search meal history</span><input class="input" id="meal-history-search" name="query" type="search" value="${escapeHtml(query)}" placeholder="Search chicken, peanut butter, restaurant…" autocomplete="off" /></label><div class="auth-actions"><button class="button button-primary button-small" type="submit">Search</button>${query ? '<button class="button button-quiet button-small" type="button" data-action="clear-meal-search">Clear</button>' : ""}</div></form><div class="auth-actions spacer-top log-range-row" role="group" aria-label="History range">${rangeButtons}</div></section><section class="panel spacer-top"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", null, true)}${metricCard("Protein", data.totals.proteinG, "g", null)}${metricCard("Carbohydrates", data.totals.carbsG, "g", null)}${metricCard("Fat", data.totals.fatG, "g", null)}</div></section>${mealSearchSummary(data.search)}<div class="spacer-top">${data.meals.length ? groupedMeals(data.meals) : `<div class="empty-state"><div><h3>${query ? "No matching meals" : "No meals logged"}</h3><p>${query ? "Try another keyword or expand the date range." : "Log a meal to build your history."}</p></div></div>`}</div></div>`;
 }
 
 function savedFoodListMarkup(foods) {
@@ -676,7 +701,7 @@ async function renderInsights() {
 async function renderFoods() {
     setLoading("Loading saved foods…");
     const data = await api("/api/app/foods");
-    content.innerHTML = `<div class="page-heading"><div><h2>Saved foods</h2><p>${data.total} reusable food${data.total === 1 ? "" : "s"}${data.limit ? ` of ${data.limit}` : ""}.</p></div><div class="auth-actions"><input class="input" id="food-filter" type="search" placeholder="Filter saved foods" aria-label="Filter saved foods" /></div></div><section class="panel"><div id="food-list">${data.foods.length ? `<div class="data-table-wrap"><table class="data-table"><thead><tr><th>Food</th><th>Source</th><th>Default portion</th><th>Used</th><th>Last used</th></tr></thead><tbody>${data.foods.map((food) => `<tr data-food-label="${escapeHtml(food.label.toLowerCase())}"><td><strong>${escapeHtml(food.label)}</strong><br /><small>${escapeHtml(food.food?.brand || food.food?.name || "")}</small></td><td>${sourceBadge(food.provider)}</td><td>${escapeHtml(food.defaultPortionId || "Choose when logging")}</td><td>${number(food.useCount)}</td><td>${food.lastUsedAt ? escapeHtml(formatDate(food.lastUsedAt.slice(0, 10), { year: true })) : "Never"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state"><div><h3>No saved foods yet</h3><p>Confirm a provider food in your AI assistant, then save it for reuse.</p></div></div>`}</div></section>`;
+    content.innerHTML = `<div class="operate-view foods-view"><div class="page-heading"><div><h2>Saved foods</h2><p>${data.total} reusable food${data.total === 1 ? "" : "s"}${data.limit ? ` of ${data.limit}` : ""}.</p></div><div class="auth-actions"><input class="input" id="food-filter" type="search" placeholder="Filter saved foods" aria-label="Filter saved foods" /></div></div><section class="panel"><div id="food-list">${data.foods.length ? `<div class="data-table-wrap"><table class="data-table"><thead><tr><th>Food</th><th>Source</th><th>Default portion</th><th>Used</th><th>Last used</th></tr></thead><tbody>${data.foods.map((food) => `<tr data-food-label="${escapeHtml(food.label.toLowerCase())}"><td><strong>${escapeHtml(food.label)}</strong><br /><small>${escapeHtml(food.food?.brand || food.food?.name || "")}</small></td><td>${sourceBadge(food.provider)}</td><td>${escapeHtml(food.defaultPortionId || "Choose when logging")}</td><td>${number(food.useCount)}</td><td>${food.lastUsedAt ? escapeHtml(formatDate(food.lastUsedAt.slice(0, 10), { year: true })) : "Never"}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty-state"><div><h3>No saved foods yet</h3><p>Confirm a provider food in your AI assistant, then save it for reuse.</p></div></div>`}</div></section></div>`;
 }
 
 async function planningData() {
@@ -1929,7 +1954,7 @@ function findMeal(id) {
 }
 
 function openDialog(title, body, actions = "") {
-    dialog.innerHTML = `<div class="auth-card" style="min-width:min(92vw,520px);max-height:85vh;overflow:auto"><div class="panel-title"><h2 style="font-size:1.6rem">${escapeHtml(title)}</h2><button class="button button-quiet button-small" type="button" data-action="close-dialog" aria-label="Close">Close</button></div>${body}${actions}</div>`;
+    dialog.innerHTML = `<div class="auth-card" style="min-width:min(92vw,520px);max-height:85vh;overflow:auto"><div class="panel-title"><h2 style="font-size:1.6rem">${escapeHtml(title)}</h2><button class="button button-quiet button-small dialog-close" type="button" data-action="close-dialog" aria-label="Close">Close</button></div>${body}${actions}</div>`;
     if (!dialog.open) dialog.showModal();
 }
 
@@ -3672,12 +3697,41 @@ async function handleAction(button) {
         return result;
     }
     if (action === "cancel-meal-draft") {
+        // S6 slice 1 defect fix: abandoning used to gate on the native
+        // window.confirm() dialog. When that dialog is dismissed or
+        // never answered — automated browsers do this by default, and
+        // WebViews without a JS-dialog handler return no affirmative —
+        // confirm() reads as "no" and the click became a silent no-op:
+        // no request, no toast, draft still pending (the 2026-11-09
+        // production check clicked Abandon twice and nothing happened,
+        // while the in-page Close worked). The confirmation is now
+        // in-dialog UI, so it behaves identically everywhere and is
+        // covered by the packaged-bundle e2e regression test.
         const draft = mealDraftReview.draft;
-        if (
-            !draft ||
-            !confirm("Abandon this meal draft? No meal will be logged.")
-        )
-            return;
+        if (!draft) return;
+        const actions = document.querySelector(".meal-draft-actions");
+        if (!actions) return;
+        actions.innerHTML = `<p class="meal-draft-abandon-note" role="alert">Abandon this meal draft? No meal will be logged.</p><button class="button button-primary meal-draft-abandon-confirm" type="button" data-action="confirm-cancel-meal-draft">Yes, abandon draft</button><button class="button button-secondary" type="button" data-action="dismiss-abandon-draft">Keep draft</button>`;
+        actions
+            .querySelector('[data-action="confirm-cancel-meal-draft"]')
+            ?.focus();
+        return;
+    }
+    if (action === "dismiss-abandon-draft") {
+        const draft = mealDraftReview.draft;
+        const actions = document.querySelector(".meal-draft-actions");
+        if (!draft || !actions) return;
+        const openQuestions = draft.questions.filter(
+            (question) => question.status === "open",
+        );
+        actions.innerHTML = `<button class="button button-primary" type="button" data-action="confirm-meal-draft">${openQuestions.length ? "Confirm and accept assumptions" : "Confirm and log meal"}</button><button class="button button-quiet" type="button" data-action="cancel-meal-draft">Abandon draft</button>`;
+        actions.querySelector('[data-action="cancel-meal-draft"]')?.focus();
+        return;
+    }
+    if (action === "confirm-cancel-meal-draft") {
+        const draft = mealDraftReview.draft;
+        if (!draft) return;
+        button.disabled = true;
         await api(
             `/api/app/meal-drafts/${encodeURIComponent(draft.id)}/cancel`,
             {
