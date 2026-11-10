@@ -7,6 +7,7 @@ const envKeys = [
     "DATABASE_URL",
     "MUNCH_GOOGLE_WEB_CLIENT_ID",
     "MUNCH_GOOGLE_ANDROID_CLIENT_ID",
+    "MUNCH_GOOGLE_IOS_CLIENT_ID",
     "MUNCH_GOOGLE_CLIENT_SECRET",
     "MUNCH_ANDROID_APP_LINK_SHA256_FINGERPRINTS",
     "MUNCH_APPLE_TEAM_ID",
@@ -37,6 +38,7 @@ describe("mobile auth routes", () => {
         await withAuthEnvironment(async () => {
             delete process.env.MUNCH_GOOGLE_WEB_CLIENT_ID;
             delete process.env.MUNCH_GOOGLE_ANDROID_CLIENT_ID;
+            delete process.env.MUNCH_GOOGLE_IOS_CLIENT_ID;
             delete process.env.MUNCH_GOOGLE_CLIENT_SECRET;
 
             const response = await createMobileAuthRouter().request(
@@ -49,6 +51,11 @@ describe("mobile auth routes", () => {
                 platforms: {
                     web: { configured: false, webClientId: null },
                     android: { configured: false },
+                    ios: {
+                        configured: false,
+                        clientId: null,
+                        webClientId: null,
+                    },
                 },
             });
             expect(response.headers.get("cache-control")).toBe(
@@ -62,6 +69,7 @@ describe("mobile auth routes", () => {
             // Production state after the Amendment G console pass: the web
             // OAuth client exists, the Android client does not yet.
             delete process.env.MUNCH_GOOGLE_ANDROID_CLIENT_ID;
+            delete process.env.MUNCH_GOOGLE_IOS_CLIENT_ID;
             process.env.MUNCH_GOOGLE_WEB_CLIENT_ID =
                 "web-client-id.apps.googleusercontent.com";
             process.env.MUNCH_GOOGLE_CLIENT_SECRET = "server-only-secret";
@@ -83,6 +91,11 @@ describe("mobile auth routes", () => {
                         webClientId: "web-client-id.apps.googleusercontent.com",
                     },
                     android: { configured: false },
+                    ios: {
+                        configured: false,
+                        clientId: null,
+                        webClientId: null,
+                    },
                 },
             });
             expect(body).not.toContain("server-only-secret");
@@ -111,7 +124,38 @@ describe("mobile auth routes", () => {
                         webClientId: "web-client-id.apps.googleusercontent.com",
                     },
                     android: { configured: true },
+                    ios: {
+                        configured: false,
+                        clientId: null,
+                        webClientId: null,
+                    },
                 },
+            });
+            expect(body).not.toContain("server-only-secret");
+        });
+    });
+
+    test("reports the iOS platform with its public client IDs once the iOS client exists", async () => {
+        await withAuthEnvironment(async () => {
+            process.env.MUNCH_GOOGLE_WEB_CLIENT_ID =
+                "web-client-id.apps.googleusercontent.com";
+            process.env.MUNCH_GOOGLE_IOS_CLIENT_ID =
+                "ios-client-id.apps.googleusercontent.com";
+            process.env.MUNCH_GOOGLE_CLIENT_SECRET = "server-only-secret";
+            delete process.env.MUNCH_GOOGLE_ANDROID_CLIENT_ID;
+
+            const response = await createMobileAuthRouter().request(
+                "/mobile/auth/google-config",
+            );
+            expect(response.status).toBe(200);
+            const body = await response.text();
+            const parsed = JSON.parse(body);
+            // The top-level fields keep describing the Android flow.
+            expect(parsed.configured).toBe(false);
+            expect(parsed.platforms.ios).toEqual({
+                configured: true,
+                clientId: "ios-client-id.apps.googleusercontent.com",
+                webClientId: "web-client-id.apps.googleusercontent.com",
             });
             expect(body).not.toContain("server-only-secret");
         });
