@@ -5,11 +5,11 @@ import {
 } from "./household-seats.js";
 
 describe("paid household seat policy", () => {
-    test("prices the owner at $3.00 plus $2 for each additional member", () => {
-        expect(householdMonthlyTotalCents(0)).toBe(300);
-        expect(householdMonthlyTotalCents(1)).toBe(500);
-        expect(householdMonthlyTotalCents(2)).toBe(700);
-        expect(householdMonthlyTotalCents(5)).toBe(1300);
+    test("prices the owner at $2.99 plus $2 for each additional member", () => {
+        expect(householdMonthlyTotalCents(0)).toBe(299);
+        expect(householdMonthlyTotalCents(1)).toBe(499);
+        expect(householdMonthlyTotalCents(2)).toBe(699);
+        expect(householdMonthlyTotalCents(5)).toBe(1299);
     });
 
     test("rejects household sizes outside the six-account cap", () => {

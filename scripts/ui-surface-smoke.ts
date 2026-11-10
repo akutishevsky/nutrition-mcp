@@ -48,7 +48,7 @@ for (const stale of [
         throw new Error(`Homepage contains stale commercial copy: ${stale}`);
     }
 }
-if (!normalizedHomepage.includes("$3.00")) {
+if (!normalizedHomepage.includes("$2.99")) {
     throw new Error("Homepage does not state the canonical monthly price");
 }
 if (
@@ -75,7 +75,7 @@ if (/\btrial\b/i.test(llms)) {
 }
 for (const phrase of [
     "permanent Free tier",
-    "Premium is $3.00/month",
+    "Premium is $2.99/month",
     "Additional household members are $2/month each",
     "https://munch.business/mcp",
 ]) {
@@ -106,7 +106,7 @@ const forbiddenAuthWords = [
     "pricing",
     "checkout",
     "stripe",
-    "$3.00",
+    "$2.99",
 ];
 for (const path of authSurfaces) {
     const text = (await Bun.file(path).text()).toLowerCase();
@@ -128,7 +128,7 @@ for (const path of authSurfaces) {
 const connectRoutesText = (
     await Bun.file("src/auth/connect-routes.ts").text()
 ).toLowerCase();
-for (const term of ["checkout", "stripe", "trial", "$3.00"]) {
+for (const term of ["checkout", "stripe", "trial", "$2.99"]) {
     if (connectRoutesText.includes(term)) {
         throw new Error(
             `src/auth/connect-routes.ts contains protected commerce term: ${term}`,

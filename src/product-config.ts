@@ -1,7 +1,7 @@
 export const PRODUCT_CONFIG = Object.freeze({
     name: "Munch",
     publicBaseUrl: "https://munch.business",
-    premiumPriceMonthlyCents: 300,
+    premiumPriceMonthlyCents: 299,
     householdMemberPriceMonthlyCents: 200,
     // The 7-day free trial is live: it is set on the Stripe price, so
     // checkout code never passes trial parameters itself.
@@ -50,7 +50,7 @@ export const PROTECTED_COMMERCE_TERMS = Object.freeze([
     "stripe checkout",
     "billing portal",
     "pricing plan",
-    "$3.00",
+    "$2.99",
 ]);
 
 export const PROTECTED_COMMERCE_PATHS = Object.freeze([
