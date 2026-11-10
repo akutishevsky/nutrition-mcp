@@ -41,7 +41,7 @@ final class MunchSmokeTests: XCTestCase {
             "Sign-in heading never appeared after cold launch"
         )
         XCTAssertTrue(
-            webView.buttons.matching(labelContaining("Email me a sign-in link")).firstMatch.exists,
+            buttons(containing: "Email me a sign-in link").firstMatch.exists,
             "Magic-link submit button missing on the sign-in page"
         )
         XCTAssertTrue(
@@ -59,7 +59,7 @@ final class MunchSmokeTests: XCTestCase {
         let emailField = webView.textFields.firstMatch
         emailField.tap()
         emailField.typeText("smoke@munch.test")
-        tapHittable(webView.buttons.matching(labelContaining("Email me a sign-in link")), "sign-in submit")
+        tapHittable(buttons(containing: "Email me a sign-in link"), "sign-in submit")
         XCTAssertTrue(
             waitForText("Check your email", timeout: 30),
             "Sign-in page never reached its link-sent state"
@@ -76,7 +76,7 @@ final class MunchSmokeTests: XCTestCase {
         // Step 4 — the log-a-meal path opens: Add meal presents the
         // real meal composer dialog, and Close dismisses it.
         tapHittable(
-            webView.buttons.matching(labelContaining("Add meal")),
+            buttons(containing: "Add meal"),
             "Add meal button"
         )
         XCTAssertTrue(
@@ -84,12 +84,12 @@ final class MunchSmokeTests: XCTestCase {
             "Meal composer never opened from Today"
         )
         XCTAssertTrue(
-            webView.buttons.matching(labelContaining("Log meal")).firstMatch.exists,
+            buttons(containing: "Log meal").firstMatch.exists,
             "Meal composer is missing its Log meal submit"
         )
         attachScreenshot("04-add-meal-composer")
         tapHittable(
-            webView.buttons.matching(labelContaining("Close")),
+            buttons(containing: "Close"),
             "composer Close button"
         )
         XCTAssertTrue(
@@ -99,7 +99,7 @@ final class MunchSmokeTests: XCTestCase {
 
         // Step 5 — the Log view renders its (empty-fixture) history.
         tapHittable(
-            webView.links.matching(labelContaining("Log")),
+            links(containing: "Log"),
             "bottom-nav Log link"
         )
         XCTAssertTrue(
@@ -116,7 +116,7 @@ final class MunchSmokeTests: XCTestCase {
         // fixture inventory (the item count only appears after
         // pantry.js has fetched and rendered).
         tapHittable(
-            webView.links.matching(labelContaining("Pantry")),
+            links(containing: "Pantry"),
             "bottom-nav Pantry link"
         )
         XCTAssertTrue(
@@ -133,7 +133,7 @@ final class MunchSmokeTests: XCTestCase {
         // the Pantry top-bar nav is display:none by design, so the
         // brand is the visible route home.
         tapHittable(
-            webView.links.matching(labelContaining("Munch")),
+            links(containing: "Munch"),
             "Pantry brand link"
         )
         assertTodayRendered(step: "return from Pantry")
@@ -141,7 +141,7 @@ final class MunchSmokeTests: XCTestCase {
         // Step 7 — Settings opens through More, and the index renders
         // the fixture account identity from /api/app/settings.
         tapHittable(
-            webView.links.matching(labelContaining("More")),
+            links(containing: "More"),
             "bottom-nav More link"
         )
         XCTAssertTrue(
@@ -149,7 +149,7 @@ final class MunchSmokeTests: XCTestCase {
             "More page never rendered its Settings card"
         )
         tapHittable(
-            webView.links.matching(labelContaining("Settings")),
+            links(containing: "Settings"),
             "More page Settings card"
         )
         XCTAssertTrue(
@@ -186,7 +186,7 @@ final class MunchSmokeTests: XCTestCase {
             "Today is missing its guidance panel (\(step))"
         )
         XCTAssertTrue(
-            webView.buttons.matching(labelContaining("Add meal")).firstMatch.exists,
+            buttons(containing: "Add meal").firstMatch.exists,
             "Today is missing its Add meal action (\(step))"
         )
         XCTAssertFalse(
@@ -209,7 +209,7 @@ final class MunchSmokeTests: XCTestCase {
         emailField.tap()
         emailField.typeText("smoke@munch.test")
         tapHittable(
-            webView.buttons.matching(labelContaining("Email me a sign-in link")),
+            buttons(containing: "Email me a sign-in link"),
             "sign-in submit"
         )
         XCTAssertTrue(
@@ -266,16 +266,22 @@ final class MunchSmokeTests: XCTestCase {
         XCTFail("\(description) never became hittable")
     }
 
+    private func buttons(containing text: String) -> XCUIElementQuery {
+        webView.buttons.matching(labelPredicate(text))
+    }
+
+    private func links(containing text: String) -> XCUIElementQuery {
+        webView.links.matching(labelPredicate(text))
+    }
+
+    private func labelPredicate(_ text: String) -> NSPredicate {
+        NSPredicate(format: "label CONTAINS[c] %@", text)
+    }
+
     private func attachScreenshot(_ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
-    }
-}
-
-extension XCUIElementQuery {
-    func matching(labelContaining text: String) -> XCUIElementQuery {
-        matching(NSPredicate(format: "label CONTAINS[c] %@", text))
     }
 }
