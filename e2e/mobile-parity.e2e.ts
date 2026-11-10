@@ -86,6 +86,91 @@ const groceryRemovedIds = new Set<string>();
 let householdMemberRemoved = false;
 let householdInviteRevoked = false;
 let householdGone = false;
+/** S8: chat agent fixture states — Premium thread vs the Free gate. */
+let chatVariant: "premium" | "free" = "premium";
+let chatSent = false;
+
+const CHAT_USER_MESSAGE = {
+    id: "fixture-chat-user-message",
+    conversationId: "fixture-chat-conversation",
+    role: "user",
+    content: "Log 150 g grilled chicken and a moon soup for lunch",
+    model: null,
+    draftId: null,
+    groundingTrace: [],
+    createdAt: "2026-11-10T12:00:00.000Z",
+};
+
+const CHAT_ASSISTANT_MESSAGE = {
+    id: "fixture-chat-assistant-message",
+    conversationId: "fixture-chat-conversation",
+    role: "assistant",
+    content:
+        "Set up as a draft — review it and confirm before anything is logged.",
+    model: "meta/muse-ember",
+    draftId: "fixture-chat-draft",
+    groundingTrace: [
+        {
+            name: "Grilled chicken breast",
+            grounded: true,
+            estimated: false,
+            groundingSource: "USDA",
+            provider: "usda",
+            providerFoodId: "171688",
+            candidateId: "fixture-candidate-chicken",
+        },
+        {
+            name: "Mystery moon soup",
+            grounded: false,
+            estimated: false,
+            groundingSource: "model_estimate",
+            provider: null,
+            providerFoodId: null,
+            candidateId: null,
+        },
+    ],
+    createdAt: "2026-11-10T12:00:05.000Z",
+};
+
+const CHAT_DRAFT = {
+    id: "fixture-chat-draft",
+    status: "awaiting_answers",
+    description: "Chicken and soup",
+    version: 2,
+    meal_type: "lunch",
+    logged_at: "2026-11-10T12:00:00.000Z",
+    notes: "Proposed by the Munch chat agent — check items and portions before confirming. Nothing is logged until you confirm this draft.",
+    source_mode: "chat",
+    expires_at: null,
+    totals: { calories: 247.5, protein_g: 46.5, carbs_g: 0, fat_g: 5.4 },
+    questions: [
+        {
+            id: "fixture-chat-question",
+            item_id: null,
+            question_key: "photo_estimate_missing_1",
+            prompt: "We couldn't find nutrition for mystery moon soup (1 bowl) in a food database, and the automatic estimate didn't come through. Please supply or confirm its nutrition, or remove the item — this draft can't be confirmed until that's done.",
+            status: "open",
+        },
+    ],
+    items: [
+        {
+            name: "Chicken breast, grilled",
+            source_type: "usda",
+            confidence: 0.8,
+            portion_label: "150 g",
+            quantity: 150,
+            gram_weight: 150,
+            nutrients: {
+                calories: 247.5,
+                protein_g: 46.5,
+                carbs_g: 0,
+                fat_g: 5.4,
+            },
+            provider: "usda",
+            assumptions: ["Skinless"],
+        },
+    ],
+};
 
 const GROCERY_FIXTURE_ITEMS = [
     {
@@ -682,6 +767,51 @@ const PHOTO_DRAFT = {
 
 function fixtureJson(pathname: string, method: string): unknown | undefined {
     if (pathname === "/api/app/bootstrap") return bootstrapFixture();
+    if (pathname === "/api/app/chat" && method === "GET") {
+        return {
+            premium: true,
+            conversation: {
+                id: "fixture-chat-conversation",
+                title: null,
+                createdAt: "2026-11-10T12:00:00.000Z",
+                updatedAt: "2026-11-10T12:00:00.000Z",
+            },
+            messages: chatSent
+                ? [CHAT_USER_MESSAGE, CHAT_ASSISTANT_MESSAGE]
+                : [],
+        };
+    }
+    if (pathname === "/api/app/chat/messages" && method === "POST") {
+        chatSent = true;
+        return {
+            premium: true,
+            conversation: {
+                id: "fixture-chat-conversation",
+                title: "Log 150 g grilled chicken and a moon soup for lunch",
+                createdAt: "2026-11-10T12:00:00.000Z",
+                updatedAt: "2026-11-10T12:00:05.000Z",
+            },
+            user_message: CHAT_USER_MESSAGE,
+            assistant_message: CHAT_ASSISTANT_MESSAGE,
+            draft: CHAT_DRAFT,
+        };
+    }
+    if (pathname === "/api/app/chat/conversations" && method === "POST") {
+        chatSent = false;
+        return {
+            premium: true,
+            conversation: {
+                id: "fixture-chat-conversation",
+                title: null,
+                createdAt: "2026-11-10T12:00:00.000Z",
+                updatedAt: "2026-11-10T12:00:00.000Z",
+            },
+            messages: [],
+        };
+    }
+    if (pathname === "/api/app/meal-drafts/fixture-chat-draft") {
+        return { draft: CHAT_DRAFT };
+    }
     if (pathname === "/api/app/today") {
         return {
             totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
@@ -1177,6 +1307,28 @@ test.beforeAll(async () => {
         ) {
             observed.push({ method, path: url.pathname, search: url.search });
             if (
+                method === "GET" &&
+                url.pathname === "/api/app/chat" &&
+                chatVariant === "free"
+            ) {
+                // The S8 gate, verbatim shape: 403 + the honest
+                // Premium explanation (src/chat/entitlement.ts).
+                response.writeHead(403, {
+                    "content-type": "application/json",
+                });
+                response.end(
+                    JSON.stringify({
+                        error: "premium_required",
+                        message:
+                            "The Munch chat agent is part of Munch Premium ($3/month) — one of three Premium features, alongside ad-free in the app and MCP access. Every other Munch feature, including photo logging, meal ideas, meal plans, and recipe import, is free. Premium is managed on the Munch website: open https://munch.business, sign in with this same account, and manage Premium from Settings → Plan & billing there. No purchase can be started from this chat surface.",
+                        premium_required: true,
+                        subscribe_url:
+                            "https://munch.business/app/settings/billing",
+                    }),
+                );
+                return;
+            }
+            if (
                 method === "POST" &&
                 url.pathname === "/api/app/sign-in-methods/google/unlink" &&
                 signInMethodsVariant === "refusal"
@@ -1462,6 +1614,8 @@ test.beforeEach(() => {
     householdMemberRemoved = false;
     householdInviteRevoked = false;
     householdGone = false;
+    chatVariant = "premium";
+    chatSent = false;
     cookFinished = false;
     cookDeleted = false;
     vitalsRemovedIds.clear();
@@ -1560,6 +1714,7 @@ test("packaged route sweep renders every Operate surface", async ({ page }) => {
         { href: "/app/cooks", landmark: /Cooks/i },
         { href: "/app/plan", landmark: /Week of/i },
         { href: "/app/groceries", landmark: /Groceries/i },
+        { href: "/app/chat", landmark: /thinking partner|Chat/i },
         { href: "/app/more", landmark: /More|Settings/i },
         { href: "/app/settings", landmark: /Settings/i },
         { href: "/app/settings/profile", landmark: /Profile/i },
@@ -3102,4 +3257,78 @@ test("S6 slice 7 regression: water and weight deletes use inline confirmation wi
         page.locator("#weight-history .food-row", { hasText: "182.4 lb" }),
     ).toHaveCount(0);
     expect(nativeDialogs).toEqual([]);
+});
+
+test("S8 chat: Premium round-trip — send, grounded draft proposal, draft review opens, nothing logged by the chat", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/chat");
+
+    // Empty state: the thinking-partner panel + a real composer.
+    await expect(page.getByTestId("chat-empty")).toBeVisible();
+    await expect(page.locator("#chat-input")).toBeVisible();
+    expect(observedRequest("GET", "/api/app/chat")).toBe(true);
+
+    await page
+        .locator("#chat-input")
+        .fill("Log 150 g grilled chicken and a moon soup for lunch");
+    await page.getByRole("button", { name: "Send" }).click();
+
+    // The reply renders with the user turn above it and the draft
+    // proposal card carrying the per-item grounding trace.
+    await expect(page.locator(".chat-thread")).toContainText(
+        "Set up as a draft",
+    );
+    await expect(page.locator(".chat-message-user")).toContainText("moon soup");
+    const card = page.locator(".chat-draft-card");
+    await expect(card).toContainText("Grilled chicken breast");
+    await expect(card).toContainText("Grounded · USDA");
+    await expect(card).toContainText("Mystery moon soup");
+    await expect(card).toContainText("No verified nutrition yet");
+    await expect(card).toContainText("Nothing is logged yet");
+    expect(observedRequest("POST", "/api/app/chat/messages")).toBe(true);
+    // Confirm-before-save: the chat itself never confirms a draft.
+    expect(
+        observed.some(
+            (entry) =>
+                entry.method === "POST" && entry.path.endsWith("/confirm"),
+        ),
+    ).toBe(false);
+
+    // The proposal opens the EXISTING meal-draft review — the shared
+    // confirm path is where logging can happen, by the user's hand.
+    await card.getByRole("button", { name: "Review draft" }).click();
+    await expect(page.locator("#meal-draft-review")).toContainText(
+        "Chicken breast, grilled",
+    );
+    await expect(page.locator("#meal-draft-review")).toContainText(
+        "Source: chat",
+    );
+    expect(
+        observedRequest("GET", "/api/app/meal-drafts/fixture-chat-draft"),
+    ).toBe(true);
+});
+
+test("S8 chat: Free gate state — honest Premium explanation, no fake chat box, no send attempted", async ({
+    page,
+}) => {
+    chatVariant = "free";
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/chat");
+
+    const gate = page.getByTestId("chat-gate");
+    await expect(gate).toBeVisible();
+    await expect(gate).toContainText("part of Munch Premium");
+    await expect(gate).toContainText("Ad-free in the app");
+    await expect(gate).toContainText("MCP access");
+    await expect(gate).toContainText("Everything else in Munch is free");
+    // The subscribe door is the website/rail billing surface — and
+    // there is NO composer that would error on send.
+    await expect(
+        gate.getByRole("link", { name: "View plan & billing" }),
+    ).toHaveAttribute("href", "/app/settings/billing");
+    await expect(page.locator("#chat-input")).toHaveCount(0);
+    await expect(page.locator("#chat-form")).toHaveCount(0);
+    expect(observedRequest("POST", "/api/app/chat/messages")).toBe(false);
 });

@@ -53,6 +53,7 @@ export const MOBILE_CAPABILITY_IDS = [
     "nutrition.patterns",
     "nutrition.weeklyCheckin",
     "nutrition.dailyGuidance",
+    "nutrition.chatAgent",
     "water.create",
     "water.read",
     "water.update",

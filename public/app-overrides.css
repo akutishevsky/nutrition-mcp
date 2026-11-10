@@ -4268,3 +4268,194 @@ dialog .guided-grocery-row input[type="checkbox"] {
     background: #6e241a;
     border-color: #6e241a;
 }
+
+/* =====================================================================
+   S8 rider — shared shell topbar tap floor.
+   The shared shell's "Use with your AI" button (#quick-action, in
+   .topbar-actions on EVERY surface) uses the shared .button-small
+   grammar, whose min-height sits at 40px — under the 44px tap floor,
+   measured 142×40px in the S6 audits. One shared rule lifts every
+   topbar action to the floor; the topbar is shell chrome, so the fix
+   lands on all surfaces at once and no surface keeps its own patch.
+   ===================================================================== */
+.topbar-actions .button {
+    min-height: 44px;
+}
+
+/* =====================================================================
+   S8 — Chat (AI chat agent). Amendment F FUTURE row: this surface
+   ships themed at build, no retrofit. Editorial Serif tokens as the
+   shared frame voices them (paper #f6f1e7, ink #2b2620, hairline
+   #d8cdb6, rule #8a7c63, green #176b3a, Georgia serif). Density law:
+   type never below 11px, targets never below 44px.
+   ===================================================================== */
+.chat-view .chat-thread {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-height: 52vh;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.chat-message {
+    border-top: 1px solid #d8cdb6;
+    padding: 10px 0 8px;
+}
+
+.chat-message-role {
+    margin: 0 0 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a7c63;
+}
+
+.chat-message-user .chat-message-role {
+    color: #176b3a;
+}
+
+.chat-message-body {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #2b2620;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.chat-draft-card {
+    margin-top: 8px;
+    border-top: 2px solid #176b3a;
+    padding: 8px 0 2px;
+}
+
+.chat-draft-kicker {
+    margin: 0 0 4px;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.chat-draft-items {
+    list-style: none;
+    margin: 0 0 6px;
+    padding: 0;
+}
+
+.chat-draft-items li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 2px 12px;
+    padding: 4px 0;
+    border-top: 1px solid #d8cdb6;
+    font-size: 14px;
+}
+
+.chat-draft-items small {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #4a4237;
+}
+
+.chat-draft-note {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: #4a4237;
+}
+
+.chat-gate h3,
+.chat-empty h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    color: #2b2620;
+}
+
+.chat-gate p,
+.chat-empty p {
+    font-size: 15px;
+    line-height: 1.5;
+    color: #4a4237;
+}
+
+.chat-premium-list {
+    margin: 8px 0;
+    padding-left: 20px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #2b2620;
+}
+
+.chat-starters {
+    /* One deliberate column of full-width starters — a chosen scheme
+       (P1), never ragged content-length widths. */
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.chat-composer {
+    border-top: 1px solid #d8cdb6;
+    margin-top: 12px;
+    padding-top: 10px;
+}
+
+.chat-composer-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a7c63;
+    margin-bottom: 6px;
+}
+
+.chat-composer textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 15px;
+    line-height: 1.45;
+    color: #2b2620;
+    background: #fffdf8;
+    border: 1px solid #d8cdb6;
+    border-radius: 0;
+    padding: 10px 12px;
+    resize: vertical;
+    min-height: 44px;
+}
+
+.chat-composer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.chat-composer-row small {
+    font-size: 11px;
+    color: #4a4237;
+}
+
+.chat-composer-row .button {
+    min-height: 44px;
+    min-width: 88px;
+}
+
+.chat-error {
+    margin: 10px 0 0;
+    padding: 8px 0;
+    border-top: 1px solid #d8cdb6;
+    font-size: 14px;
+    font-weight: 600;
+    color: #8c2f22;
+}

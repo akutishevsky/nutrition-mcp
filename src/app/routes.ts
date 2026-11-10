@@ -43,6 +43,11 @@ import {
     upsertProfile,
 } from "../storage.js";
 import { getFoodSearchService } from "../food-providers/service.js";
+import {
+    getChatState,
+    sendChatMessage,
+    startChatConversation,
+} from "../chat/service.js";
 import { estimateMealPhotoNutrients } from "../meal-photo/estimate.js";
 import { addTextToPhotoDraft } from "../meal-photo/draft-add.js";
 import { parseDraftAddTextWithModel } from "../meal-photo/draft-add-parse.js";
@@ -210,7 +215,7 @@ function privateJson(c: Context, data: unknown) {
 function privateJsonStatus(
     c: Context,
     data: unknown,
-    status: 400 | 422 | 502 | 503,
+    status: 400 | 403 | 422 | 502 | 503,
 ) {
     return c.json(data, status, {
         "Cache-Control": "no-store, private",
@@ -1485,6 +1490,73 @@ export function createAppRouter(): Hono {
             });
         },
     );
+
+    // S8 chat agent (Amendment D): the ONE Premium-gated AI surface.
+    // The gate is enforced server-side in src/chat/service.ts against
+    // the merged rail-neutral Premium snapshot (Stripe / Google Play
+    // / App Store), fail-closed on lookup errors. Free accounts get
+    // the honest Premium explanation and the website subscribe door —
+    // no pricing or purchase UI is initiated from this surface, and
+    // packaged builds manage billing through their rail's own door
+    // (Settings → Plan & billing) exactly like S6 slice 9.
+    app.get("/api/app/chat", async (c) => {
+        const state = await getChatState(c.get("munchUserId"));
+        if (!state.premium) {
+            return privateJsonStatus(c, state.body, state.status);
+        }
+        return privateJson(c, {
+            premium: true,
+            conversation: state.conversation,
+            messages: state.messages,
+        });
+    });
+
+    app.post("/api/app/chat/conversations", requireSameOrigin, async (c) => {
+        const started = await startChatConversation(c.get("munchUserId"));
+        if (!started.premium) {
+            return privateJsonStatus(c, started.body, started.status);
+        }
+        return privateJson(c, {
+            premium: true,
+            conversation: started.conversation,
+            messages: [],
+        });
+    });
+
+    app.post("/api/app/chat/messages", requireSameOrigin, async (c) => {
+        const body = recordValue(await c.req.json(), "Chat message");
+        const message =
+            typeof body.message === "string" ? body.message.trim() : "";
+        if (!message || message.length > 4_000) {
+            return privateJsonStatus(
+                c,
+                {
+                    error: "chat_message_invalid",
+                    message:
+                        "Write a message between 1 and 4,000 characters first.",
+                },
+                400,
+            );
+        }
+        const result = await sendChatMessage({
+            userId: c.get("munchUserId"),
+            conversationId:
+                typeof body.conversation_id === "string"
+                    ? body.conversation_id
+                    : undefined,
+            message,
+        });
+        if (result.status !== "ok") {
+            return privateJsonStatus(c, result.body, result.httpStatus);
+        }
+        return privateJson(c, {
+            premium: true,
+            conversation: result.conversation,
+            user_message: result.userMessage,
+            assistant_message: result.assistantMessage,
+            draft: result.draft ? serializeMealDraftForApp(result.draft) : null,
+        });
+    });
 
     // S3 photo-logging decider pipeline (brief §3). AI features are
     // free for every account (Amendment D): no credits, no meter, no

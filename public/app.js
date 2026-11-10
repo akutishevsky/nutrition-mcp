@@ -145,6 +145,7 @@ const routes = {
     "/app/cooks": "cooks",
     "/app/plan": "plan",
     "/app/groceries": "groceries",
+    "/app/chat": "chat",
     ...accountRoutes,
 };
 
@@ -157,6 +158,7 @@ const titles = {
     cooks: ["Cooking sessions", "Cooks"],
     plan: ["Personal and household", "Meal Plan"],
     groceries: ["Shopping workspace", "Groceries"],
+    chat: ["AI chat agent", "Chat"],
     ...accountTitles,
 };
 
@@ -2180,8 +2182,163 @@ function accountContext() {
     };
 }
 
+// ---------------------------------------------------------------------
+// S8 — AI chat agent (Amendment D, Amendment F FUTURE row: this
+// surface ships in Editorial Serif from its first commit — it renders
+// inside .operate-view with the chat rules in app-overrides.css).
+// Premium-only, server-enforced: the surface renders the honest gate
+// state for Free accounts (no fake chat box that errors on send), and
+// a working conversation for Premium. Request/response, matching
+// every other AI seam in the codebase (no streaming transport exists
+// in the app today). Anything the agent proposes to log arrives as a
+// meal draft — the card below opens the existing draft review, and
+// nothing is logged until the user confirms there.
+// ---------------------------------------------------------------------
+const chatState = {
+    loaded: false,
+    premium: null,
+    gateMessage: null,
+    unavailable: false,
+    conversation: null,
+    messages: [],
+    sending: false,
+    error: null,
+    pendingText: "",
+};
+
+function chatDraftCard(message) {
+    if (!message.draftId) return "";
+    const trace = Array.isArray(message.groundingTrace)
+        ? message.groundingTrace
+        : [];
+    const rows = trace
+        .map((entry) => {
+            const label = entry.grounded
+                ? `Grounded · ${escapeHtml(entry.provider === "usda" ? "USDA" : entry.provider === "open_food_facts" ? "Open Food Facts" : entry.groundingSource || "Catalog")}`
+                : "No verified nutrition yet — the draft will ask you before it can be confirmed";
+            return `<li><span>${escapeHtml(entry.name)}</span><small>${label}</small></li>`;
+        })
+        .join("");
+    return `<div class="chat-draft-card"><p class="chat-draft-kicker">Meal draft proposed</p>${rows ? `<ul class="chat-draft-items">${rows}</ul>` : ""}<p class="chat-draft-note">Nothing is logged yet. Review the draft, check portions, and confirm it there to log the meal.</p><button class="button button-primary button-small" type="button" data-action="open-meal-draft" data-id="${escapeHtml(message.draftId)}">Review draft</button></div>`;
+}
+
+function chatMessageMarkup(message) {
+    const role = message.role === "user" ? "user" : "assistant";
+    return `<article class="chat-message chat-message-${role}"><p class="chat-message-role">${role === "user" ? "You" : "Munch"}</p><p class="chat-message-body">${escapeHtml(message.content)}</p>${role === "assistant" ? chatDraftCard(message) : ""}</article>`;
+}
+
+function chatGateMarkup() {
+    return `<div class="operate-view chat-view"><div class="page-heading"><div><h2>Chat</h2><p>The AI chat agent is part of Munch Premium.</p></div></div><section class="panel chat-gate" data-testid="chat-gate"><h3>A Premium feature</h3><p>${escapeHtml(chatState.gateMessage || "The Munch chat agent is part of Munch Premium ($3/month).")}</p><ul class="chat-premium-list"><li>Ad-free in the app</li><li>MCP access for your own AI</li><li>This chat agent — a thinking partner over your pantry, goals, and history</li></ul><div class="auth-actions"><a class="button button-primary" href="/app/settings/billing">View plan &amp; billing</a></div></section></div>`;
+}
+
+function chatUnavailableMarkup() {
+    return `<div class="operate-view chat-view"><div class="page-heading"><div><h2>Chat</h2></div></div><section class="panel chat-gate" data-testid="chat-unavailable"><h3>Chat is unavailable right now</h3><p>Premium status could not be verified, so the chat agent is closed rather than guessing. Try again in a moment.</p><div class="auth-actions"><button class="button button-primary" type="button" data-action="chat-retry">Try again</button></div></section></div>`;
+}
+
+function renderChatView() {
+    if (chatState.premium === false) {
+        content.innerHTML = chatState.unavailable
+            ? chatUnavailableMarkup()
+            : chatGateMarkup();
+        return;
+    }
+    const messages = chatState.messages;
+    const thread = messages.length
+        ? `<div class="chat-thread">${messages.map(chatMessageMarkup).join("")}</div>`
+        : `<section class="panel chat-empty" data-testid="chat-empty"><h3>A thinking partner over your own data</h3><p>Ask about your pantry, today's log, or your goals — or ask the agent to log a meal, and it will set up a draft for you to review and confirm. Nutrition it quotes comes from your logged, provider-grounded records; it never invents figures.</p><div class="chat-starters"><button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="What can I make with what's in my pantry?">What can I make with my pantry?</button><button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="How is today looking against my goals?">How is today looking?</button><button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="What have I been eating a lot of lately?">What have I been eating lately?</button></div></section>`;
+    content.innerHTML = `<div class="operate-view chat-view"><div class="page-heading"><div><h2>Chat</h2><p>Premium · aware of your pantry, goals, and history.</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="chat-new">New chat</button></div></div>${thread}${chatState.error ? `<p class="chat-error" role="alert">${escapeHtml(chatState.error)}</p>` : ""}<form id="chat-form" class="chat-composer"><label class="chat-composer-label" for="chat-input">Message the agent</label><textarea id="chat-input" name="message" rows="2" maxlength="4000" placeholder="Ask about your pantry, today, or a meal to log…" ${chatState.sending ? "disabled" : ""}>${escapeHtml(chatState.pendingText)}</textarea><div class="chat-composer-row"><small>Proposals become drafts — nothing is logged until you confirm.</small><button class="button button-primary" type="submit" ${chatState.sending ? "disabled" : ""}>${chatState.sending ? "Thinking…" : "Send"}</button></div></form></div>`;
+    const threadElement = content.querySelector(".chat-thread");
+    if (threadElement) threadElement.scrollTop = threadElement.scrollHeight;
+}
+
+async function renderChat() {
+    if (!chatState.loaded) {
+        setLoading("Loading chat…");
+        try {
+            const data = await api("/api/app/chat", { keepPrevious: true });
+            chatState.premium = true;
+            chatState.conversation = data.conversation || null;
+            chatState.messages = data.messages || [];
+        } catch (error) {
+            if (error?.status === 403) {
+                chatState.premium = false;
+                chatState.unavailable = false;
+                chatState.gateMessage = error.message;
+            } else if (error?.status === 503) {
+                chatState.premium = false;
+                chatState.unavailable = true;
+            } else {
+                throw error;
+            }
+        }
+        chatState.loaded = true;
+    }
+    renderChatView();
+}
+
+async function sendChatFromForm(form) {
+    const input = form.querySelector("#chat-input");
+    const message = input?.value?.trim();
+    if (!message || chatState.sending) return;
+    chatState.sending = true;
+    chatState.error = null;
+    chatState.pendingText = message;
+    renderChatView();
+    try {
+        const data = await api("/api/app/chat/messages", {
+            method: "POST",
+            body: JSON.stringify({
+                message,
+                conversation_id: chatState.conversation?.id,
+            }),
+            keepPrevious: true,
+        });
+        chatState.conversation = data.conversation || chatState.conversation;
+        if (data.user_message) chatState.messages.push(data.user_message);
+        if (data.assistant_message)
+            chatState.messages.push(data.assistant_message);
+        chatState.pendingText = "";
+    } catch (error) {
+        if (error?.status === 403) {
+            chatState.premium = false;
+            chatState.gateMessage = error.message;
+        } else {
+            // The message was not saved (the service persists a turn
+            // only with its reply) — keep the text in the composer so
+            // sending again is one tap.
+            chatState.error =
+                error.message || "The chat agent could not reply. Try again.";
+        }
+    } finally {
+        chatState.sending = false;
+        renderChatView();
+        const nextInput = document.getElementById("chat-input");
+        if (nextInput && chatState.pendingText) nextInput.focus();
+    }
+}
+
+async function startNewChat() {
+    if (chatState.sending) return;
+    const data = await api("/api/app/chat/conversations", {
+        method: "POST",
+        body: JSON.stringify({}),
+        keepPrevious: true,
+    });
+    chatState.conversation = data.conversation || null;
+    chatState.messages = [];
+    chatState.error = null;
+    chatState.pendingText = "";
+    renderChatView();
+}
+
 async function renderRoute() {
+    const previousRoute = state.route;
     state.route = routes[location.pathname] || "today";
+    // S8: entering Chat from another surface refetches the persisted
+    // conversation (it may have advanced in another tab/device).
+    if (state.route === "chat" && previousRoute !== "chat") {
+        chatState.loaded = false;
+    }
     syncAndroidAdPlacement();
     setActiveRoute(state.route);
     try {
@@ -2203,6 +2360,7 @@ async function renderRoute() {
             cooks: renderCooks,
             plan: renderPlan,
             groceries: renderGroceries,
+            chat: renderChat,
             more: () => renderAccountRoute("more", accountContext()),
             household: () => renderAccountRoute("household", accountContext()),
             settings: () => renderAccountRoute("settings", accountContext()),
@@ -3394,6 +3552,20 @@ async function handleAction(button) {
     if (await handleAccountAction(button, accountContext())) return;
     if (action === "close-dialog") {
         dialog.close();
+        return;
+    }
+    if (action === "chat-new") return startNewChat();
+    if (action === "chat-retry") {
+        chatState.loaded = false;
+        chatState.premium = null;
+        return renderChat();
+    }
+    if (action === "chat-starter") {
+        const input = document.getElementById("chat-input");
+        if (input) {
+            input.value = button.dataset.prompt || "";
+            input.focus();
+        }
         return;
     }
     if (action === "guided-planner") return openGuidedPlanner();
@@ -4744,6 +4916,11 @@ async function saveGuidancePreferences(form) {
 document.addEventListener("submit", async (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
+    if (form.id === "chat-form") {
+        event.preventDefault();
+        await sendChatFromForm(form);
+        return;
+    }
     if (form.id === "guidance-preferences-form") {
         event.preventDefault();
         // S6 slice 3: the native confirm() is replaced by the same
