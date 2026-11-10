@@ -1,0 +1,61 @@
+[
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-1",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"chicken breast grilled\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-2",
+                            "type": "function",
+                            "function": {
+                                "name": "prepare_meal_review",
+                                "arguments": "{\"description\": \"Chicken breast\", \"meal_type\": \"lunch\", \"items\": [{\"name\": \"Chicken breast, grilled\", \"quantity\": 1, \"portion_label\": \"100 g\", \"nutrients\": {\"calories\": 165, \"protein_g\": 31, \"carbs_g\": 0, \"fat_g\": 3.6}, \"source_type\": \"usda\", \"provider\": \"usda\", \"provider_food_id\": \"171688\"}], \"questions\": []}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "I prepared the chicken breast as a draft \u2014 review it and confirm when you're ready. Nothing is logged yet."
+                },
+                "finish_reason": "stop"
+            }
+        ]
+    }
+]

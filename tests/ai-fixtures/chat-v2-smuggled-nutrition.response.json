@@ -1,0 +1,38 @@
+[
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-1",
+                            "type": "function",
+                            "function": {
+                                "name": "prepare_meal_review",
+                                "arguments": "{\"description\": \"Protein bowl\", \"items\": [{\"name\": \"Protein bowl\", \"quantity\": 1, \"portion_label\": \"1 bowl\", \"nutrients\": {\"calories\": 540, \"protein_g\": 42}, \"source_type\": \"usda\", \"provider\": \"usda\", \"provider_food_id\": \"424242\"}], \"questions\": []}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "I couldn't verify those numbers against Munch's catalog, so I haven't prepared a draft. I can search the catalog for the bowl's components instead."
+                },
+                "finish_reason": "stop"
+            }
+        ]
+    }
+]

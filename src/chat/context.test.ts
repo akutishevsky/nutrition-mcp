@@ -20,90 +20,54 @@ function data(partial: Partial<ChatContextData> = {}): ChatContextData {
                 fatG: 18,
                 fiberG: 6,
             },
-            meals: [
-                { description: "Eggs", meal_type: "breakfast", calories: 320 },
-            ],
-        },
-        pantry: [
-            {
-                name: "Rice",
-                quantity: 2,
-                unit: "lb",
-                stock_state: "in_stock",
-                location: "pantry",
-            },
-        ],
-        recent: {
-            days: [
-                {
-                    date: "2026-11-10",
-                    calories: 1900,
-                    proteinG: 120,
-                    carbsG: 200,
-                    fatG: 60,
-                    mealCount: 9,
-                },
-            ],
-            meals: ["Soup"],
         },
         ...partial,
     };
 }
 
-describe("S8 chat context summary", () => {
-    test("includes every gathered section and rounds totals", () => {
+describe("chat v2 slim context summary", () => {
+    test("carries goals and today's totals only — no meals, pantry, or history", () => {
         const summary = summarizeChatContext(data());
-        expect(summary.sections).toEqual([
-            "goals",
-            "today",
-            "pantry",
-            "recent_history",
-        ]);
+        expect(summary.sections).toEqual(["goals", "today_totals"]);
         expect(summary.today?.totals.calories).toBe(640.3);
         expect(summary.goals?.daily_calories).toBe(2100);
+        // The slim shape is the v2 contract (brief decision 3): the
+        // summary object must not grow detail sections back — the
+        // agent fetches detail through tools instead.
+        expect(Object.keys(summary).sort()).toEqual([
+            "date",
+            "goals",
+            "sections",
+            "timezone",
+            "today",
+        ]);
+        expect(Object.keys(summary.today ?? {}).sort()).toEqual(["totals"]);
     });
 
     test("absent sections are omitted, never fabricated", () => {
         const summary = summarizeChatContext(
-            data({ pantry: null, recent: null, goals: null }),
+            data({ goals: null, today: null }),
         );
-        expect(summary.sections).toEqual(["today"]);
-        expect(summary.pantry).toBeNull();
-        expect(summary.recent).toBeNull();
+        expect(summary.sections).toEqual([]);
         expect(summary.goals).toBeNull();
+        expect(summary.today).toBeNull();
     });
 
-    test("caps pantry, today's meals, and recent meals at the bounds", () => {
-        const big = data({
-            pantry: Array.from({ length: 90 }, (_, i) => ({
-                name: `Item ${i}`,
-                quantity: 1,
-                unit: "ct",
-                stock_state: "in_stock",
-                location: "pantry",
-            })),
-            today: {
-                totals: {
-                    calories: 0,
-                    proteinG: 0,
-                    carbsG: 0,
-                    fatG: 0,
-                    fiberG: 0,
+    test("totals are rounded to one decimal", () => {
+        const summary = summarizeChatContext(
+            data({
+                today: {
+                    totals: {
+                        calories: 640.25,
+                        proteinG: 41.04,
+                        carbsG: 70,
+                        fatG: 18,
+                        fiberG: 6,
+                    },
                 },
-                meals: Array.from({ length: 30 }, (_, i) => ({
-                    description: `Meal ${i}`,
-                    meal_type: "lunch",
-                    calories: 100,
-                })),
-            },
-            recent: {
-                days: [],
-                meals: Array.from({ length: 40 }, (_, i) => `Old ${i}`),
-            },
-        });
-        const summary = summarizeChatContext(big);
-        expect(summary.pantry).toHaveLength(40);
-        expect(summary.today?.meals).toHaveLength(12);
-        expect(summary.recent?.meals).toHaveLength(14);
+            }),
+        );
+        expect(summary.today?.totals.calories).toBe(640.3);
+        expect(summary.today?.totals.proteinG).toBe(41);
     });
 });

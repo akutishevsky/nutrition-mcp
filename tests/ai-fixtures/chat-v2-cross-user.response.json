@@ -1,0 +1,38 @@
+[
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-1",
+                            "type": "function",
+                            "function": {
+                                "name": "get_meals_today",
+                                "arguments": "{\"user_id\": \"00000000-0000-4000-8000-000000000000\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "I can only see your own log \u2014 here is what you have today."
+                },
+                "finish_reason": "stop"
+            }
+        ]
+    }
+]

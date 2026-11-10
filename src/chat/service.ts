@@ -1,18 +1,6 @@
-import { getFoodSearchService } from "../food-providers/service.js";
-import type { FoodSearchService } from "../food-providers/service.js";
-import {
-    addMealDraftQuestion,
-    createMealDraft,
-    upsertMealDraftItem,
-    type MealDraft,
-} from "../meal-drafts/index.js";
-import { groundMealPhotoItems } from "../meal-photo/grounding.js";
-import type { MealPhotoVisionItem } from "../meal-photo/vision.js";
-import {
-    requestChatReply,
-    type ChatAgentResult,
-    type ChatProposedLog,
-} from "./agent.js";
+import { getMealDraft } from "../meal-drafts/repository.js";
+import type { MealDraft } from "../meal-drafts/types.js";
+import { requestChatReply, type ChatAgentResult } from "./agent.js";
 import { chatAiConfig, type ChatAiConfig } from "./config.js";
 import { assembleChatContext, type ChatContextSummary } from "./context.js";
 import {
@@ -21,42 +9,53 @@ import {
     type ChatEntitlement,
     type ChatEntitlementDependencies,
 } from "./entitlement.js";
+import { openChatToolHost } from "./mcp-host.js";
 import {
     appendChatTurn,
     createChatConversation,
     getChatConversation,
     getLatestChatConversation,
+    getLatestChatConversationForSurface,
     listChatMessages,
     type ChatConversation,
+    type ChatEntrySurface,
     type ChatGroundingTraceEntry,
     type ChatMessage,
 } from "./repository.js";
+import { assembleEntrySeed, type ChatEntrySeed } from "./seeds.js";
+import {
+    ChatToolExecutor,
+    deriveChatToolDefinitions,
+    type ChatModelTool,
+    type ChatToolExecution,
+} from "./tools.js";
 
 /**
- * S8 chat service — the orchestration the routes call.
+ * S8 chat service v2 — the orchestration the routes call.
  *
  * Order of operations for a send, each step a hard gate for the next:
  * 1. Entitlement (server-enforced, rail-neutral, fail-closed). A
- *    Free account is refused before anything is persisted or any
- *    model call is made.
+ *    Free account is refused before anything is persisted, any tool
+ *    host is opened, or any model call is made.
  * 2. Model config presence (no key / disabled → 503-shaped result).
- * 3. Deterministic context assembly (context.ts) — code gathers,
- *    the model never fetches.
- * 4. The model call (agent.ts) — strict JSON, no nutrition values.
- * 5. A proposed log is grounded item-by-item through the SAME
- *    deterministic grounding the photo pipeline uses
- *    (meal-photo/grounding.ts: local catalog → USDA + Open Food
- *    Facts, deterministic ranking) and landed in the EXISTING meal
- *    draft machinery as a draft — never a confirmed meal. Ungrounded
- *    items carry no values and a blocking draft question, exactly as
- *    in the photo pipeline; the shared confirm path refuses to
- *    confirm until the user resolves them.
- * 6. The turn is persisted atomically (user + assistant, with the
- *    draft link and the per-item grounding trace).
+ * 3. Conversation resolution: the addressed conversation, else the
+ *    latest conversation for the entry surface the user came from,
+ *    else the latest conversation, else a new one.
+ * 4. Slim static context (goals + today's totals — context.ts) and,
+ *    for a seeded conversation, the entry surface's live seed
+ *    (seeds.ts).
+ * 5. A per-send tool session: an in-process MCP host built for THIS
+ *    user through the same construction path as external MCP
+ *    (mcp-host.ts), the parity-derived tool registry, and the
+ *    guarded executor (tools.ts). The session closes when the send
+ *    completes, success or failure.
+ * 6. The agent loop (agent.ts): Ember via OpenRouter, at most 8
+ *    tool calls, values only from tool results, writes draft-class
+ *    only. A failed loop persists nothing (v1's posture).
+ * 7. The turn is persisted atomically (user + assistant, with the
+ *    created meal draft's link, its per-item grounding trace read
+ *    back from the draft itself, and the tool-call trace).
  */
-
-export const CHAT_DRAFT_NOTES =
-    "Proposed by the Munch chat agent — check items and portions before confirming. Nothing is logged until you confirm this draft.";
 
 export type ChatGateResult =
     | { allowed: true; entitlement: ChatEntitlement }
@@ -99,95 +98,72 @@ export async function gateChat(
     };
 }
 
-export interface ChatDraftProposalResult {
-    draft: MealDraft;
-    trace: ChatGroundingTraceEntry[];
-    groundedCount: number;
-    blockingCount: number;
+export interface ChatToolSession {
+    tools: ChatModelTool[];
+    executeTool: (
+        name: string,
+        args: Record<string, unknown>,
+    ) => Promise<ChatToolExecution>;
+    close: () => Promise<void>;
+}
+
+async function openDefaultToolSession(
+    userId: string,
+): Promise<ChatToolSession> {
+    const host = await openChatToolHost({ userId });
+    try {
+        const published = await host.listTools();
+        const { tools } = deriveChatToolDefinitions(published);
+        const executor = new ChatToolExecutor({ host });
+        return {
+            tools,
+            executeTool: (name, args) => executor.execute(name, args),
+            close: () => host.close(),
+        };
+    } catch (error) {
+        await host.close().catch(() => undefined);
+        throw error;
+    }
 }
 
 /**
- * Ground a chat proposal and land it as a meal draft. Exported for
- * the DB smoke: the invariant under test is that this creates a
- * DRAFT (status open/awaiting_*) and never a meal.
+ * The grounding trace for a turn is read back from the created draft
+ * itself — the items as they actually landed, with the provenance
+ * the draft stored — never from the model's claims about them.
  */
-export async function createChatDraftFromProposal(input: {
-    userId: string;
-    proposal: ChatProposedLog;
-    search?: Pick<FoodSearchService, "search">["search"];
-}): Promise<ChatDraftProposalResult> {
-    const visionItems: MealPhotoVisionItem[] = input.proposal.items.map(
-        (item) => ({
+function draftGroundingTrace(draft: MealDraft): ChatGroundingTraceEntry[] {
+    return draft.items.map((record) => {
+        const item = record.item;
+        const estimated = item.sourceType === "model_estimate";
+        return {
             name: item.name,
-            cooking_method: null,
-            quantity: item.quantity,
-            unit: item.unit,
-            // Server-set: the chat flow has no portion evidence of
-            // its own, so confidence sits above the photo pipeline's
-            // low-confidence question threshold — grounded items do
-            // not spawn portion questions, while ungrounded items
-            // still block with no values (see grounding.ts).
-            portion_confidence: 0.8,
-            assumptions: item.assumptions,
-        }),
-    );
-    const foodSearch = getFoodSearchService();
-    const search =
-        input.search ?? ((query, limit) => foodSearch.search(query, limit));
-    const grounded = await groundMealPhotoItems(visionItems, { search });
-    let draft = await createMealDraft({
-        userId: input.userId,
-        sourceMode: "chat",
-        mealType: input.proposal.meal_type ?? undefined,
-        description: input.proposal.description,
-        notes: CHAT_DRAFT_NOTES,
+            grounded: !estimated && item.sourceType !== "user_supplied",
+            estimated,
+            groundingSource: item.sourceType,
+            provider: item.provider ?? null,
+            providerFoodId: item.providerFoodId ?? null,
+            candidateId: null,
+        };
     });
-    for (const [index, entry] of grounded.entries()) {
-        draft = await upsertMealDraftItem({
-            userId: input.userId,
-            draftId: draft.id,
-            expectedVersion: draft.version,
-            position: index,
-            item: entry.draftItem,
-        });
-    }
-    for (const [index, entry] of grounded.entries()) {
-        if (!entry.question) continue;
-        const record = draft.items.find((item) => item.position === index);
-        draft = await addMealDraftQuestion({
-            userId: input.userId,
-            draftId: draft.id,
-            expectedVersion: draft.version,
-            questionKey: entry.question.questionKey,
-            prompt: entry.question.prompt,
-            impactScore: entry.question.impactScore,
-            itemId: record?.id,
-        });
-    }
-    return {
-        draft,
-        groundedCount: grounded.filter((entry) => entry.grounded).length,
-        blockingCount: grounded.filter((entry) => entry.question?.blocking)
-            .length,
-        trace: grounded.map((entry) => ({
-            name: entry.vision.name,
-            grounded: entry.grounded,
-            estimated: entry.estimated,
-            groundingSource: entry.groundingSource,
-            provider: entry.draftItem.provider ?? null,
-            providerFoodId: entry.draftItem.providerFoodId ?? null,
-            candidateId: entry.candidateId,
-        })),
-    };
 }
 
 export interface ChatServiceDependencies extends ChatEntitlementDependencies {
     config?: ChatAiConfig | null;
     assembleContext?: (userId: string) => Promise<ChatContextSummary>;
+    assembleSeed?: (
+        userId: string,
+        surface: ChatEntrySurface,
+    ) => Promise<ChatEntrySeed>;
+    openToolSession?: (userId: string) => Promise<ChatToolSession>;
     requestReply?: (
         input: Parameters<typeof requestChatReply>[0],
+        deps: Parameters<typeof requestChatReply>[1],
     ) => Promise<ChatAgentResult>;
-    createDraft?: typeof createChatDraftFromProposal;
+    fetcher?: (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+    ) => Promise<Response>;
+    loadDraft?: (userId: string, draftId: string) => Promise<MealDraft | null>;
 }
 
 export type SendChatMessageResult =
@@ -210,7 +186,12 @@ export type SendChatMessageResult =
       };
 
 export async function sendChatMessage(
-    input: { userId: string; conversationId?: string; message: string },
+    input: {
+        userId: string;
+        conversationId?: string;
+        surface?: ChatEntrySurface;
+        message: string;
+    },
     dependencies: ChatServiceDependencies = {},
 ): Promise<SendChatMessageResult> {
     const gate = await gateChat(input.userId, dependencies);
@@ -240,21 +221,36 @@ export async function sendChatMessage(
         };
     }
 
-    let conversation: ChatConversation | null = input.conversationId
-        ? await getChatConversation(input.userId, input.conversationId)
-        : await getLatestChatConversation(input.userId);
-    if (input.conversationId && !conversation) {
-        return {
-            status: "ai_unavailable",
-            httpStatus: 502,
-            body: {
-                error: "chat_conversation_not_found",
-                message: "That conversation could not be found.",
-            },
-        };
-    }
-    if (!conversation) {
-        conversation = await createChatConversation({ userId: input.userId });
+    let conversation: ChatConversation | null = null;
+    if (input.conversationId) {
+        conversation = await getChatConversation(
+            input.userId,
+            input.conversationId,
+        );
+        if (!conversation) {
+            return {
+                status: "ai_unavailable",
+                httpStatus: 502,
+                body: {
+                    error: "chat_conversation_not_found",
+                    message: "That conversation could not be found.",
+                },
+            };
+        }
+    } else if (input.surface) {
+        conversation =
+            (await getLatestChatConversationForSurface(
+                input.userId,
+                input.surface,
+            )) ??
+            (await createChatConversation({
+                userId: input.userId,
+                entrySurface: input.surface,
+            }));
+    } else {
+        conversation =
+            (await getLatestChatConversation(input.userId)) ??
+            (await createChatConversation({ userId: input.userId }));
     }
 
     const history = await listChatMessages({
@@ -265,15 +261,55 @@ export async function sendChatMessage(
     const context = await (dependencies.assembleContext ?? assembleChatContext)(
         input.userId,
     );
-    const result = await (dependencies.requestReply ?? requestChatReply)({
-        config,
-        context,
-        history: history.map((message) => ({
-            role: message.role,
-            content: message.content,
-        })),
-        message: input.message,
-    });
+    const entrySeed = conversation.entrySurface
+        ? await (dependencies.assembleSeed ?? assembleEntrySeed)(
+              input.userId,
+              conversation.entrySurface,
+          )
+        : null;
+
+    let session: ChatToolSession;
+    try {
+        session = await (
+            dependencies.openToolSession ?? openDefaultToolSession
+        )(input.userId);
+    } catch (error) {
+        console.warn("Chat tool session failed to open", {
+            errorName: error instanceof Error ? error.name : "unknown",
+        });
+        return {
+            status: "ai_unavailable",
+            httpStatus: 503,
+            body: {
+                error: "chat_tools_unavailable",
+                message:
+                    "The chat agent is unavailable right now. Try again later.",
+            },
+        };
+    }
+
+    let result: ChatAgentResult;
+    try {
+        result = await (dependencies.requestReply ?? requestChatReply)(
+            {
+                config,
+                context,
+                entrySeed,
+                history: history.map((message) => ({
+                    role: message.role,
+                    content: message.content,
+                })),
+                message: input.message,
+                tools: session.tools,
+            },
+            {
+                fetcher: dependencies.fetcher,
+                executeTool: session.executeTool,
+            },
+        );
+    } finally {
+        await session.close().catch(() => undefined);
+    }
     if (result.status !== "ok") {
         return {
             status: "ai_unavailable",
@@ -287,37 +323,20 @@ export async function sendChatMessage(
 
     let draft: MealDraft | null = null;
     let trace: ChatGroundingTraceEntry[] = [];
-    if (result.response.proposed_log) {
+    const primaryDraftId = result.draftIds[0] ?? null;
+    if (primaryDraftId) {
         try {
-            const proposal = await (
-                dependencies.createDraft ?? createChatDraftFromProposal
-            )({
-                userId: input.userId,
-                proposal: result.response.proposed_log,
-            });
-            draft = proposal.draft;
-            trace = proposal.trace;
-        } catch (error) {
-            // A grounding/draft failure must not lose the reply, but
-            // it is recorded on the trace — never silently presented
-            // as a created draft.
-            console.warn(
-                "Chat draft proposal failed; reply kept without draft",
-                {
-                    errorName: error instanceof Error ? error.name : "unknown",
-                },
+            draft = await (dependencies.loadDraft ?? getMealDraft)(
+                input.userId,
+                primaryDraftId,
             );
-            trace = [
-                {
-                    name: result.response.proposed_log.description,
-                    grounded: false,
-                    estimated: false,
-                    groundingSource: "draft_creation_failed",
-                    provider: null,
-                    providerFoodId: null,
-                    candidateId: null,
-                },
-            ];
+            if (draft) trace = draftGroundingTrace(draft);
+        } catch (error) {
+            // The draft exists (the tool created it); a trace read
+            // failure must not lose the reply or the draft link.
+            console.warn("Chat draft trace read failed; reply kept", {
+                errorName: error instanceof Error ? error.name : "unknown",
+            });
         }
     }
 
@@ -325,10 +344,11 @@ export async function sendChatMessage(
         userId: input.userId,
         conversationId: conversation.id,
         userContent: input.message,
-        assistantContent: result.response.reply,
+        assistantContent: result.reply,
         model: result.model,
-        draftId: draft?.id ?? null,
+        draftId: draft?.id ?? primaryDraftId,
         groundingTrace: trace,
+        toolTrace: result.toolCalls,
     });
     return {
         status: "ok",
@@ -341,12 +361,14 @@ export async function sendChatMessage(
 
 export async function getChatState(
     userId: string,
-    dependencies: ChatEntitlementDependencies = {},
+    options: { conversationId?: string } = {},
+    dependencies: ChatServiceDependencies = {},
 ): Promise<
     | {
           premium: true;
           conversation: ChatConversation | null;
           messages: ChatMessage[];
+          seed: ChatEntrySeed | null;
       }
     | { premium: false; status: 403 | 503; body: Record<string, unknown> }
 > {
@@ -354,24 +376,54 @@ export async function getChatState(
     if (!gate.allowed) {
         return { premium: false, status: gate.status, body: gate.body };
     }
-    const conversation = await getLatestChatConversation(userId);
+    const conversation = options.conversationId
+        ? await getChatConversation(userId, options.conversationId)
+        : await getLatestChatConversation(userId);
     const messages = conversation
         ? await listChatMessages({ userId, conversationId: conversation.id })
         : [];
-    return { premium: true, conversation, messages };
+    const seed =
+        conversation?.entrySurface != null
+            ? await (dependencies.assembleSeed ?? assembleEntrySeed)(
+                  userId,
+                  conversation.entrySurface,
+              )
+            : null;
+    return { premium: true, conversation, messages, seed };
 }
 
 export async function startChatConversation(
     userId: string,
-    dependencies: ChatEntitlementDependencies = {},
+    options: { surface?: ChatEntrySurface } = {},
+    dependencies: ChatServiceDependencies = {},
 ): Promise<
-    | { premium: true; conversation: ChatConversation }
+    | {
+          premium: true;
+          conversation: ChatConversation;
+          seed: ChatEntrySeed | null;
+      }
     | { premium: false; status: 403 | 503; body: Record<string, unknown> }
 > {
     const gate = await gateChat(userId, dependencies);
     if (!gate.allowed) {
         return { premium: false, status: gate.status, body: gate.body };
     }
-    const conversation = await createChatConversation({ userId });
-    return { premium: true, conversation };
+    const conversation = options.surface
+        ? ((await getLatestChatConversationForSurface(
+              userId,
+              options.surface,
+          )) ??
+          (await createChatConversation({
+              userId,
+              entrySurface: options.surface,
+          })))
+        : await createChatConversation({ userId });
+    const seed =
+        conversation.entrySurface != null
+            ? await (dependencies.assembleSeed ?? assembleEntrySeed)(
+                  userId,
+                  conversation.entrySurface,
+              )
+            : null;
+    return { premium: true, conversation, seed };
 }
