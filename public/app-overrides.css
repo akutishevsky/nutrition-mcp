@@ -2345,6 +2345,17 @@ dialog .guided-grocery-row input[type="checkbox"] {
     border-color: #6e241a;
 }
 
+/* UX fix wave F7: the meal-details dialog's per-item Remove
+   confirms inline inside the food row — the confirm box wraps to
+   its own full-width line under the item. */
+.dialog-content .food-row {
+    flex-wrap: wrap;
+}
+
+.dialog-content .food-row > .plan-inline-confirm {
+    flex: 1 1 100%;
+}
+
 /* The draft review's swapped action row carries the same note
    grammar inside its .auth-actions container. */
 #guided-plan-edit-form .auth-actions .plan-inline-note {

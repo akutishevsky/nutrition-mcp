@@ -559,6 +559,7 @@ function mealCard(meal) {
         String(meal.id),
         meal.description || "Untitled meal",
     );
+    mealTypesById.set(String(meal.id), meal.meal_type || "snack");
     const type = meal.meal_type || "snack";
     return `<article class="meal-card" data-meal-id="${escapeHtml(meal.id)}"><div class="meal-card-head"><div><h4>${escapeHtml(meal.description || "Untitled meal")}</h4><div class="meal-meta"><span>${escapeHtml(formatTime(meal.logged_at))}</span><span>${escapeHtml(type)}</span>${meal.notes ? `<span>${escapeHtml(meal.notes)}</span>` : ""}</div></div><strong>${meal.calories == null ? "—" : `${number(meal.calories)} kcal`}</strong></div><div class="meal-macros"><span class="macro-chip">Protein ${number(meal.protein_g, 1)}g</span><span class="macro-chip">Carbs ${number(meal.carbs_g, 1)}g</span><span class="macro-chip">Fat ${number(meal.fat_g, 1)}g</span>${meal.fiber_g == null ? "" : `<span class="macro-chip">Fiber ${number(meal.fiber_g, 1)}g</span>`}${meal.sugar_g == null ? "" : `<span class="macro-chip">Sugar ${number(meal.sugar_g, 1)}g</span>`}</div>${mealItems(meal.items)}<div class="auth-actions"><button class="button button-secondary button-small" data-action="view-meal-details" data-id="${escapeHtml(meal.id)}">View details</button><button class="button button-secondary button-small" data-action="edit-meal" data-id="${escapeHtml(meal.id)}">Edit</button><button class="button button-quiet button-small" data-action="duplicate-meal" data-id="${escapeHtml(meal.id)}">Duplicate</button><button class="button button-quiet button-small" data-action="delete-meal" data-id="${escapeHtml(meal.id)}">Delete</button></div></article>`;
 }
@@ -2612,6 +2613,7 @@ function navigate(href) {
 // name back out of it is how the delete prompt once named a meal
 // "1 food" after the density rewrite.
 const mealDescriptionsById = new Map();
+const mealTypesById = new Map();
 
 function findMeal(id) {
     const fromData = mealDescriptionsById.get(String(id));
@@ -3688,11 +3690,24 @@ function openMealDraftComposer() {
 }
 
 async function editMeal(id) {
+    // Fallback simple editor (the patches module's richer editor
+    // normally wins the data-action). UX fix wave F7: the meal-type
+    // select must open on the meal's ACTUAL type — it previously had
+    // no preselected option, so saving silently retyped the meal to
+    // breakfast. The type comes from the render-time data cache,
+    // never from the DOM.
     const card = document.querySelector(`[data-meal-id="${CSS.escape(id)}"]`);
     const description = card?.querySelector("h4")?.textContent || "";
+    const mealType = mealTypesById.get(String(id)) || "";
+    const typeOptions = ["breakfast", "lunch", "dinner", "snack"]
+        .map(
+            (option) =>
+                `<option${option === mealType ? " selected" : ""}>${option}</option>`,
+        )
+        .join("");
     openDialog(
         "Edit meal",
-        `<form id="edit-meal-form" class="auth-form" data-id="${escapeHtml(id)}"><label class="field"><span>Description</span><textarea name="description" rows="4" required>${escapeHtml(description)}</textarea></label><label class="field"><span>Meal type</span><select name="meal_type"><option>breakfast</option><option>lunch</option><option>dinner</option><option>snack</option></select></label><button class="button button-primary" type="submit">Save meal</button></form>`,
+        `<form id="edit-meal-form" class="auth-form" data-id="${escapeHtml(id)}"><label class="field"><span>Description</span><textarea name="description" rows="4" required>${escapeHtml(description)}</textarea></label><label class="field"><span>Meal type</span><select name="meal_type">${typeOptions}</select></label><button class="button button-primary" type="submit">Save meal</button></form>`,
     );
 }
 
@@ -3706,7 +3721,7 @@ async function openMealDetails(id) {
         ? items
               .map(
                   (item) =>
-                      `<article class="food-row"><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.portionLabel || "Portion not recorded")}${item.quantity == null ? "" : ` · quantity ${number(item.quantity, 2)}`}</small><div class="demo-source-row">${sourceBadge(item.sourceType)}${confidenceBadge(item.confidence)}</div>${item.assumptions?.length ? `<small>Assumptions: ${escapeHtml(item.assumptions.join("; "))}</small>` : ""}${item.sourceSnapshot && Object.keys(item.sourceSnapshot).length ? `<details class="food-audit"><summary>Source snapshot</summary><pre class="food-audit-body" style="white-space:pre-wrap">${escapeHtml(JSON.stringify(item.sourceSnapshot, null, 2))}</pre></details>` : ""}</div><div style="text-align:right"><strong>${item.nutrients?.calories == null ? "—" : `${number(item.nutrients.calories)} kcal`}</strong><small>${item.nutrients?.protein_g == null ? "" : `P ${number(item.nutrients.protein_g, 1)}g`}${item.nutrients?.carbs_g == null ? "" : ` · C ${number(item.nutrients.carbs_g, 1)}g`}${item.nutrients?.fat_g == null ? "" : ` · F ${number(item.nutrients.fat_g, 1)}g`}</small></div></article>`,
+                      `<article class="food-row"><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.portionLabel || "Portion not recorded")}${item.quantity == null ? "" : ` · quantity ${number(item.quantity, 2)}`}</small><div class="demo-source-row">${sourceBadge(item.sourceType)}${confidenceBadge(item.confidence)}</div>${item.assumptions?.length ? `<small>Assumptions: ${escapeHtml(item.assumptions.join("; "))}</small>` : ""}${item.sourceSnapshot && Object.keys(item.sourceSnapshot).length ? `<details class="food-audit"><summary>Source snapshot</summary><pre class="food-audit-body" style="white-space:pre-wrap">${escapeHtml(JSON.stringify(item.sourceSnapshot, null, 2))}</pre></details>` : ""}</div><div style="text-align:right"><strong>${item.nutrients?.calories == null ? "—" : `${number(item.nutrients.calories)} kcal`}</strong><small>${item.nutrients?.protein_g == null ? "" : `P ${number(item.nutrients.protein_g, 1)}g`}${item.nutrients?.carbs_g == null ? "" : ` · C ${number(item.nutrients.carbs_g, 1)}g`}${item.nutrients?.fat_g == null ? "" : ` · F ${number(item.nutrients.fat_g, 1)}g`}</small></div>${items.length > 1 ? `<button class="text-button danger" type="button" data-action="remove-meal-item-detail" data-meal-id="${escapeHtml(id)}" data-item-id="${escapeHtml(item.id)}">Remove</button>` : ""}</article>`,
               )
               .join("")
         : `<div class="empty-state"><div><h3>Legacy aggregate meal</h3><p>This meal has totals but no item-level source record.</p></div></div>`;
@@ -4759,6 +4774,36 @@ async function handleAction(button) {
             dismissLabel: "Keep meal",
             destructive: true,
         });
+        return;
+    }
+    if (action === "remove-meal-item-detail") {
+        // UX fix wave F7: removing one food from the details dialog
+        // confirms inline (never a native dialog — the WebView
+        // silent-no-op class). Two taps total from the card: card →
+        // details → Remove → confirm, with the details view itself
+        // one tap from the card.
+        showInlineConfirm(button, {
+            note: "Remove this food from the meal?",
+            confirmLabel: "Yes, remove food",
+            confirmAction: "confirm-remove-meal-item-detail",
+            confirmAttrs: {
+                mealId: button.dataset.mealId,
+                itemId: button.dataset.itemId,
+            },
+            dismissLabel: "Keep food",
+            destructive: true,
+        });
+        return;
+    }
+    if (action === "confirm-remove-meal-item-detail") {
+        const { mealId, itemId } = button.dataset;
+        await api(
+            `/api/app/meals/${encodeURIComponent(mealId)}/items/${encodeURIComponent(itemId)}`,
+            { method: "DELETE" },
+        );
+        toast("Food removed from the meal.");
+        await openMealDetails(mealId);
+        await renderRoute();
         return;
     }
     if (action === "confirm-delete-meal") {
