@@ -303,6 +303,35 @@ describe("chat grounding guard", () => {
         ).toHaveLength(1);
     });
 
+    test("a read that returns a draft does NOT link it as this turn's draft", async () => {
+        // Regression (wave-6 DB smoke): get_meal_draft results carry
+        // the fetched draft's id; collecting it made a later send link
+        // the OLD draft instead of the one its own prepare created.
+        const host: ChatToolHost = {
+            async listTools() {
+                return [];
+            },
+            async callTool(name) {
+                if (name === "get_meal_draft") {
+                    return {
+                        content: [],
+                        structuredContent: {
+                            draft: { id: "old-draft", items: [] },
+                        },
+                    };
+                }
+                return { content: [{ type: "text", text: "ok" }] };
+            },
+            async close() {},
+        };
+        const executor = executorFor(host, true);
+        const result = await executor.execute("get_meal_draft", {
+            draft_id: "old-draft",
+        });
+        expect(result.outcome).toBe("ok");
+        expect(result.draftId).toBeUndefined();
+    });
+
     test("a name-only item is grounded server-side before the draft tool runs", async () => {
         const { host, calls } = fakeHost({});
         const executor = executorFor(host, true);

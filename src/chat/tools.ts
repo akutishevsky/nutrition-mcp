@@ -339,7 +339,25 @@ function truncateText(text: string): string {
     return `${text.slice(0, MAX_TOOL_RESULT_CHARS)}\n…[result truncated]`;
 }
 
-function extractDraftId(result: McpToolCallResult): string | undefined {
+/**
+ * Only the draft-preparation family CREATES (or edits) the draft a
+ * turn links: reads like get_meal_draft also carry a draft id in
+ * their results, and collecting those would mislink the reply to a
+ * draft from an earlier turn (caught by the wave-6 DB smoke: a
+ * get_meal_draft → prepare_meal_review sequence linked the OLD
+ * draft). The set mirrors GUARDED_ITEM_TOOLS exactly.
+ */
+const DRAFT_LINKING_TOOLS: ReadonlySet<string> = new Set([
+    "prepare_meal_review",
+    "resolve_meal_review",
+    "upsert_meal_draft_item",
+]);
+
+function extractDraftId(
+    toolName: string,
+    result: McpToolCallResult,
+): string | undefined {
+    if (!DRAFT_LINKING_TOOLS.has(toolName)) return undefined;
     const structured = result.structuredContent;
     if (!structured) return undefined;
     const review = structured.review;
@@ -450,7 +468,9 @@ export class ChatToolExecutor {
             text,
             isError: Boolean(result.isError),
             outcome: result.isError ? "error" : "ok",
-            draftId: result.isError ? undefined : extractDraftId(result),
+            draftId: result.isError
+                ? undefined
+                : extractDraftId(name, result),
         };
     }
 
