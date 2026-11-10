@@ -350,3 +350,69 @@ not touch billing/credits, `src/meal-photo/`, or `public/`).
 Re-running the baseline after Phase 2: same harness, same corpus recipe —
 `MUNCH_STRESS_REPORT=after.json bun scripts/data-layer-stress.ts` — and
 diff the tables.
+
+---
+
+## 5. Phase 2 results (fix phase — PR-A #192, PR-B #194)
+
+Implemented in two stacked PRs: **PR-A #192** (items 1–2, correctness
+under load) and **PR-B #194** (items 3–5, stacked on PR-A). Same harness,
+same corpus recipe (4,722 rows seeded through the real write paths), same
+concurrency matrix (1/10/30/60, 90 ops/workload/level) throughout. The
+harness gained per-workload stub-provider call counters, a
+`legacy.lookupBarcode-repeat` workload, a `service.search-no-result-repeat`
+workload, and a stale-refresh verification block; the stress workflow
+gained a `pool_size` dispatch input. No schema migrations were needed.
+
+**Environments, stated plainly.** Phase 1's baseline ran on the local
+shared-CPU VM (PG 16). Phase 2 numbers come from two environments: the
+same local VM (paired before/after where noted) and GitHub-hosted
+runners via the dispatch workflow (PG 17, median of 3 runs per pool
+size). The local VM proved **bimodal** during Phase 2 — it flips between
+a ~20/s and a ~200/s provider-miss regime at every pool size, including
+at concurrency 1 where pool size cannot matter — so local absolute
+numbers are used only for paired lock evidence, and the runner medians
+are the decision-grade throughput/latency figures. Cross-environment
+comparisons are labelled as such.
+
+### Per-item results
+
+| #   | Item                                                                                                                    | Before                                                                                                                                                                                                         | After                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Verdict                                                    |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 1   | Read paths stop writing (`findByProviderId`/`findByBarcode`: `UPDATE…RETURNING` → `SELECT` + debounced `scheduleTouch`) | Focused lock check (60×50 hot-row reads, local): **max 9 ungranted locks, 129 poll samples with waiters** (Lock/tuple + Lock/transactionid). Phase 1: hot-row p95 @c60 92.5 ms, 880/s; barcode p95 @c60 104 ms | Focused lock check: **max 0 ungranted locks, 0 samples**. Runner (pool 10, median of 3): hot-row @c60 **5,186/s, p95 12.0 ms**; barcode @c60 **5,247/s, p95 11.7 ms**; @c1 p95 ≤ 0.91 ms both. Full-suite monitor still sees up to 9 waiters globally, now attributable to genuine write workloads (`upsertMany` hot rows, touch batches)                                                                                                                                                                                                                                                                                                                                                                                                                         | **Done** — read-path lock waits eliminated                 |
+| 2   | Legacy barcode silo (`lookup_barcode` → canonical `FoodSearchService`)                                                  | Hit persisted to siloed `munch.food_cache`, never read by canonical paths; 7-day TTL declared, never enforced                                                                                                  | `foods.ts` neither reads nor writes `food_cache` (its role is **removed**, the cleaner option; rows age out via maintenance's 30-day purge; helpers remain for the service-platform smoke). Freshness is now the catalog packaged TTL. Harness (`legacy.lookupBarcode-repeat`, OFF-only barcode, 90 ops/level): **0 errors; exactly 2 provider barcode calls at c1 (first op only), repeats resolve locally; 1 row in `food_catalog_entries` (provider `open_food_facts`), 0 rows in `food_cache`** — identical on local and runner runs. MCP tool name/inputs/outputs unchanged; two honesty fallbacks preserve legacy semantics (canonical layer throws → direct OFF fetch; canonical surfaces only a USDA record for a dual-listed barcode → direct OFF fetch) | **Done**                                                   |
+| 3   | Search negative caching                                                                                                 | No negative caching for search: every repeat no-result query re-queried USDA + OFF                                                                                                                             | `recordNegative("search", …, "aggregate")` on verified no-result searches only (never on provider failures); `isNegative` checked before providers. Harness (`service.search-no-result-repeat`, same query × 90 ops): **exactly 2 provider search calls per workload at every concurrency (1/10/30/60) and every pool size, local and runner** (the miss workload uses 176–180 by contrast). Unit tests cover the repeat path and the no-record-on-failure rule                                                                                                                                                                                                                                                                                                   | **Done** — repeat no-result queries make ~0 provider calls |
+| 4   | Miss-path cost (trigram gate, single-transaction write-back, pool trial)                                                | Phase 1: provider-miss ceiling ≈ 30/s at every concurrency, p95 @c60 1,803 ms; trigram fallback ran on every miss; write-back = 2 pool transactions                                                            | Trigram fallback gated: never when lexical returned rows, never for > 4-token phrases (whole-phrase similarity ≈ 0; the dedicated short-typo trigram workload still runs, runner @c60 ≈ 92/s, p95 685 ms). Write-back is one transaction (`upsertAndRecordSearch`). Runner medians, provider-miss: **pool 10 — c60 472/s, p95 125 ms; c30 307/s, p95 111 ms** (see pool trial below). The ≈ 30/s ceiling is gone at every pool size                                                                                                                                                                                                                                                                                                                               | **Done** — ceiling moved ~10–15× on runner medians         |
+| 5   | Opportunistic stale refresh on search                                                                                   | Stale rows stayed stale until a details lookup or bulk re-import                                                                                                                                               | Stale rows a search touches (local + query-cache stages) refresh in the background (provider details → upsert; cap 3/search, in-flight dedupe, failures logged/swallowed); the search never waits. Harness verification at pool 10/20/30, local and runner: artificially aged row re-freshened after one search, **exactly 1 provider details call, search returned in 6–91 ms**. Unit test asserts the refresh lands after the search resolves                                                                                                                                                                                                                                                                                                                   | **Done**                                                   |
+
+### Pool-size trial (item 4, runner medians of 3 runs each, provider-miss workload)
+
+| Pool | c1 /s · p95    | c10 /s · p95    | c30 /s · p95     | c60 /s · p95     |
+| ---- | -------------- | --------------- | ---------------- | ---------------- |
+| 10   | 28.1 · 40.5 ms | 59.4 · 235.9 ms | 306.8 · 110.6 ms | 472.4 · 125.1 ms |
+| 20   | 40.5 · 43.4 ms | 83.8 · 150.7 ms | 104.8 · 421.9 ms | 97.4 · 835.7 ms  |
+| 30   | 50.2 · 21.1 ms | 71.5 · 234.2 ms | 87.3 · 707.9 ms  | 378.1 · 176.0 ms |
+
+Individual runs at every pool size reached 460–521/s at c60; no size is
+consistently better (pool 20's c60 median is dragged by two slow-host
+runs; pool 30 leads only at c1, where pool size is near-irrelevant).
+**Verdict: no reproducible winner — pool size is not the binding
+constraint on the miss path once the code fixes above are in, so the
+`MUNCH_DB_POOL_SIZE` default stays at 10** (best c30/c60 medians, least
+connection pressure on Postgres). The local-VM trial (2 runs × 3 sizes)
+was noise-bound and is recorded here as inconclusive rather than
+cherry-picked. **Coordinator follow-up: confirm whether Railway sets
+`MUNCH_DB_POOL_SIZE` explicitly in the environment — an env value would
+override the code default either way (not checkable from this slice).**
+
+### What did not change
+
+No schema migrations; MCP tool contracts, auth behaviour, the commerce
+boundary, and the host-AI fence are untouched; no changes to
+`src/meal-photo/` or `public/`; credits remnants untouched (de-credit
+landed in #188). Existing suites: 889 tests green at PR-A, 893 at PR-B
+(4 new locality tests + new `foods.ts` routing/conversion tests), full
+CI check suite green per PR — with one pre-existing exception: the
+`usda-food-catalog-corpus` workflow also fails on `main`'s scheduled
+runs, and on PR-A it failed at its LLM-adjudication step (11/12 cases)
+after import and recall validation passed.

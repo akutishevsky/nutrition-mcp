@@ -47,6 +47,7 @@ function fakeCatalog(
             return [];
         },
         async upsertMany() {},
+        async upsertAndRecordSearch() {},
         async recordSearch() {},
         async findByProviderId() {
             return null;
@@ -166,6 +167,128 @@ describe("food locality and cache behavior", () => {
         const result = await service.search("banana", 10);
         expect(result.candidates[0]?.providerFoodId).toBe("321358");
         expect(result.failures).toHaveLength(1);
+    });
+
+    test("search negative caching: a verified no-result query makes ~0 provider calls on repeat", async () => {
+        let providerCalls = 0;
+        let negative = false;
+        const recorded: string[] = [];
+        const provider: FoodProvider = {
+            name: "usda",
+            async search() {
+                providerCalls += 1;
+                return [];
+            },
+        };
+        const service = new FoodSearchService(
+            new FoodProviderRegistry([provider]),
+            fakeCatalog({
+                async isNegative() {
+                    return negative;
+                },
+                async recordNegative(operation: string) {
+                    recorded.push(operation);
+                    negative = true;
+                },
+            }),
+        );
+        const first = await service.search("zzznoresult flakes", 10);
+        expect(first.candidates).toHaveLength(0);
+        expect(providerCalls).toBe(1);
+        expect(recorded).toEqual(["search"]);
+        const second = await service.search("zzznoresult flakes", 10);
+        expect(second.candidates).toHaveLength(0);
+        expect(providerCalls).toBe(1); // negative hit: no new provider call
+    });
+
+    test("search negative caching is NOT recorded when providers fail", async () => {
+        const recorded: string[] = [];
+        const provider: FoodProvider = {
+            name: "usda",
+            async search() {
+                throw new FoodProviderError(
+                    "provider_unavailable",
+                    "temporary USDA outage",
+                    { provider: "usda" },
+                );
+            },
+        };
+        const service = new FoodSearchService(
+            new FoodProviderRegistry([provider]),
+            fakeCatalog({
+                async recordNegative(operation: string) {
+                    recorded.push(operation);
+                },
+            }),
+        );
+        const result = await service.search("banana", 10);
+        expect(result.failures).toHaveLength(1);
+        expect(recorded).toEqual([]);
+    });
+
+    test("provider write-back on a miss uses the single-transaction path", async () => {
+        let combinedCalls = 0;
+        let separateCalls = 0;
+        const provider: FoodProvider = {
+            name: "usda",
+            async search() {
+                return [candidate({ providerFoodId: "remote-1" })];
+            },
+        };
+        const service = new FoodSearchService(
+            new FoodProviderRegistry([provider]),
+            fakeCatalog({
+                async upsertAndRecordSearch() {
+                    combinedCalls += 1;
+                },
+                async upsertMany() {
+                    separateCalls += 1;
+                },
+                async recordSearch() {
+                    separateCalls += 1;
+                },
+            }),
+        );
+        const result = await service.search("banana", 10);
+        expect(result.candidates).toHaveLength(1);
+        expect(combinedCalls).toBe(1);
+        expect(separateCalls).toBe(0);
+    });
+
+    test("a stale row touched by search is refreshed in the background, without the search waiting", async () => {
+        const upserted: FoodCandidate[] = [];
+        let detailsCalls = 0;
+        const refreshed = candidate({ confidence: 0.97 });
+        const provider: FoodProvider = {
+            name: "usda",
+            async search() {
+                return [];
+            },
+            async getDetails() {
+                detailsCalls += 1;
+                await Bun.sleep(20);
+                return refreshed;
+            },
+        };
+        const service = new FoodSearchService(
+            new FoodProviderRegistry([provider]),
+            fakeCatalog({
+                async searchLocal() {
+                    return [hit(candidate(), true)];
+                },
+                async upsert(food: FoodCandidate) {
+                    upserted.push(food);
+                },
+            }),
+        );
+        const result = await service.search("banana", 10);
+        expect(result.candidates).toHaveLength(0);
+        // The refresh lands after the search has already resolved.
+        for (let i = 0; i < 50 && upserted.length === 0; i += 1) {
+            await Bun.sleep(10);
+        }
+        expect(detailsCalls).toBe(1);
+        expect(upserted).toEqual([refreshed]);
     });
 
     test("twenty concurrent cold searches collapse into one upstream request", async () => {
