@@ -166,6 +166,10 @@ await grantPremiumOverride({
 
 const redirectUri = "https://client.example/callback";
 const resource = "https://munch.example/mcp";
+// Connector frameworks (Meta's hosted custom-connector setup) register with
+// the OIDC `openid` scope included; mirror that exact request here so the
+// registration path that production connector setups hit stays covered.
+const connectorScope = "openid nutrition.read nutrition.write offline_access";
 const registration = await app.request(
     "https://munch.example/api/auth/oauth2/register",
     {
@@ -177,6 +181,7 @@ const registration = await app.request(
             token_endpoint_auth_method: "none",
             grant_types: ["authorization_code", "refresh_token"],
             response_types: ["code"],
+            scope: connectorScope,
         }),
     },
 );
@@ -194,10 +199,7 @@ const authorize = new URL("https://munch.example/api/auth/oauth2/authorize");
 authorize.searchParams.set("response_type", "code");
 authorize.searchParams.set("client_id", client.client_id);
 authorize.searchParams.set("redirect_uri", redirectUri);
-authorize.searchParams.set(
-    "scope",
-    "nutrition.read nutrition.write offline_access",
-);
+authorize.searchParams.set("scope", connectorScope);
 authorize.searchParams.set("resource", resource);
 authorize.searchParams.set("state", state);
 authorize.searchParams.set("code_challenge", await codeChallenge(verifier));
@@ -231,6 +233,14 @@ if (
 ) {
     throw new Error(
         "Consent page omitted the connected Munch account identity",
+    );
+}
+if (
+    !consentHtml.includes("<strong>openid</strong>") ||
+    !consentHtml.includes("Confirm your identity with Munch")
+) {
+    throw new Error(
+        "Consent page did not render the openid scope with its human-readable label",
     );
 }
 
@@ -289,9 +299,22 @@ if (!token.ok) {
 const tokens = JSON.parse(tokenText) as {
     access_token?: string;
     refresh_token?: string;
+    id_token?: string;
 };
 if (!tokens.access_token || !tokens.refresh_token) {
     throw new Error("Token exchange omitted access or refresh token");
+}
+if (!tokens.id_token) {
+    throw new Error(
+        "Token exchange omitted the id_token for the granted openid scope",
+    );
+}
+const idPayload = decodeJwtPayload(tokens.id_token);
+if (idPayload.aud !== client.client_id) {
+    throw new Error(`ID token has unexpected audience: ${idPayload.aud}`);
+}
+if (idPayload.iss !== "https://munch.example/api/auth") {
+    throw new Error(`ID token has unexpected issuer: ${idPayload.iss}`);
 }
 if (tokens.access_token.split(".").length !== 3) {
     throw new Error(
@@ -311,6 +334,18 @@ if (accessPayload.iss !== "https://munch.example/api/auth") {
     throw new Error(
         `MCP access token has unexpected issuer: ${accessPayload.iss}`,
     );
+}
+const grantedScopes = new Set(
+    String(accessPayload.scope ?? "")
+        .split(" ")
+        .filter(Boolean),
+);
+for (const expected of connectorScope.split(" ")) {
+    if (!grantedScopes.has(expected)) {
+        throw new Error(
+            `MCP access token omitted granted scope ${expected}: ${accessPayload.scope}`,
+        );
+    }
 }
 
 const mcpHeaders = {
@@ -458,6 +493,161 @@ if (
         ?.includes("oauth-protected-resource/mcp")
 ) {
     throw new Error("MCP 401 omitted path-aware protected-resource metadata");
+}
+
+// An openid-only grant must NOT unlock MCP data: the MCP bearer layer
+// requires the nutrition.read scope, so a token whose only scope is openid
+// is refused even though it is a genuine, correctly-signed Munch token.
+const openidRegistration = await app.request(
+    "https://munch.example/api/auth/oauth2/register",
+    {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+            client_name: "Munch browser OAuth openid-only smoke",
+            redirect_uris: [redirectUri],
+            token_endpoint_auth_method: "none",
+            grant_types: ["authorization_code", "refresh_token"],
+            response_types: ["code"],
+            scope: "openid",
+        }),
+    },
+);
+if (!openidRegistration.ok) {
+    throw new Error(
+        `Openid-only registration failed: ${openidRegistration.status} ${await openidRegistration.text()}`,
+    );
+}
+const openidClient = (await openidRegistration.json()) as {
+    client_id?: string;
+};
+if (!openidClient.client_id) {
+    throw new Error("Openid-only registration returned no client_id");
+}
+
+const openidVerifier = `v-openid-${suffix}-${"y".repeat(40)}`;
+const openidState = `state-openid-${suffix}`;
+const openidAuthorize = new URL(
+    "https://munch.example/api/auth/oauth2/authorize",
+);
+openidAuthorize.searchParams.set("response_type", "code");
+openidAuthorize.searchParams.set("client_id", openidClient.client_id);
+openidAuthorize.searchParams.set("redirect_uri", redirectUri);
+openidAuthorize.searchParams.set("scope", "openid");
+openidAuthorize.searchParams.set("resource", resource);
+openidAuthorize.searchParams.set("state", openidState);
+openidAuthorize.searchParams.set(
+    "code_challenge",
+    await codeChallenge(openidVerifier),
+);
+openidAuthorize.searchParams.set("code_challenge_method", "S256");
+
+const openidAuthorization = await app.request(openidAuthorize, {
+    headers: { cookie },
+    redirect: "manual",
+});
+if (openidAuthorization.status !== 302) {
+    throw new Error(
+        `Openid-only authorization did not redirect: ${openidAuthorization.status} ${await openidAuthorization.text()}`,
+    );
+}
+const openidConsentLocation = openidAuthorization.headers.get("location");
+if (!openidConsentLocation?.includes("/connect/consent")) {
+    throw new Error(
+        `Openid-only authorization did not reach consent: ${openidConsentLocation}`,
+    );
+}
+const openidConsentPage = await app.request(
+    new URL(openidConsentLocation, "https://munch.example"),
+    { headers: { cookie } },
+);
+const openidConsentHtml = await openidConsentPage.text();
+if (openidConsentPage.status !== 200) {
+    throw new Error(
+        `Openid-only consent page failed: ${openidConsentPage.status}`,
+    );
+}
+const openidConsent = await app.request(
+    "https://munch.example/connect/consent",
+    {
+        method: "POST",
+        headers: {
+            cookie,
+            "content-type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+            client_id: hiddenValue(openidConsentHtml, "client_id"),
+            scope: hiddenValue(openidConsentHtml, "scope"),
+            oauth_query: hiddenValue(openidConsentHtml, "oauth_query"),
+            csrf_token: hiddenValue(openidConsentHtml, "csrf_token"),
+            decision: "approve",
+        }),
+        redirect: "manual",
+    },
+);
+if (openidConsent.status !== 302 && openidConsent.status !== 303) {
+    throw new Error(
+        `Openid-only consent failed: ${openidConsent.status} ${await openidConsent.text()}`,
+    );
+}
+const openidCallback = new URL(
+    openidConsent.headers.get("location") ?? "",
+    redirectUri,
+);
+const openidCode = openidCallback.searchParams.get("code");
+if (!openidCode) {
+    throw new Error(`Openid-only consent returned no code: ${openidCallback}`);
+}
+const openidToken = await app.request(
+    "https://munch.example/api/auth/oauth2/token",
+    {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+            grant_type: "authorization_code",
+            client_id: openidClient.client_id,
+            redirect_uri: redirectUri,
+            code: openidCode,
+            code_verifier: openidVerifier,
+            resource,
+        }),
+    },
+);
+const openidTokenText = await openidToken.text();
+if (!openidToken.ok) {
+    throw new Error(
+        `Openid-only token exchange failed: ${openidToken.status} ${openidTokenText}`,
+    );
+}
+const openidTokens = JSON.parse(openidTokenText) as {
+    access_token?: string;
+};
+if (!openidTokens.access_token) {
+    throw new Error("Openid-only token exchange omitted the access token");
+}
+const openidAccessPayload = decodeJwtPayload(openidTokens.access_token);
+if (openidAccessPayload.scope !== "openid") {
+    throw new Error(
+        `Openid-only access token carried unexpected scope: ${openidAccessPayload.scope}`,
+    );
+}
+const openidMcp = await app.request("https://munch.example/mcp", {
+    method: "POST",
+    headers: {
+        ...mcpHeaders,
+        authorization: `Bearer ${openidTokens.access_token}`,
+    },
+    body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/list",
+        params: {},
+    }),
+});
+if (openidMcp.status !== 401) {
+    throw new Error(
+        `Openid-only token was not refused at the MCP layer: ${openidMcp.status} ${await openidMcp.text()}`,
+    );
 }
 
 console.log(

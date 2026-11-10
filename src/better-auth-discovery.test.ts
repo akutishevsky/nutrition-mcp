@@ -24,9 +24,22 @@ test("protected-resource metadata identifies Munch scopes", () => {
         resource: `${ORIGIN}/mcp`,
         authorization_servers: [`${ORIGIN}/api/auth`],
         scopes_supported: [
+            "openid",
             "nutrition.read",
             "nutrition.write",
             "offline_access",
         ],
     });
+});
+
+test("authorization-server discovery advertises the openid scope", () => {
+    // Connector frameworks (Meta's custom-connector setup included) request
+    // the OIDC `openid` scope at dynamic client registration; discovery must
+    // advertise it or those registrations are rejected as invalid_scope.
+    expect(authorizationServerMetadata(ORIGIN).scopes_supported).toEqual([
+        "openid",
+        "nutrition.read",
+        "nutrition.write",
+        "offline_access",
+    ]);
 });
