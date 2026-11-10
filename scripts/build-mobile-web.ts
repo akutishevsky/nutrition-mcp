@@ -20,7 +20,7 @@ if (!appHtml.includes("/mobile-entry.js")) {
 }
 await writeFile(join(output, "index.html"), appHtml);
 
-for (const file of ["app.js", "pantry.js"]) {
+for (const file of ["app.js", "pantry.js", "app-patches.js"]) {
     const path = join(output, file);
     const source = await readFile(path, "utf8");
     const migrated = source.replace(
