@@ -35,6 +35,7 @@ const auth = getMunchBetterAuth();
 const database = new Pool({ connectionString: databaseUrl, max: 1 });
 const recoveredClientId = `ChatGptRecoverySmoke${crypto.randomUUID().replaceAll("-", "")}`;
 let registeredClientId: string | undefined;
+let openidClientId: string | undefined;
 let succeeded = false;
 
 try {
@@ -123,6 +124,102 @@ try {
         "oauthClient.responseTypes",
     );
 
+    // Regression (2026-11-10): connector frameworks such as Meta's hosted
+    // custom-connector setup request the OIDC `openid` scope at dynamic
+    // client registration. Registration must accept it alongside the
+    // nutrition scopes instead of failing with invalid_scope
+    // ("cannot request scope openid").
+    const openidScope = "openid nutrition.read nutrition.write offline_access";
+    const openidResponse = await auth.handler(
+        new Request("https://munch.example/api/auth/oauth2/register", {
+            method: "POST",
+            headers: {
+                "content-type": "application/json",
+                "x-forwarded-for": "127.0.0.1",
+                "x-forwarded-proto": "https",
+                "x-forwarded-host": "munch.example",
+            },
+            body: JSON.stringify({
+                client_name: "Munch Better Auth openid smoke client",
+                redirect_uris: [redirectUri],
+                token_endpoint_auth_method: "none",
+                grant_types: grantTypes,
+                response_types: responseTypes,
+                scope: openidScope,
+            }),
+        }),
+    );
+    const openidResponseText = await openidResponse.text();
+    if (openidResponse.status !== 200 && openidResponse.status !== 201) {
+        throw new Error(
+            `Dynamic registration with openid scope failed: ${openidResponse.status} ${openidResponseText}`,
+        );
+    }
+    const openidRegistration = JSON.parse(openidResponseText) as {
+        client_id?: string;
+        scope?: string;
+    };
+    openidClientId = openidRegistration.client_id;
+    if (!openidClientId) {
+        throw new Error("Openid registration returned no client_id");
+    }
+    const grantedScopes = new Set(
+        (openidRegistration.scope ?? "").split(" ").filter(Boolean),
+    );
+    for (const expected of openidScope.split(" ")) {
+        if (!grantedScopes.has(expected)) {
+            throw new Error(
+                `Openid registration did not grant scope ${expected}: ${openidRegistration.scope}`,
+            );
+        }
+    }
+    const openidStored = await database.query<{ scopes: string }>(
+        `select scopes from munch."oauthClient" where "clientId" = $1`,
+        [openidClientId],
+    );
+    const storedScopes = openidStored.rows[0]?.scopes;
+    if (typeof storedScopes !== "string") {
+        throw new Error("Openid OAuth client was not persisted");
+    }
+    const storedScopeSet = new Set(JSON.parse(storedScopes) as string[]);
+    if (
+        storedScopeSet.size !== grantedScopes.size ||
+        ![...grantedScopes].every((scope) => storedScopeSet.has(scope))
+    ) {
+        throw new Error(
+            `Openid client scopes were not persisted: ${storedScopes}`,
+        );
+    }
+
+    // Discovery must advertise openid in scopes_supported on the
+    // authorization-server metadata the connector setup reads.
+    const { Hono } = await import("hono");
+    const { registerDiscoveryRoutes } = await import("../src/discovery.js");
+    const discoveryApp = new Hono();
+    registerDiscoveryRoutes(discoveryApp);
+    const discoveryResponse = await discoveryApp.request(
+        "http://localhost/.well-known/oauth-authorization-server/api/auth",
+        {
+            headers: {
+                "x-forwarded-proto": "https",
+                "x-forwarded-host": "munch.example",
+            },
+        },
+    );
+    if (discoveryResponse.status !== 200) {
+        throw new Error(
+            `Authorization-server discovery failed: ${discoveryResponse.status}`,
+        );
+    }
+    const discovery = (await discoveryResponse.json()) as {
+        scopes_supported?: string[];
+    };
+    if (!discovery.scopes_supported?.includes("openid")) {
+        throw new Error(
+            `Discovery scopes_supported omitted openid: ${JSON.stringify(discovery.scopes_supported)}`,
+        );
+    }
+
     const chatGptRedirect =
         "https://chatgpt.com/connector/oauth/munch-recovery-smoke";
     const authorizeUrl = new URL(
@@ -203,6 +300,12 @@ try {
         await database.query(
             `delete from munch."oauthClient" where "clientId" = $1`,
             [registeredClientId],
+        );
+    }
+    if (openidClientId) {
+        await database.query(
+            `delete from munch."oauthClient" where "clientId" = $1`,
+            [openidClientId],
         );
     }
     await database.query(

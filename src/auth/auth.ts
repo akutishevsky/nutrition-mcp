@@ -339,6 +339,13 @@ function createMunchBetterAuth() {
                 },
                 validAudiences: [munchMcpResourceUrl(config.baseUrl)],
                 scopes: [...MUNCH_OAUTH_SCOPES],
+                // Registration may request any provider scope (connector
+                // frameworks ask for `openid` at registration time). Without
+                // this, setting clientRegistrationDefaultScopes makes the
+                // plugin treat the defaults as the registration allowlist
+                // and reject `openid` with invalid_scope. The defaults below
+                // remain the grant for registrations that name no scope.
+                clientRegistrationAllowedScopes: [...MUNCH_OAUTH_SCOPES],
                 clientRegistrationDefaultScopes: [
                     ...MUNCH_DEFAULT_OAUTH_SCOPES,
                 ],

@@ -1,4 +1,5 @@
 export const MUNCH_OAUTH_SCOPES = [
+    "openid",
     "nutrition.read",
     "nutrition.write",
     "offline_access",
@@ -16,6 +17,8 @@ export function munchMcpResourceUrl(baseUrl: string): string {
 
 export function describeOAuthScope(scope: string): string {
     switch (scope) {
+        case "openid":
+            return "Confirm your identity with Munch (OpenID Connect). On its own this grants no access to your nutrition data.";
         case "nutrition.read":
             return "Read your Munch nutrition records, goals, saved foods, hydration, and weight data.";
         case "nutrition.write":
