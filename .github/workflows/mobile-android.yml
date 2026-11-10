@@ -10,7 +10,9 @@ on:
 permissions:
   contents: read
 
-# Keep each main-branch run independent so every merge gets a distribution attempt.
+# Keep each main-branch run independent. NOTE: Firebase App Distribution is
+# MANUAL-ONLY (workflow_dispatch) per Michael's 2026-11-09 directive —
+# per-merge distributions were flooding his inbox. Milestones or his ask only.
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -214,7 +216,9 @@ jobs:
   distribute:
     name: Firebase App Distribution
     needs: validate
-    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    # Manual-only (Michael, 2026-11-09): distributions run on workflow_dispatch
+    # for milestones or at his explicit ask — never automatically per merge.
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
