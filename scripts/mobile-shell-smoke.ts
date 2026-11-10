@@ -9,6 +9,15 @@ const navigation = await readFile("mobile/navigation.js", "utf8");
 const mobileEntry = await readFile("mobile/mobile-entry.js", "utf8");
 const mobileLogin = await readFile("mobile/mobile-login.js", "utf8");
 const pantryNative = await readFile("mobile/pantry-native.js", "utf8");
+const mealPhotoNative = await readFile("mobile/meal-photo-native.js", "utf8");
+const appApi = await readFile("public/app-api.js", "utf8");
+const appJs = await readFile("public/app.js", "utf8");
+const appStyles = await readFile("public/styles.css", "utf8");
+const mobileLoginHtml = await readFile("mobile/mobile-login.html", "utf8");
+const androidManifest = await readFile(
+    "android/app/src/main/AndroidManifest.xml",
+    "utf8",
+);
 const buildMobileWeb = await readFile("scripts/build-mobile-web.ts", "utf8");
 const androidBuildGradle = await readFile("android/app/build.gradle", "utf8");
 const androidWorkflow = await readFile(
@@ -119,9 +128,13 @@ requireText(
     "blocksNewPurchase === true",
     "Server-owned duplicate purchase decision",
 );
-if (/App\.addListener\(["']backButton["']/.test(runtime)) {
-    throw new Error("Keep Capacitor's default Android back handling");
-}
+// S4 supersedes the earlier "default back handling" posture: the
+// runtime owns Android back explicitly — dialog first, then history,
+// then root exit — per the shell-hardening brief.
+requireText(runtime, '"backButton"', "Android back handling");
+requireText(runtime, "window.history.back()", "Android back history");
+requireText(runtime, "App.exitApp()", "Android back root exit");
+requireText(runtime, 'querySelector("dialog[open]")', "Android back dialog");
 if (/localStorage/.test(runtime)) {
     throw new Error("Installed bearer credentials must not use localStorage");
 }
@@ -403,6 +416,79 @@ requireText(
     appRoutes,
     'app.get("/api/app/food-barcode"',
     "Canonical barcode API",
+);
+
+// S4 shell hardening: offline honesty, native meal-photo capture,
+// verified app links, and safe areas.
+requireText(
+    runtime,
+    "installOfflineBanner",
+    "Mobile runtime connectivity re-export",
+);
+requireText(appApi, "isConnectivity", "Connectivity error tagging");
+requireText(appApi, "Nothing was queued", "Offline write honesty");
+requireText(appApi, "installOfflineBanner", "Offline banner");
+requireText(appJs, 'data-testid="api-down-state"', "API-down view state");
+requireText(appJs, "isConnectivityError", "API-down detection");
+requireText(mobileEntry, 'data-testid="offline-state"', "Offline cold start");
+requireText(
+    mobileEntry,
+    "./meal-photo-native.js",
+    "Native meal-photo bundle wiring",
+);
+requireText(mobileLoginHtml, 'data-testid="offline-banner"', "Login offline");
+requireText(
+    mealPhotoNative,
+    "munch.pendingMealPhotoCapture",
+    "Meal-photo pending capture restore",
+);
+requireText(mealPhotoNative, "#meal-photo-file", "Meal-photo dialog handoff");
+requireText(
+    mealPhotoNative,
+    "new DataTransfer()",
+    "Meal-photo image handoff to existing review flow",
+);
+requireText(mealPhotoNative, "8 * 1024 * 1024", "Meal-photo 8 MB capture cap");
+requireText(
+    buildMobileWeb,
+    "meal-photo-native.js",
+    "Native meal-photo bundle injection",
+);
+requireText(navigation, "munch.business", "Verified app-link routing");
+requireText(
+    configure,
+    'android:pathPrefix="/app"',
+    "Verified Android app links",
+);
+requireText(
+    androidManifest,
+    'android:pathPrefix="/app"',
+    "Verified Android app links in manifest",
+);
+requireText(appStyles, ".offline-banner", "Offline banner styles");
+requireText(
+    appStyles,
+    "env(safe-area-inset-top)",
+    "Safe-area aware sticky chrome",
+);
+// Amendment F: the S4 shell states (API-down, startup failure,
+// offline cold start) carry the Editorial Serif house theme.
+for (const testId of ["api-down-state", "startup-failure-state"]) {
+    requireText(
+        appStyles,
+        `.error-state[data-testid="${testId}"]`,
+        `Editorial Serif themed ${testId}`,
+    );
+}
+requireText(
+    appStyles,
+    ".error-state.offline-state",
+    "Editorial Serif themed offline state",
+);
+requireText(
+    appStyles,
+    'Georgia, "Times New Roman", Times, serif',
+    "Editorial Serif display type in shell states",
 );
 
 console.log("Installed Android architecture smoke checks passed.");

@@ -2172,7 +2172,8 @@
         place-items: center;
         border-radius: 10px;
         color: var(--ink-500);
-        font-size: 0.65rem;
+        /* S4 mobile_qc bright line: no text under 11px (was 0.65rem). */
+        font-size: 0.7rem;
         font-weight: 700;
     }
 
@@ -2396,4 +2397,98 @@
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
     }
+}
+
+/* S4 shell hardening — honest connectivity states + safe areas.
+   The offline banner is a designed state (mobile-discipline P7): it
+   floats above the mobile bottom nav, respects the gesture-bar inset
+   on every side, and never overlaps the sticky topbar. */
+.offline-banner {
+    position: fixed;
+    z-index: 400;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    border: 1px solid #d8cdb6;
+    border-radius: 4px;
+    background: #fffdf8;
+    color: #2b2620;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: center;
+    box-shadow: 0 12px 32px rgb(24 51 41 / 0.16);
+}
+.offline-banner[hidden] {
+    display: none;
+}
+@media (max-width: 900px) {
+    .offline-banner {
+        bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+    /* Sticky topbar content clears the status cutout in the packaged
+       shell (its translucent background still extends underneath). */
+    .app-topbar {
+        padding-top: calc(12px + env(safe-area-inset-top));
+    }
+    .toast-region {
+        bottom: calc(82px + env(safe-area-inset-bottom));
+    }
+}
+
+/* S4 shell states in the Editorial Serif house theme (Amendment F,
+   2026-11-09: every screen carries the house theme; an unthemed
+   screen is a mobile_qc Blocker). The packaged shell's
+   startup-failure, offline cold-start and API-down states are
+   screens, so they are voiced in the same grammar as
+   public/editorial.css — warm paper, Georgia display type, hairline
+   rules, restrained green — scoped to the state components so the
+   rest of the signed-in app keeps its own styles. Token values are
+   editorial.css's: --paper #f6f1e7, --ink #2b2620, --ink-soft
+   #4a4237, --hairline #d8cdb6, --green #176b3a, --green-deep
+   #0b3d24, --serif Georgia, "Times New Roman", Times, serif. */
+.error-state[data-testid="api-down-state"],
+.error-state[data-testid="startup-failure-state"],
+.error-state.offline-state {
+    border: 1px solid #d8cdb6;
+    border-radius: 4px;
+    background: #f6f1e7;
+    color: #2b2620;
+    text-align: left;
+}
+.error-state[data-testid="api-down-state"] h2,
+.error-state[data-testid="startup-failure-state"] h2,
+.error-state.offline-state h2 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 27px;
+    font-weight: 600;
+    line-height: 1.18;
+    letter-spacing: -0.01em;
+    color: #2b2620;
+    text-wrap: balance;
+}
+.error-state[data-testid="api-down-state"] p,
+.error-state[data-testid="startup-failure-state"] p,
+.error-state.offline-state p {
+    color: #4a4237;
+}
+.error-state[data-testid="api-down-state"] .section-kicker,
+.error-state[data-testid="startup-failure-state"] .section-kicker,
+.error-state.offline-state .section-kicker {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #176b3a;
+}
+.error-state[data-testid="api-down-state"] .button-primary,
+.error-state[data-testid="startup-failure-state"] .button-primary,
+.error-state.offline-state .button-primary {
+    background: #176b3a;
+    border-radius: 4px;
+}
+.error-state[data-testid="api-down-state"] .button-primary:hover,
+.error-state[data-testid="startup-failure-state"] .button-primary:hover,
+.error-state.offline-state .button-primary:hover {
+    background: #0b3d24;
 }

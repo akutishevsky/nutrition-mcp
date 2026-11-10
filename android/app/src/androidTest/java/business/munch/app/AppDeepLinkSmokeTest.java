@@ -1,0 +1,139 @@
+package business.munch.app;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import android.app.Activity;
+import android.app.UiAutomation;
+import android.os.ParcelFileDescriptor;
+import android.view.View;
+import android.view.ViewGroup;
+import android.webkit.WebView;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry;
+import androidx.test.runner.lifecycle.Stage;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.concurrent.atomic.AtomicReference;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+/**
+ * S4 deep-link smoke test (Full Parity App Program): a munch://app
+ * deep link cold-starting the packaged app must route through the
+ * /app allowlist. With no stored session the shell lands on the
+ * packaged sign-in page carrying the deep-linked route as its
+ * return_to, so sign-in continues to /app/recipes — the link is
+ * neither dropped nor opened externally.
+ *
+ * <p>Delivery and observation are both deliberately non-invasive,
+ * after two CI iterations taught why: the link is sent with
+ * {@code am start} (the OS browser-tap path), because
+ * ActivityScenario's launch intent does not reach Capacitor's
+ * launch-URL bridge the same way; and the WebView is observed through
+ * the lifecycle monitor registry instead of an ActivityScenario,
+ * because launching a scenario reloads the WebView under a plain
+ * MAIN intent and erases the routed state under test. The test also
+ * never force-stops the app package: instrumentation runs inside the
+ * app process, so force-stopping it kills the test process itself.
+ */
+@RunWith(AndroidJUnit4.class)
+public class AppDeepLinkSmokeTest {
+
+    private static WebView findWebView(View view) {
+        if (view instanceof WebView) {
+            return (WebView) view;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                WebView found = findWebView(group.getChildAt(i));
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String decode(String value) {
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8.name());
+        } catch (UnsupportedEncodingException error) {
+            return value;
+        }
+    }
+
+    private static void executeShell(UiAutomation automation, String command)
+            throws Exception {
+        ParcelFileDescriptor descriptor = automation.executeShellCommand(command);
+        try (InputStream input =
+                new ParcelFileDescriptor.AutoCloseInputStream(descriptor)) {
+            while (input.read() != -1) {
+                // Drain so the command runs to completion.
+            }
+        }
+    }
+
+    private static String resumedWebViewUrl() {
+        AtomicReference<String> urlRef = new AtomicReference<>();
+        InstrumentationRegistry.getInstrumentation()
+                .runOnMainSync(
+                        () -> {
+                            Collection<Activity> resumed =
+                                    ActivityLifecycleMonitorRegistry.getInstance()
+                                            .getActivitiesInStage(Stage.RESUMED);
+                            for (Activity activity : resumed) {
+                                WebView webView =
+                                        findWebView(
+                                                activity.getWindow().getDecorView());
+                                if (webView != null) {
+                                    urlRef.set(webView.getUrl());
+                                }
+                            }
+                        });
+        return urlRef.get();
+    }
+
+    @Test
+    public void deepLinkLandsOnAllowlistedRoute() throws Exception {
+        UiAutomation automation =
+                InstrumentationRegistry.getInstrumentation().getUiAutomation();
+        // No quotes around the URI: UiAutomation's shell does not
+        // strip them, and the intent data would literally arrive as
+        // "\"munch://app/recipes\"" — an unparseable URL (observed in
+        // the boot-evidence logcat on the first CI iteration).
+        executeShell(
+                automation,
+                "am start -a android.intent.action.VIEW"
+                        + " -d munch://app/recipes"
+                        + " -n business.munch.app/.MainActivity");
+
+        AtomicReference<String> urlRef = new AtomicReference<>();
+        long deadlineMs = System.currentTimeMillis() + 45_000;
+        while (System.currentTimeMillis() < deadlineMs) {
+            String url = resumedWebViewUrl();
+            if (url != null) {
+                urlRef.set(url);
+                if (url.contains("mobile-login.html")
+                        && decode(url).contains("/app/recipes")) {
+                    break;
+                }
+            }
+            Thread.sleep(250);
+        }
+
+        String url = urlRef.get();
+        assertNotNull("WebView must load a document for a deep link", url);
+        assertTrue(
+                "Deep link must land on the packaged sign-in page, got: " + url,
+                url.contains("mobile-login.html"));
+        assertTrue(
+                "Deep link route must survive as the sign-in return route, got: " + url,
+                decode(url).contains("/app/recipes"));
+    }
+}

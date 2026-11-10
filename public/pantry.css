@@ -381,3 +381,30 @@ button:disabled {
         gap: 2px;
     }
 }
+
+/* S4 shell hardening — the sticky Pantry topbar clears the status
+   cutout in the packaged shell, and the offline banner matches the
+   app shell's designed connectivity state. */
+.topbar {
+    min-height: calc(64px + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+}
+.offline-banner {
+    position: fixed;
+    z-index: 400;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    border: 1px solid #d8cdb6;
+    border-radius: 4px;
+    background: #fffdf8;
+    color: #2b2620;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: center;
+    box-shadow: 0 12px 32px rgb(24 51 41 / 0.16);
+}
+.offline-banner[hidden] {
+    display: none;
+}

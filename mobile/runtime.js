@@ -9,6 +9,9 @@ import { Camera } from "@capacitor/camera";
 import { registerPlugin } from "@capacitor/core";
 import {
     getMunchPlatformKind,
+    installOfflineBanner,
+    isConnectivityError,
+    isOffline,
     requestJson,
     resolveMunchApiUrl,
     setMunchPlatformAdapter,
@@ -110,7 +113,14 @@ setMunchPlatformAdapter({
     },
 });
 
-export { getMunchPlatformKind, requestJson, resolveMunchApiUrl };
+export {
+    getMunchPlatformKind,
+    installOfflineBanner,
+    isConnectivityError,
+    isOffline,
+    requestJson,
+    resolveMunchApiUrl,
+};
 
 export async function hasStoredSession() {
     return Boolean(await storedToken());
@@ -161,16 +171,24 @@ async function sha256Base64Url(value) {
         .replaceAll("=", "");
 }
 
+const CONNECTIVITY_MESSAGE =
+    "Can't reach Munch right now. Check your connection and try again.";
+
 async function jsonRequest(path, body) {
-    const response = await fetch(new URL(path, API_BASE_URL), {
-        method: "POST",
-        credentials: "omit",
-        headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-    });
+    let response;
+    try {
+        response = await fetch(new URL(path, API_BASE_URL), {
+            method: "POST",
+            credentials: "omit",
+            headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(body),
+        });
+    } catch {
+        throw new Error(CONNECTIVITY_MESSAGE);
+    }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
         throw new Error(
@@ -221,14 +239,19 @@ export async function requestMobileMagicLink(email, returnTo = "/app") {
 }
 
 async function googleSignInConfig() {
-    const response = await fetch(
-        new URL("/mobile/auth/google-config", API_BASE_URL),
-        {
-            method: "GET",
-            credentials: "omit",
-            headers: { Accept: "application/json" },
-        },
-    );
+    let response;
+    try {
+        response = await fetch(
+            new URL("/mobile/auth/google-config", API_BASE_URL),
+            {
+                method: "GET",
+                credentials: "omit",
+                headers: { Accept: "application/json" },
+            },
+        );
+    } catch {
+        throw new Error(CONNECTIVITY_MESSAGE);
+    }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || !payload.configured || !payload.webClientId) {
         throw new Error("Google sign-in is not configured yet");
@@ -518,6 +541,29 @@ export async function scanInstalledBarcode() {
         },
     });
 }
+
+// S4 Android back behaviour (standard pattern): an open dialog
+// consumes back first; then WebView/SPA history while there is
+// somewhere in-app to go; at the shell root (/app, the login page, or
+// a top-level packaged page) back exits the app. It never strands the
+// user on a dead view and never exits mid-dialog.
+App.addListener("backButton", ({ canGoBack }) => {
+    const openDialog = document.querySelector("dialog[open]");
+    if (openDialog) {
+        openDialog.close();
+        return;
+    }
+    if (canGoBack) {
+        window.history.back();
+        return;
+    }
+    const route = installedAppRoute(location.pathname);
+    if (route && route !== "/app") {
+        navigateInstalledRoute("/app");
+        return;
+    }
+    void App.exitApp();
+});
 
 App.addListener("appStateChange", ({ isActive }) => {
     if (!isActive) {

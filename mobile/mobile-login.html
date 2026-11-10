@@ -137,9 +137,38 @@
                 margin: 18px 4px 0;
                 font-size: 0.82rem;
             }
+            .offline-banner {
+                position: fixed;
+                z-index: 10;
+                top: 0;
+                right: 0;
+                left: 0;
+                padding: calc(10px + env(safe-area-inset-top))
+                    max(16px, env(safe-area-inset-right)) 10px
+                    max(16px, env(safe-area-inset-left));
+                border-bottom: 1px solid #d8cdb6;
+                background: #fffdf8;
+                color: #2b2620;
+                font-size: 0.9rem;
+                line-height: 1.45;
+                text-align: center;
+            }
+            .offline-banner[hidden] {
+                display: none;
+            }
         </style>
     </head>
     <body>
+        <div
+            id="offline-banner"
+            class="offline-banner"
+            data-testid="offline-banner"
+            role="status"
+            hidden
+        >
+            You're offline — sign-in needs a connection. If you already have a
+            session, it stays saved on this device.
+        </div>
         <main>
             <div class="brand">
                 <img src="/brand/munch-mark.svg" alt="" />
