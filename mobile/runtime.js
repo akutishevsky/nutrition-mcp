@@ -597,7 +597,12 @@ App.addListener("appUrlOpen", ({ url }) => {
         return;
     }
     const route = installedRouteFromUrl(url);
-    console.log(`S4DBG appUrlOpen url=${url} route=${route} path=${location.pathname}`);
+    let dbgParts = "";
+    try {
+        const p = new URL(url);
+        dbgParts = ` proto=${p.protocol} host=${p.hostname} path=${p.pathname}`;
+    } catch {}
+    console.log(`S4DBG appUrlOpen url=${url} route=${route} path=${location.pathname}${dbgParts}`);
     if (!route) return;
     if (location.pathname === LOGIN_PATH) {
         history.replaceState({}, "", installedLoginHref(route));
