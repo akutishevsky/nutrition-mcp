@@ -12,7 +12,6 @@ const freeCapabilities = {
     tier: "free",
     coreNutrition: true,
     historyDays: 30,
-    savedFoodLimit: 25,
     personalRecipesRead: false,
     personalRecipesWrite: false,
     personalPlanningRead: false,

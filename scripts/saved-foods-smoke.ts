@@ -131,6 +131,24 @@ if ((await searchRecentMealItems(userB, "apple", 10)).length !== 0) {
     throw new Error("Cross-tenant recent item memory was allowed");
 }
 
+// CAP-LIFT (Michael, 2026-11-09): saved foods are uncapped for every
+// tier. A fresh account with no subscription (Free) saves well beyond
+// the former 25-food cap.
+const userC = await createSmokeUser("saved-c");
+for (let index = 1; index <= 30; index++) {
+    await saveFood({
+        userId: userC,
+        label: `Fixture food ${index}`,
+        food,
+        defaultPortionId: "medium",
+    });
+}
+if ((await listSavedFoods(userC, 100)).length !== 30) {
+    throw new Error(
+        "Free account could not save beyond the former 25-food cap",
+    );
+}
+
 if ((await listSavedFoods(userA, 10)).length !== 1) {
     throw new Error("Saved-food listing returned an unexpected count");
 }

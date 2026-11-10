@@ -4,11 +4,11 @@ Munch is a factual food, macro, recipe, planning, grocery, and household data se
 
 ## Free
 
-Every active account can use core food search, barcode lookup, meal logging, daily summaries, full history with no day limit, structured recipes, recipe nutrition arithmetic, meal calendars, grocery lists, Pantry, and every Munch-supplied AI feature on the website and in the app (photo estimates, meal ideas, receipt and pantry scans, plan suggestions, recipe-import resolution) — free and unmetered, with no entitlement gate (Amendment D, 2026-11-09). Free also includes export, revocation, and account deletion. The one remaining free-tier quantity limit is up to 25 saved foods. The one channel Free does not include is MCP access itself: connecting through OAuth and calling MCP tools require Premium (below), enforced at the consent page and again on every MCP request, so an already-connected client whose entitlement lapses is refused at its next tool call. OAuth and MCP never initiate Stripe Checkout.
+Every active account can use core food search, barcode lookup, meal logging, daily summaries, full history with no day limit, structured recipes, recipe nutrition arithmetic, meal calendars, grocery lists, Pantry, and every Munch-supplied AI feature on the website and in the app (photo estimates, meal ideas, receipt and pantry scans, plan suggestions, recipe-import resolution) — free and unmetered, with no entitlement gate (Amendment D, 2026-11-09). Free also includes export, revocation, and account deletion. Saved foods are uncapped for every tier — the former 25-food free limit was lifted by Michael's ruling on 2026-11-09 (CAP-LIFT), so Free carries no quantity limits at all. The one channel Free does not include is MCP access itself: connecting through OAuth and calling MCP tools require Premium (below), enforced at the consent page and again on every MCP request, so an already-connected client whose entitlement lapses is refused at its next tool call. OAuth and MCP never initiate Stripe Checkout.
 
 ## Premium
 
-Premium is purchased independently on the Munch website for $3.00 per month. Its identity is ad-free in the app, the future in-app AI chat agent, and MCP access, plus household ownership and unlimited saved foods. Existing direct subscribers receive these capabilities automatically after authentication.
+Premium is purchased independently on the Munch website for $3.00 per month. Its identity is ad-free in the app, the future in-app AI chat agent, and MCP access, plus household ownership. Existing direct subscribers receive these capabilities automatically after authentication.
 
 ## Paid household seats
 

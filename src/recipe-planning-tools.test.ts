@@ -39,7 +39,6 @@ const premiumPersonal = {
     householdManage: false,
     household: null,
     historyDays: null,
-    savedFoodLimit: null,
 } as unknown as MunchCapabilities;
 
 describe("recipe MCP surface", () => {

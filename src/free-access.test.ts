@@ -55,13 +55,29 @@ describe("AI features are free and ungated (Amendment D)", () => {
             // Full history is free.
             expect(capabilities.historyDays).toBeNull();
         }
-        // The one remaining free-tier quantity limit: saved foods.
-        expect(
-            capabilitiesFromSubscription({ status: null }).savedFoodLimit,
-        ).toBe(25);
-        expect(
-            capabilitiesFromSubscription({ status: "active" }).savedFoodLimit,
-        ).toBeNull();
+        // Saved foods are uncapped for every tier (CAP-LIFT, Michael,
+        // 2026-11-09): capabilities carry no saved-food limit at all.
+        for (const status of [null, "active", "trialing"] as const) {
+            expect(
+                "savedFoodLimit" in capabilitiesFromSubscription({ status }),
+            ).toBe(false);
+        }
+    });
+
+    test("no saved-food capacity gate remains in any save path (CAP-LIFT)", async () => {
+        for (const path of [
+            "src/app/routes.ts",
+            "src/saved-food-tools.ts",
+            "src/saved-foods/repository.ts",
+            "src/billing/capabilities.ts",
+            "src/product-config.ts",
+        ]) {
+            const source = await Bun.file(path).text();
+            expect(source).not.toContain("assertSavedFoodCapacity");
+            expect(source).not.toContain("Saved food capacity reached");
+            expect(source).not.toContain("savedFoodLimit");
+            expect(source).not.toContain("freeSavedFoodLimit");
+        }
     });
 
     test("the Android baseline holds the same fully featured floor", () => {

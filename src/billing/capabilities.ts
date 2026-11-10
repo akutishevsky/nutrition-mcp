@@ -9,7 +9,6 @@ import type { Context } from "hono";
 // Backwards-compatible exports. Product policy lives in PRODUCT_CONFIG; these
 // aliases prevent older imports from becoming a second source of truth.
 export const FREE_HISTORY_DAYS = PRODUCT_CONFIG.freeHistoryDays;
-export const FREE_SAVED_FOOD_LIMIT = PRODUCT_CONFIG.freeSavedFoodLimit;
 
 export interface HouseholdCapabilityContext {
     householdId: string;
@@ -23,7 +22,6 @@ export interface MunchCapabilities {
     tier: "free" | "premium";
     coreNutrition: true;
     historyDays: number | null;
-    savedFoodLimit: number | null;
     personalRecipesRead: boolean;
     personalRecipesWrite: boolean;
     personalPlanningRead: boolean;
@@ -76,15 +74,13 @@ export function capabilitiesFromSubscription(
     // website and in the app — personal recipes, planning, and full
     // history are free for every account, and every AI feature is free
     // and unmetered (there is no entitlement check at AI call sites).
-    // The one remaining free-tier quantity limit is the saved-food cap
-    // below; Premium's remaining differences are household ownership,
-    // unlimited saved foods, ad-free, and subscription-gated MCP
-    // protected tools.
+    // Saved foods are uncapped for every tier (CAP-LIFT, Michael,
+    // 2026-11-09); Premium's remaining differences are household
+    // ownership, ad-free, and subscription-gated MCP protected tools.
     return {
         tier: premium ? "premium" : "free",
         coreNutrition: true,
         historyDays: null,
-        savedFoodLimit: premium ? null : PRODUCT_CONFIG.freeSavedFoodLimit,
         personalRecipesRead: true,
         personalRecipesWrite: true,
         personalPlanningRead: true,
@@ -113,7 +109,6 @@ export function androidFreeBaselineCapabilities(
         tier: "free",
         coreNutrition: true,
         historyDays: null,
-        savedFoodLimit: null,
         personalRecipesRead: true,
         personalRecipesWrite: true,
         personalPlanningRead: true,
@@ -133,7 +128,6 @@ function applyPremiumOverride(
         ...capabilities,
         tier: "premium",
         historyDays: null,
-        savedFoodLimit: null,
         personalRecipesRead: true,
         personalRecipesWrite: true,
         personalPlanningRead: true,
@@ -149,7 +143,6 @@ function applyHouseholdPremium(
         ...capabilities,
         tier: "premium",
         historyDays: null,
-        savedFoodLimit: null,
         personalRecipesRead: true,
         personalRecipesWrite: true,
         personalPlanningRead: true,

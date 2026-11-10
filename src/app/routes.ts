@@ -57,7 +57,6 @@ import { RecipeImportError } from "../recipe-import/fetch.js";
 import { previewRecipeUrl } from "../recipe-import/service.js";
 import { getWebsiteRecipeImportSemanticResolver } from "../recipe-import/semantic-resolver.js";
 import {
-    assertSavedFoodCapacity,
     deleteSavedFood,
     markSavedFoodUsed,
     saveFood,
@@ -1120,11 +1119,6 @@ export function createAppRouter(): Hono {
             defaultPortionId = body.default_portion_id;
         }
         const userId = c.get("munchUserId");
-        await assertSavedFoodCapacity(
-            userId,
-            label,
-            await resolveRequestMunchCapabilities(c, userId),
-        );
         const candidate = await getFoodSearchService().details(candidateId);
         if (!candidate) {
             throw new Error(
