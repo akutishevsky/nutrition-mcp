@@ -1190,6 +1190,17 @@ code {
     font-size: 14px;
 }
 
+/* The nav's primary button keeps white text: .nav-links a outranks the
+ * shared .button-primary colour on specificity. */
+.nav-links a.button-primary {
+    color: #fff;
+}
+
+.nav-links a.button-primary:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
 .site-footer {
     margin-top: 24px;
     padding: 26px 0 20px;
