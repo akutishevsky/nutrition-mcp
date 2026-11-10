@@ -73,6 +73,75 @@ let pendingDraftOnToday = false;
 let adsFlagOn = false;
 /** S6 slice 4: the fixture salmon recipe, removed by an archive. */
 let recipeArchived = false;
+/** S6 slice 6: grocery items removed / purchased-cleared by the flows. */
+let groceryCleared = false;
+const groceryRemovedIds = new Set<string>();
+
+const GROCERY_FIXTURE_ITEMS = [
+    {
+        grocery_item_id: "fixture-grocery-spinach",
+        name: "Baby spinach",
+        quantity: 1,
+        unit: "bag",
+        note: null,
+        purchased_at: null,
+        source_recipe_id: null,
+        source_planned_meal_id: "fixture-planned-meal",
+        added_by: null,
+        version: 1,
+    },
+    {
+        grocery_item_id: "fixture-grocery-rice",
+        name: "Jasmine rice",
+        quantity: 4,
+        unit: "lb",
+        note: null,
+        purchased_at: null,
+        source_recipe_id: "fixture-recipe-1",
+        source_planned_meal_id: null,
+        added_by: null,
+        version: 1,
+    },
+    {
+        grocery_item_id: "fixture-grocery-eggs",
+        name: "Eggs",
+        quantity: 18,
+        unit: "ct",
+        note: null,
+        purchased_at: "2026-11-09T12:00:00.000Z",
+        source_recipe_id: null,
+        source_planned_meal_id: null,
+        added_by: null,
+        version: 2,
+    },
+    {
+        grocery_item_id: "fixture-grocery-milk",
+        name: "Oat milk",
+        quantity: 2,
+        unit: "carton",
+        note: null,
+        purchased_at: null,
+        source_recipe_id: null,
+        source_planned_meal_id: null,
+        added_by: null,
+        version: 1,
+    },
+];
+
+function groceryFixture() {
+    return [
+        {
+            scope: "personal",
+            groceryListId: "fixture-grocery-list",
+            items: GROCERY_FIXTURE_ITEMS.filter(
+                (item) =>
+                    !groceryRemovedIds.has(item.grocery_item_id) &&
+                    !(groceryCleared && item.purchased_at),
+            ),
+        },
+    ];
+}
+
 /** S6 slice 5: the fixture active cook, finished / deleted in tests. */
 let cookFinished = false;
 let cookDeleted = false;
@@ -556,7 +625,7 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
                   )
                 : RECIPE_FIXTURES,
             permissions: { personal: true, household: false },
-            groceries: [],
+            groceries: groceryFixture(),
         };
     }
     if (
@@ -830,6 +899,28 @@ test.beforeAll(async () => {
                 response.end("{}");
                 return;
             }
+            if (
+                method === "DELETE" &&
+                url.pathname.startsWith("/api/app/groceries/items/")
+            ) {
+                groceryRemovedIds.add(
+                    decodeURIComponent(
+                        url.pathname.slice("/api/app/groceries/items/".length),
+                    ),
+                );
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end("{}");
+                return;
+            }
+            if (
+                method === "POST" &&
+                url.pathname === "/api/app/groceries/clear-purchased"
+            ) {
+                groceryCleared = true;
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end(JSON.stringify({ clearedCount: 1 }));
+                return;
+            }
             const fixture = fixtureJson(url.pathname, method);
             response.writeHead(200, {
                 "content-type": "application/json",
@@ -990,6 +1081,8 @@ test.beforeEach(() => {
     pendingDraftOnToday = false;
     adsFlagOn = false;
     recipeArchived = false;
+    groceryCleared = false;
+    groceryRemovedIds.clear();
     cookFinished = false;
     cookDeleted = false;
     connectionsFixture = [
@@ -1756,6 +1849,204 @@ test("S6 slice 3 regression: guidance preferences save with no native confirm", 
     expect(observedRequest("PUT", "/api/app/guidance/preferences")).toBe(true);
     expect(nativeDialogs).toEqual([]);
 });
+test("S6 slice 6: Groceries groups by source, checks off at 44px, adds and edits, no ad slot", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/groceries");
+
+    // The fused surface: Editorial Serif scope, items grouped by
+    // source (meal plan / recipe / manual), totals in the heading.
+    await expect(page.locator(".operate-view.groceries-view")).toHaveCount(1);
+    await expect(page.locator("#app-content")).toContainText(
+        "4 items · 1 checked",
+    );
+    const rows = page.locator(".grocery-item-row");
+    await expect(rows).toHaveCount(4);
+    const groupHeads = page.locator(".grocery-group-head h4");
+    await expect(groupHeads).toHaveCount(3);
+    await expect(groupHeads.nth(0)).toContainText("From meal plan");
+    await expect(groupHeads.nth(1)).toContainText("From recipe");
+    await expect(groupHeads.nth(2)).toContainText("Added manually");
+
+    // The checkbox is the tap target: exactly 44x44, as in the
+    // tightened mock. The purchased fixture item starts checked.
+    const spinachCheck = page.locator(
+        '[data-grocery-item-id="fixture-grocery-spinach"] .grocery-check-input',
+    );
+    const checkBox = await spinachCheck.boundingBox();
+    expect(checkBox).not.toBeNull();
+    expect(Math.round(checkBox!.width)).toBe(44);
+    expect(Math.round(checkBox!.height)).toBe(44);
+    await expect(
+        page.locator(
+            '[data-grocery-item-id="fixture-grocery-eggs"] .grocery-check-input',
+        ),
+    ).toBeChecked();
+
+    // No ad slot on Groceries — not with the flag off, and not with
+    // it on either (the app's only slot is on Today).
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    adsFlagOn = true;
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await gotoRoute(page, "/app/groceries");
+    await expect(rows).toHaveCount(4);
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    const adCalls = await page.evaluate(
+        () => (window as unknown as { __adCalls?: unknown[] }).__adCalls ?? [],
+    );
+    const lastCall = adCalls[adCalls.length - 1] as { visible?: boolean };
+    expect(lastCall.visible).toBe(false);
+
+    // Check-off posts the purchased state and toasts.
+    await spinachCheck.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Marked purchased.",
+    );
+    expect(
+        observedRequest(
+            "POST",
+            "/api/app/groceries/items/fixture-grocery-spinach/purchased",
+        ),
+    ).toBe(true);
+
+    // Manual add rides the themed dialog.
+    await page
+        .locator('.grocery-list-actions [data-action="add-grocery"]')
+        .click();
+    await expect(page.locator("#app-dialog")).toContainText(
+        "Add personal grocery",
+    );
+    await page
+        .locator('#grocery-add-form [name="name"]')
+        .fill("Cottage cheese");
+    await page.locator('#grocery-add-form button[type="submit"]').click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Grocery item added.",
+    );
+    expect(observedRequest("POST", "/api/app/groceries/items")).toBe(true);
+
+    // Quantity/unit editing rides the edit dialog.
+    const riceRow = page.locator(
+        '[data-grocery-item-id="fixture-grocery-rice"]',
+    );
+    await riceRow.locator('[data-action="edit-grocery"]').click();
+    await expect(page.locator("#app-dialog")).toContainText(
+        "Edit grocery item",
+    );
+    await expect(page.locator('#grocery-edit-form [name="name"]')).toHaveValue(
+        "Jasmine rice",
+    );
+    await page.locator('#grocery-edit-form [name="quantity"]').fill("5");
+    await page.locator('#grocery-edit-form button[type="submit"]').click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Grocery item updated.",
+    );
+    expect(
+        observedRequest(
+            "PATCH",
+            "/api/app/groceries/items/fixture-grocery-rice",
+        ),
+    ).toBe(true);
+});
+
+test("S6 slice 6 regression: remove and clear-purchased use inline confirmation with no native confirm", async ({
+    page,
+}) => {
+    // Same defect family as slice 1's Abandon fix: both destructive
+    // Groceries flows gated on the native window.confirm(), which
+    // silently no-ops wherever that dialog is dismissed or never
+    // answered. This test records AND dismisses every native dialog:
+    // both flows must complete entirely through in-page UI, so on the
+    // old code they fail twice over.
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/groceries");
+
+    // Remove: the first click only asks, in place under the row.
+    const milkRow = page.locator(
+        '[data-grocery-item-id="fixture-grocery-milk"]',
+    );
+    const remove = milkRow.locator('[data-action="remove-grocery"]');
+    await remove.click();
+    const confirmRemove = page.locator(
+        '[data-action="confirm-remove-grocery"]',
+    );
+    await expect(confirmRemove).toBeVisible();
+    await expect(
+        page.getByText("Remove Oat milk from the list?"),
+    ).toBeVisible();
+    expect(
+        observedRequest(
+            "DELETE",
+            "/api/app/groceries/items/fixture-grocery-milk",
+        ),
+    ).toBe(false);
+    expect(nativeDialogs).toEqual([]);
+
+    // "Keep item" restores the row's Remove action, still unsent.
+    await page.locator('[data-action="dismiss-grocery-confirm"]').click();
+    await expect(remove).toBeVisible();
+    expect(
+        observedRequest(
+            "DELETE",
+            "/api/app/groceries/items/fixture-grocery-milk",
+        ),
+    ).toBe(false);
+
+    // Confirming removes: DELETE posts, toast lands, row is gone.
+    await remove.click();
+    await confirmRemove.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Grocery item removed.",
+    );
+    expect(
+        observedRequest(
+            "DELETE",
+            "/api/app/groceries/items/fixture-grocery-milk",
+        ),
+    ).toBe(true);
+    await expect(page.locator(".grocery-item-row")).toHaveCount(3);
+    await expect(milkRow).toHaveCount(0);
+    expect(nativeDialogs).toEqual([]);
+
+    // Clear purchased: same inline pattern under the list title.
+    const clear = page.locator('[data-action="clear-purchased"]');
+    await clear.click();
+    const confirmClear = page.locator(
+        '[data-action="confirm-clear-purchased"]',
+    );
+    await expect(confirmClear).toBeVisible();
+    await expect(
+        page.getByText("Remove all 1 purchased item from this list?"),
+    ).toBeVisible();
+    expect(observedRequest("POST", "/api/app/groceries/clear-purchased")).toBe(
+        false,
+    );
+    await page.locator('[data-action="dismiss-grocery-confirm"]').click();
+    await expect(clear).toBeVisible();
+    expect(observedRequest("POST", "/api/app/groceries/clear-purchased")).toBe(
+        false,
+    );
+    await clear.click();
+    await confirmClear.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "1 purchased item cleared.",
+    );
+    expect(observedRequest("POST", "/api/app/groceries/clear-purchased")).toBe(
+        true,
+    );
+    await expect(
+        page.locator('[data-grocery-item-id="fixture-grocery-eggs"]'),
+    ).toHaveCount(0);
+    expect(nativeDialogs).toEqual([]);
+});
+
 test("S6 slice 5: Cooks list renders themed panels with row actions and no ad slot", async ({
     page,
 }) => {

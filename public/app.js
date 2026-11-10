@@ -1633,9 +1633,91 @@ async function previewMealSwap(button) {
     );
 }
 
+// S6 slice 6 — Groceries grouping: items group by where they came
+// from (the tightened mock groups its sections the same way a shopper
+// scans the list; the real data dimension is source, not store aisle):
+// meal-plan items first, then recipe items, then manual additions.
+const GROCERY_GROUPS = [
+    { key: "plan", label: "From meal plan" },
+    { key: "recipe", label: "From recipe" },
+    { key: "manual", label: "Added manually" },
+];
+
+function groceryItemGroup(item) {
+    if (item.source_planned_meal_id) return "plan";
+    if (item.source_recipe_id) return "recipe";
+    return "manual";
+}
+
+function groceryItemRowMarkup(item, scope, editable) {
+    const detail = `${item.quantity == null ? "" : ` · ${number(item.quantity, 2)} ${escapeHtml(item.unit || "")}`}${item.note ? ` · ${escapeHtml(item.note)}` : ""}${item.added_by ? ` · Added by ${escapeHtml(item.added_by)}` : ""}`;
+    return `<article class="grocery-item-row ${item.purchased_at ? "is-purchased" : ""}" data-grocery-item-id="${escapeHtml(item.grocery_item_id)}" data-quantity="${escapeHtml(item.quantity ?? "")}" data-unit="${escapeHtml(item.unit || "")}" data-note="${escapeHtml(item.note || "")}"><label class="grocery-check"><input class="grocery-check-input" type="checkbox" data-action="toggle-grocery-purchased" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}" ${item.purchased_at ? "checked" : ""} ${editable ? "" : "disabled"} aria-label="${escapeHtml(item.name)} purchased" /></label><div class="grocery-item-main"><strong>${escapeHtml(item.name)}</strong><span class="grocery-item-detail">${detail}</span></div>${editable ? `<div class="grocery-item-actions"><button class="button button-secondary button-small" type="button" data-action="edit-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Edit</button><button class="button button-quiet button-small" type="button" data-action="remove-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Remove</button></div>` : ""}</article>`;
+}
+
+// S6 slice 6 — inline confirmations for the Groceries destructive
+// flows (remove item, clear purchased), following S6 slice 1's
+// pattern: the native window.confirm() is gone from this surface —
+// wherever that dialog is dismissed or never answered (automated
+// browsers, WebViews without a JS-dialog handler) it reads as "no"
+// and the click silently no-ops. The anchor button is hidden and an
+// inline confirmation row takes its place after `insertAfter`; only
+// the confirm click sends the request, and dismissing restores the
+// anchor exactly (no re-render, scroll preserved).
+function showGroceryInlineConfirm(
+    anchor,
+    insertAfter,
+    { note, confirmLabel, confirmAction, confirmAttrs = {}, dismissLabel },
+) {
+    if (!anchor || !insertAfter || anchor.dataset.confirmPending) return;
+    anchor.dataset.confirmPending = "true";
+    anchor.style.display = "none";
+    const box = document.createElement("div");
+    box.className = "grocery-inline-confirm";
+    const noteElement = document.createElement("p");
+    noteElement.className = "grocery-inline-note";
+    noteElement.setAttribute("role", "alert");
+    noteElement.textContent = note;
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "button";
+    confirmButton.className =
+        "button button-primary grocery-inline-confirm-danger";
+    confirmButton.dataset.action = confirmAction;
+    for (const [key, value] of Object.entries(confirmAttrs))
+        confirmButton.dataset[key] = value;
+    confirmButton.textContent = confirmLabel;
+    const dismissButton = document.createElement("button");
+    dismissButton.type = "button";
+    dismissButton.className = "button button-secondary";
+    dismissButton.dataset.action = "dismiss-grocery-confirm";
+    dismissButton.textContent = dismissLabel;
+    box.append(noteElement, confirmButton, dismissButton);
+    insertAfter.insertAdjacentElement("afterend", box);
+    confirmButton.focus();
+}
+
+function dismissGroceryInlineConfirm(button) {
+    const box = button.closest(".grocery-inline-confirm");
+    const host = box?.previousElementSibling;
+    const anchor = host?.querySelector?.("[data-confirm-pending]");
+    if (anchor instanceof HTMLElement) {
+        anchor.style.display = "";
+        delete anchor.dataset.confirmPending;
+        anchor.focus();
+    }
+    box?.remove();
+}
+
 async function renderGroceries() {
     setLoading("Loading grocery lists…");
     const data = await planningData();
+    // S6 slice 6 (density law): the list totals merge into the heading
+    // line (the tightened mock carries the same facts in its meta row)
+    // instead of a summary panel pushing the first items down.
+    const allItems = (data.groceries || []).flatMap((list) => list.items);
+    const totalPurchased = allItems.filter((item) => item.purchased_at).length;
+    const listSummary = allItems.length
+        ? ` ${allItems.length} item${allItems.length === 1 ? "" : "s"} · ${totalPurchased} checked.`
+        : "";
     const lists = (data.groceries || [])
         .map((list) => {
             const editable = Boolean(data.permissions?.[list.scope]);
@@ -1645,10 +1727,22 @@ async function renderGroceries() {
             const listAddButton = editable
                 ? `<button class="button button-primary button-small" type="button" data-action="add-grocery" data-scope="${list.scope}">Add item</button>`
                 : "";
-            return `<section class="panel panel-span-6 grocery-list" data-grocery-scope="${list.scope}"><div class="panel-title"><div><h3>${list.scope === "household" ? "Household list" : "Personal list"}</h3><span>${list.scope === "household" && data.permissions?.householdRole ? `${escapeHtml(data.permissions.householdRole)} · ` : ""}${list.items.length} items</span></div><div class="auth-actions">${listAddButton}${editable && purchasedCount ? `<button class="button button-quiet button-small" type="button" data-action="clear-purchased" data-scope="${list.scope}">Clear purchased</button>` : ""}</div></div>${list.items.length ? `<div class="grocery-items">${list.items.map((item) => `<article class="grocery-item-row ${item.purchased_at ? "is-purchased" : ""}" data-grocery-item-id="${escapeHtml(item.grocery_item_id)}" data-quantity="${escapeHtml(item.quantity ?? "")}" data-unit="${escapeHtml(item.unit || "")}" data-note="${escapeHtml(item.note || "")}"><div class="grocery-item-main"><strong>${escapeHtml(item.name)}</strong><small>${item.quantity == null ? "" : `${number(item.quantity, 2)} ${escapeHtml(item.unit || "")}`}${item.note ? ` · ${escapeHtml(item.note)}` : ""}</small><small class="grocery-provenance">${escapeHtml(grocerySourceLabel(item))}</small></div><div class="grocery-item-actions"><label class="grocery-check"><input type="checkbox" data-action="toggle-grocery-purchased" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${list.scope}" ${item.purchased_at ? "checked" : ""} ${editable ? "" : "disabled"} aria-label="${escapeHtml(item.name)} purchased" /><span>${item.purchased_at ? "Purchased" : "Mark purchased"}</span></label>${editable ? `<button class="button button-secondary button-small" type="button" data-action="edit-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${list.scope}">Edit</button><button class="button button-quiet button-small" type="button" data-action="remove-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${list.scope}">Remove</button>` : ""}</div></article>`).join("")}</div>` : `<div class="empty-state"><div><h3>The list is empty</h3><p>Add an item manually or ask your AI assistant to record an explicit shopping need.</p></div></div>`}</section>`;
+            const groups = GROCERY_GROUPS.map((group) => ({
+                ...group,
+                items: list.items.filter(
+                    (item) => groceryItemGroup(item) === group.key,
+                ),
+            })).filter((group) => group.items.length);
+            const groupedItems = groups
+                .map(
+                    (group) =>
+                        `<div class="grocery-group"><div class="grocery-group-head"><h4>${group.label}</h4><span class="grocery-group-count">${group.items.length} item${group.items.length === 1 ? "" : "s"}</span></div><div class="grocery-items">${group.items.map((item) => groceryItemRowMarkup(item, list.scope, editable)).join("")}</div></div>`,
+                )
+                .join("");
+            return `<section class="panel grocery-list" data-grocery-scope="${list.scope}"><div class="panel-title"><div><h3>${list.scope === "household" ? "Household list" : "Personal list"}</h3><span>${list.scope === "household" && data.permissions?.householdRole ? `${escapeHtml(data.permissions.householdRole)} · ` : ""}${list.items.length} items · ${purchasedCount} checked</span></div><div class="auth-actions grocery-list-actions">${listAddButton}${editable && purchasedCount ? `<button class="button button-quiet button-small" type="button" data-action="clear-purchased" data-scope="${list.scope}" data-count="${purchasedCount}">Clear purchased</button>` : ""}</div></div>${list.items.length ? groupedItems : `<div class="empty-state"><div><h3>The list is empty</h3><p>Add an item manually or ask your AI assistant to record an explicit shopping need.</p>${editable ? `<div class="auth-actions spacer-top"><button class="button button-primary button-small" type="button" data-action="add-grocery" data-scope="${list.scope}">Add item</button></div>` : ""}</div></div>`}</section>`;
         })
         .join("");
-    content.innerHTML = `<div class="page-heading"><div><h2>Groceries</h2><p>Explicit shopping lists only. Munch does not infer pantry inventory.</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="shopping-mode">Shopping mode</button></div></div><div class="dashboard-grid">${lists}</div>`;
+    content.innerHTML = `<div class="operate-view groceries-view"><div class="page-heading"><div><h2>Groceries</h2><p>Explicit shopping lists only. Munch does not infer pantry inventory.${listSummary}</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="shopping-mode">Shopping mode</button></div></div>${lists || `<section class="panel"><div class="empty-state"><div><h3>No grocery lists</h3><p>Grocery lists are not available for this account.</p></div></div></section>`}</div>`;
 }
 
 function cookCardActionsMarkup(cook) {
@@ -2011,15 +2105,6 @@ function openCookComparison(comparison) {
             columns +
             "</div>",
     );
-}
-
-function grocerySourceLabel(item) {
-    const sources = [];
-    if (item.source_recipe_id) sources.push("From recipe");
-    if (item.source_planned_meal_id) sources.push("From meal plan");
-    if (!sources.length) sources.push("Manual addition");
-    if (item.added_by) sources.push(`Added by ${item.added_by}`);
-    return sources.join(" · ");
 }
 
 function openGroceryAdd(scope) {
@@ -4294,7 +4379,33 @@ async function handleAction(button) {
         return;
     }
     if (action === "remove-grocery") {
-        if (!confirm("Remove this grocery item from the list?")) return;
+        // S6 slice 6: removing an item follows slice 1's inline
+        // confirmation pattern instead of the native window.confirm()
+        // (see showGroceryInlineConfirm). The first click only asks,
+        // in place after the item's row; nothing is sent yet.
+        const row = button.closest(".grocery-item-row");
+        const name =
+            row?.querySelector(".grocery-item-main strong")?.textContent ||
+            "this item";
+        showGroceryInlineConfirm(button, row, {
+            note: `Remove ${name} from the list?`,
+            confirmLabel: "Yes, remove item",
+            confirmAction: "confirm-remove-grocery",
+            confirmAttrs: {
+                id: button.dataset.id,
+                version: button.dataset.version,
+                scope: button.dataset.scope,
+            },
+            dismissLabel: "Keep item",
+        });
+        return;
+    }
+    if (action === "dismiss-grocery-confirm") {
+        dismissGroceryInlineConfirm(button);
+        return;
+    }
+    if (action === "confirm-remove-grocery") {
+        button.disabled = true;
         await api(
             `/api/app/groceries/items/${encodeURIComponent(button.dataset.id)}`,
             {
@@ -4332,7 +4443,24 @@ async function handleAction(button) {
         return renderRoute();
     }
     if (action === "clear-purchased") {
-        if (!confirm("Remove all purchased items from this list?")) return;
+        // S6 slice 6: clearing purchased items is this surface's other
+        // destructive flow — same inline pattern as remove (above).
+        // The confirmation row takes its place under the list title;
+        // only the confirm click posts the clear.
+        const section = button.closest(".grocery-list");
+        const title = section?.querySelector(".panel-title");
+        const count = Number(button.dataset.count || 0);
+        showGroceryInlineConfirm(button, title, {
+            note: `Remove all ${count} purchased item${count === 1 ? "" : "s"} from this list?`,
+            confirmLabel: "Yes, clear purchased",
+            confirmAction: "confirm-clear-purchased",
+            confirmAttrs: { scope: button.dataset.scope },
+            dismissLabel: "Keep purchased",
+        });
+        return;
+    }
+    if (action === "confirm-clear-purchased") {
+        button.disabled = true;
         const result = await api("/api/app/groceries/clear-purchased", {
             method: "POST",
             body: JSON.stringify({ scope: button.dataset.scope }),

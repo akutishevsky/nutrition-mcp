@@ -413,6 +413,47 @@ if (!appOverridesSource.includes(".recipes-view .recipe-panel")) {
     throw new Error("Recipes fusion styles are missing from app-overrides.css");
 }
 
+// S6 slice 6 (Groceries fusion): the list renders inside the shared
+// .operate-view Editorial Serif scope grouped by source, the checkbox
+// is the 44px tap target, and both destructive flows (remove item,
+// clear purchased) use slice 1's inline confirmation — never the
+// native confirm. The surface carries no ad markup (the app's only
+// ad slot is on Today — final ad law).
+for (const pin of [
+    "operate-view groceries-view",
+    "confirm-remove-grocery",
+    "confirm-clear-purchased",
+    "dismiss-grocery-confirm",
+    "grocery-item-row",
+    "grocery-check-input",
+    "groceryItemGroup",
+]) {
+    if (!appSource.includes(pin)) {
+        throw new Error(`Groceries fusion is missing its pin: ${pin}`);
+    }
+}
+for (const stale of [
+    'confirm("Remove this grocery item from the list?")',
+    'confirm("Remove all purchased items from this list?")',
+]) {
+    if (appSource.includes(stale)) {
+        throw new Error(
+            `Groceries still gates a destructive flow on the native confirm(): ${stale}`,
+        );
+    }
+}
+for (const pin of [
+    ".groceries-view .grocery-item-row",
+    ".groceries-view .grocery-check-input",
+    ".grocery-inline-confirm",
+]) {
+    if (!appOverridesSource.includes(pin)) {
+        throw new Error(
+            `Groceries fusion styles are missing from app-overrides.css: ${pin}`,
+        );
+    }
+}
+
 // S6 slice 5 (Cooks fusion): the list renders inside the shared
 // .operate-view Editorial Serif scope, delete + finish use slice 1's
 // inline confirmation (never the native confirm), and the surface

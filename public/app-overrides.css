@@ -2742,3 +2742,246 @@ dialog .guided-grocery-row input[type="checkbox"] {
     min-height: 0;
     accent-color: #176b3a;
 }
+
+/* =====================================================================
+   S6 slice 6 — Editorial Serif fusion for Groceries (Operate surface
+   6), inheriting S6 slice 1's shared dialog chrome (themed openDialog
+   frame, .dialog-close at 44px, portal .tiny at 0.875rem, toasts and
+   global states — inherited, not reinvented). Direction contract +
+   tightened mock: selected/src/groceries/theme4-tight.html.
+   Grammar (editorial.css tokens): paper #f6f1e7, paper-card #fffdf8,
+   ink #2b2620, ink-soft #4a4237, hairline #d8cdb6, rule #8a7c63,
+   green #176b3a, green-deep #0b3d24, danger #8c2f22, Georgia serif.
+   DENSITY LAW: Groceries is the program's canonical density surface.
+   The mock's grouped checklist grammar carries it — items group by
+   source (meal plan / recipe / manual, the real data dimension), each
+   item is ONE hairline row at the checkbox's 44px height, quantity /
+   note / added-by merge into the name's line, and the list totals
+   merge into the heading line. Type never below 11px, tap targets
+   never below 44px — the checkbox measures exactly 44x44, as in the
+   tightened mock. NO ADS on this surface (the app's only ad slot is
+   on Today — final ad law).
+   Scope: surface content is scoped to .groceries-view; this section
+   supersedes the legacy .grocery-* card grammar earlier in this file
+   for the fused surface. The add/edit dialogs use the grocery form
+   ids inside the already-themed shared dialog frame.
+   ===================================================================== */
+
+/* ---------- Grocery list ---------- */
+
+/* The fused surface tightens the shared operate grammar a step
+   further (this is the canonical density surface): the heading keeps
+   no bottom margin and the list panel starts 4px sooner. */
+.groceries-view .page-heading {
+    margin-bottom: 0;
+}
+
+.groceries-view .panel {
+    padding-top: 6px;
+    margin-top: 6px;
+}
+
+/* The list title stacks deliberately: title + counts on their own
+   line, then the list actions as one natural-width row. (The legacy
+   phone rule squeezed the title into a narrow column beside a
+   full-width Add button and dropped Clear purchased onto a centred
+   third line — the first capture pass measured that ragged stack.) */
+.groceries-view .grocery-list .panel-title {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.groceries-view .grocery-list-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+}
+
+.groceries-view .grocery-list-actions .button {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+}
+
+/* Source groups are the mock's section panels: a serif group head on
+   a hairline, then the checklist rows. */
+.groceries-view .grocery-group {
+    margin-top: 4px;
+}
+
+.groceries-view .grocery-group-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 2px 0 1px;
+}
+
+.groceries-view .grocery-group-head h4 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16.5px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.groceries-view .grocery-group-count {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #5d5344;
+    white-space: nowrap;
+}
+
+.groceries-view .grocery-items {
+    display: block;
+}
+
+/* One item = one hairline row at the checkbox's height (the mock's
+   .growline): no card, no border box, no stacked action row. */
+.groceries-view .grocery-item-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 1px 0;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    background: transparent;
+}
+
+/* The checkbox IS the tap target: exactly 44x44, as measured in the
+   tightened mock — never shrunk for density. */
+.groceries-view .grocery-check {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    flex: 0 0 auto;
+}
+
+.groceries-view .grocery-check-input {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 44px;
+    accent-color: #176b3a;
+    cursor: pointer;
+}
+
+.groceries-view .grocery-item-main {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 15px;
+    line-height: 1.35;
+    color: #2b2620;
+}
+
+.groceries-view .grocery-item-main > strong {
+    overflow: visible;
+    text-overflow: clip;
+    font-weight: 700;
+}
+
+.groceries-view .grocery-item-row.is-purchased {
+    background: transparent;
+}
+
+.groceries-view .grocery-item-row.is-purchased .grocery-item-main {
+    color: #5d5344;
+}
+
+.groceries-view .grocery-item-row.is-purchased .grocery-item-main > strong {
+    color: #5d5344;
+    text-decoration: line-through;
+}
+
+.groceries-view .grocery-item-detail {
+    color: #5d5344;
+}
+
+/* Edit / Remove ride the row as compact 44px actions (the mock's
+   .edit link grammar), never a second stacked row. */
+.groceries-view .grocery-item-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 2px;
+    border-top: 0;
+    padding-top: 0;
+}
+
+.groceries-view .grocery-item-actions .button {
+    min-height: 44px;
+    padding-left: 8px;
+    padding-right: 8px;
+    white-space: nowrap;
+}
+
+/* ---------- Inline confirmations (S6 slice 1 pattern) ---------- */
+
+/* Replaces both native window.confirm() flows on this surface
+   (remove item, clear purchased). The row sits in the items flow
+   directly under the item / list title it belongs to. */
+.grocery-inline-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0 8px;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.grocery-inline-note {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+    color: #8c2f22;
+}
+
+.grocery-inline-confirm .button {
+    min-height: 44px;
+}
+
+.grocery-inline-confirm-danger {
+    background: #8c2f22;
+    border-color: #8c2f22;
+}
+
+.grocery-inline-confirm-danger:hover {
+    background: #6e241a;
+    border-color: #6e241a;
+}
+
+/* ---------- Grocery dialogs (add / edit, inside the frame) ------ */
+
+/* This surface's dialog controls reach the 44px floor (the shared
+   .button-small grammar sits at 40px; slice 1 fixed the shared Close
+   via .dialog-close and left per-surface controls to their slices). */
+#grocery-add-form .button,
+#grocery-edit-form .button {
+    min-height: 44px;
+}
+
+#grocery-add-form input,
+#grocery-add-form textarea,
+#grocery-edit-form input,
+#grocery-edit-form textarea {
+    min-height: 44px;
+}
+
+/* Shopping mode (this surface's own toggle): the chrome drops away
+   (shared .shopping-mode rules) and the checklist rows grow a step —
+   the mode exists for one-handed in-store checking. */
+.shopping-mode .groceries-view .grocery-item-main {
+    font-size: 17px;
+}
+
+.shopping-mode .groceries-view .grocery-item-row {
+    padding: 5px 0;
+}
