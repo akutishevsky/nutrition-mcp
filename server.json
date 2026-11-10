@@ -1,6 +1,6 @@
 {
     "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-    "description": "Track meals, nutrition, recipes, and grocery lists privately from any MCP client.",
+    "description": "Track meals, nutrition, recipes, and grocery lists privately from any MCP client. MCP access is part of Munch Premium ($3/month); the Munch website and app are free and fully featured.",
     "icons": [
         {
             "mimeType": "image/png",

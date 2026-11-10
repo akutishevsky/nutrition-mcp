@@ -6,6 +6,14 @@
  * capabilities are intentionally website-only (billing, account controls,
  * and household administration). A capability that is not yet complete is
  * still represented here with an owner and target PR so the gap is explicit.
+ *
+ * Channel access note (Amendment D, 2026-11-09): the `mcp` channel itself
+ * is a Premium entitlement — the OAuth consent page refuses approval for a
+ * Free account and every MCP request re-checks the current entitlement
+ * (src/mcp-entitlement.ts). The web and app channels are free and fully
+ * featured for every account. The per-capability `mcp` rows below describe
+ * what a Premium MCP connection can do; they are not a promise that the
+ * MCP channel is free.
  */
 
 export type CapabilityCoverage = "complete" | "partial" | "missing";

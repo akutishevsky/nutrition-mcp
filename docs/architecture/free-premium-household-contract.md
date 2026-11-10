@@ -4,7 +4,7 @@ Munch is a factual food, macro, recipe, planning, grocery, and household data se
 
 ## Free
 
-Every active account can connect through OAuth and use core food search, barcode lookup, meal logging, daily summaries, full conversational history with no day limit, structured recipes, recipe nutrition arithmetic, meal calendars, grocery lists, Pantry, and every Munch-supplied AI feature on the website and in the app (photo estimates, meal ideas, receipt and pantry scans, plan suggestions, recipe-import resolution) — free and unmetered, with no entitlement gate (Amendment D, 2026-11-09). Free also includes export, revocation, and account deletion. The one remaining free-tier quantity limit is up to 25 saved foods. OAuth and MCP never initiate Stripe Checkout or promote an upgrade.
+Every active account can use core food search, barcode lookup, meal logging, daily summaries, full history with no day limit, structured recipes, recipe nutrition arithmetic, meal calendars, grocery lists, Pantry, and every Munch-supplied AI feature on the website and in the app (photo estimates, meal ideas, receipt and pantry scans, plan suggestions, recipe-import resolution) — free and unmetered, with no entitlement gate (Amendment D, 2026-11-09). Free also includes export, revocation, and account deletion. The one remaining free-tier quantity limit is up to 25 saved foods. The one channel Free does not include is MCP access itself: connecting through OAuth and calling MCP tools require Premium (below), enforced at the consent page and again on every MCP request, so an already-connected client whose entitlement lapses is refused at its next tool call. OAuth and MCP never initiate Stripe Checkout.
 
 ## Premium
 
