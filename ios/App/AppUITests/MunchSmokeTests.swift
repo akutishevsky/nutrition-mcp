@@ -199,12 +199,44 @@ final class MunchSmokeTests: XCTestCase {
         )
     }
 
+    /// Which surface a cold launch settled on: a stored fixture
+    /// session boots straight to Today; without one, the entry
+    /// bounces to the packaged sign-in page.
+    private enum BootSurface {
+        case today
+        case signIn
+    }
+
+    /// Poll until one of the two settled boot surfaces renders, and
+    /// report which arrived first. This replaces a one-shot `exists`
+    /// sample that raced the second launch's boot (run 42745339998):
+    /// the sample ran before the webview had rendered, concluded
+    /// "not Today", and the helper then waited 60 s for a sign-in
+    /// page that could never appear — while the run's own failure
+    /// hierarchy shows the app sitting on Today with "Add water"
+    /// rendered. Branching on whichever ready marker arrives first
+    /// removes the race deterministically; it is a correct wait, not
+    /// a retry.
+    private func waitForBootSurface(timeout: TimeInterval = 60) -> BootSurface? {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if anyElement(containingText: "Add water").exists { return .today }
+            if anyElement(containingText: "Welcome back.").exists { return .signIn }
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        return nil
+    }
+
     private func signInViaFixtureIfNeeded() {
-        if anyElement(containingText: "Add water").exists { return }
-        XCTAssertTrue(
-            waitForText("Welcome back.", timeout: 60),
-            "Neither Today nor the sign-in page rendered"
-        )
+        switch waitForBootSurface() {
+        case .today:
+            return
+        case .signIn:
+            break
+        case nil:
+            XCTFail("Neither Today nor the sign-in page rendered")
+            return
+        }
         let emailField = webView.textFields.firstMatch
         emailField.tap()
         emailField.typeText("smoke@munch.test")
