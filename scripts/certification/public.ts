@@ -153,7 +153,27 @@ if (!(await stylesheet.text()).includes("portal-")) {
     throw new Error("Portal stylesheet body is incomplete");
 }
 
-await expectStatus("/account/portal/meals?date=2026-08-05", 401);
+// Meal data stays behind authentication; the retired portal namespace
+// served this check until the app API replaced it.
+await expectStatus("/api/app/meals?date=2026-08-05", 401);
+
+// The retired portal landing itself must resolve to the signed-in home,
+// never a 404: sign-in flows and already-sent magic-link emails carried
+// it as their return target for a long time.
+const portalLanding = await fetch(`${baseUrl}/account/portal`, {
+    headers: { accept: "text/html" },
+    redirect: "manual",
+});
+if (portalLanding.status !== 302) {
+    throw new Error(
+        `/account/portal returned ${portalLanding.status}; expected a 302 redirect`,
+    );
+}
+if (portalLanding.headers.get("location") !== "/app") {
+    throw new Error(
+        `/account/portal redirected to ${portalLanding.headers.get("location")}; expected /app`,
+    );
+}
 
 console.log(
     JSON.stringify({

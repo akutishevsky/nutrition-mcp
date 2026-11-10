@@ -23,6 +23,13 @@ export function createAccountRouter(): Hono {
         );
     });
 
+    // The retired portal landing. Sign-in defaults pointed here long
+    // after the app shell replaced the portal, and magic-link emails
+    // already in inboxes still carry it as their return target, so the
+    // path itself resolves to the signed-in home instead of the 404
+    // those arrivals used to meet.
+    account.get("/account/portal", (c) => c.redirect("/app", 302));
+
     account.get("/account", requireWebSession, async (c) => {
         const userId = c.get("munchUserId");
         const subscription = await getSubscriptionSnapshot(userId);

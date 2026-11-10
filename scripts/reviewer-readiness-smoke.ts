@@ -34,7 +34,7 @@ const signIn = username
               username,
               password,
               rememberMe: false,
-              callbackURL: "/account/portal",
+              callbackURL: "/app",
           },
           returnHeaders: true,
       })
@@ -43,7 +43,7 @@ const signIn = username
               email,
               password,
               rememberMe: false,
-              callbackURL: "/account/portal",
+              callbackURL: "/app",
           },
           returnHeaders: true,
       });

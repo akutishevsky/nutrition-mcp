@@ -6,7 +6,10 @@ import {
 import { resolveMunchCapabilitiesSafe } from "../billing/capabilities.js";
 import { getMunchBetterAuth } from "./auth.js";
 import { getBetterAuthRuntimeConfig } from "./config.js";
-import { safeMagicLinkReturnPath } from "./magic-link-url.js";
+import {
+    SIGNED_IN_HOME_PATH,
+    safeMagicLinkReturnPath,
+} from "./magic-link-url.js";
 import { describeOAuthScope } from "./oauth-scopes.js";
 import {
     appleSignInButtonHtml,
@@ -61,6 +64,64 @@ export function signedOAuthQuery(requestUrl: string): string | undefined {
     );
 }
 
+/**
+ * The continuation a sign-in page arrival carries, in either shape it
+ * arrives in:
+ *
+ * - Nested: an explicit `oauth_query` parameter. The consent page's
+ *   signed-out bounce and the password page's links use this shape.
+ * - Raw: the OAuth provider plugin redirects an unauthenticated authorize
+ *   request straight to the login page with the signed authorization
+ *   query as the page's OWN query string (`/connect/sign-in?response_type=
+ *   code&client_id=…&sig=…`), never nested. The raw shape is only trusted
+ *   when it carries the two parameters the plugin's signing always adds
+ *   to an authorize request (`client_id` and `sig`), so an ordinary
+ *   arrival such as `/account/login`'s `?return_to=…` redirect is never
+ *   mistaken for an authorization detour.
+ *
+ * Reading only the nested shape here was the 2026-11-10 first-sign-in
+ * defect: on the authorize detour the page saw no continuation at all,
+ * rendered its controls without one, and the social callback fell back
+ * to the (then dead) default landing instead of resuming to consent.
+ */
+export function signInOAuthQuery(requestUrl: string): string | undefined {
+    const url = new URL(requestUrl);
+    const nested = boundedOAuthQuery(url.searchParams.get("oauth_query"));
+    if (nested) return nested;
+    if (url.searchParams.has("client_id") && url.searchParams.has("sig")) {
+        return signedOAuthQuery(requestUrl);
+    }
+    return undefined;
+}
+
+/**
+ * Where a completed magic-link sign-in must land to finish an MCP
+ * authorization: the consent page itself, addressed exactly as the
+ * password page's post-sign-in navigation addresses it. The magic-link
+ * round trip crosses requests (request → email → confirm → verify), so
+ * the OAuth plugin's in-request continuation cannot resume it; the
+ * callback URL is the carrier that survives — the scanner-safe link
+ * rewrite turns it into the confirm page's return target, and the
+ * confirm interstitial lands the verified browser on it. The consent
+ * page re-derives everything it needs from these parameters. Returns
+ * null when the continuation cannot address consent (client_id or scope
+ * missing), leaving the caller on its ordinary landing.
+ */
+export function oauthConsentContinuationPath(
+    oauthQuery: string,
+): string | null {
+    const query = new URLSearchParams(oauthQuery);
+    const clientId = query.get("client_id");
+    const scope = query.get("scope");
+    if (!clientId || !scope) return null;
+    const consent = new URLSearchParams({
+        client_id: clientId,
+        scope,
+        oauth_query: oauthQuery,
+    });
+    return `/connect/consent?${consent.toString()}`;
+}
+
 function publicClientName(value: unknown): string {
     const record = value as Record<string, unknown> | null;
     const candidate = record?.client_name ?? record?.name;
@@ -75,6 +136,36 @@ function connectionError(c: Context, stage: string, error?: unknown) {
         errorName: error instanceof Error ? error.name : "unknown",
     });
     return c.redirect("/connect/error", 303);
+}
+
+/**
+ * Re-point a redirect response at a different Location without losing
+ * the headers it carries — above all the session cookie a sign-in just
+ * set. Set-Cookie entries are copied one by one: collapsing them into a
+ * single comma-joined header would corrupt cookie attributes (the
+ * Expires attribute itself contains a comma).
+ */
+export function repointRedirect(
+    response: Response,
+    location: string,
+): Response {
+    const headers = new Headers();
+    const headerBag = response.headers as Headers & {
+        getSetCookie?: () => string[];
+    };
+    const setCookies =
+        headerBag.getSetCookie?.() ??
+        (response.headers.get("set-cookie")
+            ? [response.headers.get("set-cookie")!]
+            : []);
+    response.headers.forEach((value, key) => {
+        const name = key.toLowerCase();
+        if (name === "location" || name === "set-cookie") return;
+        headers.append(key, value);
+    });
+    for (const cookie of setCookies) headers.append("set-cookie", cookie);
+    headers.set("location", location);
+    return new Response(null, { status: response.status, headers });
 }
 
 /**
@@ -132,7 +223,7 @@ export function createBetterAuthConnectRouter(): Hono {
 
     connect.get("/connect/sign-in", async (c) => {
         const returnTo = safeMagicLinkReturnPath(c.req.query("return_to"));
-        const oauthQuery = boundedOAuthQuery(c.req.query("oauth_query"));
+        const oauthQuery = signInOAuthQuery(c.req.url);
         const session = await getMunchBetterAuth().api.getSession({
             headers: c.req.raw.headers,
         });
@@ -171,14 +262,25 @@ export function createBetterAuthConnectRouter(): Hono {
             );
         }
 
+        // When this sign-in continues an MCP authorization, the verified
+        // link must land on the consent page (see
+        // oauthConsentContinuationPath): the email round trip leaves the
+        // request the OAuth plugin could have resumed in, so the
+        // callback-turned-return-target is the only carrier that
+        // survives. Without a continuation, the landing is the caller's
+        // return target as before.
+        const callbackURL =
+            (oauthQuery ? oauthConsentContinuationPath(oauthQuery) : null) ??
+            returnTo;
+
         try {
             await getMunchBetterAuth().api.signInMagicLink({
                 headers: c.req.raw.headers,
                 body: {
                     email,
                     name: "Munch user",
-                    callbackURL: returnTo,
-                    newUserCallbackURL: returnTo,
+                    callbackURL,
+                    newUserCallbackURL: callbackURL,
                     errorCallbackURL: "/connect/error",
                     ...(oauthQuery ? { oauth_query: oauthQuery } : {}),
                 },
@@ -227,11 +329,29 @@ export function createBetterAuthConnectRouter(): Hono {
         if (!token) return c.redirect("/connect/error", 303);
 
         try {
-            return await getMunchBetterAuth().api.magicLinkVerify({
+            // This interstitial owns the post-verification landing.
+            // Better Auth's verify handler applies an extra
+            // decodeURIComponent to the callback URL it is handed, which
+            // corrupts any percent-encoded query nested inside it —
+            // precisely what an OAuth consent continuation is made of —
+            // so core is handed the plain signed-in home (nothing nested,
+            // nothing to corrupt), and its successful redirect, session
+            // cookie attached, is re-pointed at the validated return
+            // target here. A verification failure redirects to the home
+            // with core's error parameter and is passed through as-is.
+            const verified = await getMunchBetterAuth().api.magicLinkVerify({
                 headers: c.req.raw.headers,
-                query: { token, callbackURL: returnTo },
+                query: { token, callbackURL: SIGNED_IN_HOME_PATH },
                 asResponse: true,
             });
+            const location = verified.headers.get("location");
+            if (verified.status >= 300 && verified.status < 400 && location) {
+                const target = new URL(location, "https://munch.invalid");
+                if (target.pathname === SIGNED_IN_HOME_PATH && !target.search) {
+                    return repointRedirect(verified, returnTo);
+                }
+            }
+            return verified;
         } catch (error) {
             return connectionError(c, "magic_link_verify", error);
         }

@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
     boundedOAuthQuery,
+    oauthConsentContinuationPath,
+    signInOAuthQuery,
     signInPageHtml,
     signedOAuthQuery,
 } from "./connect-routes.js";
@@ -29,6 +31,67 @@ describe("Better Auth consent continuation", () => {
         expect(boundedOAuthQuery(123)).toBeUndefined();
         expect(boundedOAuthQuery("")).toBeUndefined();
         expect(boundedOAuthQuery("x".repeat(12_001))).toBeUndefined();
+    });
+
+    test("sign-in arrival recovers the raw authorize detour query", () => {
+        // The OAuth provider plugin redirects an unauthenticated
+        // authorize request to the login page with the signed query as
+        // the page's own query string — the shape a first-time connect
+        // actually arrives in. Losing it was the 2026-11-10 defect: the
+        // page rendered without a continuation, and the Google callback
+        // fell back to the default landing instead of consent.
+        const raw =
+            "response_type=code&client_id=client-1&redirect_uri=https%3A%2F%2Fclient.example%2Fcallback&scope=openid+nutrition.read&state=state-1&code_challenge=abc&code_challenge_method=S256&exp=9999999999&sig=abc%2B123%3D";
+        expect(
+            signInOAuthQuery(`https://munch.test/connect/sign-in?${raw}`),
+        ).toBe(raw);
+    });
+
+    test("sign-in arrival prefers an explicitly nested oauth_query", () => {
+        const nested = "client_id=client-1&scope=nutrition.read&sig=a%2Bb%3D";
+        const url = new URL("https://munch.test/connect/sign-in");
+        url.searchParams.set("oauth_query", nested);
+        expect(signInOAuthQuery(url.toString())).toBe(nested);
+    });
+
+    test("sign-in arrival does not invent a continuation for ordinary visits", () => {
+        // /account/login redirects here with only a return target.
+        expect(
+            signInOAuthQuery(
+                "https://munch.test/connect/sign-in?return_to=%2Fapp",
+            ),
+        ).toBeUndefined();
+        expect(
+            signInOAuthQuery("https://munch.test/connect/sign-in"),
+        ).toBeUndefined();
+        // An unsigned lookalike is not an authorize detour.
+        expect(
+            signInOAuthQuery(
+                "https://munch.test/connect/sign-in?client_id=client-1&scope=nutrition.read",
+            ),
+        ).toBeUndefined();
+    });
+
+    test("magic-link continuation addresses the consent page", () => {
+        const oauthQuery =
+            "response_type=code&client_id=client-1&scope=openid+nutrition.read&sig=abc%2B123%3D";
+        const path = oauthConsentContinuationPath(oauthQuery);
+        expect(path).not.toBeNull();
+        const url = new URL(path!, "https://munch.test");
+        expect(url.pathname).toBe("/connect/consent");
+        expect(url.searchParams.get("client_id")).toBe("client-1");
+        expect(url.searchParams.get("scope")).toBe("openid nutrition.read");
+        // The signed query survives the nesting byte-for-byte.
+        expect(url.searchParams.get("oauth_query")).toBe(oauthQuery);
+    });
+
+    test("magic-link continuation refuses an unaddressable query", () => {
+        expect(
+            oauthConsentContinuationPath("scope=nutrition.read&sig=abc"),
+        ).toBeNull();
+        expect(
+            oauthConsentContinuationPath("client_id=client-1&sig=abc"),
+        ).toBeNull();
     });
 
     test("sign-in page hides Google until the web client is configured", () => {

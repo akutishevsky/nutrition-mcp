@@ -23,11 +23,26 @@ describe("scanner-safe magic links", () => {
 
     test("rejects external and protocol-relative return targets", () => {
         expect(safeMagicLinkReturnPath("https://evil.example/steal")).toBe(
-            "/account/portal",
+            "/app",
         );
-        expect(safeMagicLinkReturnPath("//evil.example/steal")).toBe(
-            "/account/portal",
+        expect(safeMagicLinkReturnPath("//evil.example/steal")).toBe("/app");
+    });
+
+    test("defaults a missing return target to the signed-in home", () => {
+        // The default post-sign-in landing must resolve: the retired
+        // "/account/portal" landing answers 404 in production, so the
+        // fallback is the app shell's home and nothing else.
+        expect(safeMagicLinkReturnPath(undefined)).toBe("/app");
+        expect(safeMagicLinkReturnPath("")).toBe("/app");
+
+        const result = new URL(
+            buildScannerSafeMagicLink({
+                generatedUrl:
+                    "https://munch.example/api/auth/magic-link/verify?token=secret-token",
+                baseUrl: "https://munch.example",
+            }),
         );
+        expect(result.searchParams.get("return_to")).toBe("/app");
     });
 
     test("requires the Better Auth token", () => {

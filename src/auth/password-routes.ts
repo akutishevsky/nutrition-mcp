@@ -61,7 +61,7 @@ document.getElementById('password-sign-in')?.addEventListener('submit',async(eve
   const identifier=String(data.get('identifier')||'').trim();
   showMessage('Signing in…');
   try{
-    const body={password:String(data.get('password')||''),rememberMe:false,callbackURL:'/account/portal'};
+    const body={password:String(data.get('password')||''),rememberMe:false,callbackURL:'/app'};
     const path=identifier.includes('@')?'/api/auth/sign-in/email':'/api/auth/sign-in/username';
     body[identifier.includes('@')?'email':'username']=identifier;
     await postJson(path,body);
