@@ -63,7 +63,7 @@ let baseURL: string;
 const observed: { method: string; path: string; search: string }[] = [];
 
 type SettingsVariant = "android-free" | "android-free-stripe";
-type HouseholdVariant = "none" | "owner";
+type HouseholdVariant = "none" | "owner" | "member";
 /** S6 slice 9: sign-in methods fixture states (Amendment I). */
 type SignInMethodsVariant = "default" | "linkable" | "refusal";
 let signInMethodsVariant: SignInMethodsVariant = "default";
@@ -82,6 +82,10 @@ const vitalsRemovedIds = new Set<string>();
 /** S6 slice 6: grocery items removed / purchased-cleared by the flows. */
 let groceryCleared = false;
 const groceryRemovedIds = new Set<string>();
+/** S6 slice 8: household flows exercised against the fixture server. */
+let householdMemberRemoved = false;
+let householdInviteRevoked = false;
+let householdGone = false;
 
 const GROCERY_FIXTURE_ITEMS = [
     {
@@ -567,12 +571,57 @@ function signInMethodsFixture() {
 }
 
 function householdFixture() {
-    if (householdVariant === "none") {
+    if (householdVariant === "none" || householdGone) {
         return {
             household: null,
             entitlementSource: "android_free_baseline",
             tier: "free",
             canCreateHousehold: true,
+        };
+    }
+    // S6 slice 8: three people (the tightened mock's member count) and
+    // one pending invitation, so the fused list, the pending warn row
+    // and the revoke flow all render against the fixture.
+    const members = [
+        {
+            membershipId: "fixture-membership-owner",
+            displayName: "Fixture Owner",
+            role: "owner",
+            joinedAt: "2026-11-01T00:00:00.000Z",
+        },
+        {
+            membershipId: "fixture-membership-member",
+            displayName: "Fixture Member",
+            role: "member",
+            joinedAt: "2026-11-02T00:00:00.000Z",
+        },
+        {
+            membershipId: "fixture-membership-viewer",
+            displayName: "Fixture Viewer",
+            role: "viewer",
+            joinedAt: "2026-11-03T00:00:00.000Z",
+        },
+    ].filter(
+        (member) =>
+            !householdMemberRemoved ||
+            member.membershipId !== "fixture-membership-member",
+    );
+    if (householdVariant === "member") {
+        return {
+            household: {
+                role: "member",
+                householdName: "Fixture Household",
+                displayName: "Fixture Member",
+            },
+            entitlementSource: "household_subscription",
+            tier: "premium",
+            canCreateHousehold: false,
+            canInvite: false,
+            canWrite: true,
+            activeNonOwnerCount: 2,
+            seatCoverage: true,
+            pendingInvitations: [],
+            members,
         };
     }
     return {
@@ -588,21 +637,19 @@ function householdFixture() {
         canWrite: true,
         activeNonOwnerCount: 0,
         seatCoverage: true,
-        pendingInvitations: [],
-        members: [
-            {
-                membershipId: "fixture-membership-owner",
-                displayName: "Fixture Owner",
-                role: "owner",
-                joinedAt: "2026-11-01T00:00:00.000Z",
-            },
-            {
-                membershipId: "fixture-membership-member",
-                displayName: "Fixture Member",
-                role: "member",
-                joinedAt: "2026-11-02T00:00:00.000Z",
-            },
-        ],
+        pendingInvitations: householdInviteRevoked
+            ? []
+            : [
+                  {
+                      invitationId: "fixture-invitation-1",
+                      email: "guest@example.com",
+                      role: "member",
+                      createdAt: "2026-11-08T00:00:00.000Z",
+                      expiresAt: "2026-11-15T00:00:00.000Z",
+                      androidFreeAccess: true,
+                  },
+              ],
+        members,
     };
 }
 
@@ -1148,6 +1195,38 @@ test.beforeAll(async () => {
                 );
                 return;
             }
+            // S6 slice 8: household lifecycle posts live outside /api/
+            // (the portal's /account/household/* routes). The fixture
+            // records the state change the real routes would persist,
+            // so the fused confirm flows re-render against it.
+            if (
+                method === "POST" &&
+                url.pathname === "/account/household/member/remove"
+            ) {
+                householdMemberRemoved = true;
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end("{}");
+                return;
+            }
+            if (
+                method === "POST" &&
+                url.pathname === "/account/household/invite/revoke"
+            ) {
+                householdInviteRevoked = true;
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end("{}");
+                return;
+            }
+            if (
+                method === "POST" &&
+                (url.pathname === "/account/household/leave" ||
+                    url.pathname === "/account/household/dissolve")
+            ) {
+                householdGone = true;
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end("{}");
+                return;
+            }
             if (
                 method === "DELETE" &&
                 url.pathname.startsWith("/api/app/recipes/")
@@ -1380,6 +1459,9 @@ test.beforeEach(() => {
     recipeArchived = false;
     groceryCleared = false;
     groceryRemovedIds.clear();
+    householdMemberRemoved = false;
+    householdInviteRevoked = false;
+    householdGone = false;
     cookFinished = false;
     cookDeleted = false;
     vitalsRemovedIds.clear();
@@ -1518,6 +1600,194 @@ test("household.manage lives inside the packaged app", async ({ page }) => {
     );
     await expect(page.locator("#app-content")).toContainText("Fixture Member");
     await expect(page.locator("#household-invite-form")).toBeVisible();
+});
+
+test("S6 slice 8: Household renders fused member rows with no ad slot", async ({
+    page,
+}) => {
+    householdVariant = "owner";
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/household");
+
+    // The fused list: three member rows (the tightened mock's count),
+    // owner controls riding the two non-owner rows, the pending
+    // invitation as a warn row with its Revoke action, and the invite
+    // form below the list.
+    const rows = page.locator(".household-member");
+    await expect(rows).toHaveCount(3);
+    await expect(
+        page.locator('[data-action="household-member-remove"]'),
+    ).toHaveCount(2);
+    await expect(page.locator("#app-content")).toContainText(
+        "guest@example.com",
+    );
+    await expect(
+        page.locator('[data-action="household-invite-revoke"]'),
+    ).toBeVisible();
+    await expect(page.locator("#household-invite-form")).toBeVisible();
+
+    // No ad slot on Household — not with the flag off, and not with
+    // it on either (the app's only slot is on Today). The native
+    // banner is never asked to show here.
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    adsFlagOn = true;
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await gotoRoute(page, "/app/household");
+    await expect(rows).toHaveCount(3);
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    const adCalls = await page.evaluate(
+        () => (window as unknown as { __adCalls?: unknown[] }).__adCalls ?? [],
+    );
+    const lastCall = adCalls[adCalls.length - 1] as { visible?: boolean };
+    expect(lastCall.visible).toBe(false);
+});
+
+test("S6 slice 8: Household destructive flows use inline confirmations, never the native dialog", async ({
+    page,
+}) => {
+    // Same defect family as slice 1's Abandon fix: every destructive
+    // Household flow gated on the native window.confirm(), which
+    // silently no-ops wherever that dialog is dismissed or never
+    // answered. This test records AND dismisses every native dialog:
+    // the flows must complete entirely through in-page UI, so on the
+    // old code they fail twice over.
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    householdVariant = "owner";
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/household");
+
+    // Remove member: the first click only asks, in place after the row.
+    const memberRow = page.locator(".household-member", {
+        hasText: "Fixture Member",
+    });
+    const remove = memberRow.locator('[data-action="household-member-remove"]');
+    await remove.click();
+    const confirmRemove = page.locator(
+        '[data-action="confirm-household-member-remove"]',
+    );
+    await expect(confirmRemove).toBeVisible();
+    await expect(page.getByText("Remove Fixture Member?")).toBeVisible();
+    expect(observedRequest("POST", "/account/household/member/remove")).toBe(
+        false,
+    );
+    expect(nativeDialogs).toEqual([]);
+
+    // "Keep member" restores the row's Remove action, still unsent.
+    await page.locator('[data-action="dismiss-household-confirm"]').click();
+    await expect(remove).toBeVisible();
+    expect(observedRequest("POST", "/account/household/member/remove")).toBe(
+        false,
+    );
+
+    // Confirming removes: the POST lands, the toast lands, row is gone.
+    await remove.click();
+    await confirmRemove.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Member removed and household billing updated.",
+    );
+    expect(observedRequest("POST", "/account/household/member/remove")).toBe(
+        true,
+    );
+    await expect(page.locator(".household-member")).toHaveCount(2);
+    expect(nativeDialogs).toEqual([]);
+
+    // Revoke invite: the same pattern after the pending row.
+    const revoke = page.locator('[data-action="household-invite-revoke"]');
+    await revoke.click();
+    const confirmRevoke = page.locator(
+        '[data-action="confirm-household-invite-revoke"]',
+    );
+    await expect(confirmRevoke).toBeVisible();
+    await expect(
+        page.getByText("Revoke the invitation to guest@example.com?"),
+    ).toBeVisible();
+    expect(observedRequest("POST", "/account/household/invite/revoke")).toBe(
+        false,
+    );
+    await page.locator('[data-action="dismiss-household-confirm"]').click();
+    await expect(revoke).toBeVisible();
+    await revoke.click();
+    await confirmRevoke.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Invitation revoked.",
+    );
+    expect(observedRequest("POST", "/account/household/invite/revoke")).toBe(
+        true,
+    );
+    await expect(page.locator(".pending-invite")).toHaveCount(0);
+    expect(nativeDialogs).toEqual([]);
+
+    // Dissolve: the typed phrase still gates the flow, then the
+    // inline confirmation replaces the native dialog.
+    await page
+        .locator("#dissolve-household-confirmation")
+        .fill("DISSOLVE HOUSEHOLD");
+    const dissolve = page.locator('[data-action="household-dissolve"]');
+    await dissolve.click();
+    const confirmDissolve = page.locator(
+        '[data-action="confirm-household-dissolve"]',
+    );
+    await expect(confirmDissolve).toBeVisible();
+    expect(observedRequest("POST", "/account/household/dissolve")).toBe(false);
+    await page.locator('[data-action="dismiss-household-confirm"]').click();
+    await expect(dissolve).toBeVisible();
+    expect(observedRequest("POST", "/account/household/dissolve")).toBe(false);
+    await dissolve.click();
+    await confirmDissolve.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Household dissolved and paid member seats removed.",
+    );
+    expect(observedRequest("POST", "/account/household/dissolve")).toBe(true);
+    // The household is gone: the Android create state renders.
+    await expect(page.locator("#household-create-form")).toBeVisible();
+    expect(nativeDialogs).toEqual([]);
+});
+
+test("S6 slice 8: leaving the household uses the inline confirmation", async ({
+    page,
+}) => {
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    householdVariant = "member";
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/household");
+
+    // Member view: the seat billing card renders, no owner controls
+    // exist, and the danger group offers Leave instead of Dissolve.
+    await expect(page.locator("#app-content")).toContainText(
+        "Premium through household",
+    );
+    await expect(
+        page.locator('[data-action="household-member-remove"]'),
+    ).toHaveCount(0);
+    const leave = page.locator('[data-action="household-leave"]');
+    await leave.click();
+    const confirmLeave = page.locator(
+        '[data-action="confirm-household-leave"]',
+    );
+    await expect(confirmLeave).toBeVisible();
+    await expect(page.getByText("Leave this household?")).toBeVisible();
+    expect(observedRequest("POST", "/account/household/leave")).toBe(false);
+    expect(nativeDialogs).toEqual([]);
+    await page.locator('[data-action="dismiss-household-confirm"]').click();
+    await expect(leave).toBeVisible();
+    expect(observedRequest("POST", "/account/household/leave")).toBe(false);
+    await leave.click();
+    await confirmLeave.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "You left the household.",
+    );
+    expect(observedRequest("POST", "/account/household/leave")).toBe(true);
+    await expect(page.locator("#household-create-form")).toBeVisible();
+    expect(nativeDialogs).toEqual([]);
 });
 
 test("mcp.connection.revoke works inside the packaged app", async ({

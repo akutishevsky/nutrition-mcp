@@ -20,6 +20,7 @@ import {
     householdInvitationUsesAndroidFreeAccess,
     listHouseholdMembers,
     removeHouseholdMember,
+    revokeHouseholdInvitation,
     updateHouseholdMemberRole,
 } from "./repository.js";
 
@@ -196,6 +197,41 @@ export function createHouseholdRouter(): Hono {
         },
     );
 
+    router.post(
+        "/account/household/invite/revoke",
+        requireSameOrigin,
+        requireWebSession,
+        async (c) => {
+            try {
+                const userId = c.get("munchUserId");
+                const body = (await c.req.json()) as {
+                    invitation_id?: unknown;
+                };
+                const household = await getActiveHouseholdContext(userId);
+                if (!household || household.role !== "owner") {
+                    return c.json({ error: "household_owner_required" }, 403);
+                }
+                if (typeof body.invitation_id !== "string") {
+                    return c.json({ error: "invitation_required" }, 400);
+                }
+                const revoked = await revokeHouseholdInvitation({
+                    userId,
+                    householdId: household.householdId,
+                    invitationId: body.invitation_id,
+                });
+                if (!revoked) {
+                    return c.json(
+                        { error: "Household invitation not found" },
+                        404,
+                    );
+                }
+                return c.json({ revoked });
+            } catch (error) {
+                return jsonError(c, error);
+            }
+        },
+    );
+
     router.get("/household/accept", async (c) => {
         const token = c.req.query("token") ?? "";
         if (!token || token.length > 200) {
@@ -222,8 +258,13 @@ export function createHouseholdRouter(): Hono {
         const householdNote = androidFreeAccess
             ? "You can leave the household at any time."
             : "The household sharing relationship is part of the discounted seat and cannot be disabled independently. Leaving the household ends this household-provided Premium access.";
+        // S6 slice 8 (Amendment F): the accept page renders in the
+        // Editorial Serif connect shell (editorial.css's auth section,
+        // PR #191) — it was the Household flow's one unthemed stop,
+        // still linking styles.css. Structure and the form contract
+        // (POST /household/accept, token + display_name) are unchanged.
         return c.html(
-            `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Join household — Munch</title><link rel="stylesheet" href="/styles.css"></head><body class="auth-page"><main class="auth-main"><section class="auth-card"><p class="section-kicker">Munch household</p><h1>Join this household</h1><p>${terms}</p><p class="tiny">${householdNote}</p><form class="auth-form" method="post" action="/household/accept"><input type="hidden" name="token" value="${escapeHtml(token)}"><div class="field"><label for="display-name">Display name</label><input id="display-name" name="display_name" required maxlength="80"></div><button class="button button-primary" type="submit">Accept and join household</button></form></section></main></body></html>`,
+            `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#f6f1e7"><title>Join household — Munch</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/editorial.css"></head><body class="auth-page"><main class="auth-main"><section class="auth-card"><a class="brand" href="/" aria-label="Munch home"><img class="brand-logo" src="/brand/munch-mark.svg" alt=""><span>Munch</span></a><p class="section-kicker spacer-top">Munch household</p><h1>Join this household</h1><p>${terms}</p><p>${householdNote}</p><form class="auth-form" method="post" action="/household/accept"><input type="hidden" name="token" value="${escapeHtml(token)}"><label class="field" for="display-name"><span>Display name</span><input id="display-name" name="display_name" required maxlength="80"></label><button class="button button-primary" type="submit">Accept and join household</button></form></section></main></body></html>`,
         );
     });
 

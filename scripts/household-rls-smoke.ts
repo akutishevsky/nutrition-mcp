@@ -10,7 +10,9 @@ const {
     getHouseholdSeatCounts,
     householdInvitationUsesAndroidFreeAccess,
     listHouseholdMembers,
+    listPendingHouseholdInvitations,
     removeHouseholdMember,
+    revokeHouseholdInvitation,
 } = await import("../src/households/repository.js");
 const { deleteAllUserData } =
     await import("../src/nutrition-platform/account.js");
@@ -108,6 +110,85 @@ try {
     reused = true;
 }
 if (!reused) throw new Error("Household invitation was reusable");
+
+// S6 slice 8: invitation revocation (the route + UI are new; the
+// revoked_at column always existed). A pending invitation can be
+// revoked by the owner only; once revoked it leaves the pending list
+// and its token no longer accepts.
+const revokedInvitation = await createHouseholdInvitation({
+    userId: owner.userId,
+    householdId: household.householdId,
+    email: outsider.email,
+    role: "viewer",
+});
+const pendingBefore = await listPendingHouseholdInvitations(
+    owner.userId,
+    household.householdId,
+);
+if (
+    !pendingBefore.some(
+        (entry) => entry.invitationId === revokedInvitation.invitationId,
+    )
+) {
+    throw new Error("Pending invitation was not listed before revocation");
+}
+let nonOwnerRevokeBlocked = false;
+try {
+    await revokeHouseholdInvitation({
+        userId: member.userId,
+        householdId: household.householdId,
+        invitationId: revokedInvitation.invitationId,
+    });
+} catch {
+    nonOwnerRevokeBlocked = true;
+}
+if (!nonOwnerRevokeBlocked) {
+    throw new Error("Non-owner was able to revoke a household invitation");
+}
+if (
+    !(await revokeHouseholdInvitation({
+        userId: owner.userId,
+        householdId: household.householdId,
+        invitationId: revokedInvitation.invitationId,
+    }))
+) {
+    throw new Error("Owner could not revoke a pending household invitation");
+}
+if (
+    (await revokeHouseholdInvitation({
+        userId: owner.userId,
+        householdId: household.householdId,
+        invitationId: revokedInvitation.invitationId,
+    })) !== false
+) {
+    throw new Error(
+        "Revoking an already-revoked invitation did not report false",
+    );
+}
+const pendingAfter = await listPendingHouseholdInvitations(
+    owner.userId,
+    household.householdId,
+);
+if (
+    pendingAfter.some(
+        (entry) => entry.invitationId === revokedInvitation.invitationId,
+    )
+) {
+    throw new Error("Revoked invitation remained in the pending list");
+}
+let revokedAcceptBlocked = false;
+try {
+    await acceptHouseholdInvitation({
+        userId: outsider.userId,
+        token: revokedInvitation.rawToken,
+        displayName: "Outsider",
+    });
+} catch {
+    revokedAcceptBlocked = true;
+}
+if (!revokedAcceptBlocked) {
+    throw new Error("Revoked invitation token still accepted");
+}
 
 await inviteAndAccept({
     ownerUserId: owner.userId,
