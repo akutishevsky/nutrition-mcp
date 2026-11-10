@@ -1723,6 +1723,353 @@ dialog .summary-card > small {
 }
 
 /* =====================================================================
+   S6 SLICE 4 — Recipes fusion (Operate surface 4)
+   ---------------------------------------------------------------------
+   Recipes is touched exactly once: parity + Editorial Serif +
+   mobile_qc. Inherits slice 1's shared dialog chrome (.dialog-close,
+   themed openDialog frame, toasts, global states) — no second frame
+   is invented here. Grammar and tokens are the direction contract's:
+   paper #f6f1e7, paper-card #fffdf8, ink #2b2620, hairline #d8cdb6,
+   rule #8a7c63, green #176b3a, danger #8c2f22, Georgia serif.
+   Reference: selected/src/recipes/theme4-tight.html.
+   DENSITY LAW: the library is a list of hairline panels (the mock's
+   grammar), facts merged into one meta line per recipe, dead space
+   tightened from grouping/spacing only — type never below 11px, tap
+   targets never below 44px (inherited .operate-view button floor).
+   NO ADS on this surface — the Recipes banner and in-feed card
+   placements are retired; the app's only ad slot is on Today.
+   ===================================================================== */
+
+/* ---------- Library ---------- */
+
+.recipes-view .recipe-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.recipes-view .recipe-filter-row {
+    margin-top: 10px;
+}
+
+.recipes-view .recipe-filter-row .field {
+    gap: 3px;
+}
+
+.recipes-view .recipe-filter-row .field > span {
+    font-size: 13px;
+    color: #4a4237;
+}
+
+.recipes-view .recipe-list {
+    display: block;
+}
+
+.recipes-view .recipe-panel {
+    margin-top: 10px;
+    padding: 10px 0 4px;
+}
+
+/* Ownership reads as marginalia, like the mock's .src line (the
+   .operate-view source-chip rule already voices it; this keeps the
+   panel's first line tight). */
+.recipes-view .recipe-panel .source-chip {
+    display: inline-block;
+}
+
+.recipes-view .recipe-title {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #2b2620;
+    margin-top: 4px;
+}
+
+/* One merged meta line carries servings, nutrition status, the
+   per-serving macros, and the scheduled/logged counts — the mock's
+   density move (four stacked lines become one). */
+.recipes-view .recipe-meta {
+    font-size: 13.5px;
+    font-style: italic;
+    color: #5d5344;
+    margin-top: 2px;
+}
+
+.recipes-view .recipe-meta strong {
+    font-style: normal;
+    font-variant-numeric: tabular-nums;
+    color: #2b2620;
+}
+
+.recipes-view .recipe-panel-actions {
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* The legacy phone rule stacks .auth-actions buttons full-width
+   (flex: 1 1 100% below 620px) — three stacked 44px rows per recipe
+   is exactly the dead space the density law removes. The panel
+   actions are one deliberate equal-share row (the mock's chip row):
+   View / Log / Add to plan, each a full 44px target. */
+.recipes-view .recipe-panel-actions .button {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+@media (max-width: 899px) {
+    /* Heading actions: one deliberate single row with intentional
+       horizontal scroll (P1/P7, slice 1's heading pattern) instead of
+       a ragged wrap or a full-width stack. The filter field keeps its
+       own full-width row under it. */
+    .recipes-view .recipe-actions {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 4px;
+    }
+
+    .recipes-view .recipe-actions .button {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    .recipes-view .recipe-title {
+        font-size: 19px;
+    }
+}
+
+/* ---------- Recipe dialogs (detail / create / edit / import /
+   review / log / plan) — inside slice 1's shared frame ---------- */
+
+.recipe-detail .recipe-meta {
+    font-size: 13.5px;
+    font-style: italic;
+    color: #5d5344;
+}
+
+.recipe-detail .recipe-note {
+    font-size: 13.5px;
+    font-style: italic;
+    color: #5d5344;
+    margin-top: 5px;
+}
+
+/* Per-serving totals are one hairline rule (the mock's detail rule):
+   label left, serif-tabular values right. */
+.recipe-per-serving {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.recipe-per-serving-values {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.recipe-detail h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16.5px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+/* Ingredient rows are hairline rules: name + quantity + source
+   marginalia on the left, the row's calories right-aligned. */
+.recipe-ingredients {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.recipe-ingredient-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.recipe-ingredient-main .source-chip {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #5d5344;
+    white-space: nowrap;
+}
+
+.recipe-ingredient-kcal {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* Instruction steps are hairline rules with the step number inline —
+   no card boxes, no oversized list indent. */
+.recipe-detail .recipe-instructions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: #2b2620;
+}
+
+.recipe-detail .recipe-instructions li {
+    padding: 6px 0;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.recipe-step-number {
+    font-weight: 700;
+}
+
+/* The edit-revision disclosure is a full 44px tap row. */
+.recipe-edit-details > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #176b3a;
+    cursor: pointer;
+}
+
+/* Inline archive confirmation (slice 1's pattern): the note takes a
+   full row in danger ink; the confirm button is the danger action. */
+.recipe-archive-note {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+    color: #8c2f22;
+}
+
+.recipe-archive-confirm {
+    background: #8c2f22;
+    border-color: #8c2f22;
+}
+
+.recipe-archive-confirm:hover {
+    background: #6e241a;
+    border-color: #6e241a;
+}
+
+/* Every button inside a recipe-owned dialog reaches the 44px floor
+   (the shared .button-small grammar sits at 40px; slice 1 fixed the
+   shared Close via .dialog-close and left per-surface buttons to
+   their own slices — these are this surface's). */
+.recipe-detail .button,
+#recipe-create-form .button,
+#recipe-edit-form .button,
+#recipe-compose-form .button,
+#recipe-import-url-form .button,
+#recipe-log-form .button,
+#recipe-plan-form .button {
+    min-height: 44px;
+}
+
+/* Recipe editor sections inside dialogs take the hairline grammar. */
+dialog .recipe-editor-section {
+    border-top: 1px solid #d8cdb6;
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+dialog .recipe-ingredient-editor {
+    border-left: 3px solid #176b3a;
+}
+
+/* Import review: its warning / assumption / unresolved blocks are
+   .panel sections inside the dialog — voice them as hairline panels,
+   never white cards. */
+.recipe-detail .panel {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 10px 0 4px;
+}
+
+/* Import progress: paper-card block on a hairline, serif heading,
+   green spinner and step markers in the editorial tokens. */
+.recipe-import-progress {
+    border: 1px solid #d8cdb6;
+    border-radius: 4px;
+    background: #fffdf8;
+    padding: 12px;
+}
+
+.recipe-import-progress[data-state="error"] {
+    border-color: #8c2f22;
+    background: #f6f1e7;
+}
+
+.recipe-import-progress-heading strong {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.recipe-import-progress-heading p {
+    color: #5d5344;
+}
+
+.recipe-import-spinner {
+    border-color: #e3dac4;
+    border-top-color: #176b3a;
+}
+
+.recipe-import-steps li {
+    color: #5d5344;
+}
+
+.recipe-import-steps li > span:first-child {
+    border-color: #8a7c63;
+    background: #fffdf8;
+    color: #5d5344;
+}
+
+.recipe-import-steps li[data-state="active"] {
+    color: #2b2620;
+}
+
+.recipe-import-steps li[data-state="active"] > span:first-child {
+    border-color: #176b3a;
+    background: #f6f1e7;
+    color: #176b3a;
+}
+
+.recipe-import-steps li[data-state="complete"] {
+    color: #176b3a;
+}
+
+.recipe-import-steps li[data-state="complete"] > span:first-child {
+    border-color: #176b3a;
+    background: #176b3a;
+    color: #fffdf8;
+}
+
+.recipe-import-steps li[data-state="error"] {
+    color: #8c2f22;
+}
+
+.recipe-import-steps li[data-state="error"] > span:first-child {
+    border-color: #8c2f22;
+    color: #8c2f22;
+}
+/* =====================================================================
    S6 slice 3 — Editorial Serif fusion for Meal Plan (Operate surface
    3), inheriting S6 slice 1's shared dialog chrome (themed openDialog
    frame, .dialog-close at 44px, portal .tiny at 0.875rem, toasts and

@@ -1,111 +1,86 @@
+/* Editorial Serif — the Munch house theme, voiced for MCP widgets
+   (Amendment F: every screen carries the house theme, widgets included;
+   direction contract: ~/workspace/munch-prep/homepage-connect/
+   direction-contract.md). Token values are the editorial.css values,
+   stated here because a widget is a self-contained document inside a
+   host app and cannot load the site stylesheet:
+     --paper #f6f1e7, --paper-card #fffdf8, --ink #2b2620,
+     --ink-soft #4a4237, --ink-mute #5d5344, --hairline #d8cdb6,
+     --rule #8a7c63, --green #176b3a, --green-deep #0b3d24,
+     --green-tint #eef4ea, --danger #8c2f22,
+     --serif Georgia, "Times New Roman", Times, serif.
+
+   The widget theme does NOT follow the host: the previous host-variable
+   layer (host text/background/accent variables, a dark colour-scheme
+   query and dark theme-attribute overrides) is gone on purpose. A Munch widget is a
+   printed Nutrition-Facts-style panel — warm paper, serif type, hairline
+   rules — in light and dark hosts alike, the same fixed paper world the
+   themed emails carry. color-scheme stays light so native controls
+   (selects, scrollbars, date chrome) render on the paper theme.
+
+   The legacy token names (--text, --panel, --accent, …) are kept as
+   aliases onto the editorial values so every component stylesheet,
+   template inline style, and JS markup builder themes from this one
+   file; the widget data/shape contracts are untouched. */
 :root {
     color-scheme: light;
-    --text: var(--color-text-primary, #1f2328);
-    --text-dim: var(--color-text-secondary, #667085);
-    --text-subtle: var(--color-text-tertiary, #7d8590);
-    --bg: transparent;
-    --panel: var(--color-background-primary, #ffffff);
-    --panel-muted: var(--color-background-secondary, #f6f7f8);
-    --panel-border: var(--color-border-default, #dfe3e7);
-    --track: var(--color-background-tertiary, #eceff1);
-    --accent: var(--color-accent, #3f7a56);
-    --accent-contrast: var(--color-text-on-accent, #ffffff);
-    --over: var(--color-text-danger, #b42318);
-    --warn: var(--color-text-warning, #9a6700);
-    --success: var(--color-text-success, #067647);
-    --calories: #d97706;
-    --protein: #6d5bd0;
-    --carbs: #18864b;
-    --fat: #c2416c;
-    --water: #1479a8;
-    --fiber: #0f766e;
-    --sugar: #64820f;
-    --alcohol: #9333a8;
-    /* Facts Panel grammar (shared/facts.css). The band is constant in both
-       modes by contract: deep green ground, cream glyph. Only the rule
-       cascade and track flip with the card ground. */
-    --facts-band: #0b3d24;
-    --facts-band-ink: #f5efe2;
+    --paper: #f6f1e7;
+    --paper-card: #fffdf8;
+    --ink: #2b2620;
+    --ink-soft: #4a4237;
+    --ink-mute: #5d5344;
+    --hairline: #d8cdb6;
+    --rule: #8a7c63;
+    --green: #176b3a;
+    --green-deep: #0b3d24;
+    --green-tint: #eef4ea;
+    --danger: #8c2f22;
+    --serif: Georgia, "Times New Roman", Times, serif;
+
+    --text: var(--ink);
+    --text-dim: var(--ink-mute);
+    --text-subtle: var(--ink-mute);
+    --bg: var(--paper);
+    --panel: var(--paper-card);
+    --panel-muted: var(--paper);
+    --panel-border: var(--hairline);
+    --track: #e9e0cb;
+    --accent: var(--green);
+    --accent-contrast: var(--paper-card);
+    --over: var(--danger);
+    --warn: #8a5a00;
+    --success: var(--green);
+    --shadow: none;
+    --calories: #bc5d08;
+    --protein: #5b4bc4;
+    --carbs: #176b3a;
+    --fat: #b02a5b;
+    --water: #126e96;
+    --fiber: #0c6b62;
+    --sugar: #5c740d;
+    --alcohol: #842a96;
+    /* Facts Panel grammar (shared/facts.css) in the brand mark's
+       Nutrition-Facts rhythm: the band is the deep-green ground with the
+       paper-cream glyph, the rule cascade runs 8px heavy (green-deep)
+       -> 3px rule (ink) -> 1px hairlines. Constant in every host mode —
+       it is the brand panel, not a host surface. */
+    --facts-band: var(--green-deep);
+    --facts-band-ink: var(--paper);
     --facts-band-dim: #bcd2c0;
     --facts-leaf: #5da85f;
-    --facts-fill: #0b8f4d;
-    --facts-primary: #0a7f42;
-    --facts-primary-ink: #ffffff;
-    --facts-heavy: #0b3d24;
-    --facts-med: #16241b;
-    --facts-track: #e8ece3;
-    --radius: var(--border-radius-lg, 14px);
-    --radius-sm: var(--border-radius-md, 10px);
+    --facts-fill: var(--green);
+    --facts-primary: var(--green);
+    --facts-primary-ink: var(--paper-card);
+    --facts-heavy: var(--green-deep);
+    --facts-med: var(--ink);
+    --facts-track: #e9e0cb;
+    /* Editorial panels are hairline-ruled, near-square: small radii,
+       never the host's rounded-card scale. */
+    --radius: 6px;
+    --radius-sm: 4px;
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
     --space-4: 16px;
     --space-5: 20px;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        color-scheme: dark;
-        --text: var(--color-text-primary, #f2f4f7);
-        --text-dim: var(--color-text-secondary, #a6adb7);
-        --text-subtle: var(--color-text-tertiary, #8b949e);
-        --panel: var(--color-background-primary, #202123);
-        --panel-muted: var(--color-background-secondary, #292b2f);
-        --panel-border: var(--color-border-default, #3b3f45);
-        --track: var(--color-background-tertiary, #35383d);
-        --accent: var(--color-accent, #72b68a);
-        --accent-contrast: var(--color-text-on-accent, #102016);
-        --over: var(--color-text-danger, #ff8a80);
-        --warn: var(--color-text-warning, #f7c66b);
-        --success: var(--color-text-success, #75d6a4);
-        --calories: #f4a340;
-        --protein: #b3a7ff;
-        --carbs: #64d08a;
-        --fat: #ff8eb1;
-        --water: #72c7ef;
-        --fiber: #5ed5c7;
-        --sugar: #b8d96c;
-        --alcohol: #e28bf3;
-        /* Band stays deep green with the cream glyph in dark mode too. */
-        --facts-band: #0b3d24;
-        --facts-band-ink: #f5efe2;
-        --facts-band-dim: #bcd2c0;
-        --facts-heavy: #0b8f4d;
-        --facts-med: #f5efe2;
-        --facts-track: #35383d;
-    }
-}
-
-:root[data-theme="light"] {
-    color-scheme: light;
-}
-:root[data-theme="dark"] {
-    color-scheme: dark;
-    --text: var(--color-text-primary, #f2f4f7);
-    --text-dim: var(--color-text-secondary, #a6adb7);
-    --text-subtle: var(--color-text-tertiary, #8b949e);
-    --panel: var(--color-background-primary, #202123);
-    --panel-muted: var(--color-background-secondary, #292b2f);
-    --panel-border: var(--color-border-default, #3b3f45);
-    --track: var(--color-background-tertiary, #35383d);
-    --accent: var(--color-accent, #72b68a);
-    --accent-contrast: var(--color-text-on-accent, #102016);
-    --over: var(--color-text-danger, #ff8a80);
-    --warn: var(--color-text-warning, #f7c66b);
-    --success: var(--color-text-success, #75d6a4);
-    --calories: #f4a340;
-    --protein: #b3a7ff;
-    --carbs: #64d08a;
-    --fat: #ff8eb1;
-    --water: #72c7ef;
-    --fiber: #5ed5c7;
-    --sugar: #b8d96c;
-    --alcohol: #e28bf3;
-    /* Band stays deep green with the cream glyph in dark mode too. */
-    --facts-band: #0b3d24;
-    --facts-band-ink: #f5efe2;
-    --facts-band-dim: #bcd2c0;
-    --facts-heavy: #0b8f4d;
-    --facts-med: #f5efe2;
-    --facts-track: #35383d;
 }

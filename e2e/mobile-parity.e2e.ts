@@ -71,6 +71,125 @@ let connectionsFixture: Record<string, unknown>[] = [];
 let pendingDraftOnToday = false;
 /** S6 slice 1: the ADS-FOUNDATION remote flag as the server sends it. */
 let adsFlagOn = false;
+/** S6 slice 4: the fixture salmon recipe, removed by an archive. */
+let recipeArchived = false;
+
+const RECIPE_FIXTURES = [
+    {
+        recipe_id: "fixture-lemon-chicken",
+        revision_id: "fixture-lemon-chicken-r1",
+        name: "Lemon Herb Chicken & Rice",
+        version: 1,
+        ownership: "personal",
+        servings: 4,
+        nutrition_status: "complete",
+        nutrition_per_serving: {
+            calories: 512,
+            protein_g: 44,
+            carbs_g: 48,
+            fat_g: 15,
+        },
+        times_scheduled: 6,
+        times_logged: 9,
+    },
+    {
+        recipe_id: "fixture-overnight-oats",
+        revision_id: "fixture-overnight-oats-r1",
+        name: "Overnight Oats",
+        version: 1,
+        ownership: "personal",
+        servings: 2,
+        nutrition_status: "complete",
+        nutrition_per_serving: {
+            calories: 385,
+            protein_g: 14,
+            carbs_g: 52,
+            fat_g: 13,
+        },
+        times_scheduled: 3,
+        times_logged: 11,
+    },
+    {
+        recipe_id: "fixture-turkey-chili",
+        revision_id: "fixture-turkey-chili-r1",
+        name: "Turkey Chili",
+        version: 1,
+        ownership: "household",
+        servings: 6,
+        nutrition_status: "complete",
+        nutrition_per_serving: {
+            calories: 428,
+            protein_g: 32,
+            carbs_g: 38,
+            fat_g: 16,
+        },
+        times_scheduled: 2,
+        times_logged: 4,
+    },
+    {
+        recipe_id: "fixture-salmon",
+        revision_id: "fixture-salmon-r3",
+        name: "Sheet-Pan Salmon & Broccoli",
+        version: 3,
+        ownership: "personal",
+        servings: 4,
+        nutrition_status: "complete",
+        nutrition_per_serving: {
+            calories: 412,
+            protein_g: 36,
+            carbs_g: 9,
+            fat_g: 25,
+        },
+        times_scheduled: 4,
+        times_logged: 5,
+    },
+];
+
+const RECIPE_DETAIL_FIXTURE = {
+    recipe: {
+        id: "fixture-salmon",
+        revision_id: "fixture-salmon-r3",
+        revision_number: 3,
+        version: 3,
+        name: "Sheet-Pan Salmon & Broccoli",
+        servings: 4,
+        nutrition_status: "complete",
+        nutrition_per_serving: {
+            calories: 412,
+            protein_g: 36,
+            carbs_g: 9,
+            fat_g: 25,
+        },
+        ingredients: [
+            {
+                name: "Atlantic salmon fillets",
+                quantity: 680,
+                unit: "g",
+                nutrients: { calories: 1416 },
+                source_type: "usda",
+            },
+            {
+                name: "Broccoli florets",
+                quantity: 600,
+                unit: "g",
+                nutrients: { calories: 204 },
+                source_type: "usda",
+            },
+            {
+                name: "Olive oil",
+                quantity: 2,
+                unit: "tbsp",
+                nutrients: { calories: 239 },
+                source_type: "usda",
+            },
+        ],
+        instructions: [
+            "Heat the oven to 425°F and line a sheet pan.",
+            "Toss broccoli with olive oil, garlic, and lemon juice; spread on the pan.",
+            "Place salmon on top; roast 14–16 minutes, until it flakes.",
+        ],
+    },
+};
 
 const PRODUCT_POLICY = {
     premiumPriceMonthlyCents: 300,
@@ -320,10 +439,17 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
         return { foods: [], savedFoods: [], total: 0 };
     }
     if (pathname === "/api/app/recipes") return { recipes: [] };
+    if (pathname === "/api/app/recipes/fixture-salmon") {
+        return RECIPE_DETAIL_FIXTURE;
+    }
     if (pathname === "/api/app/planning") {
         return {
             plannedMeals: [plannedMealFixture()],
-            recipes: [],
+            recipes: recipeArchived
+                ? RECIPE_FIXTURES.filter(
+                      (recipe) => recipe.recipe_id !== "fixture-salmon",
+                  )
+                : RECIPE_FIXTURES,
             permissions: { personal: true, household: false },
             groceries: [],
         };
@@ -555,6 +681,15 @@ test.beforeAll(async () => {
             observed.push({ method, path: url.pathname });
             if (
                 method === "DELETE" &&
+                url.pathname.startsWith("/api/app/recipes/")
+            ) {
+                recipeArchived = true;
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end("{}");
+                return;
+            }
+            if (
+                method === "DELETE" &&
                 url.pathname.startsWith("/api/app/connections/")
             ) {
                 connectionsFixture = [];
@@ -721,6 +856,7 @@ test.beforeEach(() => {
     householdVariant = "none";
     pendingDraftOnToday = false;
     adsFlagOn = false;
+    recipeArchived = false;
     connectionsFixture = [
         {
             clientName: "Fixture MCP Client",
@@ -1138,6 +1274,120 @@ test("S6 slice 1: the single ad slot lives on Today, flag-gated and Premium-hidd
     );
     const lastCall = adCalls[adCalls.length - 1] as { visible?: boolean };
     expect(lastCall.visible).toBe(false);
+});
+
+test("S6 slice 4: Recipes library rows carry View / Log / Add-to-plan and no ad slot", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/recipes");
+
+    // The fused library: one themed panel per recipe in the fixture,
+    // each with the mock's three row actions.
+    const panels = page.locator(".recipe-panel");
+    await expect(panels).toHaveCount(4);
+    await expect(panels.first()).toContainText("Lemon Herb Chicken & Rice");
+    await expect(panels.first()).toContainText("512 kcal");
+    const firstPanel = panels.first();
+    await expect(
+        firstPanel.locator('[data-action="view-recipe"]'),
+    ).toBeVisible();
+    await expect(
+        firstPanel.locator('[data-action="log-recipe"]'),
+    ).toBeVisible();
+    await expect(
+        firstPanel.locator('[data-action="plan-recipe"]'),
+    ).toBeVisible();
+
+    // No ad slot on Recipes — not with the flag off, and not with it on
+    // either (the app's only slot is on Today; the Recipes placements
+    // are retired). The native banner is never asked to show here.
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    adsFlagOn = true;
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await gotoRoute(page, "/app/recipes");
+    await expect(panels).toHaveCount(4);
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    const adCalls = await page.evaluate(
+        () => (window as unknown as { __adCalls?: unknown[] }).__adCalls ?? [],
+    );
+    const lastCall = adCalls[adCalls.length - 1] as { visible?: boolean };
+    expect(lastCall.visible).toBe(false);
+
+    // Log-recipe and schedule-recipe open from the row itself.
+    await firstPanel.locator('[data-action="log-recipe"]').click();
+    await expect(page.locator("#app-dialog")).toContainText("Log saved recipe");
+    await page.locator(".dialog-close").click();
+    await firstPanel.locator('[data-action="plan-recipe"]').click();
+    await expect(page.locator("#app-dialog")).toContainText(
+        "Add recipe to meal plan",
+    );
+});
+
+test("S6 slice 4 regression: Archive recipe uses inline confirmation with no native confirm", async ({
+    page,
+}) => {
+    // Same defect family as slice 1's Abandon fix: archiving gated on
+    // the native window.confirm() silently no-ops wherever that dialog
+    // is dismissed or never answered. This test records AND dismisses
+    // every native dialog: the archive flow must complete entirely
+    // through in-dialog UI, so on the old code it fails twice over.
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/recipes");
+
+    const salmonPanel = page.locator(
+        '[data-recipe-name="sheet-pan salmon & broccoli"]',
+    );
+    await salmonPanel.locator('[data-action="view-recipe"]').click();
+    await expect(page.locator("#app-dialog")).toContainText(
+        "Atlantic salmon fillets",
+    );
+
+    const archive = page.locator('[data-action="archive-recipe"]');
+    await archive.click();
+
+    // Inline confirmation appears; nothing has been sent yet.
+    const confirmArchive = page.locator(
+        '[data-action="confirm-archive-recipe"]',
+    );
+    await expect(confirmArchive).toBeVisible();
+    await expect(
+        page.getByText(
+            "Archive this recipe? Historical meal logs will be preserved.",
+        ),
+    ).toBeVisible();
+    expect(observedRequest("DELETE", "/api/app/recipes/fixture-salmon")).toBe(
+        false,
+    );
+    expect(nativeDialogs).toEqual([]);
+
+    // "Keep recipe" restores the detail actions without any request.
+    await page.locator('[data-action="dismiss-archive-recipe"]').click();
+    await expect(archive).toBeVisible();
+    expect(observedRequest("DELETE", "/api/app/recipes/fixture-salmon")).toBe(
+        false,
+    );
+
+    // Confirming archives: the DELETE posts, the dialog closes, the
+    // toast lands, and the library re-renders without the recipe.
+    await archive.click();
+    await confirmArchive.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Recipe archived.",
+    );
+    expect(observedRequest("DELETE", "/api/app/recipes/fixture-salmon")).toBe(
+        true,
+    );
+    await expect(page.locator("#app-dialog")).not.toHaveAttribute("open");
+    await expect(page.locator(".recipe-panel")).toHaveCount(3);
+    await expect(salmonPanel).toHaveCount(0);
+    expect(nativeDialogs).toEqual([]);
 });
 
 test("S6 slice 3 regression: meal swap applies and undoes with no native confirm", async ({

@@ -386,6 +386,33 @@ if (appSource.includes("Complete recipe JSON")) {
     throw new Error("Recipe editing still requires raw JSON");
 }
 
+// S6 slice 4 (Recipes fusion): the library renders inside the shared
+// .operate-view Editorial Serif scope, archiving uses slice 1's inline
+// confirmation (never the native confirm), and the surface carries no
+// ad markup (the app's only ad slot is on Today — final ad law).
+for (const pin of [
+    "operate-view recipes-view",
+    'data-action="confirm-archive-recipe"',
+    'data-action="dismiss-archive-recipe"',
+    "recipe-panel",
+]) {
+    if (!appSource.includes(pin)) {
+        throw new Error(`Recipes fusion is missing its pin: ${pin}`);
+    }
+}
+if (
+    appSource.includes('confirm(\n                "Archive this recipe?') ||
+    appSource.includes('confirm("Archive this recipe?')
+) {
+    throw new Error(
+        "Recipe archive still gates on the native confirm() dialog",
+    );
+}
+const appOverridesSource = await Bun.file("public/app-overrides.css").text();
+if (!appOverridesSource.includes(".recipes-view .recipe-panel")) {
+    throw new Error("Recipes fusion styles are missing from app-overrides.css");
+}
+
 const appHtml = await Bun.file("public/app.html").text();
 for (const route of [
     "/app/log",

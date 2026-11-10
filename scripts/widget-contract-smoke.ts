@@ -89,6 +89,50 @@ assert(
     "Compact button touch target is not pinned at 44px",
 );
 
+// Editorial Serif house theme (Amendment F — theme-coverage rows 77/78).
+// The theme lives entirely in the shared files every template includes,
+// so pin it here: an unthemed widget is a BLOCKER and must fail CI, not
+// drift back to host-variable/default styling.
+const tokensCss = await Bun.file("public/widgets/src/shared/tokens.css").text();
+for (const editorialToken of [
+    "--paper: #f6f1e7",
+    "--paper-card: #fffdf8",
+    "--ink: #2b2620",
+    "--hairline: #d8cdb6",
+    "--green: #176b3a",
+    "--green-deep: #0b3d24",
+    '--serif: Georgia, "Times New Roman", Times, serif',
+]) {
+    assert(
+        tokensCss.includes(editorialToken),
+        `Widget tokens lost the Editorial Serif value: ${editorialToken}`,
+    );
+}
+for (const hostCoupling of [
+    "--color-text-primary",
+    "--color-background-",
+    "--color-accent",
+    "prefers-color-scheme: dark",
+    'data-theme="dark"',
+]) {
+    assert(
+        !tokensCss.includes(hostCoupling),
+        `Widget tokens regressed to host-variable styling: ${hostCoupling}`,
+    );
+}
+assert(
+    baseCss.includes("font-family: var(--serif)"),
+    "Widget body type is not the Editorial Serif Georgia stack",
+);
+for (const key of expectedWidgetKeys) {
+    const html = await getWidgetHtml(key);
+    assert(
+        html.includes("--paper: #f6f1e7") &&
+            html.includes("font-family: var(--serif)"),
+        `${key} assembled without the Editorial Serif theme`,
+    );
+}
+
 const logged = await getWidgetHtml("meal-logged");
 for (const expected of [
     "primaryItem?.name",

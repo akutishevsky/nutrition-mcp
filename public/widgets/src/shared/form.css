@@ -5,8 +5,9 @@
  * errors existed. Everything here is token-only so it themes with the rest.
  *
  * Native controls need `color-scheme` (declared in tokens.css) or the browser
- * paints OS chrome that ignores every token: a <select> in a dark widget comes
- * out light, and its dropdown list stays light regardless of what we set here.
+ * paints OS chrome that ignores every token. The widget theme is a fixed
+ * paper world (tokens.css), so color-scheme stays light and the dropdown
+ * list renders on paper in every host mode.
  */
 
 /* ---- layout ---- */
@@ -52,7 +53,7 @@
     color: var(--text);
     background: var(--panel);
     border: 1px solid var(--panel-border);
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     padding: 8px 10px;
     transition:
         border-color 0.12s ease,
@@ -73,7 +74,8 @@
 
 /* Chevron drawn as a background image so no external asset is needed (the
    sandbox CSP allows data: images only). currentColor is not available inside
-   url(), so the stroke is a literal that reads acceptably on both themes. */
+   url(), so the stroke is a literal warm gray that reads on the paper
+   panel. */
 .select {
     padding-right: 30px;
     background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%238e8e93' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -102,7 +104,7 @@
     font-size: 13px;
     font-weight: 600;
     padding: 8px 14px;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--panel-border);
     background: var(--panel);
     color: var(--text);
@@ -120,12 +122,11 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
-/* Primary: accent fill. --bg rather than white, matching .seg-btn.active, so the
-   label stays legible when the accent lightens in dark mode. */
+/* Primary: brand-green fill with the paper-card label colour. */
 .btn-primary {
     background: var(--accent);
     border-color: var(--accent);
-    color: var(--bg);
+    color: var(--accent-contrast);
 }
 .btn-primary:hover:not(:disabled) {
     opacity: 0.88;
@@ -142,7 +143,7 @@
 .btn-sm {
     font-size: 12px;
     padding: 5px 9px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
 }
 
 /* ---- file drop zone ---- */
@@ -210,7 +211,7 @@
     gap: 8px;
     align-items: flex-start;
     padding: 9px 11px;
-    border-radius: 10px;
+    border-radius: var(--radius-sm);
     font-size: 12.5px;
     line-height: 1.45;
     border: 1px solid var(--panel-border);
@@ -268,11 +269,11 @@
     place-items: center;
     background: var(--track);
     color: var(--text-dim);
-    font-size: 10.5px;
+    font-size: 11px;
 }
 .step.active .dot {
     background: var(--accent);
-    color: var(--bg);
+    color: var(--accent-contrast);
 }
 .step.active {
     color: var(--text);

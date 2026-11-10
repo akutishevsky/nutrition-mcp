@@ -80,16 +80,16 @@
     font-size: 16px;
 }
 .macro-row .ring-center .rp {
-    font-size: 9.5px;
+    font-size: 11px;
     margin-top: 1px;
 }
 .macro-cell .mlabel {
     margin-top: 9px;
-    font-size: 10.5px;
+    font-size: 11px;
 }
 .macro-cell .mgoal {
     margin-top: 2px;
-    font-size: 10px;
+    font-size: 11px;
     min-height: 13px;
 }
 
@@ -115,7 +115,7 @@
         outline-color 0.15s ease;
 }
 .macro-cell.interactive {
-    border-radius: 12px;
+    border-radius: var(--radius);
     padding: 6px 2px;
 }
 .macro-cell.interactive:hover,
@@ -218,7 +218,7 @@
     font-variant-numeric: tabular-nums;
 }
 .md-val .md-unit {
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 600;
     margin-left: 2px;
     opacity: 0.75;
@@ -233,7 +233,7 @@
     color: var(--text);
 }
 .md-sub {
-    font-size: 10.5px;
+    font-size: 11px;
     color: var(--text-dim);
     text-transform: capitalize;
 }
@@ -251,7 +251,7 @@
    the 4.5:1 WCAG AA floor for text this small. Dim it further and it fails
    again — use size and weight to rank it below .md-title instead. */
 .md-subtitle {
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
