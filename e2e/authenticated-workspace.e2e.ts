@@ -1,4 +1,22 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+// Page identity is asserted through the chrome that survived the
+// header-band removal (Michael's order, PR #229): the shell no longer
+// renders a per-page <h1>, so a landed route is proven by the tab
+// title app.js still sets per route plus the nav link the shell marks
+// current. Exactly one current link is visible at any width: the
+// sidebar copy on desktop, the bottom-nav copy (or its More stand-in
+// for sidebar-only routes) on mobile.
+function visibleCurrentNav(page: Page, routes: string[]) {
+    return page.locator(
+        routes
+            .map(
+                (route) =>
+                    `[data-route="${route}"][aria-current="page"]:visible`,
+            )
+            .join(", "),
+    );
+}
 
 test("protects private data and supports the core website journey", async ({
     page,
@@ -25,9 +43,8 @@ test("protects private data and supports the core website journey", async ({
 
     await expect(page).toHaveURL(/\/app\/?$/);
     expect((await bootstrapResponse).status()).toBe(200);
-    await expect(
-        page.getByRole("heading", { level: 1, name: "Today" }),
-    ).toBeVisible();
+    await expect(page).toHaveTitle(/^Today — Munch$/);
+    await expect(visibleCurrentNav(page, ["today"])).toHaveCount(1);
     await expect(
         page.getByText("Your structured nutrition record for this day."),
     ).toBeVisible();
@@ -45,14 +62,12 @@ test("protects private data and supports the core website journey", async ({
     }
 
     await expect(page).toHaveURL(/\/app\/plan$/);
-    await expect(
-        page.getByRole("heading", { level: 1, name: "Meal Plan" }),
-    ).toBeVisible();
+    await expect(page).toHaveTitle(/^Meal Plan — Munch$/);
+    await expect(visibleCurrentNav(page, ["plan"])).toHaveCount(1);
 
     await page.goto("/app/settings/billing");
-    await expect(
-        page.getByRole("heading", { level: 1, name: "Plan & billing" }),
-    ).toBeVisible();
+    await expect(page).toHaveTitle(/^Plan & billing — Munch$/);
+    await expect(visibleCurrentNav(page, ["settings", "more"])).toHaveCount(1);
     // De-credit slice (Amendments C+D): no credits balance or price
     // list, and AI features are free — the billing page carries the
     // AI features group framed as included for every account.
@@ -68,9 +83,8 @@ test("protects private data and supports the core website journey", async ({
     });
 
     await page.goto("/app/insights");
-    await expect(
-        page.getByRole("heading", { level: 1, name: "Insights" }),
-    ).toBeVisible();
+    await expect(page).toHaveTitle(/^Insights — Munch$/);
+    await expect(visibleCurrentNav(page, ["insights", "more"])).toHaveCount(1);
     await expect
         .poll(() =>
             page.evaluate(
