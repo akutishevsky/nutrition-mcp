@@ -143,16 +143,17 @@ describe("cross-surface nutrition parity", () => {
         const appComplete = CAPABILITY_MANIFEST.filter(
             (capability) => capability.app.coverage === "complete",
         );
-        // The packaged app is the portal bundle: nearly every row is
-        // app-complete today; the known exceptions are the website-only
-        // rows and meal.photoLog, whose packaged-app verification is
-        // S5's job (S3 ships the web flow; the bundle carries it
-        // unverified). mealPlan.recipeGenerate is app-complete since
-        // the De-credit slice: the Ember re-platform (S2) landed and
-        // the old credits stub is replaced by the Premium-entitlement
-        // gate, identical on web and app.
+        // S5 (packaged-app parity verification) closed the S0-era
+        // uncertainty: every row is app-complete except the two
+        // billing rows, which are website-only by standing commerce
+        // law and verified to route honestly from the packaged app
+        // (e2e/mobile-parity.e2e.ts). meal.photoLog's packaged exercise
+        // — the last partial — passed in that same harness, and the
+        // three Settings/Household/Data rows the S0 pass had declared
+        // website-only (mcp.connection.revoke, household.manage,
+        // account.export) were proven to live inside the packaged SPA.
         expect(appComplete.length).toBeGreaterThanOrEqual(
-            CAPABILITY_MANIFEST.length - 7,
+            CAPABILITY_MANIFEST.length - 2,
         );
     });
 
