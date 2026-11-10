@@ -157,7 +157,12 @@ function settingsShell(active, body) {
         active === "settings"
             ? ""
             : `<a class="settings-mobile-back" href="/app/settings">← Settings</a>`;
-    return `<div class="settings-layout">${settingsNav(active)}<section class="settings-main">${back}${body}</section></div>`;
+    // S6 slice 9: Settings renders inside slice 1's `.operate-view`
+    // scope (the fusion mechanism slices 1–6 established) plus its own
+    // `.settings-view` scope, whose Editorial Serif rules live in
+    // public/app-overrides.css. Household and More do NOT use this
+    // shell, so their surfaces stay untouched by this slice.
+    return `<div class="operate-view settings-view"><div class="settings-layout">${settingsNav(active)}<section class="settings-main">${back}${body}</section></div></div>`;
 }
 
 function sectionHeading(kicker, title, description, aside = "") {
@@ -199,7 +204,8 @@ function settingsIndex(data) {
         [
             "/app/settings/account",
             "Account",
-            "Signed in as " + (data.user?.email || "your Munch account"),
+            "Sign-in methods, sign out or delete account · Signed in as " +
+                (data.user?.email || "your Munch account"),
             "Account",
         ],
     ];
@@ -291,11 +297,17 @@ async function billingPage(data, ctx) {
         billingSummary =
             provider === "google_play"
                 ? "Munch Premium · Google Play"
-                : `Munch Premium · ${premiumPrice}/month`;
+                : provider === "apple_app_store"
+                  ? "Munch Premium · App Store"
+                  : `Munch Premium · ${premiumPrice}/month`;
         if (provider === "google_play") {
             detail = status
                 ? `Google Play subscription status: ${status}.`
                 : "Your account currently has Google Play Premium capabilities.";
+        } else if (provider === "apple_app_store") {
+            detail = status
+                ? `App Store subscription status: ${status}.`
+                : "Your account currently has App Store Premium capabilities.";
         } else if (provider === "stripe") {
             detail = status
                 ? `Stripe subscription status: ${status}.`
@@ -304,6 +316,19 @@ async function billingPage(data, ctx) {
             detail = "Your account currently has Premium capabilities.";
         }
     }
+    // Plan state comes from the merged rail-neutral subscription
+    // snapshot (src/billing/subscription-sources.ts) the settings API
+    // already returns — provider, status and period end, whichever
+    // rail owns the subscription.
+    const periodEnd = data.subscription?.currentPeriodEnd
+        ? formatDateTime(data.subscription.currentPeriodEnd)
+        : null;
+    const periodLine =
+        directPremium && periodEnd
+            ? status === "trialing"
+                ? `Trial ends ${periodEnd}.`
+                : `Current period ends ${periodEnd}.`
+            : "";
     const ownerHousehold =
         household?.household?.role === "owner" ? household : null;
     const total = ownerHousehold
@@ -312,9 +337,17 @@ async function billingPage(data, ctx) {
               Number(ownerHousehold.activeNonOwnerCount || 0)
         : policy.premiumPriceMonthlyCents;
     const chargeCard =
-        directPremium && provider !== "google_play"
+        directPremium &&
+        provider !== "google_play" &&
+        provider !== "apple_app_store"
             ? `<div class="billing-price"><span>Current Munch subscription</span><strong>${dollars(total)}<small>/month</small></strong>${ownerHousehold ? `<p>${premiumPrice} Premium + ${ownerHousehold.activeNonOwnerCount} household seat${ownerHousehold.activeNonOwnerCount === 1 ? "" : "s"} × ${seatPrice}.</p>` : `<p>Household members are ${seatPrice}/month each when added.</p>`}</div>`
             : "";
+    // The manage door follows the rail that owns the subscription:
+    // Stripe → the website portal (in the packaged app the button is
+    // labelled as website management and routes OUT — no Stripe
+    // surface ever renders in the app, per the standing commerce
+    // law); Google Play → the Play subscriptions center; App Store →
+    // the App Store subscriptions page.
     const action = androidFree
         ? data.subscription?.provider === "stripe"
             ? `<button class="button button-secondary" data-action="billing-portal">Manage website and connected-client subscription</button>`
@@ -324,7 +357,9 @@ async function billingPage(data, ctx) {
           : directPremium
             ? provider === "google_play"
                 ? `<button class="button button-primary" data-action="billing-play-manage">Manage in Google Play</button>`
-                : `<button class="button button-primary" data-action="billing-portal">Manage billing in Stripe</button>`
+                : provider === "apple_app_store"
+                  ? `<button class="button button-primary" data-action="billing-apple-manage">Manage in the App Store</button>`
+                  : `<button class="button button-primary" data-action="billing-portal">Manage billing in Stripe</button>`
             : `<button class="button button-primary" data-action="billing-checkout">Get Premium — ${premiumPrice}/month</button>`;
     const aiFeaturesGroup = settingGroup(
         "AI features",
@@ -333,7 +368,7 @@ async function billingPage(data, ctx) {
     );
     return settingsShell(
         "settings-billing",
-        `${sectionHeading("Billing", "Plan & billing", androidFree ? "Android access and ads are managed separately from website billing." : "See exactly how your Munch access is funded. Manage payment and cancellation with the provider that owns the active subscription.")}<div class="settings-stack">${settingGroup(androidFree ? "Android access" : "Current plan", detail, `<div class="plan-summary"><div><span>${androidFree ? "Android plan" : "Plan"}</span><strong>${esc(androidFree ? (data.androidEntitlements?.adFree ? "Free · ad-free" : billingSummary) : billingSummary)}</strong></div>${statusPill(householdProvided ? "Household seat" : directPremium ? status || "Premium" : androidFree && data.androidEntitlements?.adFree ? "Ads off" : "Free", directPremium || householdProvided || (androidFree && data.androidEntitlements?.adFree) ? "success" : "neutral")}</div>${androidFree && data.subscription?.provider === "stripe" ? `<p class="settings-note">Your existing Munch Premium subscription remains active for website and connected-client access.</p>` : ""}${chargeCard}<div class="settings-actions">${action}</div>`)}${aiFeaturesGroup}${androidFree ? "" : settingGroup("Household pricing", "Discounted seats are part of a collaborative household, not standalone Premium accounts.", `<div class="pricing-rule"><strong>${premiumPrice}</strong><span>Premium owner</span></div><div class="pricing-rule"><strong>+${seatPrice}</strong><span>per additional active household member</span></div><p class="settings-note">Household recipes, meal plans and grocery lists are shared automatically while a discounted seat is active. Personal meals, water, weight and goals remain private.</p><a class="text-link" href="/app/household">Manage household →</a>`)}</div>`,
+        `${sectionHeading("Billing", "Plan & billing", androidFree ? "Android access and ads are managed separately from website billing." : "See exactly how your Munch access is funded. Manage payment and cancellation with the provider that owns the active subscription.")}<div class="settings-stack">${settingGroup(androidFree ? "Android access" : "Current plan", detail, `<div class="plan-summary"><div><span>${androidFree ? "Android plan" : "Plan"}</span><strong>${esc(androidFree ? (data.androidEntitlements?.adFree ? "Free · ad-free" : billingSummary) : billingSummary)}</strong></div>${statusPill(householdProvided ? "Household seat" : directPremium ? status || "Premium" : androidFree && data.androidEntitlements?.adFree ? "Ads off" : "Free", directPremium || householdProvided || (androidFree && data.androidEntitlements?.adFree) ? "success" : "neutral")}</div>${periodLine ? `<p class="settings-note">${esc(periodLine)}</p>` : ""}${androidFree && data.subscription?.provider === "stripe" ? `<p class="settings-note">Your existing Munch Premium subscription remains active for website and connected-client access. Its billing is managed on the Munch website — the button below takes you there.</p>` : ""}${chargeCard}<div class="settings-actions">${action}</div>`)}${aiFeaturesGroup}${androidFree ? "" : settingGroup("Household pricing", "Discounted seats are part of a collaborative household, not standalone Premium accounts.", `<div class="pricing-rule"><strong>${premiumPrice}</strong><span>Premium owner</span></div><div class="pricing-rule"><strong>+${seatPrice}</strong><span>per additional active household member</span></div><p class="settings-note">Household recipes, meal plans and grocery lists are shared automatically while a discounted seat is active. Personal meals, water, weight and goals remain private.</p><a class="text-link" href="/app/household">Manage household →</a>`)}</div>`,
     );
 }
 
@@ -361,10 +396,94 @@ function dataPage() {
     );
 }
 
+/**
+ * Sign-in methods (Amendment I) — rendered against the merged
+ * backend in src/auth/sign-in-methods.ts (PR #207):
+ * `GET /api/app/sign-in-methods` returns one row per method with a
+ * state of linked / not_linked / not_configured, a masked identity
+ * for linked methods, and removable / canLink flags. The section
+ * renders every state plainly:
+ * - linked → masked identity + Unlink (removable methods only;
+ *   Email link is tied to the account email and is never removable);
+ * - not_linked + configured → a Link button that starts the shipped
+ *   link-mode initiation (PR #198's social helper, via the backend);
+ * - not_configured → an honest "not set up yet" line and NO button —
+ *   never a dead control (Apple reads this way until its envs land;
+ *   PR #210 made it flip by configuration alone).
+ * Refusals from the backend (last-method 409, cross-account
+ * conflict) carry plain-language messages; they are shown in the
+ * section's alert line, never swallowed.
+ */
+function signInMethodRow(method) {
+    const label = esc(method.label || method.id);
+    const identity = method.maskedIdentity
+        ? `<small>${esc(method.maskedIdentity)}</small>`
+        : "";
+    let stateLine = "";
+    let action = "";
+    if (method.state === "linked") {
+        stateLine = method.removable
+            ? "Linked"
+            : "Linked · tied to your account email";
+        action = method.removable
+            ? `<button class="button button-secondary button-small" type="button" data-action="sign-in-method-unlink" data-provider="${esc(method.id)}" data-provider-label="${label}">Unlink</button>`
+            : "";
+    } else if (method.state === "not_configured") {
+        stateLine = "Not set up for Munch yet";
+    } else {
+        stateLine = "Not linked";
+        action = method.canLink
+            ? `<button class="button button-secondary button-small" type="button" data-action="sign-in-method-link" data-provider="${esc(method.id)}" data-provider-label="${label}">Link ${label}</button>`
+            : "";
+    }
+    return `<div class="sign-in-method-row" data-sign-in-method="${esc(method.id)}"><div class="sign-in-method-copy"><strong>${label}</strong>${identity}<small class="sign-in-method-state">${esc(stateLine)}</small></div>${action}</div>`;
+}
+
+function signInMethodsGroup(methods) {
+    return settingGroup(
+        "Sign-in methods",
+        "Every way you can sign in to this one account. Linking is by provider identity, never by matching email addresses, and accounts are never merged silently.",
+        `<div class="sign-in-method-list">${methods.map(signInMethodRow).join("")}</div><p class="settings-inline-alert" data-sign-in-methods-alert role="alert" hidden></p>`,
+    );
+}
+
+function signInMethodsLoadingGroup() {
+    return settingGroup(
+        "Sign-in methods",
+        "Every way you can sign in to this one account. Linking is by provider identity, never by matching email addresses, and accounts are never merged silently.",
+        `<p class="settings-note" data-sign-in-methods-loading>Loading sign-in methods…</p>`,
+    );
+}
+
+function signInMethodsErrorGroup(message) {
+    return settingGroup(
+        "Sign-in methods",
+        "Every way you can sign in to this one account. Linking is by provider identity, never by matching email addresses, and accounts are never merged silently.",
+        `<p class="settings-inline-alert" role="alert">${esc(message || "Sign-in methods could not be loaded.")}</p><div class="settings-actions"><button class="button button-secondary" type="button" data-action="sign-in-methods-retry">Try again</button></div>`,
+    );
+}
+
+/** Fill the Sign-in methods placeholder on the Account page. */
+async function hydrateSignInMethods(ctx) {
+    const host = ctx.content.querySelector("[data-sign-in-methods-host]");
+    if (!host) return;
+    try {
+        const data = await ctx.api("/api/app/sign-in-methods", {
+            keepPrevious: true,
+        });
+        const methods = Array.isArray(data?.methods) ? data.methods : [];
+        host.innerHTML = signInMethodsGroup(methods);
+    } catch (error) {
+        host.innerHTML = signInMethodsErrorGroup(
+            error instanceof Error ? error.message : undefined,
+        );
+    }
+}
+
 function accountPage(data) {
     return settingsShell(
         "settings-account",
-        `${sectionHeading("Account", "Account", "Identity, session controls and permanent account deletion are kept together and clearly separated from everyday preferences.")}<div class="settings-stack">${settingGroup("Signed-in account", "Your email is the identity used for magic-link sign in.", `<div class="account-detail-row"><span>Email</span><strong>${esc(data.user?.email || "Unavailable")}</strong></div><div class="settings-actions"><button class="button button-secondary" data-action="logout">Sign out</button></div>`)}${settingGroup("Danger zone", "Permanent deletion cannot be undone. Paid household owners must dissolve their household first.", `<label class="settings-field"><span>Type DELETE MY MUNCH ACCOUNT to confirm</span><input id="delete-account-confirmation" autocomplete="off" placeholder="DELETE MY MUNCH ACCOUNT"></label><div class="settings-actions"><button class="button button-danger" data-action="account-delete">Permanently delete account</button></div>`, "settings-danger")}</div>`,
+        `${sectionHeading("Account", "Account", "Identity, sign-in methods, session controls and permanent account deletion are kept together and clearly separated from everyday preferences.")}<div class="settings-stack">${settingGroup("Signed-in account", "Your email is the identity used for magic-link sign in.", `<div class="account-detail-row"><span>Email</span><strong>${esc(data.user?.email || "Unavailable")}</strong></div><div class="settings-actions"><button class="button button-secondary" data-action="logout">Sign out</button></div>`)}<div data-sign-in-methods-host>${signInMethodsLoadingGroup()}</div>${settingGroup("Danger zone", "Permanent deletion cannot be undone. Paid household owners must dissolve their household first.", `<label class="settings-field"><span>Type DELETE MY MUNCH ACCOUNT to confirm</span><input id="delete-account-confirmation" autocomplete="off" placeholder="DELETE MY MUNCH ACCOUNT"></label><div class="settings-actions"><button class="button button-danger" data-action="account-delete">Permanently delete account</button></div>`, "settings-danger")}</div>`,
     );
 }
 
@@ -532,8 +651,84 @@ export async function renderAccountRoute(route, ctx) {
     if (route === "settings-connections")
         ctx.content.innerHTML = connectionsPage(data);
     if (route === "settings-data") ctx.content.innerHTML = dataPage(data);
-    if (route === "settings-account") ctx.content.innerHTML = accountPage(data);
+    if (route === "settings-account") {
+        ctx.content.innerHTML = accountPage(data);
+        await hydrateSignInMethods(ctx);
+    }
     hydrateTimezoneSelect();
+}
+
+/**
+ * S6 slice 9 — inline confirmations for this surface's destructive
+ * flows, following slice 1's pattern (slices 3–6 for theirs): the
+ * native window.confirm() is gone from connection revoke, sign-in
+ * method unlink and account deletion. Where a JS-dialog handler is
+ * dismissed or never answers — automated browsers, WebViews without
+ * one — confirm() reads as "no" and the click silently no-ops. The
+ * first click hides the anchor button and an inline themed
+ * confirmation takes its place in the flow; only the confirm click
+ * sends anything; dismissing restores the anchor exactly.
+ */
+function showSettingsInlineConfirm(
+    anchor,
+    {
+        note,
+        confirmLabel,
+        confirmAction,
+        confirmAttrs = {},
+        dismissLabel,
+        insertAfter = null,
+    },
+) {
+    if (!anchor || anchor.dataset.confirmPending) return;
+    anchor.dataset.confirmPending = "true";
+    anchor.style.display = "none";
+    const box = document.createElement("div");
+    box.className = "settings-inline-confirm";
+    // The anchor is restored by the dismiss path even when the box
+    // could not sit directly after it (see the revoke call site).
+    box.__settingsConfirmAnchor = anchor;
+    const noteElement = document.createElement("p");
+    noteElement.className = "settings-inline-note";
+    noteElement.setAttribute("role", "alert");
+    noteElement.textContent = note;
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "button";
+    confirmButton.className = "button button-primary settings-inline-danger";
+    confirmButton.dataset.action = confirmAction;
+    for (const [key, value] of Object.entries(confirmAttrs))
+        confirmButton.dataset[key] = value;
+    confirmButton.textContent = confirmLabel;
+    const dismissButton = document.createElement("button");
+    dismissButton.type = "button";
+    dismissButton.className = "button button-secondary";
+    dismissButton.dataset.action = "dismiss-settings-confirm";
+    dismissButton.textContent = dismissLabel;
+    box.append(noteElement, confirmButton, dismissButton);
+    (insertAfter ?? anchor).insertAdjacentElement("afterend", box);
+    confirmButton.focus();
+}
+
+function dismissSettingsInlineConfirm(button) {
+    const box = button.closest(".settings-inline-confirm");
+    const anchor = box?.__settingsConfirmAnchor ?? box?.previousElementSibling;
+    if (anchor instanceof HTMLElement) {
+        anchor.style.display = "";
+        delete anchor.dataset.confirmPending;
+        anchor.focus();
+    }
+    box?.remove();
+}
+
+/** Surface a backend refusal (or any action error) plainly, in place. */
+function showSettingsAlert(ctx, message) {
+    const alert = ctx.content.querySelector("[data-sign-in-methods-alert]");
+    if (alert) {
+        alert.textContent = message;
+        alert.hidden = false;
+        return true;
+    }
+    return false;
 }
 
 function saveStatus(form, message) {
@@ -712,9 +907,122 @@ export async function handleAccountAction(button, ctx) {
         );
         return true;
     }
+    if (action === "billing-apple-manage") {
+        window.open(
+            "https://apps.apple.com/account/subscriptions",
+            "_blank",
+            "noopener,noreferrer",
+        );
+        return true;
+    }
+    if (action === "dismiss-settings-confirm") {
+        dismissSettingsInlineConfirm(button);
+        return true;
+    }
+    if (action === "sign-in-methods-retry") {
+        await ctx.renderRoute();
+        return true;
+    }
+    if (action === "sign-in-method-link") {
+        const provider = button.dataset.provider || "";
+        const label = button.dataset.providerLabel || provider;
+        button.disabled = true;
+        try {
+            const result = await ctx.api(
+                `/api/app/sign-in-methods/${encodeURIComponent(provider)}/link`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        callbackURL: "/app/settings/account",
+                        errorCallbackURL: "/app/settings/account",
+                    }),
+                    keepPrevious: true,
+                },
+            );
+            if (result?.url) {
+                // Web initiation: hand off to the provider's consent
+                // screen; it returns to the Account page above.
+                location.href = result.url;
+                return true;
+            }
+            // No URL means the link completed in place (the packaged
+            // app's native ID-token path resolves the same way).
+            ctx.toast(`${label} linked.`);
+            await ctx.renderRoute();
+            return true;
+        } catch (error) {
+            // Refusals (conflict, not-configured) are plain-language
+            // backend messages — show the message itself in the
+            // section, never a generic failure and never swallowed.
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : `Linking ${label} failed.`;
+            if (!showSettingsAlert(ctx, message)) ctx.toast(message, "error");
+            return true;
+        } finally {
+            button.disabled = false;
+        }
+    }
+    if (action === "sign-in-method-unlink") {
+        const provider = button.dataset.provider || "";
+        const label = button.dataset.providerLabel || provider;
+        const row = button.closest(".sign-in-method-row");
+        const identity =
+            row?.querySelector(".sign-in-method-copy small")?.textContent || "";
+        showSettingsInlineConfirm(button, {
+            note: `Unlink ${label}${identity ? ` (${identity})` : ""}? You will no longer be able to sign in with ${label} unless you link it again.`,
+            confirmLabel: `Yes, unlink ${label}`,
+            confirmAction: "confirm-sign-in-method-unlink",
+            confirmAttrs: { provider, providerLabel: label },
+            dismissLabel: `Keep ${label}`,
+        });
+        return true;
+    }
+    if (action === "confirm-sign-in-method-unlink") {
+        const provider = button.dataset.provider || "";
+        const label = button.dataset.providerLabel || provider;
+        button.disabled = true;
+        try {
+            await ctx.api(
+                `/api/app/sign-in-methods/${encodeURIComponent(provider)}/unlink`,
+                { method: "POST", body: "{}", keepPrevious: true },
+            );
+            ctx.toast(`${label} unlinked.`);
+            await ctx.renderRoute();
+        } catch (error) {
+            // The backend's guardrail refusals (last sign-in method,
+            // conflict) arrive as plain-language messages. Restore
+            // the section and show the refusal itself in place.
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : `Unlinking ${label} failed.`;
+            await ctx.renderRoute();
+            if (!showSettingsAlert(ctx, message)) ctx.toast(message, "error");
+        }
+        return true;
+    }
     if (action === "connection-revoke") {
         const name = button.dataset.clientName || "this connection";
-        if (!confirm(`Revoke ${name}?`)) return true;
+        showSettingsInlineConfirm(button, {
+            note: `Revoke ${name}? That client will no longer be able to call Munch on your behalf.`,
+            confirmLabel: "Yes, revoke connection",
+            confirmAction: "confirm-connection-revoke",
+            confirmAttrs: {
+                tokenFamilyId: button.dataset.tokenFamilyId || "",
+            },
+            dismissLabel: "Keep connection",
+            // The Revoke button is a grid child of the connection
+            // card; a confirmation inserted after it would be squeezed
+            // into the button's grid column (the slice-7 trap). The
+            // box takes the full width under the card instead.
+            insertAfter: button.closest(".connection-card") ?? button,
+        });
+        return true;
+    }
+    if (action === "confirm-connection-revoke") {
+        button.disabled = true;
         await ctx.api(
             `/api/app/connections/${encodeURIComponent(button.dataset.tokenFamilyId || "")}`,
             { method: "DELETE", keepPrevious: true },
@@ -756,12 +1064,28 @@ export async function handleAccountAction(button, ctx) {
             );
             return true;
         }
-        if (
-            !confirm(
-                "Permanently delete your Munch account and personal data? This cannot be undone.",
-            )
-        )
+        // The typed phrase stays the first gate; the final say is
+        // slice 1's inline confirmation, not the native confirm().
+        showSettingsInlineConfirm(button, {
+            note: "Permanently delete your Munch account and personal data? This cannot be undone.",
+            confirmLabel: "Yes, delete my account",
+            confirmAction: "confirm-account-delete",
+            dismissLabel: "Keep my account",
+        });
+        return true;
+    }
+    if (action === "confirm-account-delete") {
+        const confirmation =
+            document.getElementById("delete-account-confirmation")?.value || "";
+        if (confirmation !== "DELETE MY MUNCH ACCOUNT") {
+            ctx.toast(
+                "Type the confirmation phrase exactly before deleting your account.",
+                "error",
+            );
+            await ctx.renderRoute();
             return true;
+        }
+        button.disabled = true;
         await ctx.api("/account/portal/delete", {
             method: "POST",
             body: JSON.stringify({ confirmation }),

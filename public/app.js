@@ -3361,12 +3361,25 @@ async function handleAction(button) {
         return;
     }
     if (action === "confirm-goal-change") {
+        // S6 slice 9: this button lives on Settings → Nutrition
+        // targets, so its native confirm() follows the same inline
+        // pattern as the rest of the Settings surface (slice 1's
+        // pattern via showInlineConfirm). The preview panel above is
+        // the review; this inline row is the final say — nothing is
+        // committed until "Yes, save targets".
+        if (!state.goalPreview) return;
+        showInlineConfirm(button, {
+            note: "Save these exact target changes?",
+            confirmLabel: "Yes, save targets",
+            confirmAction: "confirm-goal-change-submit",
+            dismissLabel: "Keep reviewing",
+        });
+        return;
+    }
+    if (action === "confirm-goal-change-submit") {
         const preview = state.goalPreview;
-        if (
-            !preview ||
-            !confirm("Confirm and save these exact target changes?")
-        )
-            return;
+        if (!preview) return;
+        button.disabled = true;
         await api("/api/app/guidance/goals/commit", {
             method: "POST",
             body: JSON.stringify({

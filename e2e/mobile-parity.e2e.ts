@@ -64,6 +64,10 @@ const observed: { method: string; path: string }[] = [];
 
 type SettingsVariant = "android-free" | "android-free-stripe";
 type HouseholdVariant = "none" | "owner";
+/** S6 slice 9: sign-in methods fixture states (Amendment I). */
+type SignInMethodsVariant = "default" | "linkable" | "refusal";
+let signInMethodsVariant: SignInMethodsVariant = "default";
+let googleUnlinked = false;
 let settingsVariant: SettingsVariant = "android-free";
 let householdVariant: HouseholdVariant = "none";
 let connectionsFixture: Record<string, unknown>[] = [];
@@ -489,6 +493,77 @@ function settingsFixture() {
     };
 }
 
+/** S6 slice 9: the PR #207 read model, as the Settings section consumes it. */
+function signInMethodsFixture() {
+    const email = {
+        id: "email",
+        label: "Email link",
+        state: "linked",
+        configured: true,
+        maskedIdentity: "p•••@example.test",
+        removable: false,
+        canLink: false,
+    };
+    if (signInMethodsVariant === "linkable") {
+        return {
+            methods: [
+                email,
+                {
+                    id: "google",
+                    label: "Google",
+                    state: "not_linked",
+                    configured: true,
+                    maskedIdentity: null,
+                    removable: false,
+                    canLink: true,
+                },
+                {
+                    id: "apple",
+                    label: "Apple",
+                    state: "not_linked",
+                    configured: true,
+                    maskedIdentity: null,
+                    removable: false,
+                    canLink: true,
+                },
+            ],
+        };
+    }
+    return {
+        methods: [
+            email,
+            googleUnlinked
+                ? {
+                      id: "google",
+                      label: "Google",
+                      state: "not_linked",
+                      configured: true,
+                      maskedIdentity: null,
+                      removable: false,
+                      canLink: true,
+                  }
+                : {
+                      id: "google",
+                      label: "Google",
+                      state: "linked",
+                      configured: true,
+                      maskedIdentity: "a•••@gmail.com",
+                      removable: true,
+                      canLink: false,
+                  },
+            {
+                id: "apple",
+                label: "Apple",
+                state: "not_configured",
+                configured: false,
+                maskedIdentity: null,
+                removable: false,
+                canLink: false,
+            },
+        ],
+    };
+}
+
 function householdFixture() {
     if (householdVariant === "none") {
         return {
@@ -607,6 +682,25 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
         };
     }
     if (pathname === "/api/app/settings") return settingsFixture();
+    if (pathname === "/api/app/sign-in-methods" && method === "GET") {
+        return signInMethodsFixture();
+    }
+    if (
+        pathname === "/api/app/sign-in-methods/google/link" &&
+        method === "POST"
+    ) {
+        return { url: `${baseURL}/provider-consent-fixture`, redirect: true };
+    }
+    if (
+        pathname === "/api/app/sign-in-methods/google/unlink" &&
+        method === "POST"
+    ) {
+        googleUnlinked = true;
+        return { status: true, methods: signInMethodsFixture().methods };
+    }
+    if (pathname === "/account/portal/delete" && method === "POST") {
+        return {};
+    }
     if (pathname === "/api/app/household/manage") return householdFixture();
     if (pathname === "/api/app/meals") return { meals: [], totals: {} };
     if (pathname === "/api/app/foods") {
@@ -869,9 +963,29 @@ test.beforeAll(async () => {
         const method = request.method ?? "GET";
         if (
             url.pathname.startsWith("/api/") ||
-            url.pathname === "/billing/portal"
+            url.pathname === "/billing/portal" ||
+            url.pathname.startsWith("/account/")
         ) {
             observed.push({ method, path: url.pathname });
+            if (
+                method === "POST" &&
+                url.pathname === "/api/app/sign-in-methods/google/unlink" &&
+                signInMethodsVariant === "refusal"
+            ) {
+                // PR #207's last-method guardrail, verbatim shape:
+                // 409 + { error, message } and nothing changes.
+                response.writeHead(409, {
+                    "content-type": "application/json",
+                });
+                response.end(
+                    JSON.stringify({
+                        error: "last_sign_in_method",
+                        message:
+                            "You can't unlink Google — it's the only sign-in method left on this account. Link another sign-in method first, then unlink Google.",
+                    }),
+                );
+                return;
+            }
             if (
                 method === "DELETE" &&
                 url.pathname.startsWith("/api/app/recipes/")
@@ -937,6 +1051,13 @@ test.beforeAll(async () => {
                     'attachment; filename="fixture-export.csv"',
             });
             response.end("fixture,export\n1,2\n");
+            return;
+        }
+        if (url.pathname === "/provider-consent-fixture") {
+            response.writeHead(200, { "content-type": "text/html" });
+            response.end(
+                "<!doctype html><title>Provider consent</title><h1>Provider consent (fixture)</h1>",
+            );
             return;
         }
         if (url.pathname === "/website-portal-fixture") {
@@ -1076,6 +1197,8 @@ function observedRequest(method: string, path: string): boolean {
 
 test.beforeEach(() => {
     observed.length = 0;
+    signInMethodsVariant = "default";
+    googleUnlinked = false;
     settingsVariant = "android-free";
     householdVariant = "none";
     pendingDraftOnToday = false;
@@ -1230,7 +1353,17 @@ test("mcp.connection.revoke works inside the packaged app", async ({
     await expect(page.locator("#app-content")).toContainText(
         "Fixture MCP Client",
     );
+    // S6 slice 9: revoke asks inline first (slice 1's pattern) — the
+    // first click sends nothing; the inline confirm revokes.
     await page.locator('[data-action="connection-revoke"]').click();
+    const confirmRevoke = page.locator(
+        '[data-action="confirm-connection-revoke"]',
+    );
+    await expect(confirmRevoke).toBeVisible();
+    expect(
+        observedRequest("DELETE", "/api/app/connections/fixture-family-1"),
+    ).toBe(false);
+    await confirmRevoke.click();
     await expect(page.locator("#app-content")).toContainText(
         "No active connections",
     );
@@ -1312,6 +1445,170 @@ test("billing rows route honestly from the packaged app", async ({ page }) => {
     await portalButton.click();
     await expect(page).toHaveURL(/\/website-portal-fixture/);
     expect(observedRequest("POST", "/billing/portal")).toBe(true);
+});
+
+test("S6 slice 9: Settings is themed, sign-in methods render every state, no ad slot", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/settings");
+    await expect(page.locator(".operate-view.settings-view")).toHaveCount(1);
+    await expect(page.locator("#app-content")).toContainText(
+        "Profile & preferences",
+    );
+    await expect(page.locator("#app-content")).toContainText("Plan & billing");
+
+    // Profile carries the fused surface's preference controls.
+    await gotoRoute(page, "/app/settings/profile");
+    await expect(page.locator(".operate-view.settings-view")).toHaveCount(1);
+    await expect(page.locator("#settings-timezone")).toBeVisible();
+    await expect(
+        page.locator('input[name="preferred_weight_unit"][value="lb"]'),
+    ).toBeChecked();
+
+    // Sign-in methods (Amendment I, PR #207 backend): Email linked
+    // and never removable; Google linked with masked identity +
+    // Unlink; Apple not-yet-configured — an honest line, no button.
+    await gotoRoute(page, "/app/settings/account");
+    const emailRow = page.locator('[data-sign-in-method="email"]');
+    await expect(emailRow).toContainText("p•••@example.test");
+    await expect(emailRow.locator("button")).toHaveCount(0);
+    const googleRow = page.locator('[data-sign-in-method="google"]');
+    await expect(googleRow).toContainText("a•••@gmail.com");
+    await expect(
+        googleRow.locator('[data-action="sign-in-method-unlink"]'),
+    ).toBeVisible();
+    const appleRow = page.locator('[data-sign-in-method="apple"]');
+    await expect(appleRow).toContainText("Not set up for Munch yet");
+    await expect(appleRow.locator("button")).toHaveCount(0);
+    expect(observedRequest("GET", "/api/app/sign-in-methods")).toBe(true);
+
+    // No ad slot on Settings — not with the flag off, not with it on.
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    adsFlagOn = true;
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await gotoRoute(page, "/app/settings/account");
+    await expect(page.locator('[data-sign-in-method="google"]')).toContainText(
+        "a•••@gmail.com",
+    );
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+});
+
+test("S6 slice 9: linkable sign-in methods start the link flow", async ({
+    page,
+}) => {
+    signInMethodsVariant = "linkable";
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/settings/account");
+    const googleRow = page.locator('[data-sign-in-method="google"]');
+    await expect(googleRow).toContainText("Not linked");
+    await expect(
+        page.locator(
+            '[data-sign-in-method="apple"] [data-action="sign-in-method-link"]',
+        ),
+    ).toBeVisible();
+    await googleRow.locator('[data-action="sign-in-method-link"]').click();
+    expect(
+        observedRequest("POST", "/api/app/sign-in-methods/google/link"),
+    ).toBe(true);
+    // Initiation hands off to the provider consent URL it returned.
+    await expect(page).toHaveURL(/\/provider-consent-fixture/);
+});
+
+test("S6 slice 9 regression: unlink and account deletion use inline confirmation with no native confirm", async ({
+    page,
+}) => {
+    // Dialog-dismissing regression (slices 1/3–6 pattern): every
+    // native dialog is recorded AND dismissed, so all three flows
+    // must complete entirely through in-page UI — on the old code
+    // (native confirm gates) they fail twice over.
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    await bootPackagedApp(page);
+
+    // Unlink: first click only asks; dismiss restores; confirm posts.
+    await gotoRoute(page, "/app/settings/account");
+    const googleRow = page.locator('[data-sign-in-method="google"]');
+    const unlink = googleRow.locator('[data-action="sign-in-method-unlink"]');
+    await unlink.click();
+    const confirmUnlink = page.locator(
+        '[data-action="confirm-sign-in-method-unlink"]',
+    );
+    await expect(confirmUnlink).toBeVisible();
+    await expect(
+        page.getByText("Unlink Google (a•••@gmail.com)?"),
+    ).toBeVisible();
+    expect(
+        observedRequest("POST", "/api/app/sign-in-methods/google/unlink"),
+    ).toBe(false);
+    expect(nativeDialogs).toEqual([]);
+    await page.locator('[data-action="dismiss-settings-confirm"]').click();
+    await expect(unlink).toBeVisible();
+    expect(
+        observedRequest("POST", "/api/app/sign-in-methods/google/unlink"),
+    ).toBe(false);
+    await unlink.click();
+    await confirmUnlink.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Google unlinked.",
+    );
+    expect(
+        observedRequest("POST", "/api/app/sign-in-methods/google/unlink"),
+    ).toBe(true);
+    await expect(googleRow).toContainText("Not linked");
+    await expect(
+        googleRow.locator('[data-action="sign-in-method-link"]'),
+    ).toBeVisible();
+    expect(nativeDialogs).toEqual([]);
+
+    // Account deletion: the typed phrase stays the first gate, the
+    // inline confirmation is the final say — nothing posts before it.
+    await page
+        .locator("#delete-account-confirmation")
+        .fill("DELETE MY MUNCH ACCOUNT");
+    const deleteButton = page.locator('[data-action="account-delete"]');
+    await deleteButton.click();
+    const confirmDelete = page.locator(
+        '[data-action="confirm-account-delete"]',
+    );
+    await expect(confirmDelete).toBeVisible();
+    expect(observedRequest("POST", "/account/portal/delete")).toBe(false);
+    await page.locator('[data-action="dismiss-settings-confirm"]').click();
+    await expect(deleteButton).toBeVisible();
+    expect(observedRequest("POST", "/account/portal/delete")).toBe(false);
+    await deleteButton.click();
+    await confirmDelete.click();
+    await expect
+        .poll(() => observedRequest("POST", "/account/portal/delete"))
+        .toBe(true);
+    await expect(page).toHaveURL(/deleted=1/);
+    expect(nativeDialogs).toEqual([]);
+});
+
+test("S6 slice 9: the last-method unlink refusal surfaces plainly in the UI", async ({
+    page,
+}) => {
+    signInMethodsVariant = "refusal";
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/settings/account");
+    const googleRow = page.locator('[data-sign-in-method="google"]');
+    await googleRow.locator('[data-action="sign-in-method-unlink"]').click();
+    await page.locator('[data-action="confirm-sign-in-method-unlink"]').click();
+    // The backend's 409 message itself is shown in the section —
+    // not swallowed, not replaced with a generic failure — and the
+    // method stays linked.
+    const alert = page.locator("[data-sign-in-methods-alert]");
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText("only sign-in method left");
+    await expect(alert).toContainText("Link another sign-in method first");
+    await expect(googleRow).toContainText("a•••@gmail.com");
+    await expect(
+        googleRow.locator('[data-action="sign-in-method-unlink"]'),
+    ).toBeVisible();
 });
 
 test("meal.photoLog runs end to end in the packaged bundle", async ({

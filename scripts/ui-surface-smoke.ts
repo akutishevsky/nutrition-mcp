@@ -554,6 +554,60 @@ if (accountModule.includes("Advanced account controls")) {
     );
 }
 
+// S6 slice 9 (Settings fusion): the Settings routes render inside
+// the shared .operate-view scope plus .settings-view, the Sign-in
+// methods section (Amendment I) consumes PR #207's backend, and this
+// surface's destructive flows (connection revoke, sign-in method
+// unlink, account deletion, goal-change commit) use slice 1's inline
+// confirmation — never the native confirm. (Household's confirm()
+// calls live in the same module but belong to slice 8's surface and
+// are deliberately not pinned here.)
+for (const pin of [
+    "operate-view settings-view",
+    "Sign-in methods",
+    "/api/app/sign-in-methods",
+    "sign-in-method-link",
+    "sign-in-method-unlink",
+    "confirm-sign-in-method-unlink",
+    "confirm-connection-revoke",
+    "confirm-account-delete",
+    "dismiss-settings-confirm",
+    "showSettingsInlineConfirm",
+    "billing-apple-manage",
+]) {
+    if (!accountModule.includes(pin)) {
+        throw new Error(`Settings fusion is missing its pin: ${pin}`);
+    }
+}
+for (const stale of [
+    "if (!confirm(`Revoke ${name}?`))",
+    '!confirm(\n                "Permanently delete your Munch account and personal data? This cannot be undone."',
+]) {
+    if (accountModule.includes(stale)) {
+        throw new Error(
+            `Settings still gates a destructive flow on the native confirm(): ${stale}`,
+        );
+    }
+}
+if (
+    appSource.includes(
+        'confirm("Confirm and save these exact target changes?")',
+    )
+) {
+    throw new Error(
+        "Goal-change commit still gates on the native confirm() dialog",
+    );
+}
+for (const pin of [
+    ".settings-view .settings-group",
+    ".settings-view .sign-in-method-row",
+    ".settings-inline-confirm",
+]) {
+    if (!appOverridesSource.includes(pin)) {
+        throw new Error(`Settings fusion styles are missing: ${pin}`);
+    }
+}
+
 const accountCss = await Bun.file("public/account-settings.css").text();
 for (const responsiveRule of [
     "@media (max-width: 980px)",
