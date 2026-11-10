@@ -454,6 +454,32 @@ for (const pin of [
     }
 }
 
+// S6 slice 5 (Cooks fusion): the list renders inside the shared
+// .operate-view Editorial Serif scope, delete + finish use slice 1's
+// inline confirmation (never the native confirm), and the surface
+// carries no ad markup (the app's only ad slot is on Today).
+for (const pin of [
+    "operate-view cooks-view",
+    'data-action="confirm-delete-cook"',
+    'data-action="confirm-finish-cook"',
+    'data-action="dismiss-cook-confirm"',
+    "cook-panel",
+]) {
+    if (!appSource.includes(pin)) {
+        throw new Error(`Cooks fusion is missing its pin: ${pin}`);
+    }
+}
+if (
+    appSource.includes(
+        '!confirm(\n                "Delete this cook, its timeline, results, and saved photos? This cannot be undone."',
+    )
+) {
+    throw new Error("Cook delete still gates on the native confirm() dialog");
+}
+if (!appOverridesSource.includes(".cooks-view .cook-panel")) {
+    throw new Error("Cooks fusion styles are missing from app-overrides.css");
+}
+
 const appHtml = await Bun.file("public/app.html").text();
 for (const route of [
     "/app/log",
