@@ -145,6 +145,25 @@ if (!signIn.ok) {
 }
 const cookie = cookieFrom(signIn);
 
+// Amendment D (2026-11-09): MCP access is a Premium entitlement, so this
+// end-to-end OAuth + MCP flow needs a Premium fixture user. Grant the
+// smoke user a short-lived reviewer premium override (the same mechanism
+// reviewer accounts use) before it reaches consent; without it the
+// consent page correctly refuses the connection and every MCP call 403s.
+const signInBody = (await signIn.clone().json()) as {
+    user?: { id?: string };
+};
+if (!signInBody.user?.id) {
+    throw new Error("Sign-in returned no user id for the premium fixture");
+}
+const { grantPremiumOverride } = await import("../src/billing/override.js");
+await grantPremiumOverride({
+    userId: signInBody.user.id,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+    source: "reviewer",
+    reason: "browser OAuth smoke premium fixture",
+});
+
 const redirectUri = "https://client.example/callback";
 const resource = "https://munch.example/mcp";
 const registration = await app.request(

@@ -188,4 +188,32 @@ describe("OAuth consent Premium statement", () => {
         expect(source).not.toContain("createCheckoutForUser");
         expect(source).not.toContain("checkout-service");
     });
+
+    test("(c2) the consent screen carries the Editorial Serif house theme (Amendment F)", async () => {
+        const source = await Bun.file(
+            new URL("./auth/connect-routes.ts", import.meta.url),
+        ).text();
+        // Before Amendment F the connect shell loaded public/styles.css —
+        // the flagship flow's one unthemed stop. It now loads the same
+        // editorial.css as the homepage and /connect (PR #181 mechanism).
+        expect(source).toContain(
+            '<link rel="stylesheet" href="/editorial.css">',
+        );
+        expect(source).not.toContain(
+            '<link rel="stylesheet" href="/styles.css">',
+        );
+        const editorial = await Bun.file(
+            new URL("../public/editorial.css", import.meta.url),
+        ).text();
+        for (const selector of [
+            ".auth-card",
+            ".consent-account",
+            ".consent-scope-list",
+            ".consent-actions",
+        ]) {
+            expect(editorial).toContain(selector);
+        }
+        expect(editorial).toContain("--paper: #f6f1e7");
+        expect(editorial).toContain("--serif: Georgia");
+    });
 });

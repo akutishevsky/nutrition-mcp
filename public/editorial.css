@@ -4,8 +4,11 @@
  * ~/workspace/munch-prep/homepage-connect/direction-contract.md
  * The quiet letter: warm paper, Georgia display type, hairline rules,
  * no cards, restrained green button, marginalia-style notes.
- * This stylesheet is loaded ONLY by public/index.html and
- * public/connect.html; every other surface keeps public/styles.css.
+ * This stylesheet is loaded by public/index.html, public/connect.html,
+ * and — since Amendment F (2026-11-09, every screen carries the house
+ * theme) — the OAuth connect/consent surfaces rendered by
+ * src/auth/connect-routes.ts (sign-in, email-link, confirm, consent,
+ * error). Other surfaces keep public/styles.css.
  */
 
 *,
@@ -889,4 +892,228 @@ code {
     .skip-link {
         transition: none;
     }
+}
+
+/* ---------- OAuth connect & consent surfaces (Amendment F) ----------
+ * The server-rendered connect flow (src/auth/connect-routes.ts) shares
+ * this theme with the homepage and /connect: same paper, Georgia display
+ * type, hairline rules, and restrained green. Before Amendment F these
+ * screens loaded public/styles.css and were the flagship flow's one
+ * unthemed stop. Class names match the shell markup so the flow's
+ * structure and behaviour are unchanged — only the theme moved. */
+
+.auth-page {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 24px 16px;
+}
+
+.auth-main {
+    width: min(100%, 520px);
+}
+
+.auth-card {
+    background: var(--paper-card);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: clamp(26px, 6vw, 42px);
+}
+
+.auth-card h1 {
+    font-size: 32px;
+    margin-top: 10px;
+}
+
+.auth-card > p:not(.section-kicker) {
+    color: var(--ink-soft);
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.brand:hover {
+    text-decoration: none;
+    color: var(--green);
+}
+
+.brand-logo {
+    width: 34px;
+    height: 34px;
+}
+
+.section-kicker {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin: 0;
+}
+
+.spacer-top {
+    margin-top: 22px;
+}
+
+.auth-form {
+    display: grid;
+    gap: 17px;
+    margin-top: 24px;
+}
+
+.field {
+    display: grid;
+    gap: 6px;
+}
+
+.field > span {
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.field input {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--ink);
+    padding: 11px 13px;
+    font: inherit;
+    font-size: 16px;
+}
+
+.field input:focus {
+    border-color: var(--green);
+    outline: 3px solid var(--green-tint);
+    outline-offset: 1px;
+}
+
+.button {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 22px;
+    background: var(--green);
+    color: #fff;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.button:hover {
+    background: var(--green-deep);
+    text-decoration: none;
+}
+
+.button:disabled,
+.button[aria-busy="true"] {
+    cursor: progress;
+    opacity: 0.6;
+}
+
+.button-primary {
+    background: var(--green);
+    color: #fff;
+}
+
+.button-primary:hover {
+    background: var(--green-deep);
+    color: #fff;
+}
+
+.button-quiet {
+    background: transparent;
+    border-color: var(--rule);
+    color: var(--ink);
+}
+
+.button-quiet:hover {
+    background: var(--paper-card);
+    color: var(--green);
+}
+
+.auth-footnote {
+    margin-top: 20px;
+    color: var(--ink-mute);
+    font-size: 13px;
+}
+
+.auth-actions,
+.consent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.auth-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 22px;
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    background: var(--green-tint);
+    padding: 14px;
+    color: var(--green-deep);
+}
+
+.consent-account {
+    display: grid;
+    gap: 4px;
+    margin: 20px 0 14px;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    padding: 13px 0;
+}
+
+.consent-account span {
+    color: var(--ink-mute);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.consent-account strong {
+    color: var(--ink);
+    overflow-wrap: anywhere;
+}
+
+.consent-scope-list {
+    display: grid;
+    gap: 0;
+    margin: 22px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.consent-scope-list li {
+    display: grid;
+    gap: 3px;
+    border-top: 1px solid var(--hairline);
+    padding: 13px 0;
+}
+
+.consent-scope-list li:last-child {
+    border-bottom: 1px solid var(--hairline);
+}
+
+.consent-scope-list span {
+    color: var(--ink-soft);
+    font-size: 14px;
 }
