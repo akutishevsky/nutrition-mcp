@@ -4,8 +4,10 @@
  * ~/workspace/munch-prep/homepage-connect/direction-contract.md
  * The quiet letter: warm paper, Georgia display type, hairline rules,
  * no cards, restrained green button, marginalia-style notes.
- * This stylesheet is loaded ONLY by public/index.html and
- * public/connect.html; every other surface keeps public/styles.css.
+ * This stylesheet is loaded by the public pages: public/index.html,
+ * public/connect.html, the six public legal/info pages (privacy, terms,
+ * tools, help, security, open-source) and public/not-found.html. Signed-in
+ * surfaces keep public/styles.css.
  */
 
 *,
@@ -888,5 +890,391 @@ code {
 
     .skip-link {
         transition: none;
+    }
+}
+
+/* ---------- Public info & legal pages ----------
+ * The legal/info pages (privacy, terms, tools, help, security,
+ * open-source) keep their long-standing class names; this section voices
+ * those classes in the same Editorial Serif grammar as the flagship
+ * pages above — paper ground, Georgia display type, hairline rules,
+ * restrained green — so every public page is one site. */
+
+.container {
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.site-header {
+    border-bottom: 1px solid var(--hairline);
+}
+
+.nav-inner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    flex: 0 0 auto;
+    text-decoration: none;
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.brand-logo {
+    width: 40px;
+    height: 40px;
+}
+
+.nav-links {
+    margin-left: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+}
+
+.nav-links a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 10px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+}
+
+.nav-links a:hover {
+    color: var(--green);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.button {
+    min-height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 22px;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.button:hover {
+    background: var(--paper-card);
+    color: var(--green);
+    text-decoration: none;
+}
+
+.button-primary {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+}
+
+.button-primary:hover {
+    background: var(--green-deep);
+    color: #fff;
+}
+
+.nav-links a.button-primary {
+    color: #fff;
+}
+
+.nav-links a.button-primary:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
+.button-small {
+    min-height: 44px;
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.site-footer {
+    margin-top: 24px;
+    padding: 26px 0 20px;
+    border-top: 1px solid var(--hairline);
+    color: var(--ink-mute);
+    font-size: 14px;
+}
+
+.footer-grid {
+    display: grid;
+    gap: 18px;
+}
+
+.footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.footer-links a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 10px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+.footer-note {
+    margin-top: 10px;
+    max-width: 52ch;
+}
+
+.legal-hero,
+.tools-hero {
+    padding: 32px 0 4px;
+}
+
+.section-kicker {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin: 0;
+}
+
+.section-copy {
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 62ch;
+}
+
+.tiny {
+    font-size: 13px;
+    color: var(--ink-mute);
+}
+
+.spacer-top {
+    margin-top: 14px;
+}
+
+.legal-layout {
+    display: grid;
+    gap: 8px 40px;
+    align-items: start;
+    padding-top: 28px;
+    padding-bottom: 40px;
+}
+
+.legal-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 12px;
+}
+
+.legal-nav a {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-top: 1px solid var(--hairline);
+}
+
+.legal-nav a:hover {
+    color: var(--green);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.legal-content {
+    min-width: 0;
+}
+
+.legal-content section + section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--hairline);
+}
+
+.legal-content p,
+.legal-content ul,
+.legal-content ol {
+    color: var(--ink-soft);
+}
+
+.legal-content ul,
+.legal-content ol {
+    margin: 0 0 12px;
+    padding-left: 22px;
+}
+
+.legal-content li {
+    margin: 6px 0;
+}
+
+.notice {
+    border: 1px solid var(--hairline);
+    border-left: 3px solid var(--green);
+    background: var(--paper-card);
+    padding: 16px 18px;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+}
+
+.tool-groups {
+    padding-bottom: 40px;
+}
+
+.tool-group {
+    display: grid;
+    gap: 4px 28px;
+    border-top: 1px solid var(--hairline);
+    padding: 24px 0 8px;
+}
+
+.tool-list {
+    display: grid;
+}
+
+.tool-item {
+    display: grid;
+    gap: 2px;
+    padding: 12px 0;
+    border-top: 1px solid var(--hairline);
+}
+
+.tool-item:first-child {
+    border-top: 0;
+    padding-top: 4px;
+}
+
+.tool-item code {
+    font-size: 15px;
+    color: var(--ink);
+}
+
+.tool-item span {
+    font-size: 14px;
+    color: var(--ink-mute);
+}
+
+.section {
+    padding: 32px 0 8px;
+}
+
+.capability-grid {
+    display: grid;
+    gap: 4px 28px;
+    padding-bottom: 32px;
+}
+
+.capability-card {
+    border-top: 1px solid var(--hairline);
+    padding: 18px 0 10px;
+}
+
+.capability-icon {
+    display: block;
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--green);
+    margin-bottom: 4px;
+}
+
+.text-link {
+    font-weight: 600;
+}
+
+@media (min-width: 760px) {
+    .footer-grid {
+        grid-template-columns: 2fr 1fr;
+    }
+
+    .legal-layout {
+        grid-template-columns: 200px minmax(0, 1fr);
+    }
+
+    .legal-nav {
+        grid-template-columns: 1fr;
+        position: sticky;
+        top: 16px;
+    }
+
+    .tool-group {
+        grid-template-columns: 1fr 2fr;
+    }
+
+    .capability-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 759px) {
+    .nav-inner {
+        flex-wrap: nowrap;
+        padding-left: 16px;
+        padding-right: 8px;
+    }
+
+    .nav-links {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+        margin-left: 4px;
+        min-width: 0;
+    }
+
+    .nav-links::-webkit-scrollbar {
+        display: none;
+    }
+
+    .nav-links a {
+        white-space: nowrap;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .brand {
+        font-size: 20px;
+    }
+
+    .brand-logo {
+        width: 34px;
+        height: 34px;
+    }
+
+    .legal-hero,
+    .tools-hero {
+        padding-top: 22px;
+    }
+
+    .section-copy {
+        font-size: 17px;
     }
 }

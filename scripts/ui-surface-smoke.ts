@@ -10,7 +10,6 @@ const requiredFiles = [
     "public/app-patches.js",
     "public/weight-display.js",
     "public/help.html",
-    "public/help-connect.html",
     "public/security.html",
     "public/security.txt",
     "public/open-source.html",
@@ -90,7 +89,6 @@ if (!robots.includes("Sitemap: https://munch.business/sitemap.xml")) {
 }
 
 const authSurfaces = [
-    "public/help-connect.html",
     "src/auth/connect-routes.ts",
     "src/auth/email.ts",
     "src/auth/password-routes.ts",
