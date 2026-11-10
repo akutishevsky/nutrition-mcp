@@ -439,6 +439,43 @@ if (!appOverridesSource.includes(".cooks-view .cook-panel")) {
     throw new Error("Cooks fusion styles are missing from app-overrides.css");
 }
 
+// S6 slice 7 (Insights fusion): the surface renders inside the shared
+// .operate-view Editorial Serif scope as rule-row panels, the weekly
+// check-in request stays windowed to the last 7 days (PR #184 — the
+// route rejects wider ranges), water/weight deletes use slice 1's
+// inline confirmation (never the native confirm), and the surface
+// carries no ad markup (the Insights banner is retired — the app's
+// only ad slot is on Today, final ad law).
+for (const pin of [
+    "operate-view insights-view",
+    'data-action="confirm-delete-${kind}"',
+    'action === "confirm-delete-water"',
+    'action === "confirm-delete-weight"',
+    'data-action="dismiss-delete-vital"',
+    "insight-rule",
+    "insights-spark",
+    "shiftDate(end, -6)",
+]) {
+    if (!appSource.includes(pin)) {
+        throw new Error(`Insights fusion is missing its pin: ${pin}`);
+    }
+}
+for (const stale of [
+    'confirm("Permanently delete this water entry?")',
+    'confirm("Permanently delete this weight entry?")',
+]) {
+    if (appSource.includes(stale)) {
+        throw new Error(
+            `Insights still gates a destructive flow on the native confirm(): ${stale}`,
+        );
+    }
+}
+if (!appOverridesSource.includes(".insights-view .insight-rule")) {
+    throw new Error(
+        "Insights fusion styles are missing from app-overrides.css",
+    );
+}
+
 const appHtml = await Bun.file("public/app.html").text();
 for (const route of [
     "/app/log",

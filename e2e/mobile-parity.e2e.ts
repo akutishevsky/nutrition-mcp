@@ -60,7 +60,7 @@ let server: Server;
 let baseURL: string;
 
 /** Every API request the packaged app made, in order. */
-const observed: { method: string; path: string }[] = [];
+const observed: { method: string; path: string; search: string }[] = [];
 
 type SettingsVariant = "android-free" | "android-free-stripe";
 type HouseholdVariant = "none" | "owner";
@@ -73,6 +73,8 @@ let pendingDraftOnToday = false;
 let adsFlagOn = false;
 /** S6 slice 4: the fixture salmon recipe, removed by an archive. */
 let recipeArchived = false;
+/** S6 slice 7: vitals entries removed by the inline-confirm flows. */
+const vitalsRemovedIds = new Set<string>();
 /** S6 slice 5: the fixture active cook, finished / deleted in tests. */
 let cookFinished = false;
 let cookDeleted = false;
@@ -695,28 +697,188 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
         return {};
     }
     if (pathname === "/api/app/insights") {
+        // S6 slice 7: rich fixture modeled on the tightened mock
+        // (selected/src/insights/theme4-tight.html) — 6 logged days,
+        // 23 meals, the mock's averages, sources and contributors.
+        const waterEntries = [
+            {
+                id: "fixture-water-1",
+                amount_ml: 500,
+                logged_at: "2026-11-09T08:15:00.000Z",
+                loggedOn: "2026-11-09",
+                notes: "",
+            },
+            {
+                id: "fixture-water-2",
+                amount_ml: 750,
+                logged_at: "2026-11-09T12:30:00.000Z",
+                loggedOn: "2026-11-09",
+                notes: "With lunch",
+            },
+        ].filter((entry) => !vitalsRemovedIds.has(entry.id));
+        const weightEntries = [
+            {
+                id: "fixture-weight-1",
+                value: 182.4,
+                unit: "lb",
+                logged_at: "2026-11-09T07:00:00.000Z",
+                loggedOn: "2026-11-09",
+                notes: "",
+            },
+        ].filter((entry) => !vitalsRemovedIds.has(entry.id));
         return {
-            vitals: { water: { entries: [] }, weight: { entries: [] } },
-            trends: { days: [], narrative: "" },
-            patterns: { narrative: "" },
-            progress: { goals: {}, totals: {} },
-            provenance: { coverage: {}, confidence: {}, sources: [] },
-            averages: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
-            loggedDays: 0,
-            mealCount: 0,
+            vitals: {
+                water: { totalMl: 11250, entries: waterEntries },
+                weight: {
+                    unit: "lb",
+                    target: 175,
+                    narrative:
+                        "Recorded measurements only — the trend follows the weigh-ins in range.",
+                    days: [
+                        { date: "2026-11-03", weight: 184.1 },
+                        { date: "2026-11-05", weight: 183.6 },
+                        { date: "2026-11-07", weight: 183 },
+                        { date: "2026-11-09", weight: 182.4 },
+                    ],
+                    entries: weightEntries,
+                },
+            },
+            trends: {
+                days: [
+                    {
+                        date: "2026-11-03",
+                        totals: { calories: 2010 },
+                        hasLog: true,
+                    },
+                    {
+                        date: "2026-11-04",
+                        totals: { calories: 1885 },
+                        hasLog: true,
+                    },
+                    {
+                        date: "2026-11-05",
+                        totals: { calories: 2140 },
+                        hasLog: true,
+                    },
+                    {
+                        date: "2026-11-06",
+                        totals: { calories: 0 },
+                        hasLog: false,
+                    },
+                    {
+                        date: "2026-11-07",
+                        totals: { calories: 1995 },
+                        hasLog: true,
+                    },
+                    {
+                        date: "2026-11-08",
+                        totals: { calories: 2050 },
+                        hasLog: true,
+                    },
+                    {
+                        date: "2026-11-09",
+                        totals: { calories: 1660 },
+                        hasLog: true,
+                    },
+                ],
+                narrative:
+                    "Recorded calories averaged 1,940 kcal across the 6 logged days, against a 2,200 kcal goal. Protein averaged 128 g against a 150 g goal. Thursday has no logged meals, so that day is unknown — it is not counted as zero anywhere in this view.",
+            },
+            patterns: {
+                narrative:
+                    "Lunch is your most consistently logged meal (7 of 7 days). Snacks appear on 4 of 7 days. These are observations about your records, nothing more.",
+            },
+            progress: {
+                date: "2026-11-09",
+                totals: {
+                    calories: 1660,
+                    proteinG: 110,
+                    carbsG: 180,
+                    fatG: 55,
+                    waterMl: 1750,
+                },
+                mealCount: 3,
+                goals: {
+                    daily_calories: 2200,
+                    daily_protein_g: 150,
+                    daily_carbs_g: 250,
+                    daily_fat_g: 70,
+                    daily_water_ml: 2500,
+                },
+                weight: {
+                    current: 182.4,
+                    target: 175,
+                    unit: "lb",
+                    loggedOn: "2026-11-09",
+                },
+            },
+            provenance: {
+                coverage: {
+                    itemizedCaloriePercent: 96,
+                    itemCount: 62,
+                    structuredMealCount: 23,
+                    legacyMealCount: 0,
+                },
+                confidence: { recordedItemCount: 62, average: 0.91 },
+                sources: [
+                    {
+                        source: "USDA",
+                        itemCount: 42,
+                        percentOfItems: 68,
+                        calories: 8940,
+                    },
+                    {
+                        source: "Open Food Facts",
+                        itemCount: 14,
+                        percentOfItems: 23,
+                        calories: 2410,
+                    },
+                    {
+                        source: "Package label",
+                        itemCount: 6,
+                        percentOfItems: 9,
+                        calories: 1240,
+                    },
+                ],
+                contributors: {
+                    calories: [
+                        {
+                            name: "Grilled chicken breast",
+                            value: 1240,
+                            source: "USDA",
+                        },
+                        {
+                            name: "Atlantic salmon fillet",
+                            value: 1062,
+                            source: "USDA",
+                        },
+                        {
+                            name: "Peanut butter",
+                            value: 752,
+                            source: "Package label",
+                        },
+                    ],
+                },
+            },
+            averages: { calories: 1940, proteinG: 128, carbsG: 205, fatG: 68 },
+            loggedDays: 6,
+            mealCount: 23,
         };
     }
     if (pathname === "/api/app/insights/checkin") {
         return {
-            coverage_percent: 0,
+            coverage_percent: 86,
             calendar_days: 7,
-            nutrition_target_coverage_days: 0,
+            nutrition_target_coverage_days: 6,
             averages_on_recorded_days: {
-                calories: { value: null },
-                protein_g: { average: null },
+                calories: { value: 1940 },
+                protein_g: { average: 128 },
             },
-            uncertain_nutrition_meals: 0,
-            observations: [],
+            uncertain_nutrition_meals: 2,
+            observations: [
+                "Six of the last seven days have recorded nutrition.",
+                "Two meals in this week carry uncertain nutrition.",
+            ],
         };
     }
     if (pathname === "/api/app/food-search") {
@@ -802,7 +964,7 @@ test.beforeAll(async () => {
             url.pathname.startsWith("/api/") ||
             url.pathname === "/billing/portal"
         ) {
-            observed.push({ method, path: url.pathname });
+            observed.push({ method, path: url.pathname, search: url.search });
             if (
                 method === "DELETE" &&
                 url.pathname.startsWith("/api/app/recipes/")
@@ -817,6 +979,18 @@ test.beforeAll(async () => {
                 url.pathname.startsWith("/api/app/cooks/")
             ) {
                 cookDeleted = true;
+                response.writeHead(200, { "content-type": "application/json" });
+                response.end("{}");
+                return;
+            }
+            if (
+                method === "DELETE" &&
+                (url.pathname.startsWith("/api/app/water/") ||
+                    url.pathname.startsWith("/api/app/weight/"))
+            ) {
+                vitalsRemovedIds.add(
+                    decodeURIComponent(url.pathname.split("/").at(-1) ?? ""),
+                );
                 response.writeHead(200, { "content-type": "application/json" });
                 response.end("{}");
                 return;
@@ -839,7 +1013,7 @@ test.beforeAll(async () => {
             return;
         }
         if (url.pathname === "/exports/download") {
-            observed.push({ method, path: url.pathname });
+            observed.push({ method, path: url.pathname, search: url.search });
             response.writeHead(200, {
                 "content-type": "text/csv; charset=utf-8",
                 "content-disposition":
@@ -992,6 +1166,7 @@ test.beforeEach(() => {
     recipeArchived = false;
     cookFinished = false;
     cookDeleted = false;
+    vitalsRemovedIds.clear();
     connectionsFixture = [
         {
             clientName: "Fixture MCP Client",
@@ -1902,5 +2077,171 @@ test("S6 slice 5 regression: Finish and Delete cooks use inline confirmation wit
     await expect(page.locator("#app-dialog")).not.toHaveAttribute("open");
     await expect(page.locator(".cook-panel")).toHaveCount(3);
     await expect(activePanel).toHaveCount(0);
+    expect(nativeDialogs).toEqual([]);
+});
+
+function observedSearch(method: string, path: string): URLSearchParams {
+    const entry = [...observed]
+        .reverse()
+        .find((item) => item.method === method && item.path === path);
+    if (!entry) throw new Error(`No observed ${method} ${path}`);
+    return new URLSearchParams(entry.search);
+}
+
+function daySpan(params: URLSearchParams): number {
+    const start = new Date(`${params.get("start")}T12:00:00Z`).getTime();
+    const end = new Date(`${params.get("end")}T12:00:00Z`).getTime();
+    return Math.round((end - start) / 86_400_000);
+}
+
+test("S6 slice 7: Insights renders the fused surface, check-in stays windowed to 7 days, no ad slot", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/insights");
+
+    // The fused surface: Editorial Serif scope, mock grammar panels.
+    await expect(page.locator(".operate-view.insights-view")).toHaveCount(1);
+    await expect(page.locator("#app-content")).toContainText("Last 30 days");
+    await expect(page.locator("#app-content")).toContainText(
+        "6 logged days and 23 meals",
+    );
+    await expect(page.locator("#app-content")).toContainText("Weekly check-in");
+    await expect(page.locator("#app-content")).toContainText("86% coverage");
+    await expect(page.locator("#app-content")).toContainText("6 of 7");
+    await expect(page.locator(".insights-spark-bar")).toHaveCount(7);
+    await expect(page.locator("#app-content")).toContainText("Weight trend");
+    await expect(page.locator("#app-content")).toContainText("182.4 lb");
+    await expect(page.locator("#app-content")).toContainText("-1.7 lb");
+    await expect(page.locator("#app-content")).toContainText(
+        "Selected-day progress",
+    );
+    await expect(page.locator("#app-content")).toContainText(
+        "2,200 kcal target",
+    );
+    await expect(page.locator("#app-content")).toContainText(
+        "Data coverage — where your nutrition came from",
+    );
+    await expect(page.locator("#app-content")).toContainText(
+        "Grilled chicken breast",
+    );
+    // Trend + pattern narratives render as open prose (deterministic
+    // server text, unchanged), not collapsed disclosures.
+    await expect(page.locator("#app-content")).toContainText(
+        "Recorded calories averaged 1,940 kcal",
+    );
+    await expect(page.locator("#app-content")).toContainText(
+        "Lunch is your most consistently logged meal",
+    );
+
+    // The known-bug guard (PR #184): the default 30-day view must
+    // window its check-in request to the last 7 days — the check-in
+    // route rejects ranges over 7 days and once 500'd this whole view.
+    const insightsParams = observedSearch("GET", "/api/app/insights");
+    const checkinParams = observedSearch("GET", "/api/app/insights/checkin");
+    expect(daySpan(insightsParams)).toBe(29);
+    expect(daySpan(checkinParams)).toBe(6);
+    expect(checkinParams.get("end")).toBe(insightsParams.get("end"));
+
+    // Range switch re-renders at 7 days and both requests agree.
+    await page.locator('[data-action="insight-range"][data-days="7"]').click();
+    await expect(page.locator("#app-content")).toContainText("Last 7 days");
+    expect(daySpan(observedSearch("GET", "/api/app/insights"))).toBe(6);
+    expect(daySpan(observedSearch("GET", "/api/app/insights/checkin"))).toBe(6);
+
+    // No ad slot on Insights — not with the flag off, and not with
+    // it on either (the app's only slot is on Today).
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    adsFlagOn = true;
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await gotoRoute(page, "/app/insights");
+    await expect(page.locator(".insights-view")).toHaveCount(1);
+    await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
+    const adCalls = await page.evaluate(
+        () => (window as unknown as { __adCalls?: unknown[] }).__adCalls ?? [],
+    );
+    const lastCall = adCalls[adCalls.length - 1] as { visible?: boolean };
+    expect(lastCall.visible).toBe(false);
+});
+
+test("S6 slice 7 regression: water and weight deletes use inline confirmation with no native confirm", async ({
+    page,
+}) => {
+    // Same defect family as slice 1's Abandon fix: both vitals Delete
+    // actions gated on the native window.confirm(), which silently
+    // no-ops wherever that dialog is dismissed or never answered.
+    // This test records AND dismisses every native dialog: both flows
+    // must complete entirely through in-page UI.
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/insights");
+    await expect(page.locator("#water-history")).toBeVisible();
+
+    // Water: the first click only asks, in place inside the row.
+    const waterRow = page.locator("#water-history .food-row", {
+        hasText: "500 ml",
+    });
+    const waterDelete = waterRow.locator('[data-action="delete-water"]');
+    await waterDelete.click();
+    const confirmWater = page.locator('[data-action="confirm-delete-water"]');
+    await expect(confirmWater).toBeVisible();
+    await expect(
+        page.getByText("Permanently delete this water entry?"),
+    ).toBeVisible();
+    expect(observedRequest("DELETE", "/api/app/water/fixture-water-1")).toBe(
+        false,
+    );
+    expect(nativeDialogs).toEqual([]);
+
+    // "Keep entry" restores the row's actions, still unsent.
+    await page.locator('[data-action="dismiss-delete-vital"]').click();
+    await expect(waterDelete).toBeVisible();
+    expect(observedRequest("DELETE", "/api/app/water/fixture-water-1")).toBe(
+        false,
+    );
+
+    // Confirming deletes: DELETE posts, toast lands, row is gone.
+    await waterDelete.click();
+    await confirmWater.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Water entry deleted.",
+    );
+    expect(observedRequest("DELETE", "/api/app/water/fixture-water-1")).toBe(
+        true,
+    );
+    await expect(
+        page.locator("#water-history .food-row", { hasText: "500 ml" }),
+    ).toHaveCount(0);
+    expect(nativeDialogs).toEqual([]);
+
+    // Weight: the same inline pattern inside the weight history rows.
+    const weightRow = page.locator("#weight-history .food-row", {
+        hasText: "182.4 lb",
+    });
+    const weightDelete = weightRow.locator('[data-action="delete-weight"]');
+    await weightDelete.click();
+    const confirmWeight = page.locator('[data-action="confirm-delete-weight"]');
+    await expect(confirmWeight).toBeVisible();
+    expect(observedRequest("DELETE", "/api/app/weight/fixture-weight-1")).toBe(
+        false,
+    );
+    await page.locator('[data-action="dismiss-delete-vital"]').click();
+    await expect(weightDelete).toBeVisible();
+    await weightDelete.click();
+    await confirmWeight.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Weight entry deleted.",
+    );
+    expect(observedRequest("DELETE", "/api/app/weight/fixture-weight-1")).toBe(
+        true,
+    );
+    await expect(
+        page.locator("#weight-history .food-row", { hasText: "182.4 lb" }),
+    ).toHaveCount(0);
     expect(nativeDialogs).toEqual([]);
 });
