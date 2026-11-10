@@ -168,8 +168,10 @@ itemEditorForm.addEventListener("submit", async (event) => {
             }),
         });
         closeItemEditor();
-        status(`${item.name} updated.`);
         await loadPantry();
+        // After the reload: loadPantry clears the status line when it
+        // finishes, so the confirmation is posted last to survive it.
+        status(`${item.name} updated.`);
     } catch (error) {
         status(error.message, true);
     }
