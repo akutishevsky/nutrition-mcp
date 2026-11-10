@@ -205,6 +205,15 @@ app.get("/robots.txt", async (c) =>
         "Content-Type": "text/plain",
     }),
 );
+// ADS-FOUNDATION (Amendment G item 3): AdMob app verification file.
+// The content is a single fixed publisher line; see public/app-ads.txt
+// and src/app-ads.test.ts, which pin it exactly.
+app.get("/app-ads.txt", async (c) =>
+    c.body(await Bun.file("./public/app-ads.txt").text(), 200, {
+        "Content-Type": "text/plain",
+        "Cache-Control": "public, max-age=86400",
+    }),
+);
 app.get("/sitemap.xml", async (c) =>
     c.body(await Bun.file("./public/sitemap.xml").text(), 200, {
         "Content-Type": "application/xml",

@@ -68,8 +68,14 @@ public class MunchAdsPlugin extends Plugin {
         // Missing entitlement state fails closed: do not request an ad until
         // the signed-in bootstrap explicitly reports adFree=false.
         boolean adFree = Boolean.TRUE.equals(call.getBoolean("adFree", true));
+        // ADS-FOUNDATION: the server-driven remote flag (bootstrap
+        // ads.enabled, from MUNCH_ADS_ENABLED, DEFAULT OFF) must also
+        // arrive as an explicit true. A caller that predates the flag —
+        // or a bootstrap that never carried it — makes no ad load
+        // attempt at all.
+        boolean adsEnabled = Boolean.TRUE.equals(call.getBoolean("adsEnabled", false));
         String adUnitId = getContext().getString(R.string.munch_admob_banner_unit_id);
-        bannerRequested = visible && !adFree && adUnitId != null && !adUnitId.isBlank();
+        bannerRequested = visible && adsEnabled && !adFree && adUnitId != null && !adUnitId.isBlank();
 
         if (!bannerRequested) {
             runOnUiThread(this::hideBanner);

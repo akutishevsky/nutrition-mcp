@@ -16,6 +16,7 @@ const requiredFiles = [
     "public/llms.txt",
     "public/robots.txt",
     "public/sitemap.xml",
+    "public/app-ads.txt",
 ];
 
 for (const path of requiredFiles) {
@@ -86,6 +87,15 @@ for (const phrase of [
 }
 if (!robots.includes("Sitemap: https://munch.business/sitemap.xml")) {
     throw new Error("robots.txt does not advertise the canonical sitemap");
+}
+
+// ADS-FOUNDATION (Amendment G item 3): /app-ads.txt is the AdMob
+// verification file — exactly one line naming the Munch publisher.
+const appAds = await Bun.file("public/app-ads.txt").text();
+if (appAds !== "google.com, pub-2708638041809482, DIRECT, f08c47fec0942fa0\n") {
+    throw new Error(
+        "public/app-ads.txt does not contain exactly the AdMob publisher line",
+    );
 }
 
 const authSurfaces = ["src/auth/email.ts", "src/auth/password-routes.ts"];
@@ -187,6 +197,7 @@ for (const route of [
     '"/open-source"',
     '"/.well-known/security.txt"',
     '"/app-integrity.js"',
+    '"/app-ads.txt"',
 ]) {
     if (!indexSource.includes(route)) {
         throw new Error(`Server is missing required route wiring: ${route}`);

@@ -19,6 +19,11 @@ jobs:
     timeout-minutes: 30
     env:
       MUNCH_ANDROID_VERSION_CODE: ${{ github.run_number }}
+      # ADS-FOUNDATION: real AdMob IDs (public — the publisher ID is
+      # published in app-ads.txt). Release builds fail without them;
+      # Google sample IDs are a local-dev fallback only.
+      MUNCH_ADMOB_APP_ID: ca-app-pub-2708638041809482~4540309917
+      MUNCH_ADMOB_BANNER_AD_UNIT_ID: ca-app-pub-2708638041809482/4316948636
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -141,6 +146,9 @@ jobs:
     timeout-minutes: 45
     env:
       MUNCH_ANDROID_VERSION_CODE: ${{ github.run_number }}
+      # ADS-FOUNDATION: real AdMob IDs — see the validate job.
+      MUNCH_ADMOB_APP_ID: ca-app-pub-2708638041809482~4540309917
+      MUNCH_ADMOB_BANNER_AD_UNIT_ID: ca-app-pub-2708638041809482/4316948636
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

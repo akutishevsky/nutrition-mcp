@@ -62,6 +62,10 @@ const storeRepository = await readFile(
     "src/billing/store-repository.ts",
     "utf8",
 );
+const adsPlugin = await readFile("mobile/android/MunchAdsPlugin.java", "utf8");
+const adsConfig = await readFile("src/ads-config.ts", "utf8");
+const appRepository = await readFile("src/app/repository.ts", "utf8");
+const adsPolicy = await readFile("public/ads-policy.js", "utf8");
 const configure = await readFile("scripts/configure-mobile-android.ts", "utf8");
 const server = await readFile("src/index.ts", "utf8");
 const mobileAuthRoutes = await readFile("src/auth/mobile-routes.ts", "utf8");
@@ -489,6 +493,76 @@ requireText(
     appStyles,
     'Georgia, "Times New Roman", Times, serif',
     "Editorial Serif display type in shell states",
+);
+
+// ADS-FOUNDATION (Amendment D / Amendment G item 3):
+// 1. Real AdMob IDs are wired as env values in BOTH Android workflows.
+//    These IDs are public (app-ads.txt publishes the publisher ID).
+//    Google's sample IDs must never appear in a workflow — a release CI
+//    build must never silently ship them.
+const REAL_ADMOB_APP_ID = "ca-app-pub-2708638041809482~4540309917";
+const REAL_ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-2708638041809482/4316948636";
+const SAMPLE_ADMOB_PUBLISHER_ID = "3940256099942544";
+for (const [label, workflow] of [
+    ["Android workflow", androidWorkflow],
+    ["Play bundle workflow", playBundleWorkflow],
+] as const) {
+    requireText(
+        workflow,
+        `MUNCH_ADMOB_APP_ID: ${REAL_ADMOB_APP_ID}`,
+        `${label} real AdMob app ID`,
+    );
+    requireText(
+        workflow,
+        `MUNCH_ADMOB_BANNER_AD_UNIT_ID: ${REAL_ADMOB_BANNER_AD_UNIT_ID}`,
+        `${label} real AdMob banner ad unit ID`,
+    );
+    if (workflow.includes(SAMPLE_ADMOB_PUBLISHER_ID)) {
+        throw new Error(
+            `${label} still pins Google sample AdMob IDs (publisher ${SAMPLE_ADMOB_PUBLISHER_ID})`,
+        );
+    }
+}
+// 2. build.gradle reads the IDs from the env, keeps the sample IDs only
+//    as a local-dev fallback, and hard-fails a release build that would
+//    otherwise ship them.
+requireText(
+    androidBuildGradle,
+    "System.getenv('MUNCH_ADMOB_APP_ID')",
+    "AdMob app ID env wiring",
+);
+requireText(
+    androidBuildGradle,
+    "System.getenv('MUNCH_ADMOB_BANNER_AD_UNIT_ID')",
+    "AdMob banner ad unit ID env wiring",
+);
+requireText(
+    androidBuildGradle,
+    "never ships Google sample AdMob IDs",
+    "Release sample-ID guard",
+);
+requireText(
+    androidBuildGradle,
+    "configuredAdMobAppId ?: sampleAdMobAppId",
+    "Sample AdMob IDs are a fallback only",
+);
+// 3. The remote flag contract: server env MUNCH_ADS_ENABLED, DEFAULT
+//    OFF, surfaced on the bootstrap as ads.enabled, and fail-closed at
+//    every client layer (policy, app shell, native plugin).
+requireText(adsConfig, "MUNCH_ADS_ENABLED", "Ads remote flag env");
+requireText(appRepository, "ads: getAdsConfig()", "Bootstrap ads flag");
+requireText(adsPolicy, "adsEnabled === true", "Ads policy flag gate");
+requireText(appJs, "bootstrap?.ads?.enabled", "App shell ads flag read");
+requireText(appJs, "adsEnabled: adsEnabled === true", "App shell ads flag");
+requireText(
+    adsPlugin,
+    'call.getBoolean("adsEnabled", false)',
+    "Native ads plugin flag gate (missing flag fails closed)",
+);
+requireText(
+    adsPlugin,
+    "visible && adsEnabled && !adFree",
+    "Native ads plugin: no ad load when the flag is off or the account is Premium/ad-free",
 );
 
 console.log("Installed Android architecture smoke checks passed.");

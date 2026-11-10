@@ -27,6 +27,7 @@ import {
     getRecipe,
     searchRecipes,
 } from "../planning/repository.js";
+import { getAdsConfig } from "../ads-config.js";
 import { getPublicProductPolicy } from "../product-config.js";
 import { listSavedFoods } from "../saved-foods/repository.js";
 import { groupMealVariations } from "../search.js";
@@ -243,6 +244,11 @@ export async function getAppBootstrap(
             householdManage: capabilities.householdManage,
         },
         androidEntitlements,
+        // ADS-FOUNDATION: the server-driven ads flag (env
+        // MUNCH_ADS_ENABLED, DEFAULT OFF — see src/ads-config.ts).
+        // The packaged app reads bootstrap.ads.enabled; the native
+        // ads plugin additionally fail-closes on Premium (adFree).
+        ads: getAdsConfig(),
         household,
     };
 }
