@@ -178,8 +178,8 @@ jobs:
         run: bun scripts/account-export-smoke.ts
       - name: Exercise meal draft state, confirmation, idempotency, and RLS
         run: bun scripts/meal-drafts-smoke.ts
-      - name: Exercise S8 chat agent gate per rail, grounded draft proposals, persistence, and RLS
-        run: bun scripts/chat-agent-smoke.ts
+      - name: Exercise S8 chat v2 gate per rail, MCP parity enumeration, tool-grounded drafts, persistence, and RLS
+        run: bun scripts/chat-v2-smoke.ts
       - name: Exercise atomic meal review, edits, confirmation, and RLS
         run: bun scripts/atomic-meal-review-smoke.ts
       - name: Benchmark meal review database paths

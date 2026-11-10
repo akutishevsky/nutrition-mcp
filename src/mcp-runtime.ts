@@ -40,15 +40,20 @@ import { withVersionedWidgetResources } from "./widget-resource-versioning.js";
 const MUNCH_SERVER_INSTRUCTIONS = `Munch stores and retrieves factual meals, nutrition, hydration, weight, foods, recipes, meal plans, grocery lists, and—when the paid user explicitly enables it—Pantry inventory. Nutrition values are estimates; Munch does not provide medical or dietary advice.\n\nHost-model boundary: this MCP server does not invoke Munch's standalone website AI clients. The connected host model is responsible for vision, semantic interpretation, recipe ideation, and other generative reasoning. Use Munch tools for factual/provider lookup, deterministic matching and ranking, authorization, validation, idempotency, and persistence. Never route an MCP request through the standalone website AI layer.\n\nPrefer the direct read/write tool that exactly matches the user's request. Grocery-list requests go straight to get_grocery_list; adding groceries goes straight to add_grocery_items. Today's meals use get_meals_today; date ranges use the matching range tool. Meal plans use get_meal_plan. Saved recipes use search_recipes/get_recipe. When the user wants an already-known logged meal saved as a recipe, use save_meal_as_recipe with that meal ID instead of searching meals, foods, or ingredients again. Use personal scope by default unless the user explicitly asks for household data. If no direct tool covers a low-frequency correction, setting, export, deletion, or management request, call find_munch_actions and then run_munch_action with the returned parameter contract.\n\nFor nutrition resolution, use personal saved/history matches when relevant, then search_foods, then external web only when Munch has no adequate result, and model estimates last. Visible packaged barcodes use lookup_food_barcode. Recipe saves also have a server-side nutrition safety net: if ordinary ingredients reach save_recipe without nutrient facts, Munch resolves them through its existing food-provider pipeline, scales compatible portions, records provenance and assumptions, and only leaves material ingredients unresolved when a defensible estimate cannot be made.\n\nFor a fully resolved text meal, use log_meal with items[]. For photos or unresolved meals, use prepare_meal_review; infer homemade versus restaurant from the evidence instead of asking by default. Use visible scale references when estimating portions. Put low-impact uncertainty into explicit assumptions; resolve only material questions/edits, present the complete review, then use confirm_meal_draft only after explicit user approval. Prefer this atomic review flow over legacy granular draft tools. When answering an item-linked material review question, reconcile the affected canonical item in the same resolve_meal_review call; do not close the question while leaving stale assumptions or nutrition behind.\n\nRecipe URLs use parse_recipe_url before saving. Planning never means consumption. A grocery list is not pantry inventory. If Pantry tools are present, Pantry is enabled for this premium user: after a plausibly home-prepared meal is logged, use get_pantry with only the meal's candidate ingredient names to identify likely Pantry overlap, then ask a targeted clarification. Never silently subtract inferred consumption. If the user explicitly says what was used, finished, discarded, moved, or corrected, apply it with reconcile_pantry. Receipt or explicit shopping purchases are acquisition evidence: use reconcile_purchase to atomically match Grocery items and add purchased foods to Pantry; low-confidence lines are left for review. Do not ask Pantry questions for obvious restaurant/takeout meals or leftovers unless the user indicates Pantry ingredients were used. Use get_connection_status only for connection or feature-availability troubleshooting.`;
 const COOK_SERVER_INSTRUCTIONS = `Cooks are persistent cooking occasions independent of recipes, nutrition logs, and pantry usage. Use start_cook before, during, or after cooking; update_cook for explicit observations, multiple timeline events, corrections, and durable photos; update_cook_dish when labels or actual ingredients need correction; get_cook/search_cooks for historical recall; repeat_cook for a fresh attempt; record_cook_result for user-authored outcomes; compare_cooks for selected attempts; and save_cook_as_recipe only after a reviewed recipe draft. Preserve original messages, actual ingredients, deviations, photos, and event time separately from submission time. Questions and hypotheticals must not become factual events. Completing a cook never logs food consumption or deducts pantry inventory. Use log_cook_portion only after the user explicitly says they ate a portion and the dish is linked to an exact saved recipe revision; use reconcile_pantry separately only for explicitly confirmed ingredient usage. The top-level files input follows the OpenAI file API contract: supported image bytes are downloaded, validated, stored durably, and failed transfers are reported separately so a retry cannot duplicate the saved update.`;
 
-async function buildMunchMcpServer(
-    c: Context,
+/**
+ * Build the Munch MCP server for one user. This is the single construction
+ * path for the published tool surface: the HTTP transport (createHandleMcp
+ * below) and the in-process chat host (src/chat/mcp-host.ts) both build
+ * through here, so the chat agent's callable tools are derived from exactly
+ * the definitions external MCP clients receive — the chat parity law
+ * (chat-v2 brief, item 0). Exported for the in-process host and for parity
+ * verification; external MCP behavior is unchanged.
+ */
+export async function buildMunchMcpServerForUser(
+    baseUrl: string,
     userId: string,
     preResolvedCapabilities?: MunchCapabilityResolution,
 ): Promise<McpServer> {
-    const proto = c.req.header("x-forwarded-proto") || "http";
-    const host =
-        c.req.header("x-forwarded-host") || c.req.header("host") || "localhost";
-    const baseUrl = `${proto}://${host}`;
     const server = new McpServer(
         {
             name: "Munch",
@@ -146,6 +151,21 @@ async function buildMunchMcpServer(
     });
     registerAdvancedToolGateway(optimizedServer, userId);
     return server;
+}
+
+async function buildMunchMcpServer(
+    c: Context,
+    userId: string,
+    preResolvedCapabilities?: MunchCapabilityResolution,
+): Promise<McpServer> {
+    const proto = c.req.header("x-forwarded-proto") || "http";
+    const host =
+        c.req.header("x-forwarded-host") || c.req.header("host") || "localhost";
+    return buildMunchMcpServerForUser(
+        `${proto}://${host}`,
+        userId,
+        preResolvedCapabilities,
+    );
 }
 
 export interface McpRuntimeDeps {

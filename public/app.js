@@ -325,6 +325,19 @@ function todayAdSlotMarkup() {
     return `<div class="today-ad-slot" data-testid="today-ad-slot" role="complementary" aria-label="Advertisement"><span class="today-ad-tag" aria-hidden="true">Ad</span><span class="today-ad-label" aria-hidden="true">Advertisement</span></div>`;
 }
 
+// Chat v2 placement (Contextual only, brief Rulings addendum 4): the
+// chat agent has NO global entry — no nav item, no tab, no More row.
+// Each surface that earns one carries this single entry row, which
+// opens the chat pre-seeded with that surface's context (the
+// concept-2 pattern from the placement comparison book: hairline
+// rules, serif label, italic subline naming the attached context,
+// green arrow; grammar in app-overrides.css). Premium gating is not
+// copy here: the row is identical for every tier, and the chat view
+// itself renders the honest gate for Free accounts.
+function chatEntryRow(surface, label, subline) {
+    return `<a class="entry-row" href="/app/chat?surface=${surface}" data-testid="chat-entry-${surface}"><span class="entry-row-text"><span class="entry-row-label">${label}</span><span class="entry-row-sub">${subline}</span></span><span class="entry-row-arrow" aria-hidden="true">→</span></a>`;
+}
+
 function setLoading(label = "Loading your Munch workspace…") {
     content.innerHTML = `<div class="loading-state"><div><div class="skeleton" style="width:180px;height:18px"></div><div class="skeleton spacer-top" style="width:min(70vw,360px);height:54px"></div><p class="spacer-top">${escapeHtml(label)}</p></div></div>`;
 }
@@ -505,7 +518,7 @@ async function renderToday() {
     const latestWeightValue = latestWeight
         ? weightFromGrams(latestWeight.weight_g, weightUnit)
         : null;
-    const guidancePanel = `<section class="panel panel-span-12"><div class="panel-title"><div><h3>Today’s guidance</h3><span>${guidance.source_status === "sparse_data" ? "Limited recorded data" : "Based on recorded data"}</span></div><span class="source-chip source-saved">${escapeHtml(guidance.objective || "Track only")}</span></div><ul>${(guidance.actions || []).map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul><p class="tiny spacer-top">Planned meals are not counted as eaten. Unlogged meals remain unknown.</p></section>`;
+    const guidancePanel = `<section class="panel panel-span-12"><div class="panel-title"><div><h3>Today’s guidance</h3><span>${guidance.source_status === "sparse_data" ? "Limited recorded data" : "Based on recorded data"}</span></div><span class="source-chip source-saved">${escapeHtml(guidance.objective || "Track only")}</span></div><ul>${(guidance.actions || []).map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul><p class="tiny spacer-top">Planned meals are not counted as eaten. Unlogged meals remain unknown.</p>${chatEntryRow("today", "Ask about today", "Opens with today's log and goals attached")}</section>`;
     // S6 slice 1 (Editorial Serif fusion, tightened Today mock): order is
     // heading → day totals → Today's guidance → the single ad slot →
     // Meals / Daily details. The ad slot markup is empty unless the
@@ -720,7 +733,7 @@ async function renderInsights() {
         latestWeightDay && earliestWeightDay
             ? Number(latestWeightDay.weight) - Number(earliestWeightDay.weight)
             : null;
-    const weeklyPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Weekly check-in</h3><span>Coverage first; gaps are unknown, not zero · ${number(checkin.coverage_percent)}% coverage</span></div></div>${insightRule("Days with recorded nutrition", `${number(checkin.nutrition_target_coverage_days)} of ${number(checkin.calendar_days)}`)}${insightRule("Recorded-day calories (average)", `${number(checkin.averages_on_recorded_days.calories?.value, 1)} kcal`)}${insightRule("Recorded-day protein (average)", `${number(checkin.averages_on_recorded_days.protein_g?.average, 1)} g`)}${insightRule("Meals with uncertain nutrition", `${number(checkin.uncertain_nutrition_meals)} meals`)}${checkin.observations.length ? `<ul class="insights-observations">${checkin.observations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}<p class="tiny spacer-top">Targets reflect the goal revision effective during the selected week.</p></section>`;
+    const weeklyPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Weekly check-in</h3><span>Coverage first; gaps are unknown, not zero · ${number(checkin.coverage_percent)}% coverage</span></div></div>${insightRule("Days with recorded nutrition", `${number(checkin.nutrition_target_coverage_days)} of ${number(checkin.calendar_days)}`)}${insightRule("Recorded-day calories (average)", `${number(checkin.averages_on_recorded_days.calories?.value, 1)} kcal`)}${insightRule("Recorded-day protein (average)", `${number(checkin.averages_on_recorded_days.protein_g?.average, 1)} g`)}${insightRule("Meals with uncertain nutrition", `${number(checkin.uncertain_nutrition_meals)} meals`)}${checkin.observations.length ? `<ul class="insights-observations">${checkin.observations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}<p class="tiny spacer-top">Targets reflect the goal revision effective during the selected week.</p>${chatEntryRow("insights", "Explain my week", "Opens with this check-in attached")}</section>`;
     const dailyPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Daily calories</h3><span>${trendDays.length} calendar days</span></div><span class="source-chip source-usda">Trend</span></div>${trendDays.length ? barChart(trendDays, "calories", "Daily calories", "kilocalories") : `<div class="empty-state"><div><h3>No logged days</h3><p>Log meals to build a trend.</p></div></div>`}<h4 class="insights-subhead">Average intake — across logged days</h4>${insightRule("Calories", `${number(data.averages.calories, 1)} kcal`)}${insightRule("Protein", `${number(data.averages.proteinG, 1)} g`)}${insightRule("Carbohydrates", `${number(data.averages.carbsG, 1)} g`)}${insightRule("Fat", `${number(data.averages.fatG, 1)} g`)}</section>`;
     const weightPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Weight trend</h3><span>${number(weightDays.length)} recorded days</span></div><span class="source-chip source-saved">Weight</span></div>${weightDays.length ? `${insightRule(`Latest — ${formatDate(latestWeightDay.date)}`, `${number(latestWeightDay.weight, 1)} ${escapeHtml(weightDisplayUnit)}`)}${insightRule(`Range start — ${formatDate(earliestWeightDay.date)}`, `${number(earliestWeightDay.weight, 1)} ${escapeHtml(weightDisplayUnit)}`)}${insightRule("Change in range", `${weightChange > 0 ? "+" : ""}${number(weightChange, 1)} ${escapeHtml(weightDisplayUnit)}`)}${weightTrend.target == null ? "" : insightRule("Your target", `${number(weightTrend.target, 1)} ${escapeHtml(weightDisplayUnit)}`)}<p class="tiny spacer-top">Daily values average multiple weigh-ins; displayed in ${escapeHtml(weightDisplayUnit)}. Recorded measurements only — no projections.</p>` : `<p class="tiny">No weight data in range.</p>`}<div class="auth-actions spacer-top"><button class="button button-secondary button-small" type="button" data-action="add-weight">Add weight</button></div><h4 class="insights-subhead">Hydration</h4>${insightRule("Total water in range", `${number(waterHistory.totalMl)} ml`)}${insightRule("Entries", `${number(waterHistory.entries?.length || 0)}`)}<div class="auth-actions spacer-top"><button class="button button-secondary button-small" type="button" data-action="add-water">Add water</button></div></section>`;
     const progressPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Selected-day progress</h3><span>${escapeHtml(formatDate(progress.date || end))}</span></div></div>${insightProgressRule("Calories", progress.totals?.calories, "kcal", progressGoals.daily_calories)}${insightProgressRule("Protein", progress.totals?.proteinG, "g", progressGoals.daily_protein_g)}${insightProgressRule("Carbohydrates", progress.totals?.carbsG, "g", progressGoals.daily_carbs_g)}${insightProgressRule("Fat", progress.totals?.fatG, "g", progressGoals.daily_fat_g)}${insightProgressRule("Water", progress.totals?.waterMl, "ml", progressGoals.daily_water_ml)}${insightRule("Meals", `${number(progress.mealCount)}`)}<p class="tiny spacer-top">Progress is calculated for the selected range end date. Use Today to review a different day.</p></section>`;
@@ -1365,7 +1378,9 @@ async function renderPlan() {
             (date) =>
                 `<section class="meal-group plan-day"><header class="meal-group-header"><div><strong>${escapeHtml(formatDate(date, { weekday: true }))}</strong></div><span>${(byDate[date] || []).length} planned</span></header>${(byDate[date] || []).length ? (byDate[date] || []).map((meal) => `<article class="meal-card plan-meal-card"><div class="meal-card-head"><div><h4>${escapeHtml(meal.recipe_name)}</h4><div class="meal-meta"><span>${escapeHtml(meal.meal_slot || "Meal")}</span><span>${escapeHtml(meal.ownership)}</span>${meal.created_by ? `<span>Added by ${escapeHtml(meal.created_by)}</span>` : ""}</div></div><strong class="plan-servings">${number(meal.servings, 1)} servings</strong></div><div class="meal-macros"><span class="macro-chip">${number((meal.nutrition_per_serving?.calories || 0) * meal.servings)} kcal</span><span class="macro-chip">P ${number((meal.nutrition_per_serving?.protein_g || 0) * meal.servings, 1)}g</span></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="meal-swap" data-id="${escapeHtml(meal.planned_meal_id)}" data-version="${escapeHtml(meal.version)}">Swap recipe</button></div></article>`).join("") : `<p class="plan-empty">No meals planned.</p>`}</section>`,
         )
-        .join("")}</div></div>`;
+        .join(
+            "",
+        )}</div>${chatEntryRow("meal_plan", "Adjust or explain this plan", "Opens with this week attached")}</div>`;
 }
 
 function currentWeekStart() {
@@ -2183,27 +2198,42 @@ function accountContext() {
 }
 
 // ---------------------------------------------------------------------
-// S8 — AI chat agent (Amendment D, Amendment F FUTURE row: this
-// surface ships in Editorial Serif from its first commit — it renders
-// inside .operate-view with the chat rules in app-overrides.css).
+// S8 — AI chat agent (Amendment D; v2 per the chat-v2 brief).
+// Editorial Serif from its first commit — it renders inside
+// .operate-view with the chat rules in app-overrides.css.
 // Premium-only, server-enforced: the surface renders the honest gate
 // state for Free accounts (no fake chat box that errors on send), and
 // a working conversation for Premium. Request/response, matching
 // every other AI seam in the codebase (no streaming transport exists
-// in the app today). Anything the agent proposes to log arrives as a
-// meal draft — the card below opens the existing draft review, and
-// nothing is logged until the user confirms there.
+// in the app today). v2: the agent works through Munch's MCP tools
+// server-side; anything it proposes to log arrives as a meal draft —
+// the card below opens the existing draft review, and nothing is
+// logged until the user confirms there. Placement is contextual
+// only: this view is reached from the Today / Meal Plan / Pantry /
+// Insights entry rows (chatEntryRow), never from global navigation.
 // ---------------------------------------------------------------------
 const chatState = {
     loaded: false,
+    loadedSurface: null,
     premium: null,
     gateMessage: null,
     unavailable: false,
     conversation: null,
     messages: [],
+    // Chat v2: the entry seed for a conversation opened from a
+    // surface entry ({surface, summary, opener, starters}) — the
+    // server assembles it live; null for unseeded conversations.
+    seed: null,
     sending: false,
     error: null,
     pendingText: "",
+};
+
+const CHAT_SURFACE_LABELS = {
+    today: "Today",
+    meal_plan: "Meal Plan",
+    pantry: "Pantry",
+    insights: "Insights",
 };
 
 function chatDraftCard(message) {
@@ -2222,9 +2252,22 @@ function chatDraftCard(message) {
     return `<div class="chat-draft-card"><p class="chat-draft-kicker">Meal draft proposed</p>${rows ? `<ul class="chat-draft-items">${rows}</ul>` : ""}<p class="chat-draft-note">Nothing is logged yet. Review the draft, check portions, and confirm it there to log the meal.</p><button class="button button-primary button-small" type="button" data-action="open-meal-draft" data-id="${escapeHtml(message.draftId)}">Review draft</button></div>`;
 }
 
+function chatToolTraceMarkup(message) {
+    const trace = Array.isArray(message.toolTrace) ? message.toolTrace : [];
+    if (!trace.length) return "";
+    const names = trace
+        .map((entry) =>
+            entry.outcome && entry.outcome !== "ok"
+                ? `${escapeHtml(entry.name)} (${escapeHtml(entry.outcome)})`
+                : escapeHtml(entry.name),
+        )
+        .join(" · ");
+    return `<p class="chat-tool-trace">Used: ${names}</p>`;
+}
+
 function chatMessageMarkup(message) {
     const role = message.role === "user" ? "user" : "assistant";
-    return `<article class="chat-message chat-message-${role}"><p class="chat-message-role">${role === "user" ? "You" : "Munch"}</p><p class="chat-message-body">${escapeHtml(message.content)}</p>${role === "assistant" ? chatDraftCard(message) : ""}</article>`;
+    return `<article class="chat-message chat-message-${role}"><p class="chat-message-role">${role === "user" ? "You" : "Munch"}</p><p class="chat-message-body">${escapeHtml(message.content)}</p>${role === "assistant" ? chatToolTraceMarkup(message) + chatDraftCard(message) : ""}</article>`;
 }
 
 function chatGateMarkup() {
@@ -2235,6 +2278,11 @@ function chatUnavailableMarkup() {
     return `<div class="operate-view chat-view"><div class="page-heading"><div><h2>Chat</h2></div></div><section class="panel chat-gate" data-testid="chat-unavailable"><h3>Chat is unavailable right now</h3><p>Premium status could not be verified, so the chat agent is closed rather than guessing. Try again in a moment.</p><div class="auth-actions"><button class="button button-primary" type="button" data-action="chat-retry">Try again</button></div></section></div>`;
 }
 
+function chatSeedStripMarkup() {
+    if (!chatState.seed) return "";
+    return `<section class="chat-ctx-strip" data-testid="chat-seed"><p class="chat-ctx-kicker">Context attached</p><p class="chat-ctx-summary">${escapeHtml(chatState.seed.summary || "")}</p></section>`;
+}
+
 function renderChatView() {
     if (chatState.premium === false) {
         content.innerHTML = chatState.unavailable
@@ -2242,23 +2290,77 @@ function renderChatView() {
             : chatGateMarkup();
         return;
     }
+    const seed = chatState.seed;
     const messages = chatState.messages;
-    const thread = messages.length
-        ? `<div class="chat-thread">${messages.map(chatMessageMarkup).join("")}</div>`
-        : `<section class="panel chat-empty" data-testid="chat-empty"><h3>A thinking partner over your own data</h3><p>Ask about your pantry, today's log, or your goals — or ask the agent to log a meal, and it will set up a draft for you to review and confirm. Nutrition it quotes comes from your logged, provider-grounded records; it never invents figures.</p><div class="chat-starters"><button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="What can I make with what's in my pantry?">What can I make with my pantry?</button><button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="How is today looking against my goals?">How is today looking?</button><button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="What have I been eating a lot of lately?">What have I been eating lately?</button></div></section>`;
-    content.innerHTML = `<div class="operate-view chat-view"><div class="page-heading"><div><h2>Chat</h2><p>Premium · aware of your pantry, goals, and history.</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="chat-new">New chat</button></div></div>${thread}${chatState.error ? `<p class="chat-error" role="alert">${escapeHtml(chatState.error)}</p>` : ""}<form id="chat-form" class="chat-composer"><label class="chat-composer-label" for="chat-input">Message the agent</label><textarea id="chat-input" name="message" rows="2" maxlength="4000" placeholder="Ask about your pantry, today, or a meal to log…" ${chatState.sending ? "disabled" : ""}>${escapeHtml(chatState.pendingText)}</textarea><div class="chat-composer-row"><small>Proposals become drafts — nothing is logged until you confirm.</small><button class="button button-primary" type="submit" ${chatState.sending ? "disabled" : ""}>${chatState.sending ? "Thinking…" : "Send"}</button></div></form></div>`;
+    let thread;
+    if (messages.length) {
+        thread = `${chatSeedStripMarkup()}<div class="chat-thread">${messages.map(chatMessageMarkup).join("")}</div>`;
+    } else if (seed) {
+        // Concept-2 seeded opening: the context strip, an opener
+        // written from that context, and starters derived from it —
+        // the first exchange is useful instead of a blank box.
+        const starters = (seed.starters || [])
+            .map(
+                (starter) =>
+                    `<button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="${escapeHtml(starter)}">${escapeHtml(starter)}</button>`,
+            )
+            .join("");
+        thread = `${chatSeedStripMarkup()}<div class="chat-thread"><article class="chat-message chat-message-assistant"><p class="chat-message-role">Munch</p><p class="chat-message-body">${escapeHtml(seed.opener || "")}</p></article></div>${starters ? `<div class="chat-starters chat-starters-seeded">${starters}</div>` : ""}`;
+    } else {
+        thread = `<section class="panel chat-empty" data-testid="chat-empty"><h3>A thinking partner over your own data</h3><p>Ask about your pantry, today's log, or your goals — the agent reads them live through Munch's own tools, or ask it to log a meal and it will set up a draft for you to review and confirm. Nutrition it quotes comes from your logged, provider-grounded records; it never invents figures.</p><div class="chat-starters"><button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="What can I make with what's in my pantry?">What can I make with my pantry?</button><button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="How is today looking against my goals?">How is today looking?</button><button class="button button-secondary" type="button" data-action="chat-starter" data-prompt="What have I been eating a lot of lately?">What have I been eating lately?</button></div></section>`;
+    }
+    const subline = seed
+        ? `Premium · started from ${escapeHtml(CHAT_SURFACE_LABELS[seed.surface] || "a surface")}.`
+        : "Premium · reads your data live; proposals become drafts.";
+    content.innerHTML = `<div class="operate-view chat-view"><div class="page-heading"><div><h2>Chat</h2><p>${subline}</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="chat-new">New chat</button></div></div>${thread}${chatState.error ? `<p class="chat-error" role="alert">${escapeHtml(chatState.error)}</p>` : ""}<form id="chat-form" class="chat-composer"><label class="chat-composer-label" for="chat-input">Message the agent</label><textarea id="chat-input" name="message" rows="2" maxlength="4000" placeholder="Ask about your pantry, today, or a meal to log…" ${chatState.sending ? "disabled" : ""}>${escapeHtml(chatState.pendingText)}</textarea><div class="chat-composer-row"><small>Proposals become drafts — nothing is logged until you confirm.</small><button class="button button-primary" type="submit" ${chatState.sending ? "disabled" : ""}>${chatState.sending ? "Thinking…" : "Send"}</button></div></form></div>`;
     const threadElement = content.querySelector(".chat-thread");
     if (threadElement) threadElement.scrollTop = threadElement.scrollHeight;
 }
 
 async function renderChat() {
-    if (!chatState.loaded) {
+    // Chat v2 placement: the surface entry that opened this view is
+    // carried in the query string (?surface=today|meal_plan|pantry|
+    // insights). Entering from an entry resumes (or starts) that
+    // surface's seeded conversation; a bare /app/chat loads the
+    // latest conversation as before.
+    const requestedSurface = new URLSearchParams(location.search).get(
+        "surface",
+    );
+    const surface = Object.hasOwn(CHAT_SURFACE_LABELS, requestedSurface || "")
+        ? requestedSurface
+        : null;
+    if (!chatState.loaded || chatState.loadedSurface !== surface) {
         setLoading("Loading chat…");
         try {
-            const data = await api("/api/app/chat", { keepPrevious: true });
+            if (surface) {
+                const started = await api("/api/app/chat/conversations", {
+                    method: "POST",
+                    body: JSON.stringify({ surface }),
+                    keepPrevious: true,
+                });
+                chatState.conversation = started.conversation || null;
+                chatState.seed = started.seed || null;
+                if (chatState.conversation?.id) {
+                    const data = await api(
+                        `/api/app/chat?conversation_id=${encodeURIComponent(chatState.conversation.id)}`,
+                        { keepPrevious: true },
+                    );
+                    chatState.conversation =
+                        data.conversation || chatState.conversation;
+                    chatState.messages = data.messages || [];
+                    chatState.seed = data.seed || chatState.seed;
+                } else {
+                    chatState.messages = [];
+                }
+            } else {
+                const data = await api("/api/app/chat", {
+                    keepPrevious: true,
+                });
+                chatState.conversation = data.conversation || null;
+                chatState.messages = data.messages || [];
+                chatState.seed = data.seed || null;
+            }
             chatState.premium = true;
-            chatState.conversation = data.conversation || null;
-            chatState.messages = data.messages || [];
         } catch (error) {
             if (error?.status === 403) {
                 chatState.premium = false;
@@ -2272,6 +2374,7 @@ async function renderChat() {
             }
         }
         chatState.loaded = true;
+        chatState.loadedSurface = surface;
     }
     renderChatView();
 }
@@ -2326,6 +2429,8 @@ async function startNewChat() {
     });
     chatState.conversation = data.conversation || null;
     chatState.messages = [];
+    chatState.seed = null;
+    chatState.loadedSurface = null;
     chatState.error = null;
     chatState.pendingText = "";
     renderChatView();

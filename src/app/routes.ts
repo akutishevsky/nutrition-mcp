@@ -48,6 +48,10 @@ import {
     sendChatMessage,
     startChatConversation,
 } from "../chat/service.js";
+import {
+    isChatEntrySurface,
+    type ChatEntrySurface,
+} from "../chat/repository.js";
 import { estimateMealPhotoNutrients } from "../meal-photo/estimate.js";
 import { addTextToPhotoDraft } from "../meal-photo/draft-add.js";
 import { parseDraftAddTextWithModel } from "../meal-photo/draft-add-parse.js";
@@ -1491,16 +1495,23 @@ export function createAppRouter(): Hono {
         },
     );
 
-    // S8 chat agent (Amendment D): the ONE Premium-gated AI surface.
-    // The gate is enforced server-side in src/chat/service.ts against
-    // the merged rail-neutral Premium snapshot (Stripe / Google Play
-    // / App Store), fail-closed on lookup errors. Free accounts get
-    // the honest Premium explanation and the website subscribe door —
-    // no pricing or purchase UI is initiated from this surface, and
-    // packaged builds manage billing through their rail's own door
-    // (Settings → Plan & billing) exactly like S6 slice 9.
+    // S8 chat agent (Amendment D; v2 per the chat-v2 brief): the ONE
+    // Premium-gated AI surface. The gate is enforced server-side in
+    // src/chat/service.ts against the merged rail-neutral Premium
+    // snapshot (Stripe / Google Play / App Store), fail-closed on
+    // lookup errors. Free accounts get the honest Premium explanation
+    // and the website subscribe door — no pricing or purchase UI is
+    // initiated from this surface, and packaged builds manage billing
+    // through their rail's own door (Settings → Plan & billing)
+    // exactly like S6 slice 9. v2: the agent works through the MCP
+    // tool surface in-process (src/chat/), writes are draft-class
+    // only, and conversations are reached from the four contextual
+    // surface entries — there is no global chat entry.
     app.get("/api/app/chat", async (c) => {
-        const state = await getChatState(c.get("munchUserId"));
+        const conversationId = c.req.query("conversation_id");
+        const state = await getChatState(c.get("munchUserId"), {
+            conversationId: conversationId || undefined,
+        });
         if (!state.premium) {
             return privateJsonStatus(c, state.body, state.status);
         }
@@ -1508,11 +1519,26 @@ export function createAppRouter(): Hono {
             premium: true,
             conversation: state.conversation,
             messages: state.messages,
+            seed: state.seed,
         });
     });
 
     app.post("/api/app/chat/conversations", requireSameOrigin, async (c) => {
-        const started = await startChatConversation(c.get("munchUserId"));
+        // Chat v2 placement: a conversation may be opened from one of
+        // the four contextual entry surfaces; the surface seeds it.
+        const rawBody: unknown = await c.req.json().catch(() => null);
+        const surfaceValue =
+            rawBody && typeof rawBody === "object"
+                ? (rawBody as { surface?: unknown }).surface
+                : undefined;
+        const surface: ChatEntrySurface | undefined = isChatEntrySurface(
+            surfaceValue,
+        )
+            ? surfaceValue
+            : undefined;
+        const started = await startChatConversation(c.get("munchUserId"), {
+            surface,
+        });
         if (!started.premium) {
             return privateJsonStatus(c, started.body, started.status);
         }
@@ -1520,6 +1546,7 @@ export function createAppRouter(): Hono {
             premium: true,
             conversation: started.conversation,
             messages: [],
+            seed: started.seed,
         });
     });
 
@@ -1544,6 +1571,9 @@ export function createAppRouter(): Hono {
                 typeof body.conversation_id === "string"
                     ? body.conversation_id
                     : undefined,
+            surface: isChatEntrySurface(body.surface)
+                ? body.surface
+                : undefined,
             message,
         });
         if (result.status !== "ok") {

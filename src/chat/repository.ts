@@ -8,10 +8,29 @@ import { withUserDatabase } from "../platform/database.js";
  * as meal drafts and every other user-data repository.
  */
 
+/** The four contextual entry surfaces (chat v2 placement, addendum 4). */
+export type ChatEntrySurface = "today" | "meal_plan" | "pantry" | "insights";
+
+export const CHAT_ENTRY_SURFACES: readonly ChatEntrySurface[] = [
+    "today",
+    "meal_plan",
+    "pantry",
+    "insights",
+];
+
+export function isChatEntrySurface(value: unknown): value is ChatEntrySurface {
+    return (
+        typeof value === "string" &&
+        (CHAT_ENTRY_SURFACES as readonly string[]).includes(value)
+    );
+}
+
 export interface ChatConversation {
     id: string;
     userId: string;
     title: string | null;
+    /** Surface this conversation was opened from, when seeded (0037). */
+    entrySurface: ChatEntrySurface | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -26,6 +45,11 @@ export interface ChatGroundingTraceEntry {
     candidateId: string | null;
 }
 
+export interface ChatToolTraceEntry {
+    name: string;
+    outcome: "ok" | "error" | "rejected";
+}
+
 export interface ChatMessage {
     id: string;
     conversationId: string;
@@ -34,6 +58,8 @@ export interface ChatMessage {
     model: string | null;
     draftId: string | null;
     groundingTrace: ChatGroundingTraceEntry[];
+    /** MCP tools the agent called behind an assistant reply (0037). */
+    toolTrace: ChatToolTraceEntry[];
     createdAt: string;
 }
 
@@ -52,6 +78,9 @@ function conversationFromRow(row: Record<string, unknown>): ChatConversation {
         id: String(row.id),
         userId: String(row.user_id),
         title: row.title == null ? null : String(row.title),
+        entrySurface: isChatEntrySurface(row.entry_surface)
+            ? row.entry_surface
+            : null,
         createdAt: rowDate(row.created_at),
         updatedAt: rowDate(row.updated_at),
     };
@@ -59,6 +88,7 @@ function conversationFromRow(row: Record<string, unknown>): ChatConversation {
 
 function messageFromRow(row: Record<string, unknown>): ChatMessage {
     const trace = row.grounding_trace;
+    const toolTrace = row.tool_trace;
     return {
         id: String(row.id),
         conversationId: String(row.conversation_id),
@@ -69,6 +99,9 @@ function messageFromRow(row: Record<string, unknown>): ChatMessage {
         groundingTrace: Array.isArray(trace)
             ? (trace as ChatGroundingTraceEntry[])
             : [],
+        toolTrace: Array.isArray(toolTrace)
+            ? (toolTrace as ChatToolTraceEntry[])
+            : [],
         createdAt: rowDate(row.created_at),
     };
 }
@@ -76,12 +109,17 @@ function messageFromRow(row: Record<string, unknown>): ChatMessage {
 export async function createChatConversation(input: {
     userId: string;
     title?: string;
+    entrySurface?: ChatEntrySurface | null;
 }): Promise<ChatConversation> {
     return withUserDatabase(input.userId, async (tx) => {
         const rows = await tx<Array<Record<string, unknown>>>`
-            insert into munch.chat_conversations (user_id, title)
-            values (${input.userId}, ${input.title?.trim().slice(0, 200) || null})
-            returning id, user_id, title, created_at, updated_at
+            insert into munch.chat_conversations (user_id, title, entry_surface)
+            values (
+                ${input.userId},
+                ${input.title?.trim().slice(0, 200) || null},
+                ${input.entrySurface ?? null}
+            )
+            returning id, user_id, title, entry_surface, created_at, updated_at
         `;
         return conversationFromRow(rows[0]!);
     });
@@ -94,7 +132,7 @@ export async function getChatConversation(
     if (!isUuid(conversationId)) return null;
     return withUserDatabase(userId, async (tx) => {
         const rows = await tx<Array<Record<string, unknown>>>`
-            select id, user_id, title, created_at, updated_at
+            select id, user_id, title, entry_surface, created_at, updated_at
             from munch.chat_conversations
             where id = ${conversationId}
         `;
@@ -107,8 +145,25 @@ export async function getLatestChatConversation(
 ): Promise<ChatConversation | null> {
     return withUserDatabase(userId, async (tx) => {
         const rows = await tx<Array<Record<string, unknown>>>`
-            select id, user_id, title, created_at, updated_at
+            select id, user_id, title, entry_surface, created_at, updated_at
             from munch.chat_conversations
+            order by updated_at desc
+            limit 1
+        `;
+        return rows[0] ? conversationFromRow(rows[0]) : null;
+    });
+}
+
+/** The most recent conversation opened from one entry surface, if any. */
+export async function getLatestChatConversationForSurface(
+    userId: string,
+    surface: ChatEntrySurface,
+): Promise<ChatConversation | null> {
+    return withUserDatabase(userId, async (tx) => {
+        const rows = await tx<Array<Record<string, unknown>>>`
+            select id, user_id, title, entry_surface, created_at, updated_at
+            from munch.chat_conversations
+            where entry_surface = ${surface}
             order by updated_at desc
             limit 1
         `;
@@ -126,7 +181,7 @@ export async function listChatMessages(input: {
     return withUserDatabase(input.userId, async (tx) => {
         const rows = await tx<Array<Record<string, unknown>>>`
             select id, conversation_id, role, content, model, draft_id,
-                   grounding_trace, created_at
+                   grounding_trace, tool_trace, created_at
             from munch.chat_messages
             where conversation_id = ${input.conversationId}
             order by seq desc
@@ -151,6 +206,7 @@ export async function appendChatTurn(input: {
     model: string;
     draftId?: string | null;
     groundingTrace?: ChatGroundingTraceEntry[];
+    toolTrace?: ChatToolTraceEntry[];
 }): Promise<{ userMessage: ChatMessage; assistantMessage: ChatMessage }> {
     return withUserDatabase(input.userId, async (tx) => {
         const conversation = await tx<
@@ -169,20 +225,21 @@ export async function appendChatTurn(input: {
                 ${input.userContent}
             )
             returning id, conversation_id, role, content, model, draft_id,
-                      grounding_trace, created_at
+                      grounding_trace, tool_trace, created_at
         `;
         const assistantRows = await tx<Array<Record<string, unknown>>>`
             insert into munch.chat_messages (
                 conversation_id, user_id, role, content, model, draft_id,
-                grounding_trace
+                grounding_trace, tool_trace
             ) values (
                 ${input.conversationId}, ${input.userId}, 'assistant',
                 ${input.assistantContent}, ${input.model},
                 ${input.draftId ?? null},
-                ${(input.groundingTrace ?? []) as unknown as Record<string, unknown>}::jsonb
+                ${(input.groundingTrace ?? []) as unknown as Record<string, unknown>}::jsonb,
+                ${(input.toolTrace ?? []) as unknown as Record<string, unknown>}::jsonb
             )
             returning id, conversation_id, role, content, model, draft_id,
-                      grounding_trace, created_at
+                      grounding_trace, tool_trace, created_at
         `;
         await tx`
             update munch.chat_conversations

@@ -279,29 +279,40 @@ export const CAPABILITY_MANIFEST = [
         targetPr: null,
     },
     {
-        // S8 chat agent (Amendment D): the conversational, Premium-only
-        // AI thinking partner inside the app — pantry/goals/history
-        // aware, grounded, logging only through meal drafts. There is
-        // no MCP outcome here by design: the MCP channel is where users
-        // bring their OWN AI (and MCP access is itself Premium-gated);
-        // the in-app agent is the app's own surface, fenced off the
-        // MCP runtime like every other website AI module.
+        // S8 chat agent (Amendment D; v2 per the chat-v2 brief): the
+        // conversational, Premium-only AI thinking partner inside the
+        // app. v2's agent works through the MCP tool surface itself —
+        // its registry is derived in-process from the same tool
+        // definitions this manifest contracts (src/chat/tools.ts,
+        // parity-checked), writes are draft-class only, and nutrition
+        // values come only from tool results. There is still no MCP
+        // outcome row here by design: the MCP channel is where users
+        // bring their OWN AI (and MCP access is itself Premium-gated).
+        // Placement is contextual only (no global entry): the surface
+        // is reached from the Today / Meal Plan / Pantry / Insights
+        // entry rows, which seed the conversation.
         id: "nutrition.chatAgent",
         mcp: websiteOnly([]),
         web: complete([
             "GET /api/app/chat",
             "POST /api/app/chat/messages",
-            '[data-route="chat"]',
+            "POST /api/app/chat/conversations",
+            '[data-testid="chat-seed"]',
+            '[data-testid="chat-entry-pantry"]',
         ]),
         app: complete([
             "GET /api/app/chat",
             "POST /api/app/chat/messages",
-            '[data-route="chat"]',
+            "POST /api/app/chat/conversations",
+            '[data-testid="chat-seed"]',
+            '[data-testid="chat-entry-pantry"]',
         ]),
         ios: complete([
             "GET /api/app/chat",
             "POST /api/app/chat/messages",
-            '[data-route="chat"]',
+            "POST /api/app/chat/conversations",
+            '[data-testid="chat-seed"]',
+            '[data-testid="chat-entry-pantry"]',
         ]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency. The entitlement gate is server-side and rail-neutral, so an App Store Premium subscription counts exactly like Stripe or Play.",

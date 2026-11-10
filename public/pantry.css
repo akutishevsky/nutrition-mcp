@@ -664,3 +664,49 @@ button:disabled {
 .offline-banner[hidden] {
     display: none;
 }
+
+/* Chat v2 — contextual entry row (Pantry). The same grammar as the
+   app shell's .entry-row in app-overrides.css (this page loads only
+   pantry.css): hairline rules, serif label, italic subline naming
+   the attached context, green arrow; >= 56px tall. */
+.entry-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 56px;
+    margin-top: 10px;
+    padding: 8px 0;
+    border-top: 1px solid #d8cdb6;
+    border-bottom: 1px solid #d8cdb6;
+    text-decoration: none;
+    color: #2b2620;
+}
+
+.entry-row-text {
+    display: block;
+}
+
+.entry-row-label {
+    display: block;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 17.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #2b2620;
+}
+
+.entry-row-sub {
+    display: block;
+    font-size: 13.5px;
+    font-style: italic;
+    line-height: 1.35;
+    color: #4a4237;
+}
+
+.entry-row-arrow {
+    font-size: 20px;
+    line-height: 1;
+    color: #176b3a;
+    flex: none;
+}

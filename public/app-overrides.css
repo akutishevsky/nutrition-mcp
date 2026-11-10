@@ -4459,3 +4459,88 @@ dialog .guided-grocery-row input[type="checkbox"] {
     font-weight: 600;
     color: #8c2f22;
 }
+
+/* =====================================================================
+   Chat v2 — contextual entry rows + seeded conversation furniture.
+   The entry row is the ONE grammar every earned chat entry uses
+   (concept 2 of the placement book): hairline rules, a serif label,
+   an italic subline naming the attached context, a green arrow. No
+   icon, no badge, no button chrome. Rows are >= 56px tall (the 44px
+   target floor holds with room), type never below 11px.
+   ===================================================================== */
+.entry-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 56px;
+    margin-top: 10px;
+    padding: 8px 0;
+    border-top: 1px solid #d8cdb6;
+    border-bottom: 1px solid #d8cdb6;
+    text-decoration: none;
+    color: #2b2620;
+}
+
+.entry-row-text {
+    display: block;
+}
+
+.entry-row-label {
+    display: block;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 17.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: #2b2620;
+}
+
+.entry-row-sub {
+    display: block;
+    font-size: 13.5px;
+    font-style: italic;
+    line-height: 1.35;
+    color: #4a4237;
+}
+
+.entry-row-arrow {
+    font-size: 20px;
+    line-height: 1;
+    color: #176b3a;
+    flex: none;
+}
+
+.chat-ctx-strip {
+    border: 1px solid #d8cdb6;
+    border-top: 2px solid #176b3a;
+    background: #fffdf8;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+
+.chat-ctx-kicker {
+    margin: 0 0 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #176b3a;
+}
+
+.chat-ctx-summary {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: #2b2620;
+}
+
+.chat-tool-trace {
+    margin: 4px 0 0;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: #8a7c63;
+}
+
+.chat-starters-seeded {
+    margin-top: 10px;
+}

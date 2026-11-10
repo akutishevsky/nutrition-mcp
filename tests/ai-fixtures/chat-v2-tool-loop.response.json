@@ -1,0 +1,222 @@
+[
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-1",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"variant 1\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-2",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"variant 2\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-3",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"variant 3\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-4",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"variant 4\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-5",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"variant 5\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-6",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"variant 6\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-7",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"variant 7\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-8",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"variant 8\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": null,
+                    "tool_calls": [
+                        {
+                            "id": "call-9",
+                            "type": "function",
+                            "function": {
+                                "name": "search_foods",
+                                "arguments": "{\"query\": \"variant 9\"}"
+                            }
+                        }
+                    ]
+                },
+                "finish_reason": "tool_calls"
+            }
+        ]
+    },
+    {
+        "id": "fixture-chat-v2",
+        "model": "meta/muse-ember",
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "I hit the tool limit for this message, so I stopped searching \u2014 I couldn't finish comparing every variant."
+                },
+                "finish_reason": "stop"
+            }
+        ]
+    }
+]
