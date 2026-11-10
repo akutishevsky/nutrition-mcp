@@ -88,10 +88,7 @@ if (!robots.includes("Sitemap: https://munch.business/sitemap.xml")) {
     throw new Error("robots.txt does not advertise the canonical sitemap");
 }
 
-const authSurfaces = [
-    "src/auth/email.ts",
-    "src/auth/password-routes.ts",
-];
+const authSurfaces = ["src/auth/email.ts", "src/auth/password-routes.ts"];
 const forbiddenAuthWords = [
     "subscription",
     "premium",
