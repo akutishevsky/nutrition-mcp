@@ -26,6 +26,12 @@ name: iOS
 #   asc-probe    — workflow_dispatch only: report-only ASC check (GET
 #                  apps + bundleIds for business.munch.app) via
 #                  scripts/asc-probe.py; creates nothing.
+#   asc-setup    — workflow_dispatch only: IOS-BUILD record creation
+#                  (Rulings addendum 2 — API first, console only on
+#                  refusal): creates the bundle ID record via
+#                  scripts/asc-setup.py, then attempts the app record
+#                  through the same API and prints Apple's verdict
+#                  verbatim. Idempotent; existing records are reported.
 #   distribute   — workflow_dispatch only: PitTech's signing flow —
 #                  ES256 JWT (openssl + Python stdlib), free the previous
 #                  CI distribution-cert slot, mint a fresh distribution
@@ -45,6 +51,7 @@ on:
       - "bun.lock"
       - "scripts/build-mobile-web.ts"
       - "scripts/asc-probe.py"
+      - "scripts/asc-setup.py"
       - "scripts/ios-smoke/**"
       - "src/capability-manifest.ts"
       - "src/capability-manifest.test.ts"
@@ -64,6 +71,7 @@ on:
       - "bun.lock"
       - "scripts/build-mobile-web.ts"
       - "scripts/asc-probe.py"
+      - "scripts/asc-setup.py"
       - "scripts/ios-smoke/**"
       - "src/capability-manifest.ts"
       - "src/capability-manifest.test.ts"
@@ -81,6 +89,7 @@ on:
         options:
           - simulator
           - asc-probe
+          - asc-setup
           - app-store-ipa
         default: simulator
 
@@ -290,6 +299,42 @@ jobs:
           chmod 600 "$key_path"
           trap 'rm -f "$key_path"' EXIT
           ASC_PRIVATE_KEY_PATH="$key_path" python3 scripts/asc-probe.py
+
+  asc-setup:
+    name: ASC setup (create bundle ID, attempt app record)
+    if: github.event_name == 'workflow_dispatch' && inputs.build_mode == 'asc-setup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require App Store Connect API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          for secret_name in \
+            ASC_KEY_ID \
+            ASC_ISSUER_ID \
+            ASC_PRIVATE_KEY; do
+            if [[ -z "${!secret_name}" ]]; then
+              echo "::error::Configure ${secret_name} in this repository's Actions secrets before running ASC setup."
+              exit 1
+            fi
+          done
+      - name: Create the Munch bundle ID and attempt the app record via the ASC API
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          key_path="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s' "$ASC_PRIVATE_KEY" > "$key_path"
+          chmod 600 "$key_path"
+          trap 'rm -f "$key_path"' EXIT
+          ASC_PRIVATE_KEY_PATH="$key_path" python3 scripts/asc-setup.py
 
   distribute:
     name: Build and upload to App Store Connect
