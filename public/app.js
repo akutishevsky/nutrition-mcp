@@ -728,7 +728,14 @@ async function renderRecipes() {
     const composeButton = canCreate
         ? '<button class="button button-secondary button-small" data-action="compose-recipe">Compose + plan</button>'
         : "";
-    content.innerHTML = `<div class="page-heading"><div><h2>Recipe library</h2><p>${data.recipes.length} structured recipe${data.recipes.length === 1 ? "" : "s"}. Import from a website for review, or create a recipe manually.</p></div><div class="auth-actions">${importButton}${createButton}${composeButton}<input class="input" id="recipe-filter" type="search" placeholder="Filter recipes" aria-label="Filter recipes" /></div></div><div class="capability-grid" id="recipe-grid">${data.recipes.length ? data.recipes.map((recipe) => `<article class="capability-card" data-recipe-name="${escapeHtml(recipe.name.toLowerCase())}"><span class="source-chip ${recipe.ownership === "household" ? "source-saved" : "source-usda"}">${escapeHtml(recipe.ownership)}</span><h3 class="spacer-top">${escapeHtml(recipe.name)}</h3><p>${number(recipe.servings, 1)} servings · ${escapeHtml(recipe.nutrition_status)}</p><div class="meal-macros"><span class="macro-chip">${number(recipe.nutrition_per_serving?.calories)} kcal</span><span class="macro-chip">P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g</span><span class="macro-chip">C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g</span><span class="macro-chip">F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</span></div><p class="tiny spacer-top">Scheduled ${number(recipe.times_scheduled)} times · logged ${number(recipe.times_logged)} times</p><button class="button button-secondary button-small spacer-top" type="button" data-action="view-recipe" data-id="${escapeHtml(recipe.recipe_id)}">View recipe</button></article>`).join("") : `<div class="empty-state"><div><h3>No recipes yet</h3><p>Import a recipe from a public website and review it before saving, or create one manually.</p>${canCreate ? `<div class="auth-actions spacer-top">${importButton}${createButton}</div>` : ""}</div></div>`}</div>`;
+    // S6 slice 4 (Recipes fusion): the library renders in the tightened
+    // mock's grammar — one hairline panel per recipe, the servings /
+    // nutrition / usage facts merged into a single meta line, and the
+    // View / Log / Add-to-plan actions riding each row (the same
+    // handlers the detail dialog has always offered; the list data
+    // already carries revision_id). No ad slot exists on this surface:
+    // the app's only slot is on Today (final ad law).
+    content.innerHTML = `<div class="operate-view recipes-view"><div class="page-heading"><div><h2>Recipe library</h2><p>${data.recipes.length} structured recipe${data.recipes.length === 1 ? "" : "s"}. Import from a website for review, or create a recipe manually.</p></div></div><div class="auth-actions recipe-actions">${importButton}${createButton}${composeButton}</div><div class="recipe-filter-row"><label class="field" for="recipe-filter"><span>Filter recipes</span><input class="input" id="recipe-filter" type="search" placeholder="Search by name" aria-label="Filter recipes" /></label></div><div class="recipe-list" id="recipe-grid">${data.recipes.length ? data.recipes.map((recipe) => `<section class="panel recipe-panel" data-recipe-name="${escapeHtml(recipe.name.toLowerCase())}"><span class="source-chip ${recipe.ownership === "household" ? "source-saved" : "source-usda"}">${escapeHtml(recipe.ownership)}</span><h3 class="recipe-title">${escapeHtml(recipe.name)}</h3><p class="recipe-meta">${number(recipe.servings, 1)} servings · ${escapeHtml(recipe.nutrition_status)} nutrition · per serving: <strong>${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong> · Scheduled ${number(recipe.times_scheduled)} times · logged ${number(recipe.times_logged)} times</p><div class="auth-actions recipe-panel-actions"><button class="button button-primary button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(recipe.recipe_id)}">View recipe</button><button class="button button-secondary button-small" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.recipe_id)}" data-revision="${escapeHtml(recipe.revision_id || "")}">Log recipe</button><button class="button button-secondary button-small" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipe.recipe_id)}">Add to plan</button></div></section>`).join("") : `<div class="empty-state"><div><h3>No recipes yet</h3><p>Import a recipe from a public website and review it before saving, or create one manually.</p>${canCreate ? `<div class="auth-actions spacer-top">${importButton}${createButton}</div>` : ""}</div></div>`}</div></div>`;
 }
 
 function recipeIngredientFromFood(food, portionId) {
@@ -1243,12 +1250,12 @@ async function openRecipe(id) {
     const ingredients = recipe.ingredients
         .map(
             (ingredient) =>
-                `<li><strong>${escapeHtml(ingredient.name)}</strong><span>${ingredient.quantity == null ? "" : `${number(ingredient.quantity, 3)} ${escapeHtml(ingredient.unit || "")}`} · ${number(ingredient.nutrients?.calories)} kcal</span>${sourceBadge(ingredient.source_type)}</li>`,
+                `<li class="recipe-ingredient-row"><span class="recipe-ingredient-main"><strong>${escapeHtml(ingredient.name)}</strong>${ingredient.quantity == null ? "" : ` — ${number(ingredient.quantity, 3)} ${escapeHtml(ingredient.unit || "")}`} ${sourceBadge(ingredient.source_type)}</span><strong class="recipe-ingredient-kcal">${number(ingredient.nutrients?.calories)} kcal</strong></li>`,
         )
         .join("");
     openDialog(
         recipe.name,
-        `<div class="recipe-detail"><p>${number(recipe.servings, 3)} servings · revision ${number(recipe.revision_number)} · ${escapeHtml(recipe.nutrition_status)}</p><div class="meal-macros"><span class="macro-chip">${number(recipe.nutrition_per_serving?.calories)} kcal/serving</span><span class="macro-chip">P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g</span><span class="macro-chip">C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g</span><span class="macro-chip">F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</span></div><h3 class="spacer-top">Ingredients</h3><ul class="food-items">${ingredients}</ul><h3 class="spacer-top">Instructions</h3><ol class="recipe-instructions">${recipe.instructions.map((instruction) => `<li>${escapeHtml(instruction)}</li>`).join("") || "<li>No instructions recorded.</li>"}</ol><p class="tiny spacer-top">Every ingredient includes the source snapshot used to calculate this revision. Editing creates a new revision; historical logs stay pinned.</p><div class="auth-actions spacer-top"><button class="button button-primary" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Log recipe</button><button class="button button-secondary" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Add to plan</button><button class="button button-secondary" type="button" data-action="archive-recipe" data-id="${escapeHtml(recipe.id)}" data-version="${escapeHtml(recipe.version)}">Archive</button></div><details class="spacer-top"><summary>Edit recipe revision</summary>${recipeFormMarkup("edit", recipe)}</details></div>`,
+        `<div class="recipe-detail"><p class="recipe-meta">${number(recipe.servings, 3)} servings · revision ${number(recipe.revision_number)} · ${escapeHtml(recipe.nutrition_status)} nutrition</p><div class="recipe-per-serving"><span><strong>Per serving</strong></span><strong class="recipe-per-serving-values">${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong></div><p class="recipe-note">Per-serving nutrition is calculated from the ingredient source snapshots pinned to this revision.</p><h3 class="spacer-top">Ingredients</h3><ul class="food-items recipe-ingredients">${ingredients}</ul><h3 class="spacer-top">Instructions</h3><ol class="recipe-instructions">${recipe.instructions.map((instruction, index) => `<li><span class="recipe-step-number">${index + 1}.</span> ${escapeHtml(instruction)}</li>`).join("") || "<li>No instructions recorded.</li>"}</ol><p class="tiny spacer-top">Every ingredient includes the source snapshot used to calculate this revision. Editing creates a new revision; historical logs stay pinned.</p><div class="auth-actions spacer-top recipe-detail-actions"><button class="button button-primary" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Log recipe</button><button class="button button-secondary" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Add to plan</button><button class="button button-secondary" type="button" data-action="archive-recipe" data-id="${escapeHtml(recipe.id)}" data-version="${escapeHtml(recipe.version)}" data-revision="${escapeHtml(recipe.revision_id)}">Archive</button></div><details class="spacer-top recipe-edit-details"><summary>Edit recipe revision</summary>${recipeFormMarkup("edit", recipe)}</details></div>`,
     );
     recipeComposer.ingredients = recipe.ingredients.map(
         recipeIngredientFromRecord,
@@ -3848,12 +3855,33 @@ async function handleAction(button) {
         return openRecipeLog(button.dataset.id, button.dataset.revision);
     if (action === "plan-recipe") return openRecipePlan(button.dataset.id);
     if (action === "archive-recipe") {
-        if (
-            !confirm(
-                "Archive this recipe? Historical meal logs will be preserved.",
-            )
-        )
-            return;
+        // S6 slice 4: archiving is this surface's destructive action, so
+        // it follows slice 1's inline-confirmation pattern instead of
+        // the native window.confirm() — the native dialog silently
+        // no-ops wherever it is dismissed or never answered (automated
+        // browsers, WebViews without a JS-dialog handler). The first
+        // click swaps the detail action row in place to a themed
+        // confirmation; only the confirm click sends the DELETE.
+        const actions = button.closest(".recipe-detail-actions");
+        if (!actions) return;
+        actions.innerHTML = `<p class="recipe-archive-note" role="alert">Archive this recipe? Historical meal logs will be preserved.</p><button class="button button-primary recipe-archive-confirm" type="button" data-action="confirm-archive-recipe" data-id="${escapeHtml(button.dataset.id)}" data-version="${escapeHtml(button.dataset.version)}">Yes, archive recipe</button><button class="button button-secondary" type="button" data-action="dismiss-archive-recipe" data-id="${escapeHtml(button.dataset.id)}" data-version="${escapeHtml(button.dataset.version)}" data-revision="${escapeHtml(button.dataset.revision || "")}">Keep recipe</button>`;
+        actions
+            .querySelector('[data-action="confirm-archive-recipe"]')
+            ?.focus();
+        return;
+    }
+    if (action === "dismiss-archive-recipe") {
+        // Restore the detail action row exactly as it was (the row is
+        // deterministic from the recipe's id / revision / version);
+        // nothing was sent and any open edit form is untouched.
+        const actions = button.closest(".recipe-detail-actions");
+        if (!actions) return;
+        actions.innerHTML = `<button class="button button-primary" type="button" data-action="log-recipe" data-id="${escapeHtml(button.dataset.id)}" data-revision="${escapeHtml(button.dataset.revision || "")}">Log recipe</button><button class="button button-secondary" type="button" data-action="plan-recipe" data-id="${escapeHtml(button.dataset.id)}" data-revision="${escapeHtml(button.dataset.revision || "")}">Add to plan</button><button class="button button-secondary" type="button" data-action="archive-recipe" data-id="${escapeHtml(button.dataset.id)}" data-version="${escapeHtml(button.dataset.version)}" data-revision="${escapeHtml(button.dataset.revision || "")}">Archive</button>`;
+        actions.querySelector('[data-action="archive-recipe"]')?.focus();
+        return;
+    }
+    if (action === "confirm-archive-recipe") {
+        button.disabled = true;
         await api(`/api/app/recipes/${encodeURIComponent(button.dataset.id)}`, {
             method: "DELETE",
             body: JSON.stringify({
