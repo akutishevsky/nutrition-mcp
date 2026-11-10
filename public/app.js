@@ -128,10 +128,6 @@ const recipeNutrientFields = [
 ];
 
 const content = document.getElementById("app-content");
-const pageTitle = document.getElementById("page-title");
-const pageKicker = document.getElementById("page-kicker");
-const refreshButton = document.getElementById("refresh-button");
-const quickAction = document.getElementById("quick-action");
 const toastRegion = document.getElementById("toast-region");
 const dialog = document.getElementById("app-dialog");
 
@@ -149,6 +145,11 @@ const routes = {
     ...accountRoutes,
 };
 
+// Per-route names. The visible header band that used to display these
+// was removed (the sidebar and bottom nav already name the page); the
+// second element of each pair still feeds the browser-tab title. The
+// first element is the retired band's kicker, retained so every pair
+// keeps the shape of the shared accountTitles map from app-account.js.
 const titles = {
     today: ["Daily workspace", "Today"],
     log: ["Nutrition history", "Food Log"],
@@ -381,9 +382,7 @@ function setActiveRoute(route) {
         if (active) link.setAttribute("aria-current", "page");
         else link.removeAttribute("aria-current");
     });
-    const [kicker, title] = titles[route] || titles.today;
-    pageKicker.textContent = kicker;
-    pageTitle.textContent = title;
+    const [, title] = titles[route] || titles.today;
     document.title = `${title} — Munch`;
 }
 
@@ -5816,11 +5815,12 @@ document.addEventListener("submit", async (event) => {
     }
 });
 
-refreshButton.addEventListener("click", renderRoute);
-quickAction.addEventListener("click", () => {
-    toast(
-        "Open your AI assistant and ask Munch to log, search, plan, or review nutrition data.",
-    );
+// Refresh path for code outside this module: app-patches.js asks for
+// a re-render of the current view by dispatching an `app:refresh`
+// event on document (it used to click the header band's Refresh
+// button, which no longer exists).
+document.addEventListener("app:refresh", () => {
+    void renderRoute();
 });
 window.addEventListener("popstate", renderRoute);
 installOfflineBanner();

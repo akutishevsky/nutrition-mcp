@@ -13,6 +13,10 @@ const mealPhotoNative = await readFile("mobile/meal-photo-native.js", "utf8");
 const appApi = await readFile("public/app-api.js", "utf8");
 const appJs = await readFile("public/app.js", "utf8");
 const appStyles = await readFile("public/styles.css", "utf8");
+const appHtml = await readFile("public/app.html", "utf8");
+const appPatches = await readFile("public/app-patches.js", "utf8");
+const pantryHtml = await readFile("public/pantry.html", "utf8");
+const pantryCss = await readFile("public/pantry.css", "utf8");
 const mobileLoginHtml = await readFile("mobile/mobile-login.html", "utf8");
 const androidManifest = await readFile(
     "android/app/src/main/AndroidManifest.xml",
@@ -474,6 +478,47 @@ requireText(
     appStyles,
     "env(safe-area-inset-top)",
     "Safe-area aware sticky chrome",
+);
+// App-shell fix batch (2026-11-10): the header band, its Refresh
+// button, and the "Use with your AI" quick action were removed at
+// Michael's direction — the nav already names the page. The status-bar
+// inset is consumed by .app-content's mobile padding-top (the band's
+// old rule was wiped by a later shorthand, which was the bleed), and
+// the standalone Pantry page carries the shell's bottom nav.
+for (const retired of [
+    "app-topbar",
+    "quick-action",
+    "refresh-button",
+    "page-title",
+    "page-kicker",
+]) {
+    if (appHtml.includes(retired) || appJs.includes(retired)) {
+        throw new Error(
+            `Retired shell chrome returned: ${retired} must stay removed`,
+        );
+    }
+}
+requireText(
+    appStyles,
+    "calc(22px + env(safe-area-inset-top))",
+    "Content top clears the packaged status bar",
+);
+requireText(
+    appJs,
+    '"app:refresh"',
+    "Refresh bridge for out-of-module re-renders",
+);
+requireText(
+    appPatches,
+    '"app:refresh"',
+    "Meal-editor refresh rides the bridge, not the retired button",
+);
+requireText(pantryHtml, "mobile-bottom-nav", "Pantry bottom navigation");
+requireText(pantryCss, ".mobile-bottom-nav", "Pantry bottom navigation styles");
+requireText(
+    buildMobileWeb,
+    'href="/app/more"',
+    "Pantry nav packaged-route rewrite",
 );
 // Amendment F: the S4 shell states (API-down, startup failure,
 // offline cold start) carry the Editorial Serif house theme.

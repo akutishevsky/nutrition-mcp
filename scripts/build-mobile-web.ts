@@ -43,6 +43,16 @@ pantryHtml = pantryHtml
         'href="/index.html?route=%2Fapp%2Frecipes"',
     )
     .replaceAll('href="/app/plan"', 'href="/index.html?route=%2Fapp%2Fplan"')
+    // The mirrored bottom nav's destinations: every shell route opens
+    // the packaged entry at that route; Pantry stays on this page.
+    .replaceAll('href="/app/log"', 'href="/index.html?route=%2Fapp%2Flog"')
+    .replaceAll('href="/app/cooks"', 'href="/index.html?route=%2Fapp%2Fcooks"')
+    .replaceAll(
+        'href="/app/groceries"',
+        'href="/index.html?route=%2Fapp%2Fgroceries"',
+    )
+    .replaceAll('href="/app/more"', 'href="/index.html?route=%2Fapp%2Fmore"')
+    .replaceAll('href="/app/pantry"', 'href="/pantry.html"')
     .replace(
         '<script type="module" src="/pantry.js"></script>',
         '<script type="module" src="/pantry.js"></script>\n        <script type="module" src="/pantry-native.js"></script>',

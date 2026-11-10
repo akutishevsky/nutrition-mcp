@@ -1665,32 +1665,6 @@
         min-width: 0;
     }
 
-    .app-topbar {
-        position: sticky;
-        z-index: 40;
-        top: 0;
-        display: flex;
-        min-height: 72px;
-        align-items: center;
-        justify-content: space-between;
-        gap: 20px;
-        border-bottom: 1px solid var(--ink-100);
-        background: rgb(246 248 246 / 0.92);
-        padding: 12px clamp(20px, 4vw, 46px);
-        backdrop-filter: blur(18px);
-    }
-
-    .app-topbar h1 {
-        font-size: 1.35rem;
-        letter-spacing: -0.025em;
-    }
-
-    .topbar-actions {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
     .app-content {
         width: min(100%, 1440px);
         margin-inline: auto;
@@ -2147,13 +2121,14 @@
         display: none;
     }
 
-    .app-topbar {
-        min-height: 64px;
-        padding-inline: 16px;
-    }
-
+    /* The first content clears the status bar in the packaged shell:
+       Capacitor passes the real inset through env() when the page is
+       viewport-fit=cover (zero in a plain browser, so web is unchanged).
+       This padding-top is the shell's only top inset consumer — the
+       header band that used to carry it was removed, and no later
+       shorthand may reset it (that reset was the status-bar bleed). */
     .app-content {
-        padding: 22px 16px 102px;
+        padding: calc(22px + env(safe-area-inset-top)) 16px 102px;
     }
 
     .mobile-bottom-nav {
@@ -2354,10 +2329,6 @@
         font-size: 16px;
     }
 
-    .topbar-actions .button-secondary {
-        display: none;
-    }
-
     .dashboard-grid {
         display: block;
     }
@@ -2432,11 +2403,9 @@
     .offline-banner {
         bottom: calc(80px + env(safe-area-inset-bottom));
     }
-    /* Sticky topbar content clears the status cutout in the packaged
-       shell (its translucent background still extends underneath). */
-    .app-topbar {
-        padding-top: calc(12px + env(safe-area-inset-top));
-    }
+    /* The top safe-area inset is consumed by .app-content's mobile
+       padding-top above (the header band that used to carry it here
+       was removed). */
     .toast-region {
         bottom: calc(82px + env(safe-area-inset-bottom));
     }

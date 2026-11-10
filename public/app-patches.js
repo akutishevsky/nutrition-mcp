@@ -313,7 +313,10 @@ async function showMealEditor(id) {
 }
 
 function refreshCurrentView() {
-    document.getElementById("refresh-button")?.click();
+    // The header band's Refresh button is gone; app.js re-renders the
+    // current view when it receives this event (see the `app:refresh`
+    // listener in app.js).
+    document.dispatchEvent(new CustomEvent("app:refresh"));
 }
 
 document.addEventListener(

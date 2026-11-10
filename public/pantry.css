@@ -710,3 +710,56 @@ button:disabled {
     color: #176b3a;
     flex: none;
 }
+
+/* Bottom navigation — mirrored from the app shell's .mobile-bottom-nav
+   (styles.css + app-overrides.css; this page loads only pantry.css, so
+   the rules live here like .entry-row above). Same seven destinations,
+   same paper ground and serif grammar, shown at the shell's phone
+   breakpoint so Pantry wayfinding matches every other route. */
+.mobile-bottom-nav {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    body {
+        padding-bottom: calc(84px + env(safe-area-inset-bottom));
+    }
+
+    .mobile-bottom-nav {
+        position: fixed;
+        z-index: 100;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        padding: 7px max(8px, env(safe-area-inset-right))
+            max(7px, env(safe-area-inset-bottom))
+            max(8px, env(safe-area-inset-left));
+        border-top: 1px solid var(--line-strong);
+        background: var(--paper);
+    }
+
+    .mobile-bottom-nav a {
+        display: grid;
+        min-width: 0;
+        min-height: 52px;
+        place-items: center;
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .mobile-bottom-nav a span:first-child {
+        font-size: 1rem;
+    }
+
+    .mobile-bottom-nav a.is-active {
+        color: var(--green);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+}

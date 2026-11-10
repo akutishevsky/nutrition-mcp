@@ -662,7 +662,6 @@ dialog .auth-card {
     margin-top: 2px;
 }
 
-.shopping-mode .app-topbar,
 .shopping-mode .page-heading,
 .shopping-mode .app-sidebar {
     display: none;
@@ -674,7 +673,10 @@ dialog .auth-card {
 
 .shopping-mode .app-content {
     width: min(100%, 780px);
-    padding-top: 18px;
+    /* Same status-bar inset as the shell's mobile content padding:
+       in the packaged shell the focus view also starts at the top of
+       the screen (env() is zero in a plain browser). */
+    padding-top: calc(18px + env(safe-area-inset-top));
 }
 
 .shopping-mode .food-row {
@@ -1035,18 +1037,6 @@ body.app-page {
     font-weight: 700;
     box-shadow: inset 3px 0 0 #176b3a;
     background: transparent;
-}
-
-.app-topbar {
-    background: #f6f1e7;
-    border-bottom: 1px solid #d8cdb6;
-}
-
-.app-topbar h1 {
-    font-family: Georgia, "Times New Roman", Times, serif;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: #2b2620;
 }
 
 .section-kicker {
@@ -1627,17 +1617,6 @@ dialog .summary-card > small {
         min-width: 0;
         font-size: 11px;
         white-space: nowrap;
-    }
-
-    /* Topbar earns fewer pixels at phone width (P5). */
-    .app-topbar {
-        min-height: 0;
-        padding: 8px 14px;
-        backdrop-filter: none;
-    }
-
-    .app-topbar h1 {
-        font-size: 24px;
     }
 }
 
@@ -4267,19 +4246,6 @@ dialog .guided-grocery-row input[type="checkbox"] {
 .household-inline-confirm-danger:hover {
     background: #6e241a;
     border-color: #6e241a;
-}
-
-/* =====================================================================
-   S8 rider — shared shell topbar tap floor.
-   The shared shell's "Use with your AI" button (#quick-action, in
-   .topbar-actions on EVERY surface) uses the shared .button-small
-   grammar, whose min-height sits at 40px — under the 44px tap floor,
-   measured 142×40px in the S6 audits. One shared rule lifts every
-   topbar action to the floor; the topbar is shell chrome, so the fix
-   lands on all surfaces at once and no surface keeps its own patch.
-   ===================================================================== */
-.topbar-actions .button {
-    min-height: 44px;
 }
 
 /* =====================================================================
