@@ -6,13 +6,17 @@
             name="viewport"
             content="width=device-width,initial-scale=1,viewport-fit=cover"
         />
+        <meta name="theme-color" content="#f6f1e7" />
         <title>Pantry · Munch</title>
         <link rel="icon" href="/favicon.ico" />
         <link rel="stylesheet" href="/pantry.css" />
     </head>
     <body>
         <header class="topbar">
-            <a class="brand" href="/app">Munch</a>
+            <a class="brand" href="/app"
+                ><img class="mark" src="/brand/munch-mark.svg" alt="" />Munch</a
+            >
+            <span class="tsec">Pantry</span>
             <nav>
                 <a href="/app">Today</a><a href="/app/recipes">Recipes</a
                 ><a href="/app/plan">Planning</a>
@@ -25,9 +29,8 @@
                     <p class="eyebrow">Kitchen</p>
                     <h1>Pantry</h1>
                     <p class="lede">
-                        Keep an approximate picture of what is in your pantry,
-                        fridge, and freezer. Grocery purchases can replenish it;
-                        meal conversations can reconcile what you actually used.
+                        An approximate picture of what is in your pantry,
+                        fridge, and freezer.
                     </p>
                 </div>
                 <label class="switch-row"
@@ -39,23 +42,87 @@
             <div id="status" class="status" aria-live="polite"></div>
 
             <div id="workspace" class="hidden">
-                <section class="toolbar card">
-                    <select id="scope">
-                        <option value="personal">Personal Pantry</option>
-                    </select>
-                    <input
-                        id="search"
-                        type="search"
-                        placeholder="Search Pantry"
-                    />
-                    <select id="location-filter">
-                        <option value="">All locations</option>
-                        <option value="pantry">Pantry</option>
-                        <option value="fridge">Fridge</option>
-                        <option value="freezer">Freezer</option>
-                        <option value="unspecified">Unsorted</option>
-                    </select>
-                    <button id="refresh" type="button">Refresh</button>
+                <section class="toolbar">
+                    <div class="toolbar-row">
+                        <input
+                            id="search"
+                            type="search"
+                            placeholder="Search Pantry"
+                            aria-label="Search Pantry"
+                        />
+                        <select id="scope" aria-label="Pantry scope">
+                            <option value="personal">Personal Pantry</option>
+                        </select>
+                        <button id="refresh" class="secondary" type="button">
+                            Refresh
+                        </button>
+                    </div>
+                    <div
+                        id="location-chips"
+                        class="chiprow"
+                        role="group"
+                        aria-label="Filter by location"
+                    >
+                        <button
+                            type="button"
+                            class="fchip on"
+                            data-location=""
+                            aria-pressed="true"
+                        >
+                            All locations
+                        </button>
+                        <button
+                            type="button"
+                            class="fchip"
+                            data-location="pantry"
+                            aria-pressed="false"
+                        >
+                            Pantry
+                        </button>
+                        <button
+                            type="button"
+                            class="fchip"
+                            data-location="fridge"
+                            aria-pressed="false"
+                        >
+                            Fridge
+                        </button>
+                        <button
+                            type="button"
+                            class="fchip"
+                            data-location="freezer"
+                            aria-pressed="false"
+                        >
+                            Freezer
+                        </button>
+                        <button
+                            type="button"
+                            class="fchip"
+                            data-location="unspecified"
+                            aria-pressed="false"
+                        >
+                            Unsorted
+                        </button>
+                    </div>
+                </section>
+
+                <section class="card inventory-section">
+                    <div class="inventory-head">
+                        <div>
+                            <p class="eyebrow">On hand</p>
+                            <h2>Your inventory</h2>
+                        </div>
+                        <span id="item-count" class="pill"></span>
+                    </div>
+                    <div id="lowstock" class="lowstock hidden"></div>
+                    <div id="inventory" class="inventory-list"></div>
+                    <div id="empty" class="empty hidden">
+                        Nothing matches this view yet.
+                    </div>
+                    <p class="note">
+                        Meal logging stays separate — Munch only deducts food
+                        after you clarify what was actually used.
+                    </p>
                 </section>
 
                 <section class="grid-two">
@@ -99,59 +166,48 @@
                             </select></label
                         >
                         <button type="submit">Add to Pantry</button>
+                        <p class="note">
+                            Approximate is fine — exact amounts, rough amounts,
+                            or just &ldquo;on hand.&rdquo; Pantry is approximate
+                            by design.
+                        </p>
                     </form>
 
                     <section class="card stack">
                         <div>
-                            <p class="eyebrow">Camera</p>
+                            <p class="eyebrow">Scan</p>
                             <h2>Scan what you have</h2>
                         </div>
-                        <p class="muted">
-                            Upload a pantry, fridge, or freezer photo. Munch
-                            processes the image transiently and stores only the
-                            items you confirm.
-                        </p>
-                        <input
-                            id="pantry-photo"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                        />
-                        <button id="scan-pantry" type="button">
-                            Review photo
-                        </button>
-                    </section>
-
-                    <section class="card stack">
-                        <div>
-                            <p class="eyebrow">Shopping</p>
-                            <h2>Scan a receipt</h2>
+                        <div class="capture-block">
+                            <p class="muted">
+                                Upload a pantry, fridge, or freezer photo. Munch
+                                processes the image transiently and stores only
+                                the items you confirm.
+                            </p>
+                            <input
+                                id="pantry-photo"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                            />
+                            <button id="scan-pantry" type="button">
+                                Review photo
+                            </button>
                         </div>
-                        <p class="muted">
-                            Munch can match purchased foods to your Grocery list
-                            and add the rest to Pantry. Non-food lines are
-                            ignored.
-                        </p>
-                        <input
-                            id="receipt-photo"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                        />
-                        <button id="scan-receipt" type="button">
-                            Review receipt
-                        </button>
-                    </section>
-
-                    <section class="card stack">
-                        <div>
-                            <p class="eyebrow">How it works</p>
-                            <h2>Approximate by design</h2>
+                        <div class="capture-block">
+                            <p class="muted">
+                                Scan a receipt — Munch can match purchased foods
+                                to your Grocery list and add the rest to Pantry.
+                                Non-food lines are ignored.
+                            </p>
+                            <input
+                                id="receipt-photo"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                            />
+                            <button id="scan-receipt" type="button">
+                                Review receipt
+                            </button>
                         </div>
-                        <p class="muted">
-                            Pantry can track exact amounts, rough amounts, or
-                            simply that an item is on hand. Meal logging stays
-                            separate; Munch only deducts food after you clarify
-                            what was actually used.
-                        </p>
                     </section>
                 </section>
 
@@ -262,20 +318,6 @@
                         aria-live="polite"
                     ></div>
                     <div id="meal-ideas" class="meal-ideas"></div>
-                </section>
-
-                <section class="card inventory-section">
-                    <div class="inventory-head">
-                        <div>
-                            <p class="eyebrow">On hand</p>
-                            <h2>Your inventory</h2>
-                        </div>
-                        <span id="item-count" class="pill"></span>
-                    </div>
-                    <div id="inventory" class="inventory-list"></div>
-                    <div id="empty" class="empty hidden">
-                        Nothing matches this view yet.
-                    </div>
                 </section>
             </div>
         </main>

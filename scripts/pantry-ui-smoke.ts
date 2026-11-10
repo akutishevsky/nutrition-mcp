@@ -100,6 +100,42 @@ if (!/@media\s*\(\s*max-width:\s*760px\s*\)/.test(css)) {
         "Pantry workspace is missing its mobile responsive treatment",
     );
 }
+// S6 slice 2 (Amendment F): Pantry is themed in Editorial Serif, voiced
+// inside its own stylesheet (the S4 / PR #187 mechanism — editorial.css
+// is the flagship/public stylesheet and is NOT loaded by this signed-in
+// surface). The old Inter world must stay gone, and the location filter
+// is a single-row chip group, not the retired select.
+if (!html.includes('href="/pantry.css"') || html.includes("editorial.css")) {
+    throw new Error(
+        "Pantry must load only its own Serif-voiced pantry.css, not editorial.css",
+    );
+}
+if (
+    css.includes("Inter") ||
+    css.includes("#f7f7f4") ||
+    !css.includes("#f6f1e7") ||
+    !css.includes("#fffdf8") ||
+    !css.includes("#d8cdb6") ||
+    !css.includes("#176b3a") ||
+    !css.includes('Georgia, "Times New Roman", Times, serif')
+) {
+    throw new Error(
+        "Pantry stylesheet is not voiced in the Editorial Serif tokens",
+    );
+}
+if (
+    !html.includes('id="location-chips"') ||
+    html.includes('id="location-filter"')
+) {
+    throw new Error(
+        "Pantry location filter must be the chip row, not the retired select",
+    );
+}
+if (/ad-slot|adsbygoogle|MunchAds|data-ad/.test(html + js + css)) {
+    throw new Error(
+        "Pantry carries an ad placement; the app's only ad slot is on Today (final ad law)",
+    );
+}
 if (/localStorage|sessionStorage/.test(js)) {
     throw new Error(
         "Pantry client must not persist inventory or receipt data in browser storage",

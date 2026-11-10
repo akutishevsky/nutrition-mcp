@@ -13,7 +13,7 @@ function status(message, error = false) {
     const target = $("#status");
     if (!target) return;
     target.textContent = message || "";
-    target.style.color = error ? "#9b2c2c" : "#555";
+    target.style.color = error ? "#8c2f22" : "#5d5344";
 }
 
 function currentScope() {
@@ -123,7 +123,7 @@ function enhanceImageCard(inputId, mode) {
     actions.className = "native-capture-actions";
     actions.style.display = "grid";
     actions.style.gridTemplateColumns = "1fr 1fr";
-    actions.style.gap = "0.6rem";
+    actions.style.gap = "8px";
     actions.append(
         createButton("Take photo", () => capture(mode, "camera")),
         createButton("Choose photo", () => capture(mode, "library")),
@@ -176,7 +176,7 @@ function renderBarcodeReview(barcode, candidate) {
     const actions = document.createElement("div");
     actions.style.display = "grid";
     actions.style.gridTemplateColumns = "1fr 1fr";
-    actions.style.gap = "0.6rem";
+    actions.style.gap = "8px";
     const add = createButton(
         "Add to Pantry",
         async () => {

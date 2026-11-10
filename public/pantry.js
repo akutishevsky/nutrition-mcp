@@ -11,7 +11,9 @@ const emptyEl = $("#empty");
 const itemCountEl = $("#item-count");
 const scopeEl = $("#scope");
 const searchEl = $("#search");
-const locationEl = $("#location-filter");
+const locationChipsEl = $("#location-chips");
+const lowstockEl = $("#lowstock");
+let locationFilter = "";
 const reviewEl = $("#review");
 const reviewLinesEl = $("#review-lines");
 const reviewTitleEl = $("#review-title");
@@ -24,12 +26,12 @@ let reviewState = null;
 
 function status(message, error = false) {
     statusEl.textContent = message || "";
-    statusEl.style.color = error ? "#9b2c2c" : "#555";
+    statusEl.style.color = error ? "#8c2f22" : "#5d5344";
 }
 
 function mealStatus(message, error = false) {
     mealIdeaStatusEl.textContent = message || "";
-    mealIdeaStatusEl.style.color = error ? "#9b2c2c" : "#555";
+    mealIdeaStatusEl.style.color = error ? "#8c2f22" : "#5d5344";
 }
 
 function currentScope() {
@@ -88,32 +90,70 @@ function quantityLabel(item) {
     return `${prefix}${Number(item.quantity).toLocaleString()}${item.unit ? ` ${item.unit}` : ""}`;
 }
 
+const LOCATION_LABELS = {
+    pantry: "Pantry",
+    fridge: "Fridge",
+    freezer: "Freezer",
+    unspecified: "Unsorted",
+};
+
 function renderInventory(items) {
     inventoryEl.replaceChildren();
     itemCountEl.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
     emptyEl.classList.toggle("hidden", items.length !== 0);
+    // Low-stock summary (tightened mock's warn panel, from real data):
+    // one merged line naming every low item, inside the inventory head.
+    const lowItems = items.filter((item) => item.stock_state === "low");
+    lowstockEl.replaceChildren();
+    lowstockEl.classList.toggle("hidden", lowItems.length === 0);
+    if (lowItems.length) {
+        const lead = document.createElement("strong");
+        lead.textContent = "Low stock: ";
+        const names = document.createElement("span");
+        names.textContent = lowItems
+            .map(
+                (item) => `${item.name} (${quantityLabel(item).toLowerCase()})`,
+            )
+            .join(", ");
+        lowstockEl.append(lead, names);
+    }
     for (const item of items) {
         const row = document.createElement("div");
         row.className = `inventory-row stock-${item.stock_state}`;
-        const name = document.createElement("div");
-        name.innerHTML = `<strong></strong><small></small>`;
-        name.querySelector("strong").textContent = item.name;
-        name.querySelector("small").textContent =
+        // One merged line (density law): name · quantity · location ·
+        // provenance/mode — nothing is hidden at phone width.
+        const main = document.createElement("div");
+        main.className = "inventory-main";
+        const name = document.createElement("strong");
+        name.textContent = item.name;
+        const meta = document.createElement("span");
+        meta.className = "meta";
+        // "exact" is the default quantity mode and carries no signal on
+        // the row; provider identity and non-default modes stay visible.
+        const detail =
             item.food_provider && item.provider_food_id
                 ? `${item.food_provider} · verified identity`
-                : item.quantity_mode.replaceAll("_", " ");
-        const quantity = document.createElement("div");
-        quantity.textContent = quantityLabel(item);
-        const unit = document.createElement("div");
-        unit.className = "inventory-unit";
-        unit.textContent = item.unit || "—";
-        const location = document.createElement("div");
-        location.className = "inventory-location";
-        location.textContent = item.location;
-        const actions = document.createElement("div");
+                : item.quantity_mode !== "exact"
+                  ? item.quantity_mode.replaceAll("_", " ")
+                  : null;
+        meta.textContent =
+            ` · ${quantityLabel(item)} · ${LOCATION_LABELS[item.location] || item.location}` +
+            (detail ? ` · ${detail}` : "");
+        main.append(name, meta);
+        const tag = document.createElement("span");
+        if (item.stock_state === "low") {
+            tag.className = "tag low";
+            tag.textContent = "Low stock";
+        } else if (item.stock_state === "depleted") {
+            tag.className = "tag depleted";
+            tag.textContent = "Depleted";
+        } else {
+            tag.className = "tag";
+            tag.textContent = "On hand";
+        }
         const finished = document.createElement("button");
         finished.type = "button";
-        finished.className = "secondary";
+        finished.className = "row-action";
         finished.textContent =
             item.stock_state === "depleted" ? "Depleted" : "Finished";
         finished.disabled = item.stock_state === "depleted";
@@ -123,8 +163,7 @@ function renderInventory(items) {
                 "correction",
             ),
         );
-        actions.append(finished);
-        row.append(name, quantity, unit, location, actions);
+        row.append(main, tag, finished);
         inventoryEl.append(row);
     }
 }
@@ -135,7 +174,7 @@ async function loadPantry() {
         status("Loading Pantry…");
         const query = new URLSearchParams({ scope: currentScope() });
         if (searchEl.value.trim()) query.set("q", searchEl.value.trim());
-        if (locationEl.value) query.set("location", locationEl.value);
+        if (locationFilter) query.set("location", locationFilter);
         const pantry = await api(`/api/app/pantry?${query}`);
         renderInventory(pantry.items || []);
         status("");
@@ -146,7 +185,17 @@ async function loadPantry() {
 
 $("#refresh").addEventListener("click", loadPantry);
 scopeEl.addEventListener("change", loadPantry);
-locationEl.addEventListener("change", loadPantry);
+for (const chip of locationChipsEl.querySelectorAll(".fchip")) {
+    chip.addEventListener("click", () => {
+        locationFilter = chip.dataset.location || "";
+        for (const other of locationChipsEl.querySelectorAll(".fchip")) {
+            const active = other === chip;
+            other.classList.toggle("on", active);
+            other.setAttribute("aria-pressed", String(active));
+        }
+        loadPantry();
+    });
+}
 let searchTimer;
 searchEl.addEventListener("input", () => {
     clearTimeout(searchTimer);
@@ -205,8 +254,10 @@ function renderReview(mode, preview, sourceLabel) {
         check.checked = line.is_food && line.confidence >= 0.85;
         check.disabled = !line.is_food;
         const name = document.createElement("span");
+        name.className = "review-name";
         name.textContent = line.name;
         const quantity = document.createElement("span");
+        quantity.className = "review-qty";
         quantity.textContent =
             line.quantity == null ? "—" : String(line.quantity);
         const unit = document.createElement("span");
