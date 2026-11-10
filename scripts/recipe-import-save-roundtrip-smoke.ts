@@ -127,7 +127,6 @@ const capabilities = {
     householdManage: false,
     household: null,
     historyDays: null,
-    savedFoodLimit: null,
 } as any;
 
 const server = new McpServer({

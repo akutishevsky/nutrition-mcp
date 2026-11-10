@@ -3,7 +3,6 @@ import {
     androidFreeBaselineCapabilities,
     capabilitiesFromSubscription,
     failClosedMunchCapabilities,
-    FREE_SAVED_FOOD_LIMIT,
 } from "./capabilities.js";
 
 const now = new Date("2026-08-04T17:00:00.000Z");
@@ -14,7 +13,6 @@ describe("Munch capability resolution", () => {
         expect(result.tier).toBe("free");
         expect(result.entitlementSource).toBe("android_free_baseline");
         expect(result.historyDays).toBeNull();
-        expect(result.savedFoodLimit).toBeNull();
         expect(result.personalRecipesRead).toBe(true);
         expect(result.personalRecipesWrite).toBe(true);
         expect(result.personalPlanningRead).toBe(true);
@@ -67,8 +65,9 @@ describe("Munch capability resolution", () => {
         expect(result.coreNutrition).toBe(true);
         // Full history is free: no 30-day cap.
         expect(result.historyDays).toBeNull();
-        // The saved-food cap is the one remaining free quantity limit.
-        expect(result.savedFoodLimit).toBe(FREE_SAVED_FOOD_LIMIT);
+        // Saved foods are uncapped for every tier (CAP-LIFT, 2026-11-09):
+        // capabilities carry no saved-food limit at all.
+        expect("savedFoodLimit" in result).toBe(false);
         expect(result.personalRecipesRead).toBe(true);
         expect(result.personalRecipesWrite).toBe(true);
         expect(result.personalPlanningRead).toBe(true);
@@ -81,7 +80,7 @@ describe("Munch capability resolution", () => {
             const result = capabilitiesFromSubscription({ status }, now);
             expect(result.tier).toBe("premium");
             expect(result.historyDays).toBeNull();
-            expect(result.savedFoodLimit).toBeNull();
+            expect("savedFoodLimit" in result).toBe(false);
             expect(result.personalRecipesWrite).toBe(true);
             expect(result.personalPlanningWrite).toBe(true);
         }

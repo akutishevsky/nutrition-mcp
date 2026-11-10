@@ -10,7 +10,6 @@ import { getWidgetHtml } from "./widgets.js";
 
 const capabilities = {
     tier: "premium",
-    savedFoodLimit: null,
 } as unknown as MunchCapabilities;
 
 function capture(

@@ -6,7 +6,6 @@ import type { MunchCapabilities } from "./billing/capabilities.js";
 import { serializeFoodCandidate } from "./food-tools.js";
 import { getFoodSearchService } from "./food-providers/service.js";
 import {
-    assertSavedFoodCapacity,
     deleteSavedFood,
     listSavedFoods,
     markSavedFoodUsed,
@@ -114,7 +113,6 @@ export function registerSavedFoodTools(
             withAnalytics(
                 "save_food",
                 async () => {
-                    await assertSavedFoodCapacity(userId, label, capabilities);
                     const candidate =
                         await getFoodSearchService().details(candidate_id);
                     if (!candidate) {
@@ -237,14 +235,7 @@ export function registerSavedFoodTools(
                 "list_saved_foods",
                 async () => {
                     const requestedLimit = limit ?? 50;
-                    const effectiveLimit =
-                        capabilities.savedFoodLimit === null
-                            ? requestedLimit
-                            : Math.min(
-                                  requestedLimit,
-                                  capabilities.savedFoodLimit,
-                              );
-                    const saved = await listSavedFoods(userId, effectiveLimit);
+                    const saved = await listSavedFoods(userId, requestedLimit);
                     return {
                         content: [
                             {

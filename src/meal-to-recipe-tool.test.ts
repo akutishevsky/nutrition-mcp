@@ -8,7 +8,6 @@ const premiumPersonal = {
     entitlementSource: "direct_subscription",
     coreNutrition: true,
     historyDays: null,
-    savedFoodLimit: null,
     personalRecipesRead: true,
     personalRecipesWrite: true,
     personalPlanningRead: true,

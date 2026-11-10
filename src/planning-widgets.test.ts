@@ -18,7 +18,6 @@ const premium = {
     householdManage: false,
     household: null,
     historyDays: null,
-    savedFoodLimit: null,
 } as unknown as MunchCapabilities;
 
 function fakeServer() {

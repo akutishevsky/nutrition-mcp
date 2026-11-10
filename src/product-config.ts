@@ -8,9 +8,6 @@ export const PRODUCT_CONFIG = Object.freeze({
     trialEnabled: true,
     freeTierEnabled: true,
     freeHistoryDays: 30,
-    // Legacy saved-food infrastructure remains available to MCP clients while
-    // the website moves food recall to structured meal history.
-    freeSavedFoodLimit: 25,
     householdMemberLimit: 6,
     googlePlayPackageName: "business.munch.app",
     googlePlayPremiumProductId: "munch_premium_monthly",

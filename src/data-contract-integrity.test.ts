@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-    FREE_HISTORY_DAYS,
-    FREE_SAVED_FOOD_LIMIT,
-} from "./billing/capabilities.js";
+import { FREE_HISTORY_DAYS } from "./billing/capabilities.js";
 import {
     HOUSEHOLD_MEMBER_MONTHLY_CENTS,
     MAX_ADDITIONAL_HOUSEHOLD_MEMBERS,
@@ -14,7 +11,6 @@ import { PRODUCT_CONFIG, getPublicProductPolicy } from "./product-config.js";
 describe("single-source product policy", () => {
     test("capability aliases resolve from PRODUCT_CONFIG", () => {
         expect(FREE_HISTORY_DAYS).toBe(PRODUCT_CONFIG.freeHistoryDays);
-        expect(FREE_SAVED_FOOD_LIMIT).toBe(PRODUCT_CONFIG.freeSavedFoodLimit);
     });
 
     test("billing aliases and arithmetic resolve from PRODUCT_CONFIG", () => {

@@ -6,7 +6,6 @@ const premiumCapabilities = {
     tier: "premium",
     coreNutrition: true,
     historyDays: null,
-    savedFoodLimit: null,
     personalRecipesRead: true,
     personalRecipesWrite: true,
     personalPlanningRead: true,

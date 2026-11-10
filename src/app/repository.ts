@@ -226,7 +226,10 @@ export async function getAppBootstrap(
             tier: capabilities.tier,
             entitlementSource: capabilities.entitlementSource,
             historyDays: capabilities.historyDays,
-            savedFoodLimit: capabilities.savedFoodLimit,
+            // Saved foods are uncapped for every tier (CAP-LIFT,
+            // 2026-11-09); the key stays so existing clients keep
+            // reading an explicit null limit.
+            savedFoodLimit: null,
             recipes:
                 capabilities.personalRecipesRead || capabilities.householdRead,
             recipeWrite: capabilities.personalRecipesWrite,
@@ -345,12 +348,12 @@ export async function getFoodsWorkspace(
     userId: string,
     surface: MunchCapabilitySurface = "web",
 ) {
-    const capabilities = await resolveMunchCapabilities(userId, surface);
     const foods = await listSavedFoods(userId, 200);
     return {
         deprecated: true,
         replacement: "/app/log",
-        limit: capabilities.savedFoodLimit,
+        // Saved foods are uncapped for every tier (CAP-LIFT, 2026-11-09).
+        limit: null,
         total: foods.length,
         foods,
     };
