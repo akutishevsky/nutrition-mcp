@@ -602,10 +602,10 @@ button:disabled {
     opacity: 0.55;
 }
 
-/* UX fix wave F6: the row's main area opens the item editor — it
-   carries the pointer affordance and a visible keyboard focus. The
-   row itself is ≥48px tall, so the tap area clears the 44px floor. */
-.inventory-main-edit {
+/* UX fix wave F6: the whole row opens the item editor — it carries
+   the pointer affordance; the row is ≥48px tall, so the tap area
+   clears the 44px floor. The main area keeps the keyboard focus. */
+.inventory-row {
     cursor: pointer;
 }
 

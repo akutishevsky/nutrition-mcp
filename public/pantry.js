@@ -222,19 +222,24 @@ function renderInventory(items) {
             ` · ${quantityLabel(item)} · ${LOCATION_LABELS[item.location] || item.location}` +
             (detail ? ` · ${detail}` : "");
         main.append(name, meta);
-        // F6: the row's main area is the edit affordance — click /
-        // Enter / Space opens the item editor. The Finished button
-        // stays a separate target and never triggers it.
+        // F6: the whole row is the edit affordance (the row is
+        // ≥48px tall — the full row is the tap target, not just the
+        // text block). Click / Enter / Space opens the item editor;
+        // the Finished button stays a separate target and never
+        // triggers it.
         main.classList.add("inventory-main-edit");
         main.tabIndex = 0;
         main.setAttribute("role", "button");
         main.setAttribute("aria-label", `Edit ${item.name}`);
-        main.addEventListener("click", () => openItemEditor(item));
         main.addEventListener("keydown", (event) => {
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 openItemEditor(item);
             }
+        });
+        row.addEventListener("click", (event) => {
+            if (event.target.closest("button")) return;
+            openItemEditor(item);
         });
         const tag = document.createElement("span");
         if (item.stock_state === "low") {
