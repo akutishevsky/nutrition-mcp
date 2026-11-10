@@ -2,9 +2,12 @@ import { test, expect, mock, beforeEach, afterEach, describe } from "bun:test";
 import {
     normalizeBarcode,
     fetchProductFromOFF,
+    foodResultFromCandidate,
     formatFoodResult,
+    lookupBarcode,
     type FoodResult,
 } from "./foods.js";
+import type { FoodCandidate } from "./food-providers/types.js";
 
 const realFetch = globalThis.fetch;
 
@@ -439,6 +442,175 @@ describe("fetchProductFromOFF alcohol (ABV, not grams)", () => {
         expect(fetchProductFromOFF("737628064502")).rejects.toThrow(
             /OFF_USER_AGENT is not configured/,
         );
+    });
+});
+
+// Phase 2 (data-layer item 2): the legacy lookup_barcode path resolves
+// through the canonical FoodSearchService, so OFF hits land in
+// food_catalog_entries with provenance instead of the siloed food_cache.
+describe("canonical barcode routing (lookupBarcode via FoodSearchService)", () => {
+    function offCandidate(
+        overrides: Partial<FoodCandidate> = {},
+    ): FoodCandidate {
+        return {
+            provider: "open_food_facts",
+            providerFoodId: "737628064502",
+            name: "Coconut Milk",
+            brand: "Thai Kitchen",
+            barcode: "737628064502",
+            dataKind: "packaged",
+            nutrientsPer100g: { calories: 150, fat_g: 15 },
+            portions: [
+                {
+                    id: "declared-serving",
+                    amount: 1,
+                    unit: "serving",
+                    label: "80 ml",
+                    nutrients: {
+                        calories: 120,
+                        protein_g: 1.24,
+                        carbs_g: 2,
+                        fat_g: 12.34,
+                        alcohol_g: 13.02,
+                    },
+                },
+                {
+                    id: "100g",
+                    amount: 100,
+                    unit: "g",
+                    label: "100 g",
+                    gramWeight: 100,
+                    nutrients: { calories: 150, fat_g: 15 },
+                },
+            ],
+            attribution: { label: "Open Food Facts" },
+            confidence: 0.9,
+            ...overrides,
+        };
+    }
+
+    test("foodResultFromCandidate prefers the declared serving and rounds to one decimal", () => {
+        const food = foodResultFromCandidate(offCandidate(), "737628064502");
+        expect(food).toMatchObject({
+            name: "Coconut Milk",
+            brand: "Thai Kitchen",
+            serving: "80 ml",
+            calories: 120,
+            protein_g: 1.2,
+            fat_g: 12.3,
+            alcohol_g: 13,
+            source: "off:737628064502",
+            source_name: "openfoodfacts",
+            barcode: "737628064502",
+        });
+    });
+
+    test("foodResultFromCandidate rejects non-OFF candidates and stub records", () => {
+        expect(
+            foodResultFromCandidate(
+                offCandidate({ provider: "usda" }),
+                "737628064502",
+            ),
+        ).toBeNull();
+        const stub = offCandidate();
+        stub.portions = [
+            {
+                id: "100g",
+                amount: 100,
+                unit: "g",
+                label: "100 g",
+                gramWeight: 100,
+                nutrients: { fiber_g: 3 },
+            },
+        ];
+        expect(foodResultFromCandidate(stub, "737628064502")).toBeNull();
+    });
+
+    test("lookupBarcode returns the canonical OFF hit without any direct OFF fetch", async () => {
+        let fetches = 0;
+        globalThis.fetch = mock(() => {
+            fetches += 1;
+            return Promise.resolve(jsonResponse({ status: 0 }));
+        }) as unknown as typeof fetch;
+        const food = await lookupBarcode("737628064502", {
+            async barcode() {
+                return { candidates: [offCandidate()], failures: [] };
+            },
+        });
+        expect(food?.name).toBe("Coconut Milk");
+        expect(fetches).toBe(0);
+    });
+
+    test("lookupBarcode asks OFF directly when canonical surfaces only a USDA record for the barcode", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Coconut Milk",
+                    brands: "Thai Kitchen",
+                    serving_size: "80 ml",
+                    nutriments: { "energy-kcal_serving": 120 },
+                },
+            }),
+        );
+        const food = await lookupBarcode("737628064502", {
+            async barcode() {
+                return {
+                    candidates: [offCandidate({ provider: "usda" })],
+                    failures: [],
+                };
+            },
+        });
+        expect(food?.name).toBe("Coconut Milk");
+        expect(food?.source_name).toBe("openfoodfacts");
+    });
+
+    test("lookupBarcode returns null on a verified canonical miss", async () => {
+        const food = await lookupBarcode("737628064502", {
+            async barcode() {
+                return { candidates: [], failures: [] };
+            },
+        });
+        expect(food).toBeNull();
+    });
+
+    test("lookupBarcode throws when the canonical result reports an OFF failure", async () => {
+        expect(
+            lookupBarcode("737628064502", {
+                async barcode() {
+                    return {
+                        candidates: [],
+                        failures: [
+                            {
+                                provider: "open_food_facts" as const,
+                                code: "provider_unavailable" as const,
+                                message: "OFF unavailable",
+                            },
+                        ],
+                    };
+                },
+            }),
+        ).rejects.toThrow(/Open Food Facts request failed/);
+    });
+
+    test("lookupBarcode falls back to the direct OFF fetch when the canonical layer throws", async () => {
+        mockFetch(() =>
+            jsonResponse({
+                status: 1,
+                product: {
+                    product_name: "Coconut Milk",
+                    serving_size: "80 ml",
+                    nutriments: { "energy-kcal_serving": 120 },
+                },
+            }),
+        );
+        const food = await lookupBarcode("737628064502", {
+            async barcode() {
+                throw new Error("database unavailable");
+            },
+        });
+        expect(food?.name).toBe("Coconut Milk");
+        expect(food?.calories).toBe(120);
     });
 });
 

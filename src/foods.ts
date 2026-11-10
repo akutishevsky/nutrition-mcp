@@ -1,5 +1,17 @@
-// Food database lookups. Phase 1: barcode resolution via the Open Food Facts
-// REST JSON API (https://world.openfoodfacts.org/api/v2/product/{barcode}.json).
+// Food database lookups for the legacy MCP `lookup_barcode` tool.
+//
+// Phase 2 (data-layer, item 2): this module no longer keeps its own cache.
+// Barcode resolution goes through the canonical FoodSearchService
+// (src/food-providers/service.ts), so a hit is persisted to
+// `munch.food_catalog_entries` with full provenance and every later
+// canonical search/barcode/details lookup can resolve it locally. The
+// siloed `munch.food_cache` table is neither read nor written here any
+// more; rows already in it age out via scripts/maintenance.ts (30 days).
+// Freshness is the catalog's (packaged TTL, 90 days by default), which
+// supersedes the 7-day TTL this module used to declare but never enforce.
+// The direct Open Food Facts fetch below survives only as a fallback for
+// when the canonical layer itself throws (e.g. database unavailable) —
+// it returns the product uncached rather than failing the lookup.
 //
 // The model stays the parser/orchestrator; this module's only job is to return
 // canonical macros for an already-identified product. Every path degrades
@@ -7,16 +19,18 @@
 // back to LLM estimation, so the lookup is always additive, never a hard
 // dependency for logging a meal.
 
-import { cacheFood, getCachedFood as readCachedFood } from "./storage.js";
 import { normalizeGtin } from "./food-providers/barcode.js";
+import {
+    getFoodSearchService,
+    type FoodSearchService,
+} from "./food-providers/service.js";
+import type { FoodCandidate } from "./food-providers/types.js";
 import { gramsFromDrink, formatAlcohol, type DrinkUnit } from "./alcohol.js";
 
 const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product";
 const REQUEST_TIMEOUT_MS = 8_000;
 
 const SOURCE_OFF = "openfoodfacts" as const;
-// Open Food Facts is community-edited and changes often; refresh weekly.
-const OFF_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Open Food Facts requires a custom User-Agent in the form
 // `AppName (ContactEmail)` so they can reach the operator about traffic. It is
@@ -225,54 +239,98 @@ export async function fetchProductFromOFF(
     return food;
 }
 
-// ---------- Cache ----------
-// All cache access is best-effort: any failure (missing table, no Railway PostgreSQL
-// config, transient error) is swallowed and treated as a miss so a cache
-// problem can never break a lookup.
+// ---------- Canonical barcode lookup ----------
 
-async function getCachedFood(
-    source: string,
-    sourceId: string,
-    _ttlMs: number,
-): Promise<FoodResult | null> {
-    try {
-        const payload = await readCachedFood<FoodResult>(source, sourceId);
-        if (!payload) return null;
-        return {
-            ...payload,
-            fiber_g: payload.fiber_g ?? null,
-            sugar_g: payload.sugar_g ?? null,
-            alcohol_g: payload.alcohol_g ?? null,
-        };
-    } catch {
+// Round to one decimal, matching the precision this module has always
+// returned (the canonical OFF provider keeps two decimals internally).
+function round1(value: number | undefined): number | null {
+    return value === undefined ? null : Math.round(value * 10) / 10;
+}
+
+/**
+ * Convert a canonical Open Food Facts candidate into this module's
+ * FoodResult shape. The candidate's first portion is the basis the
+ * legacy lookup always preferred: the declared serving when OFF parsed
+ * one, otherwise the per-100 g portion. Returns null for candidates
+ * from other providers — this tool's rendering states Open Food Facts
+ * as the source, so it only ever renders OFF records; USDA barcode
+ * hits stay available through the canonical `lookup_food_barcode` tool.
+ */
+export function foodResultFromCandidate(
+    candidate: FoodCandidate,
+    barcode: string,
+): FoodResult | null {
+    if (candidate.provider !== "open_food_facts") return null;
+    const portion = candidate.portions[0];
+    if (!portion) return null;
+    const n = portion.nutrients;
+    // Same stub rule as fetchProductFromOFF: a record with none of the
+    // four core macros is a miss, not a hit with every macro n/a.
+    if (
+        n.calories === undefined &&
+        n.protein_g === undefined &&
+        n.carbs_g === undefined &&
+        n.fat_g === undefined
+    ) {
         return null;
     }
+    return {
+        name: candidate.name,
+        brand: candidate.brand ?? null,
+        serving: portion.label,
+        calories: round1(n.calories),
+        protein_g: round1(n.protein_g),
+        carbs_g: round1(n.carbs_g),
+        fat_g: round1(n.fat_g),
+        fiber_g: round1(n.fiber_g),
+        sugar_g: round1(n.sugar_g),
+        alcohol_g: round1(n.alcohol_g),
+        source: `off:${barcode}`,
+        source_name: SOURCE_OFF,
+        barcode,
+    };
 }
 
-async function putCachedFood(
-    source: string,
-    sourceId: string,
-    payload: FoodResult,
-): Promise<void> {
-    try {
-        await cacheFood(source, sourceId, payload);
-    } catch {
-        // Best-effort cache writes never block a food lookup.
-    }
-}
-
-// Cache-first barcode lookup. `barcode` must already be normalized
-// (see normalizeBarcode). Returns null when the product is unknown; throws only
-// when Open Food Facts itself is unreachable.
+// Canonical barcode lookup. `barcode` must already be normalized
+// (see normalizeBarcode). Returns null when the product is unknown;
+// throws only when Open Food Facts itself is unreachable, preserving
+// the contract the MCP `lookup_barcode` handler has always relied on.
 export async function lookupBarcode(
     barcode: string,
+    service: Pick<FoodSearchService, "barcode"> = getFoodSearchService(),
 ): Promise<FoodResult | null> {
-    const cached = await getCachedFood(SOURCE_OFF, barcode, OFF_TTL_MS);
-    if (cached) return cached;
-
-    const food = await fetchProductFromOFF(barcode);
-    if (food) await putCachedFood(SOURCE_OFF, barcode, food);
-    return food;
+    let result;
+    try {
+        result = await service.barcode(barcode);
+    } catch {
+        // The canonical layer itself failed (e.g. database unavailable):
+        // degrade to the direct OFF fetch, uncached, rather than break
+        // a lookup that used to be cache-best-effort.
+        return fetchProductFromOFF(barcode);
+    }
+    for (const candidate of result.candidates) {
+        const food = foodResultFromCandidate(candidate, barcode);
+        if (food) return food;
+    }
+    if (result.candidates.length > 0) {
+        // The canonical registry deduplicates barcode candidates by
+        // barcode across providers, so a product listed in both USDA
+        // and OFF can surface only the USDA record. This tool has
+        // always been an OFF lookup, so ask OFF directly in that case
+        // rather than report a miss for a product OFF carries. (The
+        // empty-candidates case is NOT retried: it includes canonical
+        // negative-cache hits, where OFF already answered.)
+        return fetchProductFromOFF(barcode);
+    }
+    const offFailure = result.failures.find(
+        (failure) => failure.provider === "open_food_facts",
+    );
+    if (offFailure) {
+        throw new Error(
+            `Open Food Facts request failed: ${offFailure.message}`,
+        );
+    }
+    return null;
 }
 
 // ---------- Formatting ----------
