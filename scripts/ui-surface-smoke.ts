@@ -585,6 +585,49 @@ for (const behavior of [
 if (accountModule.includes('["/app/foods", "Foods"')) {
     throw new Error("Unified account UI still links to the retired Foods page");
 }
+
+// S6 slice 8 (Household fusion): the surface renders inside the
+// shared .operate-view Editorial Serif scope, every destructive flow
+// (remove member, leave, dissolve, revoke invitation) uses slice 1's
+// inline confirmation — never the native confirm — and the surface
+// carries no ad markup (the app's only ad slot is on Today).
+for (const pin of [
+    "operate-view household-view",
+    "showHouseholdInlineConfirm",
+    "dismiss-household-confirm",
+    "confirm-household-member-remove",
+    "confirm-household-invite-revoke",
+    "confirm-household-leave",
+    "confirm-household-dissolve",
+    "household-invite-revoke",
+    'api("/account/household/invite/revoke"',
+]) {
+    if (!accountModule.includes(pin)) {
+        throw new Error(`Household fusion is missing its pin: ${pin}`);
+    }
+}
+for (const stale of [
+    "!confirm(\n                `Remove ${name}? Their household-provided Premium ends",
+    '!confirm(\n                "Leave this household?',
+    '!confirm(\n                "Dissolve this household,',
+]) {
+    if (accountModule.includes(stale)) {
+        throw new Error(
+            `Household still gates a destructive flow on the native confirm(): ${stale}`,
+        );
+    }
+}
+for (const pin of [
+    ".household-view .household-member",
+    ".household-view .pending-invite",
+    ".household-inline-confirm",
+]) {
+    if (!appOverridesSource.includes(pin)) {
+        throw new Error(
+            `Household fusion styles are missing from app-overrides.css: ${pin}`,
+        );
+    }
+}
 if (accountModule.includes("Advanced account controls")) {
     throw new Error(
         "Unified settings still exposes the legacy advanced account UX",
@@ -690,6 +733,17 @@ const householdRoutes = await Bun.file("src/households/routes.ts").text();
 if (!householdRoutes.includes('c.redirect("/app/household", 303)')) {
     throw new Error(
         "Household invitation acceptance does not return to the new workspace",
+    );
+}
+// S6 slice 8: owners can revoke a pending invitation, and the
+// server-rendered accept page ships in the Editorial Serif connect
+// shell (editorial.css), not the legacy styles.css world.
+if (!householdRoutes.includes('"/account/household/invite/revoke"')) {
+    throw new Error("Household invitation revocation route is missing");
+}
+if (!householdRoutes.includes('href="/editorial.css"')) {
+    throw new Error(
+        "Household invitation acceptance page is not in the Editorial Serif shell",
     );
 }
 

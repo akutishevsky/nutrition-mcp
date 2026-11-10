@@ -3789,3 +3789,482 @@ dialog .guided-grocery-row input[type="checkbox"] {
     font-style: italic;
     margin-top: 5px;
 }
+
+/* =====================================================================
+   S6 slice 8 — Editorial Serif fusion for Household (Operate surface
+   8), inheriting S6 slice 1's shared dialog chrome (themed openDialog
+   frame, .dialog-close at 44px, portal .tiny at 0.875rem, toasts and
+   global states — inherited, not reinvented). Direction contract +
+   tightened mock: selected/src/household/theme4-tight.html.
+   Grammar (editorial.css tokens): paper #f6f1e7, paper-card #fffdf8,
+   ink #2b2620, ink-soft #4a4237, hairline #d8cdb6, rule #8a7c63,
+   green #176b3a, green-deep #0b3d24, danger #8c2f22, Georgia serif.
+   DENSITY LAW: the member list leads the surface (the billing card
+   moved below Invite, matching the mock's order); members are ONE
+   hairline row each in the mock's growline grammar — avatar initial,
+   name, and one merged meta line (seat/access · joined) — with the
+   owner's role controls as a single row under the member they govern.
+   Type never below 11px, tap targets never below 44px. NO ADS on
+   this surface (the app's only ad slot is on Today — final ad law).
+   Scope: surface content is scoped to .household-view (the render
+   wraps household markup in .operate-view.household-view); Settings
+   routes share the .settings-* classes but keep their current
+   styling until slice 9 — every rule below is household-scoped and
+   specific enough to win over account-settings.css, which loads
+   after this file. Theme-coverage rows 34 (Household) and 71
+   (Household empty state) close here; the server-rendered invite
+   accept page is themed in src/households/routes.ts via
+   editorial.css's connect-shell section.
+   ===================================================================== */
+
+/* ---------- Heading (mock kick / title / sub) ---------- */
+
+.household-view .settings-page-head {
+    margin-bottom: 10px;
+}
+
+.household-view .settings-eyebrow {
+    font-size: 11.5px;
+    letter-spacing: 0.18em;
+    color: #176b3a;
+}
+
+.household-view .settings-page-head h2 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 33px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.12;
+    color: #2b2620;
+    margin-top: 5px;
+}
+
+.household-view .settings-page-head p:not(.settings-eyebrow) {
+    font-size: 15px;
+    color: #4a4237;
+    margin-top: 3px;
+}
+
+@media (max-width: 700px) {
+    .household-view .settings-page-head h2 {
+        font-size: 27px;
+    }
+}
+
+/* ---------- Layout: one stacked flow, tight gaps ---------- */
+
+.household-view .household-layout {
+    margin-top: 0;
+    gap: 10px 22px;
+}
+
+.household-view .household-primary {
+    gap: 10px;
+}
+
+.household-view .household-sidebar {
+    gap: 10px;
+}
+
+.household-view .household-hero-grid {
+    gap: 10px 22px;
+}
+
+/* ---------- Groups become panels (mock .panel grammar) ---------- */
+
+.household-view .settings-group,
+.household-view .household-billing-card,
+.household-view .household-privacy-card {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.household-view .settings-group > header {
+    border-bottom: 0;
+    padding: 10px 0 2px;
+}
+
+.household-view .settings-group > header h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 21px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.household-view .settings-group > header p {
+    font-size: 13px;
+    color: #6d6151;
+    margin-top: 2px;
+}
+
+.household-view .settings-group-body {
+    padding: 6px 0 4px;
+    gap: 12px;
+}
+
+/* ---------- Members: one hairline row per person ---------- */
+
+.household-view .household-section-title {
+    align-items: baseline;
+}
+
+.household-view .household-section-title p {
+    margin-top: 2px;
+}
+
+.household-view .household-member-list {
+    margin-top: 4px;
+}
+
+.household-view .household-member {
+    padding: 6px 0;
+    gap: 10px;
+}
+
+.household-view .household-member + .household-member {
+    border-top: 1px solid #d8cdb6;
+}
+
+/* The avatar becomes the mock's glyph: a serif initial in brand
+   green, no rounded card box. It is decorative (aria-hidden); the
+   44px box keeps the row rhythm the mock's glyph cell sets. */
+.household-view .member-avatar {
+    background: transparent;
+    border-radius: 0;
+    color: #176b3a;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.household-view .member-copy > div {
+    gap: 8px;
+}
+
+.household-view .member-copy strong {
+    font-size: 15.5px;
+    color: #2b2620;
+}
+
+.household-view .member-copy small {
+    font-size: 13px;
+    color: #6d6151;
+    margin-top: 1px;
+}
+
+/* Role / status pills become the mock's chips: hairline pills on
+   paper-card, never filled colour blocks. */
+.household-view .account-status {
+    background: #fffdf8;
+    border: 1px solid #d8cdb6;
+    border-radius: 999px;
+    color: #2b2620;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+}
+
+.household-view .account-status-success {
+    color: #176b3a;
+}
+
+.household-view .account-status-warning {
+    color: #8a6d00;
+}
+
+/* Owner controls: one row under the member they govern, aligned
+   with the member copy. The role select reaches the 44px floor
+   here (it measured 40px in the legacy grammar). */
+.household-view .member-controls {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    padding: 2px 0 8px 54px;
+    gap: 8px;
+}
+
+.household-view .member-controls select {
+    min-height: 44px;
+    border: 1px solid #8a7c63;
+    border-radius: 4px;
+    background: #fffdf8;
+    color: #2b2620;
+    font-size: 15px;
+}
+
+@media (max-width: 620px) {
+    /* Keep the legacy phone rule's intent (16px fields, no iOS
+       focus zoom) inside the fused grammar, and stack the controls
+       full-width under the member instead of squeezing them. */
+    .household-view .member-controls {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 2px 0 10px;
+    }
+
+    .household-view .member-controls select,
+    .household-view .settings-field input,
+    .household-view .settings-field select {
+        font-size: 16px;
+    }
+}
+
+/* ---------- Pending invitations (mock .warn grammar) ---------- */
+
+.household-view .pending-invites {
+    border-top: 1px solid #d8cdb6;
+    padding: 8px 0 4px;
+}
+
+.household-view .pending-invites h4 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7a6a53;
+    margin-bottom: 6px;
+}
+
+.household-view .pending-invite {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    background: #fffdf8;
+    border: 0;
+    border-left: 3px solid #b98a00;
+    border-radius: 0;
+    padding: 8px 10px;
+}
+
+.household-view .pending-invite strong {
+    font-size: 14.5px;
+    color: #2b2620;
+}
+
+/* Invite emails are decision values: they wrap, never truncate
+   (the legacy grammar ellipsised them on one line). */
+.household-view .pending-invite strong,
+.household-view .pending-invite small {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.household-view .pending-invite small {
+    font-size: 12.5px;
+    color: #6d6151;
+}
+
+.household-view .pending-invite-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* ---------- Seats & billing (mock rule grammar) ---------- */
+
+.household-view .household-billing-card {
+    padding: 10px 0 4px;
+    align-items: baseline;
+}
+
+.household-view .household-billing-card > div > span {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #7a6a53;
+}
+
+.household-view .household-billing-card > div > strong {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 34px;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.1;
+    color: #2b2620;
+    margin-top: 2px;
+}
+
+.household-view .household-billing-card strong small {
+    font-size: 13px;
+    font-style: italic;
+    color: #6d6151;
+}
+
+.household-view .household-billing-card p {
+    font-size: 13.5px;
+    color: #4a4237;
+    margin-top: 3px;
+}
+
+@media (max-width: 620px) {
+    .household-view .household-billing-card {
+        flex-direction: row;
+    }
+}
+
+/* ---------- Privacy card (mock panel + rules) ---------- */
+
+.household-view .household-privacy-card {
+    padding: 10px 0 4px;
+}
+
+.household-view .settings-card-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: #7a6a53;
+}
+
+.household-view .household-privacy-card h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16.5px;
+    font-weight: 600;
+    color: #2b2620;
+    margin-top: 4px;
+}
+
+.household-view .household-privacy-card p {
+    font-size: 14px;
+    color: #4a4237;
+}
+
+.household-view .household-privacy-card ul {
+    gap: 0;
+    margin-top: 4px;
+    padding-left: 0;
+    list-style: none;
+    color: #4a4237;
+    font-size: 14px;
+}
+
+.household-view .household-privacy-card li {
+    padding: 3px 0;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.household-view .household-privacy-card li:last-child {
+    border-bottom: 0;
+}
+
+.household-view .text-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #176b3a;
+}
+
+/* ---------- Forms inside the fused surface ---------- */
+
+.household-view .settings-field {
+    gap: 4px;
+    font-size: 14px;
+}
+
+.household-view .settings-field input,
+.household-view .settings-field select {
+    border: 1px solid #8a7c63;
+    border-radius: 4px;
+    background: #fffdf8;
+    color: #2b2620;
+    min-height: 48px;
+}
+
+.household-view .settings-note {
+    font-size: 13px;
+    color: #6d6151;
+}
+
+/* ---------- Danger group (mock .danger grammar) ---------- */
+
+.household-view .settings-danger {
+    border-top: 2px solid #b3261e;
+}
+
+.household-view .settings-danger > header {
+    background: transparent;
+}
+
+.household-view .settings-danger > header h3 {
+    color: #b3261e;
+}
+
+.household-view .settings-danger > header p {
+    color: #6d6151;
+}
+
+.household-view .button-danger {
+    background: transparent;
+    color: #b3261e;
+    border: 1px solid #b3261e;
+}
+
+.household-view .button-danger:hover {
+    background: #fdf3f2;
+    color: #b3261e;
+}
+
+/* ---------- Empty state (no household connected) ---------- */
+
+.household-view .settings-empty {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 0;
+    padding: 28px 0;
+}
+
+.household-view .settings-empty h2 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.household-view .settings-empty .more-icon {
+    background: transparent;
+    border-radius: 0;
+    color: #176b3a;
+    font-size: 22px;
+}
+
+/* ---------- Inline confirmations (S6 slice 1 pattern) ---------- */
+
+/* Replaces every native window.confirm() flow on this surface
+   (remove member, leave, dissolve, revoke invitation). The row sits
+   in the flow directly after the element it belongs to. */
+.household-inline-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0 8px;
+    border-bottom: 1px solid #d8cdb6;
+}
+
+.household-inline-note {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+    color: #8c2f22;
+}
+
+.household-inline-confirm .button {
+    min-height: 44px;
+}
+
+.household-inline-confirm-danger {
+    background: #8c2f22;
+    border-color: #8c2f22;
+}
+
+.household-inline-confirm-danger:hover {
+    background: #6e241a;
+    border-color: #6e241a;
+}

@@ -503,6 +503,60 @@ function morePage() {
     return `${sectionHeading("Munch", "More", "Everything that does not need a permanent spot in the mobile navigation.")}<div class="more-grid">${items.map(([href, title, description, icon]) => `<a class="more-card" href="${href}"><span class="more-icon" aria-hidden="true">${icon}</span><div><h3>${esc(title)}</h3><p>${esc(description)}</p></div><span class="settings-chevron" aria-hidden="true">›</span></a>`).join("")}</div>`;
 }
 
+// S6 slice 8 — inline confirmations for the Household destructive
+// flows (remove member, leave household, dissolve household, revoke
+// invitation), following S6 slice 1's pattern as slices 3–6 applied
+// it per surface: the native window.confirm() is gone from this
+// surface — wherever that dialog is dismissed or never answered
+// (automated browsers, WebViews without a JS-dialog handler) it reads
+// as "no" and the click silently no-ops. The anchor button is hidden
+// and an inline confirmation takes its place after `insertAfter`;
+// only the confirm click sends the request, and dismissing restores
+// the anchor exactly (no re-render, scroll preserved).
+function showHouseholdInlineConfirm(
+    anchor,
+    insertAfter,
+    { note, confirmLabel, confirmAction, confirmAttrs = {}, dismissLabel },
+) {
+    if (!anchor || !insertAfter || anchor.dataset.confirmPending) return;
+    anchor.dataset.confirmPending = "true";
+    anchor.style.display = "none";
+    const box = document.createElement("div");
+    box.className = "household-inline-confirm";
+    const noteElement = document.createElement("p");
+    noteElement.className = "household-inline-note";
+    noteElement.setAttribute("role", "alert");
+    noteElement.textContent = note;
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "button";
+    confirmButton.className =
+        "button button-primary household-inline-confirm-danger";
+    confirmButton.dataset.action = confirmAction;
+    for (const [key, value] of Object.entries(confirmAttrs))
+        confirmButton.dataset[key] = value;
+    confirmButton.textContent = confirmLabel;
+    const dismissButton = document.createElement("button");
+    dismissButton.type = "button";
+    dismissButton.className = "button button-secondary";
+    dismissButton.dataset.action = "dismiss-household-confirm";
+    dismissButton.textContent = dismissLabel;
+    box.append(noteElement, confirmButton, dismissButton);
+    insertAfter.insertAdjacentElement("afterend", box);
+    confirmButton.focus();
+}
+
+function dismissHouseholdInlineConfirm(button) {
+    const box = button.closest(".household-inline-confirm");
+    const host = box?.previousElementSibling;
+    const anchor = host?.querySelector?.("[data-confirm-pending]");
+    if (anchor instanceof HTMLElement) {
+        anchor.style.display = "";
+        delete anchor.dataset.confirmPending;
+        anchor.focus();
+    }
+    box?.remove();
+}
+
 function householdMemberCard(member, owner, seatPrice, androidFree) {
     const isOwner = member.role === "owner";
     const controls =
@@ -554,9 +608,18 @@ async function householdPage(ctx) {
           : data.entitlementSource === "household_subscription"
             ? `<section class="household-billing-card"><div><span>Your plan</span><strong>Premium<small> through household</small></strong><p>The household owner pays ${seatPrice}/month for your seat. Leaving ends this household-provided Premium entitlement.</p></div>${statusPill("Seat active", "success")}</section>`
             : "";
+    // S6 slice 8: pending invitations ride at the foot of the Members
+    // group (the tightened mock carries the pending invite inside its
+    // Members panel), each with a Revoke action — previously they
+    // rendered inside the invite form group, vanished entirely when
+    // invitations were unavailable, and could not be revoked at all.
+    const pendingMarkup =
+        owner && pending.length
+            ? `<div class="pending-invites"><h4>Pending invitations</h4>${pending.map((invite) => `<div class="pending-invite"><div><strong>${esc(invite.email)}</strong><small>${esc(invite.role)}${invite.androidFreeAccess ? " · Free Android access" : androidFree ? " · Paid seat applies on web" : ""} · expires ${esc(formatDateTime(invite.expiresAt))}</small></div><div class="pending-invite-actions">${statusPill("Pending", "neutral")}<button class="button button-quiet button-small" type="button" data-action="household-invite-revoke" data-invitation-id="${esc(invite.invitationId)}" data-invite-email="${esc(invite.email)}">Revoke</button></div></div>`).join("")}</div>`
+            : "";
     const invite =
         owner && data.canInvite
-            ? `<section class="settings-group"><header><h3>Invite a household member</h3><p>${androidFree ? "Invitations do not add a charge on Android." : "Invitations are free. Billing changes only when the invited person accepts."}</p></header><form id="household-invite-form" class="settings-group-body"><div class="settings-form-grid"><label class="settings-field"><span>Email</span><input name="email" type="email" maxlength="320" required></label><label class="settings-field"><span>Role</span><select name="role"><option value="member">Member · can edit shared data</option><option value="viewer">Viewer · read only</option></select></label></div><div class="settings-savebar"><span class="settings-note">${androidFree ? "Household recipes, meal plans and grocery lists are shared. Personal nutrition records stay private." : "Accepted members receive full Premium and automatically share household recipes, meal plans and grocery lists."}</span><button class="button button-primary" type="submit">Send invitation</button></div></form>${pending.length ? `<div class="pending-invites"><h4>Pending invitations</h4>${pending.map((invite) => `<div class="pending-invite"><div><strong>${esc(invite.email)}</strong><small>${esc(invite.role)}${invite.androidFreeAccess ? " · Free Android access" : androidFree ? " · Paid seat applies on web" : ""} · expires ${esc(formatDateTime(invite.expiresAt))}</small></div>${statusPill("Pending", "neutral")}</div>`).join("")}</div>` : ""}</section>`
+            ? `<section class="settings-group"><header><h3>Invite a household member</h3><p>${androidFree ? "Invitations do not add a charge on Android." : "Invitations are free. Billing changes only when the invited person accepts."}</p></header><form id="household-invite-form" class="settings-group-body"><div class="settings-form-grid"><label class="settings-field"><span>Email</span><input name="email" type="email" maxlength="320" required></label><label class="settings-field"><span>Role</span><select name="role"><option value="member">Member · can edit shared data</option><option value="viewer">Viewer · read only</option></select></label></div><div class="settings-savebar"><span class="settings-note">${androidFree ? "Household recipes, meal plans and grocery lists are shared. Personal nutrition records stay private." : "Accepted members receive full Premium and automatically share household recipes, meal plans and grocery lists."}</span><button class="button button-primary" type="submit">Send invitation</button></div></form></section>`
             : owner
               ? `<section class="settings-group"><header><h3>Invitations unavailable</h3><p>${androidFree ? "The household has reached its member limit." : "A directly paid Premium subscription is required before another discounted seat can be added."}</p></header></section>`
               : "";
@@ -578,7 +641,7 @@ async function householdPage(ctx) {
               "settings-danger",
           );
     const additionalSeatLimit = Math.max(0, policy.householdMemberLimit - 1);
-    return `${sectionHeading("Shared workspace", household.householdName, `You appear as ${household.displayName}. Household collaboration is ${data.canWrite ? "active" : "read only"} for your role.`)}${billing}<div class="household-layout"><div class="household-primary"><section class="settings-group"><header><div class="household-section-title"><div><h3>Members</h3><p>${data.members.length} of ${policy.householdMemberLimit} household accounts</p></div>${statusPill(`${Math.max(0, additionalSeatLimit - activeNonOwnerCount)} ${androidFree ? "places" : "seats"} available`, "neutral")}</div></header><div class="household-member-list">${data.members.map((member) => householdMemberCard(member, owner, seatPrice, androidFree)).join("")}</div></section>${invite}${danger}</div><aside class="household-sidebar"><section class="household-privacy-card"><span class="settings-card-label">Always shared</span><h3>Collaborative household</h3><ul><li>Household recipes</li><li>Meal plans and calendar</li><li>Grocery lists</li></ul><span class="settings-card-label spacer-top">Always private</span><ul><li>Personal meal history</li><li>Macros and goals</li><li>Water and weight</li><li>Personal saved foods</li></ul><a class="text-link" href="/privacy#households">Review household privacy →</a></section><a class="button button-secondary household-billing-link" href="/app/settings/billing">Plan & billing</a></aside></div>`;
+    return `${sectionHeading("Shared workspace", household.householdName, `You appear as ${household.displayName}. Household collaboration is ${data.canWrite ? "active" : "read only"} for your role.`)}<div class="household-layout"><div class="household-primary"><section class="settings-group"><header><div class="household-section-title"><div><h3>Members</h3><p>${data.members.length} of ${policy.householdMemberLimit} household accounts</p></div>${statusPill(`${Math.max(0, additionalSeatLimit - activeNonOwnerCount)} ${androidFree ? "places" : "seats"} available`, "neutral")}</div></header><div class="household-member-list">${data.members.map((member) => householdMemberCard(member, owner, seatPrice, androidFree)).join("")}</div>${pendingMarkup}</section>${invite}${billing}${danger}</div><aside class="household-sidebar"><section class="household-privacy-card"><span class="settings-card-label">Always shared</span><h3>Collaborative household</h3><ul><li>Household recipes</li><li>Meal plans and calendar</li><li>Grocery lists</li></ul><span class="settings-card-label spacer-top">Always private</span><ul><li>Personal meal history</li><li>Macros and goals</li><li>Water and weight</li><li>Personal saved foods</li></ul><a class="text-link" href="/privacy#households">Review household privacy →</a></section><a class="button button-secondary household-billing-link" href="/app/settings/billing">Plan & billing</a></aside></div>`;
 }
 
 function hydrateTimezoneSelect() {
@@ -617,7 +680,12 @@ export async function renderAccountRoute(route, ctx) {
     }
     if (route === "household") {
         ctx.setLoading("Loading household…");
-        ctx.content.innerHTML = await householdPage(ctx);
+        // S6 slice 8: the Household surface renders inside the shared
+        // operate-view scope (slice 1's mechanism) so its fusion styles
+        // in app-overrides.css voice Editorial Serif for this surface
+        // only; Settings routes keep their current styling until
+        // slice 9.
+        ctx.content.innerHTML = `<div class="operate-view household-view">${await householdPage(ctx)}</div>`;
         return;
     }
     ctx.setLoading("Loading settings…");
@@ -1108,14 +1176,33 @@ export async function handleAccountAction(button, ctx) {
         await ctx.renderRoute();
         return true;
     }
+    if (action === "dismiss-household-confirm") {
+        dismissHouseholdInlineConfirm(button);
+        return true;
+    }
     if (action === "household-member-remove") {
+        // S6 slice 8: removing a member follows slice 1's inline
+        // confirmation pattern instead of the native window.confirm()
+        // (see showHouseholdInlineConfirm). The first click only asks,
+        // in place after the member's row; nothing is sent yet.
         const name = button.dataset.memberName || "this member";
-        if (
-            !confirm(
-                `Remove ${name}? Their household-provided Premium ends and your billed seat quantity will decrease.`,
-            )
-        )
-            return true;
+        showHouseholdInlineConfirm(
+            button,
+            button.closest(".household-member"),
+            {
+                note: `Remove ${name}? Their household-provided Premium ends and your billed seat quantity will decrease.`,
+                confirmLabel: "Yes, remove member",
+                confirmAction: "confirm-household-member-remove",
+                confirmAttrs: {
+                    membershipId: button.dataset.membershipId || "",
+                },
+                dismissLabel: "Keep member",
+            },
+        );
+        return true;
+    }
+    if (action === "confirm-household-member-remove") {
+        button.disabled = true;
         await ctx.api("/account/household/member/remove", {
             method: "POST",
             body: JSON.stringify({
@@ -1127,13 +1214,53 @@ export async function handleAccountAction(button, ctx) {
         await ctx.renderRoute();
         return true;
     }
+    if (action === "household-invite-revoke") {
+        // S6 slice 8: revoking a pending invitation is new in this
+        // slice (the data layer always carried revoked_at; no route or
+        // UI existed). Same inline confirmation pattern; the first
+        // click only asks, in place after the invitation's row.
+        const email = button.dataset.inviteEmail || "this invitation";
+        showHouseholdInlineConfirm(button, button.closest(".pending-invite"), {
+            note: `Revoke the invitation to ${email}? The invite link stops working immediately.`,
+            confirmLabel: "Yes, revoke invite",
+            confirmAction: "confirm-household-invite-revoke",
+            confirmAttrs: {
+                invitationId: button.dataset.invitationId || "",
+            },
+            dismissLabel: "Keep invite",
+        });
+        return true;
+    }
+    if (action === "confirm-household-invite-revoke") {
+        button.disabled = true;
+        await ctx.api("/account/household/invite/revoke", {
+            method: "POST",
+            body: JSON.stringify({
+                invitation_id: button.dataset.invitationId,
+            }),
+            keepPrevious: true,
+        });
+        ctx.toast("Invitation revoked.");
+        await ctx.renderRoute();
+        return true;
+    }
     if (action === "household-leave") {
-        if (
-            !confirm(
-                "Leave this household? Household-provided Premium ends immediately unless you also have your own Premium subscription.",
-            )
-        )
-            return true;
+        // S6 slice 8: leaving follows the same inline pattern; the
+        // first click only asks, in place under the danger group.
+        showHouseholdInlineConfirm(
+            button,
+            button.closest(".settings-actions"),
+            {
+                note: "Leave this household? Household-provided Premium ends immediately unless you also have your own Premium subscription.",
+                confirmLabel: "Yes, leave household",
+                confirmAction: "confirm-household-leave",
+                dismissLabel: "Stay in household",
+            },
+        );
+        return true;
+    }
+    if (action === "confirm-household-leave") {
+        button.disabled = true;
         await ctx.api("/account/household/leave", {
             method: "POST",
             body: JSON.stringify({ confirm: true }),
@@ -1155,12 +1282,34 @@ export async function handleAccountAction(button, ctx) {
             );
             return true;
         }
-        if (
-            !confirm(
-                "Dissolve this household, remove all paid member seats and permanently delete shared household records?",
-            )
-        )
+        // S6 slice 8: the typed phrase still gates the flow (checked
+        // above); the native window.confirm() step is replaced by the
+        // inline pattern — the first click only asks, in place under
+        // the danger group, and the confirm click re-reads the phrase.
+        showHouseholdInlineConfirm(
+            button,
+            button.closest(".settings-actions"),
+            {
+                note: "Dissolve this household, remove all paid member seats and permanently delete shared household records?",
+                confirmLabel: "Yes, dissolve household",
+                confirmAction: "confirm-household-dissolve",
+                dismissLabel: "Keep household",
+            },
+        );
+        return true;
+    }
+    if (action === "confirm-household-dissolve") {
+        const confirmation =
+            document.getElementById("dissolve-household-confirmation")?.value ||
+            "";
+        if (confirmation !== "DISSOLVE HOUSEHOLD") {
+            ctx.toast(
+                "Type DISSOLVE HOUSEHOLD exactly before dissolving the household.",
+                "error",
+            );
             return true;
+        }
+        button.disabled = true;
         await ctx.api("/account/household/dissolve", {
             method: "POST",
             body: JSON.stringify({ confirmation }),

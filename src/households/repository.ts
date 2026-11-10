@@ -317,6 +317,36 @@ export async function listPendingHouseholdInvitations(
     });
 }
 
+export async function revokeHouseholdInvitation(input: {
+    userId: string;
+    householdId: string;
+    invitationId: string;
+}): Promise<boolean> {
+    return withUserDatabase(input.userId, async (tx) => {
+        const ownerRows = await tx<Array<{ id: string }>>`
+            select id
+            from munch.household_memberships
+            where household_id = ${input.householdId}
+              and user_id = ${input.userId}
+              and status = 'active'
+              and role = 'owner'
+            limit 1
+        `;
+        if (!ownerRows[0]) throw new Error("Household owner required");
+
+        const rows = await tx<Array<{ id: string }>>`
+            update munch.household_invitations
+            set revoked_at = now()
+            where id = ${input.invitationId}
+              and household_id = ${input.householdId}
+              and accepted_at is null
+              and revoked_at is null
+            returning id
+        `;
+        return Boolean(rows[0]);
+    });
+}
+
 export async function createHouseholdInvitation(input: {
     userId: string;
     householdId: string;
