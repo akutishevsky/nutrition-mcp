@@ -618,6 +618,23 @@ dialog .auth-card {
     padding: 10px;
 }
 
+/* Photo draft free-text add ("Anything else to add?"): the field and
+   its submit stay at or above the 44px touch floor at phone width,
+   stacked full-width so the row never squeezes or wraps raggedly. */
+.meal-draft-add-text .meal-draft-add-text-input {
+    min-height: 48px;
+    width: 100%;
+}
+
+.meal-draft-add-text .meal-draft-add-text-button {
+    min-height: 48px;
+    width: 100%;
+}
+
+.meal-draft-add-text-message {
+    margin: 0;
+}
+
 .meal-draft-question {
     display: grid;
     gap: 7px;

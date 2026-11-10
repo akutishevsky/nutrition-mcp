@@ -44,6 +44,8 @@ import {
 } from "../storage.js";
 import { getFoodSearchService } from "../food-providers/service.js";
 import { estimateMealPhotoNutrients } from "../meal-photo/estimate.js";
+import { addTextToPhotoDraft } from "../meal-photo/draft-add.js";
+import { parseDraftAddTextWithModel } from "../meal-photo/draft-add-parse.js";
 import { createMealPhotoDraft } from "../meal-photo/pipeline.js";
 import {
     chooseMealPhotoCandidates,
@@ -1296,6 +1298,94 @@ export function createAppRouter(): Hono {
             });
             return privateJson(c, {
                 draft: serializeMealDraftForApp(draft),
+            });
+        },
+    );
+
+    // Conversational add-to-draft for the photo flow (Amendment E
+    // item 3): one free-text field on the photo draft's review —
+    // "Anything else to add?" Deterministic parse first, Ember
+    // fallback second, then the SAME grounding path as photo items;
+    // low confidence becomes a draft question or an honest no-add,
+    // never a silent add. Confirm-before-save is untouched.
+    app.post(
+        "/api/app/meal-drafts/:id/add-text",
+        requireSameOrigin,
+        async (c) => {
+            const body = recordValue(await c.req.json(), "Meal draft add text");
+            if (typeof body.text !== "string" || !body.text.trim()) {
+                throw new Error("Meal draft add text is required");
+            }
+            const userId = c.get("munchUserId");
+            const draftId = c.req.param("id")!;
+            const current = await getMealDraft(userId, draftId);
+            if (!current) throw new Error("Meal draft not found");
+            if (current.sourceMode !== "photo") {
+                return privateJsonStatus(
+                    c,
+                    {
+                        error: "draft_add_text_photo_only",
+                        message:
+                            "This quick add is only for photo drafts. Use the structured add for other drafts.",
+                        draft: serializeMealDraftForApp(current),
+                    },
+                    400,
+                );
+            }
+            if (current.version !== draftExpectedVersion(body)) {
+                throw new Error(
+                    `Meal draft changed: expected version ${draftExpectedVersion(body)}, current version ${current.version}`,
+                );
+            }
+            const visionConfig = mealPhotoVisionConfig();
+            const foodSearch = getFoodSearchService();
+            const outcome = await addTextToPhotoDraft({
+                userId,
+                draft: current,
+                text: body.text,
+                deps: {
+                    search: (query, limit) => foodSearch.search(query, limit),
+                    ...(visionConfig
+                        ? {
+                              chooseCandidates: (requests) =>
+                                  chooseMealPhotoCandidates(
+                                      requests,
+                                      visionConfig,
+                                  ),
+                              estimateNutrients: (requests) =>
+                                  estimateMealPhotoNutrients(
+                                      requests,
+                                      visionConfig,
+                                  ),
+                              parseWithModel: (text) =>
+                                  parseDraftAddTextWithModel(
+                                      text,
+                                      visionConfig,
+                                  ),
+                          }
+                        : {}),
+                },
+            });
+            return privateJson(c, {
+                draft: serializeMealDraftForApp(outcome.draft),
+                add: {
+                    status: outcome.status,
+                    message: outcome.message,
+                    ...(outcome.status === "added"
+                        ? {
+                              parse_source: outcome.parseSource,
+                              added_items: outcome.added.map((entry) => ({
+                                  name: entry.draftItem.name,
+                                  source_type: entry.draftItem.sourceType,
+                                  grounding_source: entry.groundingSource,
+                                  assumptions: entry.draftItem.assumptions,
+                              })),
+                              replaced_item: outcome.replacedItemName,
+                          }
+                        : outcome.status === "question"
+                          ? { parse_source: outcome.parseSource }
+                          : {}),
+                },
             });
         },
     );
