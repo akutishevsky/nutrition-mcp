@@ -1721,3 +1721,206 @@ dialog .summary-card > small {
     background: transparent;
     border-radius: 0;
 }
+
+/* =====================================================================
+   S6 slice 3 — Editorial Serif fusion for Meal Plan (Operate surface
+   3), inheriting S6 slice 1's shared dialog chrome (themed openDialog
+   frame, .dialog-close at 44px, portal .tiny at 0.875rem, toasts and
+   global states — inherited, not reinvented). Direction contract +
+   tightened mock: selected/src/meal-plan/theme4-tight.html.
+   Grammar (editorial.css tokens): paper #f6f1e7, paper-card #fffdf8,
+   ink #2b2620, ink-soft #4a4237, hairline #d8cdb6, rule #8a7c63,
+   green #176b3a, green-deep #0b3d24, danger #8c2f22, Georgia serif.
+   DENSITY LAW: the week summary is merged into the heading line,
+   empty days are one-line rules instead of cards, and row spacing is
+   tightened from structure/grouping only — type never below 11px,
+   tap targets never below 44px. NO ADS on this surface (the app's
+   only ad slot is on Today) and no Premium framing anywhere (plan
+   generation is a free feature, Amendment D).
+   Scope: surface content is scoped to .plan-view; the Meal Plan
+   dialogs (guided planner, guidance preferences, guided draft
+   review, grocery suggestions, swap preview) use plan-specific
+   classes inside the already-themed shared dialog frame.
+   ===================================================================== */
+
+/* ---------- Meal Plan week view ---------- */
+
+/* Day groups tighten further than the shared operate grammar: the
+   header is a serif rule label and each planned meal is one rule. */
+.plan-view .meal-group-header {
+    padding: 8px 0 2px;
+}
+
+.plan-view .meal-card {
+    padding: 5px 0 6px;
+}
+
+/* Servings read as serif marginalia at the head of the rule, like
+   the tightened mock's right-hand figures. */
+.plan-view .plan-servings {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 13px;
+    font-style: italic;
+    font-weight: 400;
+    color: #5d5344;
+    white-space: nowrap;
+}
+
+/* The swap action keeps its 44px target (the .operate-view floor)
+   but loses the extra rule and spacing above it — density from
+   grouping, not from shrinking the target. */
+.plan-view .meal-card > .auth-actions {
+    margin-top: 4px;
+    padding-top: 0;
+    border-top: 0;
+}
+
+/* An empty day is a single muted line, not a card: the mock's
+   "— add dinner —" row grammar. */
+.plan-view .plan-empty {
+    margin: 0;
+    padding: 5px 0 7px;
+    border-bottom: 1px solid #d8cdb6;
+    font-size: 14px;
+    font-style: italic;
+    color: #5d5344;
+}
+
+/* ---------- Meal Plan dialogs (inside the shared frame) -------- */
+
+/* Guided-plan day rows and draft-review items are rules on the
+   paper card, not nested white cards. */
+dialog .guided-plan-row,
+dialog .guided-draft-item {
+    background: transparent;
+    border: 0;
+    border-top: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 10px 0;
+}
+
+dialog .guided-plan-row .meal-card-head {
+    align-items: end;
+}
+
+/* Swap candidates and grocery suggestion rows take the same rule
+   grammar; their macro figures read as italic marginalia, matching
+   the week view. */
+dialog .swap-candidate,
+dialog .guided-grocery-row {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #d8cdb6;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 8px 0;
+}
+
+dialog .swap-candidate .meal-card-head h3 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+dialog .swap-candidate .macro-chip,
+dialog .guided-draft-item .macro-chip {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    font-size: 13px;
+    font-style: italic;
+    color: #5d5344;
+}
+
+/* Dialog buttons in this slice's flows reach the 44px floor even
+   where they use the .button-small grammar (the shared frame's
+   global small grammar is other slices' to change): the swap
+   candidate Apply action and the planner's Edit preferences action
+   both measured 40px in this slice's first capture pass. */
+dialog .swap-candidate .button,
+dialog .guided-plan-pref-action .button {
+    min-height: 44px;
+}
+
+/* Check rows in the planner and preferences forms: .check-row has
+   no base styling anywhere (the label is inline by default), so
+   the label row — the checkbox's hit area — is given a real flex
+   row at the 44px floor here. */
+#guided-plan-form .check-row,
+#guidance-preferences-form .check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+}
+
+#guided-plan-form .check-row input[type="checkbox"],
+#guidance-preferences-form .check-row input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    accent-color: #176b3a;
+}
+
+/* Grocery suggestion rows stay a full 44px+ tappable check row. */
+dialog .guided-grocery-row {
+    min-height: 44px;
+    align-items: flex-start;
+}
+
+/* The suggestion name and its quantity line sit on one line —
+   keep a real gap between them (they rendered run together:
+   "Fixture rice2 kg" in this slice's first grocery capture). */
+dialog .guided-grocery-row strong {
+    margin-right: 6px;
+}
+
+dialog .guided-grocery-row input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    accent-color: #176b3a;
+}
+
+/* ---------- Inline confirmations (S6 slice 1 pattern) ---------- */
+
+/* Replaces every native window.confirm() in this slice's flows.
+   The row takes the anchor button's place in flow; the note is a
+   full-width line, the two actions keep 44px targets. */
+.plan-inline-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.plan-inline-note {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+    color: #2b2620;
+}
+
+.plan-inline-note.is-destructive {
+    color: #8c2f22;
+}
+
+.plan-inline-confirm-danger {
+    background: #8c2f22;
+    border-color: #8c2f22;
+}
+
+.plan-inline-confirm-danger:hover {
+    background: #6e241a;
+    border-color: #6e241a;
+}
+
+/* The draft review's swapped action row carries the same note
+   grammar inside its .auth-actions container. */
+#guided-plan-edit-form .auth-actions .plan-inline-note {
+    flex: 1 1 100%;
+}

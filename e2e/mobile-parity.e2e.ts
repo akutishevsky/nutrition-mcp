@@ -78,6 +78,86 @@ const PRODUCT_POLICY = {
     householdMemberLimit: 6,
 };
 
+/** S6 slice 3: Monday (UTC) of the current week — the week the
+ * packaged app renders for the fixture profile (timezone UTC). */
+function mondayOfCurrentWeek(): string {
+    const today = new Date().toISOString().slice(0, 10);
+    const date = new Date(`${today}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+    return date.toISOString().slice(0, 10);
+}
+
+function plannedMealFixture() {
+    return {
+        planned_meal_id: "fixture-planned-meal",
+        planned_date: mondayOfCurrentWeek(),
+        recipe_name: "Fixture chicken bowls",
+        meal_slot: "dinner",
+        ownership: "personal",
+        created_by: null,
+        servings: 2,
+        version: 3,
+        nutrition_per_serving: { calories: 600, protein_g: 40 },
+    };
+}
+
+function planDraftFixture(status: "draft" | "committed") {
+    const monday = mondayOfCurrentWeek();
+    const sunday = new Date(`${monday}T12:00:00Z`);
+    sunday.setUTCDate(sunday.getUTCDate() + 6);
+    return {
+        id: "fixture-plan-draft",
+        version: status === "draft" ? 1 : 2,
+        status,
+        mode: "saved_only",
+        start_date: monday,
+        end_date: sunday.toISOString().slice(0, 10),
+        scope: { type: "personal" },
+        items: [
+            {
+                position: 0,
+                date: monday,
+                meal_slot: "lunch",
+                source_type: "saved",
+                recipe_id: "fixture-recipe-1",
+                recipe_revision_id: "fixture-revision-1",
+                nutrition_status: "complete",
+                nutrition: {
+                    per_serving: {
+                        calories: 500,
+                        protein_g: 30,
+                        carbs_g: 40,
+                        fat_g: 15,
+                    },
+                },
+                blockers: [],
+                warnings: [],
+            },
+        ],
+    };
+}
+
+const GUIDANCE_PREFERENCES_FIXTURE = {
+    version: 1,
+    objective: "track_only",
+    suggestions_enabled: true,
+    allergies: [],
+    excluded_ingredients: [],
+    disliked_ingredients: [],
+    liked_ingredients: [],
+    cuisines: [],
+    flavors: [],
+    equipment: [],
+    preferred_methods: [],
+    avoided_methods: [],
+    difficulty: "any",
+    max_prep_minutes: null,
+    max_total_minutes: null,
+    servings: 1,
+    repeat_window_days: 7,
+    allow_repeats: true,
+};
+
 const PROFILE = { timezone: "UTC", preferred_weight_unit: "lb" };
 
 function bootstrapFixture() {
@@ -241,7 +321,111 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
     }
     if (pathname === "/api/app/recipes") return { recipes: [] };
     if (pathname === "/api/app/planning") {
-        return { plannedMeals: [], recipes: [] };
+        return {
+            plannedMeals: [plannedMealFixture()],
+            recipes: [],
+            permissions: { personal: true, household: false },
+            groceries: [],
+        };
+    }
+    if (
+        pathname === "/api/app/planning/fixture-planned-meal/swaps" &&
+        method === "GET"
+    ) {
+        return {
+            planned_meal_id: "fixture-planned-meal",
+            expected_version: 3,
+            current: { recipe_name: "Fixture chicken bowls" },
+            candidates: [
+                {
+                    recipe_id: "fixture-recipe-2",
+                    recipe_revision_id: "fixture-revision-2",
+                    recipe_name: "Fixture salmon",
+                    nutrition_status: "complete",
+                    calories_per_serving: 550,
+                    calories_delta_per_serving: -50,
+                    protein_g_per_serving: 35,
+                    protein_delta_per_serving: -5,
+                    warnings: [],
+                },
+            ],
+        };
+    }
+    if (
+        pathname === "/api/app/planning/fixture-planned-meal/swap" &&
+        method === "POST"
+    ) {
+        return {
+            change: { id: "fixture-swap-1" },
+            planned_meal: { version: 4 },
+        };
+    }
+    if (
+        pathname === "/api/app/planning/swaps/fixture-swap-1/undo" &&
+        method === "POST"
+    ) {
+        return {};
+    }
+    if (pathname === "/api/app/guidance/context") {
+        return {
+            scope: { type: "personal" },
+            preferences: { servings: 1 },
+            saved_recipes: [
+                {
+                    id: "fixture-recipe-1",
+                    recipe_revision_id: "fixture-revision-1",
+                    name: "Fixture chili",
+                },
+            ],
+            current_plan: [],
+        };
+    }
+    if (pathname === "/api/app/guidance/preferences" && method === "GET") {
+        return { preferences: GUIDANCE_PREFERENCES_FIXTURE };
+    }
+    if (pathname === "/api/app/guidance/preferences" && method === "PUT") {
+        return {
+            preferences: { ...GUIDANCE_PREFERENCES_FIXTURE, version: 2 },
+        };
+    }
+    if (pathname === "/api/app/planning/drafts" && method === "POST") {
+        return { draft: planDraftFixture("draft") };
+    }
+    if (
+        pathname === "/api/app/planning/drafts/fixture-plan-draft/commit" &&
+        method === "POST"
+    ) {
+        return { draft: planDraftFixture("committed") };
+    }
+    if (
+        pathname === "/api/app/planning/drafts/fixture-plan-draft" &&
+        method === "DELETE"
+    ) {
+        return {};
+    }
+    if (
+        pathname === "/api/app/planning/drafts/fixture-plan-draft/groceries" &&
+        method === "GET"
+    ) {
+        return {
+            suggestions: [
+                {
+                    index: 0,
+                    name: "Fixture rice",
+                    quantity: 2,
+                    unit: "kg",
+                    recipes: ["Fixture chili"],
+                    already_on_list: false,
+                },
+            ],
+        };
+    }
+    if (
+        pathname ===
+            "/api/app/planning/drafts/fixture-plan-draft/groceries/commit" &&
+        method === "POST"
+    ) {
+        return { addedCount: 1 };
     }
     if (pathname === "/api/app/guidance/goals/review") {
         return {
@@ -954,4 +1138,236 @@ test("S6 slice 1: the single ad slot lives on Today, flag-gated and Premium-hidd
     );
     const lastCall = adCalls[adCalls.length - 1] as { visible?: boolean };
     expect(lastCall.visible).toBe(false);
+});
+
+test("S6 slice 3 regression: meal swap applies and undoes with no native confirm", async ({
+    page,
+}) => {
+    // Same defect family as slice 1's Abandon fix: swap apply and
+    // swap undo gated on native window.confirm(). This test records
+    // AND dismisses every native dialog — on the old code both flows
+    // would silently no-op here; they must complete entirely through
+    // the inline confirmation UI.
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/plan");
+
+    // The surface renders inside its Editorial Serif scope with the
+    // week's summary merged into the heading line.
+    await expect(page.locator(".operate-view.plan-view")).toHaveCount(1);
+    await expect(page.locator("#app-content")).toContainText(
+        "Fixture chicken bowls",
+    );
+    await expect(page.locator("#app-content")).toContainText(
+        "1 planned across 1 of 7 days",
+    );
+
+    await page.locator('[data-action="meal-swap"]').click();
+    await expect(page.locator("#app-dialog")).toContainText("Fixture salmon");
+    expect(
+        observedRequest("GET", "/api/app/planning/fixture-planned-meal/swaps"),
+    ).toBe(true);
+
+    const apply = page.locator('[data-action="meal-swap-apply"]');
+    await apply.click();
+    const confirmApply = page.locator(
+        '[data-action="meal-swap-apply-confirm"]',
+    );
+    await expect(confirmApply).toBeVisible();
+    await expect(
+        page.getByText("Apply this saved-recipe swap to the planned meal?"),
+    ).toBeVisible();
+    expect(
+        observedRequest("POST", "/api/app/planning/fixture-planned-meal/swap"),
+    ).toBe(false);
+    expect(nativeDialogs).toEqual([]);
+
+    // Dismissing restores the candidate's Apply action, still unsent.
+    await page.locator('[data-action="dismiss-plan-inline-confirm"]').click();
+    await expect(apply).toBeVisible();
+    expect(
+        observedRequest("POST", "/api/app/planning/fixture-planned-meal/swap"),
+    ).toBe(false);
+
+    await apply.click();
+    await confirmApply.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Planned recipe swapped.",
+    );
+    expect(
+        observedRequest("POST", "/api/app/planning/fixture-planned-meal/swap"),
+    ).toBe(true);
+
+    // Undo runs through the same inline pattern.
+    const undo = page.locator('[data-action="meal-swap-undo"]');
+    await expect(undo).toBeVisible();
+    await undo.click();
+    const confirmUndo = page.locator('[data-action="meal-swap-undo-confirm"]');
+    await expect(confirmUndo).toBeVisible();
+    expect(
+        observedRequest("POST", "/api/app/planning/swaps/fixture-swap-1/undo"),
+    ).toBe(false);
+    await confirmUndo.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Previous recipe restored.",
+    );
+    expect(
+        observedRequest("POST", "/api/app/planning/swaps/fixture-swap-1/undo"),
+    ).toBe(true);
+    await expect(page.locator("#app-content")).toContainText(
+        "Fixture chicken bowls",
+    );
+    expect(nativeDialogs).toEqual([]);
+});
+
+test("S6 slice 3 regression: plan draft cancel, commit and grocery handoff use no native confirm", async ({
+    page,
+}) => {
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/plan");
+
+    // Create a saved-recipe draft through the guided planner.
+    await page.locator('[data-action="guided-planner"]').click();
+    await expect(page.locator("#guided-plan-form")).toBeVisible();
+    await page
+        .locator('.guided-plan-row [name="recipe_choice"]')
+        .first()
+        .selectOption("fixture-recipe-1|fixture-revision-1");
+    await page.locator('#guided-plan-form button[type="submit"]').click();
+    await expect(page.locator("#guided-plan-edit-form")).toBeVisible();
+    expect(observedRequest("POST", "/api/app/planning/drafts")).toBe(true);
+
+    // Cancel asks inline first; nothing is sent until confirmed.
+    const cancel = page.locator('[data-action="guided-draft-cancel"]');
+    await cancel.click();
+    const confirmCancel = page.locator(
+        '[data-action="guided-draft-cancel-confirm"]',
+    );
+    await expect(confirmCancel).toBeVisible();
+    await expect(
+        page.getByText("Cancel this plan draft? The calendar will not change."),
+    ).toBeVisible();
+    expect(
+        observedRequest(
+            "DELETE",
+            "/api/app/planning/drafts/fixture-plan-draft",
+        ),
+    ).toBe(false);
+    // "Keep draft" restores the review actions untouched.
+    await page.locator('[data-action="guided-draft-confirm-dismiss"]').click();
+    await expect(cancel).toBeVisible();
+    await cancel.click();
+    await confirmCancel.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Plan draft cancelled.",
+    );
+    expect(
+        observedRequest(
+            "DELETE",
+            "/api/app/planning/drafts/fixture-plan-draft",
+        ),
+    ).toBe(true);
+    await expect(page.locator("#app-dialog")).not.toHaveAttribute("open");
+
+    // A second draft runs the commit path, then the grocery handoff —
+    // both inline-confirmed as well.
+    await page.locator('[data-action="guided-planner"]').click();
+    await page
+        .locator('.guided-plan-row [name="recipe_choice"]')
+        .first()
+        .selectOption("fixture-recipe-1|fixture-revision-1");
+    await page.locator('#guided-plan-form button[type="submit"]').click();
+    await expect(page.locator("#guided-plan-edit-form")).toBeVisible();
+    await page.locator('[data-action="guided-draft-commit"]').click();
+    const confirmCommit = page.locator(
+        '[data-action="guided-draft-commit-confirm"]',
+    );
+    await expect(confirmCommit).toBeVisible();
+    expect(
+        observedRequest(
+            "POST",
+            "/api/app/planning/drafts/fixture-plan-draft/commit",
+        ),
+    ).toBe(false);
+    await confirmCommit.click();
+    await expect(page.locator("#app-dialog")).toContainText("Plan committed");
+    expect(
+        observedRequest(
+            "POST",
+            "/api/app/planning/drafts/fixture-plan-draft/commit",
+        ),
+    ).toBe(true);
+
+    await page.locator('[data-action="guided-groceries"]').click();
+    await expect(page.locator("#app-dialog")).toContainText("Fixture rice");
+    expect(
+        observedRequest(
+            "GET",
+            "/api/app/planning/drafts/fixture-plan-draft/groceries",
+        ),
+    ).toBe(true);
+    await page.locator('[data-action="guided-grocery-commit"]').click();
+    const confirmGroceries = page.locator(
+        '[data-action="guided-grocery-commit-confirm"]',
+    );
+    await expect(confirmGroceries).toBeVisible();
+    await expect(
+        page.getByText("Add 1 selected item to the grocery list?"),
+    ).toBeVisible();
+    expect(
+        observedRequest(
+            "POST",
+            "/api/app/planning/drafts/fixture-plan-draft/groceries/commit",
+        ),
+    ).toBe(false);
+    await confirmGroceries.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "1 grocery item added.",
+    );
+    expect(
+        observedRequest(
+            "POST",
+            "/api/app/planning/drafts/fixture-plan-draft/groceries/commit",
+        ),
+    ).toBe(true);
+    expect(nativeDialogs).toEqual([]);
+});
+
+test("S6 slice 3 regression: guidance preferences save with no native confirm", async ({
+    page,
+}) => {
+    const nativeDialogs: string[] = [];
+    page.on("dialog", (dialog) => {
+        nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
+        void dialog.dismiss();
+    });
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/plan");
+    await page.locator('[data-action="guidance-preferences"]').click();
+    const form = page.locator("#guidance-preferences-form");
+    await expect(form).toBeVisible();
+    await form.locator('button[type="submit"]').click();
+    const confirmSave = page.locator(
+        '[data-action="guidance-preferences-confirm"]',
+    );
+    await expect(confirmSave).toBeVisible();
+    await expect(
+        page.getByText("Save these guidance preferences?"),
+    ).toBeVisible();
+    expect(observedRequest("PUT", "/api/app/guidance/preferences")).toBe(false);
+    await confirmSave.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Guidance preferences saved (version 2).",
+    );
+    expect(observedRequest("PUT", "/api/app/guidance/preferences")).toBe(true);
+    expect(nativeDialogs).toEqual([]);
 });
