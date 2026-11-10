@@ -151,6 +151,21 @@ jobs:
           cp scripts/ios-smoke/stub-runtime.js .mobile-web/mobile-runtime.js
       - name: Synchronize Capacitor iOS project
         run: npx cap sync ios
+      - name: Verify the fixture runtime is what got packaged
+        run: |
+          set -euo pipefail
+          # Deterministic readiness gate: the tests below assume the
+          # packaged bundle carries the smoke fixture. Prove that from
+          # the synced bundle itself before any simulator work starts,
+          # so a swap/sync regression fails HERE with a clear message
+          # instead of surfacing as an opaque in-test timeout (the
+          # failure mode reviewed after run 42743247896).
+          packaged="ios/App/App/public/mobile-runtime.js"
+          if ! grep -q "munch.iosSmoke.session" "$packaged"; then
+            echo "::error::Packaged runtime at $packaged is not the iOS smoke fixture — the bundle swap did not reach the app."
+            exit 1
+          fi
+          echo "Fixture runtime verified in the packaged bundle."
       - name: Resolve Swift packages
         run: xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj -scheme App
       - name: Select and boot an iPhone simulator
