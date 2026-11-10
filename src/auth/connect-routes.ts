@@ -9,6 +9,8 @@ import { getBetterAuthRuntimeConfig } from "./config.js";
 import { safeMagicLinkReturnPath } from "./magic-link-url.js";
 import { describeOAuthScope } from "./oauth-scopes.js";
 import {
+    appleSignInButtonHtml,
+    appleSignInConfigured,
     googleSignInButtonHtml,
     googleWebSignInConfigured,
     socialProviderScript,
@@ -87,14 +89,35 @@ export function signInPageHtml(input: {
     returnTo: string;
     oauthQuery?: string;
     googleConfigured: boolean;
+    /** S6 slice 10: Apple renders only when the full Apple identifier
+     * set is configured (the provider-registration condition) — honest
+     * absence until then, never a dead button. Optional so existing
+     * callers/tests that predate the Apple control keep their shape. */
+    appleConfigured?: boolean;
 }): string {
     const { returnTo, oauthQuery } = input;
     const passwordParams = new URLSearchParams({ return_to: returnTo });
     if (oauthQuery) passwordParams.set("oauth_query", oauthQuery);
     const passwordHref = `/account/password?${passwordParams.toString()}`;
 
-    const googleBlock = input.googleConfigured
-        ? `<p class="auth-divider" aria-hidden="true"><span>or</span></p><div class="auth-social">${googleSignInButtonHtml({ callbackURL: returnTo, errorCallbackURL: "/connect/error", oauthQuery })}${socialProviderScript()}</div>`
+    const socialButtons = [
+        input.googleConfigured
+            ? googleSignInButtonHtml({
+                  callbackURL: returnTo,
+                  errorCallbackURL: "/connect/error",
+                  oauthQuery,
+              })
+            : "",
+        input.appleConfigured
+            ? appleSignInButtonHtml({
+                  callbackURL: returnTo,
+                  errorCallbackURL: "/connect/error",
+                  oauthQuery,
+              })
+            : "",
+    ].join("");
+    const googleBlock = socialButtons
+        ? `<p class="auth-divider" aria-hidden="true"><span>or</span></p><div class="auth-social">${socialButtons}${socialProviderScript()}</div><p class="auth-footnote auth-social-error" data-social-error role="alert"></p>`
         : "";
 
     return shell(
@@ -121,6 +144,9 @@ export function createBetterAuthConnectRouter(): Hono {
                 returnTo,
                 oauthQuery,
                 googleConfigured: googleWebSignInConfigured(
+                    getBetterAuthRuntimeConfig(),
+                ),
+                appleConfigured: appleSignInConfigured(
                     getBetterAuthRuntimeConfig(),
                 ),
             }),

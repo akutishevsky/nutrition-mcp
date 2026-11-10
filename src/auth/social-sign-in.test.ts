@@ -3,6 +3,7 @@ import { generateKeyPairSync } from "node:crypto";
 import type { BetterAuthRuntimeConfig } from "./config.js";
 import {
     appleProviderOptions,
+    appleSignInButtonHtml,
     appleSignInConfigured,
     buildSocialProviderRequest,
     googleAndroidSignInConfigured,
@@ -227,6 +228,22 @@ describe("Google sign-in button markup", () => {
         }
         expect(html).toContain("&quot;provider&quot;:&quot;google&quot;");
         expect(html).toContain("&quot;callbackURL&quot;:&quot;/app&quot;");
+    });
+
+    test("the Apple control carries an apple-provider initiation request (S6 slice 10)", () => {
+        const html = appleSignInButtonHtml({
+            callbackURL: "/app",
+            errorCallbackURL: "/connect/error",
+            oauthQuery: "client_id=client-1&scope=nutrition.read&sig=abc",
+        });
+        expect(html).toContain("Continue with Apple");
+        expect(html).toContain('class="button button-apple"');
+        expect(html).toContain('data-social-path="/api/auth/sign-in/social"');
+        expect(html).toContain("&quot;provider&quot;:&quot;apple&quot;");
+        expect(html).toContain("&quot;callbackURL&quot;:&quot;/app&quot;");
+        expect(html).toContain(
+            "&quot;oauth_query&quot;:&quot;client_id=client-1&amp;scope=nutrition.read&amp;sig=abc&quot;",
+        );
     });
 
     test("the wiring script POSTs the prepared body and follows the returned URL", () => {

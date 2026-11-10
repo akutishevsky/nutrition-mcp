@@ -243,6 +243,36 @@ export function googleSignInButtonHtml(input: {
 }
 
 /**
+ * Apple's logo mark for the Sign in with Apple control, drawn in the
+ * button's own colour (Apple's branding sets the control itself: black
+ * ground, white text and mark, "Continue with Apple" wording).
+ */
+export const APPLE_LOGO_SVG = `<svg width="18" height="18" viewBox="0 0 384 512" aria-hidden="true" focusable="false"><path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>`;
+
+/**
+ * The "Continue with Apple" control (S6 slice 10). Rendered ONLY when
+ * `appleSignInConfigured` holds — the exact condition under which
+ * `src/auth/auth.ts` registers the Better Auth `apple` provider — so an
+ * unconfigured deployment shows no Apple control at all (honest absence,
+ * never a dead button). Initiation reuses the same prepared-request
+ * shape and wiring script as Google, with provider `apple`.
+ */
+export function appleSignInButtonHtml(input: {
+    callbackURL: string;
+    errorCallbackURL?: string;
+    oauthQuery?: string;
+}): string {
+    const request = buildSocialProviderRequest({
+        mode: "sign-in",
+        provider: APPLE_SOCIAL_PROVIDER,
+        callbackURL: input.callbackURL,
+        errorCallbackURL: input.errorCallbackURL,
+        oauthQuery: input.oauthQuery,
+    });
+    return `<button type="button" class="button button-apple" data-social-sign-in data-social-path="${escapeHtmlAttribute(request.path)}" data-social-body="${escapeHtmlAttribute(JSON.stringify(request.body))}">${APPLE_LOGO_SVG}<span>Continue with Apple</span></button>`;
+}
+
+/**
  * Inline script that initiates the social flow for every
  * `[data-social-sign-in]` button on the page: POST the prepared request to
  * Better Auth, then follow the returned provider consent URL. Failures go
@@ -261,14 +291,14 @@ document.querySelectorAll('[data-social-sign-in]').forEach((button)=>{
     try{
       const response=await fetch(path,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify(body)});
       const payload=await response.json().catch(()=>({}));
-      if(!response.ok||!payload.url)throw new Error(payload.message||payload.error||'Google sign-in could not be started.');
+      if(!response.ok||!payload.url)throw new Error(payload.message||payload.error||'Sign-in could not be started.');
       location.href=payload.url;
     }catch(error){
       button.disabled=false;
       button.removeAttribute('aria-busy');
       if(body.errorCallbackURL){location.href=body.errorCallbackURL;return;}
       const target=document.querySelector('[data-social-error]');
-      if(target)target.textContent=error.message||'Google sign-in could not be started.';
+      if(target)target.textContent=error.message||'Sign-in could not be started.';
     }
   });
 });

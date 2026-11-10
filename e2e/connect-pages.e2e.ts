@@ -57,6 +57,12 @@ test("OAuth subpaths still reach auth, not the marketing page", async ({
     expect(signInBody).toContain("Connect Munch to ChatGPT");
     expect(signInBody).toContain('action="/connect/request"');
     expect(signInBody).not.toContain(MARKETING_MARKER);
+    // S6 slice 10: the sign-in page rides the #191 Editorial Serif shell,
+    // and Apple renders only when configured — this environment has no
+    // Apple identifiers, so there must be no Apple control at all
+    // (honest absence, never a dead button).
+    expect(signInBody).toContain('href="/editorial.css"');
+    expect(signInBody).not.toContain("Continue with Apple");
 
     // Bare /connect/confirm reaches the auth error page (no token);
     // with a token it renders the auth confirmation form. Both are

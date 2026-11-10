@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { createMobileAuthRouter } from "./mobile-routes.js";
+import {
+    createMobileAuthRouter,
+    mobileAuthCallbackHtml,
+} from "./mobile-routes.js";
 
 const envKeys = [
     "MUNCH_APP_BASE_URL",
@@ -241,6 +244,21 @@ describe("mobile auth routes", () => {
             // an appID Apple would reject (or worse, another team's).
             expect(response.status).toBe(404);
         });
+    });
+
+    test("the auth callback page is Editorial Serif themed, never bare HTML (S6 slice 10)", async () => {
+        const html = mobileAuthCallbackHtml();
+        expect(html).toContain('<link rel="stylesheet" href="/editorial.css">');
+        expect(html).toContain('class="auth-page"');
+        expect(html).toContain('class="auth-card"');
+        expect(html).toContain("Open Munch to finish signing in");
+        expect(html).not.toContain("<style");
+        const response = await createMobileAuthRouter().request(
+            "/mobile/auth/callback",
+        );
+        expect(response.status).toBe(200);
+        expect(await response.text()).toBe(html);
+        expect(response.headers.get("cache-control")).toBe("no-store, private");
     });
 
     test("rejects malformed handoffs without a database lookup", async () => {
