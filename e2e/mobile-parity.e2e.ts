@@ -3322,7 +3322,7 @@ test("S8 chat: Free gate state — honest Premium explanation, no fake chat box,
     await expect(gate).toContainText("part of Munch Premium");
     await expect(gate).toContainText("Ad-free in the app");
     await expect(gate).toContainText("MCP access");
-    await expect(gate).toContainText("Everything else in Munch is free");
+    await expect(gate).toContainText("Every other Munch feature");
     // The subscribe door is the website/rail billing surface — and
     // there is NO composer that would error on send.
     await expect(
