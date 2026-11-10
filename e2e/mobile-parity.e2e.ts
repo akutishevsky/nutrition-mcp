@@ -87,6 +87,9 @@ function bootstrapFixture() {
             householdRecipeWrite: false,
         },
         household: null,
+        // ADS-FOUNDATION: bootstrap carries the remote ads flag,
+        // DEFAULT OFF (MUNCH_ADS_ENABLED unset on the server).
+        ads: { enabled: false },
         user: { email: "parity-fixture@example.test" },
     };
 }

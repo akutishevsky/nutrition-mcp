@@ -13,8 +13,12 @@ jobs:
         timeout-minutes: 40
         env:
             MUNCH_ANDROID_VERSION_CODE: ${{ github.run_number }}
-            MUNCH_ADMOB_APP_ID: ca-app-pub-3940256099942544~3347511713
-            MUNCH_ADMOB_BANNER_AD_UNIT_ID: ca-app-pub-3940256099942544/9214589741
+            # ADS-FOUNDATION: the real Munch AdMob IDs (public — the
+            # publisher ID is published in app-ads.txt). This workflow
+            # previously pinned Google's SAMPLE IDs, so signed release
+            # bundles silently carried sample ad configuration.
+            MUNCH_ADMOB_APP_ID: ca-app-pub-2708638041809482~4540309917
+            MUNCH_ADMOB_BANNER_AD_UNIT_ID: ca-app-pub-2708638041809482/4316948636
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-node@v4

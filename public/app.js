@@ -283,15 +283,22 @@ async function api(path, options = {}) {
 function syncAndroidAdPlacement() {
     if (typeof window.MunchAds?.setBannerVisible !== "function") return;
     const adFree = state.bootstrap?.androidEntitlements?.adFree;
+    // ADS-FOUNDATION: bootstrap.ads.enabled is the server-driven remote
+    // flag (MUNCH_ADS_ENABLED, DEFAULT OFF). It is forwarded to the
+    // native plugin, which fail-closes on anything but an explicit
+    // true — so a stale or flag-less bootstrap makes no ad load attempt.
+    const adsEnabled = state.bootstrap?.ads?.enabled;
     const visible = shouldShowAndroidBanner({
         route: state.route,
         pathname: location.pathname,
         dialogOpen: dialog.open,
         adFree,
+        adsEnabled,
     });
     void window.MunchAds.setBannerVisible({
         visible,
         adFree: adFree !== false,
+        adsEnabled: adsEnabled === true,
     }).catch(() => {});
 }
 

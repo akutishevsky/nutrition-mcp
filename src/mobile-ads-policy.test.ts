@@ -7,6 +7,7 @@ describe("Android banner placement", () => {
         pathname: "/app/more",
         dialogOpen: false,
         adFree: false,
+        adsEnabled: true,
     };
 
     test("shows only on the More screen for a server-confirmed free account", () => {
@@ -32,5 +33,20 @@ describe("Android banner placement", () => {
         expect(shouldShowAndroidBanner({ ...eligible, dialogOpen: true })).toBe(
             false,
         );
+    });
+
+    test("ADS-FOUNDATION: the remote flag defaults OFF and fails closed", () => {
+        // Flag explicitly off (the shipped default: MUNCH_ADS_ENABLED
+        // unset on the server) — no banner even for an eligible account.
+        expect(
+            shouldShowAndroidBanner({ ...eligible, adsEnabled: false }),
+        ).toBe(false);
+        // Flag missing entirely (a bootstrap that predates ADS-FOUNDATION,
+        // or a failed bootstrap) — still no banner.
+        const { adsEnabled: _omitted, ...withoutFlag } = eligible;
+        expect(shouldShowAndroidBanner(withoutFlag)).toBe(false);
+        expect(
+            shouldShowAndroidBanner({ ...eligible, adsEnabled: undefined }),
+        ).toBe(false);
     });
 });

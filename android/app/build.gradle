@@ -31,13 +31,29 @@ if (configuredVersionCode) {
         throw new GradleException('MUNCH_ANDROID_VERSION_CODE must be between 1 and 2100000000.')
     }
 }
+// ADS-FOUNDATION (Amendment G item 3): Google's SAMPLE AdMob IDs are
+// the fallback for local development ONLY, when the MUNCH_ADMOB_* envs
+// are unset. CI sets the real Munch IDs in the mobile-android and
+// android-play-internal-bundle workflows, and a release build refuses
+// to proceed without them (see the release guard below) — a release
+// must never silently ship sample IDs.
 def sampleAdMobAppId = 'ca-app-pub-3940256099942544~3347511713'
 def sampleBannerAdUnitId = 'ca-app-pub-3940256099942544/9214589741'
-def configuredReleaseAdMobAppId =
+def configuredAdMobAppId =
     (project.findProperty('munchAdMobAppId') ?: System.getenv('MUNCH_ADMOB_APP_ID') ?: '').trim()
-def configuredReleaseBannerAdUnitId =
+def configuredBannerAdUnitId =
     (project.findProperty('munchAdMobBannerAdUnitId') ?: System.getenv('MUNCH_ADMOB_BANNER_AD_UNIT_ID') ?: '').trim()
-def releaseAdMobAppId = configuredReleaseAdMobAppId ?: sampleAdMobAppId
+def debugAdMobAppId = configuredAdMobAppId ?: sampleAdMobAppId
+def debugBannerAdUnitId = configuredBannerAdUnitId ?: sampleBannerAdUnitId
+
+if (releaseTaskRequested &&
+    (!configuredAdMobAppId || !configuredBannerAdUnitId ||
+        configuredAdMobAppId == sampleAdMobAppId ||
+        configuredBannerAdUnitId == sampleBannerAdUnitId)) {
+    throw new GradleException(
+        "Android release builds require the real AdMob IDs: set MUNCH_ADMOB_APP_ID and MUNCH_ADMOB_BANNER_AD_UNIT_ID so a release never ships Google sample AdMob IDs."
+    )
+}
 
 if (releaseTaskRequested && !firebaseConfigAvailable) {
     throw new GradleException(
@@ -62,7 +78,7 @@ android {
         applicationId "business.munch.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        manifestPlaceholders = [munchAdMobAppId: sampleAdMobAppId]
+        manifestPlaceholders = [munchAdMobAppId: debugAdMobAppId]
         resValue "string", "munch_admob_banner_unit_id", ""
         versionCode androidVersionCode
         versionName "1.0"
@@ -100,15 +116,15 @@ android {
     }
     buildTypes {
         debug {
-            manifestPlaceholders = [munchAdMobAppId: sampleAdMobAppId]
-            resValue "string", "munch_admob_banner_unit_id", sampleBannerAdUnitId
+            manifestPlaceholders = [munchAdMobAppId: debugAdMobAppId]
+            resValue "string", "munch_admob_banner_unit_id", debugBannerAdUnitId
             if (internalDebugSigningReady) {
                 signingConfig signingConfigs.internalDebug
             }
         }
         release {
-            manifestPlaceholders = [munchAdMobAppId: releaseAdMobAppId]
-            resValue "string", "munch_admob_banner_unit_id", configuredReleaseBannerAdUnitId
+            manifestPlaceholders = [munchAdMobAppId: configuredAdMobAppId]
+            resValue "string", "munch_admob_banner_unit_id", configuredBannerAdUnitId
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             if (uploadSigningReady) {
