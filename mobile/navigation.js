@@ -37,9 +37,7 @@ export function installedRouteFromUrl(value) {
         // across engines: munch://app/<route> (the leading "app"
         // segment is the link host, the rest is the in-app route).
         const raw = String(value);
-        const afterScheme = raw
-            .slice(raw.indexOf(":") + 1)
-            .replace(/^\/+/, "");
+        const afterScheme = raw.slice(raw.indexOf(":") + 1).replace(/^\/+/, "");
         const segments = afterScheme.split("/").filter(Boolean);
         if (segments[0] !== "app") return null;
         segments.shift();

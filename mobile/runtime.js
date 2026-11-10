@@ -129,7 +129,6 @@ export async function hasStoredSession() {
 export async function restoreInstalledEntryRoute(explicitRoute) {
     try {
         const launch = await App.getLaunchUrl();
-        console.log(`S4DBG restore launch=${JSON.stringify(launch)}`);
         const authenticatedRoute = await completeMobileMagicLink(launch?.url);
         if (authenticatedRoute) {
             return navigateInstalledRoute(authenticatedRoute, true);
@@ -597,12 +596,6 @@ App.addListener("appUrlOpen", ({ url }) => {
         return;
     }
     const route = installedRouteFromUrl(url);
-    let dbgParts = "";
-    try {
-        const p = new URL(url);
-        dbgParts = ` proto=${p.protocol} host=${p.hostname} path=${p.pathname}`;
-    } catch {}
-    console.log(`S4DBG appUrlOpen url=${url} route=${route} path=${location.pathname}${dbgParts}`);
     if (!route) return;
     if (location.pathname === LOGIN_PATH) {
         history.replaceState({}, "", installedLoginHref(route));

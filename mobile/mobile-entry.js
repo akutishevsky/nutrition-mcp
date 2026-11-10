@@ -23,7 +23,6 @@ if (typeof navigator !== "undefined" && navigator.onLine === false) {
             ?.addEventListener("click", () => location.reload());
     }
 } else if (!(await hasStoredSession())) {
-    console.log(`S4DBG entry path=${location.pathname} target=${installedLoginUrl(currentInstalledAppRoute())}`);
     location.replace(installedLoginUrl(currentInstalledAppRoute()));
 } else {
     await import("./app-integrity.js");
