@@ -1054,6 +1054,48 @@ code {
     font-size: 13px;
 }
 
+/* Google sign-in (Amendment G): Google's branding rules set the control
+ * itself — white ground, dark text, the multicolour G — while the sizing
+ * and radius stay in the auth grammar above. Rendered only when the web
+ * OAuth client is configured (src/auth/social-sign-in.ts). */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0 0;
+    color: var(--ink-mute);
+    font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid var(--hairline);
+}
+
+.auth-social {
+    margin-top: 16px;
+}
+
+.button-google {
+    width: 100%;
+    gap: 10px;
+    background: #fff;
+    border-color: var(--rule);
+    color: var(--ink);
+}
+
+.button-google:hover {
+    background: var(--paper-card);
+    border-color: var(--green);
+    color: var(--ink);
+}
+
+.button-google svg {
+    flex: none;
+}
+
 .auth-actions,
 .consent-actions {
     display: flex;

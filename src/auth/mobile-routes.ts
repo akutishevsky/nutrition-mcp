@@ -5,6 +5,10 @@ import {
     getMunchBetterAuth,
 } from "./auth.js";
 import { getBetterAuthRuntimeConfig } from "./config.js";
+import {
+    googleAndroidSignInConfigured,
+    googleWebSignInConfigured,
+} from "./social-sign-in.js";
 
 function privateResponse(c: Context) {
     c.header("Cache-Control", "no-store, private");
@@ -82,15 +86,31 @@ export function createMobileAuthRouter(): Hono {
 
     router.get("/mobile/auth/google-config", (c) => {
         const config = getBetterAuthRuntimeConfig();
-        const configured = Boolean(
-            config.googleWebClientId &&
-            config.googleAndroidClientId &&
-            config.googleClientSecret,
-        );
+        // Per-platform reporting (Amendment G): web sign-in needs only the
+        // web OAuth client; the packaged Android flow additionally needs
+        // the Android OAuth client. The historic top-level fields keep
+        // their original meaning — `configured`/`webClientId` describe the
+        // packaged Android flow, which is what the existing caller
+        // (`mobile/runtime.js`) gates on — so a missing Android client no
+        // longer makes the web platform report unconfigured, and the web
+        // platform no longer reports configured just because Android is.
+        const webConfigured = googleWebSignInConfigured(config);
+        const androidConfigured = googleAndroidSignInConfigured(config);
         privateResponse(c);
         return c.json({
-            configured,
-            webClientId: configured ? config.googleWebClientId : null,
+            configured: androidConfigured,
+            webClientId: androidConfigured ? config.googleWebClientId : null,
+            platforms: {
+                web: {
+                    configured: webConfigured,
+                    webClientId: webConfigured
+                        ? config.googleWebClientId
+                        : null,
+                },
+                android: {
+                    configured: androidConfigured,
+                },
+            },
         });
     });
 

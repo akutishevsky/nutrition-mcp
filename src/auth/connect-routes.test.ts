@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { boundedOAuthQuery, signedOAuthQuery } from "./connect-routes.js";
+import {
+    boundedOAuthQuery,
+    signInPageHtml,
+    signedOAuthQuery,
+} from "./connect-routes.js";
 
 describe("Better Auth consent continuation", () => {
     test("preserves the signed authorization query byte-for-byte", () => {
@@ -25,6 +29,44 @@ describe("Better Auth consent continuation", () => {
         expect(boundedOAuthQuery(123)).toBeUndefined();
         expect(boundedOAuthQuery("")).toBeUndefined();
         expect(boundedOAuthQuery("x".repeat(12_001))).toBeUndefined();
+    });
+
+    test("sign-in page hides Google until the web client is configured", () => {
+        const html = signInPageHtml({
+            returnTo: "/app",
+            googleConfigured: false,
+        });
+        expect(html).toContain("Send sign-in link");
+        expect(html).not.toContain("Continue with Google");
+        expect(html).not.toContain("data-social-sign-in");
+        expect(html).not.toContain("/api/auth/sign-in/social");
+    });
+
+    test("sign-in page renders the Google control once configured", () => {
+        const html = signInPageHtml({
+            returnTo: "/app",
+            googleConfigured: true,
+        });
+        expect(html).toContain("Continue with Google");
+        expect(html).toContain('data-social-path="/api/auth/sign-in/social"');
+        expect(html).toContain("&quot;callbackURL&quot;:&quot;/app&quot;");
+        expect(html).toContain(
+            "&quot;errorCallbackURL&quot;:&quot;/connect/error&quot;",
+        );
+        // The magic-link flow stays exactly as it was beside it.
+        expect(html).toContain("Send sign-in link");
+    });
+
+    test("sign-in page carries the MCP oauth_query into the Google request", () => {
+        const oauthQuery = "client_id=client-1&scope=nutrition.read&sig=abc";
+        const html = signInPageHtml({
+            returnTo: "/app",
+            oauthQuery,
+            googleConfigured: true,
+        });
+        expect(html).toContain(
+            "&quot;oauth_query&quot;:&quot;client_id=client-1&amp;scope=nutrition.read&amp;sig=abc&quot;",
+        );
     });
 
     test("consent carries the Premium entitlement gate without coupling to Stripe checkout", async () => {

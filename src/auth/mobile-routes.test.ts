@@ -45,10 +45,46 @@ describe("mobile auth routes", () => {
             expect(await response.json()).toEqual({
                 configured: false,
                 webClientId: null,
+                platforms: {
+                    web: { configured: false, webClientId: null },
+                    android: { configured: false },
+                },
             });
             expect(response.headers.get("cache-control")).toBe(
                 "no-store, private",
             );
+        });
+    });
+
+    test("reports web configured without claiming the Android flow is ready", async () => {
+        await withAuthEnvironment(async () => {
+            // Production state after the Amendment G console pass: the web
+            // OAuth client exists, the Android client does not yet.
+            delete process.env.MUNCH_GOOGLE_ANDROID_CLIENT_ID;
+            process.env.MUNCH_GOOGLE_WEB_CLIENT_ID =
+                "web-client-id.apps.googleusercontent.com";
+            process.env.MUNCH_GOOGLE_CLIENT_SECRET = "server-only-secret";
+
+            const response = await createMobileAuthRouter().request(
+                "/mobile/auth/google-config",
+            );
+            expect(response.status).toBe(200);
+            const body = await response.text();
+            // The packaged caller (mobile/runtime.js) gates on the top-level
+            // fields, so they must keep describing the Android flow: not
+            // configured, no client ID handed out for native sign-in.
+            expect(JSON.parse(body)).toEqual({
+                configured: false,
+                webClientId: null,
+                platforms: {
+                    web: {
+                        configured: true,
+                        webClientId: "web-client-id.apps.googleusercontent.com",
+                    },
+                    android: { configured: false },
+                },
+            });
+            expect(body).not.toContain("server-only-secret");
         });
     });
 
@@ -68,6 +104,13 @@ describe("mobile auth routes", () => {
             expect(JSON.parse(body)).toEqual({
                 configured: true,
                 webClientId: "web-client-id.apps.googleusercontent.com",
+                platforms: {
+                    web: {
+                        configured: true,
+                        webClientId: "web-client-id.apps.googleusercontent.com",
+                    },
+                    android: { configured: true },
+                },
             });
             expect(body).not.toContain("server-only-secret");
         });

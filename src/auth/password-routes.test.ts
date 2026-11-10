@@ -50,6 +50,34 @@ describe("password authentication pages", () => {
         expect(html).toContain("/api/auth/sign-in/username");
     });
 
+    test("password page hides Google until the web client is configured", async () => {
+        configure();
+        delete process.env.MUNCH_GOOGLE_WEB_CLIENT_ID;
+        delete process.env.MUNCH_GOOGLE_CLIENT_SECRET;
+        const response = await app().request(
+            "https://munch.example/account/password",
+        );
+        const html = await response.text();
+        expect(html).toContain('id="password-sign-in"');
+        expect(html).not.toContain("Continue with Google");
+        expect(html).not.toContain("data-social-sign-in");
+    });
+
+    test("password page renders the Google control once configured", async () => {
+        configure();
+        process.env.MUNCH_GOOGLE_WEB_CLIENT_ID =
+            "web-client-id.apps.googleusercontent.com";
+        process.env.MUNCH_GOOGLE_CLIENT_SECRET = "server-only-secret";
+        const response = await app().request(
+            "https://munch.example/account/password?return_to=/app",
+        );
+        const html = await response.text();
+        expect(html).toContain("Continue with Google");
+        expect(html).toContain('data-social-path="/api/auth/sign-in/social"');
+        expect(html).toContain('id="password-sign-in"');
+        expect(html).not.toContain("server-only-secret");
+    });
+
     test("renders the reset request page without exposing secrets", async () => {
         configure();
         const response = await app().request(
