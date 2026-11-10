@@ -322,6 +322,24 @@ app.get("/favicon.ico", async (c) => {
     }
 });
 
+// Themed 404 for browser page routes. Machine paths keep Hono's default
+// plain-text 404 exactly as before: API/MCP clients, well-known discovery
+// documents, and asset-like paths (a dot in the last segment) never receive
+// the HTML page, and no JSON error shape changes.
+app.notFound(async (c) => {
+    const path = new URL(c.req.url).pathname;
+    const lastSegment = path.slice(path.lastIndexOf("/") + 1);
+    const isMachinePath =
+        path === "/api" ||
+        path.startsWith("/api/") ||
+        path === "/mcp" ||
+        path.startsWith("/mcp/") ||
+        path.startsWith("/.well-known/") ||
+        lastSegment.includes(".");
+    if (isMachinePath) return c.text("404 Not Found", 404);
+    return c.html(await Bun.file("./public/not-found.html").text(), 404);
+});
+
 app.onError((_error, c) => {
     console.error("Unhandled application error");
     return c.json({ error: "internal_server_error" }, 500);

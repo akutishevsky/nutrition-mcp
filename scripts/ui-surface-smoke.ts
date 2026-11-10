@@ -10,7 +10,6 @@ const requiredFiles = [
     "public/app-patches.js",
     "public/weight-display.js",
     "public/help.html",
-    "public/help-connect.html",
     "public/security.html",
     "public/security.txt",
     "public/open-source.html",
@@ -89,11 +88,7 @@ if (!robots.includes("Sitemap: https://munch.business/sitemap.xml")) {
     throw new Error("robots.txt does not advertise the canonical sitemap");
 }
 
-const authSurfaces = [
-    "public/help-connect.html",
-    "src/auth/email.ts",
-    "src/auth/password-routes.ts",
-];
+const authSurfaces = ["src/auth/email.ts", "src/auth/password-routes.ts"];
 const forbiddenAuthWords = [
     "subscription",
     "premium",
