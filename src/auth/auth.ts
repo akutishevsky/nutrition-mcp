@@ -155,11 +155,13 @@ function createMunchBetterAuth() {
             accountLinking: {
                 // Google ID tokens with verified email addresses may link to
                 // matching Munch accounts. Unverified providers cannot claim
-                // existing accounts by email.
+                // existing accounts by email. Enabled whenever the Google
+                // provider itself is registered (web client credentials):
+                // the web redirect flow signs in through the same provider,
+                // so requiring the Android client here would silently split
+                // a web Google sign-in from the account it belongs to.
                 enabled: Boolean(
-                    config.googleWebClientId &&
-                    config.googleAndroidClientId &&
-                    config.googleClientSecret,
+                    config.googleWebClientId && config.googleClientSecret,
                 ),
             },
         },

@@ -5,8 +5,14 @@ import {
 } from "../accounts/csrf.js";
 import { resolveMunchCapabilitiesSafe } from "../billing/capabilities.js";
 import { getMunchBetterAuth } from "./auth.js";
+import { getBetterAuthRuntimeConfig } from "./config.js";
 import { safeMagicLinkReturnPath } from "./magic-link-url.js";
 import { describeOAuthScope } from "./oauth-scopes.js";
+import {
+    googleSignInButtonHtml,
+    googleWebSignInConfigured,
+    socialProviderScript,
+} from "./social-sign-in.js";
 
 function escapeHtml(value: string): string {
     return value
@@ -69,6 +75,35 @@ function connectionError(c: Context, stage: string, error?: unknown) {
     return c.redirect("/connect/error", 303);
 }
 
+/**
+ * The connect shell's sign-in page. Pure so the configured-gating is
+ * testable without a database: Google renders only when the web OAuth
+ * client is configured (the same condition that registers the Better Auth
+ * provider), so unconfigured deployments keep the exact page they had.
+ * Initiation is shared with the Amendment I link flow through
+ * src/auth/social-sign-in.ts.
+ */
+export function signInPageHtml(input: {
+    returnTo: string;
+    oauthQuery?: string;
+    googleConfigured: boolean;
+}): string {
+    const { returnTo, oauthQuery } = input;
+    const passwordParams = new URLSearchParams({ return_to: returnTo });
+    if (oauthQuery) passwordParams.set("oauth_query", oauthQuery);
+    const passwordHref = `/account/password?${passwordParams.toString()}`;
+
+    const googleBlock = input.googleConfigured
+        ? `<p class="auth-divider" aria-hidden="true"><span>or</span></p><div class="auth-social">${googleSignInButtonHtml({ callbackURL: returnTo, errorCallbackURL: "/connect/error", oauthQuery })}${socialProviderScript()}</div>`
+        : "";
+
+    return shell(
+        "Sign in",
+        `<h1>Connect Munch to ChatGPT</h1><p>Use your email to continue. We will send a secure, single-use sign-in link.</p><form class="auth-form" method="post" action="/connect/request"><input type="hidden" name="return_to" value="${escapeHtml(returnTo)}">${oauthQuery ? `<input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}">` : ""}<label class="field" for="email"><span>Email address</span><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required maxlength="320"></label><button class="button button-primary" type="submit">Send sign-in link</button></form>${googleBlock}<p class="auth-footnote">No password is created or stored.</p><p class="auth-footnote"><a href="${escapeHtml(passwordHref)}">Use a username and password instead</a></p>${oauthQuery ? `<p class="auth-footnote">Connecting Munch to an AI app uses MCP access, which is part of Munch Premium.</p>` : ""}`,
+        "Secure connection",
+    );
+}
+
 export function createBetterAuthConnectRouter(): Hono {
     const connect = new Hono();
 
@@ -80,17 +115,15 @@ export function createBetterAuthConnectRouter(): Hono {
         });
         if (session?.user && !oauthQuery) return c.redirect(returnTo, 303);
 
-        const passwordParams = new URLSearchParams({ return_to: returnTo });
-        if (oauthQuery) passwordParams.set("oauth_query", oauthQuery);
-        const passwordHref = `/account/password?${passwordParams.toString()}`;
-
         return privateHtml(
             c,
-            shell(
-                "Sign in",
-                `<h1>Connect Munch to ChatGPT</h1><p>Use your email to continue. We will send a secure, single-use sign-in link.</p><form class="auth-form" method="post" action="/connect/request"><input type="hidden" name="return_to" value="${escapeHtml(returnTo)}">${oauthQuery ? `<input type="hidden" name="oauth_query" value="${escapeHtml(oauthQuery)}">` : ""}<label class="field" for="email"><span>Email address</span><input id="email" name="email" type="email" inputmode="email" autocomplete="email" required maxlength="320"></label><button class="button button-primary" type="submit">Send sign-in link</button></form><p class="auth-footnote">No password is created or stored.</p><p class="auth-footnote"><a href="${escapeHtml(passwordHref)}">Use a username and password instead</a></p>${oauthQuery ? `<p class="auth-footnote">Connecting Munch to an AI app uses MCP access, which is part of Munch Premium.</p>` : ""}`,
-                "Secure connection",
-            ),
+            signInPageHtml({
+                returnTo,
+                oauthQuery,
+                googleConfigured: googleWebSignInConfigured(
+                    getBetterAuthRuntimeConfig(),
+                ),
+            }),
         );
     });
 

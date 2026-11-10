@@ -1,190 +1,78 @@
-# Setting up Google Auth
+# Google sign-in setup
 
-This guide walks through enabling **"Continue with Google"** sign-in for nutrition-mcp.
+Munch sign-in is Better Auth on Munch's own database — there is no Supabase
+in this stack, and there never was for the current app. This document
+replaces an earlier Supabase-era guide that described a different product;
+see `docs/android-auth.md` for the Android native flow in detail.
 
-> **Read this first — the one thing tutorials get wrong for this project.**
-> This server runs the Google OAuth redirect **itself** and only hands the
-> resulting ID token to Supabase (`signInWithIdToken`). So **Google must redirect
-> back to _your_ server**, not to Supabase. The redirect URI you register in
-> Google is `https://nutrition-mcp.com/auth/google/callback` — **not** the
-> `…supabase.co/auth/v1/callback` URL most Supabase + Google guides tell you to
-> use. Supabase never receives the redirect; it only validates the token's
-> signature and audience.
+## How it works
 
----
+- Better Auth (`src/auth/auth.ts`) registers the `google` social provider
+  when the web OAuth client credentials are configured, and verified-email
+  account linking is enabled under the same condition, so a Google sign-in
+  whose email matches an existing Munch account lands on that account.
+- **Web (redirect flow):** the sign-in surfaces (`/connect/sign-in` and
+  `/account/password`) render a "Continue with Google" control only when
+  the provider is configured. The control POSTs to
+  `/api/auth/sign-in/social` — initiation is POST-only; a GET on that path
+  is a 404 by design — and follows the returned Google consent URL. Google
+  redirects back to `https://munch.business/api/auth/callback/google`,
+  where Better Auth completes the sign-in. Shared initiation code lives in
+  `src/auth/social-sign-in.ts` (the Amendment I account-linking flow reuses
+  it against `/api/auth/link-social`).
+- **Android (ID-token flow):** the packaged app uses Credential Manager to
+  obtain a Google ID token and POSTs it to the same
+  `/api/auth/sign-in/social` endpoint. See `docs/android-auth.md`.
+- Magic-link and password sign-in are unaffected by any of this.
 
-## 1. Google Cloud Console
+## Google Cloud console
 
-Open <https://console.cloud.google.com/> and select your project (e.g.
-`nutrition-mcp`). Everything below lives under **Google Auth Platform** in the
-left sidebar (the newer unified UI that replaced the old single "OAuth consent
-screen" page).
+Use the existing Firebase Google Cloud project `munch-android-bf1cd`.
 
-### A. Branding
+1. **OAuth consent screen:** app "Munch", External, support and developer
+   contact `sportfolioholdings@gmail.com`, default scopes
+   (`openid`, `email`, `profile`). While the publishing status is
+   **Testing**, only listed test users can complete sign-in. Publishing the
+   consent screen to production is a launch gate, tracked in the parity
+   program's Wave 3 status (Amendment G).
+2. **Web application OAuth client** ("Munch Web"):
+    - Authorized JavaScript origins: `https://munch.business`
+    - Authorized redirect URIs:
+      `https://munch.business/api/auth/callback/google` (exact, no
+      trailing slash)
+3. **Android OAuth client(s):** package `business.munch.app`, one per
+   signing-certificate SHA-1 that users actually run. The signing
+   identities are derived from the signed CI artifacts with `apksigner`
+   (the fingerprint is public information; keys never leave CI). The
+   Play App Signing identity exists only after the first Play upload.
+   Signing background: `docs/ANDROID_SIGNING.md`.
 
-App name, support email, and developer contact. This is the "Create Google Auth
-configuration" step — usually already done when the project is created. Only
-revisit to add a logo or homepage/privacy links.
+## Railway variables (Munch API service)
 
-### B. Data Access _(= old "Scopes")_
+| Variable                                     | Value                                                    |
+| -------------------------------------------- | -------------------------------------------------------- |
+| `MUNCH_GOOGLE_WEB_CLIENT_ID`                 | Web application client ID                                |
+| `MUNCH_GOOGLE_CLIENT_SECRET`                 | Web application client secret (console → Railway only)   |
+| `MUNCH_GOOGLE_ANDROID_CLIENT_ID`             | Android client ID                                        |
+| `MUNCH_ANDROID_APP_LINK_SHA256_FINGERPRINTS` | Comma-separated SHA-256 signing certificate fingerprints |
 
-1. Sidebar → **Data Access** → **Add or remove scopes**.
-2. Add these three non-sensitive scopes (no Google verification review required):
-    - `openid`
-    - `.../auth/userinfo.email`
-    - `.../auth/userinfo.profile`
-3. **Update** → **Save**.
+The web client ID and secret must be set together; the Android client ID
+additionally requires the web credentials (`src/auth/config.ts`).
 
-### C. Audience _(= old "Publishing status / Test users")_
+## Verifying configuration per platform
 
-1. Sidebar → **Audience**.
-2. While status is **Testing**, only listed users can sign in → add your Google
-   email under **Test users**, **or**
-3. Click **Publish app** to allow anyone (instant for the basic scopes above —
-   no review needed).
+`GET /mobile/auth/google-config` reports configuration per platform:
 
-### D. Clients _(= old "Credentials → OAuth client ID")_ — the main step
+- `platforms.web.configured` — web ID + secret present (web sign-in and
+  the web client ID under `platforms.web.webClientId`).
+- `platforms.android.configured` — all three variables present.
+- The top-level `configured` / `webClientId` fields keep their original
+  meaning (the packaged Android flow), which is what the packaged app's
+  `mobile/runtime.js` caller gates on.
 
-1. Sidebar → **Clients** → **Create client**.
-2. **Application type: Web application**.
-3. Name: anything (e.g. `nutrition-mcp web`).
-4. **Authorized redirect URIs** — add both:
-    - `http://localhost:8080/auth/google/callback` (local dev)
-    - `https://nutrition-mcp.com/auth/google/callback` (production)
-5. **Create**, then copy the **Client ID** and **Client secret**.
+## Proof
 
-> ⚠️ **Don't confuse the two URI fields.** The callback path goes in
-> **Authorized redirect URIs**. If you paste it into **Authorized JavaScript
-> origins** you'll get _"Invalid Origin: URIs must not contain a path or end with
-> '/'."_ — that field only accepts an origin (scheme + host + port, no path).
-> Leave **Authorized JavaScript origins** empty; we don't use Google's browser
-> SDK.
-
-> The redirect URIs must match byte-for-byte what the server builds from the
-> request headers. Add a callback URL for every host you serve from (staging,
-> previews, etc.).
-
----
-
-## 2. Supabase — enable the Google provider
-
-1. <https://supabase.com/dashboard> → your project → **Authentication →
-   Sign In / Providers → Google**.
-2. **Enable** it and paste the **same** Client ID and Client secret from step 1.D.
-    - Supabase needs the Client ID to validate the ID token's `aud` claim. (The
-      secret is required by the form even though our server does the actual code
-      exchange.)
-3. **Skip Nonce Check: leave OFF.** The server sends a hashed nonce to Google and
-   the raw nonce to Supabase, so nonce verification passes and gives you
-   replay-attack protection.
-4. Save.
-
-### Will existing email/password users be linked when they sign in with Google?
-
-**Yes — automatically — as long as the Google account's email matches the email
-they registered with.** Supabase links a new OAuth identity to an existing user
-whenever the email matches and is **verified**. This is built-in GoTrue
-behavior: there is no toggle to enable it, and the **Allow manual linking**
-setting (which only governs the `linkIdentity` API) does not affect it.
-
-The only condition is that the existing account's email is verified. How that's
-satisfied depends on your **Authentication → Sign In / Providers → Email →
-Confirm email** setting:
-
-- **Confirm email OFF** (this project's default) — Supabase auto-confirms every
-  password user at signup, so all existing emails are already verified and
-  linking "just works" for everyone.
-- **Confirm email ON** — only users who actually clicked their confirmation link
-  are verified; an unconfirmed account won't be linked (Supabase requires a
-  verified email to prevent pre-account-takeover attacks).
-
-So the outcomes are:
-
-| Situation                                            | Result                                  |
-| ---------------------------------------------------- | --------------------------------------- |
-| Google email matches a **verified** existing account | Linked to the **same** user — data kept |
-| Google email is new                                  | A fresh user is created                 |
-| Google email differs from the user's registered one  | No match → a separate account           |
-
-Nothing in the app or on the user's part is required for linking — it happens
-server-side during sign-in.
-
----
-
-## 3. Environment variables
-
-**Local** — add to `.env` (Bun auto-loads it):
-
-```
-GOOGLE_CLIENT_ID=<client id from step 1.D>
-GOOGLE_CLIENT_SECRET=<client secret from step 1.D>
-```
-
-**Production** — set the same two variables in the deployment environment for
-`nutrition-mcp.com`.
-
-Until these are set, the Google button still renders but clicking it returns
-`{"error":"google_not_configured"}`. Email/password sign-in works regardless.
-
----
-
-## 4. Test end-to-end (local)
-
-1. Restart the server to load the new env vars: `bun run src/index.ts`.
-2. Open (substitute your real `OAUTH_CLIENT_ID`):
-    ```
-    http://localhost:8080/authorize?response_type=code&client_id=<OAUTH_CLIENT_ID>&redirect_uri=http://localhost:8080/health&state=test
-    ```
-    `/health` is a throwaway redirect target so you can read the result off the
-    URL bar.
-3. Click **Continue with Google** and pick an account. You should bounce:
-   `/authorize/google` → Google → `/auth/google/callback` →
-   `…/health?code=…&state=test`.
-4. **Supabase → Authentication → Users**: confirm a new user with a **Google**
-   identity appeared.
-5. _(Optional, full token check)_ exchange the `code` for a token and call `/mcp`:
-    ```
-    curl -X POST http://localhost:8080/token \
-      -d grant_type=authorization_code -d code=<authCode> \
-      -d redirect_uri=http://localhost:8080/health \
-      -d client_id=<OAUTH_CLIENT_ID> -d client_secret=<OAUTH_CLIENT_SECRET>
-    ```
-    then
-    ```
-    curl http://localhost:8080/mcp \
-      -H "Authorization: Bearer <access_token>" \
-      -H "Content-Type: application/json" \
-      -H "Accept: application/json, text/event-stream" \
-      -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
-    ```
-    Expect a tool list, not a 401.
-
----
-
-## Troubleshooting
-
-| Symptom                                           | Cause / fix                                                                                                                                     |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| _"Invalid Origin: URIs must not contain a path…"_ | You typed the callback into **Authorized JavaScript origins**. Use **Authorized redirect URIs** instead.                                        |
-| `redirect_uri_mismatch` on Google's screen        | The callback URL isn't registered, or differs (http vs https, port, trailing slash). Add the exact one to **Authorized redirect URIs**.         |
-| `{"error":"google_not_configured"}`               | `GOOGLE_CLIENT_ID`/`SECRET` not set in that environment.                                                                                        |
-| "Access blocked / app not verified"               | Consent screen still in **Testing** — add your email under **Audience → Test users**, or **Publish**.                                           |
-| Sign-in returns a nonce error                     | Temporarily enable **Skip Nonce Check**, or confirm the Client ID in Supabase matches the one that issued the token.                            |
-| Two separate users for the same person            | The existing password account's email was never confirmed, so automatic linking couldn't trust the match. (Linking itself can't be turned off.) |
-
----
-
-## How it works (reference)
-
-```
-login page → [Continue with Google]
-  → GET /authorize/google?session_id=X
-      → 302 to accounts.google.com (state=session_id, nonce=sha256hex(rawNonce))
-  → Google consent → 302 to GET /auth/google/callback?code=…&state=session_id
-      → POST oauth2.googleapis.com/token  → id_token   (server-to-server)
-      → supabase.auth.signInWithIdToken({ provider:'google', token, nonce })
-      → mint our auth code + 302 to the MCP client's redirect_uri
-```
-
-Relevant code: `src/oauth.ts` (`/authorize/google`, `/auth/google/callback`),
-`src/supabase.ts` (`signInWithGoogleIdToken`).
+`scripts/better-auth-google-sign-in-smoke.ts` (CI database job) exercises
+initiation against a migrated database and asserts the consent URL
+carries the production web client ID and the
+`https://munch.business/api/auth/callback/google` redirect.

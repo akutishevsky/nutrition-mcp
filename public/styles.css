@@ -333,6 +333,48 @@
         color: var(--ink-900);
     }
 
+    /* Google sign-in (Amendment G): Google's branding rules set the
+     * control itself — white ground, dark text, the multicolour G — while
+     * sizing stays in this sheet's button grammar. Rendered only when the
+     * web OAuth client is configured (src/auth/social-sign-in.ts). */
+    .auth-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 18px 0 0;
+        color: var(--ink-500, #6b7280);
+        font-size: 0.85rem;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+        content: "";
+        flex: 1;
+        border-top: 1px solid var(--ink-200);
+    }
+
+    .auth-social {
+        margin-top: 18px;
+    }
+
+    .button-google {
+        width: 100%;
+        gap: 10px;
+        border-color: var(--ink-200);
+        background: white;
+        color: var(--ink-900);
+    }
+
+    .button-google:hover {
+        border-color: var(--green-300);
+        background: var(--green-50);
+        color: var(--ink-900);
+    }
+
+    .button-google svg {
+        flex: none;
+    }
+
     .button-secondary:hover {
         border-color: var(--green-300);
         background: var(--green-50);

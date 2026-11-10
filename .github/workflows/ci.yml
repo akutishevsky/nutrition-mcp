@@ -120,6 +120,10 @@ jobs:
         env:
           NODE_ENV: test
         run: bun scripts/better-auth-oauth-http-smoke.ts
+      - name: Exercise Google social sign-in initiation
+        env:
+          NODE_ENV: test
+        run: bun scripts/better-auth-google-sign-in-smoke.ts
       - name: Exercise Better Auth connection listing and revocation
         run: bun scripts/better-auth-connections-smoke.ts
       - name: Provision and exercise marketplace reviewer account

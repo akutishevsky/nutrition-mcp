@@ -1,6 +1,11 @@
 import { Hono, type Context } from "hono";
 import { getBetterAuthRuntimeConfig } from "./config.js";
 import { safeLocalRedirectPath } from "../accounts/redirect.js";
+import {
+    googleSignInButtonHtml,
+    googleWebSignInConfigured,
+    socialProviderScript,
+} from "./social-sign-in.js";
 
 function escapeHtml(value: string): string {
     return value
@@ -103,7 +108,13 @@ function passwordPage(input: {
     returnTo: string;
     oauthQuery: string;
     publicSignup: boolean;
+    googleConfigured: boolean;
 }): string {
+    // Same configured-gated Google control as the connect shell's sign-in
+    // page: this page is the other surface a web user signs in from.
+    const googleBlock = input.googleConfigured
+        ? `<div class="auth-social">${googleSignInButtonHtml({ callbackURL: input.returnTo, errorCallbackURL: "/connect/error", oauthQuery: input.oauthQuery || undefined })}${socialProviderScript()}</div><p class="auth-divider" aria-hidden="true"><span>or</span></p>`
+        : "";
     const signup = input.publicSignup
         ? `<section class="auth-panel"><h2>Create an account</h2><p>Use a username, email, and password. We will verify your email before the first password sign-in.</p><form id="password-sign-up" class="auth-form"><label class="field" for="name"><span>Name</span><input id="name" name="name" autocomplete="name" required maxlength="120"></label><label class="field" for="signup-email"><span>Email address</span><input id="signup-email" name="email" type="email" autocomplete="email" required maxlength="320"></label><label class="field" for="username"><span>Username</span><input id="username" name="username" autocomplete="username" required minlength="3" maxlength="40" pattern="[A-Za-z0-9_.]+"></label><label class="field" for="signup-password"><span>Password</span><input id="signup-password" name="password" type="password" autocomplete="new-password" required minlength="16" maxlength="128"></label><button class="button button-secondary" type="submit">Create account</button></form></section>`
         : `<p class="auth-footnote">New password accounts are currently created through a controlled provisioning flow. Use magic-link sign-in if you do not already have credentials.</p>`;
@@ -112,7 +123,7 @@ function passwordPage(input: {
     const oauthQuery = escapeHtml(input.oauthQuery);
     return shell(
         "Password sign in",
-        `<div data-auth-page data-return-to="${returnTo}" data-oauth-query="${oauthQuery}"><p class="section-kicker spacer-top">Account access</p><h1>Use a username and password</h1><p>Sign in with an existing Munch email or username and password.</p><p id="auth-message" class="message-bar" role="status"></p><form id="password-sign-in" class="auth-form"><label class="field" for="identifier"><span>Username or email</span><input id="identifier" name="identifier" autocomplete="username" required maxlength="320"></label><label class="field" for="password"><span>Password</span><input id="password" name="password" type="password" autocomplete="current-password" required minlength="16" maxlength="128"></label><button class="button button-primary" type="submit">Sign in</button></form><p class="auth-footnote"><a href="/account/password/reset">Forgot your password?</a></p></div>${signup}${authScript()}`,
+        `<div data-auth-page data-return-to="${returnTo}" data-oauth-query="${oauthQuery}"><p class="section-kicker spacer-top">Account access</p><h1>Use a username and password</h1><p>Sign in with an existing Munch email or username and password.</p><p id="auth-message" class="message-bar" role="status"></p>${googleBlock}<form id="password-sign-in" class="auth-form"><label class="field" for="identifier"><span>Username or email</span><input id="identifier" name="identifier" autocomplete="username" required maxlength="320"></label><label class="field" for="password"><span>Password</span><input id="password" name="password" type="password" autocomplete="current-password" required minlength="16" maxlength="128"></label><button class="button button-primary" type="submit">Sign in</button></form><p class="auth-footnote"><a href="/account/password/reset">Forgot your password?</a></p></div>${signup}${authScript()}`,
     );
 }
 
@@ -142,6 +153,9 @@ export function createPasswordRouter(): Hono {
                 ),
                 oauthQuery: c.req.query("oauth_query") ?? "",
                 publicSignup: getBetterAuthRuntimeConfig().publicPasswordSignup,
+                googleConfigured: googleWebSignInConfigured(
+                    getBetterAuthRuntimeConfig(),
+                ),
             }),
         ),
     );
