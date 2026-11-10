@@ -38,6 +38,24 @@ export interface CapabilityContract {
      * (website-only by design) or a documented `gap` + `targetPr`.
      */
     app: CapabilityChannel;
+    /**
+     * The packaged iOS app channel (IOS-PLATFORM, Amendment H — pure
+     * parity). iOS packages the SAME .mobile-web bundle as Android
+     * (`cap sync ios` from the same build script), so most verdicts
+     * follow the Android channel — but each row's verdict was derived
+     * individually, not copied: `iosBasis` states the basis for every
+     * row (shared bundle / cross-platform plugin / named native or
+     * config gap), and a row whose iOS outcome genuinely differs
+     * (missing native counterpart, auth/billing/ads rail, download
+     * handoff) carries a partial/missing verdict plus `iosGap` +
+     * `iosTargetPr` instead of borrowing Android's completeness.
+     * Cross-cutting native gaps that no single row owns are recorded
+     * in IOS_CHANNEL_NATIVE_GAPS below.
+     */
+    ios: CapabilityChannel;
+    iosBasis: string;
+    iosGap: string | null;
+    iosTargetPr: string | null;
     intentionalChannelException: string | null;
     gap: string | null;
     targetPr: string | null;
@@ -83,6 +101,15 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/food-search",
             "GET /api/app/food-details",
         ]),
+        ios: complete([
+            "POST /api/app/meals",
+            "GET /api/app/food-search",
+            "GET /api/app/food-details",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -96,6 +123,11 @@ export const CAPABILITY_MANIFEST = [
         ]),
         web: complete(["/api/app/today", "/api/app/meals"]),
         app: complete(["/api/app/today", "/api/app/meals"]),
+        ios: complete(["/api/app/today", "/api/app/meals"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -121,6 +153,19 @@ export const CAPABILITY_MANIFEST = [
             "[data-patch-food-search-form]",
             "[data-patch-food-option]",
         ]),
+        ios: complete([
+            "/api/app/meals/:id",
+            "/api/app/meals/:mealId/items/:itemId",
+            "/api/app/meals/:mealId/items",
+            "DELETE /api/app/meals/:mealId/items/:itemId",
+            '[data-action="edit-meal"]',
+            "[data-patch-food-search-form]",
+            "[data-patch-food-option]",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -130,6 +175,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["delete_meal"]),
         web: complete(["DELETE /api/app/meals/:id"]),
         app: complete(["DELETE /api/app/meals/:id"]),
+        ios: complete(["DELETE /api/app/meals/:id"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -139,6 +189,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: websiteOnly([]),
         web: complete(["POST /api/app/meals/:id/copy"]),
         app: complete(["POST /api/app/meals/:id/copy"]),
+        ios: complete(["POST /api/app/meals/:id/copy"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException:
             "The website keeps structured duplication as a direct diary convenience; MCP can re-log through its normal meal tools.",
         gap: null,
@@ -149,6 +204,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["search_meals"]),
         web: complete(["GET /api/app/meals?q=…", "#meal-history-search"]),
         app: complete(["GET /api/app/meals?q=…", "#meal-history-search"]),
+        ios: complete(["GET /api/app/meals?q=…", "#meal-history-search"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -164,6 +224,14 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/meals/:id",
             '[data-action="view-meal-details"]',
         ]),
+        ios: complete([
+            "GET /api/app/meals/:id",
+            '[data-action="view-meal-details"]',
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -173,6 +241,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_nutrition_provenance"]),
         web: complete(["GET /api/app/insights (provenance)", "/app/insights"]),
         app: complete(["GET /api/app/insights (provenance)", "/app/insights"]),
+        ios: complete(["GET /api/app/insights (provenance)", "/app/insights"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -182,6 +255,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_weekly_checkin"]),
         web: complete(["GET /api/app/insights/checkin"]),
         app: complete(["GET /api/app/insights/checkin"]),
+        ios: complete(["GET /api/app/insights/checkin"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -191,6 +269,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_daily_guidance"]),
         web: complete(["GET /api/app/guidance/today"]),
         app: complete(["GET /api/app/guidance/today"]),
+        ios: complete(["GET /api/app/guidance/today"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -208,6 +291,15 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/import",
             "/app/settings/data",
         ]),
+        ios: complete([
+            "POST /api/app/import/parse",
+            "POST /api/app/import",
+            "/app/settings/data",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -243,6 +335,18 @@ export const CAPABILITY_MANIFEST = [
             '[data-action="add-draft-text"]',
             "POST /api/app/meal-drafts/:id/confirm",
         ]),
+        ios: partial([
+            "POST /api/app/meal-photo",
+            '[data-action="log-by-photo"]',
+            "POST /api/app/meal-drafts/:id/add-text",
+            '[data-action="add-draft-text"]',
+            "POST /api/app/meal-drafts/:id/confirm",
+        ]),
+        iosBasis:
+            "Shared bundle + cross-platform @capacitor/camera: the iOS SPM package is present and the camera/photo usage strings land in the iOS Info.plist in this slice, so Take photo / Choose photo hand the image to the same dialog as Android. The process-death restore leg differs — see iosGap.",
+        iosGap: "Capture restoration after process death has no iOS counterpart today: the shared runtime restores pending captures from Capacitor's appRestoredResult event, which Capacitor emits on Android only, and iOS has no native plugin of its own yet. A capture interrupted by iOS process death is lost instead of being restored into the dialog.",
+        iosTargetPr:
+            "IOS-PLATFORM follow-up — iOS capture-restore (native plugin or picker-lifecycle equivalent)",
         intentionalChannelException:
             "MCP photo logging is complete via the client-model draft path (start_meal_draft → upsert_meal_draft_item with model_estimate items → confirm_meal_draft, owned by the mealDraft.* contracts); the S3 server decider pipeline is a web/app surface.",
         gap: null,
@@ -259,6 +363,14 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/meal-drafts",
             '[data-action="start-meal-draft"]',
         ]),
+        ios: complete([
+            "POST /api/app/meal-drafts",
+            '[data-action="start-meal-draft"]',
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -268,6 +380,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_meal_draft"]),
         web: complete(["/api/app/today", "GET /api/app/meal-drafts/:id"]),
         app: complete(["/api/app/today", "GET /api/app/meal-drafts/:id"]),
+        ios: complete(["/api/app/today", "GET /api/app/meal-drafts/:id"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -281,6 +398,11 @@ export const CAPABILITY_MANIFEST = [
         // the review surface itself is the draft read below.
         web: complete(["GET /api/app/meal-drafts/:id"]),
         app: complete(["GET /api/app/meal-drafts/:id"]),
+        ios: complete(["GET /api/app/meal-drafts/:id"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -307,6 +429,17 @@ export const CAPABILITY_MANIFEST = [
             "DELETE /api/app/meal-drafts/:draftId/items/:itemId",
             "POST /api/app/meal-drafts/:draftId/questions/:questionId/answer",
         ]),
+        ios: complete([
+            "PATCH /api/app/meal-drafts/:id",
+            "POST /api/app/meal-drafts/:id/items",
+            "PATCH /api/app/meal-drafts/:draftId/items/:itemId",
+            "DELETE /api/app/meal-drafts/:draftId/items/:itemId",
+            "POST /api/app/meal-drafts/:draftId/questions/:questionId/answer",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -316,6 +449,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["confirm_meal_draft", "resolve_meal_review"]),
         web: complete(["POST /api/app/meal-drafts/:id/confirm"]),
         app: complete(["POST /api/app/meal-drafts/:id/confirm"]),
+        ios: complete(["POST /api/app/meal-drafts/:id/confirm"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -325,6 +463,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["cancel_meal_draft"]),
         web: complete(["POST /api/app/meal-drafts/:id/cancel"]),
         app: complete(["POST /api/app/meal-drafts/:id/cancel"]),
+        ios: complete(["POST /api/app/meal-drafts/:id/cancel"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -334,6 +477,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["search_foods"]),
         web: complete(["GET /api/app/food-search"]),
         app: complete(["GET /api/app/food-search"]),
+        ios: complete(["GET /api/app/food-search"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -343,6 +491,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_food_details"]),
         web: complete(["GET /api/app/food-details"]),
         app: complete(["GET /api/app/food-details"]),
+        ios: complete(["GET /api/app/food-details"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -352,6 +505,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["lookup_food_barcode", "lookup_barcode"]),
         web: complete(["GET /api/app/food-barcode"]),
         app: complete(["GET /api/app/food-barcode"]),
+        ios: complete(["GET /api/app/food-barcode"]),
+        iosBasis:
+            "Shared bundle + cross-platform @capacitor/barcode-scanner: the iOS SPM package is present (Vision-framework backend on iOS; the runtime's ML Kit scanning-library hint is Android-only and ignored on iOS) and the camera usage string lands in the iOS Info.plist in this slice.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -361,6 +519,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["search_saved_foods", "list_saved_foods"]),
         web: complete(["GET /api/app/food-search", "GET /api/app/foods"]),
         app: complete(["GET /api/app/food-search", "GET /api/app/foods"]),
+        ios: complete(["GET /api/app/food-search", "GET /api/app/foods"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -384,6 +547,18 @@ export const CAPABILITY_MANIFEST = [
             '[data-action="delete-saved-food"]',
             "#saved-food-form",
         ]),
+        ios: complete([
+            "POST /api/app/foods",
+            "DELETE /api/app/foods/:id",
+            '[data-action="manage-saved-foods"]',
+            '[data-action="select-saved-food-candidate"]',
+            '[data-action="delete-saved-food"]',
+            "#saved-food-form",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -405,6 +580,15 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/meals",
             '[data-action="select-meal-option"]',
         ]),
+        ios: complete([
+            "GET /api/app/food-search",
+            "POST /api/app/meals",
+            '[data-action="select-meal-option"]',
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -414,6 +598,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_nutrition_summary"]),
         web: complete(["/api/app/today", "/api/app/meals"]),
         app: complete(["/api/app/today", "/api/app/meals"]),
+        ios: complete(["/api/app/today", "/api/app/meals"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -423,6 +612,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_nutrition_goals", "set_nutrition_goals"]),
         web: complete(["/api/app/goals", "/app/settings/goals"]),
         app: complete(["/api/app/goals", "/app/settings/goals"]),
+        ios: complete(["/api/app/goals", "/app/settings/goals"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -438,6 +632,14 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/guidance/context",
             "GET/PUT /api/app/guidance/preferences",
         ]),
+        ios: complete([
+            "GET /api/app/guidance/context",
+            "GET/PUT /api/app/guidance/preferences",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -447,6 +649,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["preview_goal_change"]),
         web: complete(["POST /api/app/guidance/goals/preview"]),
         app: complete(["POST /api/app/guidance/goals/preview"]),
+        ios: complete(["POST /api/app/guidance/goals/preview"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -456,6 +663,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["commit_goal_change"]),
         web: complete(["POST /api/app/guidance/goals/commit"]),
         app: complete(["POST /api/app/guidance/goals/commit"]),
+        ios: complete(["POST /api/app/guidance/goals/commit"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -471,6 +683,14 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/guidance/goals/review",
             "GET /api/app/guidance/goals/history",
         ]),
+        ios: complete([
+            "GET /api/app/guidance/goals/review",
+            "GET /api/app/guidance/goals/history",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -480,6 +700,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_goal_progress"]),
         web: complete(["GET /api/app/insights (progress)", "/api/app/today"]),
         app: complete(["GET /api/app/insights (progress)", "/api/app/today"]),
+        ios: complete(["GET /api/app/insights (progress)", "/api/app/today"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -489,6 +714,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_trends"]),
         web: complete(["GET /api/app/insights (trends)", "/app/insights"]),
         app: complete(["GET /api/app/insights (trends)", "/app/insights"]),
+        ios: complete(["GET /api/app/insights (trends)", "/app/insights"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -498,6 +728,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_meal_patterns"]),
         web: complete(["GET /api/app/insights (patterns)", "/app/insights"]),
         app: complete(["GET /api/app/insights (patterns)", "/app/insights"]),
+        ios: complete(["GET /api/app/insights (patterns)", "/app/insights"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -507,6 +742,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["log_water"]),
         web: complete(["POST /api/app/water"]),
         app: complete(["POST /api/app/water"]),
+        ios: complete(["POST /api/app/water"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -524,6 +764,15 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/insights (water history)",
             "/app/insights",
         ]),
+        ios: complete([
+            "/api/app/today",
+            "GET /api/app/insights (water history)",
+            "/app/insights",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -533,6 +782,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["update_water"]),
         web: complete(["PATCH /api/app/water/:id", "#water-history"]),
         app: complete(["PATCH /api/app/water/:id", "#water-history"]),
+        ios: complete(["PATCH /api/app/water/:id", "#water-history"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -542,6 +796,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["delete_water"]),
         web: complete(["DELETE /api/app/water/:id", "#water-history"]),
         app: complete(["DELETE /api/app/water/:id", "#water-history"]),
+        ios: complete(["DELETE /api/app/water/:id", "#water-history"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -551,6 +810,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["log_weight"]),
         web: complete(["POST /api/app/weight"]),
         app: complete(["POST /api/app/weight"]),
+        ios: complete(["POST /api/app/weight"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -572,6 +836,15 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/insights (weight history)",
             "/app/insights",
         ]),
+        ios: complete([
+            "/api/app/today",
+            "GET /api/app/insights (weight history)",
+            "/app/insights",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -581,6 +854,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["update_weight"]),
         web: complete(["PATCH /api/app/weight/:id", "#weight-history"]),
         app: complete(["PATCH /api/app/weight/:id", "#weight-history"]),
+        ios: complete(["PATCH /api/app/weight/:id", "#weight-history"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -590,6 +868,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["delete_weight"]),
         web: complete(["DELETE /api/app/weight/:id", "#weight-history"]),
         app: complete(["DELETE /api/app/weight/:id", "#weight-history"]),
+        ios: complete(["DELETE /api/app/weight/:id", "#weight-history"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -605,6 +888,14 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/insights (weight trends)",
             "/app/insights",
         ]),
+        ios: complete([
+            "GET /api/app/insights (weight trends)",
+            "/app/insights",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -614,6 +905,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_weight_unit", "set_weight_unit"]),
         web: complete(["/app/settings/profile"]),
         app: complete(["/app/settings/profile"]),
+        ios: complete(["/app/settings/profile"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -623,6 +919,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_widget_display", "set_widget_display"]),
         web: complete(["/app/settings/profile"]),
         app: complete(["/app/settings/profile"]),
+        ios: complete(["/app/settings/profile"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -632,6 +933,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_alcohol_tracking", "set_alcohol_tracking"]),
         web: complete(["/app/settings/profile"]),
         app: complete(["/app/settings/profile"]),
+        ios: complete(["/app/settings/profile"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -641,6 +947,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_timezone", "set_timezone"]),
         web: complete(["/app/settings/profile"]),
         app: complete(["/app/settings/profile"]),
+        ios: complete(["/app/settings/profile"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -650,6 +961,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["save_recipe", "save_meal_as_recipe"]),
         web: complete(["POST /api/app/recipes", "/app/recipes"]),
         app: complete(["POST /api/app/recipes", "/app/recipes"]),
+        ios: complete(["POST /api/app/recipes", "/app/recipes"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -667,6 +983,15 @@ export const CAPABILITY_MANIFEST = [
             '[data-action="import-recipe-url"]',
             "/app/recipes",
         ]),
+        ios: complete([
+            "POST /api/app/recipes/import-preview",
+            '[data-action="import-recipe-url"]',
+            "/app/recipes",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -676,6 +1001,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_recipe"]),
         web: complete(["GET /api/app/recipes/:id"]),
         app: complete(["GET /api/app/recipes/:id"]),
+        ios: complete(["GET /api/app/recipes/:id"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -685,6 +1015,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["search_recipes"]),
         web: complete(["/api/app/planning", "#recipe-filter"]),
         app: complete(["/api/app/planning", "#recipe-filter"]),
+        ios: complete(["/api/app/planning", "#recipe-filter"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -694,6 +1029,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["update_recipe"]),
         web: complete(["PATCH /api/app/recipes/:id"]),
         app: complete(["PATCH /api/app/recipes/:id"]),
+        ios: complete(["PATCH /api/app/recipes/:id"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -703,6 +1043,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["delete_recipe"]),
         web: complete(["DELETE /api/app/recipes/:id"]),
         app: complete(["DELETE /api/app/recipes/:id"]),
+        ios: complete(["DELETE /api/app/recipes/:id"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -712,6 +1057,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["log_recipe"]),
         web: complete(["POST /api/app/recipes/:id/log"]),
         app: complete(["POST /api/app/recipes/:id/log"]),
+        ios: complete(["POST /api/app/recipes/:id/log"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -721,6 +1071,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_meal_plan"]),
         web: complete(["/api/app/planning"]),
         app: complete(["/api/app/planning"]),
+        ios: complete(["/api/app/planning"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -730,6 +1085,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["schedule_recipe"]),
         web: complete(["POST /api/app/recipes/:id/plan"]),
         app: complete(["POST /api/app/recipes/:id/plan"]),
+        ios: complete(["POST /api/app/recipes/:id/plan"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -747,6 +1107,15 @@ export const CAPABILITY_MANIFEST = [
             "[data-action=compose-recipe]",
             "/app/recipes",
         ]),
+        ios: complete([
+            "POST /api/app/recipes/compose",
+            "[data-action=compose-recipe]",
+            "/app/recipes",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -756,6 +1125,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["create_meal_plan_draft"]),
         web: complete(["POST /api/app/planning/drafts"]),
         app: complete(["POST /api/app/planning/drafts"]),
+        ios: complete(["POST /api/app/planning/drafts"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -769,6 +1143,11 @@ export const CAPABILITY_MANIFEST = [
         ]),
         web: complete(["GET/PATCH/DELETE /api/app/planning/drafts/:id"]),
         app: complete(["GET/PATCH/DELETE /api/app/planning/drafts/:id"]),
+        ios: complete(["GET/PATCH/DELETE /api/app/planning/drafts/:id"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -778,6 +1157,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["commit_meal_plan_draft"]),
         web: complete(["POST /api/app/planning/drafts/:id/commit"]),
         app: complete(["POST /api/app/planning/drafts/:id/commit"]),
+        ios: complete(["POST /api/app/planning/drafts/:id/commit"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -787,6 +1171,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["validate_meal_plan_recipe"]),
         web: complete(["POST /api/app/planning/propose"]),
         app: complete(["POST /api/app/planning/propose"]),
+        ios: complete(["POST /api/app/planning/propose"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -796,6 +1185,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["customize_meal_plan_recipe"]),
         web: complete(["PATCH /api/app/planning/drafts/:id"]),
         app: complete(["PATCH /api/app/planning/drafts/:id"]),
+        ios: complete(["PATCH /api/app/planning/drafts/:id"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -805,6 +1199,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["preview_plan_groceries"]),
         web: complete(["GET /api/app/planning/drafts/:id/groceries"]),
         app: complete(["GET /api/app/planning/drafts/:id/groceries"]),
+        ios: complete(["GET /api/app/planning/drafts/:id/groceries"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -814,6 +1213,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["confirm_plan_groceries"]),
         web: complete(["POST /api/app/planning/drafts/:id/groceries/commit"]),
         app: complete(["POST /api/app/planning/drafts/:id/groceries/commit"]),
+        ios: complete(["POST /api/app/planning/drafts/:id/groceries/commit"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -823,6 +1227,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["preview_meal_swaps"]),
         web: complete(["GET /api/app/planning/:plannedMealId/swaps"]),
         app: complete(["GET /api/app/planning/:plannedMealId/swaps"]),
+        ios: complete(["GET /api/app/planning/:plannedMealId/swaps"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -832,6 +1241,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["commit_meal_swap"]),
         web: complete(["POST /api/app/planning/:plannedMealId/swap"]),
         app: complete(["POST /api/app/planning/:plannedMealId/swap"]),
+        ios: complete(["POST /api/app/planning/:plannedMealId/swap"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -841,6 +1255,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["undo_meal_swap"]),
         web: complete(["POST /api/app/planning/swaps/:changeId/undo"]),
         app: complete(["POST /api/app/planning/swaps/:changeId/undo"]),
+        ios: complete(["POST /api/app/planning/swaps/:changeId/undo"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -850,6 +1269,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_grocery_list"]),
         web: complete(["/api/app/planning"]),
         app: complete(["/api/app/planning"]),
+        ios: complete(["/api/app/planning"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -859,6 +1283,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["add_grocery_items"]),
         web: complete(["POST /api/app/groceries/items"]),
         app: complete(["POST /api/app/groceries/items"]),
+        ios: complete(["POST /api/app/groceries/items"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -874,6 +1303,14 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/groceries/items/:id/purchased",
             "POST /api/app/groceries/clear-purchased",
         ]),
+        ios: complete([
+            "POST /api/app/groceries/items/:id/purchased",
+            "POST /api/app/groceries/clear-purchased",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -889,6 +1326,14 @@ export const CAPABILITY_MANIFEST = [
             "PATCH /api/app/groceries/items/:id",
             "DELETE /api/app/groceries/items/:id",
         ]),
+        ios: complete([
+            "PATCH /api/app/groceries/items/:id",
+            "DELETE /api/app/groceries/items/:id",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException:
             "The MCP catalog exposes explicit grocery additions and purchase state; direct item editing and removal are website list-management controls.",
         gap: null,
@@ -899,6 +1344,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["export_meals"]),
         web: complete(["POST /api/app/export/meals", "/app/settings/data"]),
         app: complete(["POST /api/app/export/meals", "/app/settings/data"]),
+        ios: partial(["POST /api/app/export/meals", "/app/settings/data"]),
+        iosBasis:
+            "Shared bundle: the meals CSV export rides the same POST /api/app/export path as account.export on both platforms; the final file handoff out of the WebView differs — see iosGap.",
+        iosGap: "Same handoff gap as account.export: Android relies on Capacitor's Bridge.launchIntent to hand the download URL to the system browser; the iOS shell has no equivalent download/browser handoff today, so the CSV can be requested in the iOS app but the file handoff is not built/proven on iOS.",
+        iosTargetPr: "IOS-PLATFORM follow-up — iOS export download handoff",
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -908,6 +1358,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["delete_account"]),
         web: complete(["/app/settings/account"]),
         app: complete(["/app/settings/account"]),
+        ios: complete(["/app/settings/account"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -917,6 +1372,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["get_connection_status"]),
         web: complete(["/app/settings/connections"]),
         app: complete(["/app/settings/connections"]),
+        ios: complete(["/app/settings/connections"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -926,6 +1386,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: websiteOnly([]),
         web: complete(["/billing/checkout", "/app/settings/billing"]),
         app: missing(),
+        ios: missing(),
+        iosBasis:
+            "Website-only by standing commerce law, exactly as on Android: Stripe checkout must not run inside the packaged app. The iOS in-app Premium purchase path is the StoreKit rail (IOS-BILLING), which has no native plugin yet, so no checkout entry point is available in the iOS app.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException:
             "Billing is intentionally website-only and must not be advertised through MCP.",
         gap: null,
@@ -936,6 +1401,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: websiteOnly([]),
         web: complete(["/billing/portal", "/app/settings/billing"]),
         app: missing(),
+        ios: missing(),
+        iosBasis:
+            "Website-only by standing commerce law, exactly as on Android: Stripe subscription management must not run inside the packaged app. The iOS manage door arrives with the StoreKit rail (IOS-BILLING), which has no native plugin yet, so no portal entry point is available in the iOS app.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException:
             "Stripe subscription management is intentionally website-only.",
         gap: null,
@@ -951,6 +1421,11 @@ export const CAPABILITY_MANIFEST = [
         // (exercised in e2e/mobile-parity.e2e.ts). MCP itself still
         // cannot revoke connections.
         app: complete(["DELETE /api/app/connections/:tokenFamilyId"]),
+        ios: complete(["DELETE /api/app/connections/:tokenFamilyId"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -963,6 +1438,11 @@ export const CAPABILITY_MANIFEST = [
         // the packaged SPA (create form, member list, invite form all
         // exercised in e2e/mobile-parity.e2e.ts over bearer transport).
         app: complete(["/api/app/household/manage", "/app/household"]),
+        ios: complete(["/api/app/household/manage", "/app/household"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -978,6 +1458,11 @@ export const CAPABILITY_MANIFEST = [
         // non-localhost navigations in the system browser).
         web: complete(["POST /api/app/export", "/app/settings/data"]),
         app: complete(["POST /api/app/export", "/app/settings/data"]),
+        ios: partial(["POST /api/app/export", "/app/settings/data"]),
+        iosBasis:
+            "Shared bundle: Settings → Data and POST /api/app/export are inside the packaged SPA on both platforms; the final file handoff out of the WebView differs — see iosGap.",
+        iosGap: "The Android completeness proof relies on Capacitor's Bridge.launchIntent handing the returned download URL to the system browser; the iOS shell has no equivalent download/browser handoff today (a WKWebView does not perform the attachment download), so the export can be requested in the iOS app but the file handoff is not built/proven on iOS.",
+        iosTargetPr: "IOS-PLATFORM follow-up — iOS export download handoff",
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -987,6 +1472,11 @@ export const CAPABILITY_MANIFEST = [
         mcp: complete(["start_cook"]),
         web: complete(["POST /api/app/cooks"]),
         app: complete(["POST /api/app/cooks"]),
+        ios: complete(["POST /api/app/cooks"]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -1004,6 +1494,15 @@ export const CAPABILITY_MANIFEST = [
             "GET /api/app/cooks/:id",
             "/app/cooks",
         ]),
+        ios: complete([
+            "GET /api/app/cooks",
+            "GET /api/app/cooks/:id",
+            "/app/cooks",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -1031,6 +1530,17 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/cooks/:id/outcome",
             "POST /api/app/cooks/:id/preferred",
         ]),
+        ios: complete([
+            "POST /api/app/cooks/:id/updates",
+            "PATCH /api/app/cooks/:cookId/dishes/:dishId",
+            "PATCH /api/app/cooks/:cookId/events/:eventId",
+            "POST /api/app/cooks/:id/outcome",
+            "POST /api/app/cooks/:id/preferred",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -1048,6 +1558,15 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/cooks/:id/reopen",
             "DELETE /api/app/cooks/:id",
         ]),
+        ios: complete([
+            "POST /api/app/cooks/:id/finish",
+            "POST /api/app/cooks/:id/reopen",
+            "DELETE /api/app/cooks/:id",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -1063,6 +1582,14 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/cooks/:id/repeat",
             "GET /api/app/cooks/compare",
         ]),
+        ios: complete([
+            "POST /api/app/cooks/:id/repeat",
+            "GET /api/app/cooks/compare",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -1078,6 +1605,14 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/cooks/:id/recipe-draft",
             "POST /api/app/cooks/:id/save-recipe",
         ]),
+        ios: complete([
+            "POST /api/app/cooks/:id/recipe-draft",
+            "POST /api/app/cooks/:id/save-recipe",
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
@@ -1093,11 +1628,63 @@ export const CAPABILITY_MANIFEST = [
             "POST /api/app/recipes/:id/log",
             '[data-action="log-cook-dish"]',
         ]),
+        ios: complete([
+            "POST /api/app/recipes/:id/log",
+            '[data-action="log-cook-dish"]',
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
         intentionalChannelException: null,
         gap: null,
         targetPr: null,
     },
 ] as const satisfies readonly CapabilityContract[];
+
+/**
+ * Cross-cutting iOS native gaps (IOS-PLATFORM) that no single manifest
+ * row owns. Per the program testing law, a gap that cannot be exercised
+ * in Actions is recorded with its owner and closest automated proxy —
+ * never left silent. Row-level consequences are encoded in the rows
+ * themselves (billing.* missing, meal.photoLog and the export rows
+ * partial); these entries cover the platform pieces underneath rows
+ * whose bundle-level outcomes are otherwise at parity.
+ */
+export const IOS_CHANNEL_NATIVE_GAPS = [
+    {
+        id: "ios.native.secureSession",
+        summary:
+            "No iOS counterpart of the Android MunchSecureSession plugin (Java, Keystore-encrypted storage) exists: ios/ ships only the stock Capacitor plugins (App, Camera, BarcodeScanner). The shared runtime treats a missing plugin as signed-out, so on iOS today the session token and pending magic-link state have no native persistent store. PR #197 (IOS-PREP) established no custom-Swift-plugin pattern to follow, and a hand-wired local SPM plugin would be overwritten by `cap sync`, so this needs a first-party plugin package, not a slice-local edit.",
+        owner: "IOS-PLATFORM follow-up — iOS secure-session plugin package",
+        closestProxy:
+            "IOS-SMOKE boots the packaged bundle on the simulator with a fixture session and exercises the core flows; the manifest's ios verdicts are asserted at the same bundle/transport evidence level as S5's Android verdicts.",
+    },
+    {
+        id: "ios.native.googleSignIn",
+        summary:
+            "No iOS counterpart of the Android MunchGoogleSignIn plugin (Credential Manager) exists, and Sign in with Apple is not wired yet; magic-link sign-in is the iOS path today. No manifest row is a sign-in outcome, so no row verdict changes, but packaged-app Google/Apple sign-in is not available on iOS.",
+        owner: "IOS-AUTH (Amendment H auth parity)",
+        closestProxy:
+            "Web Google sign-in initiation is proven in CI (PR #198 smoke); the iOS native flow is exercised only when IOS-AUTH lands its plugin.",
+    },
+    {
+        id: "ios.native.storeBilling",
+        summary:
+            "No iOS counterpart of the Android MunchPlayBilling plugin exists; StoreKit verification writes into the same rail-neutral subscription tables once built. Reflected in the billing.checkout / billing.portal ios verdicts (missing, website-only exception).",
+        owner: "IOS-BILLING (Amendment H billing parity)",
+        closestProxy:
+            "Server-side rail-neutral subscription model already accepts the apple_app_store provider (migration 0029 family); no in-app purchase can be exercised until the plugin lands.",
+    },
+    {
+        id: "ios.native.ads",
+        summary:
+            "No iOS counterpart of the Android MunchAds plugin (AdMob + UMP) exists and the Munch iOS app does not exist in AdMob yet. Ads are not a capability outcome — no manifest row carries advertising — so no row verdict changes; the single Today slot stays dark on iOS until this lands.",
+        owner: "IOS-ADS (Amendment H ads parity)",
+        closestProxy:
+            "The shared bundle's ad slot is flag-gated and Premium-hidden on every platform; iOS renders it dark because the native bridge is absent and the remote flag is off.",
+    },
+] as const;
 
 export type CapabilityId = (typeof CAPABILITY_MANIFEST)[number]["id"];
 
@@ -1236,6 +1823,7 @@ export function assertCapabilityManifest(): string[] {
             ["mcp", capability.mcp],
             ["web", capability.web],
             ["app", capability.app],
+            ["ios", capability.ios],
         ] as const) {
             if (channel.available && channel.entryPoints.length === 0) {
                 errors.push(
@@ -1264,6 +1852,38 @@ export function assertCapabilityManifest(): string[] {
         ) {
             errors.push(
                 `${capability.id}: partial app coverage needs a documented gap and target PR`,
+            );
+        }
+
+        // IOS-PLATFORM: the ios channel is a first-class citizen with
+        // the same discipline as app — every verdict carries a stated
+        // basis, a missing verdict is only honest as a declared
+        // exception, and a partial verdict must name its iOS-specific
+        // gap and owning follow-up instead of borrowing Android's.
+        if (!capability.iosBasis || capability.iosBasis.trim().length === 0) {
+            errors.push(
+                `${capability.id}: ios channel needs a stated basis (iosBasis)`,
+            );
+        }
+        if (
+            capability.ios.coverage === "missing" &&
+            !capability.intentionalChannelException
+        ) {
+            errors.push(
+                `${capability.id}: ios channel is missing without an explicit intentional channel exception`,
+            );
+        }
+        if (
+            capability.ios.coverage === "partial" &&
+            (!capability.iosGap || !capability.iosTargetPr)
+        ) {
+            errors.push(
+                `${capability.id}: partial ios coverage needs a documented iosGap and iosTargetPr`,
+            );
+        }
+        if (capability.ios.coverage === "complete" && capability.iosGap) {
+            errors.push(
+                `${capability.id}: complete ios coverage cannot also carry an unresolved iosGap`,
             );
         }
 
