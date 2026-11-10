@@ -386,9 +386,107 @@ function setActiveRoute(route) {
     document.title = `${title} — Munch`;
 }
 
-function metricCard(label, value, unit, target, primary = false) {
+function metricCard(
+    label,
+    value,
+    unit,
+    target,
+    primary = false,
+    detail = null,
+) {
     const progress = percent(value, target);
-    return `<article class="summary-card ${primary ? "primary" : ""}"><span>${escapeHtml(label)}</span><strong>${number(value, 1)}${unit ? `<small>${escapeHtml(unit)}</small>` : ""}</strong><small>${target ? `${number(target, 1)} ${escapeHtml(unit)} target` : "No target set"}</small>${progress == null ? "" : `<div class="progress" aria-label="${progress}% of target"><span style="width:${progress}%"></span></div>`}</article>`;
+    const targetText = target
+        ? `${number(target, 1)} ${escapeHtml(unit)} target`
+        : "No target set";
+    if (!detail) {
+        return `<article class="summary-card ${primary ? "primary" : ""}"><span>${escapeHtml(label)}</span><strong>${number(value, 1)}${unit ? `<small>${escapeHtml(unit)}</small>` : ""}</strong><small>${targetText}</small>${progress == null ? "" : `<div class="progress" aria-label="${progress}% of target"><span style="width:${progress}%"></span></div>`}</article>`;
+    }
+    // UX fix wave F2: a totals card with a decomposition is a toggle —
+    // one tap expands the breakdown inline under the totals (Michael's
+    // ruling), a second tap collapses it. No navigation, no sheet.
+    // F9: on Today the target line links to Settings → Nutrition
+    // targets, the surface that owns the values it displays.
+    const targetLine = detail.targetLink
+        ? `<a class="metric-target-link" href="/app/settings/goals">${targetText}</a>`
+        : targetText;
+    return `<article class="summary-card ${primary ? "primary" : ""}"><button type="button" class="summary-card-toggle" data-action="toggle-metric-detail" aria-expanded="false" aria-controls="metric-detail-${detail.key}"><span>${escapeHtml(label)}</span><strong>${number(value, 1)}${unit ? `<small>${escapeHtml(unit)}</small>` : ""}</strong><span class="metric-chevron" aria-hidden="true">▾</span></button><small>${targetLine}</small>${progress == null ? "" : `<div class="progress" aria-label="${progress}% of target"><span style="width:${progress}%"></span></div>`}<div class="metric-detail" id="metric-detail-${detail.key}" hidden>${detail.body}</div></article>`;
+}
+
+function metricDetailRow(label, valueText) {
+    return `<div class="metric-detail-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(valueText)}</strong></div>`;
+}
+
+// The decomposition behind a meal-based total (F2): every meal's
+// contribution, so the aggregate visibly adds up. Multi-day ranges
+// group by day — a per-meal list for a 90-day total would bury the
+// math it exists to show.
+function mealMetricDetail(meals, field, unit, { groupByDay = false } = {}) {
+    const list = meals || [];
+    if (!list.length)
+        return `<p class="metric-detail-empty">No meals logged for this period.</p>`;
+    const digits = field === "calories" ? 0 : 1;
+    const format = (value) => `${number(value || 0, digits)}${unit}`;
+    let total = 0;
+    let rows = "";
+    if (groupByDay) {
+        const byDay = new Map();
+        for (const meal of list) {
+            const day = String(meal.logged_at || "").slice(0, 10);
+            byDay.set(day, (byDay.get(day) || 0) + (meal[field] || 0));
+            total += meal[field] || 0;
+        }
+        rows = [...byDay.entries()]
+            .sort(([a], [b]) => (a < b ? -1 : 1))
+            .map(([day, value]) =>
+                metricDetailRow(formatDate(day), format(value)),
+            )
+            .join("");
+    } else {
+        rows = list
+            .map((meal) => {
+                total += meal[field] || 0;
+                return metricDetailRow(
+                    `${formatTime(meal.logged_at)} · ${meal.description || "Untitled meal"}`,
+                    format(meal[field]),
+                );
+            })
+            .join("");
+    }
+    return `${rows}<div class="metric-detail-row metric-detail-total"><span>Total</span><strong>${escapeHtml(format(total))}</strong></div>`;
+}
+
+// F8 via F2: the Water card's decomposition carries the day's entries
+// and the Add water action, so both live one tap from the top of
+// Today instead of below the entire Meals list.
+function waterMetricDetail(entries) {
+    const rows = [...(entries || [])]
+        .reverse()
+        .map((entry) =>
+            metricDetailRow(
+                `${formatTime(entry.logged_at ?? entry.loggedAt)}${entry.notes ? ` · ${entry.notes}` : ""}`,
+                `${number(entry.amount_ml ?? entry.amountMl)} ml`,
+            ),
+        )
+        .join("");
+    return `${rows || `<p class="metric-detail-empty">No water entries yet today.</p>`}<div class="auth-actions metric-detail-actions"><button class="button button-secondary button-small" type="button" data-action="add-water">Add water</button></div>`;
+}
+
+function weightMetricDetail(entries, unit) {
+    const rows = [...(entries || [])]
+        .reverse()
+        .map((entry) => {
+            const value =
+                entry.value ??
+                (entry.weight_g == null
+                    ? null
+                    : weightFromGrams(entry.weight_g, unit));
+            return metricDetailRow(
+                `${formatTime(entry.logged_at ?? entry.loggedAt)}${entry.notes ? ` · ${entry.notes}` : ""}`,
+                value == null ? "—" : `${number(value, 1)} ${unit}`,
+            );
+        })
+        .join("");
+    return `${rows || `<p class="metric-detail-empty">No weight entries yet today.</p>`}<div class="auth-actions metric-detail-actions"><button class="button button-secondary button-small" type="button" data-action="add-weight">Add weight</button></div>`;
 }
 
 function mealItems(items) {
@@ -466,6 +564,11 @@ function weightChart(days, unit, target) {
 }
 
 function mealCard(meal) {
+    mealDescriptionsById.set(
+        String(meal.id),
+        meal.description || "Untitled meal",
+    );
+    mealTypesById.set(String(meal.id), meal.meal_type || "snack");
     const type = meal.meal_type || "snack";
     return `<article class="meal-card" data-meal-id="${escapeHtml(meal.id)}"><div class="meal-card-head"><div><h4>${escapeHtml(meal.description || "Untitled meal")}</h4><div class="meal-meta"><span>${escapeHtml(formatTime(meal.logged_at))}</span><span>${escapeHtml(type)}</span>${meal.notes ? `<span>${escapeHtml(meal.notes)}</span>` : ""}</div></div><strong>${meal.calories == null ? "—" : `${number(meal.calories)} kcal`}</strong></div><div class="meal-macros"><span class="macro-chip">Protein ${number(meal.protein_g, 1)}g</span><span class="macro-chip">Carbs ${number(meal.carbs_g, 1)}g</span><span class="macro-chip">Fat ${number(meal.fat_g, 1)}g</span>${meal.fiber_g == null ? "" : `<span class="macro-chip">Fiber ${number(meal.fiber_g, 1)}g</span>`}${meal.sugar_g == null ? "" : `<span class="macro-chip">Sugar ${number(meal.sugar_g, 1)}g</span>`}</div>${mealItems(meal.items)}<div class="auth-actions"><button class="button button-secondary button-small" data-action="view-meal-details" data-id="${escapeHtml(meal.id)}">View details</button><button class="button button-secondary button-small" data-action="edit-meal" data-id="${escapeHtml(meal.id)}">Edit</button><button class="button button-quiet button-small" data-action="duplicate-meal" data-id="${escapeHtml(meal.id)}">Duplicate</button><button class="button button-quiet button-small" data-action="delete-meal" data-id="${escapeHtml(meal.id)}">Delete</button></div></article>`;
 }
@@ -522,7 +625,7 @@ async function renderToday() {
     // heading → day totals → Today's guidance → the single ad slot →
     // Meals / Daily details. The ad slot markup is empty unless the
     // ADS-FOUNDATION flag is on for a free packaged account.
-    content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><p>Your structured nutrition record for this day.</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", goals.daily_calories, true)}${metricCard("Protein", data.totals.proteinG, "g", goals.daily_protein_g)}${metricCard("Carbohydrates", data.totals.carbsG, "g", goals.daily_carbs_g)}${metricCard("Fat", data.totals.fatG, "g", goals.daily_fat_g)}</div></section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml)}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null)}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span></div>`).join("")}` : ""}</aside></div></div>`;
+    content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><p>Your structured nutrition record for this day.</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", goals.daily_calories, true, { key: "today-calories", targetLink: true, body: mealMetricDetail(data.meals, "calories", " kcal") })}${metricCard("Protein", data.totals.proteinG, "g", goals.daily_protein_g, false, { key: "today-protein", targetLink: true, body: mealMetricDetail(data.meals, "protein_g", "g") })}${metricCard("Carbohydrates", data.totals.carbsG, "g", goals.daily_carbs_g, false, { key: "today-carbs", targetLink: true, body: mealMetricDetail(data.meals, "carbs_g", "g") })}${metricCard("Fat", data.totals.fatG, "g", goals.daily_fat_g, false, { key: "today-fat", targetLink: true, body: mealMetricDetail(data.meals, "fat_g", "g") })}</div></section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml, false, { key: "today-water", targetLink: true, body: waterMetricDetail(data.water.entries) })}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null, false, { key: "today-weight", body: weightMetricDetail(data.weight, weightUnit) })}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span><button class="button button-quiet button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(meal.recipe_id)}">View recipe</button></div>`).join("")}` : ""}</aside></div></div>`;
 }
 
 function mealSearchSummary(search) {
@@ -555,7 +658,7 @@ async function renderLog() {
     const resultText = query
         ? `${number(data.meals.length)} matching meal${data.meals.length === 1 ? "" : "s"} from ${escapeHtml(formatDate(start))} through ${escapeHtml(formatDate(state.date))}.`
         : `Review meals, item-level provenance, notes, and totals from ${escapeHtml(formatDate(start))} through ${escapeHtml(formatDate(state.date))}.`;
-    content.innerHTML = `<div class="operate-view log-view"><div class="page-heading"><div><h2>${escapeHtml(heading)}</h2><p>${resultText}</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="manage-saved-foods">Saved foods</button><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><form id="meal-history-search-form" class="meal-composer-search-row"><label class="field" style="flex:1"><span>Search meal history</span><input class="input" id="meal-history-search" name="query" type="search" value="${escapeHtml(query)}" placeholder="Search chicken, peanut butter, restaurant…" autocomplete="off" /></label><div class="auth-actions"><button class="button button-primary button-small" type="submit">Search</button>${query ? '<button class="button button-quiet button-small" type="button" data-action="clear-meal-search">Clear</button>' : ""}</div></form><div class="auth-actions spacer-top log-range-row" role="group" aria-label="History range">${rangeButtons}</div></section><section class="panel spacer-top"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", null, true)}${metricCard("Protein", data.totals.proteinG, "g", null)}${metricCard("Carbohydrates", data.totals.carbsG, "g", null)}${metricCard("Fat", data.totals.fatG, "g", null)}</div></section>${mealSearchSummary(data.search)}<div class="spacer-top">${data.meals.length ? groupedMeals(data.meals) : `<div class="empty-state"><div><h3>${query ? "No matching meals" : "No meals logged"}</h3><p>${query ? "Try another keyword or expand the date range." : "Log a meal to build your history."}</p></div></div>`}</div></div>`;
+    content.innerHTML = `<div class="operate-view log-view"><div class="page-heading"><div><h2>${escapeHtml(heading)}</h2><p>${resultText}</p></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="manage-saved-foods">Saved foods</button><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><form id="meal-history-search-form" class="meal-composer-search-row"><label class="field" style="flex:1"><span>Search meal history</span><input class="input" id="meal-history-search" name="query" type="search" value="${escapeHtml(query)}" placeholder="Search chicken, peanut butter, restaurant…" autocomplete="off" /></label><div class="auth-actions"><button class="button button-primary button-small" type="submit">Search</button>${query ? '<button class="button button-quiet button-small" type="button" data-action="clear-meal-search">Clear</button>' : ""}</div></form><div class="auth-actions spacer-top log-range-row" role="group" aria-label="History range">${rangeButtons}</div></section><section class="panel spacer-top"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", null, true, { key: "log-calories", body: mealMetricDetail(data.meals, "calories", " kcal", { groupByDay: historyDays > 1 }) })}${metricCard("Protein", data.totals.proteinG, "g", null, false, { key: "log-protein", body: mealMetricDetail(data.meals, "protein_g", "g", { groupByDay: historyDays > 1 }) })}${metricCard("Carbohydrates", data.totals.carbsG, "g", null, false, { key: "log-carbs", body: mealMetricDetail(data.meals, "carbs_g", "g", { groupByDay: historyDays > 1 }) })}${metricCard("Fat", data.totals.fatG, "g", null, false, { key: "log-fat", body: mealMetricDetail(data.meals, "fat_g", "g", { groupByDay: historyDays > 1 }) })}</div></section>${mealSearchSummary(data.search)}<div class="spacer-top">${data.meals.length ? groupedMeals(data.meals) : `<div class="empty-state"><div><h3>${query ? "No matching meals" : "No meals logged"}</h3><p>${query ? "Try another keyword or expand the date range." : "Log a meal to build your history."}</p></div></div>`}</div></div>`;
 }
 
 function savedFoodListMarkup(foods) {
@@ -1375,7 +1478,7 @@ async function renderPlan() {
     )
         .map(
             (date) =>
-                `<section class="meal-group plan-day"><header class="meal-group-header"><div><strong>${escapeHtml(formatDate(date, { weekday: true }))}</strong></div><span>${(byDate[date] || []).length} planned</span></header>${(byDate[date] || []).length ? (byDate[date] || []).map((meal) => `<article class="meal-card plan-meal-card"><div class="meal-card-head"><div><h4>${escapeHtml(meal.recipe_name)}</h4><div class="meal-meta"><span>${escapeHtml(meal.meal_slot || "Meal")}</span><span>${escapeHtml(meal.ownership)}</span>${meal.created_by ? `<span>Added by ${escapeHtml(meal.created_by)}</span>` : ""}</div></div><strong class="plan-servings">${number(meal.servings, 1)} servings</strong></div><div class="meal-macros"><span class="macro-chip">${number((meal.nutrition_per_serving?.calories || 0) * meal.servings)} kcal</span><span class="macro-chip">P ${number((meal.nutrition_per_serving?.protein_g || 0) * meal.servings, 1)}g</span></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="meal-swap" data-id="${escapeHtml(meal.planned_meal_id)}" data-version="${escapeHtml(meal.version)}">Swap recipe</button></div></article>`).join("") : `<p class="plan-empty">No meals planned.</p>`}</section>`,
+                `<section class="meal-group plan-day"><header class="meal-group-header"><div><strong>${escapeHtml(formatDate(date, { weekday: true }))}</strong></div><span>${(byDate[date] || []).length} planned</span></header>${(byDate[date] || []).length ? (byDate[date] || []).map((meal) => `<article class="meal-card plan-meal-card"><div class="meal-card-head"><div><h4>${escapeHtml(meal.recipe_name)}</h4><div class="meal-meta"><span>${escapeHtml(meal.meal_slot || "Meal")}</span><span>${escapeHtml(meal.ownership)}</span>${meal.created_by ? `<span>Added by ${escapeHtml(meal.created_by)}</span>` : ""}</div></div><strong class="plan-servings">${number(meal.servings, 1)} servings</strong></div><div class="meal-macros"><span class="macro-chip">${number((meal.nutrition_per_serving?.calories || 0) * meal.servings)} kcal</span><span class="macro-chip">P ${number((meal.nutrition_per_serving?.protein_g || 0) * meal.servings, 1)}g</span></div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(meal.recipe_id)}">View recipe</button><button class="button button-secondary button-small" type="button" data-action="meal-swap" data-id="${escapeHtml(meal.planned_meal_id)}" data-version="${escapeHtml(meal.version)}">Swap recipe</button></div></article>`).join("") : `<p class="plan-empty">No meals planned.</p>`}</section>`,
         )
         .join(
             "",
@@ -1712,7 +1815,7 @@ function groceryItemGroup(item) {
 
 function groceryItemRowMarkup(item, scope, editable) {
     const detail = `${item.quantity == null ? "" : ` · ${number(item.quantity, 2)} ${escapeHtml(item.unit || "")}`}${item.note ? ` · ${escapeHtml(item.note)}` : ""}${item.added_by ? ` · Added by ${escapeHtml(item.added_by)}` : ""}`;
-    return `<article class="grocery-item-row ${item.purchased_at ? "is-purchased" : ""}" data-grocery-item-id="${escapeHtml(item.grocery_item_id)}" data-quantity="${escapeHtml(item.quantity ?? "")}" data-unit="${escapeHtml(item.unit || "")}" data-note="${escapeHtml(item.note || "")}"><label class="grocery-check"><input class="grocery-check-input" type="checkbox" data-action="toggle-grocery-purchased" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}" ${item.purchased_at ? "checked" : ""} ${editable ? "" : "disabled"} aria-label="${escapeHtml(item.name)} purchased" /></label><div class="grocery-item-main"><strong>${escapeHtml(item.name)}</strong><span class="grocery-item-detail">${detail}</span></div>${editable ? `<div class="grocery-item-actions"><button class="button button-secondary button-small" type="button" data-action="edit-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Edit</button><button class="button button-quiet button-small" type="button" data-action="remove-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Remove</button></div>` : ""}</article>`;
+    return `<article class="grocery-item-row ${item.purchased_at ? "is-purchased" : ""}" data-grocery-item-id="${escapeHtml(item.grocery_item_id)}" data-quantity="${escapeHtml(item.quantity ?? "")}" data-unit="${escapeHtml(item.unit || "")}" data-note="${escapeHtml(item.note || "")}"><label class="grocery-check"><input class="grocery-check-input" type="checkbox" data-action="toggle-grocery-purchased" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}" ${item.purchased_at ? "checked" : ""} ${editable ? "" : "disabled"} aria-label="${escapeHtml(item.name)} purchased" /></label><div class="grocery-item-main" data-action="toggle-grocery-by-name"><strong>${escapeHtml(item.name)}</strong><span class="grocery-item-detail">${detail}</span></div>${editable ? `<div class="grocery-item-actions"><button class="button button-secondary button-small" type="button" data-action="edit-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Edit</button><button class="button button-quiet button-small" type="button" data-action="remove-grocery" data-id="${escapeHtml(item.grocery_item_id)}" data-version="${escapeHtml(item.version)}" data-scope="${scope}">Remove</button></div>` : ""}</article>`;
 }
 
 // S6 slice 6 — inline confirmations for the Groceries destructive
@@ -2513,7 +2616,17 @@ function navigate(href) {
     renderRoute();
 }
 
+// UX fix wave F4: meal names come from the meal data captured at
+// render time (mealCard receives the meal object), never from the
+// card's DOM heading — the heading is presentation, and reading the
+// name back out of it is how the delete prompt once named a meal
+// "1 food" after the density rewrite.
+const mealDescriptionsById = new Map();
+const mealTypesById = new Map();
+
 function findMeal(id) {
+    const fromData = mealDescriptionsById.get(String(id));
+    if (fromData) return fromData;
     const card = document.querySelector(`[data-meal-id="${CSS.escape(id)}"]`);
     return card ? card.querySelector("h4")?.textContent || "Meal" : "Meal";
 }
@@ -3586,11 +3699,24 @@ function openMealDraftComposer() {
 }
 
 async function editMeal(id) {
+    // Fallback simple editor (the patches module's richer editor
+    // normally wins the data-action). UX fix wave F7: the meal-type
+    // select must open on the meal's ACTUAL type — it previously had
+    // no preselected option, so saving silently retyped the meal to
+    // breakfast. The type comes from the render-time data cache,
+    // never from the DOM.
     const card = document.querySelector(`[data-meal-id="${CSS.escape(id)}"]`);
     const description = card?.querySelector("h4")?.textContent || "";
+    const mealType = mealTypesById.get(String(id)) || "";
+    const typeOptions = ["breakfast", "lunch", "dinner", "snack"]
+        .map(
+            (option) =>
+                `<option${option === mealType ? " selected" : ""}>${option}</option>`,
+        )
+        .join("");
     openDialog(
         "Edit meal",
-        `<form id="edit-meal-form" class="auth-form" data-id="${escapeHtml(id)}"><label class="field"><span>Description</span><textarea name="description" rows="4" required>${escapeHtml(description)}</textarea></label><label class="field"><span>Meal type</span><select name="meal_type"><option>breakfast</option><option>lunch</option><option>dinner</option><option>snack</option></select></label><button class="button button-primary" type="submit">Save meal</button></form>`,
+        `<form id="edit-meal-form" class="auth-form" data-id="${escapeHtml(id)}"><label class="field"><span>Description</span><textarea name="description" rows="4" required>${escapeHtml(description)}</textarea></label><label class="field"><span>Meal type</span><select name="meal_type">${typeOptions}</select></label><button class="button button-primary" type="submit">Save meal</button></form>`,
     );
 }
 
@@ -3604,7 +3730,7 @@ async function openMealDetails(id) {
         ? items
               .map(
                   (item) =>
-                      `<article class="food-row"><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.portionLabel || "Portion not recorded")}${item.quantity == null ? "" : ` · quantity ${number(item.quantity, 2)}`}</small><div class="demo-source-row">${sourceBadge(item.sourceType)}${confidenceBadge(item.confidence)}</div>${item.assumptions?.length ? `<small>Assumptions: ${escapeHtml(item.assumptions.join("; "))}</small>` : ""}${item.sourceSnapshot && Object.keys(item.sourceSnapshot).length ? `<details class="food-audit"><summary>Source snapshot</summary><pre class="food-audit-body" style="white-space:pre-wrap">${escapeHtml(JSON.stringify(item.sourceSnapshot, null, 2))}</pre></details>` : ""}</div><div style="text-align:right"><strong>${item.nutrients?.calories == null ? "—" : `${number(item.nutrients.calories)} kcal`}</strong><small>${item.nutrients?.protein_g == null ? "" : `P ${number(item.nutrients.protein_g, 1)}g`}${item.nutrients?.carbs_g == null ? "" : ` · C ${number(item.nutrients.carbs_g, 1)}g`}${item.nutrients?.fat_g == null ? "" : ` · F ${number(item.nutrients.fat_g, 1)}g`}</small></div></article>`,
+                      `<article class="food-row"><div><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.portionLabel || "Portion not recorded")}${item.quantity == null ? "" : ` · quantity ${number(item.quantity, 2)}`}</small><div class="demo-source-row">${sourceBadge(item.sourceType)}${confidenceBadge(item.confidence)}</div>${item.assumptions?.length ? `<small>Assumptions: ${escapeHtml(item.assumptions.join("; "))}</small>` : ""}${item.sourceSnapshot && Object.keys(item.sourceSnapshot).length ? `<details class="food-audit"><summary>Source snapshot</summary><pre class="food-audit-body" style="white-space:pre-wrap">${escapeHtml(JSON.stringify(item.sourceSnapshot, null, 2))}</pre></details>` : ""}</div><div style="text-align:right"><strong>${item.nutrients?.calories == null ? "—" : `${number(item.nutrients.calories)} kcal`}</strong><small>${item.nutrients?.protein_g == null ? "" : `P ${number(item.nutrients.protein_g, 1)}g`}${item.nutrients?.carbs_g == null ? "" : ` · C ${number(item.nutrients.carbs_g, 1)}g`}${item.nutrients?.fat_g == null ? "" : ` · F ${number(item.nutrients.fat_g, 1)}g`}</small></div>${items.length > 1 ? `<button class="button button-quiet button-small" type="button" data-action="remove-meal-item-detail" data-meal-id="${escapeHtml(id)}" data-item-id="${escapeHtml(item.id)}">Remove</button>` : ""}</article>`,
               )
               .join("")
         : `<div class="empty-state"><div><h3>Legacy aggregate meal</h3><p>This meal has totals but no item-level source record.</p></div></div>`;
@@ -3656,6 +3782,18 @@ async function handleAction(button) {
     if (await handleAccountAction(button, accountContext())) return;
     if (action === "close-dialog") {
         dialog.close();
+        return;
+    }
+    if (action === "toggle-metric-detail") {
+        // UX fix wave F2: expand/collapse the totals card's inline
+        // decomposition. Pure disclosure — no fetch, no navigation.
+        const card = button.closest(".summary-card");
+        const panel = card?.querySelector(".metric-detail");
+        if (!panel) return;
+        const expanded = button.getAttribute("aria-expanded") === "true";
+        button.setAttribute("aria-expanded", String(!expanded));
+        panel.hidden = expanded;
+        card.classList.toggle("is-expanded", !expanded);
         return;
     }
     if (action === "chat-new") return startNewChat();
@@ -3963,12 +4101,21 @@ async function handleAction(button) {
         return;
     }
     if (action === "delete-saved-food") {
-        if (
-            !confirm(
-                "Remove this saved food? Existing meal history will be preserved.",
-            )
-        )
-            return;
+        // UX fix wave F4: inline confirmation instead of the native
+        // window.confirm() (same pattern and rationale as delete-meal
+        // below). The first click only asks; nothing is sent yet.
+        showInlineConfirm(button, {
+            note: "Remove this saved food? Existing meal history will be preserved.",
+            confirmLabel: "Yes, remove food",
+            confirmAction: "confirm-delete-saved-food",
+            confirmAttrs: { id: button.dataset.id },
+            dismissLabel: "Keep food",
+            destructive: true,
+        });
+        return;
+    }
+    if (action === "confirm-delete-saved-food") {
+        button.disabled = true;
         const result = await api(
             `/api/app/foods/${encodeURIComponent(button.dataset.id)}`,
             {
@@ -4330,12 +4477,30 @@ async function handleAction(button) {
         return;
     }
     if (action === "remove-draft-item") {
+        // UX fix wave F4: inline confirmation instead of the native
+        // window.confirm() (same pattern and rationale as delete-meal
+        // below). The first click only asks; nothing is sent yet.
         const draft = mealDraftReview.draft;
         if (!draft) return;
         const index = Number(button.dataset.index);
         const record = draft.items[index];
-        if (!record || !confirm(`Remove ${record.name} from this draft?`))
-            return;
+        if (!record) return;
+        showInlineConfirm(button, {
+            note: `Remove ${record.name} from this draft?`,
+            confirmLabel: "Yes, remove item",
+            confirmAction: "confirm-remove-draft-item",
+            confirmAttrs: { index: String(index) },
+            dismissLabel: "Keep item",
+            destructive: true,
+        });
+        return;
+    }
+    if (action === "confirm-remove-draft-item") {
+        const draft = mealDraftReview.draft;
+        if (!draft) return;
+        const record = draft.items[Number(button.dataset.index)];
+        if (!record) return;
+        button.disabled = true;
         const result = await api(
             `/api/app/meal-drafts/${encodeURIComponent(draft.id)}/items/${encodeURIComponent(record.id)}`,
             {
@@ -4603,9 +4768,56 @@ async function handleAction(button) {
         return;
     }
     if (action === "delete-meal") {
-        const id = button.dataset.id;
-        if (!confirm(`Permanently delete ${findMeal(id)}?`)) return;
-        await api(`/api/app/meals/${encodeURIComponent(id)}`, {
+        // UX fix wave F4: the inline-confirmation pattern (slice 1's
+        // pattern via showInlineConfirm) instead of the native
+        // window.confirm() — the native dialog silently no-ops
+        // wherever it is dismissed or never answered (automated
+        // browsers, WebViews without a JS-dialog handler), which in
+        // the installed app read as a dead Delete button. The meal
+        // name comes from render-time data (findMeal), not the DOM.
+        showInlineConfirm(button, {
+            note: `Permanently delete ${findMeal(button.dataset.id)}?`,
+            confirmLabel: "Yes, delete meal",
+            confirmAction: "confirm-delete-meal",
+            confirmAttrs: { id: button.dataset.id },
+            dismissLabel: "Keep meal",
+            destructive: true,
+        });
+        return;
+    }
+    if (action === "remove-meal-item-detail") {
+        // UX fix wave F7: removing one food from the details dialog
+        // confirms inline (never a native dialog — the WebView
+        // silent-no-op class). Two taps total from the card: card →
+        // details → Remove → confirm, with the details view itself
+        // one tap from the card.
+        showInlineConfirm(button, {
+            note: "Remove this food from the meal?",
+            confirmLabel: "Yes, remove food",
+            confirmAction: "confirm-remove-meal-item-detail",
+            confirmAttrs: {
+                mealId: button.dataset.mealId,
+                itemId: button.dataset.itemId,
+            },
+            dismissLabel: "Keep food",
+            destructive: true,
+        });
+        return;
+    }
+    if (action === "confirm-remove-meal-item-detail") {
+        const { mealId, itemId } = button.dataset;
+        await api(
+            `/api/app/meals/${encodeURIComponent(mealId)}/items/${encodeURIComponent(itemId)}`,
+            { method: "DELETE" },
+        );
+        toast("Food removed from the meal.");
+        await openMealDetails(mealId);
+        await renderRoute();
+        return;
+    }
+    if (action === "confirm-delete-meal") {
+        button.disabled = true;
+        await api(`/api/app/meals/${encodeURIComponent(button.dataset.id)}`, {
             method: "DELETE",
             keepPrevious: true,
         });
@@ -4794,6 +5006,17 @@ async function handleAction(button) {
         toast("Grocery item removed.");
         return renderRoute();
     }
+    if (action === "toggle-grocery-by-name") {
+        // UX fix wave F11: tapping the item's name toggles purchase
+        // exactly like its checkbox — routed through the checkbox's
+        // own click so there is one toggle path. A disabled checkbox
+        // (read-only list) makes this a no-op.
+        const input = button
+            .closest(".grocery-item-row")
+            ?.querySelector(".grocery-check-input");
+        if (input && !input.disabled) input.click();
+        return;
+    }
     if (action === "toggle-grocery-purchased") {
         const purchased = Boolean(button.checked);
         try {
@@ -4860,6 +5083,27 @@ document.addEventListener("click", async (event) => {
     ) {
         event.preventDefault();
         navigate(link.getAttribute("href"));
+        return;
+    }
+    // UX fix wave F3: the whole meal card is the View-details tap
+    // target (Michael's ruling) — a tap anywhere on the card that did
+    // not land on an interactive element (the card's own buttons,
+    // links, form controls, summaries, or an open inline confirmation)
+    // opens the meal's details. The buttons keep their own handlers
+    // via the [data-action] delegation below, and their taps never
+    // reach this branch, so nothing double-triggers.
+    const mealCardEl = event.target.closest(".meal-card[data-meal-id]");
+    if (
+        mealCardEl &&
+        !event.target.closest(
+            "button, a, input, select, textarea, summary, details, .plan-inline-confirm, .vital-inline-confirm",
+        )
+    ) {
+        try {
+            await openMealDetails(mealCardEl.dataset.mealId);
+        } catch (error) {
+            toast(error.message || "Could not load meal", "error");
+        }
         return;
     }
     const button = event.target.closest("[data-action]");

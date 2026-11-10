@@ -162,7 +162,11 @@ function settingsShell(active, body) {
     // `.settings-view` scope, whose Editorial Serif rules live in
     // public/app-overrides.css. Household and More do NOT use this
     // shell, so their surfaces stay untouched by this slice.
-    return `<div class="operate-view settings-view"><div class="settings-layout">${settingsNav(active)}<section class="settings-main">${back}${body}</section></div></div>`;
+    // UX fix wave F9: on the Settings index itself the six-link nav
+    // duplicated the six destination cards one-for-one — the shell
+    // renders the nav only on sub-pages, where it earns its place.
+    const nav = active === "settings" ? "" : settingsNav(active);
+    return `<div class="operate-view settings-view"><div class="settings-layout">${nav}<section class="settings-main">${back}${body}</section></div></div>`;
 }
 
 function sectionHeading(kicker, title, description, aside = "") {

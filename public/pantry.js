@@ -97,6 +97,88 @@ const LOCATION_LABELS = {
     unspecified: "Unsorted",
 };
 
+let editingItem = null;
+const itemEditorEl = $("#item-editor");
+const itemEditorForm = $("#item-editor-form");
+const itemEditorNameEl = $("#item-editor-name");
+
+function closeItemEditor() {
+    editingItem = null;
+    itemEditorEl.classList.add("hidden");
+}
+
+// UX fix wave F6: a row tap opens the item's detail/edit sheet. The
+// name is read-only (it comes from the food's source record; no
+// endpoint renames an inventory item) — quantity, unit, quantity
+// mode, location, status and note are editable and save through the
+// reconcile API's correct/move operations below.
+function openItemEditor(item) {
+    editingItem = item;
+    itemEditorNameEl.textContent = item.name;
+    const form = itemEditorForm;
+    form.elements.quantity.value = item.quantity ?? "";
+    form.elements.unit.value = item.unit ?? "";
+    form.elements.quantity_mode.value = item.quantity_mode || "exact";
+    form.elements.location.value = item.location || "unspecified";
+    form.elements.stock_state.value = item.stock_state || "available";
+    form.elements.note.value = item.note ?? "";
+    itemEditorEl.classList.remove("hidden");
+    itemEditorEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    form.elements.quantity.focus({ preventScroll: true });
+}
+
+itemEditorForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const item = editingItem;
+    if (!item) return;
+    const form = new FormData(itemEditorForm);
+    const mode = String(form.get("quantity_mode") || "exact");
+    const quantityRaw = String(form.get("quantity") ?? "").trim();
+    const correct = {
+        action: "correct",
+        inventory_item_id: item.id,
+        unit: String(form.get("unit") || "").trim() || null,
+        quantity_mode: mode,
+        stock_state: String(form.get("stock_state") || "available"),
+        note: String(form.get("note") || "").trim() || null,
+    };
+    // presence_only items carry no amount; a blank quantity in the
+    // other modes means "leave it as recorded", so the field is
+    // omitted rather than sent as a destructive null.
+    if (mode === "presence_only") correct.quantity = null;
+    else if (quantityRaw !== "") correct.quantity = Number(quantityRaw);
+    const operations = [correct];
+    const location = String(form.get("location") || "unspecified");
+    if (location !== item.location) {
+        operations.push({
+            action: "move",
+            inventory_item_id: item.id,
+            location,
+        });
+    }
+    try {
+        status("Saving item…");
+        await api("/api/app/pantry/reconcile", {
+            method: "POST",
+            body: JSON.stringify({
+                scope: currentScope(),
+                source_type: "correction",
+                idempotency_key: `web-pantry:${crypto.randomUUID()}`,
+                operations,
+            }),
+        });
+        closeItemEditor();
+        await loadPantry();
+        // After the reload: loadPantry clears the status line when it
+        // finishes, so the confirmation is posted last to survive it.
+        status(`${item.name} updated.`);
+    } catch (error) {
+        status(error.message, true);
+    }
+});
+
+$("#item-editor-cancel").addEventListener("click", closeItemEditor);
+
 function renderInventory(items) {
     inventoryEl.replaceChildren();
     itemCountEl.textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
@@ -140,6 +222,25 @@ function renderInventory(items) {
             ` · ${quantityLabel(item)} · ${LOCATION_LABELS[item.location] || item.location}` +
             (detail ? ` · ${detail}` : "");
         main.append(name, meta);
+        // F6: the whole row is the edit affordance (the row is
+        // ≥48px tall — the full row is the tap target, not just the
+        // text block). Click / Enter / Space opens the item editor;
+        // the Finished button stays a separate target and never
+        // triggers it.
+        main.classList.add("inventory-main-edit");
+        main.tabIndex = 0;
+        main.setAttribute("role", "button");
+        main.setAttribute("aria-label", `Edit ${item.name}`);
+        main.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openItemEditor(item);
+            }
+        });
+        row.addEventListener("click", (event) => {
+            if (event.target.closest("button")) return;
+            openItemEditor(item);
+        });
         const tag = document.createElement("span");
         if (item.stock_state === "low") {
             tag.className = "tag low";

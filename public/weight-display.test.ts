@@ -49,7 +49,7 @@ describe("web weight display units", () => {
             "weightFromGrams(latestWeight.weight_g, weightUnit)",
         );
         expect(app).toContain(
-            'metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null)',
+            'metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null, false, { key: "today-weight", body: weightMetricDetail(data.weight, weightUnit) })',
         );
         expect(app).not.toContain("latestWeight.weight_g / 1000");
         expect(patches).toContain("fetchPatchedPreferredWeightUnit");

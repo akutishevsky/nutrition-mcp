@@ -601,6 +601,18 @@ button:disabled {
 .stock-depleted .inventory-main {
     opacity: 0.55;
 }
+
+/* UX fix wave F6: the whole row opens the item editor — it carries
+   the pointer affordance; the row is ≥48px tall, so the tap area
+   clears the 44px floor. The main area keeps the keyboard focus. */
+.inventory-row {
+    cursor: pointer;
+}
+
+.inventory-main-edit:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+}
 .empty {
     padding: 18px 4px;
     color: var(--ink-mute);

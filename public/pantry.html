@@ -125,6 +125,84 @@
                     </p>
                 </section>
 
+                <!-- UX fix wave F6: tapping an inventory row opens this
+                     detail/edit sheet (quantity, unit, location,
+                     status). Saves go through the pantry reconcile
+                     API's correct/move operations. The item name is
+                     shown read-only: it comes from the food's source
+                     record and no endpoint renames an item. -->
+                <section id="item-editor" class="card stack hidden">
+                    <div>
+                        <p class="eyebrow">Item details</p>
+                        <h2 id="item-editor-name">Item</h2>
+                        <p class="note">
+                            Quantity, unit, location and status can be corrected
+                            here. The name comes from the food&rsquo;s source
+                            record and can&rsquo;t be renamed.
+                        </p>
+                    </div>
+                    <form id="item-editor-form" class="stack">
+                        <div class="fields">
+                            <label
+                                >Quantity
+                                <input
+                                    name="quantity"
+                                    type="number"
+                                    min="0"
+                                    step="any"
+                                    inputmode="decimal"
+                            /></label>
+                            <label
+                                >Unit
+                                <input
+                                    name="unit"
+                                    maxlength="80"
+                                    placeholder="oz"
+                            /></label>
+                        </div>
+                        <label
+                            >Quantity mode
+                            <select name="quantity_mode">
+                                <option value="exact">Exact</option>
+                                <option value="approximate">Approximate</option>
+                                <option value="presence_only">
+                                    Just on hand (no amount)
+                                </option>
+                            </select></label
+                        >
+                        <label
+                            >Location
+                            <select name="location">
+                                <option value="unspecified">Unsorted</option>
+                                <option value="pantry">Pantry</option>
+                                <option value="fridge">Fridge</option>
+                                <option value="freezer">Freezer</option>
+                            </select></label
+                        >
+                        <label
+                            >Status
+                            <select name="stock_state">
+                                <option value="available">On hand</option>
+                                <option value="low">Low stock</option>
+                                <option value="depleted">Depleted</option>
+                            </select></label
+                        >
+                        <label
+                            >Note <input name="note" maxlength="500"
+                        /></label>
+                        <div class="fields">
+                            <button type="submit">Save changes</button>
+                            <button
+                                type="button"
+                                id="item-editor-cancel"
+                                class="secondary"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
                 <section class="grid-two">
                     <form id="manual-add" class="card stack">
                         <div>
