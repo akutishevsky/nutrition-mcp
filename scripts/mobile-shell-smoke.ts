@@ -495,6 +495,36 @@ requireText(
     "Editorial Serif display type in shell states",
 );
 
+// S6 slice 10 (Auth fusion): the packaged sign-in page and the auth
+// callback are Editorial Serif like the connect shell — the login page
+// loads the shared stylesheet and carries no world of its own, and the
+// callback renders the auth-card frame instead of bare HTML.
+requireText(
+    mobileLoginHtml,
+    'href="/editorial.css"',
+    "Packaged sign-in Editorial Serif stylesheet",
+);
+if (mobileLoginHtml.includes("<style") || mobileLoginHtml.includes("Inter,")) {
+    throw new Error(
+        "Packaged sign-in page must not carry its own inline styles or the retired Inter world",
+    );
+}
+requireText(
+    mobileAuthRoutes,
+    "mobileAuthCallbackHtml",
+    "Themed auth callback page",
+);
+requireText(
+    mobileAuthRoutes,
+    '<link rel="stylesheet" href="/editorial.css">',
+    "Auth callback Editorial Serif stylesheet",
+);
+requireText(
+    mobileAuthRoutes,
+    'class="auth-card"',
+    "Auth callback Editorial Serif frame",
+);
+
 // ADS-FOUNDATION (Amendment D / Amendment G item 3):
 // 1. Real AdMob IDs are wired as env values in BOTH Android workflows.
 //    These IDs are public (app-ads.txt publishes the publisher ID).

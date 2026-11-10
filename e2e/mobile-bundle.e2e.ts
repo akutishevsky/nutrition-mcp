@@ -138,6 +138,24 @@ test("packaged mobile bundle cold-starts to the sign-in shell", async ({
     await expect(
         page.getByRole("button", { name: "Email me a sign-in link" }),
     ).toBeVisible();
+    // S6 slice 10: the packaged sign-in page is Editorial Serif — the
+    // shared stylesheet's paper ground and Georgia display type, the
+    // multicolour-G Google control, and no password field anywhere
+    // (Michael's auth rule: user sign-in is SSO / emailed link only).
+    const signInTheme = await page.evaluate(() => {
+        const heading = document.querySelector("h1");
+        return {
+            background: getComputedStyle(document.body).backgroundColor,
+            headingFont: heading ? getComputedStyle(heading).fontFamily : "",
+            passwordFields: document.querySelectorAll('input[type="password"]')
+                .length,
+            googleMark: Boolean(document.querySelector("#google-sign-in svg")),
+        };
+    });
+    expect(signInTheme.background).toBe("rgb(246, 241, 231)");
+    expect(signInTheme.headingFont).toContain("Georgia");
+    expect(signInTheme.passwordFields).toBe(0);
+    expect(signInTheme.googleMark).toBe(true);
     expect(failedRequests).toEqual([]);
     await expect
         .poll(() =>

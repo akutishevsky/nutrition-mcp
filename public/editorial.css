@@ -935,6 +935,7 @@ code {
     display: inline-flex;
     align-items: center;
     gap: 10px;
+    min-height: 44px;
     color: var(--ink);
     font-family: var(--serif);
     font-size: 22px;
@@ -1054,6 +1055,15 @@ code {
     font-size: 13px;
 }
 
+/* Footnote links are real targets on the auth surfaces (the sign-in
+ * page's password-route link) — they carry the 44px floor like every
+ * other target, without inflating the footnote's text size. */
+.auth-footnote a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+
 /* Google sign-in (Amendment G): Google's branding rules set the control
  * itself — white ground, dark text, the multicolour G — while the sizing
  * and radius stay in the auth grammar above. Rendered only when the web
@@ -1075,6 +1085,8 @@ code {
 }
 
 .auth-social {
+    display: grid;
+    gap: 10px;
     margin-top: 16px;
 }
 
@@ -1084,6 +1096,79 @@ code {
     background: #fff;
     border-color: var(--rule);
     color: var(--ink);
+}
+
+.button-google[hidden] {
+    display: none;
+}
+
+/* Sign in with Apple (S6 slice 10): Apple's branding sets the control
+ * itself — black ground, white text and mark — while the sizing and
+ * radius stay in the auth grammar above. Rendered only when the Apple
+ * provider is configured (src/auth/social-sign-in.ts); an unconfigured
+ * deployment renders no Apple control at all. */
+.button-apple {
+    width: 100%;
+    gap: 10px;
+    background: #000;
+    border-color: #000;
+    color: #fff;
+}
+
+.button-apple:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+}
+
+.button-apple svg {
+    flex: none;
+}
+
+.auth-social-error {
+    color: var(--danger);
+}
+
+.auth-social-error:empty {
+    display: none;
+}
+
+/* Packaged mobile sign-in (mobile/mobile-login.html, S6 slice 10): the
+ * login page loads this stylesheet like the connect shell does — it has
+ * no stylesheet of its own anymore. The two rules below are its only
+ * page-specific states: the S4 offline banner (paper ground, hairline
+ * rule, safe-area aware) and the status line the login script writes
+ * (success in deep green, failures in the house danger colour). */
+.offline-banner {
+    position: fixed;
+    z-index: 10;
+    top: 0;
+    right: 0;
+    left: 0;
+    padding: calc(10px + env(safe-area-inset-top))
+        max(16px, env(safe-area-inset-right)) 10px
+        max(16px, env(safe-area-inset-left));
+    border-bottom: 1px solid var(--hairline);
+    background: var(--paper-card);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.offline-banner[hidden] {
+    display: none;
+}
+
+.auth-status-line {
+    min-height: 24px;
+    margin: 14px 0 0;
+    font-size: 14px;
+    color: var(--green-deep);
+}
+
+.auth-status-line.error {
+    color: var(--danger);
 }
 
 .button-google:hover {

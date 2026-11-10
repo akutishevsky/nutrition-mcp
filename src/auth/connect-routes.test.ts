@@ -57,6 +57,33 @@ describe("Better Auth consent continuation", () => {
         expect(html).toContain("Send sign-in link");
     });
 
+    test("sign-in page hides Apple until the provider is configured (S6 slice 10)", () => {
+        const html = signInPageHtml({
+            returnTo: "/app",
+            googleConfigured: true,
+            appleConfigured: false,
+        });
+        expect(html).toContain("Continue with Google");
+        expect(html).not.toContain("Continue with Apple");
+        expect(html).not.toContain("&quot;provider&quot;:&quot;apple&quot;");
+    });
+
+    test("sign-in page renders the Apple control beside Google once configured", () => {
+        const html = signInPageHtml({
+            returnTo: "/app",
+            googleConfigured: true,
+            appleConfigured: true,
+        });
+        expect(html).toContain("Continue with Apple");
+        expect(html).toContain('class="button button-apple"');
+        expect(html).toContain("&quot;provider&quot;:&quot;apple&quot;");
+        // Exactly two social controls, served by the one wiring script.
+        expect(
+            html.match(/data-social-sign-in data-social-path/g),
+        ).toHaveLength(2);
+        expect(html).toContain("Send sign-in link");
+    });
+
     test("sign-in page carries the MCP oauth_query into the Google request", () => {
         const oauthQuery = "client_id=client-1&scope=nutrition.read&sig=abc";
         const html = signInPageHtml({

@@ -61,6 +61,23 @@ export function appleAppSiteAssociation() {
     };
 }
 
+/**
+ * The auth callback page (S6 slice 10): the browser stop mid-sign-in,
+ * when the OS hands a verified app link to the browser instead of the
+ * app. Until this slice it was bare browser-default HTML — the one
+ * unthemed state left in the sign-in path (Amendment F: an unthemed
+ * screen is a BLOCKER). It now renders in the connect shell's exact
+ * grammar (src/auth/connect-routes.ts): the same Editorial Serif
+ * stylesheet, auth-page/auth-card frame, brand mark and kicker, so the
+ * whole sign-in path is one world. Pure so the theming is testable
+ * without a database.
+ */
+export function mobileAuthCallbackHtml(): string {
+    return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#f6f1e7"><title>Open Munch — Munch</title><link rel="icon" href="/favicon.ico"><link rel="stylesheet" href="/editorial.css"></head>
+<body class="auth-page"><main class="auth-main"><section class="auth-card"><span class="brand"><img class="brand-logo" src="/brand/munch-mark.svg" alt=""><span>Munch</span></span><p class="section-kicker spacer-top">Sign in</p><h1>Open Munch to finish signing in</h1><p>Return to the Munch app and request a new sign-in link on this device.</p></section></main></body></html>`;
+}
+
 export function createMobileAuthRouter(): Hono {
     const router = new Hono();
 
@@ -107,25 +124,7 @@ export function createMobileAuthRouter(): Hono {
 
     router.get("/mobile/auth/callback", (c) => {
         privateResponse(c);
-        return c.html(`<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1">
-        <meta name="referrer" content="no-referrer">
-        <meta name="robots" content="noindex,nofollow">
-        <title>Open Munch</title>
-    </head>
-    <body>
-        <main>
-            <h1>Open Munch to finish signing in</h1>
-            <p>
-                Return to the Munch Android app and request a new sign-in link
-                on this device.
-            </p>
-        </main>
-    </body>
-</html>`);
+        return c.html(mobileAuthCallbackHtml());
     });
 
     router.get("/mobile/auth/google-config", (c) => {
