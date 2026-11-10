@@ -134,6 +134,7 @@ export class FoodSearchService {
         string,
         Promise<AggregatedFoodSearchResult>
     >();
+    private readonly inFlightRefreshes = new Set<string>();
 
     constructor(
         private readonly registry = new FoodProviderRegistry([
@@ -188,6 +189,7 @@ export class FoodSearchService {
         const queryCacheMs = Math.round(
             performance.now() - queryCacheStartedAt,
         );
+        const cachedStale = cachedHits ? staleCandidates(cachedHits) : [];
         if (cachedHits) {
             const cachedFresh = rankCandidates(
                 { query: normalized },
@@ -195,6 +197,7 @@ export class FoodSearchService {
             );
             const strongCached = isStrongLocalMatch(normalized, cachedFresh[0]);
             if (strongCached || cachedFresh.length >= boundedLimit) {
+                this.scheduleStaleRefresh(cachedStale);
                 console.info(
                     `[food_resolution] operation=search resolution_layer=query_cache local_count=${cachedFresh.length} query_cache_ms=${queryCacheMs} total_ms=${Math.round(performance.now() - startedAt)} reason=${strongCached ? "strong_exact_match" : "result_limit_satisfied"}`,
                 );
@@ -215,13 +218,30 @@ export class FoodSearchService {
             { query: normalized },
             freshCandidates(localHits),
         );
-        const stale = staleCandidates(localHits);
+        const stale = dedupe([...staleCandidates(localHits), ...cachedStale]);
+        // Phase 2, item 5: stale rows a search touches are refreshed in
+        // the background — the search itself never waits on it.
+        this.scheduleStaleRefresh(stale);
         const strongLocal = isStrongLocalMatch(normalized, local[0]);
         if (strongLocal || local.length >= boundedLimit) {
             console.info(
                 `[food_resolution] operation=search resolution_layer=local_cache local_count=${local.length} stale_count=${stale.length} query_cache_ms=${queryCacheMs} local_ms=${localMs} total_ms=${Math.round(performance.now() - startedAt)} reason=${strongLocal ? "strong_exact_match" : "result_limit_satisfied"}`,
             );
             return { candidates: local.slice(0, boundedLimit), failures: [] };
+        }
+
+        // Phase 2, item 3: search negative caching. A query providers
+        // already answered with no results (within the negative TTL)
+        // resolves from whatever fresh local rows exist — usually none —
+        // without calling providers again.
+        if (await this.catalog.isNegative("search", normalized, "aggregate")) {
+            console.info(
+                `[food_catalog] negative_hit operation=search local_count=${local.length} total_ms=${Math.round(performance.now() - startedAt)}`,
+            );
+            return {
+                candidates: local.slice(0, boundedLimit),
+                failures: [],
+            };
         }
 
         console.info(
@@ -233,18 +253,23 @@ export class FoodSearchService {
             limit: boundedLimit,
         });
         const providerMs = Math.round(performance.now() - providerStartedAt);
-        if (result.candidates.length > 0) {
-            await this.catalog.upsertMany(result.candidates);
-            console.info(
-                `[food_catalog] provider_write operation=search count=${result.candidates.length}`,
-            );
-        }
 
         const combined = rankCandidates(
             { query: normalized },
             dedupe([...local, ...result.candidates]),
         ).slice(0, boundedLimit);
-        if (combined.length > 0) {
+        if (result.candidates.length > 0 && combined.length > 0) {
+            // Phase 2, item 4: provider write-back (upsert + recordSearch)
+            // as a single transaction on the miss path.
+            await this.catalog.upsertAndRecordSearch(
+                result.candidates,
+                normalized,
+                combined,
+            );
+            console.info(
+                `[food_catalog] provider_write operation=search count=${result.candidates.length}`,
+            );
+        } else if (combined.length > 0) {
             await this.catalog.recordSearch(normalized, combined);
         }
 
@@ -264,10 +289,60 @@ export class FoodSearchService {
             return { candidates: fallback, failures: result.failures };
         }
 
+        if (combined.length === 0 && result.failures.length === 0) {
+            // Verified no-result search (providers answered, nothing
+            // found, nothing fresh locally): cache the negative so
+            // repeats skip providers until the negative TTL expires.
+            // Never recorded on provider failures — an outage is not a
+            // verified miss (same rule barcode/details already follow).
+            await this.catalog.recordNegative(
+                "search",
+                normalized,
+                "aggregate",
+            );
+            console.info(
+                `[food_catalog] negative_write operation=search total_ms=${Math.round(performance.now() - startedAt)}`,
+            );
+        }
+
         console.info(
             `[food_resolution] operation=search resolution_layer=providers local_count=${local.length} stale_count=${stale.length} provider_count=${result.candidates.length} failures=${result.failures.length} query_cache_ms=${queryCacheMs} local_ms=${localMs} provider_ms=${providerMs} total_ms=${Math.round(performance.now() - startedAt)}`,
         );
         return { candidates: combined, failures: result.failures };
+    }
+
+    /**
+     * Background refresh for stale catalog rows a search touched
+     * (Phase 2, item 5). Fire-and-forget: capped per search, deduped
+     * while in flight, failures are logged and swallowed — the stale
+     * row simply stays stale until the next touch or a details lookup.
+     */
+    private scheduleStaleRefresh(stale: FoodCandidate[]): void {
+        for (const candidate of stale.slice(0, 3)) {
+            const key = `${candidate.provider}:${candidate.providerFoodId}`;
+            if (this.inFlightRefreshes.has(key)) continue;
+            this.inFlightRefreshes.add(key);
+            void (async () => {
+                try {
+                    const refreshed = await this.registry.getDetails(
+                        candidate.provider,
+                        { providerFoodId: candidate.providerFoodId },
+                    );
+                    if (refreshed) {
+                        await this.catalog.upsert(refreshed);
+                        console.info(
+                            `[food_catalog] stale_refresh operation=search provider=${candidate.provider} provider_food_id=${candidate.providerFoodId}`,
+                        );
+                    }
+                } catch (error) {
+                    console.warn(
+                        `[food_catalog] stale_refresh_failed provider=${candidate.provider} provider_food_id=${candidate.providerFoodId} code=${error instanceof Error ? error.name : "unknown"}`,
+                    );
+                } finally {
+                    this.inFlightRefreshes.delete(key);
+                }
+            })();
+        }
     }
 
     async details(candidateId: string): Promise<FoodCandidate | null> {

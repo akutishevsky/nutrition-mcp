@@ -292,6 +292,10 @@ function stubProvider(name: "usda" | "open_food_facts"): FoodProvider {
         name,
         async search(input) {
             providerCalls.search += 1;
+            // Verified-miss marker: queries containing "zzznoresult"
+            // return no candidates from either provider (Phase 2
+            // negative-caching workload).
+            if (input.query.includes("zzznoresult")) return [];
             // Deterministic per-query candidates with fresh provider IDs,
             // so a local miss exercises upsertMany + recordSearch writes.
             const seed = [...input.query].reduce(
@@ -596,11 +600,60 @@ for (const concurrency of CONCURRENCY_LEVELS) {
                 if (!food) throw new Error("legacy barcode lookup missed");
             },
         ),
+        await runWorkload(
+            "service.search-no-result-repeat",
+            concurrency,
+            async () => {
+                // The SAME no-result query for every op at this level:
+                // the first op pays the provider calls, repeats must be
+                // served by the search negative cache (provider_calls
+                // delta for the workload is the evidence).
+                const result = await service.search(
+                    `zzznoresult flakes ${concurrency}`,
+                    10,
+                );
+                if (result.candidates.length !== 0) {
+                    throw new Error("no-result workload returned candidates");
+                }
+            },
+        ),
     );
 }
 
 monitoring = false;
 await monitorLoop;
+
+// ---------------------------------------------------------------------------
+// Stale-refresh verification (Phase 2, item 5): age one corpus row past its
+// refresh_after, touch it with a search, and poll until the background
+// refresh re-freshens it. The search itself must return without waiting.
+// ---------------------------------------------------------------------------
+
+await monitor`
+    update munch.food_catalog_entries
+    set refresh_after = now() - interval '1 day'
+    where provider = 'usda' and provider_food_id = ${hotProviderId}
+`;
+const staleDetailsBefore = providerCalls.details;
+const staleSearchStartedAt = performance.now();
+await service.search("banana, raw", 10);
+const staleSearchMs = Math.round(performance.now() - staleSearchStartedAt);
+let staleRefreshed = false;
+for (let i = 0; i < 50 && !staleRefreshed; i += 1) {
+    const rows = await monitor<Array<{ fresh: boolean }>>`
+        select refresh_after > now() as fresh
+        from munch.food_catalog_entries
+        where provider = 'usda' and provider_food_id = ${hotProviderId}
+    `;
+    staleRefreshed = rows[0]?.fresh ?? false;
+    if (!staleRefreshed) await Bun.sleep(100);
+}
+const staleRefresh = {
+    provider_food_id: hotProviderId,
+    search_ms: staleSearchMs,
+    refreshed_in_background: staleRefreshed,
+    provider_details_calls: providerCalls.details - staleDetailsBefore,
+};
 
 // ---------------------------------------------------------------------------
 // EXPLAIN ANALYZE for the core query shapes (direct SQL; read the audit doc)
@@ -654,6 +707,7 @@ const legacySiloRows = await monitor<Array<{ count: number | string }>>`
 `;
 
 const report = {
+    stale_refresh: staleRefresh,
     legacy_barcode: {
         barcode: legacyBarcode,
         catalog_rows_after_workloads: Number(legacyCatalogRows[0]?.count ?? 0),

@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { isValidGtin } from "./barcode.js";
 import { rankCandidates } from "./ranking.js";
-import { withServiceDatabase } from "../platform/database.js";
+import {
+    withServiceDatabase,
+    type DatabaseTransaction,
+} from "../platform/database.js";
 import type {
     FoodCandidate,
     FoodProviderName,
@@ -72,6 +75,8 @@ export function lexicalFoodSearchTsquery(value: string): string {
     tokens[lastIndex] = `${stem}:*`;
     return tokens.join(" & ");
 }
+
+export const TRIGRAM_FALLBACK_MAX_TOKENS = 4;
 
 export function hashCatalogIdentity(value: string): string {
     return createHash("sha256").update(value, "utf8").digest("hex");
@@ -310,11 +315,24 @@ export class FoodCatalogRepository {
             limit ${retrievalLimit}
         `,
         );
+        // Trigram fallback gating (Phase 2, item 4): the fallback is the
+        // most expensive read in the catalog (~50/s ceiling in the Phase 1
+        // baseline), so it runs only when it can plausibly help —
+        //   * never when the lexical leg already returned rows (fresh or
+        //     stale): a lexical hit means the terms exist in the catalog
+        //     and phrase-level similarity would only re-rank them;
+        //   * never for long phrases (> TRIGRAM_FALLBACK_MAX_TOKENS
+        //     tokens): whole-phrase trigram similarity against catalog
+        //     names is near-zero for long queries, so the scan is pure
+        //     cost on exactly the provider-miss path that pays it.
+        // Short typo queries ("bananna", "chiken breast") still get it.
         const rows = lexicalRows.length
             ? lexicalRows
-            : await withServiceDatabase(
-                  async (tx) =>
-                      tx<CatalogRow[]>`
+            : normalized.split(" ").length > TRIGRAM_FALLBACK_MAX_TOKENS
+              ? []
+              : await withServiceDatabase(
+                    async (tx) =>
+                        tx<CatalogRow[]>`
                   select id, provider, provider_food_id, source_snapshot, refresh_after
                   from munch.food_catalog_entries
                   where deprecated_at is null
@@ -333,7 +351,7 @@ export class FoodCatalogRepository {
                       length(normalized_name) asc
                   limit ${retrievalLimit}
               `,
-              );
+                );
         const now = Date.now();
         const hits = rows.flatMap((row) => {
             const hit = hitFromRow(row, now);
@@ -425,6 +443,16 @@ export class FoodCatalogRepository {
         if (!this.config.writesEnabled || candidates.length === 0) return;
         const normalized = normalizeFoodText(query);
         if (!normalized) return;
+        await withServiceDatabase(async (tx) => {
+            await this.recordSearchTx(tx, normalized, candidates);
+        });
+    }
+
+    private async recordSearchTx(
+        tx: DatabaseTransaction,
+        normalized: string,
+        candidates: FoodCandidate[],
+    ): Promise<void> {
         const queryHash = hashCatalogIdentity(normalized);
         const identities = candidates.map((candidate, index) => ({
             provider: candidate.provider,
@@ -435,49 +463,47 @@ export class FoodCatalogRepository {
             ...new Set(candidates.map((candidate) => candidate.provider)),
         ];
         const expiresAt = new Date(Date.now() + this.config.searchTtlMs);
-        await withServiceDatabase(async (tx) => {
-            const rows = await tx<CatalogIdentityRow[]>`
-                select entry.id
-                from jsonb_to_recordset(${identities}::jsonb)
-                    as input(provider text, provider_food_id text, ordinal integer)
-                join munch.food_catalog_entries entry
-                  on entry.provider = input.provider
-                 and entry.provider_food_id = input.provider_food_id
-                 and entry.deprecated_at is null
-                order by input.ordinal
-            `;
-            if (rows.length === 0) return;
-            const entryIds = rows.map((row) => row.id);
-            await tx`
-                insert into munch.food_catalog_query_cache (
-                    query_hash,
-                    normalized_query,
-                    provider_set,
-                    entry_ids,
-                    fetched_at,
-                    expires_at
-                ) values (
-                    ${queryHash},
-                    ${normalized},
-                    array(
-                        select value
-                        from jsonb_array_elements_text(${providers}::jsonb)
-                    ),
-                    array(
-                        select value::uuid
-                        from jsonb_array_elements_text(${entryIds}::jsonb)
-                    ),
-                    now(),
-                    ${expiresAt}
-                )
-                on conflict (query_hash) do update set
-                    normalized_query = excluded.normalized_query,
-                    provider_set = excluded.provider_set,
-                    entry_ids = excluded.entry_ids,
-                    fetched_at = excluded.fetched_at,
-                    expires_at = excluded.expires_at
-            `;
-        });
+        const rows = await tx<CatalogIdentityRow[]>`
+            select entry.id
+            from jsonb_to_recordset(${identities}::jsonb)
+                as input(provider text, provider_food_id text, ordinal integer)
+            join munch.food_catalog_entries entry
+              on entry.provider = input.provider
+             and entry.provider_food_id = input.provider_food_id
+             and entry.deprecated_at is null
+            order by input.ordinal
+        `;
+        if (rows.length === 0) return;
+        const entryIds = rows.map((row) => row.id);
+        await tx`
+            insert into munch.food_catalog_query_cache (
+                query_hash,
+                normalized_query,
+                provider_set,
+                entry_ids,
+                fetched_at,
+                expires_at
+            ) values (
+                ${queryHash},
+                ${normalized},
+                array(
+                    select value
+                    from jsonb_array_elements_text(${providers}::jsonb)
+                ),
+                array(
+                    select value::uuid
+                    from jsonb_array_elements_text(${entryIds}::jsonb)
+                ),
+                now(),
+                ${expiresAt}
+            )
+            on conflict (query_hash) do update set
+                normalized_query = excluded.normalized_query,
+                provider_set = excluded.provider_set,
+                entry_ids = excluded.entry_ids,
+                fetched_at = excluded.fetched_at,
+                expires_at = excluded.expires_at
+        `;
     }
 
     async upsert(candidate: FoodCandidate): Promise<void> {
@@ -487,12 +513,49 @@ export class FoodCatalogRepository {
     async upsertMany(candidates: FoodCandidate[]): Promise<void> {
         if (!this.config.writesEnabled || candidates.length === 0) return;
         for (const candidate of candidates) validateCatalogCandidate(candidate);
+        await withServiceDatabase(async (tx) => {
+            await this.upsertManyTx(tx, candidates);
+        });
+    }
+
+    /**
+     * Provider write-back for a search miss as ONE transaction
+     * (Phase 2, item 4): persist the provider candidates and record the
+     * query → results mapping together, halving the pool transactions
+     * on the miss path compared to upsertMany + recordSearch separately.
+     */
+    async upsertAndRecordSearch(
+        providerCandidates: FoodCandidate[],
+        query: string,
+        combinedCandidates: FoodCandidate[],
+    ): Promise<void> {
+        if (
+            !this.config.writesEnabled ||
+            providerCandidates.length === 0 ||
+            combinedCandidates.length === 0
+        ) {
+            return;
+        }
+        for (const candidate of providerCandidates) {
+            validateCatalogCandidate(candidate);
+        }
+        const normalized = normalizeFoodText(query);
+        if (!normalized) return;
+        await withServiceDatabase(async (tx) => {
+            await this.upsertManyTx(tx, providerCandidates);
+            await this.recordSearchTx(tx, normalized, combinedCandidates);
+        });
+    }
+
+    private async upsertManyTx(
+        tx: DatabaseTransaction,
+        candidates: FoodCandidate[],
+    ): Promise<void> {
         const now = new Date();
         const payload = candidates.map((candidate) =>
             catalogPayload(candidate, this.config, now),
         );
-        await withServiceDatabase(async (tx) => {
-            await tx`
+        await tx`
                 insert into munch.food_catalog_entries (
                     provider, provider_food_id, barcode, name, normalized_name,
                     brand, normalized_brand, data_kind, portions,
@@ -570,8 +633,7 @@ export class FoodCatalogRepository {
                     confidence = excluded.confidence,
                     content_hash = excluded.content_hash,
                     deprecated_at = null
-            `;
-        });
+        `;
     }
 
     async isNegative(

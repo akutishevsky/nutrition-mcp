@@ -4,6 +4,11 @@ name: Data-layer stress baseline
 # baseline is a nightly/on-demand measurement, NOT a per-PR gate.
 on:
     workflow_dispatch:
+        inputs:
+            pool_size:
+                description: "MUNCH_DB_POOL_SIZE for the run (Phase 2 pool trial)"
+                required: false
+                default: "10"
 
 permissions:
     contents: read
@@ -29,6 +34,7 @@ jobs:
         env:
             DATABASE_URL: postgres://postgres:postgres@localhost:5432/munch_test
             MUNCH_STRESS_REPORT: stress-report.json
+            MUNCH_DB_POOL_SIZE: ${{ inputs.pool_size }}
         steps:
             - name: Check out repository
               uses: actions/checkout@v4
