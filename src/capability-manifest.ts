@@ -239,9 +239,9 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "nutrition.provenance",
         mcp: complete(["get_nutrition_provenance"]),
-        web: complete(["GET /api/app/insights (provenance)", "/app/insights"]),
-        app: complete(["GET /api/app/insights (provenance)", "/app/insights"]),
-        ios: complete(["GET /api/app/insights (provenance)", "/app/insights"]),
+        web: complete(["GET /api/app/insights (provenance)", "/app/trends"]),
+        app: complete(["GET /api/app/insights (provenance)", "/app/trends"]),
+        ios: complete(["GET /api/app/insights (provenance)", "/app/trends"]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,
@@ -757,9 +757,9 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "nutrition.trends",
         mcp: complete(["get_trends"]),
-        web: complete(["GET /api/app/insights (trends)", "/app/insights"]),
-        app: complete(["GET /api/app/insights (trends)", "/app/insights"]),
-        ios: complete(["GET /api/app/insights (trends)", "/app/insights"]),
+        web: complete(["GET /api/app/insights (trends)", "/app/trends"]),
+        app: complete(["GET /api/app/insights (trends)", "/app/trends"]),
+        ios: complete(["GET /api/app/insights (trends)", "/app/trends"]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,
@@ -771,9 +771,9 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "nutrition.patterns",
         mcp: complete(["get_meal_patterns"]),
-        web: complete(["GET /api/app/insights (patterns)", "/app/insights"]),
-        app: complete(["GET /api/app/insights (patterns)", "/app/insights"]),
-        ios: complete(["GET /api/app/insights (patterns)", "/app/insights"]),
+        web: complete(["GET /api/app/insights (patterns)", "/app/trends"]),
+        app: complete(["GET /api/app/insights (patterns)", "/app/trends"]),
+        ios: complete(["GET /api/app/insights (patterns)", "/app/trends"]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,
@@ -802,17 +802,17 @@ export const CAPABILITY_MANIFEST = [
         web: complete([
             "/api/app/today",
             "GET /api/app/insights (water history)",
-            "/app/insights",
+            "/app/trends",
         ]),
         app: complete([
             "/api/app/today",
             "GET /api/app/insights (water history)",
-            "/app/insights",
+            "/app/trends",
         ]),
         ios: complete([
             "/api/app/today",
             "GET /api/app/insights (water history)",
-            "/app/insights",
+            "/app/trends",
         ]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
@@ -825,9 +825,18 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "water.update",
         mcp: complete(["update_water"]),
-        web: complete(["PATCH /api/app/water/:id", "#water-history"]),
-        app: complete(["PATCH /api/app/water/:id", "#water-history"]),
-        ios: complete(["PATCH /api/app/water/:id", "#water-history"]),
+        web: complete([
+            "PATCH /api/app/water/:id",
+            '[data-action="edit-water"]',
+        ]),
+        app: complete([
+            "PATCH /api/app/water/:id",
+            '[data-action="edit-water"]',
+        ]),
+        ios: complete([
+            "PATCH /api/app/water/:id",
+            '[data-action="edit-water"]',
+        ]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,
@@ -839,9 +848,18 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "water.delete",
         mcp: complete(["delete_water"]),
-        web: complete(["DELETE /api/app/water/:id", "#water-history"]),
-        app: complete(["DELETE /api/app/water/:id", "#water-history"]),
-        ios: complete(["DELETE /api/app/water/:id", "#water-history"]),
+        web: complete([
+            "DELETE /api/app/water/:id",
+            '[data-action="delete-water"]',
+        ]),
+        app: complete([
+            "DELETE /api/app/water/:id",
+            '[data-action="delete-water"]',
+        ]),
+        ios: complete([
+            "DELETE /api/app/water/:id",
+            '[data-action="delete-water"]',
+        ]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,
@@ -874,17 +892,17 @@ export const CAPABILITY_MANIFEST = [
         web: complete([
             "/api/app/today",
             "GET /api/app/insights (weight history)",
-            "/app/insights",
+            "/app/trends",
         ]),
         app: complete([
             "/api/app/today",
             "GET /api/app/insights (weight history)",
-            "/app/insights",
+            "/app/trends",
         ]),
         ios: complete([
             "/api/app/today",
             "GET /api/app/insights (weight history)",
-            "/app/insights",
+            "/app/trends",
         ]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
@@ -897,9 +915,18 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "weight.update",
         mcp: complete(["update_weight"]),
-        web: complete(["PATCH /api/app/weight/:id", "#weight-history"]),
-        app: complete(["PATCH /api/app/weight/:id", "#weight-history"]),
-        ios: complete(["PATCH /api/app/weight/:id", "#weight-history"]),
+        web: complete([
+            "PATCH /api/app/weight/:id",
+            '[data-action="edit-weight"]',
+        ]),
+        app: complete([
+            "PATCH /api/app/weight/:id",
+            '[data-action="edit-weight"]',
+        ]),
+        ios: complete([
+            "PATCH /api/app/weight/:id",
+            '[data-action="edit-weight"]',
+        ]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,
@@ -911,9 +938,18 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "weight.delete",
         mcp: complete(["delete_weight"]),
-        web: complete(["DELETE /api/app/weight/:id", "#weight-history"]),
-        app: complete(["DELETE /api/app/weight/:id", "#weight-history"]),
-        ios: complete(["DELETE /api/app/weight/:id", "#weight-history"]),
+        web: complete([
+            "DELETE /api/app/weight/:id",
+            '[data-action="delete-weight"]',
+        ]),
+        app: complete([
+            "DELETE /api/app/weight/:id",
+            '[data-action="delete-weight"]',
+        ]),
+        ios: complete([
+            "DELETE /api/app/weight/:id",
+            '[data-action="delete-weight"]',
+        ]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,
@@ -925,18 +961,9 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "weight.trends",
         mcp: complete(["get_weight_trends"]),
-        web: complete([
-            "GET /api/app/insights (weight trends)",
-            "/app/insights",
-        ]),
-        app: complete([
-            "GET /api/app/insights (weight trends)",
-            "/app/insights",
-        ]),
-        ios: complete([
-            "GET /api/app/insights (weight trends)",
-            "/app/insights",
-        ]),
+        web: complete(["GET /api/app/insights (weight trends)", "/app/trends"]),
+        app: complete(["GET /api/app/insights (weight trends)", "/app/trends"]),
+        ios: complete(["GET /api/app/insights (weight trends)", "/app/trends"]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,

@@ -495,8 +495,13 @@ function morePage() {
     const items = [
         // Chat v2 placement (Contextual only): no More-row entry for
         // the chat agent — it is reached from the surface entries on
-        // Today, Meal Plan, Pantry, and Insights only.
-        ["/app/insights", "Insights", "Patterns and progress", "↗"],
+        // Today, Meal Plan, Pantry, and Trends only.
+        [
+            "/app/trends",
+            "Trends",
+            "Calories, weight and patterns over time",
+            "↗",
+        ],
         ["/app/recipes", "Recipes", "Your structured recipe library", "◇"],
         ["/app/household", "Household", "Members and shared features", "⌂"],
         [

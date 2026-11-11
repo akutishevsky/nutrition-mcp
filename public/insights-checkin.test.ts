@@ -3,81 +3,113 @@ import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
 import { getWeeklyGuidance } from "../src/guidance-repository.js";
 
-// Regression coverage for the Insights default-view outage: renderInsights
-// selected a 7/30/90-day trend range (30 by default) and passed that whole
-// range to /api/app/insights/checkin, whose handler (getWeeklyGuidance) only
-// accepts one to seven days. The check-in call returned HTTP 500, api()
-// threw, and the whole Insights view fell to "That view could not be
-// loaded." The weekly check-in panel is by definition the most recent seven
-// days of the selected range, so renderInsights must window its check-in
-// request to those seven days while the trend request keeps the full range.
+// Regression coverage for the default-view outage class (PR #184):
+// the trends workspace request keeps the full selected range (7/30/90
+// days), while the weekly check-in inside the Digest card — whose
+// handler (getWeeklyGuidance) only accepts one to seven days — must
+// be windowed to the most recent seven days. Passing the full range
+// returned HTTP 500, api() threw, and the whole view fell to "That
+// view could not be loaded." This harness also pins the Trends
+// surface contract: the Digest carries the narratives + check-in +
+// the "Explain my week" chat entry (T8), and chart reference lines
+// carry their values as on-chart labels (T13).
 
 const appSource = readFileSync(new URL("./app.js", import.meta.url), "utf8");
-const renderInsightsSource = appSource.match(
-    /async function renderInsights\(\) \{[\s\S]*?\n\}/,
+const trendsBlockSource = appSource.match(
+    /\/\/ TRENDS-START[\s\S]*?\/\/ TRENDS-END/,
 )![0];
 const shiftDateSource = appSource.match(
     /function shiftDate\(date, days\) \{[\s\S]*?\n\}/,
 )![0];
-// S6 slice 7: renderInsights now builds its rule rows through these
-// pure helpers — the harness runs the real helpers alongside it.
-const percentSource = appSource.match(
-    /function percent\(value, target\) \{[\s\S]*?\n\}/,
-)![0];
-const insightRuleSource = appSource.match(
-    /function insightRule\(label, valueHtml\) \{[\s\S]*?\n\}/,
-)![0];
-const insightProgressRuleSource = appSource.match(
-    /function insightProgressRule\(label, value, unit, target\) \{[\s\S]*?\n\}/,
-)![0];
-// Chat v2: renderInsights appends the contextual chat entry row via
-// chatEntryRow — the harness runs the real helper alongside it,
-// same as the S6 helpers above.
 const chatEntryRowSource = appSource.match(
     /function chatEntryRow\(surface, label, subline\) \{[\s\S]*?\n\}/,
 )![0];
 
-const insightsFixture = {
-    vitals: {
-        water: { entries: [], totalMl: 0 },
-        weight: { entries: [], days: [], unit: "kg", narrative: "" },
+const barDays = [
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05",
+    "2026-11-06",
+    "2026-11-07",
+    "2026-11-08",
+    "2026-11-09",
+].map((date, i) => ({
+    date,
+    value: [1980, 2050, 2210, 1905, 2000, 1875, 2010][i],
+    hasLog: true,
+}));
+
+const trendsFixture = {
+    startDate: "2026-10-11",
+    endDate: "2026-11-09",
+    rangeDays: 30,
+    timezone: "UTC",
+    weightUnit: "lb",
+    alcoholTrackingEnabled: true,
+    layout: {
+        version: 1,
+        cards: [{ shape: "bar", data: "calories", size: "full" }],
     },
-    trends: { days: [], narrative: "" },
-    patterns: { narrative: "" },
-    progress: { goals: {}, totals: {}, mealCount: 0, weight: null },
-    provenance: {
-        coverage: {},
-        confidence: {},
-        sources: [],
-        contributors: { calories: [] },
+    catalog: [],
+    cards: [
+        {
+            shape: "bar",
+            data: "calories",
+            size: "full",
+            title: "Calories",
+            subtitle: "Daily total · kcal",
+            headline: { value: "2,010", unit: "kcal", note: "daily average" },
+            verdict: {
+                lead: "Target 2,000 kcal — ",
+                strong: "in range 6 of 7 days",
+            },
+            coverage: null,
+            empty: null,
+            chart: {
+                kind: "bars",
+                metric: "calories",
+                unit: "kcal",
+                days: barDays,
+                reference: {
+                    type: "band",
+                    value: 1900,
+                    value2: 2100,
+                    label: "target 1,900–2,100",
+                },
+                rolling: null,
+            },
+        },
+    ],
+    digest: {
+        weekly: "You logged 6 of the last 7 days.",
+        trends: "Trend narrative text.",
+        patterns: "Pattern narrative text.",
     },
-    loggedDays: 0,
-    mealCount: 0,
-    averages: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
 };
 
 const checkinFixture = {
-    coverage_percent: 0,
-    nutrition_target_coverage_days: 0,
+    coverage_percent: 86,
+    nutrition_target_coverage_days: 6,
     calendar_days: 7,
     averages_on_recorded_days: {
         calories: { value: null },
         protein_g: { average: null },
     },
     uncertain_nutrition_meals: 0,
-    observations: [],
+    observations: ["Protein landed under target on most logged days."],
 };
 
-async function runRenderInsights(insightsDays: number) {
+async function runRenderTrends(trendsRangeDays: number) {
     const calls: string[] = [];
     const content = { innerHTML: "" };
     const context = {
         state: {
             date: "2026-11-09",
-            insightsDays,
-            bootstrap: { profile: { preferred_weight_unit: "kg" } },
-            waterEntries: [],
-            weightEntries: [],
+            trendsRangeDays,
+            trendsEditing: false,
+            trendsData: null,
+            trendsCheckin: null,
+            trendsDonutModes: new Map(),
         },
         content,
         setLoading: () => {},
@@ -86,22 +118,20 @@ async function runRenderInsights(insightsDays: number) {
             if (path.startsWith("/api/app/insights/checkin")) {
                 return checkinFixture;
             }
-            if (path.startsWith("/api/app/insights?")) return insightsFixture;
+            if (path.startsWith("/api/app/trends?")) return trendsFixture;
             throw new Error(`Unexpected api path: ${path}`);
         },
         escapeHtml: (value: unknown) => String(value ?? ""),
         number: (value: unknown) => (value == null ? "—" : String(value)),
-        metricCard: (label: string, value: unknown) =>
-            `<div>${label}:${value ?? "—"}</div>`,
         formatDate: (value: string) => value,
-        displayWeightUnit: () => "kg",
-        waterEntryRows: () => "",
-        weightChart: () => "",
-        weightEntryRows: () => "",
-        barChart: () => "",
+        formatTime: (value: string) => value,
+        toast: () => {},
+        navigate: () => {},
+        openDialog: () => {},
+        dialog: { open: false, close: () => {} },
     };
     await runInNewContext(
-        `${shiftDateSource}\n${percentSource}\n${insightRuleSource}\n${insightProgressRuleSource}\n${chatEntryRowSource}\n${renderInsightsSource}\nrenderInsights();`,
+        `${shiftDateSource}\n${chatEntryRowSource}\n${trendsBlockSource}\nrenderTrends();`,
         context,
     );
     return { calls, html: content.innerHTML };
@@ -118,36 +148,44 @@ function rangeOf(path: string) {
     return { start, end, days };
 }
 
-describe("Insights weekly check-in window", () => {
+describe("Trends workspace + Digest check-in window", () => {
     test("the default 30-day load succeeds and windows the check-in to the most recent 7 days", async () => {
-        const { calls, html } = await runRenderInsights(30);
+        const { calls, html } = await runRenderTrends(30);
         const trends = rangeOf(calls[0]!);
         const checkin = rangeOf(calls[1]!);
-        // The trend panel keeps the full selected range.
-        expect(calls[0]).toStartWith("/api/app/insights?");
+        // The trends workspace keeps the full selected range.
+        expect(calls[0]).toStartWith("/api/app/trends?");
         expect(trends).toEqual({
             start: "2026-10-11",
             end: "2026-11-09",
             days: 30,
         });
-        // The weekly check-in receives only the most recent seven days, the
-        // window getWeeklyGuidance accepts.
+        // The weekly check-in receives only the most recent seven days,
+        // the window getWeeklyGuidance accepts.
         expect(calls[1]).toStartWith("/api/app/insights/checkin?");
         expect(checkin).toEqual({
             start: "2026-11-03",
             end: "2026-11-09",
             days: 7,
         });
+        // The Digest card carries the check-in and the chat seed (T8).
+        expect(html).toContain("The week in words");
         expect(html).toContain("Weekly check-in");
-        expect(html).toContain("Last 30 days");
-        // Chat v2 placement: the Insights chat entry rides at the
-        // foot of the weekly panel.
         expect(html).toContain("Explain my week");
         expect(html).toContain('data-testid="chat-entry-insights"');
+        // Verdict headline, not a bare number (T6).
+        expect(html).toContain("in range 6 of 7 days");
+        // T13: the target band is labeled on the chart with its values,
+        // and every bar carries its day.
+        expect(html).toContain("target 1,900–2,100");
+        expect(html).toContain("data-chart-label");
+        for (const day of barDays) {
+            expect(html).toContain(`data-bar-date="${day.date}"`);
+        }
     });
 
     test("a 90-day load also windows the check-in to the most recent 7 days", async () => {
-        const { calls } = await runRenderInsights(90);
+        const { calls } = await runRenderTrends(90);
         expect(rangeOf(calls[0]!).days).toBe(90);
         expect(rangeOf(calls[1]!)).toEqual({
             start: "2026-11-03",
@@ -157,7 +195,7 @@ describe("Insights weekly check-in window", () => {
     });
 
     test("a 7-day load keeps the check-in on the full selected range", async () => {
-        const { calls } = await runRenderInsights(7);
+        const { calls } = await runRenderTrends(7);
         expect(rangeOf(calls[1]!)).toEqual({
             start: "2026-11-03",
             end: "2026-11-09",

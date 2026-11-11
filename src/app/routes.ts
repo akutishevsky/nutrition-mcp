@@ -130,7 +130,14 @@ import {
     getPlanningWorkspace,
     getRecipeWorkspace,
     getTodayWorkspace,
+    getTrendsDayDetail,
+    getTrendsPeriodContributors,
+    getTrendsWorkspace,
 } from "./repository.js";
+import {
+    getTrendsDashboardLayout,
+    saveTrendsDashboardLayout,
+} from "../trends-layout.js";
 import {
     addCookUpdate,
     compareCooks,
@@ -1759,6 +1766,63 @@ export function createAppRouter(): Hono {
             c,
             await getInsightsWorkspace(
                 c.get("munchUserId"),
+                requiredQuery(c.req.query("start"), "start"),
+                requiredQuery(c.req.query("end"), "end"),
+            ),
+        ),
+    );
+
+    // Trends (T1–T14): the dashboard workspace, the per-account layout,
+    // and the two drill-down reads (one day's contributors; a period's
+    // top foods for a breakdown segment).
+    app.get("/api/app/trends", async (c) =>
+        privateJson(
+            c,
+            await getTrendsWorkspace(
+                c.get("munchUserId"),
+                requiredQuery(c.req.query("start"), "start"),
+                requiredQuery(c.req.query("end"), "end"),
+            ),
+        ),
+    );
+
+    app.get("/api/app/trends/layout", async (c) =>
+        privateJson(c, {
+            layout: await getTrendsDashboardLayout(c.get("munchUserId")),
+        }),
+    );
+
+    app.put("/api/app/trends/layout", requireSameOrigin, async (c) => {
+        const body = recordValue(await c.req.json(), "Trends layout");
+        const layout = recordValue(body.layout, "Trends layout");
+        if (!Array.isArray(layout.cards)) {
+            throw new Error("Trends layout requires a cards array");
+        }
+        return privateJson(c, {
+            layout: await saveTrendsDashboardLayout(
+                c.get("munchUserId"),
+                layout,
+            ),
+        });
+    });
+
+    app.get("/api/app/trends/day", async (c) =>
+        privateJson(
+            c,
+            await getTrendsDayDetail(
+                c.get("munchUserId"),
+                requiredQuery(c.req.query("date"), "date"),
+                requiredQuery(c.req.query("metric"), "metric"),
+            ),
+        ),
+    );
+
+    app.get("/api/app/trends/contributors", async (c) =>
+        privateJson(
+            c,
+            await getTrendsPeriodContributors(
+                c.get("munchUserId"),
+                requiredQuery(c.req.query("metric"), "metric"),
                 requiredQuery(c.req.query("start"), "start"),
                 requiredQuery(c.req.query("end"), "end"),
             ),

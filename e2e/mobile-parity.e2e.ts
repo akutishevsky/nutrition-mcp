@@ -317,6 +317,385 @@ function groceryFixture() {
 let cookFinished = false;
 let cookDeleted = false;
 
+/** Trends: the mock server holds the account's dashboard layout;
+    the workspace fixture rebuilds its cards from it on every read,
+    so edit-mode PUTs re-render exactly like the real server. */
+type TrendsLayoutCard = { shape: string; data: string; size: string };
+function defaultTrendsLayout(): { version: number; cards: TrendsLayoutCard[] } {
+    return {
+        version: 1,
+        cards: [
+            { shape: "bar", data: "calories", size: "full" },
+            { shape: "line", data: "weight", size: "full" },
+            { shape: "bar", data: "protein_g", size: "full" },
+            { shape: "consistency", data: "logging", size: "compact" },
+            { shape: "bar", data: "water_ml", size: "compact" },
+        ],
+    };
+}
+let trendsLayoutFixture = defaultTrendsLayout();
+/** The vitals regression runs its delete flows on Today now that the
+    Insights destination retired; its entries ride the Today fixture
+    only when a test asks for them. */
+let vitalsOnToday = false;
+
+const TRENDS_FIXTURE_DATES = [
+    "2026-11-03",
+    "2026-11-04",
+    "2026-11-05",
+    "2026-11-06",
+    "2026-11-07",
+    "2026-11-08",
+    "2026-11-09",
+];
+
+function trendsBarDaysFixture(values: (number | null)[]) {
+    return TRENDS_FIXTURE_DATES.map((date, i) => ({
+        date,
+        value: values[i] ?? null,
+        hasLog: values[i] != null,
+    }));
+}
+
+const TRENDS_CARD_FIXTURES: Record<string, Record<string, unknown>> = {
+    "bar:calories": {
+        shape: "bar",
+        data: "calories",
+        title: "Calories",
+        subtitle: "Daily total · kcal",
+        headline: { value: "1,940", unit: "kcal", note: "daily average" },
+        verdict: {
+            lead: "Target 2,200 kcal — ",
+            strong: "in range 1 of 6 days",
+        },
+        coverage: null,
+        empty: null,
+        chart: {
+            kind: "bars",
+            metric: "calories",
+            unit: "kcal",
+            days: trendsBarDaysFixture([
+                2010,
+                1885,
+                2140,
+                null,
+                1995,
+                2050,
+                1660,
+            ]),
+            reference: {
+                type: "band",
+                value: 2090,
+                value2: 2310,
+                label: "target 2,090–2,310",
+            },
+            rolling: TRENDS_FIXTURE_DATES.map((date, i) => ({
+                date,
+                value: [2010, 1947, 2011, 2011, 2007, 2018, 1968][i],
+            })),
+        },
+    },
+    "line:weight": {
+        shape: "line",
+        data: "weight",
+        title: "Weight",
+        subtitle: "Trend weight · lb",
+        headline: { value: "182.6", unit: "lb", note: "trend weight" },
+        verdict: {
+            lead: "Trend is easing down — ",
+            strong: "about −0.4 lb a week",
+        },
+        coverage: null,
+        empty: null,
+        chart: {
+            kind: "line",
+            metric: "weight",
+            unit: "lb",
+            points: [
+                { date: "2026-11-03", value: 184.1 },
+                { date: "2026-11-05", value: 183.6 },
+                { date: "2026-11-07", value: 183 },
+                { date: "2026-11-09", value: 182.4 },
+            ],
+            trend: [
+                { date: "2026-11-03", value: 184.1 },
+                { date: "2026-11-05", value: 183.9 },
+                { date: "2026-11-07", value: 183.6 },
+                { date: "2026-11-09", value: 183.2 },
+            ],
+            target: 175,
+            startLabel: "2026-10-11",
+            endLabel: "2026-11-09",
+        },
+    },
+    "bar:protein_g": {
+        shape: "bar",
+        data: "protein_g",
+        title: "Protein",
+        subtitle: "Daily total · g",
+        headline: { value: "131", unit: "g", note: "daily average" },
+        verdict: {
+            lead: "Target 150 g — ",
+            strong: "hit it 1 of 6 days",
+        },
+        coverage: null,
+        empty: null,
+        chart: {
+            kind: "bars",
+            metric: "protein_g",
+            unit: "g",
+            days: trendsBarDaysFixture([128, 142, 119, null, 135, 151, 110]),
+            reference: {
+                type: "line",
+                value: 150,
+                label: "target 150 g",
+            },
+            rolling: null,
+        },
+    },
+    "consistency:logging": {
+        shape: "consistency",
+        data: "logging",
+        title: "Consistency",
+        subtitle: "Logging",
+        headline: { value: "6", unit: "", note: "of 7 days logged" },
+        verdict: { lead: "", strong: "on a 3-day streak" },
+        coverage: null,
+        empty: null,
+        chart: {
+            kind: "consistency",
+            metric: "calories",
+            full: false,
+            cells: TRENDS_FIXTURE_DATES.map((date, i) => ({
+                date,
+                level: [3, 2, 3, 0, 2, 3, 2][i],
+                active: i !== 3,
+            })),
+        },
+    },
+    "bar:water_ml": {
+        shape: "bar",
+        data: "water_ml",
+        title: "Water",
+        subtitle: "Daily total · ml",
+        headline: { value: "1.8", unit: "L", note: "daily average" },
+        verdict: {
+            lead: "Target 2,500 ml — ",
+            strong: "hit it 0 of 6 days",
+        },
+        coverage: null,
+        empty: null,
+        chart: {
+            kind: "bars",
+            metric: "water_ml",
+            unit: "ml",
+            days: trendsBarDaysFixture([
+                1750,
+                2100,
+                1600,
+                null,
+                2250,
+                1900,
+                1250,
+            ]),
+            reference: {
+                type: "line",
+                value: 2500,
+                label: "target 2,500 ml",
+            },
+            rolling: null,
+        },
+    },
+    "bar:fiber_g": {
+        shape: "bar",
+        data: "fiber_g",
+        title: "Fiber",
+        subtitle: "Daily total · g",
+        headline: { value: "24", unit: "g", note: "daily average" },
+        verdict: {
+            lead: "Target 30 g — ",
+            strong: "hit it 0 of 4 days",
+        },
+        coverage: { carriedDays: 4, totalDays: 7 },
+        empty: null,
+        chart: {
+            kind: "bars",
+            metric: "fiber_g",
+            unit: "g",
+            days: trendsBarDaysFixture([22, null, 28, null, 25, null, 19]),
+            reference: {
+                type: "line",
+                value: 30,
+                label: "target 30 g",
+            },
+            rolling: null,
+        },
+    },
+    "breakdown:macro_split": {
+        shape: "breakdown",
+        data: "macro_split",
+        title: "Macro split",
+        subtitle: "Share of calories",
+        headline: { value: "1,940", unit: "kcal", note: "daily average" },
+        verdict: {
+            lead: "Protein is carrying ",
+            strong: "26% of calories",
+        },
+        coverage: null,
+        empty: null,
+        chart: {
+            kind: "donut",
+            segments: [
+                { key: "protein_g", label: "Protein", grams: 128, share: 26 },
+                { key: "carbs_g", label: "Carbs", grams: 205, share: 42 },
+                { key: "fat_g", label: "Fat", grams: 68, share: 29 },
+                { key: "alcohol_g", label: "Alcohol", grams: 13, share: 3 },
+            ],
+            columns: [
+                {
+                    label: "2026-10-26",
+                    shares: {
+                        protein_g: 25,
+                        carbs_g: 43,
+                        fat_g: 29,
+                        alcohol_g: 3,
+                    },
+                },
+                {
+                    label: "2026-11-02",
+                    shares: {
+                        protein_g: 26,
+                        carbs_g: 42,
+                        fat_g: 29,
+                        alcohol_g: 3,
+                    },
+                },
+            ],
+            centerValue: 1940,
+        },
+    },
+};
+
+const TRENDS_CATALOG_FIXTURE = [
+    {
+        shape: "bar",
+        label: "Bar chart",
+        blurb: "A column per day, judged against its line",
+        data: [
+            {
+                key: "calories",
+                label: "Calories",
+                note: "",
+                defaultSize: "full",
+            },
+            {
+                key: "protein_g",
+                label: "Protein",
+                note: "",
+                defaultSize: "full",
+            },
+            {
+                key: "fiber_g",
+                label: "Fiber",
+                note: "Recorded on some days only",
+                defaultSize: "full",
+            },
+            {
+                key: "water_ml",
+                label: "Water",
+                note: "",
+                defaultSize: "compact",
+            },
+        ],
+    },
+    {
+        shape: "line",
+        label: "Trend line",
+        blurb: "The smoothed story, not the daily noise",
+        data: [
+            { key: "weight", label: "Weight", note: "", defaultSize: "full" },
+            { key: "water_ml", label: "Water", note: "", defaultSize: "full" },
+        ],
+    },
+    {
+        shape: "consistency",
+        label: "Consistency",
+        blurb: "Show up, day after day",
+        data: [
+            {
+                key: "logging",
+                label: "Logging",
+                note: "",
+                defaultSize: "compact",
+            },
+            {
+                key: "weigh_ins",
+                label: "Weigh-ins",
+                note: "",
+                defaultSize: "compact",
+            },
+        ],
+    },
+    {
+        shape: "breakdown",
+        label: "Breakdown",
+        blurb: "Where the calories come from",
+        data: [
+            {
+                key: "macro_split",
+                label: "Macro split",
+                note: "",
+                defaultSize: "full",
+            },
+            {
+                key: "meal_type_split",
+                label: "Meal-type split",
+                note: "",
+                defaultSize: "full",
+            },
+        ],
+    },
+    {
+        shape: "patterns",
+        label: "Patterns",
+        blurb: "Rhythms across the week",
+        data: [
+            {
+                key: "weekday",
+                label: "Weekday pattern",
+                note: "",
+                defaultSize: "full",
+            },
+        ],
+    },
+];
+
+function trendsWorkspaceFixture() {
+    return {
+        startDate: "2026-10-11",
+        endDate: "2026-11-09",
+        rangeDays: 30,
+        timezone: "UTC",
+        weightUnit: "lb",
+        alcoholTrackingEnabled: true,
+        layout: trendsLayoutFixture,
+        catalog: TRENDS_CATALOG_FIXTURE,
+        cards: trendsLayoutFixture.cards
+            .map((card) => {
+                const fixture =
+                    TRENDS_CARD_FIXTURES[`${card.shape}:${card.data}`];
+                return fixture ? { ...fixture, size: card.size } : null;
+            })
+            .filter(Boolean),
+        digest: {
+            weekly: "You logged 6 of the last 7 days, averaging 1,940 kcal on the days you recorded. Your weight trend eased down across the week.",
+            trends: "Recorded calories averaged 1,940 kcal across the 6 logged days, against a 2,200 kcal goal. Protein averaged 128 g against a 150 g goal.",
+            patterns:
+                "Lunch is your most consistently logged meal (7 of 7 days). Snacks appear on 4 of 7 days.",
+        },
+    };
+}
+
 const COOK_FIXTURES = [
     {
         id: "fixture-chicken-rice",
@@ -893,11 +1272,39 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
         return { draft: CHAT_DRAFT };
     }
     if (pathname === "/api/app/today") {
+        const waterEntries = [
+            {
+                id: "fixture-water-1",
+                amount_ml: 500,
+                logged_at: "2026-11-09T08:15:00.000Z",
+                loggedOn: "2026-11-09",
+                notes: "",
+            },
+            {
+                id: "fixture-water-2",
+                amount_ml: 750,
+                logged_at: "2026-11-09T12:30:00.000Z",
+                loggedOn: "2026-11-09",
+                notes: "With lunch",
+            },
+        ].filter((entry) => !vitalsRemovedIds.has(entry.id));
+        const weightEntries = [
+            {
+                id: "fixture-weight-1",
+                value: 182.4,
+                unit: "lb",
+                logged_at: "2026-11-09T07:00:00.000Z",
+                loggedOn: "2026-11-09",
+                notes: "",
+            },
+        ].filter((entry) => !vitalsRemovedIds.has(entry.id));
         return {
             totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
             meals: [],
-            water: { entries: [], totalMl: 0 },
-            weight: [],
+            water: vitalsOnToday
+                ? { entries: waterEntries, totalMl: 1250 }
+                : { entries: [], totalMl: 0 },
+            weight: vitalsOnToday ? weightEntries : [],
             goals: {},
             drafts: pendingDraftOnToday
                 ? [
@@ -1119,173 +1526,59 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
         cookFinished = true;
         return {};
     }
-    if (pathname === "/api/app/insights") {
-        // S6 slice 7: rich fixture modeled on the tightened mock
-        // (selected/src/insights/theme4-tight.html) — 6 logged days,
-        // 23 meals, the mock's averages, sources and contributors.
-        const waterEntries = [
-            {
-                id: "fixture-water-1",
-                amount_ml: 500,
-                logged_at: "2026-11-09T08:15:00.000Z",
-                loggedOn: "2026-11-09",
-                notes: "",
-            },
-            {
-                id: "fixture-water-2",
-                amount_ml: 750,
-                logged_at: "2026-11-09T12:30:00.000Z",
-                loggedOn: "2026-11-09",
-                notes: "With lunch",
-            },
-        ].filter((entry) => !vitalsRemovedIds.has(entry.id));
-        const weightEntries = [
-            {
-                id: "fixture-weight-1",
-                value: 182.4,
-                unit: "lb",
-                logged_at: "2026-11-09T07:00:00.000Z",
-                loggedOn: "2026-11-09",
-                notes: "",
-            },
-        ].filter((entry) => !vitalsRemovedIds.has(entry.id));
+    if (pathname === "/api/app/trends") {
+        return trendsWorkspaceFixture();
+    }
+    if (pathname === "/api/app/trends/layout" && method === "GET") {
+        return { layout: trendsLayoutFixture };
+    }
+    if (pathname === "/api/app/trends/day") {
         return {
-            vitals: {
-                water: { totalMl: 11250, entries: waterEntries },
-                weight: {
-                    unit: "lb",
-                    target: 175,
-                    narrative:
-                        "Recorded measurements only — the trend follows the weigh-ins in range.",
-                    days: [
-                        { date: "2026-11-03", weight: 184.1 },
-                        { date: "2026-11-05", weight: 183.6 },
-                        { date: "2026-11-07", weight: 183 },
-                        { date: "2026-11-09", weight: 182.4 },
-                    ],
-                    entries: weightEntries,
+            kind: "nutrient",
+            metric: "calories",
+            label: "Calories",
+            unit: "kcal",
+            total: 2140,
+            reference: null,
+            meals: [
+                {
+                    id: "fixture-meal-1",
+                    description: "Chicken plate",
+                    mealType: "lunch",
+                    loggedAt: "2026-11-05T12:30:00.000Z",
+                    total: 1240,
+                    items: [{ name: "Grilled chicken breast", value: 1240 }],
                 },
+                {
+                    id: "fixture-meal-2",
+                    description: "Oats and berries",
+                    mealType: "breakfast",
+                    loggedAt: "2026-11-05T08:00:00.000Z",
+                    total: 900,
+                    items: [{ name: "Rolled oats", value: 900 }],
+                },
+            ],
+            summary: {
+                calories: 2140,
+                proteinG: 119,
+                mealCount: 2,
+                waterMl: 1600,
             },
-            trends: {
-                days: [
-                    {
-                        date: "2026-11-03",
-                        totals: { calories: 2010 },
-                        hasLog: true,
-                    },
-                    {
-                        date: "2026-11-04",
-                        totals: { calories: 1885 },
-                        hasLog: true,
-                    },
-                    {
-                        date: "2026-11-05",
-                        totals: { calories: 2140 },
-                        hasLog: true,
-                    },
-                    {
-                        date: "2026-11-06",
-                        totals: { calories: 0 },
-                        hasLog: false,
-                    },
-                    {
-                        date: "2026-11-07",
-                        totals: { calories: 1995 },
-                        hasLog: true,
-                    },
-                    {
-                        date: "2026-11-08",
-                        totals: { calories: 2050 },
-                        hasLog: true,
-                    },
-                    {
-                        date: "2026-11-09",
-                        totals: { calories: 1660 },
-                        hasLog: true,
-                    },
-                ],
-                narrative:
-                    "Recorded calories averaged 1,940 kcal across the 6 logged days, against a 2,200 kcal goal. Protein averaged 128 g against a 150 g goal. Thursday has no logged meals, so that day is unknown — it is not counted as zero anywhere in this view.",
-            },
-            patterns: {
-                narrative:
-                    "Lunch is your most consistently logged meal (7 of 7 days). Snacks appear on 4 of 7 days. These are observations about your records, nothing more.",
-            },
-            progress: {
-                date: "2026-11-09",
-                totals: {
-                    calories: 1660,
-                    proteinG: 110,
-                    carbsG: 180,
-                    fatG: 55,
-                    waterMl: 1750,
+        };
+    }
+    if (pathname === "/api/app/trends/contributors") {
+        return {
+            metric: "protein_g",
+            label: "Protein",
+            unit: "g",
+            foods: [
+                {
+                    name: "Grilled Chicken Breast",
+                    value: 212,
+                    lastDate: "2026-11-09",
                 },
-                mealCount: 3,
-                goals: {
-                    daily_calories: 2200,
-                    daily_protein_g: 150,
-                    daily_carbs_g: 250,
-                    daily_fat_g: 70,
-                    daily_water_ml: 2500,
-                },
-                weight: {
-                    current: 182.4,
-                    target: 175,
-                    unit: "lb",
-                    loggedOn: "2026-11-09",
-                },
-            },
-            provenance: {
-                coverage: {
-                    itemizedCaloriePercent: 96,
-                    itemCount: 62,
-                    structuredMealCount: 23,
-                    legacyMealCount: 0,
-                },
-                confidence: { recordedItemCount: 62, average: 0.91 },
-                sources: [
-                    {
-                        source: "USDA",
-                        itemCount: 42,
-                        percentOfItems: 68,
-                        calories: 8940,
-                    },
-                    {
-                        source: "Open Food Facts",
-                        itemCount: 14,
-                        percentOfItems: 23,
-                        calories: 2410,
-                    },
-                    {
-                        source: "Package label",
-                        itemCount: 6,
-                        percentOfItems: 9,
-                        calories: 1240,
-                    },
-                ],
-                contributors: {
-                    calories: [
-                        {
-                            name: "Grilled chicken breast",
-                            value: 1240,
-                            source: "USDA",
-                        },
-                        {
-                            name: "Atlantic salmon fillet",
-                            value: 1062,
-                            source: "USDA",
-                        },
-                        {
-                            name: "Peanut butter",
-                            value: 752,
-                            source: "Package label",
-                        },
-                    ],
-                },
-            },
-            averages: { calories: 1940, proteinG: 128, carbsG: 205, fatG: 68 },
-            loggedDays: 6,
-            mealCount: 23,
+                { name: "Greek Yogurt", value: 96, lastDate: "2026-11-08" },
+            ],
         };
     }
     if (pathname === "/api/app/insights/checkin") {
@@ -1589,6 +1882,38 @@ test.beforeAll(async () => {
                 response.end(JSON.stringify({ clearedCount: 1 }));
                 return;
             }
+            if (method === "PUT" && url.pathname === "/api/app/trends/layout") {
+                // Trends layout persistence: the mock server is the
+                // account store — a saved layout rebuilds the
+                // workspace fixture on the next read, like the real
+                // server-side preference row.
+                const chunks: Buffer[] = [];
+                request.on("data", (chunk) => chunks.push(chunk as Buffer));
+                request.on("end", () => {
+                    try {
+                        const parsed = JSON.parse(
+                            Buffer.concat(chunks).toString("utf8") || "{}",
+                        ) as {
+                            layout?: { cards?: TrendsLayoutCard[] };
+                        };
+                        if (Array.isArray(parsed.layout?.cards)) {
+                            trendsLayoutFixture = {
+                                version: 1,
+                                cards: parsed.layout.cards,
+                            };
+                        }
+                    } catch {
+                        // Keep the previous layout on a malformed body.
+                    }
+                    response.writeHead(200, {
+                        "content-type": "application/json",
+                    });
+                    response.end(
+                        JSON.stringify({ layout: trendsLayoutFixture }),
+                    );
+                });
+                return;
+            }
             if (
                 method === "PATCH" &&
                 url.pathname.startsWith(
@@ -1823,6 +2148,8 @@ test.beforeEach(() => {
     cookFinished = false;
     cookDeleted = false;
     vitalsRemovedIds.clear();
+    trendsLayoutFixture = defaultTrendsLayout();
+    vitalsOnToday = false;
     connectionsFixture = [
         {
             clientName: "Fixture MCP Client",
@@ -1913,7 +2240,7 @@ test("packaged route sweep renders every Operate surface", async ({ page }) => {
 
     const surfaces: { href: string; landmark: RegExp }[] = [
         { href: "/app/log", landmark: /Food log|Meals/i },
-        { href: "/app/insights", landmark: /Last 30 days|Weekly check-in/i },
+        { href: "/app/trends", landmark: /Trends|The week in words/i },
         { href: "/app/foods", landmark: /Saved foods|Foods/i },
         { href: "/app/recipes", landmark: /Recipes/i },
         { href: "/app/cooks", landmark: /Cooks/i },
@@ -3488,39 +3815,38 @@ function daySpan(params: URLSearchParams): number {
     return Math.round((end - start) / 86_400_000);
 }
 
-test("S6 slice 7: Insights renders the fused surface, check-in stays windowed to 7 days, no ad slot", async ({
+test("Trends: dashboard renders, check-in stays windowed, catalog builds a persistent custom dashboard, drill ends at the day, no ad slot", async ({
     page,
 }) => {
     await bootPackagedApp(page);
+    // T8: the retired Insights route lands on Trends.
     await gotoRoute(page, "/app/insights");
+    await expect(page.locator(".operate-view.trends-view")).toHaveCount(1);
+    expect(page.url()).toContain("/app/trends");
 
-    // The fused surface: Editorial Serif scope, mock grammar panels.
-    await expect(page.locator(".operate-view.insights-view")).toHaveCount(1);
-    await expect(page.locator("#app-content")).toContainText("Last 30 days");
-    await expect(page.locator("#app-content")).toContainText(
-        "6 logged days and 23 meals",
+    // The default dashboard (T2): calories first with its verdict and
+    // its labeled target band (T6/T13), one labeled bar per day.
+    const caloriesCard = page.locator(
+        '.trends-card[data-card-key="bar:calories"]',
     );
-    await expect(page.locator("#app-content")).toContainText("Weekly check-in");
-    await expect(page.locator("#app-content")).toContainText("86% coverage");
-    await expect(page.locator("#app-content")).toContainText("6 of 7");
-    await expect(page.locator(".insights-spark-bar")).toHaveCount(7);
-    await expect(page.locator("#app-content")).toContainText("Weight trend");
-    await expect(page.locator("#app-content")).toContainText("182.4 lb");
-    await expect(page.locator("#app-content")).toContainText("-1.7 lb");
-    await expect(page.locator("#app-content")).toContainText(
-        "Selected-day progress",
+    await expect(caloriesCard).toBeVisible();
+    await expect(caloriesCard).toContainText("in range 1 of 6 days");
+    await expect(caloriesCard.locator("[data-chart-label]")).toContainText(
+        "target 2,090–2,310",
     );
-    await expect(page.locator("#app-content")).toContainText(
-        "2,200 kcal target",
+    await expect(caloriesCard.locator("[data-bar-date]")).toHaveCount(6);
+    await expect(
+        page.locator('.trends-card[data-card-key="line:weight"]'),
+    ).toContainText("about −0.4 lb a week");
+    await expect(
+        page.locator('.trends-card[data-card-key="digest"]'),
+    ).toContainText("The week in words");
+    await expect(
+        page.locator('.trends-card[data-card-key="digest"]'),
+    ).toContainText("86% coverage");
+    await expect(page.getByTestId("chat-entry-insights")).toContainText(
+        "Explain my week",
     );
-    await expect(page.locator("#app-content")).toContainText(
-        "Data coverage — where your nutrition came from",
-    );
-    await expect(page.locator("#app-content")).toContainText(
-        "Grilled chicken breast",
-    );
-    // Trend + pattern narratives render as open prose (deterministic
-    // server text, unchanged), not collapsed disclosures.
     await expect(page.locator("#app-content")).toContainText(
         "Recorded calories averaged 1,940 kcal",
     );
@@ -3528,29 +3854,139 @@ test("S6 slice 7: Insights renders the fused surface, check-in stays windowed to
         "Lunch is your most consistently logged meal",
     );
 
-    // The known-bug guard (PR #184): the default 30-day view must
-    // window its check-in request to the last 7 days — the check-in
-    // route rejects ranges over 7 days and once 500'd this whole view.
-    const insightsParams = observedSearch("GET", "/api/app/insights");
+    // T14 spot-check in the real bundle render: the reference label's
+    // box never intersects a bar's box.
+    const overlap = await page.evaluate(() => {
+        const card = document.querySelector(
+            '.trends-card[data-card-key="bar:calories"]',
+        );
+        const label = card?.querySelector("[data-chart-label]");
+        if (!label) return "no label";
+        const lb = label.getBoundingClientRect();
+        for (const bar of card.querySelectorAll("[data-bar-date]")) {
+            const bb = bar.getBoundingClientRect();
+            if (
+                lb.left < bb.right &&
+                bb.left < lb.right &&
+                lb.top < bb.bottom &&
+                bb.top < lb.bottom
+            ) {
+                return `label overlaps bar ${bar.getAttribute("data-bar-date")}`;
+            }
+        }
+        return null;
+    });
+    expect(overlap).toBeNull();
+
+    // The known-bug guard (PR #184): the default 30-day view windows
+    // its Digest check-in request to the last 7 days.
+    const trendsParams = observedSearch("GET", "/api/app/trends");
     const checkinParams = observedSearch("GET", "/api/app/insights/checkin");
-    expect(daySpan(insightsParams)).toBe(29);
+    expect(daySpan(trendsParams)).toBe(29);
     expect(daySpan(checkinParams)).toBe(6);
-    expect(checkinParams.get("end")).toBe(insightsParams.get("end"));
+    expect(checkinParams.get("end")).toBe(trendsParams.get("end"));
 
     // Range switch re-renders at 7 days and both requests agree.
-    await page.locator('[data-action="insight-range"][data-days="7"]').click();
+    await page.locator('[data-action="trends-range"][data-days="7"]').click();
     await expect(page.locator("#app-content")).toContainText("Last 7 days");
-    expect(daySpan(observedSearch("GET", "/api/app/insights"))).toBe(6);
+    expect(daySpan(observedSearch("GET", "/api/app/trends"))).toBe(6);
     expect(daySpan(observedSearch("GET", "/api/app/insights/checkin"))).toBe(6);
+    await page.locator('[data-action="trends-range"][data-days="30"]').click();
+    await expect(page.locator("#app-content")).toContainText("Last 30 days");
 
-    // No ad slot on Insights — not with the flag off, and not with
+    // T11 drill: a bar opens its day sheet with ranked contributors,
+    // and the sheet's one destination is that day's log.
+    await page
+        .locator(
+            '.trends-card[data-card-key="bar:calories"] [data-action="trends-drill-day"][data-date="2026-11-05"]',
+        )
+        .click();
+    const dialog = page.locator("#app-dialog");
+    await expect(dialog).toContainText("Grilled chicken breast");
+    await expect(dialog).toContainText("2,140");
+    await dialog.getByRole("button", { name: "Open that day's log" }).click();
+    await expect(page.locator(".operate-view.today-view")).toHaveCount(1);
+
+    // T3/T4: edit mode + the two-step catalog build a custom
+    // dashboard — remove Protein, compact Calories, add a Fiber bar
+    // (the bar step never offers Weight: the T5 guardrail) and a
+    // Macro split donut, whose segment drills to top foods.
+    await gotoRoute(page, "/app/trends");
+    await page.locator('[data-action="trends-edit-toggle"]').click();
+    const proteinCard = page.locator(
+        '.trends-card[data-card-key="bar:protein_g"]',
+    );
+    await proteinCard.locator('[data-action="trends-remove"]').click();
+    await expect(proteinCard).toHaveCount(0);
+    await caloriesCard.locator('[data-action="trends-size"]').click();
+    await expect(caloriesCard).toHaveClass(/is-compact/);
+    await page.locator('[data-action="trends-edit-toggle"]').click();
+
+    await page.locator('[data-action="trends-add"]').click();
+    await expect(dialog).toContainText("what kind of chart?");
+    await dialog
+        .locator('[data-action="trends-catalog-shape"][data-shape="bar"]')
+        .click();
+    await expect(dialog).toContainText("showing what?");
+    await expect(dialog.locator('[data-data="weight"]')).toHaveCount(0);
+    await dialog
+        .locator('[data-action="trends-catalog-add"][data-data="fiber_g"]')
+        .click();
+    const fiberCard = page.locator('.trends-card[data-card-key="bar:fiber_g"]');
+    await expect(fiberCard).toBeVisible();
+    await expect(fiberCard).toContainText("From 4 of 7 days");
+
+    await page.locator('[data-action="trends-add"]').click();
+    await dialog
+        .locator('[data-action="trends-catalog-shape"][data-shape="breakdown"]')
+        .click();
+    await dialog
+        .locator('[data-action="trends-catalog-add"][data-data="macro_split"]')
+        .click();
+    const donutCard = page.locator(
+        '.trends-card[data-card-key="breakdown:macro_split"]',
+    );
+    await expect(donutCard).toBeVisible();
+    await donutCard
+        .locator(
+            '[data-action="trends-drill-segment"][data-metric="protein_g"]',
+        )
+        .click({ position: { x: 46, y: 10 } });
+    await expect(dialog).toContainText("Grilled Chicken Breast");
+    await dialog.locator('[data-action="close-dialog"]').click();
+
+    // T9: the layout is the account's, server-side — a full reboot
+    // renders the same custom dashboard.
+    expect(observedRequest("PUT", "/api/app/trends/layout")).toBe(true);
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await gotoRoute(page, "/app/trends");
+    await expect(
+        page.locator('.trends-card[data-card-key="bar:protein_g"]'),
+    ).toHaveCount(0);
+    await expect(
+        page.locator('.trends-card[data-card-key="bar:fiber_g"]'),
+    ).toBeVisible();
+    await expect(
+        page.locator('.trends-card[data-card-key="breakdown:macro_split"]'),
+    ).toBeVisible();
+    await expect(
+        page.locator('.trends-card[data-card-key="bar:calories"]'),
+    ).toHaveClass(/is-compact/);
+
+    await page.screenshot({
+        path: "test-results/trends-mobile-custom-dashboard.png",
+        fullPage: true,
+    });
+
+    // No ad slot on Trends — not with the flag off, and not with
     // it on either (the app's only slot is on Today).
     await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
     adsFlagOn = true;
     await page.goto(`${baseURL}/`);
     await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
-    await gotoRoute(page, "/app/insights");
-    await expect(page.locator(".insights-view")).toHaveCount(1);
+    await gotoRoute(page, "/app/trends");
+    await expect(page.locator(".trends-view")).toHaveCount(1);
     await expect(page.locator('[data-testid="today-ad-slot"]')).toHaveCount(0);
     const adCalls = await page.evaluate(
         () => (window as unknown as { __adCalls?: unknown[] }).__adCalls ?? [],
@@ -3559,7 +3995,7 @@ test("S6 slice 7: Insights renders the fused surface, check-in stays windowed to
     expect(lastCall.visible).toBe(false);
 });
 
-test("S6 slice 7 regression: water and weight deletes use inline confirmation with no native confirm", async ({
+test("Vitals regression (on Today since the Trends retirement): water and weight deletes use inline confirmation with no native confirm", async ({
     page,
 }) => {
     // Same defect family as slice 1's Abandon fix: both vitals Delete
@@ -3572,14 +4008,15 @@ test("S6 slice 7 regression: water and weight deletes use inline confirmation wi
         nativeDialogs.push(`${dialog.type()}: ${dialog.message()}`);
         void dialog.dismiss();
     });
+    vitalsOnToday = true;
     await bootPackagedApp(page);
-    await gotoRoute(page, "/app/insights");
-    await expect(page.locator("#water-history")).toBeVisible();
+    await gotoRoute(page, "/app");
 
     // Water: the first click only asks, in place inside the row.
-    const waterRow = page.locator("#water-history .food-row", {
+    const waterRow = page.locator(".today-view .food-row", {
         hasText: "500 ml",
     });
+    await expect(waterRow).toBeVisible();
     const waterDelete = waterRow.locator('[data-action="delete-water"]');
     await waterDelete.click();
     const confirmWater = page.locator('[data-action="confirm-delete-water"]');
@@ -3609,12 +4046,12 @@ test("S6 slice 7 regression: water and weight deletes use inline confirmation wi
         true,
     );
     await expect(
-        page.locator("#water-history .food-row", { hasText: "500 ml" }),
+        page.locator(".today-view .food-row", { hasText: "500 ml" }),
     ).toHaveCount(0);
     expect(nativeDialogs).toEqual([]);
 
     // Weight: the same inline pattern inside the weight history rows.
-    const weightRow = page.locator("#weight-history .food-row", {
+    const weightRow = page.locator(".today-view .food-row", {
         hasText: "182.4 lb",
     });
     const weightDelete = weightRow.locator('[data-action="delete-weight"]');
@@ -3635,7 +4072,7 @@ test("S6 slice 7 regression: water and weight deletes use inline confirmation wi
         true,
     );
     await expect(
-        page.locator("#weight-history .food-row", { hasText: "182.4 lb" }),
+        page.locator(".today-view .food-row", { hasText: "182.4 lb" }),
     ).toHaveCount(0);
     expect(nativeDialogs).toEqual([]);
 });
@@ -3745,12 +4182,12 @@ test("chat v2 placement: contextual entries only — no global entry, seeded ope
         "Opens with today's log and goals attached",
     );
 
-    // Meal Plan and Insights carry their own entries.
+    // Meal Plan and Trends carry their own entries.
     await gotoRoute(page, "/app/plan");
     await expect(page.getByTestId("chat-entry-meal_plan")).toContainText(
         "Adjust or explain this plan",
     );
-    await gotoRoute(page, "/app/insights");
+    await gotoRoute(page, "/app/trends");
     await expect(page.getByTestId("chat-entry-insights")).toContainText(
         "Explain my week",
     );

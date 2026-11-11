@@ -85,6 +85,8 @@ import {
     widgetToolMeta,
 } from "./openai-submission.js";
 import { getWidgetHtml } from "./widgets.js";
+import { getTrendsDashboardLayout } from "./trends-layout.js";
+import { describeTrendsLayout } from "./trends.js";
 import { registerGuidanceTools } from "./guidance-tools.js";
 
 // MCP Apps UI (https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/):
@@ -3762,6 +3764,19 @@ export function registerTools(
 
                     const goalsPayload = goalsPayloadOf(goals, alcohol);
 
+                    // T9 parity: the agent can read the user's Trends
+                    // dashboard layout, so a question about a nutrient
+                    // can be answered from the card the user built.
+                    // Soft-fail — the trends text stands on its own.
+                    let dashboardText: string | null = null;
+                    try {
+                        dashboardText = describeTrendsLayout(
+                            await getTrendsDashboardLayout(userId),
+                        );
+                    } catch {
+                        dashboardText = null;
+                    }
+
                     return {
                         content: [
                             {
@@ -3771,6 +3786,14 @@ export function registerTools(
                                     goals,
                                 ),
                             },
+                            ...(dashboardText
+                                ? [
+                                      {
+                                          type: "text" as const,
+                                          text: dashboardText,
+                                      },
+                                  ]
+                                : []),
                         ],
                         structuredContent: {
                             end_date: endDate,

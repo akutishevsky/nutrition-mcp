@@ -25,6 +25,23 @@ import {
 const MOBILE_HANDOFF_IDENTIFIER_PREFIX = "munch-mobile-handoff:";
 const MOBILE_HANDOFF_TTL_MS = 2 * 60 * 1000;
 
+// Per-IP ceiling for the credential sign-in endpoints (Better Auth
+// customRules below). The production value is 5 per minute, sized to
+// blunt credential stuffing. The browser e2e suite is the one legitimate
+// client that exceeds it: every test file signs in through the real
+// form, both Playwright projects share one server and one loopback IP,
+// so the suite's deterministic schedule puts a sixth sign-in inside the
+// same minute and the last journey is refused with a 429 before it can
+// leave the sign-in page (PR #236 website-e2e). The CI website-e2e job
+// — and only it — raises the ceiling through this variable; unset or
+// invalid values keep the production limit.
+function signInRateLimitMax(): number {
+    const raw = process.env.MUNCH_AUTH_SIGN_IN_RATE_LIMIT_MAX;
+    if (!raw) return 5;
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : 5;
+}
+
 let authDatabase: Pool | null = null;
 
 function sha256Base64Url(value: string): string {
@@ -251,11 +268,11 @@ function createMunchBetterAuth() {
                 },
                 "/sign-in/email": {
                     window: 60,
-                    max: 5,
+                    max: signInRateLimitMax(),
                 },
                 "/sign-in/username": {
                     window: 60,
-                    max: 5,
+                    max: signInRateLimitMax(),
                 },
                 "/sign-up/email": {
                     window: 60,

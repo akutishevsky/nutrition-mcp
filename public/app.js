@@ -35,7 +35,11 @@ const state = {
     date: null,
     mealHistoryDays: 1,
     mealHistoryQuery: "",
-    insightsDays: 30,
+    trendsRangeDays: 30,
+    trendsEditing: false,
+    trendsData: null,
+    trendsCheckin: null,
+    trendsDonutModes: new Map(),
     cookQuery: "",
     cookFilters: {
         dish: "",
@@ -151,6 +155,7 @@ const routes = {
     "/app/": "today",
     "/app/log": "log",
     "/app/insights": "insights",
+    "/app/trends": "trends",
     "/app/foods": "foods",
     "/app/recipes": "recipes",
     "/app/cooks": "cooks",
@@ -168,7 +173,7 @@ const routes = {
 const titles = {
     today: ["Daily workspace", "Today"],
     log: ["Nutrition history", "Food Log"],
-    insights: ["Patterns and progress", "Insights"],
+    trends: ["Patterns and progress", "Trends"],
     foods: ["Reusable nutrition data", "Foods"],
     recipes: ["Structured cooking memory", "Recipes"],
     cooks: ["Cooking sessions", "Cooks"],
@@ -376,7 +381,7 @@ function setActiveRoute(route) {
     const moreRoutes = new Set([
         "more",
         "household",
-        "insights",
+        "trends",
         "foods",
         "recipes",
         "settings",
@@ -572,32 +577,6 @@ function weightEntryRows(entries, fallbackUnit) {
         )}</div>${entries.length > visible.length ? `<p class="tiny">Showing the most recent ${visible.length} of ${entries.length} entries.</p>` : ""}`;
 }
 
-function weightChart(days, unit, target) {
-    if (!days?.length)
-        return `<div class="empty-state"><div><h3>No weight trend yet</h3><p>Log a measurement to see the range trend.</p></div></div>`;
-    const width = 720;
-    const height = 140;
-    const padX = 38;
-    const padY = 18;
-    const values = days.map((day) => Number(day.weight));
-    const allValues = target == null ? values : [...values, Number(target)];
-    const min = Math.min(...allValues);
-    const max = Math.max(...allValues);
-    const span = max - min || 1;
-    const x = (index) =>
-        days.length === 1
-            ? width / 2
-            : padX + (index / (days.length - 1)) * (width - padX * 2);
-    const y = (value) =>
-        height - padY - ((value - min) / span) * (height - padY * 2);
-    const points = days.map((day, index) => `${x(index)},${y(day.weight)}`);
-    const targetLine =
-        target == null
-            ? ""
-            : `<line x1="${padX}" y1="${y(target)}" x2="${width - padX}" y2="${y(target)}" stroke="var(--amber-600)" stroke-dasharray="6 5" /><text x="${width - padX}" y="${Math.max(14, y(target) - 7)}" text-anchor="end" fill="var(--amber-700)" font-size="12">Target ${number(target, 1)} ${escapeHtml(unit)}</text>`;
-    return `<div role="img" aria-label="Weight trend in ${escapeHtml(unit)}"><svg viewBox="0 0 ${width} ${height}" width="100%" height="140" preserveAspectRatio="none" style="overflow:visible"><line x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" stroke="var(--ink-200)" />${targetLine}<polyline points="${points.join(" ")}" fill="none" stroke="var(--green-600)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />${days.map((day, index) => `<circle cx="${x(index)}" cy="${y(day.weight)}" r="5" fill="var(--green-700)" /><text x="${x(index)}" y="${height - 5}" text-anchor="middle" fill="var(--ink-500)" font-size="11">${escapeHtml(day.date.slice(5))}</text>`).join("")}</svg></div><p class="tiny">Daily values average multiple weigh-ins; displayed in ${escapeHtml(unit)}.</p>`;
-}
-
 function mealCard(meal) {
     mealDescriptionsById.set(
         String(meal.id),
@@ -660,7 +639,7 @@ async function renderToday() {
     // heading → day totals → Today's guidance → the single ad slot →
     // Meals / Daily details. The ad slot markup is empty unless the
     // ADS-FOUNDATION flag is on for a free packaged account.
-    content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><p>Your structured nutrition record for this day.</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", goals.daily_calories, true, { key: "today-calories", targetLink: true, body: mealMetricDetail(data.meals, "calories", " kcal") })}${metricCard("Protein", data.totals.proteinG, "g", goals.daily_protein_g, false, { key: "today-protein", targetLink: true, body: mealMetricDetail(data.meals, "protein_g", "g") })}${metricCard("Carbohydrates", data.totals.carbsG, "g", goals.daily_carbs_g, false, { key: "today-carbs", targetLink: true, body: mealMetricDetail(data.meals, "carbs_g", "g") })}${metricCard("Fat", data.totals.fatG, "g", goals.daily_fat_g, false, { key: "today-fat", targetLink: true, body: mealMetricDetail(data.meals, "fat_g", "g") })}</div></section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml, false, { key: "today-water", targetLink: true, body: waterMetricDetail(data.water.entries) })}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null, false, { key: "today-weight", body: weightMetricDetail(data.weight, weightUnit) })}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span><button class="button button-quiet button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(meal.recipe_id)}">View recipe</button></div>`).join("")}` : ""}</aside></div></div>`;
+    content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><p>Your structured nutrition record for this day.</p></div><div class="auth-actions"><button class="button button-secondary button-small trends-icon-btn" type="button" disabled aria-disabled="true" title="Calendar — arrives with the day-navigation update"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></button><button class="button button-secondary button-small trends-icon-btn" type="button" data-action="open-trends" aria-label="Open Trends" title="Trends"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><rect x="4" y="12" width="3.4" height="7" rx="1"/><rect x="10.3" y="7" width="3.4" height="12" rx="1"/><rect x="16.6" y="9.5" width="3.4" height="9.5" rx="1"/></svg></button><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", goals.daily_calories, true, { key: "today-calories", targetLink: true, body: mealMetricDetail(data.meals, "calories", " kcal") })}${metricCard("Protein", data.totals.proteinG, "g", goals.daily_protein_g, false, { key: "today-protein", targetLink: true, body: mealMetricDetail(data.meals, "protein_g", "g") })}${metricCard("Carbohydrates", data.totals.carbsG, "g", goals.daily_carbs_g, false, { key: "today-carbs", targetLink: true, body: mealMetricDetail(data.meals, "carbs_g", "g") })}${metricCard("Fat", data.totals.fatG, "g", goals.daily_fat_g, false, { key: "today-fat", targetLink: true, body: mealMetricDetail(data.meals, "fat_g", "g") })}</div></section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml, false, { key: "today-water", targetLink: true, body: waterMetricDetail(data.water.entries) })}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null, false, { key: "today-weight", body: weightMetricDetail(data.weight, weightUnit) })}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span><button class="button button-quiet button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(meal.recipe_id)}">View recipe</button></div>`).join("")}` : ""}</aside></div></div>`;
 }
 
 function mealSearchSummary(search) {
@@ -776,124 +755,687 @@ async function openSavedFoodCandidate(key) {
     );
 }
 
-function barChart(days, key, label, unit = "") {
-    const values = days.map((day) => Number((day.totals || day)[key] || 0));
-    const max = Math.max(1, ...values);
-    return `<div class="insights-spark" role="img" aria-label="${escapeHtml(label)} by logged day">${days
-        .map((day, index) => {
-            const height = values[index]
-                ? Math.max(4, Math.round((values[index] / max) * 56))
-                : 0;
-            const faded = day.hasLog === false ? " is-empty" : "";
-            return `<i class="insights-spark-bar${faded}" style="height:${height}px" title="${escapeHtml(day.date)}: ${number(values[index])}"></i>`;
-        })
-        .join(
-            "",
-        )}</div><p class="tiny">${escapeHtml(label)} is shown for the selected calendar range${unit ? ` in ${escapeHtml(unit)}` : ""}; days without logs are shown as empty columns.</p>`;
-}
+// TRENDS-START
+// Trends dashboard (brief T1-T14). The server computes every card
+// payload (src/trends.ts); this block renders payloads as inline SVG
+// with collision-aware on-chart labels (T13/T14) and wires the global
+// range, edit mode, the two-step catalog, and drill-down sheets (T11).
 
-function insightRule(label, valueHtml) {
-    return `<div class="insight-rule"><span>${escapeHtml(label)}</span><b>${valueHtml}</b></div>`;
-}
+const TRENDS_RANGE_LABELS = { 7: "Week", 30: "Month", 90: "3 Mo" };
 
-function insightProgressRule(label, value, unit, target) {
-    const progress = percent(value, target);
-    return `<div class="insight-rule insight-rule-progress"><span>${escapeHtml(label)}</span><b>${number(value, 1)}<small> ${escapeHtml(unit)}</small></b><small class="insight-target">${target ? `${number(target, 1)} ${escapeHtml(unit)} target` : "No target set"}</small>${progress == null ? "" : `<div class="progress" aria-label="${progress}% of target"><span style="width:${progress}%"></span></div>`}</div>`;
-}
-
-async function renderInsights() {
-    setLoading("Calculating trends and patterns…");
-    const end = state.date;
-    const days = [7, 30, 90].includes(state.insightsDays)
-        ? state.insightsDays
+function trendsRange() {
+    return [7, 30, 90].includes(state.trendsRangeDays)
+        ? state.trendsRangeDays
         : 30;
-    const start = shiftDate(end, -(days - 1));
-    const data = await api(`/api/app/insights?start=${start}&end=${end}`);
-    // The weekly check-in is a seven-day panel, so window its request to the
-    // most recent seven days of the selected range. The check-in endpoint
-    // only accepts one to seven days; passing the full 30/90-day trend range
-    // made this request fail and took the whole Insights view down with it.
-    const checkinStart = shiftDate(end, -6);
-    const checkin = await api(
-        `/api/app/insights/checkin?start=${checkinStart}&end=${end}`,
-        { keepPrevious: true },
-    );
-    const vitals = data.vitals || {};
-    const waterHistory = vitals.water || {};
-    const weightTrend = vitals.weight || {};
-    state.waterEntries = waterHistory.entries || [];
-    state.weightEntries = weightTrend.entries || [];
-    const rangeButtons = [7, 30, 90]
-        .map(
-            (range) =>
-                `<button class="button ${range === days ? "button-primary" : "button-secondary"} button-small" data-action="insight-range" data-days="${range}" aria-pressed="${range === days}">${range} days</button>`,
-        )
-        .join("");
-    const trendDays = data.trends?.days || data.days || [];
-    const progress = data.progress || {};
-    const progressGoals = progress.goals || {};
-    const provenance = data.provenance || {};
-    const coverage = provenance.coverage || {};
-    const confidence = provenance.confidence || {};
-    const sourceRows = (provenance.sources || [])
-        .map(
-            (source) =>
-                `<tr><td>${escapeHtml(source.source)}</td><td>${number(source.itemCount)}</td><td>${number(source.percentOfItems, 1)}%</td><td>${number(source.calories, 1)} kcal</td></tr>`,
-        )
-        .join("");
-    const calorieContributors = (provenance.contributors?.calories || [])
-        .slice(0, 5)
-        .map(
-            (item) =>
-                `<li><strong>${escapeHtml(item.name)}</strong> · ${number(item.value, 1)} kcal <span class="tiny">${escapeHtml(item.source)}</span></li>`,
-        )
-        .join("");
-    // S6 slice 7 (Insights fusion): the surface renders in the
-    // tightened mock's grammar (selected/src/insights/theme4-tight.html)
-    // inside slice 1's .operate-view scope — hairline panels, metric
-    // facts as rule rows, the daily-calories spark at mock height, and
-    // the trend / pattern narratives as open prose (they are the
-    // server's deterministic summaries, unchanged — no new narrative
-    // is generated anywhere on this surface). Every panel the surface
-    // had keeps its data and actions; the mock's merged panels merge
-    // the same facts (Daily calories + Average intake in one panel,
-    // Weight trend + Hydration in one, Data coverage + Largest
-    // contributors in one). NO ADS on this surface — the Insights
-    // banner placement is retired; the app's only ad slot is on Today.
-    const weightDisplayUnit =
-        weightTrend.unit ||
-        displayWeightUnit(state.bootstrap?.profile?.preferred_weight_unit);
-    const weightDays = weightTrend.days || [];
-    const latestWeightDay = weightDays.at(-1);
-    const earliestWeightDay = weightDays[0];
-    const weightChange =
-        latestWeightDay && earliestWeightDay
-            ? Number(latestWeightDay.weight) - Number(earliestWeightDay.weight)
-            : null;
-    const weeklyPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Weekly check-in</h3><span>Coverage first; gaps are unknown, not zero · ${number(checkin.coverage_percent)}% coverage</span></div></div>${insightRule("Days with recorded nutrition", `${number(checkin.nutrition_target_coverage_days)} of ${number(checkin.calendar_days)}`)}${insightRule("Recorded-day calories (average)", `${number(checkin.averages_on_recorded_days.calories?.value, 1)} kcal`)}${insightRule("Recorded-day protein (average)", `${number(checkin.averages_on_recorded_days.protein_g?.average, 1)} g`)}${insightRule("Meals with uncertain nutrition", `${number(checkin.uncertain_nutrition_meals)} meals`)}${checkin.observations.length ? `<ul class="insights-observations">${checkin.observations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}<p class="tiny spacer-top">Targets reflect the goal revision effective during the selected week.</p>${chatEntryRow("insights", "Explain my week", "Opens with this check-in attached")}</section>`;
-    const dailyPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Daily calories</h3><span>${trendDays.length} calendar days</span></div><span class="source-chip source-usda">Trend</span></div>${trendDays.length ? barChart(trendDays, "calories", "Daily calories", "kilocalories") : `<div class="empty-state"><div><h3>No logged days</h3><p>Log meals to build a trend.</p></div></div>`}<h4 class="insights-subhead">Average intake — across logged days</h4>${insightRule("Calories", `${number(data.averages.calories, 1)} kcal`)}${insightRule("Protein", `${number(data.averages.proteinG, 1)} g`)}${insightRule("Carbohydrates", `${number(data.averages.carbsG, 1)} g`)}${insightRule("Fat", `${number(data.averages.fatG, 1)} g`)}</section>`;
-    const weightPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Weight trend</h3><span>${number(weightDays.length)} recorded days</span></div><span class="source-chip source-saved">Weight</span></div>${weightDays.length ? `${insightRule(`Latest — ${formatDate(latestWeightDay.date)}`, `${number(latestWeightDay.weight, 1)} ${escapeHtml(weightDisplayUnit)}`)}${insightRule(`Range start — ${formatDate(earliestWeightDay.date)}`, `${number(earliestWeightDay.weight, 1)} ${escapeHtml(weightDisplayUnit)}`)}${insightRule("Change in range", `${weightChange > 0 ? "+" : ""}${number(weightChange, 1)} ${escapeHtml(weightDisplayUnit)}`)}${weightTrend.target == null ? "" : insightRule("Your target", `${number(weightTrend.target, 1)} ${escapeHtml(weightDisplayUnit)}`)}<p class="tiny spacer-top">Daily values average multiple weigh-ins; displayed in ${escapeHtml(weightDisplayUnit)}. Recorded measurements only — no projections.</p>` : `<p class="tiny">No weight data in range.</p>`}<div class="auth-actions spacer-top"><button class="button button-secondary button-small" type="button" data-action="add-weight">Add weight</button></div><h4 class="insights-subhead">Hydration</h4>${insightRule("Total water in range", `${number(waterHistory.totalMl)} ml`)}${insightRule("Entries", `${number(waterHistory.entries?.length || 0)}`)}<div class="auth-actions spacer-top"><button class="button button-secondary button-small" type="button" data-action="add-water">Add water</button></div></section>`;
-    const progressPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Selected-day progress</h3><span>${escapeHtml(formatDate(progress.date || end))}</span></div></div>${insightProgressRule("Calories", progress.totals?.calories, "kcal", progressGoals.daily_calories)}${insightProgressRule("Protein", progress.totals?.proteinG, "g", progressGoals.daily_protein_g)}${insightProgressRule("Carbohydrates", progress.totals?.carbsG, "g", progressGoals.daily_carbs_g)}${insightProgressRule("Fat", progress.totals?.fatG, "g", progressGoals.daily_fat_g)}${insightProgressRule("Water", progress.totals?.waterMl, "ml", progressGoals.daily_water_ml)}${insightRule("Meals", `${number(progress.mealCount)}`)}<p class="tiny spacer-top">Progress is calculated for the selected range end date. Use Today to review a different day.</p></section>`;
-    const coveragePanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Data coverage — where your nutrition came from</h3></div></div>${sourceRows ? `<div class="data-table-wrap"><table class="data-table"><thead><tr><th>Source</th><th>Items</th><th>Share</th><th>Calories</th></tr></thead><tbody>${sourceRows}</tbody></table></div>` : `<p class="tiny">No item-level provenance is recorded in this range.</p>`}${insightRule("Itemized calories", `${number(coverage.itemizedCaloriePercent, 1)}%`)}${insightRule("Food items", `${number(coverage.itemCount)}`)}${insightRule("Structured meals", `${number(coverage.structuredMealCount)}`)}${insightRule("Legacy meals", `${number(coverage.legacyMealCount)}`)}${insightRule("Recorded confidence", `${number(confidence.recordedItemCount)} items`)}${insightRule("Average recorded confidence", `${confidence.average == null ? "—" : `${number(confidence.average * 100, 1)}%`}`)}<h4 class="insights-subhead">Largest calorie contributors</h4>${
-        calorieContributors
-            ? `<div class="insights-contributors">${(
-                  provenance.contributors?.calories || []
-              )
-                  .slice(0, 5)
-                  .map(
-                      (item, index) =>
-                          `<div class="insight-rule"><span>${index + 1}. ${escapeHtml(item.name)} <span class="source-chip">${escapeHtml(item.source)}</span></span><b>${number(item.value, 1)} kcal</b></div>`,
-                  )
-                  .join("")}</div>`
-            : `<p class="tiny">No itemized foods are available.</p>`
-    }</section>`;
-    const waterHistoryPanel = `<section id="water-history" class="panel insights-panel"><div class="panel-title"><div><h3>Hydration history</h3><span>${number(waterHistory.entries?.length || 0)} entries in range</span></div><span class="source-chip source-saved">Water</span></div>${insightRule("Total water", `${number(waterHistory.totalMl)} ml`)}${insightRule("Entries", `${number(waterHistory.entries?.length || 0)}`)}<div class="spacer-top">${waterEntryRows(state.waterEntries)}</div></section>`;
-    const weightHistoryPanel = `<section id="weight-history" class="panel insights-panel"><div class="panel-title"><div><h3>Weight history</h3><span>${number(weightTrend.entries?.length || 0)} entries in range</span></div><span class="source-chip source-saved">Weight</span></div>${weightChart(weightDays, weightDisplayUnit, weightTrend.target)}<details class="spacer-top"><summary class="tiny">Trend explanation</summary><p class="tiny spacer-top">${escapeHtml(weightTrend.narrative || "No weight data in range.")}</p></details><div class="spacer-top">${weightEntryRows(state.weightEntries, weightDisplayUnit)}</div></section>`;
-    const weightContextPanel = `<section class="panel insights-panel"><div class="panel-title"><div><h3>Weight context</h3><span>Latest standing measurement</span></div></div>${progress.weight ? `${insightRule("Latest weight", `${number(progress.weight.current, 1)} ${escapeHtml(progress.weight.unit)}`)}${insightRule("Target", `${number(progress.weight.target, 1)} ${escapeHtml(progress.weight.unit)}`)}${insightRule("Meals on selected day", `${number(progress.mealCount)}`)}<p class="tiny spacer-top">Last logged ${escapeHtml(progress.weight.loggedOn || "date unavailable")}.</p>` : `<p class="tiny">No weight target or measurement is available yet.</p>`}</section>`;
-    const narrativePanel = (title, text) =>
-        `<section class="panel insights-panel insights-narrative"><div class="panel-title"><div><h3>${escapeHtml(title)}</h3></div></div><p>${escapeHtml(text || "No data in range.")}</p></section>`;
-    content.innerHTML = `<div class="operate-view insights-view"><div class="page-heading"><div><h2>Last ${days} days</h2><p>${data.loggedDays} logged days and ${data.mealCount} meals from ${escapeHtml(formatDate(start))} through ${escapeHtml(formatDate(end))}.</p></div></div><div class="auth-actions insights-range-row" role="group" aria-label="Insights range">${rangeButtons}</div>${weeklyPanel}<div class="insights-grid">${dailyPanel}${weightPanel}</div>${progressPanel}${coveragePanel}<div class="insights-grid">${waterHistoryPanel}${weightHistoryPanel}</div>${weightContextPanel}${narrativePanel("Trend analysis", data.trends?.narrative)}${narrativePanel("Meal patterns", data.patterns?.narrative)}</div>`;
 }
+
+function trendsCardKey(card) {
+    return `${card.shape}:${card.data}`;
+}
+
+function trendsRound2(value) {
+    return Math.round(value * 100) / 100;
+}
+
+function trendsBoxesOverlap(a, b) {
+    return (
+        a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+    );
+}
+
+// Collision-aware label placement (T14): try each candidate anchor in
+// order; the first whose box clears every obstacle (bar tops, line
+// points, other labels) and stays inside the plot wins. Falls back to
+// above the plot, clamped inside.
+function trendsPlaceLabel(text, candidates, obstacles, width, height) {
+    const w = Math.ceil(text.length * 5.9) + 6;
+    const h = 13;
+    for (const candidate of candidates) {
+        const box = {
+            x: candidate.anchor === "end" ? candidate.x - w : candidate.x,
+            y: candidate.y - 10,
+            w,
+            h,
+        };
+        if (box.x < 0 || box.x + w > width || box.y < 0 || box.y + h > height)
+            continue;
+        if (obstacles.some((o) => trendsBoxesOverlap(box, o))) continue;
+        return {
+            x: candidate.x,
+            y: candidate.y,
+            anchor: candidate.anchor,
+            box,
+        };
+    }
+    return {
+        x: width - 2,
+        y: 11,
+        anchor: "end",
+        box: { x: Math.max(0, width - 2 - w), y: 1, w, h },
+    };
+}
+
+function trendsReferenceLabel(reference, yTop, obstacles, width, height) {
+    const candidates = [
+        { x: width - 2, y: yTop - 4, anchor: "end" },
+        { x: 2, y: yTop - 4, anchor: "start" },
+        { x: width - 2, y: yTop + 14, anchor: "end" },
+        { x: 2, y: yTop + 14, anchor: "start" },
+        { x: width - 2, y: 11, anchor: "end" },
+        { x: 2, y: 11, anchor: "start" },
+    ];
+    const placed = trendsPlaceLabel(
+        reference.label,
+        candidates,
+        obstacles,
+        width,
+        height,
+    );
+    obstacles.push(placed.box);
+    return `<text data-chart-label x="${placed.x}" y="${placed.y}" text-anchor="${placed.anchor}" class="trends-ref-label">${escapeHtml(reference.label)}</text>`;
+}
+
+function trendsDayLabel(date, rangeDays) {
+    if (rangeDays <= 7)
+        return "SMTWTFS"[new Date(`${date}T12:00:00Z`).getUTCDay()];
+    return String(Number(date.slice(8, 10)));
+}
+
+function trendsHourLabel(hour) {
+    const h24 = Math.floor(hour);
+    const minutes = Math.round((hour - h24) * 60);
+    const suffix = h24 >= 12 ? "p" : "a";
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    return `${h12}:${String(minutes).padStart(2, "0")}${suffix}`;
+}
+
+function trendsBarChart(card) {
+    const chart = card.chart;
+    const W = 326;
+    const H = card.size === "compact" ? 96 : 118;
+    const top = 18;
+    const plotH = H - top - 4;
+    const baseY = top + plotH;
+    const days = chart.days;
+    const refHigh = chart.reference
+        ? chart.reference.type === "band"
+            ? chart.reference.value2
+            : chart.reference.value
+        : 0;
+    const dataMax = Math.max(0, ...days.map((d) => d.value ?? 0));
+    const domain = Math.max(dataMax, refHigh) * 1.15 || 1;
+    const slot = W / days.length;
+    const barW = Math.max(2, Math.min(30, slot * 0.6));
+    const yFor = (v) => baseY - (v / domain) * plotH;
+    const obstacles = [];
+    const bars = [];
+    const hits = [];
+    days.forEach((day, i) => {
+        const cx = (slot * i + slot / 2).toFixed(2);
+        if (day.value != null && day.value > 0) {
+            const h = Math.max(3, (day.value / domain) * plotH);
+            const rect = {
+                x: Number(cx) - barW / 2,
+                y: baseY - h,
+                w: barW,
+                h,
+            };
+            obstacles.push(rect);
+            bars.push(
+                `<rect data-bar-date="${day.date}" x="${trendsRound2(rect.x)}" y="${trendsRound2(rect.y)}" width="${trendsRound2(barW)}" height="${trendsRound2(h)}" rx="2.5" class="trends-bar" />`,
+            );
+        } else if (day.value != null) {
+            bars.push(
+                `<rect x="${trendsRound2(Number(cx) - barW / 2)}" y="${baseY - 1.5}" width="${trendsRound2(barW)}" height="1.5" class="trends-tick" />`,
+            );
+        }
+        hits.push(
+            `<rect class="trends-hit" data-action="trends-drill-day" data-date="${day.date}" data-metric="${escapeHtml(chart.metric)}" x="${trendsRound2(slot * i)}" y="${top}" width="${trendsRound2(slot)}" height="${plotH}" fill="transparent"><title>${escapeHtml(day.date)}</title></rect>`,
+        );
+    });
+    let rollingSvg = "";
+    if (chart.rolling) {
+        const points = [];
+        chart.rolling.forEach((point, i) => {
+            if (point.value != null)
+                points.push({
+                    x: slot * i + slot / 2,
+                    y: yFor(point.value),
+                });
+        });
+        points.forEach((p) =>
+            obstacles.push({ x: p.x - 3, y: p.y - 3, w: 6, h: 6 }),
+        );
+        if (points.length > 1)
+            rollingSvg = `<polyline points="${points.map((p) => `${trendsRound2(p.x)},${trendsRound2(p.y)}`).join(" ")}" class="trends-rolling" />`;
+    }
+    let referenceBg = "";
+    let referenceLabel = "";
+    if (chart.reference) {
+        if (chart.reference.type === "band") {
+            const y1 = yFor(chart.reference.value2);
+            const y2 = yFor(chart.reference.value);
+            referenceBg = `<rect x="0" y="${trendsRound2(y1)}" width="${W}" height="${trendsRound2(Math.max(2, y2 - y1))}" class="trends-band" />`;
+            referenceLabel = trendsReferenceLabel(
+                chart.reference,
+                y1,
+                obstacles,
+                W,
+                H,
+            );
+        } else {
+            const y = yFor(chart.reference.value);
+            referenceBg = `<line x1="0" y1="${trendsRound2(y)}" x2="${W}" y2="${trendsRound2(y)}" class="trends-refline" />`;
+            referenceLabel = trendsReferenceLabel(
+                chart.reference,
+                y,
+                obstacles,
+                W,
+                H,
+            );
+        }
+    }
+    const rangeDays = state.trendsData?.rangeDays || 30;
+    const dayLabels = days
+        .map((day, i) => {
+            const show =
+                days.length <= 31 ||
+                i % 7 === 0 ||
+                Number(day.date.slice(8, 10)) === 1;
+            return `<span>${show ? escapeHtml(trendsDayLabel(day.date, rangeDays)) : ""}</span>`;
+        })
+        .join("");
+    return `<div class="trends-chart"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(card.title)} chart">${referenceBg}${bars.join("")}${rollingSvg}${hits.join("")}${referenceLabel}</svg><div class="trends-daylabels" aria-hidden="true">${dayLabels}</div></div>`;
+}
+
+function trendsLineChart(card) {
+    const chart = card.chart;
+    const W = 326;
+    const H = 112;
+    const top = 18;
+    const plotH = H - top - 6;
+    const baseY = top + plotH;
+    const trendPoints = (chart.trend || []).filter((p) => p.value != null);
+    const domainValues = [
+        ...trendPoints.map((p) => p.value),
+        ...(chart.target != null ? [chart.target] : []),
+    ];
+    let lo;
+    let hi;
+    if (chart.metric === "weight") {
+        const min = Math.min(...domainValues);
+        const max = Math.max(...domainValues);
+        const span = Math.max(1, max - min);
+        lo = min - span * 0.18;
+        hi = max + span * 0.18;
+    } else {
+        lo = 0;
+        hi = (Math.max(1, ...domainValues) || 1) * 1.15;
+    }
+    const startMs = Date.parse(`${chart.startLabel}T00:00:00Z`);
+    const totalDays = Math.max(
+        1,
+        (Date.parse(`${chart.endLabel}T00:00:00Z`) - startMs) / 86400000,
+    );
+    const xFor = (date) =>
+        4 +
+        ((Date.parse(`${date}T00:00:00Z`) - startMs) / 86400000 / totalDays) *
+            (W - 8);
+    const yFor = (v) => baseY - ((v - lo) / (hi - lo)) * plotH;
+    const clampY = (y) => Math.min(baseY, Math.max(top, y));
+    const obstacles = trendPoints.map((p) => ({
+        x: xFor(p.date) - 3,
+        y: yFor(p.value) - 3,
+        w: 6,
+        h: 6,
+    }));
+    let area = "";
+    if (chart.area && trendPoints.length > 1) {
+        const line = trendPoints
+            .map(
+                (p) =>
+                    `${trendsRound2(xFor(p.date))},${trendsRound2(yFor(p.value))}`,
+            )
+            .join(" ");
+        area = `<polygon points="4,${baseY} ${line} ${trendsRound2(xFor(trendPoints[trendPoints.length - 1].date))},${baseY}" class="trends-area" />`;
+    }
+    const path = trendPoints.length
+        ? `<polyline points="${trendPoints.map((p) => `${trendsRound2(xFor(p.date))},${trendsRound2(yFor(p.value))}`).join(" ")}" class="trends-line" />`
+        : "";
+    const dots = (chart.points || [])
+        .map((p) => {
+            const cx = xFor(p.date);
+            const cy = clampY(yFor(p.value));
+            obstacles.push({ x: cx - 3, y: cy - 3, w: 6, h: 6 });
+            return `<circle data-chart-dot data-date="${p.date}" cx="${trendsRound2(cx)}" cy="${trendsRound2(cy)}" r="3" class="trends-dot" /><circle class="trends-hit" data-action="trends-drill-day" data-date="${p.date}" data-metric="${escapeHtml(chart.metric)}" cx="${trendsRound2(cx)}" cy="${trendsRound2(cy)}" r="11" fill="transparent"><title>${escapeHtml(p.date)}</title></circle>`;
+        })
+        .join("");
+    let targetSvg = "";
+    let targetLabel = "";
+    if (chart.target != null) {
+        const y = yFor(chart.target);
+        targetSvg = `<line x1="0" y1="${trendsRound2(y)}" x2="${W}" y2="${trendsRound2(y)}" class="trends-refline" />`;
+        targetLabel = trendsReferenceLabel(
+            {
+                label: `target ${chart.target} ${chart.unit}`,
+                value: chart.target,
+            },
+            y,
+            obstacles,
+            W,
+            H,
+        );
+    }
+    return `<div class="trends-chart"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(card.title)} chart">${targetSvg}${area}${path}${dots}${targetLabel}</svg><div class="trends-daylabels trends-endlabels" aria-hidden="true"><span>${escapeHtml(formatDate(chart.startLabel))}</span><span>${escapeHtml(formatDate(chart.endLabel))}</span></div></div>`;
+}
+
+function trendsDonutChart(card) {
+    const chart = card.chart;
+    const key = trendsCardKey(card);
+    const mode = state.trendsDonutModes.get(key) || "snapshot";
+    const colors = {
+        protein_g: "#2E5B34",
+        carbs_g: "#C9BFA3",
+        fat_g: "#8A6D3B",
+        alcohol_g: "#C0562F",
+    };
+    const legend = chart.segments
+        .map(
+            (segment) =>
+                `<div class="trends-legend-row"><span class="trends-legend-dot" style="background:${colors[segment.key] || "#6E7462"}"></span><span>${escapeHtml(segment.label)}</span><b>${segment.share}%</b><small>${number(segment.grams)} g</small></div>`,
+        )
+        .join("");
+    const toggle = `<div class="trends-toggle" role="group" aria-label="Macro split view"><button type="button" class="${mode === "snapshot" ? "is-on" : ""}" data-action="trends-donut-mode" data-cardkey="${key}" data-mode="snapshot">Snapshot</button><button type="button" class="${mode === "columns" ? "is-on" : ""}" data-action="trends-donut-mode" data-cardkey="${key}" data-mode="columns">Over time</button></div>`;
+    if (mode === "columns") {
+        const columns = chart.columns
+            .map((column) => {
+                const parts = chart.segments
+                    .map((segment) => {
+                        const share = column.shares[segment.key] || 0;
+                        return share > 0
+                            ? `<i style="height:${share}%;background:${colors[segment.key] || "#6E7462"}"></i>`
+                            : "";
+                    })
+                    .join("");
+                return `<div class="trends-column"><div class="trends-column-stack">${parts}</div><span>${escapeHtml(formatDate(column.label))}</span></div>`;
+            })
+            .join("");
+        return `<div class="trends-donut-wrap"><div class="trends-columns">${columns}</div><div class="trends-legend">${legend}${toggle}</div></div>`;
+    }
+    const C = 2 * Math.PI * 34;
+    let acc = 0;
+    const rings = chart.segments
+        .map((segment) => {
+            const len = (segment.share / 100) * C;
+            const el = `<circle data-action="trends-drill-segment" data-metric="${segment.key}" cx="46" cy="46" r="34" fill="none" stroke="${colors[segment.key] || "#6E7462"}" stroke-width="15" stroke-dasharray="${trendsRound2(Math.max(0, len - 1.5))} ${trendsRound2(C)}" stroke-dashoffset="${trendsRound2(-acc)}" transform="rotate(-90 46 46)" class="trends-ring"><title>${escapeHtml(segment.label)} ${segment.share}%</title></circle>`;
+            acc += len;
+            return el;
+        })
+        .join("");
+    return `<div class="trends-donut-wrap"><svg viewBox="0 0 92 92" class="trends-donut" role="img" aria-label="Macro split donut">${rings}<text x="46" y="43" text-anchor="middle" class="trends-donut-value">${escapeHtml(number(chart.centerValue))}</text><text x="46" y="56" text-anchor="middle" class="trends-donut-unit">kcal</text></svg><div class="trends-legend">${legend}${toggle}</div></div>`;
+}
+
+function trendsStackedChart(card) {
+    const chart = card.chart;
+    const colors = {
+        breakfast: "#C9A86A",
+        lunch: "#2E5B34",
+        dinner: "#22301F",
+        snack: "#8A6D3B",
+    };
+    const bar = chart.segments
+        .map(
+            (segment) =>
+                `<i style="width:${segment.share}%;background:${colors[segment.key] || "#6E7462"}" title="${escapeHtml(segment.label)} ${segment.share}%"></i>`,
+        )
+        .join("");
+    const legend = chart.segments
+        .map(
+            (segment) =>
+                `<div class="trends-legend-row"><span class="trends-legend-dot" style="background:${colors[segment.key] || "#6E7462"}"></span><span>${escapeHtml(segment.label)}</span><b>${segment.share}%</b><small>${number(segment.kcal)} kcal</small></div>`,
+        )
+        .join("");
+    return `<div class="trends-stacked">${bar}</div><div class="trends-legend">${legend}</div>`;
+}
+
+function trendsWeekdayChart(card) {
+    const chart = card.chart;
+    const W = 326;
+    const H = 118;
+    const top = 18;
+    const plotH = H - top - 4;
+    const baseY = top + plotH;
+    const dataMax = Math.max(0, ...chart.days.map((d) => d.avg ?? 0));
+    const domain = Math.max(dataMax, chart.reference?.value ?? 0) * 1.15 || 1;
+    const slot = W / 7;
+    const barW = Math.min(30, slot * 0.6);
+    const yFor = (v) => baseY - (v / domain) * plotH;
+    const obstacles = [];
+    const bars = [];
+    const hits = [];
+    chart.days.forEach((day, i) => {
+        const cx = slot * i + slot / 2;
+        if (day.avg != null && day.avg > 0) {
+            const h = Math.max(3, (day.avg / domain) * plotH);
+            const rect = { x: cx - barW / 2, y: baseY - h, w: barW, h };
+            obstacles.push(rect);
+            bars.push(
+                `<rect data-bar-dow="${day.dow}" x="${trendsRound2(rect.x)}" y="${trendsRound2(rect.y)}" width="${trendsRound2(barW)}" height="${trendsRound2(h)}" rx="2.5" class="trends-bar${day.weekend ? " is-weekend" : ""}" />`,
+            );
+        }
+        hits.push(
+            `<rect class="trends-hit" data-action="trends-drill-weekday" data-cardkey="${escapeHtml(trendsCardKey(card))}" data-dow="${day.dow}" x="${trendsRound2(slot * i)}" y="${top}" width="${trendsRound2(slot)}" height="${plotH}" fill="transparent"><title>${escapeHtml(day.label)}</title></rect>`,
+        );
+    });
+    let referenceBg = "";
+    let referenceLabel = "";
+    if (chart.reference) {
+        const y = yFor(chart.reference.value);
+        referenceBg = `<line x1="0" y1="${trendsRound2(y)}" x2="${W}" y2="${trendsRound2(y)}" class="trends-refline" />`;
+        referenceLabel = trendsReferenceLabel(
+            chart.reference,
+            y,
+            obstacles,
+            W,
+            H,
+        );
+    }
+    const labels = chart.days
+        .map((day) => `<span>${escapeHtml(day.label)}</span>`)
+        .join("");
+    return `<div class="trends-chart"><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${escapeHtml(card.title)} chart">${referenceBg}${bars.join("")}${hits.join("")}${referenceLabel}</svg><div class="trends-daylabels" aria-hidden="true">${labels}</div></div>`;
+}
+
+function trendsConsistencyChart(card) {
+    const chart = card.chart;
+    const cell = (c) =>
+        `<button type="button" class="trends-cell l${c.level}${c.active ? "" : " is-off"}" data-action="trends-drill-day" data-date="${c.date}" data-metric="${escapeHtml(chart.metric)}" title="${escapeHtml(c.date)}" aria-label="${escapeHtml(c.date)}"></button>`;
+    if (!chart.full)
+        return `<div class="trends-dots">${chart.cells.map(cell).join("")}</div>`;
+    const firstDow =
+        (new Date(`${chart.cells[0].date}T12:00:00Z`).getUTCDay() + 6) % 7;
+    const blanks = Array.from(
+        { length: firstDow },
+        () => `<span class="trends-cell is-blank"></span>`,
+    ).join("");
+    // Month labels: one span per month, sized by the weeks it spans.
+    const columns = [];
+    const totalCells = firstDow + chart.cells.length;
+    for (let col = 0; col * 7 < totalCells; col += 1) {
+        const firstReal = chart.cells[Math.max(0, col * 7 - firstDow)];
+        columns.push(firstReal ? firstReal.date.slice(0, 7) : "");
+    }
+    const monthSpans = [];
+    columns.forEach((month) => {
+        const last = monthSpans[monthSpans.length - 1];
+        if (last && last.month === month) last.weeks += 1;
+        else monthSpans.push({ month, weeks: 1 });
+    });
+    const months = monthSpans
+        .map(
+            (span) =>
+                `<span style="flex:${span.weeks}">${span.month ? escapeHtml(formatDate(`${span.month}-01`).split(" ")[0]) : ""}</span>`,
+        )
+        .join("");
+    return `<div class="trends-heat-wrap"><div class="trends-months">${months}</div><div class="trends-heat">${blanks}${chart.cells.map(cell).join("")}</div></div>`;
+}
+
+function trendsWindowChart(card) {
+    const chart = card.chart;
+    const band = (first, last) =>
+        `<span class="trends-window-track"><i style="left:${trendsRound2((first / 24) * 100)}%;width:${trendsRound2(Math.max(2.5, ((last - first) / 24) * 100))}%"></i></span>`;
+    const avg = `<div class="trends-window-row is-avg"><span class="trends-window-date">Avg</span>${band(chart.avgFirst, chart.avgLast)}<small>${trendsHourLabel(chart.avgFirst)} – ${trendsHourLabel(chart.avgLast)}</small></div>`;
+    const rows = chart.rows
+        .slice(-14)
+        .map(
+            (row) =>
+                `<button type="button" class="trends-window-row" data-action="trends-drill-day" data-date="${row.date}" data-metric="calories"><span class="trends-window-date">${escapeHtml(formatDate(row.date))}</span>${band(row.first, row.last)}<small>${trendsHourLabel(row.first)} – ${trendsHourLabel(row.last)}</small></button>`,
+        )
+        .join("");
+    return `<div class="trends-window">${avg}${rows}</div>`;
+}
+
+function trendsRhythmChart(card) {
+    const chart = card.chart;
+    const totalDays = state.trendsData?.rangeDays || 0;
+    return `<div class="trends-rhythm">${chart.rows
+        .map(
+            (row) =>
+                `<div class="trends-rhythm-row"><span>${escapeHtml(row.label)}</span><span class="trends-rhythm-track"><i style="width:${row.rate}%"></i></span><small>${row.present} of ${totalDays} days</small></div>`,
+        )
+        .join("")}</div>`;
+}
+
+function trendsChartMarkup(card) {
+    switch (card.chart?.kind) {
+        case "bars":
+            return trendsBarChart(card);
+        case "line":
+            return trendsLineChart(card);
+        case "consistency":
+            return trendsConsistencyChart(card);
+        case "donut":
+            return trendsDonutChart(card);
+        case "stacked":
+            return trendsStackedChart(card);
+        case "weekday":
+            return trendsWeekdayChart(card);
+        case "window":
+            return trendsWindowChart(card);
+        case "rhythm":
+            return trendsRhythmChart(card);
+        default:
+            return "";
+    }
+}
+
+function trendsCardMarkup(card, index) {
+    const editing = state.trendsEditing;
+    const body = card.empty
+        ? `<div class="trends-empty"><strong>${escapeHtml(card.empty.title)}</strong><p>${escapeHtml(card.empty.message)}</p></div>`
+        : trendsChartMarkup(card);
+    const editControls = editing
+        ? `<div class="trends-editbar"><button type="button" class="trends-move" data-action="trends-move" data-index="${index}" data-dir="-1" aria-label="Move ${escapeHtml(card.title)} earlier">↑</button><button type="button" class="trends-move" data-action="trends-move" data-index="${index}" data-dir="1" aria-label="Move ${escapeHtml(card.title)} later">↓</button><button type="button" class="trends-sizechip" data-action="trends-size" data-index="${index}">${card.size === "full" ? "Full width" : "Half width"}</button></div>`
+        : "";
+    return `<section class="panel trends-card${card.size === "compact" ? " is-compact" : ""}" data-card-key="${escapeHtml(trendsCardKey(card))}"><div class="trends-card-head"><div><h3>${escapeHtml(card.title)}</h3><p class="trends-sub">${escapeHtml(card.subtitle)}</p></div>${card.headline ? `<div class="trends-headline"><b>${escapeHtml(card.headline.value)}</b><span>${escapeHtml(card.headline.unit)}</span><small>${escapeHtml(card.headline.note)}</small></div>` : ""}${editing ? `<button type="button" class="trends-x" data-action="trends-remove" data-index="${index}" aria-label="Remove ${escapeHtml(card.title)}">×</button>` : ""}</div>${body}${card.coverage ? `<p class="trends-coverage">From ${card.coverage.carriedDays} of ${card.coverage.totalDays} days — the rest don't record it.</p>` : ""}${card.verdict ? `<p class="trends-verdict">${escapeHtml(card.verdict.lead)}<strong>${escapeHtml(card.verdict.strong)}</strong></p>` : ""}${editControls}</section>`;
+}
+
+function trendsDigestMarkup(data) {
+    const digest = data.digest;
+    const checkin = state.trendsCheckin;
+    return `<section class="panel trends-card trends-digest" data-card-key="digest"><div class="trends-card-head"><div><h3>The week in words</h3><p class="trends-sub">Digest</p></div><span class="trends-pin">Pinned</span></div><p class="trends-digest-lede">${escapeHtml(digest.weekly)}</p><details class="trends-more"><summary>Trend analysis</summary><p>${escapeHtml(digest.trends || "No data in range.")}</p></details><details class="trends-more"><summary>Meal patterns</summary><p>${escapeHtml(digest.patterns || "No data in range.")}</p></details>${checkin ? `<div class="trends-checkin"><h4>Weekly check-in</h4><p>${number(checkin.coverage_percent)}% coverage · ${number(checkin.nutrition_target_coverage_days)} of ${number(checkin.calendar_days)} days with recorded nutrition.</p>${checkin.observations?.length ? `<ul>${checkin.observations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}</div>` : ""}${chatEntryRow("insights", "Explain my week", "Opens with this check-in attached")}</section>`;
+}
+
+function paintTrends() {
+    const data = state.trendsData;
+    if (!data) return;
+    const days = trendsRange();
+    const editing = state.trendsEditing;
+    const rangeLabel =
+        days === 7
+            ? "Last 7 days"
+            : days === 30
+              ? "Last 30 days"
+              : "Last 3 months";
+    let cardsHtml = "";
+    if (!data.cards.length) {
+        cardsHtml = `<section class="panel trends-card"><div class="trends-empty"><strong>Your dashboard is empty</strong><p>Add a chart below and it will live here — your pick of shapes and data, in your order.</p></div></section>`;
+    } else {
+        const parts = [];
+        let pair = [];
+        const flushPair = () => {
+            if (pair.length) {
+                parts.push(`<div class="trends-pair">${pair.join("")}</div>`);
+                pair = [];
+            }
+        };
+        data.cards.forEach((card, index) => {
+            const html = trendsCardMarkup(card, index);
+            if (card.size === "compact") pair.push(html);
+            else {
+                flushPair();
+                parts.push(html);
+            }
+        });
+        flushPair();
+        cardsHtml = parts.join("");
+    }
+    content.innerHTML = `<div class="operate-view trends-view"><div class="page-heading"><div><h2>Trends</h2><p>${rangeLabel} · ${escapeHtml(formatDate(data.startDate))} – ${escapeHtml(formatDate(data.endDate))}</p></div><div class="auth-actions"><button class="button ${editing ? "button-primary" : "button-secondary"} button-small" type="button" data-action="trends-edit-toggle">${editing ? "Done" : "Edit"}</button></div></div><div class="trends-pills" role="group" aria-label="Trends range">${[7, 30, 90].map((d) => `<button type="button" class="trends-pill${d === days ? " is-on" : ""}" data-action="trends-range" data-days="${d}" aria-pressed="${d === days}">${TRENDS_RANGE_LABELS[d]}</button>`).join("")}</div>${cardsHtml}${trendsDigestMarkup(data)}<button class="trends-add" type="button" data-action="trends-add">+ Add a chart</button></div>`;
+}
+
+async function renderTrends() {
+    setLoading("Loading your trends…");
+    const end = state.date;
+    const days = trendsRange();
+    const start = shiftDate(end, -(days - 1));
+    const data = await api(`/api/app/trends?start=${start}&end=${end}`);
+    // The weekly check-in inside the Digest is a seven-day panel, so
+    // window its request to the most recent seven days — the check-in
+    // endpoint only accepts one to seven days (the PR #184 bug class).
+    const checkin = await api(
+        `/api/app/insights/checkin?start=${shiftDate(end, -6)}&end=${end}`,
+        { keepPrevious: true },
+    ).catch(() => null);
+    state.trendsData = data;
+    state.trendsCheckin = checkin;
+    paintTrends();
+}
+
+async function refreshTrendsWorkspace() {
+    const end = state.date;
+    const days = trendsRange();
+    const start = shiftDate(end, -(days - 1));
+    state.trendsData = await api(`/api/app/trends?start=${start}&end=${end}`);
+    paintTrends();
+}
+
+async function saveTrendsLayout(cards) {
+    try {
+        await api("/api/app/trends/layout", {
+            method: "PUT",
+            body: JSON.stringify({ layout: { version: 1, cards } }),
+        });
+    } catch {
+        toast("Couldn't save your dashboard — showing the saved version.");
+    }
+    await refreshTrendsWorkspace();
+}
+
+function trendsLayoutCards() {
+    return (state.trendsData?.layout?.cards || []).map((card) => ({
+        shape: card.shape,
+        data: card.data,
+        size: card.size,
+    }));
+}
+
+const TRENDS_SHAPE_GLYPHS = {
+    bar: `<svg viewBox="0 0 30 22" aria-hidden="true"><rect x="2" y="10" width="5" height="9"/><rect x="9" y="5" width="5" height="14"/><rect x="16" y="13" width="5" height="6"/><rect x="23" y="8" width="5" height="11"/></svg>`,
+    line: `<svg viewBox="0 0 30 22" aria-hidden="true"><polyline points="2,16 10,9 17,12 27,4"/></svg>`,
+    consistency: `<svg viewBox="0 0 30 22" aria-hidden="true"><circle cx="5" cy="6" r="2.6"/><circle cx="12" cy="6" r="2.6"/><circle cx="19" cy="6" r="2.6"/><circle cx="26" cy="6" r="2.6"/><circle cx="5" cy="15" r="2.6"/><circle cx="12" cy="15" r="2.6"/><circle cx="19" cy="15" r="2.6"/><circle cx="26" cy="15" r="2.6"/></svg>`,
+    breakdown: `<svg viewBox="0 0 30 22" aria-hidden="true"><circle cx="11" cy="11" r="7.5" class="donut-base"/><path d="M11 3.5 A7.5 7.5 0 0 1 18.5 11 L11 11 Z" class="donut-slice"/></svg>`,
+    patterns: `<svg viewBox="0 0 30 22" aria-hidden="true"><rect x="2" y="12" width="4" height="7"/><rect x="8" y="9" width="4" height="10"/><rect x="14" y="13" width="4" height="6"/><rect x="20" y="7" width="4" height="12"/><rect x="26" y="10" width="3" height="9"/></svg>`,
+};
+
+function openTrendsCatalog() {
+    const catalog = state.trendsData?.catalog || [];
+    openDialog(
+        "Add a chart",
+        `<p class="tiny">First — what kind of chart?</p><div class="trends-catalog">${catalog
+            .map(
+                (entry) =>
+                    `<button type="button" class="trends-catalog-row" data-action="trends-catalog-shape" data-shape="${escapeHtml(entry.shape)}"><span class="trends-glyph">${TRENDS_SHAPE_GLYPHS[entry.shape] || ""}</span><span class="trends-catalog-text"><strong>${escapeHtml(entry.label)}</strong><small>${escapeHtml(entry.blurb)}</small></span><span class="trends-chev">›</span></button>`,
+            )
+            .join("")}</div>`,
+    );
+}
+
+function openTrendsCatalogData(shape) {
+    const entry = (state.trendsData?.catalog || []).find(
+        (item) => item.shape === shape,
+    );
+    if (!entry) return;
+    const existing = new Set(
+        (state.trendsData?.layout?.cards || []).map((card) =>
+            trendsCardKey(card),
+        ),
+    );
+    openDialog(
+        "Add a chart",
+        `<p class="tiny">${escapeHtml(entry.label)} — showing what?</p><div class="trends-catalog">${entry.data
+            .map((point) => {
+                const onDashboard = existing.has(`${shape}:${point.key}`);
+                return `<button type="button" class="trends-catalog-row" data-action="trends-catalog-add" data-shape="${escapeHtml(shape)}" data-data="${escapeHtml(point.key)}" ${onDashboard ? "disabled" : ""}><span class="trends-catalog-text"><strong>${escapeHtml(point.label)}</strong>${point.note ? `<small>${escapeHtml(point.note)}</small>` : ""}</span>${onDashboard ? `<span class="trends-have">On dashboard</span>` : `<span class="trends-chev">+</span>`}</button>`;
+            })
+            .join(
+                "",
+            )}</div><div class="auth-actions"><button class="button button-quiet" type="button" data-action="trends-catalog">Back</button></div>`,
+    );
+}
+
+async function openTrendsDaySheet(date, metric) {
+    const detail = await api(
+        `/api/app/trends/day?date=${encodeURIComponent(date)}&metric=${encodeURIComponent(metric)}`,
+    );
+    let body = "";
+    if (detail.kind === "weight") {
+        body = detail.weight
+            ? `<p class="trends-sheet-total">${detail.weight.entries.map((entry) => `${number(entry.value, 1)} ${escapeHtml(detail.weight.unit)} · ${escapeHtml(formatTime(entry.loggedAt))}`).join("<br />")}</p>`
+            : `<p>No weigh-in recorded this day.</p>`;
+    } else {
+        const meals = (detail.meals || [])
+            .map(
+                (meal) =>
+                    `<div class="trends-sheet-meal"><div class="trends-sheet-row"><strong>${escapeHtml(meal.description)}</strong><b>${number(meal.total)} ${escapeHtml(detail.unit)}</b></div><small>${escapeHtml(meal.mealType)} · ${escapeHtml(formatTime(meal.loggedAt))}</small>${(meal.items || []).map((item) => `<div class="trends-sheet-row trends-sheet-item"><span>${escapeHtml(item.name)}</span><span>${number(item.value)} ${escapeHtml(detail.unit)}</span></div>`).join("")}</div>`,
+            )
+            .join("");
+        body = `<p class="trends-sheet-total">${escapeHtml(detail.label)}: <strong>${number(detail.total)} ${escapeHtml(detail.unit)}</strong>${detail.reference ? ` · ${escapeHtml(detail.reference.label)} ${number(detail.reference.value)} ${escapeHtml(detail.unit)} (${escapeHtml(detail.reference.source)})` : ""}</p>${meals || `<p class="tiny">Nothing itemized for this measure on this day.</p>`}<p class="trends-sheet-total">That day: ${number(detail.summary.calories)} kcal · ${number(detail.summary.proteinG)} g protein · ${number(detail.summary.mealCount)} meals · ${number(detail.summary.waterMl)} ml water</p>`;
+    }
+    openDialog(
+        `${formatDate(date, { year: true })} — ${detail.kind === "weight" ? "Weight" : escapeHtml(detail.label)}`,
+        body,
+        `<div class="auth-actions"><button class="button button-primary" type="button" data-action="trends-open-day" data-date="${escapeHtml(date)}">Open that day's log</button></div>`,
+    );
+}
+
+async function openTrendsContributors(metric) {
+    const data = state.trendsData;
+    if (!data) return;
+    const result = await api(
+        `/api/app/trends/contributors?metric=${encodeURIComponent(metric)}&start=${data.startDate}&end=${data.endDate}`,
+    );
+    const rows = (result.foods || [])
+        .map(
+            (food) =>
+                `<button type="button" class="trends-sheet-row trends-food-row" data-action="trends-open-day" data-date="${escapeHtml(food.lastDate)}"><span><strong>${escapeHtml(food.name)}</strong><small>Most recently ${escapeHtml(formatDate(food.lastDate))}</small></span><b>${number(food.value)} ${escapeHtml(result.unit)}</b></button>`,
+        )
+        .join("");
+    openDialog(
+        `Where your ${result.label.toLowerCase()} came from`,
+        rows ||
+            `<p class="tiny">No itemized foods carry this measure in the period.</p>`,
+    );
+}
+
+function openTrendsWeekdaySheet(cardKey, dow) {
+    const card = (state.trendsData?.cards || []).find(
+        (item) => trendsCardKey(item) === cardKey,
+    );
+    const day = card?.chart?.days?.find((item) => item.dow === Number(dow));
+    if (!day) return;
+    const rows = (day.dates || [])
+        .map(
+            (entry) =>
+                `<button type="button" class="trends-sheet-row trends-food-row" data-action="trends-open-day" data-date="${escapeHtml(entry.date)}"><span><strong>${escapeHtml(formatDate(entry.date, { year: true }))}</strong></span><b>${number(entry.value)} kcal</b></button>`,
+        )
+        .join("");
+    openDialog(
+        `Recent ${day.label}s`,
+        rows ||
+            `<p class="tiny">No logged ${day.label}s in this period yet.</p>`,
+    );
+}
+// TRENDS-END
 
 async function renderFoods() {
     setLoading("Loading saved foods…");
@@ -2370,7 +2912,7 @@ const CHAT_SURFACE_LABELS = {
     today: "Today",
     meal_plan: "Meal Plan",
     pantry: "Pantry",
-    insights: "Insights",
+    insights: "Trends",
 };
 
 function chatDraftCard(message) {
@@ -2574,6 +3116,10 @@ async function startNewChat() {
 }
 
 async function renderRoute() {
+    // T8: the Insights destination retired — its route lands on Trends.
+    if (location.pathname === "/app/insights") {
+        history.replaceState({}, "", "/app/trends");
+    }
     const previousRoute = state.route;
     state.route = routes[location.pathname] || "today";
     // S8: entering Chat from another surface refetches the persisted
@@ -2596,7 +3142,7 @@ async function renderRoute() {
         const renderers = {
             today: renderToday,
             log: renderLog,
-            insights: renderInsights,
+            trends: renderTrends,
             foods: renderFoods,
             recipes: renderRecipes,
             cooks: renderCooks,
@@ -5029,11 +5575,79 @@ async function handleAction(button) {
         state.mealHistoryQuery = "";
         return renderLog();
     }
-    if (action === "insight-range") {
+    if (action === "open-trends") return navigate("/app/trends");
+    if (action === "trends-range") {
         const days = Number(button.dataset.days);
         if (![7, 30, 90].includes(days)) return;
-        state.insightsDays = days;
-        return renderInsights();
+        state.trendsRangeDays = days;
+        return renderTrends();
+    }
+    if (action === "trends-edit-toggle") {
+        state.trendsEditing = !state.trendsEditing;
+        paintTrends();
+        return;
+    }
+    if (action === "trends-remove") {
+        const cards = trendsLayoutCards();
+        cards.splice(Number(button.dataset.index), 1);
+        return saveTrendsLayout(cards);
+    }
+    if (action === "trends-move") {
+        const cards = trendsLayoutCards();
+        const index = Number(button.dataset.index);
+        const target = index + Number(button.dataset.dir);
+        if (target < 0 || target >= cards.length) return;
+        [cards[index], cards[target]] = [cards[target], cards[index]];
+        return saveTrendsLayout(cards);
+    }
+    if (action === "trends-size") {
+        const cards = trendsLayoutCards();
+        const card = cards[Number(button.dataset.index)];
+        if (!card) return;
+        card.size = card.size === "full" ? "compact" : "full";
+        return saveTrendsLayout(cards);
+    }
+    if (action === "trends-add" || action === "trends-catalog")
+        return openTrendsCatalog();
+    if (action === "trends-catalog-shape")
+        return openTrendsCatalogData(button.dataset.shape);
+    if (action === "trends-catalog-add") {
+        const shape = button.dataset.shape;
+        const dataKey = button.dataset.data;
+        const entry = (state.trendsData?.catalog || []).find(
+            (item) => item.shape === shape,
+        );
+        const point = entry?.data.find((item) => item.key === dataKey);
+        if (!point) return;
+        const cards = trendsLayoutCards();
+        if (
+            cards.some((card) => card.shape === shape && card.data === dataKey)
+        ) {
+            toast("That chart is already on your dashboard.");
+            return;
+        }
+        cards.push({ shape, data: dataKey, size: point.defaultSize });
+        dialog.close();
+        return saveTrendsLayout(cards);
+    }
+    if (action === "trends-donut-mode") {
+        state.trendsDonutModes.set(button.dataset.cardkey, button.dataset.mode);
+        paintTrends();
+        return;
+    }
+    if (action === "trends-drill-day")
+        return openTrendsDaySheet(button.dataset.date, button.dataset.metric);
+    if (action === "trends-drill-weekday")
+        return openTrendsWeekdaySheet(
+            button.dataset.cardkey,
+            button.dataset.dow,
+        );
+    if (action === "trends-drill-segment")
+        return openTrendsContributors(button.dataset.metric);
+    if (action === "trends-open-day") {
+        state.date = button.dataset.date;
+        if (dialog.open) dialog.close();
+        return navigate("/app");
     }
     if (action === "create-recipe") return openRecipeCreate();
     if (action === "import-recipe-url") return openRecipeImport();

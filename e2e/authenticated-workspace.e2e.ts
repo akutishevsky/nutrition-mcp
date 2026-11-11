@@ -82,9 +82,12 @@ test("protects private data and supports the core website journey", async ({
         fullPage: true,
     });
 
+    // T8: the Insights destination retired — its URL lands on Trends,
+    // with the Trends title and the Trends nav link marked current.
     await page.goto("/app/insights");
-    await expect(page).toHaveTitle(/^Insights — Munch$/);
-    await expect(visibleCurrentNav(page, ["insights", "more"])).toHaveCount(1);
+    await expect(page).toHaveURL(/\/app\/trends$/);
+    await expect(page).toHaveTitle(/^Trends — Munch$/);
+    await expect(visibleCurrentNav(page, ["trends", "more"])).toHaveCount(1);
     await expect
         .poll(() =>
             page.evaluate(

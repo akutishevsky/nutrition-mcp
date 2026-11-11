@@ -18,6 +18,7 @@ import {
     computeMealPatterns,
     computeTrends,
     computeWeightTrend,
+    computeWeeklyDigest,
 } from "../insights.js";
 import { getNutritionProvenanceAnalysis } from "../nutrition-provenance.js";
 import { withUserDatabase } from "../platform/database.js";
@@ -45,7 +46,23 @@ import {
     getWeightByDate,
     type Meal,
 } from "../storage.js";
-import { dateInTz, zonedDayStartUtc, zonedNextDayStartUtc } from "../tz.js";
+import {
+    dateInTz,
+    shiftLocalDate,
+    zonedDayStartUtc,
+    zonedNextDayStartUtc,
+} from "../tz.js";
+import {
+    buildTrendsCard,
+    buildTrendsDays,
+    rankDayContributors,
+    rankPeriodContributors,
+    trendsReferenceFor,
+    TRENDS_CATALOG,
+    TRENDS_NUTRIENT_BY_KEY,
+    type TrendsMealInput,
+} from "../trends.js";
+import { getTrendsDashboardLayout } from "../trends-layout.js";
 import { fromGrams } from "../units.js";
 
 export interface AppMealItem {
@@ -663,5 +680,289 @@ export async function getHouseholdWorkspace(userId: string) {
     return {
         household: context,
         members: await listHouseholdMembers(userId, context.householdId),
+    };
+}
+
+// ------------------------------------------------------------- Trends
+// The customizable analytics dashboard (trends-brief T1–T14). Card
+// computation lives in src/trends.ts; this layer loads the doubled
+// window (the selected range plus the equal-length period before it,
+// which goal-less verdicts compare against), the stored layout, and
+// the digest narratives the retired Insights view used to render —
+// nothing Insights computed is lost (T8).
+
+function trendsMealInput(
+    meal: AppMeal,
+    alcoholEnabled: boolean,
+): TrendsMealInput {
+    return {
+        id: meal.id,
+        description: meal.description,
+        mealType: meal.meal_type,
+        loggedAt: meal.logged_at,
+        items: meal.items.map((item) => ({
+            name: item.name,
+            values: {
+                calories: item.calories,
+                protein_g: item.proteinG,
+                carbs_g: item.carbsG,
+                fat_g: item.fatG,
+                fiber_g: item.fiberG,
+                sugar_g: item.sugarG,
+                alcohol_g: alcoholEnabled ? item.alcoholG : 0,
+                saturated_fat_g: item.saturatedFatG,
+                sodium_mg: item.sodiumMg,
+                potassium_mg: item.potassiumMg,
+                cholesterol_mg: item.cholesterolMg,
+            },
+        })),
+    };
+}
+
+export async function getTrendsWorkspace(
+    userId: string,
+    startValue: string,
+    endValue: string,
+) {
+    const startDate = validateLocalDate(startValue);
+    const endDate = validateLocalDate(endValue);
+    const rangeDays = inclusiveDateSpanDays(startDate, endDate);
+    if (rangeDays > 366) throw new Error("Date range is too large");
+    const previousStart = shiftLocalDate(startDate, -rangeDays);
+    const previousEnd = shiftLocalDate(startDate, -1);
+    const [profile, goals] = await Promise.all([
+        getProfile(userId),
+        getNutritionGoals(userId),
+    ]);
+    const timezone = profile?.timezone ?? "UTC";
+    const alcoholEnabled = profile?.alcohol_tracking_enabled ?? false;
+    const [meals, water, weightEntries, weightUnit, layout] = await Promise.all(
+        [
+            getMealsInRange(userId, previousStart, endDate, timezone),
+            getWaterInRange(userId, previousStart, endDate, timezone),
+            getWeightInRange(userId, startDate, endDate, timezone),
+            getPreferredWeightUnit(userId),
+            getTrendsDashboardLayout(userId),
+        ],
+    );
+    const displayMeals = alcoholEnabled
+        ? meals
+        : meals.map((meal) => ({ ...meal, alcohol_g: 0 }));
+    const mealsWithItems = await attachItems(userId, displayMeals);
+    const allBuckets = buildDailyBuckets(
+        displayMeals,
+        water,
+        previousStart,
+        endDate,
+        timezone,
+    );
+    const buckets = allBuckets.filter((bucket) => bucket.date >= startDate);
+    const previousBuckets = allBuckets.filter(
+        (bucket) => bucket.date < startDate,
+    );
+    const trendsInputs = mealsWithItems.map((meal) =>
+        trendsMealInput(meal, alcoholEnabled),
+    );
+    const inWindow = (meal: TrendsMealInput, start: string, end: string) => {
+        const date = dateInTz(meal.loggedAt, timezone);
+        return date >= start && date <= end;
+    };
+    const days = buildTrendsDays(
+        buckets,
+        trendsInputs.filter((meal) => inWindow(meal, startDate, endDate)),
+        timezone,
+    );
+    const previousDays = buildTrendsDays(
+        previousBuckets,
+        trendsInputs.filter((meal) =>
+            inWindow(meal, previousStart, previousEnd),
+        ),
+        timezone,
+    );
+    const ctx = {
+        days,
+        previousDays,
+        buckets,
+        previousBuckets,
+        weightEntries,
+        weightUnit: weightUnit ?? "kg",
+        goals,
+        rangeDays,
+        timezone,
+        alcoholTrackingEnabled: alcoholEnabled,
+    };
+    return {
+        startDate,
+        endDate,
+        rangeDays,
+        timezone,
+        weightUnit: weightUnit ?? "kg",
+        alcoholTrackingEnabled: alcoholEnabled,
+        layout,
+        catalog: TRENDS_CATALOG,
+        cards: layout.cards.map((ref) => buildTrendsCard(ref, ctx)),
+        digest: {
+            weekly: computeWeeklyDigest(buckets.slice(-7), goals),
+            trends: computeTrends(buckets, goals),
+            patterns: computeMealPatterns(buckets, timezone),
+        },
+    };
+}
+
+/** One day's drill-down (T11): the day's meals → items ranked by their
+ * contribution to the tapped metric, plus the reference the card judged
+ * against and a plain day summary for the consistency/weight sheets. */
+export async function getTrendsDayDetail(
+    userId: string,
+    dateValue: string,
+    metric: string,
+) {
+    const date = validateLocalDate(dateValue);
+    const [profile, goals] = await Promise.all([
+        getProfile(userId),
+        getNutritionGoals(userId),
+    ]);
+    const timezone = profile?.timezone ?? "UTC";
+    const alcoholEnabled = profile?.alcohol_tracking_enabled ?? false;
+    const [meals, water, weightEntries, weightUnit] = await Promise.all([
+        getMealsByDate(userId, date, timezone),
+        getWaterByDate(userId, date, timezone),
+        getWeightByDate(userId, date, timezone),
+        getPreferredWeightUnit(userId),
+    ]);
+    const displayMeals = alcoholEnabled
+        ? meals
+        : meals.map((meal) => ({ ...meal, alcohol_g: 0 }));
+    const mealsWithItems = await attachItems(userId, displayMeals);
+    const summary = {
+        calories: Math.round(
+            displayMeals.reduce((sum, meal) => sum + (meal.calories ?? 0), 0),
+        ),
+        proteinG:
+            Math.round(
+                displayMeals.reduce(
+                    (sum, meal) => sum + (meal.protein_g ?? 0),
+                    0,
+                ) * 10,
+            ) / 10,
+        mealCount: displayMeals.length,
+        waterMl: water.reduce((sum, entry) => sum + entry.amount_ml, 0),
+    };
+    if (metric === "weight") {
+        return {
+            date,
+            metric,
+            kind: "weight" as const,
+            summary,
+            weight: {
+                unit: weightUnit ?? "kg",
+                entries: weightEntries.map((entry) => ({
+                    value: fromGrams(entry.weight_g, weightUnit ?? "kg"),
+                    loggedAt: entry.logged_at,
+                    notes: entry.notes,
+                })),
+            },
+            meals: [],
+            total: null,
+            reference: null,
+        };
+    }
+    const nutrient = TRENDS_NUTRIENT_BY_KEY.get(metric);
+    if (!nutrient) throw new Error(`Unknown trends metric: ${metric}`);
+    const inputs = mealsWithItems.map((meal) =>
+        trendsMealInput(meal, alcoholEnabled),
+    );
+    const ranked = rankDayContributors(inputs, metric);
+    const headlineKeys = new Set([
+        "calories",
+        "protein_g",
+        "carbs_g",
+        "fat_g",
+        "fiber_g",
+        "sugar_g",
+        "alcohol_g",
+        "water_ml",
+    ]);
+    let total: number;
+    if (metric === "water_ml") {
+        total = summary.waterMl;
+    } else if (headlineKeys.has(metric)) {
+        total = displayMeals.reduce(
+            (sum, meal) =>
+                sum +
+                ((meal as unknown as Record<string, number | null>)[metric] ??
+                    0),
+            0,
+        );
+    } else {
+        total = ranked.reduce((sum, meal) => sum + meal.total, 0);
+    }
+    const reference = trendsReferenceFor(nutrient, goals);
+    return {
+        date,
+        metric,
+        kind: "nutrient" as const,
+        label: nutrient.label,
+        unit: nutrient.unit,
+        direction: nutrient.direction,
+        summary,
+        total: Math.round(total * 10) / 10,
+        reference: reference
+            ? {
+                  value: reference.value,
+                  source: reference.source,
+                  label:
+                      nutrient.direction === "under"
+                          ? `Limit ${reference.value}`
+                          : `Target ${reference.value}`,
+              }
+            : null,
+        meals: ranked.map((meal) => ({
+            ...meal,
+            total: Math.round(meal.total * 10) / 10,
+            items: meal.items.map((item) => ({
+                ...item,
+                value: Math.round(item.value * 10) / 10,
+            })),
+        })),
+    };
+}
+
+/** A period's top foods for one metric (the donut-segment drill, T11). */
+export async function getTrendsPeriodContributors(
+    userId: string,
+    metric: string,
+    startValue: string,
+    endValue: string,
+) {
+    const nutrient = TRENDS_NUTRIENT_BY_KEY.get(metric);
+    if (!nutrient) throw new Error(`Unknown trends metric: ${metric}`);
+    const startDate = validateLocalDate(startValue);
+    const endDate = validateLocalDate(endValue);
+    if (inclusiveDateSpanDays(startDate, endDate) > 366) {
+        throw new Error("Date range is too large");
+    }
+    const profile = await getProfile(userId);
+    const timezone = profile?.timezone ?? "UTC";
+    const alcoholEnabled = profile?.alcohol_tracking_enabled ?? false;
+    const meals = await getMealsInRange(userId, startDate, endDate, timezone);
+    const displayMeals = alcoholEnabled
+        ? meals
+        : meals.map((meal) => ({ ...meal, alcohol_g: 0 }));
+    const mealsWithItems = await attachItems(userId, displayMeals);
+    const inputs = mealsWithItems.map((meal) => ({
+        ...trendsMealInput(meal, alcoholEnabled),
+        date: dateInTz(meal.logged_at, timezone),
+    }));
+    return {
+        metric,
+        label: nutrient.label,
+        unit: nutrient.unit,
+        startDate,
+        endDate,
+        foods: rankPeriodContributors(inputs, metric).map((food) => ({
+            ...food,
+            value: Math.round(food.value * 10) / 10,
+        })),
     };
 }
