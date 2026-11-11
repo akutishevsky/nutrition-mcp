@@ -1,3 +1,4 @@
+import { naturalPortion } from "../food-providers/portions.js";
 import {
     getFoodSearchService,
     summarizeFoodCandidate,
@@ -228,6 +229,7 @@ function candidateMealItem(
 ): StructuredMealItemInput {
     const portion =
         candidate.portions.find((item) => item.id === portionId) ??
+        naturalPortion(candidate.portions) ??
         candidate.portions[0];
     if (!portion) throw new Error("Food candidate has no usable portion");
     const name = [candidate.brand, candidate.name]

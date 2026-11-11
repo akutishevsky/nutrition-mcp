@@ -11,6 +11,7 @@ import {
     FoodProviderRegistry,
     type AggregatedFoodSearchResult,
 } from "./registry.js";
+import { naturalPortion, per100gPortion } from "./portions.js";
 import { rankCandidates } from "./ranking.js";
 import type { FoodCandidate, FoodProviderName } from "./types.js";
 import { UsdaFoodDataCentralProvider } from "./usda.js";
@@ -63,7 +64,15 @@ export function decodeFoodCandidateId(value: string): {
 export function summarizeFoodCandidate(
     candidate: FoodCandidate,
 ): FoodCandidateSummary {
-    const portion = candidate.portions[0];
+    // Headline the natural portion (1 cup over 1 fl oz; never a
+    // guideline-amount / quantity-not-specified row). When a candidate
+    // carries only non-headline portions, fall back to a per-100 g
+    // portion synthesized from its nutrient panel.
+    const portion =
+        naturalPortion(candidate.portions) ??
+        (candidate.nutrientsPer100g
+            ? per100gPortion(candidate.nutrientsPer100g)
+            : candidate.portions[0]);
     return {
         candidate_id: encodeFoodCandidateId(candidate),
         name: candidate.name,

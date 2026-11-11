@@ -737,7 +737,7 @@ async function openSavedFoodCandidate(key) {
     const portions = food.portions || [];
     openDialog(
         "Save reusable food",
-        `<form id="saved-food-form" class="auth-form" data-candidate-id="${escapeHtml(food.candidate_id)}"><p class="tiny">${escapeHtml(foodTitle(food))} · ${sourceBadge(food.provider)}</p><label class="field"><span>Your label</span><input name="label" maxlength="200" value="${escapeHtml(foodTitle(food))}" placeholder="My usual yogurt" required /></label><label class="field"><span>Default portion</span><select name="default_portion_id"><option value="">Choose when logging</option>${portions.map((portion, index) => `<option value="${escapeHtml(portion.id)}" ${index === 0 ? "selected" : ""}>${escapeHtml(portion.label)}</option>`).join("")}</select></label><div class="auth-actions"><button class="button button-quiet" type="button" data-action="manage-saved-foods">Back</button><button class="button button-primary" type="submit">Save food</button></div></form>`,
+        `<form id="saved-food-form" class="auth-form" data-candidate-id="${escapeHtml(food.candidate_id)}"><p class="tiny">${escapeHtml(foodTitle(food))} · ${sourceBadge(food.provider)}</p><label class="field"><span>Your label</span><input name="label" maxlength="200" value="${escapeHtml(foodTitle(food))}" placeholder="My usual yogurt" required /></label><label class="field"><span>Default portion</span><select name="default_portion_id"><option value="">Choose when logging</option>${portions.map((portion, index) => `<option value="${escapeHtml(portion.id)}" ${index === 0 ? "selected" : ""}>${escapeHtml(portionOptionLabelJs(portion))}</option>`).join("")}</select></label><div class="auth-actions"><button class="button button-quiet" type="button" data-action="manage-saved-foods">Back</button><button class="button button-primary" type="submit">Save food</button></div></form>`,
     );
 }
 
@@ -3199,7 +3199,7 @@ function draftItemPayloadFromDom(index) {
             .map((key) => [key, draftNumber(field(key)?.value)])
             .filter(([, value]) => value !== undefined),
     );
-    return {
+    const payload = {
         name: field("name")?.value || original.name,
         quantity: draftNumber(field("quantity")?.value),
         portion_label: field("portion_label")?.value || undefined,
@@ -3215,6 +3215,40 @@ function draftItemPayloadFromDom(index) {
         assumptions: original.assumptions || [],
         source_snapshot: original.source_snapshot || {},
     };
+    // Portion picker: a chosen real portion drives the item's label,
+    // gram weight, and nutrients (portion × quantity) through the same
+    // draft math as a freshly added food. "Custom portion…" keeps the
+    // free-text fields exactly as edited.
+    const portionSelect = field("portion_id");
+    const chosenPortion =
+        portionSelect && portionSelect.value !== "__custom__"
+            ? (original.portions || []).find(
+                  (portion) => portion.id === portionSelect.value,
+              )
+            : undefined;
+    if (chosenPortion) {
+        const factor = payload.quantity ?? 1;
+        const scaled = {};
+        for (const key of draftNutrientFields) {
+            const value = chosenPortion.nutrients?.[key];
+            if (value != null) {
+                scaled[key] = Math.round(value * factor * 100) / 100;
+            }
+        }
+        payload.nutrients = scaled;
+        payload.portion_label =
+            field("portion_label")?.value || chosenPortion.label;
+        payload.gram_weight =
+            chosenPortion.gram_weight == null
+                ? payload.gram_weight
+                : Math.round(chosenPortion.gram_weight * factor * 100) / 100;
+        payload.source_snapshot = {
+            ...payload.source_snapshot,
+            selected_portion_id: chosenPortion.id,
+            selected_portion_label: chosenPortion.label,
+        };
+    }
+    return payload;
 }
 
 function draftManualPayloadFromDom(index) {
@@ -3247,7 +3281,8 @@ function draftItemEditor(item, index) {
                 `<label class="field"><span>${escapeHtml(draftNutrientLabel(key))}</span><input data-draft-field="${key}" type="number" min="0" step="0.1" value="${escapeHtml(item.nutrients?.[key] ?? "")}" /></label>`,
         )
         .join("");
-    return `<article class="meal-draft-item meal-composer-item" data-draft-item-index="${index}"><div class="meal-composer-item-head"><div><strong>${escapeHtml(item.name)}</strong><small>${sourceBadge(item.source_type)} ${confidenceBadge(item.confidence)}</small></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="save-draft-item" data-index="${index}">Save item</button><button class="button button-quiet button-small" type="button" data-action="remove-draft-item" data-index="${index}">Remove</button></div></div><div class="meal-composer-grid"><label class="field"><span>Name</span><input data-draft-field="name" value="${escapeHtml(item.name)}" maxlength="500" required /></label><label class="field"><span>Portion</span><input data-draft-field="portion_label" value="${escapeHtml(item.portion_label || "")}" placeholder="1 bowl, 1 slice…" /></label><label class="field"><span>Quantity</span><input data-draft-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity ?? 1)}" /></label><label class="field"><span>Gram weight</span><input data-draft-field="gram_weight" type="number" min="0.01" step="0.1" value="${escapeHtml(item.gram_weight ?? "")}" /></label></div><div class="meal-composer-nutrients">${nutrientFields}</div><details class="food-audit"><summary>Provenance and assumptions</summary><div class="food-audit-body"><div>${sourceBadge(item.source_type)} ${escapeHtml(item.provider || "Source snapshot preserved")}</div>${item.source_url ? `<a href="${escapeHtml(item.source_url)}" target="_blank" rel="noreferrer">View source</a>` : ""}${item.assumptions?.length ? `<div>Assumptions: ${escapeHtml(item.assumptions.join("; "))}</div>` : ""}</div></details></article>`;
+    const portionField = draftPortionField(item);
+    return `<article class="meal-draft-item meal-composer-item" data-draft-item-index="${index}"><div class="meal-composer-item-head"><div><strong>${escapeHtml(item.name)}</strong><small>${sourceBadge(item.source_type)} ${confidenceBadge(item.confidence)}</small></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="save-draft-item" data-index="${index}">Save item</button><button class="button button-quiet button-small" type="button" data-action="remove-draft-item" data-index="${index}">Remove</button></div></div><div class="meal-composer-grid"><label class="field"><span>Name</span><input data-draft-field="name" value="${escapeHtml(item.name)}" maxlength="500" required /></label>${portionField}<label class="field"><span>Quantity</span><input data-draft-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity ?? 1)}" /></label><label class="field"><span>Gram weight</span><input data-draft-field="gram_weight" type="number" min="0.01" step="0.1" value="${escapeHtml(item.gram_weight ?? "")}" /></label></div><div class="meal-composer-nutrients">${nutrientFields}</div><details class="food-audit"><summary>Provenance and assumptions</summary><div class="food-audit-body"><div>${sourceBadge(item.source_type)} ${escapeHtml(item.provider || "Source snapshot preserved")}</div>${item.source_url ? `<a href="${escapeHtml(item.source_url)}" target="_blank" rel="noreferrer">View source</a>` : ""}${item.assumptions?.length ? `<div>Assumptions: ${escapeHtml(item.assumptions.join("; "))}</div>` : ""}</div></details></article>`;
 }
 
 function draftManualEditor(item, index) {
@@ -3491,6 +3526,82 @@ function foodMacroLine(food, portionId) {
     return `${escapeHtml(portion.label)} · ${number(nutrients.calories)} kcal · P ${number(nutrients.protein_g, 1)}g · C ${number(nutrients.carbs_g, 1)}g · F ${number(nutrients.fat_g, 1)}g`;
 }
 
+/**
+ * Portion picker helpers (search ranking + portion picker slice).
+ * The server serializes portions natural-first (cup before fl oz,
+ * per-100 g last, guideline / quantity-not-specified rows never
+ * headlined), so the client renders them in the order received and
+ * only adds the gram weight each option label is missing.
+ */
+function portionOptionLabelJs(portion) {
+    if (portion.gram_weight == null) return portion.label;
+    if (/\d+(?:\.\d+)?\s*g\b/i.test(portion.label)) return portion.label;
+    return `${portion.label} · ${number(portion.gram_weight, 1)} g`;
+}
+
+function draftPortionField(item) {
+    const portions = item.portions || [];
+    if (!portions.length) {
+        return `<label class="field"><span>Portion</span><input data-draft-field="portion_label" value="${escapeHtml(item.portion_label || "")}" placeholder="1 bowl, 1 slice…" /></label>`;
+    }
+    const selectedId = item.source_snapshot?.selected_portion_id;
+    const options = portions
+        .map(
+            (portion) =>
+                `<option value="${escapeHtml(portion.id)}" ${portion.id === selectedId ? "selected" : ""}>${escapeHtml(portionOptionLabelJs(portion))}</option>`,
+        )
+        .join("");
+    return `<label class="field"><span>Portion</span><select data-draft-field="portion_id">${options}<option value="__custom__">Custom portion…</option></select></label><label class="field"><span>Portion label</span><input data-draft-field="portion_label" value="${escapeHtml(item.portion_label || "")}" placeholder="1 bowl, 1 slice…" /></label>`;
+}
+
+function applyDraftPortionToEditor(select) {
+    const root = select.closest("[data-draft-item-index]");
+    if (!root) return;
+    const index = Number(root.dataset.draftItemIndex);
+    const item = mealDraftReview.draft?.items?.[index];
+    const portion = (item?.portions || []).find(
+        (entry) => entry.id === select.value,
+    );
+    if (!portion) return;
+    const quantity =
+        draftNumber(
+            root.querySelector('[data-draft-field="quantity"]')?.value,
+        ) ?? 1;
+    const setField = (name, value) => {
+        const element = root.querySelector(`[data-draft-field="${name}"]`);
+        if (element) element.value = value ?? "";
+    };
+    setField("portion_label", portion.label);
+    if (portion.gram_weight != null) {
+        setField(
+            "gram_weight",
+            Math.round(portion.gram_weight * quantity * 100) / 100,
+        );
+    }
+    for (const key of draftNutrientFields) {
+        const value = portion.nutrients?.[key];
+        setField(
+            key,
+            value == null ? "" : Math.round(value * quantity * 100) / 100,
+        );
+    }
+}
+
+document.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.matches('[data-composer-field="portion_id"]')) {
+        // Re-render so the macro line follows the chosen portion (and
+        // the Custom portion… escape can reveal its free-text fields).
+        syncMealComposerFromDom();
+        renderMealComposerItems();
+        return;
+    }
+    if (target.matches('[data-draft-field="portion_id"]')) {
+        applyDraftPortionToEditor(target);
+    }
+});
+
 function syncMealComposerFromDom() {
     const root = document.getElementById("meal-selected-items");
     if (!root) return;
@@ -3504,7 +3615,16 @@ function syncMealComposerFromDom() {
         item.quantity =
             Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
         if (item.kind === "food") {
-            item.portionId = field("portion_id")?.value || item.portionId;
+            const portionValue = field("portion_id")?.value;
+            if (portionValue === "__custom__") {
+                item.customPortion = true;
+                item.portionLabel =
+                    field("portion_label")?.value || item.portionLabel || "";
+                item.customGramWeight = field("gram_weight")?.value || "";
+            } else {
+                item.customPortion = false;
+                if (portionValue) item.portionId = portionValue;
+            }
         } else {
             item.name = field("name")?.value || item.name || "";
             item.portionLabel = field("portion_label")?.value || "";
@@ -3540,7 +3660,7 @@ function renderMealComposerItems() {
         .map((item, index) => {
             if (item.kind === "food") {
                 const portions = item.food.portions || [];
-                return `<article class="meal-composer-item" data-composer-index="${index}"><div class="meal-composer-item-head"><div><strong>${escapeHtml(foodTitle(item.food))}</strong><small>${sourceBadge(item.savedFoodId ? "saved_food" : item.food.provider)} ${confidenceBadge(item.food.confidence)}</small></div><button class="button button-quiet button-small" type="button" data-action="remove-meal-item" data-index="${index}">Remove</button></div><div class="meal-composer-grid"><label class="field"><span>Portion</span><select data-composer-field="portion_id">${portions.map((portion) => `<option value="${escapeHtml(portion.id)}" ${portion.id === item.portionId ? "selected" : ""}>${escapeHtml(portion.label)}</option>`).join("")}</select></label><label class="field"><span>Quantity</span><input data-composer-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity || 1)}" /></label></div><small class="meal-composer-macros">${foodMacroLine(item.food, item.portionId)}</small></article>`;
+                return `<article class="meal-composer-item" data-composer-index="${index}"><div class="meal-composer-item-head"><div><strong>${escapeHtml(foodTitle(item.food))}</strong><small>${sourceBadge(item.savedFoodId ? "saved_food" : item.food.provider)} ${confidenceBadge(item.food.confidence)}</small></div><button class="button button-quiet button-small" type="button" data-action="remove-meal-item" data-index="${index}">Remove</button></div><div class="meal-composer-grid"><label class="field"><span>Portion</span><select data-composer-field="portion_id">${portions.map((portion) => `<option value="${escapeHtml(portion.id)}" ${!item.customPortion && portion.id === item.portionId ? "selected" : ""}>${escapeHtml(portionOptionLabelJs(portion))}</option>`).join("")}<option value="__custom__" ${item.customPortion ? "selected" : ""}>Custom portion…</option></select></label><label class="field"><span>Quantity</span><input data-composer-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity || 1)}" /></label>${item.customPortion ? `<label class="field"><span>Custom portion</span><input data-composer-field="portion_label" value="${escapeHtml(item.portionLabel || "")}" placeholder="e.g. 1 large glass" /></label><label class="field"><span>Gram weight</span><input data-composer-field="gram_weight" type="number" min="0.01" step="0.1" value="${escapeHtml(item.customGramWeight || "")}" /></label>` : ""}</div><small class="meal-composer-macros">${foodMacroLine(item.food, item.portionId)}</small></article>`;
             }
             const nutrients = item.nutrients || {};
             return `<article class="meal-composer-item" data-composer-index="${index}"><div class="meal-composer-item-head"><div><strong>${item.kind === "recent" ? escapeHtml(item.name) : "Manual food"}</strong><small>${sourceBadge(item.sourceType || "user_supplied")} ${item.kind === "recent" ? "From recent meal history" : "Enter the nutrition used"}</small></div><button class="button button-quiet button-small" type="button" data-action="remove-meal-item" data-index="${index}">Remove</button></div><div class="meal-composer-grid"><label class="field"><span>Name</span><input data-composer-field="name" value="${escapeHtml(item.name || "")}" required /></label><label class="field"><span>Portion</span><input data-composer-field="portion_label" value="${escapeHtml(item.portionLabel || "")}" placeholder="1 bowl, 1 slice…" /></label><label class="field"><span>Quantity</span><input data-composer-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity || 1)}" /></label></div><div class="meal-composer-nutrients">${["calories", "protein_g", "carbs_g", "fat_g", "fiber_g", "sugar_g", "sodium_mg"].map((key) => `<label class="field"><span>${escapeHtml(key.replaceAll("_g", " (g)").replace("sodium_mg", "sodium (mg)"))}</span><input data-composer-field="${key}" type="number" min="0" step="0.1" value="${escapeHtml(nutrients[key] ?? "")}" /></label>`).join("")}</div></article>`;
@@ -5187,23 +5307,46 @@ document.addEventListener("input", (event) => {
 function mealComposerPayload() {
     syncMealComposerFromDom();
     return mealComposer.items.map((item) =>
-        item.kind === "food"
+        item.kind === "food" && item.customPortion
             ? {
-                  candidate_id: item.candidateId,
-                  saved_food_id: item.savedFoodId,
-                  portion_id: item.portionId,
+                  // Custom portion… escape: the free-text label and
+                  // gram weight win, nutrition stays grounded in the
+                  // selected provider portion's snapshot (the server
+                  // scales it by quantity like any supplied item).
+                  name: foodTitle(item.food),
                   quantity: item.quantity,
+                  portion_label: item.portionLabel || undefined,
+                  gram_weight: item.customGramWeight
+                      ? Number(item.customGramWeight)
+                      : undefined,
+                  nutrients:
+                      foodPortion(item.food, item.portionId)?.nutrients || {},
+                  source_type: item.food.provider,
+                  provider: item.food.provider,
+                  provider_food_id: item.food.provider_food_id,
+                  source_snapshot: {
+                      resolution_layer: "food_search_custom_portion",
+                      candidate_id: item.candidateId,
+                      selected_portion_id: item.portionId,
+                  },
               }
-            : {
-                  name: item.name,
-                  quantity: item.quantity,
-                  portion_label: item.portionLabel,
-                  nutrients: item.nutrients,
-                  source_type: item.sourceType || "user_supplied",
-                  provider: item.provider,
-                  provider_food_id: item.providerFoodId,
-                  source_snapshot: item.sourceSnapshot,
-              },
+            : item.kind === "food"
+              ? {
+                    candidate_id: item.candidateId,
+                    saved_food_id: item.savedFoodId,
+                    portion_id: item.portionId,
+                    quantity: item.quantity,
+                }
+              : {
+                    name: item.name,
+                    quantity: item.quantity,
+                    portion_label: item.portionLabel,
+                    nutrients: item.nutrients,
+                    source_type: item.sourceType || "user_supplied",
+                    provider: item.provider,
+                    provider_food_id: item.providerFoodId,
+                    source_snapshot: item.sourceSnapshot,
+                },
     );
 }
 

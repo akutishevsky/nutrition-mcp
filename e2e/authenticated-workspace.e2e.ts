@@ -93,3 +93,56 @@ test("protects private data and supports the core website journey", async ({
         )
         .toBe(true);
 });
+
+test("meal composer logs a food through its portion picker", async ({
+    page,
+}) => {
+    test.setTimeout(120_000);
+    const email = process.env.MUNCH_REVIEWER_EMAIL;
+    const password = process.env.MUNCH_REVIEWER_PASSWORD;
+    if (!email || !password) {
+        throw new Error(
+            "MUNCH_REVIEWER_EMAIL and MUNCH_REVIEWER_PASSWORD are required",
+        );
+    }
+
+    await page.goto("/account/password?return_to=%2Fapp");
+    await page.getByLabel("Username or email").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/app\/?$/);
+    await expect(page).toHaveTitle(/^Today — Munch$/);
+
+    await page.getByRole("button", { name: "Add meal" }).first().click();
+    await page.locator("#meal-food-search").fill("milk");
+
+    // Verified results come from the live providers in this lane, so
+    // assertions stay on the picker contract, not a specific food:
+    // a result row appears, picking it opens the portion dropdown,
+    // and the dropdown's options carry real portion labels.
+    const result = page.locator('[data-action="select-meal-option"]').first();
+    await expect(result).toBeVisible({ timeout: 30_000 });
+    await result.click();
+
+    const portionSelect = page.locator('[data-composer-field="portion_id"]');
+    await expect(portionSelect).toBeVisible({ timeout: 30_000 });
+    const optionTexts = await portionSelect.locator("option").allTextContents();
+    expect(optionTexts.length).toBeGreaterThan(0);
+    expect(optionTexts.at(-1)).toContain("Custom portion");
+    // Prefer the "1 cup" option when the picked food offers one (the
+    // brief's milk flow); otherwise keep the natural first option.
+    const cupOption = await portionSelect
+        .locator("option")
+        .filter({ hasText: /1 cup/i })
+        .first()
+        .getAttribute("value")
+        .catch(() => null);
+    if (cupOption) await portionSelect.selectOption(cupOption);
+    await expect(page.locator(".meal-composer-macros")).toBeVisible();
+    await expect(page.locator(".meal-composer-macros")).toContainText("kcal");
+
+    await page.locator('#meal-form button[type="submit"]').click();
+    await expect(page.locator("#toast-region")).toContainText("Meal logged.", {
+        timeout: 30_000,
+    });
+});

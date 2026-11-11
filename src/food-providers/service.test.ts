@@ -58,6 +58,58 @@ describe("food candidate IDs", () => {
 });
 
 describe("food candidate summaries", () => {
+    test("headlines the natural portion, not portions[0]", () => {
+        const summary = summarizeFoodCandidate(
+            candidate({
+                portions: [
+                    {
+                        id: "fl-oz",
+                        amount: 1,
+                        unit: "fl oz",
+                        label: "1 fl oz",
+                        gramWeight: 30.5,
+                        nutrients: { calories: 15 },
+                    },
+                    {
+                        id: "cup",
+                        amount: 1,
+                        unit: "cup",
+                        label: "1 cup",
+                        gramWeight: 244,
+                        nutrients: { calories: 122 },
+                    },
+                ],
+            }),
+        );
+        expect(summary.default_portion).toMatchObject({
+            id: "cup",
+            label: "1 cup",
+            calories: 122,
+        });
+    });
+
+    test("never headlines a quantity-not-specified portion; falls back to per-100g", () => {
+        const summary = summarizeFoodCandidate(
+            candidate({
+                nutrientsPer100g: { calories: 52, protein_g: 0.3 },
+                portions: [
+                    {
+                        id: "qns",
+                        amount: 1,
+                        unit: "serving",
+                        label: "Quantity not specified",
+                        nutrients: { calories: 999 },
+                    },
+                ],
+            }),
+        );
+        expect(summary.default_portion).toMatchObject({
+            id: "100g",
+            label: "100 g",
+            calories: 52,
+        });
+    });
+
     test("returns compact default-portion values", () => {
         expect(summarizeFoodCandidate(candidate())).toEqual(
             expect.objectContaining({

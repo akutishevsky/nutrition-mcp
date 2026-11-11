@@ -361,6 +361,187 @@ test("a write attempted offline gets the honest message, never a queue or a succ
     await context.setOffline(false);
 });
 
+test("packaged meal composer picks the natural portion first and logs the chosen portion", async ({
+    page,
+}) => {
+    await stubPackagedSession(page);
+    // Fixture shapes mirror the server serializers AFTER this slice:
+    // summarizeFoodCandidate headlines the natural portion (1 cup,
+    // not 1 fl oz) and serializeFoodCandidate lists portions
+    // natural-first with gram weights.
+    const milkSummary = {
+        candidate_id: "usda:fixture-milk",
+        name: "Milk, whole, 3.25% milkfat",
+        brand: null,
+        provider: "usda",
+        provider_label: "USDA FoodData Central",
+        data_kind: "generic",
+        barcode: null,
+        confidence: 0.9,
+        default_portion: {
+            id: "cup",
+            label: "1 cup",
+            calories: 122,
+            protein_g: 8,
+            carbs_g: 12,
+            fat_g: 5,
+        },
+    };
+    const milkFood = {
+        ...milkSummary,
+        provider_food_id: "fixture-milk",
+        source_url: null,
+        source_license: "CC0 / public domain",
+        source_updated_at: null,
+        nutrients_per_100g: {
+            calories: 50,
+            protein_g: 3.3,
+            carbs_g: 4.9,
+            fat_g: 2,
+            fiber_g: 0,
+            sugar_g: 4.9,
+            alcohol_g: 0,
+            sodium_mg: 43,
+            saturated_fat_g: 1.2,
+            cholesterol_mg: 8,
+            potassium_mg: 150,
+        },
+        portions: [
+            {
+                id: "cup",
+                amount: 1,
+                unit: "cup",
+                label: "1 cup",
+                gram_weight: 244,
+                nutrients: {
+                    calories: 122,
+                    protein_g: 8,
+                    carbs_g: 12,
+                    fat_g: 5,
+                    fiber_g: 0,
+                    sugar_g: 12,
+                    alcohol_g: 0,
+                    sodium_mg: 105,
+                    saturated_fat_g: 3,
+                    cholesterol_mg: 20,
+                    potassium_mg: 366,
+                },
+            },
+            {
+                id: "fl-oz",
+                amount: 1,
+                unit: "fl oz",
+                label: "1 fl oz",
+                gram_weight: 30.5,
+                nutrients: {
+                    calories: 15,
+                    protein_g: 1,
+                    carbs_g: 1.5,
+                    fat_g: 0.6,
+                    fiber_g: 0,
+                    sugar_g: 1.5,
+                    alcohol_g: 0,
+                    sodium_mg: 13,
+                    saturated_fat_g: 0.4,
+                    cholesterol_mg: 2,
+                    potassium_mg: 46,
+                },
+            },
+            {
+                id: "100g",
+                amount: 100,
+                unit: "g",
+                label: "100 g",
+                gram_weight: 100,
+                nutrients: {
+                    calories: 50,
+                    protein_g: 3.3,
+                    carbs_g: 4.9,
+                    fat_g: 2,
+                    fiber_g: 0,
+                    sugar_g: 4.9,
+                    alcohol_g: 0,
+                    sodium_mg: 43,
+                    saturated_fat_g: 1.2,
+                    cholesterol_mg: 8,
+                    potassium_mg: 150,
+                },
+            },
+        ],
+    };
+    await page.route("**/api/app/food-search**", (route) =>
+        route.fulfill({
+            contentType: "application/json",
+            body: JSON.stringify({
+                query: "milk",
+                candidates: [milkSummary],
+                providerFailures: [],
+                savedFoods: [],
+                recentMealItems: [],
+            }),
+        }),
+    );
+    await page.route("**/api/app/food-details**", (route) =>
+        route.fulfill({
+            contentType: "application/json",
+            body: JSON.stringify({ food: milkFood }),
+        }),
+    );
+    const mealPosts: { items?: { portion_id?: string }[] }[] = [];
+    await page.route("**/api/app/meals", async (route) => {
+        if (route.request().method() === "POST") {
+            mealPosts.push(route.request().postDataJSON());
+            await route.fulfill({
+                contentType: "application/json",
+                body: JSON.stringify({
+                    meal: { id: "fixture-meal" },
+                    deduplicated: false,
+                }),
+            });
+            return;
+        }
+        await route.fallback();
+    });
+
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await page.getByRole("button", { name: "Add meal" }).first().click();
+
+    // Search ran on open; the result row headlines the cup portion.
+    const result = page.locator('[data-action="select-meal-option"]').first();
+    await expect(result).toContainText("1 cup");
+    await expect(result).toContainText("122 kcal");
+    await result.click();
+
+    // The portion picker opens on the natural portion, labelled with
+    // its gram weight, with the macro line reflecting that portion.
+    const portionSelect = page.locator('[data-composer-field="portion_id"]');
+    await expect(portionSelect).toBeVisible();
+    await expect(portionSelect).toHaveValue("cup");
+    const firstOption = await portionSelect
+        .locator("option")
+        .first()
+        .textContent();
+    expect(firstOption).toContain("1 cup · 244 g");
+    await expect(page.locator(".meal-composer-macros")).toContainText(
+        "1 cup · 122 kcal",
+    );
+
+    // Choosing another portion updates the shown totals immediately…
+    await portionSelect.selectOption("fl-oz");
+    await expect(page.locator(".meal-composer-macros")).toContainText(
+        "1 fl oz · 15 kcal",
+    );
+    // …and choosing "1 cup" is what gets logged.
+    await portionSelect.selectOption("cup");
+    await expect(page.locator(".meal-composer-macros")).toContainText(
+        "1 cup · 122 kcal",
+    );
+    await page.locator('#meal-form button[type="submit"]').click();
+    await expect.poll(() => mealPosts.length).toBe(1);
+    expect(mealPosts[0]?.items?.[0]?.portion_id).toBe("cup");
+});
+
 test("packaged bundle ships the mobile runtime and the Pantry page", async ({
     request,
 }) => {

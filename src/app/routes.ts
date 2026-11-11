@@ -106,6 +106,7 @@ import {
 } from "./meal-entry.js";
 import {
     draftItemInputFromBody,
+    enrichMealDraftForApp,
     mealDraftInputFromBody,
     serializeMealDraftForApp,
 } from "./meal-draft-review.js";
@@ -1207,7 +1208,7 @@ export function createAppRouter(): Hono {
             c.req.param("id")!,
         );
         if (!draft) throw new Error("Meal draft not found");
-        return privateJson(c, { draft: serializeMealDraftForApp(draft) });
+        return privateJson(c, { draft: await enrichMealDraftForApp(draft) });
     });
 
     app.patch("/api/app/meal-drafts/:id", requireSameOrigin, async (c) => {
@@ -1253,7 +1254,7 @@ export function createAppRouter(): Hono {
             item,
         });
         return privateJson(c, {
-            draft: serializeMealDraftForApp(draft),
+            draft: await enrichMealDraftForApp(draft),
         });
     });
 
@@ -1280,7 +1281,7 @@ export function createAppRouter(): Hono {
                 item,
             });
             return privateJson(c, {
-                draft: serializeMealDraftForApp(draft),
+                draft: await enrichMealDraftForApp(draft),
             });
         },
     );

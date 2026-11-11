@@ -6,6 +6,7 @@ import { getWidgetHtml } from "./widgets.js";
 
 export const FOOD_LABEL_WIDGET_URI = "ui://widget/food-label.html";
 const APP_UI_MIME_TYPE = "text/html;profile=mcp-app";
+import { sortPortionsNaturalFirst } from "./food-providers/portions.js";
 import {
     getFoodSearchService,
     summarizeFoodCandidate,
@@ -133,14 +134,16 @@ export function serializeFoodCandidate(candidate: FoodCandidate) {
         nutrients_per_100g: candidate.nutrientsPer100g
             ? serializeNutrients(candidate.nutrientsPer100g)
             : null,
-        portions: candidate.portions.map((portion) => ({
-            id: portion.id,
-            amount: portion.amount,
-            unit: portion.unit,
-            label: portion.label,
-            gram_weight: portion.gramWeight ?? null,
-            nutrients: serializeNutrients(portion.nutrients),
-        })),
+        portions: sortPortionsNaturalFirst(candidate.portions).map(
+            (portion) => ({
+                id: portion.id,
+                amount: portion.amount,
+                unit: portion.unit,
+                label: portion.label,
+                gram_weight: portion.gramWeight ?? null,
+                nutrients: serializeNutrients(portion.nutrients),
+            }),
+        ),
     };
 }
 
