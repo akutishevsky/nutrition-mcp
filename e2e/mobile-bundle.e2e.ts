@@ -321,9 +321,15 @@ test("packaged shell renders the can't-reach state when the API dies mid-session
     // the next view must render the designed can't-reach state with a
     // retry action — not a hanging spinner or a raw error.
     await page.route("**/api/app/**", (route) => route.abort());
-    // :visible picks the bottom nav at phone widths and the sidebar
-    // under the default config's desktop project.
-    await page.locator('a[data-route="log"]:visible').first().click();
+    // Today navigation (brief item 6): History left the bottom nav,
+    // so at phone widths the way there is the More door; on desktop
+    // the sidebar History link (same data-route) is the visible one.
+    if ((page.viewportSize()?.width ?? 0) > 768) {
+        await page.locator('a[data-route="log"]:visible').first().click();
+    } else {
+        await page.locator('a[data-route="more"]:visible').first().click();
+        await page.locator('.more-card[href="/app/log"]').click();
+    }
     await expect(page.getByTestId("api-down-state")).toBeVisible();
     await expect(page.getByTestId("api-down-state")).toContainText(
         "Can't reach Munch",

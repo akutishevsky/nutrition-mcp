@@ -129,6 +129,7 @@ import {
     getMealHistoryWorkspace,
     getPlanningWorkspace,
     getRecipeWorkspace,
+    getCalendarMonthSummary,
     getTodayWorkspace,
     getTrendsDayDetail,
     getTrendsPeriodContributors,
@@ -1013,6 +1014,18 @@ export function createAppRouter(): Hono {
                 c.get("munchUserId"),
                 requiredQuery(c.req.query("date"), "date"),
                 capabilitySurfaceFromRequest(c),
+            ),
+        ),
+    );
+
+    // Today-navigation calendar: the month summary behind the header
+    // calendar's data dots — one request per visible month.
+    app.get("/api/app/calendar/month", async (c) =>
+        privateJson(
+            c,
+            await getCalendarMonthSummary(
+                c.get("munchUserId"),
+                requiredQuery(c.req.query("month"), "month"),
             ),
         ),
     );

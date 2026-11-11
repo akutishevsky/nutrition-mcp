@@ -641,9 +641,21 @@ export const CAPABILITY_MANIFEST = [
     {
         id: "nutrition.summary",
         mcp: complete(["get_nutrition_summary"]),
-        web: complete(["/api/app/today", "/api/app/meals"]),
-        app: complete(["/api/app/today", "/api/app/meals"]),
-        ios: complete(["/api/app/today", "/api/app/meals"]),
+        web: complete([
+            "/api/app/today",
+            "/api/app/meals",
+            "/api/app/calendar/month",
+        ]),
+        app: complete([
+            "/api/app/today",
+            "/api/app/meals",
+            "/api/app/calendar/month",
+        ]),
+        ios: complete([
+            "/api/app/today",
+            "/api/app/meals",
+            "/api/app/calendar/month",
+        ]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,

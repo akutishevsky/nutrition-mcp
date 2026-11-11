@@ -360,6 +360,9 @@ let trendsLayoutFixture = defaultTrendsLayout();
     Insights destination retired; its entries ride the Today fixture
     only when a test asks for them. */
 let vitalsOnToday = false;
+/** Today navigation: seeds the 15th of any requested month with one
+ * meal (calendar dot + a Today payload with items for that date). */
+let calendarSeedOn = false;
 
 const TRENDS_FIXTURE_DATES = [
     "2026-11-03",
@@ -2059,6 +2062,130 @@ test.beforeAll(async () => {
                 });
                 return;
             }
+            if (url.pathname === "/api/app/calendar/month") {
+                // Today navigation (brief item 2): the month summary
+                // dots the 15th of whatever month is asked for when
+                // the calendar seed is on — one request per month.
+                const month = url.searchParams.get("month") ?? "";
+                response.writeHead(200, {
+                    "content-type": "application/json",
+                    "cache-control": "no-store",
+                });
+                response.end(
+                    JSON.stringify({
+                        month,
+                        timezone: "UTC",
+                        days: calendarSeedOn
+                            ? [
+                                  {
+                                      date: `${month}-15`,
+                                      meals: 1,
+                                      water: 1,
+                                      weight: 0,
+                                  },
+                              ]
+                            : [],
+                    }),
+                );
+                return;
+            }
+            if (
+                calendarSeedOn &&
+                url.pathname === "/api/app/today" &&
+                (url.searchParams.get("date") ?? "").endsWith("-15")
+            ) {
+                // The seeded day's Today payload: one meal whose
+                // items carry the nutrients the breakdown sheet and
+                // the micronutrient sums read.
+                const date = url.searchParams.get("date") ?? "";
+                const items = [
+                    {
+                        id: "fixture-calendar-item-1",
+                        mealId: "fixture-calendar-meal",
+                        name: "Grilled chicken",
+                        quantity: 1,
+                        portionLabel: "150 g",
+                        gramWeight: 150,
+                        calories: 248,
+                        proteinG: 46,
+                        carbsG: 0,
+                        fatG: 5,
+                        fiberG: 0,
+                        sugarG: 0,
+                        sodiumMg: 74,
+                        saturatedFatG: 1.4,
+                        potassiumMg: 650,
+                        cholesterolMg: 128,
+                        sourceType: "usda",
+                        provider: "USDA",
+                        confidence: 0.95,
+                        assumptions: [],
+                    },
+                    {
+                        id: "fixture-calendar-item-2",
+                        mealId: "fixture-calendar-meal",
+                        name: "Jasmine rice",
+                        quantity: 1,
+                        portionLabel: "1 cup cooked",
+                        gramWeight: 158,
+                        calories: 222,
+                        proteinG: 4,
+                        carbsG: 45,
+                        fatG: 1,
+                        fiberG: 1,
+                        sugarG: 0,
+                        sodiumMg: 4,
+                        saturatedFatG: 0.2,
+                        potassiumMg: 55,
+                        cholesterolMg: 0,
+                        sourceType: "usda",
+                        provider: "USDA",
+                        confidence: 0.95,
+                        assumptions: [],
+                    },
+                ];
+                response.writeHead(200, {
+                    "content-type": "application/json",
+                    "cache-control": "no-store",
+                });
+                response.end(
+                    JSON.stringify({
+                        totals: {
+                            calories: 470,
+                            proteinG: 50,
+                            carbsG: 45,
+                            fatG: 6,
+                            fiberG: 1,
+                            sugarG: 0,
+                            alcoholG: 0,
+                        },
+                        meals: [
+                            {
+                                id: "fixture-calendar-meal",
+                                description: "Calendar seed bowl",
+                                meal_type: "lunch",
+                                logged_at: `${date}T12:30:00.000Z`,
+                                calories: 470,
+                                protein_g: 50,
+                                carbs_g: 45,
+                                fat_g: 6,
+                                items,
+                            },
+                        ],
+                        water: { entries: [], totalMl: 0 },
+                        weight: [],
+                        goals: {
+                            daily_calories: 2000,
+                            daily_protein_g: 120,
+                            daily_carbs_g: 225,
+                            daily_fat_g: 67,
+                        },
+                        drafts: [],
+                        plannedMeals: [],
+                    }),
+                );
+                return;
+            }
             const fixture = fixtureJson(url.pathname, method);
             response.writeHead(200, {
                 "content-type": "application/json",
@@ -2252,6 +2379,7 @@ test.beforeEach(() => {
     vitalsRemovedIds.clear();
     trendsLayoutFixture = defaultTrendsLayout();
     vitalsOnToday = false;
+    calendarSeedOn = false;
     connectionsFixture = [
         {
             clientName: "Fixture MCP Client",
@@ -2341,7 +2469,7 @@ test("packaged route sweep renders every Operate surface", async ({ page }) => {
     await bootPackagedApp(page);
 
     const surfaces: { href: string; landmark: RegExp }[] = [
-        { href: "/app/log", landmark: /Food log|Meals/i },
+        { href: "/app/log", landmark: /History|Meals/i },
         { href: "/app/trends", landmark: /Trends|The week in words/i },
         { href: "/app/foods", landmark: /Saved foods|Foods/i },
         { href: "/app/recipes", landmark: /Recipes/i },
@@ -4563,5 +4691,101 @@ test("chat v2 placement: contextual entries only — no global entry, seeded ope
     await expect(pantryEntry).toHaveAttribute(
         "href",
         "/app/chat?surface=pantry",
+    );
+});
+
+test("today navigation: calendar dots and day jump, macro breakdown sheet, six-destination nav (brief items 1-6)", async ({
+    page,
+}) => {
+    calendarSeedOn = true;
+    await bootPackagedApp(page);
+
+    // Item 1: the header's only day navigation is the calendar icon —
+    // no Previous / Today / Next buttons remain on Today.
+    const heading = page.locator(".today-view .page-heading");
+    await expect(
+        heading.locator('[data-action="open-calendar"]'),
+    ).toBeVisible();
+    await expect(
+        heading.getByRole("button", { name: "Previous", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+        heading.getByRole("button", { name: "Today", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+        heading.getByRole("button", { name: "Next", exact: true }),
+    ).toHaveCount(0);
+    await expect(heading.getByText("structured nutrition record")).toHaveCount(
+        0,
+    );
+
+    // Items 4+6: the bottom nav is six destinations — Recipes holds
+    // the old Cooks slot; Log and Cooks are gone from the bar.
+    const nav = page.locator(".mobile-bottom-nav");
+    await expect(nav.locator("a")).toHaveCount(6);
+    await expect(nav.locator('a[href="/app/recipes"]')).toBeVisible();
+    await expect(nav.locator('a[href="/app/log"]')).toHaveCount(0);
+    await expect(nav.locator('a[href="/app/cooks"]')).toHaveCount(0);
+
+    // Item 5: the macros render as the 2x2 tile grid.
+    await expect(page.locator(".macro-tile")).toHaveCount(4);
+
+    // Item 2: the calendar dots the seeded 15th and not the 16th,
+    // with exactly one summary request per displayed month — the
+    // round trip to next month and back costs one more fetch, not
+    // two (the return month is cached).
+    const monthFetches = () =>
+        observed.filter((entry) => entry.path === "/api/app/calendar/month")
+            .length;
+    await heading.locator('[data-action="open-calendar"]').click();
+    const dialog = page.locator("#app-dialog");
+    const dotted = dialog.locator('.cal-day[data-date$="-15"]');
+    await expect(dotted.locator(".cal-dot")).toHaveCount(1);
+    await expect(
+        dialog.locator('.cal-day[data-date$="-16"] .cal-dot'),
+    ).toHaveCount(0);
+    expect(monthFetches()).toBe(1);
+    await dialog.locator('[data-action="calendar-next-month"]').click();
+    await expect.poll(monthFetches).toBe(2);
+    await dialog.locator('[data-action="calendar-prev-month"]').click();
+    await expect(dialog.locator(".cal-grid")).toBeVisible();
+    expect(monthFetches()).toBe(2);
+    await page.screenshot({
+        path: "test-results/today-navigation-captures/packaged-calendar.png",
+    });
+
+    // Item 1: tapping the dotted day lands Today on that date, meals
+    // and all — the same canonical day view Trends drills into.
+    await dotted.click();
+    await expect(page.locator("#app-content")).toContainText(
+        "Calendar seed bowl",
+    );
+
+    // Item 5: a tile opens the breakdown sheet — meal subtotal, then
+    // each ingredient's own contribution, day total pinned at the foot.
+    await page.locator('.macro-tile[data-macro="protein"]').click();
+    await expect(dialog).toContainText("Calendar seed bowl");
+    await expect(dialog).toContainText("Grilled chicken");
+    await expect(dialog).toContainText("Jasmine rice");
+    await expect(dialog.locator(".macro-sheet-foot")).toContainText(
+        "Day total",
+    );
+    await expect(dialog.locator(".macro-sheet-foot")).toContainText("50 g");
+    await dialog.locator('[data-action="close-dialog"]').click();
+
+    // Item 6, door (a): the calendar sheet's Search history row lands
+    // on the renamed History view, search intact.
+    await page.locator('[data-action="open-calendar"]').click();
+    await dialog.locator('[data-action="calendar-history"]').click();
+    await expect(page).toHaveTitle(/^History — Munch$/);
+    await expect(page.locator("#meal-history-search")).toBeVisible();
+
+    // Item 6, door (b) + item 4's other half: the More list carries
+    // History and Cooks; Recipes left the list for the nav slot.
+    await gotoRoute(page, "/app/more");
+    await expect(page.locator('.more-card[href="/app/log"]')).toBeVisible();
+    await expect(page.locator('.more-card[href="/app/cooks"]')).toBeVisible();
+    await expect(page.locator('.more-card[href="/app/recipes"]')).toHaveCount(
+        0,
     );
 });

@@ -275,6 +275,15 @@ jobs:
             test-results/trends-mobile-custom-dashboard.png
           if-no-files-found: ignore
           retention-days: 14
+      - name: Upload Today navigation captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-today-navigation-captures
+          path: |
+            test-results/today-navigation-captures/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload browser traces on failure
         if: failure()
         uses: actions/upload-artifact@v4
