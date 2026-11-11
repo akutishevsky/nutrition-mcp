@@ -1378,11 +1378,21 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
             },
         };
     }
-    if (pathname === "/api/app/guidance/today") {
+    if (pathname === "/api/app/guidance/next-up") {
+        // Next up (guidance rework): the parity fixtures exercise the
+        // honest quiet state; the populated card is covered by the
+        // dedicated mobile-next-up spec.
         return {
-            source_status: "sparse_data",
-            objective: "Track only",
-            actions: [],
+            date: "2026-11-10",
+            day_part: "midday",
+            is_today: true,
+            state: "quiet",
+            objective_set: true,
+            goal_prompt: { show: false },
+            quiet_line:
+                "Nothing needs deciding right now — log the next meal when you eat it.",
+            primary: null,
+            secondary: [],
         };
     }
     if (pathname === "/api/app/settings") return settingsFixture();
@@ -3364,7 +3374,7 @@ test("S6 slice 1: the single ad slot lives on Today, flag-gated and Premium-hidd
     ).toBe(true);
 
     // Flag ON for a free packaged account: exactly one slot, in-flow
-    // directly under Today's guidance and above Meals; the native
+    // directly under Next up and above Meals; the native
     // banner is requested visible with the flag forwarded.
     adsFlagOn = true;
     await page.reload();
@@ -3374,7 +3384,7 @@ test("S6 slice 1: the single ad slot lives on Today, flag-gated and Premium-hidd
     await expect(slot).toBeVisible();
     const slotBox = await slot.boundingBox();
     const guidanceBox = await page
-        .getByRole("heading", { name: "Today’s guidance" })
+        .getByRole("heading", { name: "Next up" })
         .boundingBox();
     const mealsBox = await page
         .getByRole("heading", { name: "Meals" })

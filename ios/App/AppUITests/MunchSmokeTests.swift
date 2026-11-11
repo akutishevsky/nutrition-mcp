@@ -191,8 +191,8 @@ final class MunchSmokeTests: XCTestCase {
             "Today never rendered its water action (\(step))"
         )
         XCTAssertTrue(
-            anyElement(containingText: "guidance").exists,
-            "Today is missing its guidance panel (\(step))"
+            anyElement(containingText: "Next up").exists,
+            "Today is missing its Next up guidance section (\(step))"
         )
         XCTAssertTrue(
             buttons(containing: "Add meal").firstMatch.exists,

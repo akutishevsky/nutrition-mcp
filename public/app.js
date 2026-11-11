@@ -635,13 +635,50 @@ function pendingDraftCard(draft) {
     return `<article class="meal-card"><strong>${escapeHtml(draft.description || `${draft.sourceMode} meal`)}</strong><p>${escapeHtml(status)} · ${draft.itemCount} item${draft.itemCount === 1 ? "" : "s"}</p><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="open-meal-draft" data-id="${escapeHtml(draft.id)}">Review draft</button></div></article>`;
 }
 
+// Next up (guidance rework D1–D7): the proactive suggestion section
+// that replaced the restating "Today's guidance" panel. The server
+// composes ONE grounded suggestion (or one honest quiet line); this
+// renders it compactly — title, reason, expected nutrition, landing —
+// with its actions, and the "Ask about today" chat entry stays at
+// the section's foot in every state (D7). The objective enum never
+// renders; the one-time goal prompt (D6) offers the existing
+// preferences flow as three plain choices plus a permanent dismiss.
+function nextUpGoalPrompt() {
+    return `<div class="next-up-goal-prompt"><p>Suggestions can aim at a goal once you set one.</p><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="next-up-goal" data-objective="lose">Lose weight</button><button class="button button-secondary button-small" type="button" data-action="next-up-goal" data-objective="maintain">Maintain</button><button class="button button-secondary button-small" type="button" data-action="next-up-goal" data-objective="gain">Gain weight</button><button class="button button-quiet button-small" type="button" data-action="next-up-goal-dismiss" aria-label="Dismiss goal prompt">Dismiss</button></div></div>`;
+}
+
+function nextUpPanel(nextUp) {
+    const chatRow = chatEntryRow(
+        "today",
+        "Ask about today",
+        "Opens with today's log and goals attached",
+    );
+    if (!nextUp) {
+        return `<section class="panel panel-span-12 next-up-panel" data-testid="next-up"><div class="panel-title"><h3>Next up</h3></div>${chatRow}</section>`;
+    }
+    let body = "";
+    const primary = nextUp.primary;
+    if (nextUp.state === "suggestion" && primary) {
+        const slotLabel = primary.slot[0].toUpperCase() + primary.slot.slice(1);
+        const nutrition = `${number(primary.nutrition.calories)} kcal · P ${number(primary.nutrition.protein_g, 1)}g · C ${number(primary.nutrition.carbs_g, 1)}g · F ${number(primary.nutrition.fat_g, 1)}g`;
+        const servingsNote =
+            primary.kind === "recipe"
+                ? ` · ${number(primary.servings, 2)} serving${primary.servings === 1 ? "" : "s"}`
+                : "";
+        body = `<article class="next-up-card"><div class="next-up-head"><h4 class="next-up-title">${escapeHtml(primary.name)}</h4><p class="next-up-kicker">${escapeHtml(slotLabel)}${primary.kind === "recipe" ? " · from your recipes" : " · you logged it before"}</p></div><p class="next-up-reason">${escapeHtml(primary.reason)}</p><p class="next-up-nutrition">${escapeHtml(nutrition)}${escapeHtml(servingsNote)}</p>${primary.landing_text ? `<p class="next-up-landing">${escapeHtml(primary.landing_text)}</p>` : ""}${primary.missing_ingredients?.length ? `<p class="next-up-needs">Needs: ${escapeHtml(primary.missing_ingredients.join(", "))}</p>` : ""}<div class="next-up-actions"><button class="button button-primary next-up-log-action" type="button" data-action="next-up-log" data-candidate="${escapeHtml(primary.candidate_id)}" data-slot="${escapeHtml(primary.slot)}" data-servings="${escapeHtml(primary.servings)}">Log it</button>${primary.actions.plan ? `<button class="button button-secondary" type="button" data-action="next-up-plan" data-candidate="${escapeHtml(primary.candidate_id)}" data-slot="${escapeHtml(primary.slot)}" data-servings="${escapeHtml(primary.servings)}">Plan it</button>` : ""}${primary.actions.groceries ? `<button class="button button-secondary next-up-groceries-action" type="button" data-action="next-up-groceries" data-candidate="${escapeHtml(primary.candidate_id)}">Add missing to groceries</button>` : ""}</div></article>${(nextUp.secondary || []).length ? `<ul class="next-up-secondary">${nextUp.secondary.map((line) => `<li>${escapeHtml(line.text)}</li>`).join("")}</ul>` : ""}${nextUp.goal_prompt?.show ? nextUpGoalPrompt() : ""}`;
+    } else {
+        body = `${nextUp.quiet_line ? `<p class="next-up-quiet">${escapeHtml(nextUp.quiet_line)}</p>` : ""}${nextUp.goal_prompt?.show ? nextUpGoalPrompt() : ""}`;
+    }
+    return `<section class="panel panel-span-12 next-up-panel" data-testid="next-up"><div class="panel-title"><h3>Next up</h3></div>${body}${chatRow}</section>`;
+}
+
 async function renderToday() {
     setLoading("Loading today’s meals and progress…");
     const data = await api(
         `/api/app/today?date=${encodeURIComponent(state.date)}`,
     );
-    const guidance = await api(
-        `/api/app/guidance/today?date=${encodeURIComponent(state.date)}`,
+    const nextUp = await api(
+        `/api/app/guidance/next-up?date=${encodeURIComponent(state.date)}`,
         { keepPrevious: true },
     );
     state.waterEntries = data.water?.entries || [];
@@ -654,9 +691,9 @@ async function renderToday() {
     const latestWeightValue = latestWeight
         ? weightFromGrams(latestWeight.weight_g, weightUnit)
         : null;
-    const guidancePanel = `<section class="panel panel-span-12"><div class="panel-title"><div><h3>Today’s guidance</h3><span>${guidance.source_status === "sparse_data" ? "Limited recorded data" : "Based on recorded data"}</span></div><span class="source-chip source-saved">${escapeHtml(guidance.objective || "Track only")}</span></div><ul>${(guidance.actions || []).map((action) => `<li>${escapeHtml(action)}</li>`).join("")}</ul><p class="tiny spacer-top">Planned meals are not counted as eaten. Unlogged meals remain unknown.</p>${chatEntryRow("today", "Ask about today", "Opens with today's log and goals attached")}</section>`;
+    const guidancePanel = nextUpPanel(nextUp);
     // S6 slice 1 (Editorial Serif fusion, tightened Today mock): order is
-    // heading → day totals → Today's guidance → the single ad slot →
+    // heading → day totals → Next up → the single ad slot →
     // Meals / Daily details. The ad slot markup is empty unless the
     // ADS-FOUNDATION flag is on for a free packaged account.
     content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div class="today-heading-row"><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><div class="today-heading-icons"><button class="button button-secondary button-small trends-icon-btn" type="button" data-action="open-calendar" aria-label="Open calendar" title="Calendar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></button><button class="button button-secondary button-small trends-icon-btn" type="button" data-action="open-trends" aria-label="Open Trends" title="Trends"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><rect x="4" y="12" width="3.4" height="7" rx="1"/><rect x="10.3" y="7" width="3.4" height="12" rx="1"/><rect x="16.6" y="9.5" width="3.4" height="9.5" rx="1"/></svg></button></div></div><div class="auth-actions"></div></div><section class="panel">${todayMacrosPanel(data, goals)}</section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml, false, { key: "today-water", targetLink: true, body: waterMetricDetail(data.water.entries) })}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null, false, { key: "today-weight", body: weightMetricDetail(data.weight, weightUnit) })}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span><button class="button button-quiet button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(meal.recipe_id)}">View recipe</button></div>`).join("")}` : ""}</aside></div></div>`;
@@ -1697,7 +1734,7 @@ async function renderRecipes() {
     // handlers the detail dialog has always offered; the list data
     // already carries revision_id). No ad slot exists on this surface:
     // the app's only slot is on Today (final ad law).
-    content.innerHTML = `<div class="operate-view recipes-view"><div class="page-heading"><div><h2>Recipe library</h2><p>${data.recipes.length} structured recipe${data.recipes.length === 1 ? "" : "s"}. Import from a website for review, or create a recipe manually.</p></div></div><div class="auth-actions recipe-actions">${importButton}${createButton}${composeButton}</div><div class="recipe-filter-row"><label class="field" for="recipe-filter"><span>Filter recipes</span><input class="input" id="recipe-filter" type="search" placeholder="Search by name" aria-label="Filter recipes" /></label></div><div class="recipe-list" id="recipe-grid">${data.recipes.length ? data.recipes.map((recipe) => `<section class="panel recipe-panel" data-recipe-name="${escapeHtml(recipe.name.toLowerCase())}"><span class="source-chip ${recipe.ownership === "household" ? "source-saved" : "source-usda"}">${escapeHtml(recipe.ownership)}</span><h3 class="recipe-title">${escapeHtml(recipe.name)}</h3><p class="recipe-meta">${number(recipe.servings, 1)} servings · ${escapeHtml(recipe.nutrition_status)} nutrition · per serving: <strong>${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong> · Scheduled ${number(recipe.times_scheduled)} times · logged ${number(recipe.times_logged)} times</p><div class="auth-actions recipe-panel-actions"><button class="button button-primary button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(recipe.recipe_id)}">View recipe</button><button class="button button-secondary button-small" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.recipe_id)}" data-revision="${escapeHtml(recipe.revision_id || "")}">Log recipe</button>${planRecipeButton(recipe.recipe_id)}</div></section>`).join("") : `<div class="empty-state"><div><h3>No recipes yet</h3><p>Import a recipe from a public website and review it before saving, or create one manually.</p>${canCreate ? `<div class="auth-actions spacer-top">${importButton}${createButton}</div>` : ""}</div></div>`}</div></div>`;
+    content.innerHTML = `<div class="operate-view recipes-view"><div class="page-heading"><div><h2>Recipe library</h2><p>${data.recipes.length} structured recipe${data.recipes.length === 1 ? "" : "s"}.</p></div></div><div class="auth-actions recipe-actions">${importButton}${createButton}${composeButton}</div><div class="recipe-filter-row"><label class="field" for="recipe-filter"><span>Filter recipes</span><input class="input" id="recipe-filter" type="search" placeholder="Search by name" aria-label="Filter recipes" /></label></div><div class="recipe-list" id="recipe-grid">${data.recipes.length ? data.recipes.map((recipe) => `<section class="panel recipe-panel" data-recipe-name="${escapeHtml(recipe.name.toLowerCase())}"><span class="source-chip ${recipe.ownership === "household" ? "source-saved" : "source-usda"}">${escapeHtml(recipe.ownership)}</span><h3 class="recipe-title">${escapeHtml(recipe.name)}</h3><p class="recipe-meta">${number(recipe.servings, 1)} servings · ${escapeHtml(recipe.nutrition_status)} nutrition · per serving: <strong>${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong> · Scheduled ${number(recipe.times_scheduled)} times · logged ${number(recipe.times_logged)} times</p><div class="auth-actions recipe-panel-actions"><button class="button button-primary button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(recipe.recipe_id)}">View recipe</button><button class="button button-secondary button-small" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.recipe_id)}" data-revision="${escapeHtml(recipe.revision_id || "")}">Log recipe</button>${planRecipeButton(recipe.recipe_id)}</div></section>`).join("") : `<div class="empty-state"><div><h3>No recipes yet</h3><p>Import a recipe from a public website and review it before saving, or create one manually.</p>${canCreate ? `<div class="auth-actions spacer-top">${importButton}${createButton}</div>` : ""}</div></div>`}</div></div>`;
 }
 
 function recipeIngredientFromFood(food, portionId) {
@@ -2285,7 +2322,7 @@ async function renderPlan() {
     const weekSummary = plannedCount
         ? ` ${number(plannedCount)} planned across ${daysPlanned} of 7 days · ${number(totalCalories / Math.max(daysPlanned, 1))} kcal daily average on planned days.`
         : "";
-    content.innerHTML = `<div class="operate-view plan-view"><div class="page-heading"><div><h2>Week of ${escapeHtml(formatDate(start))}</h2><p>Planned meals stay separate from foods you actually logged.${weekSummary}</p></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="guided-planner">Guided planner</button><button class="button button-secondary button-small" type="button" data-action="guidance-preferences">Preferences</button><button class="button button-secondary button-small" data-action="date-week-prev">Previous week</button><button class="button button-secondary button-small" data-action="date-today">This week</button><button class="button button-secondary button-small" data-action="date-week-next">Next week</button></div></div><div class="meal-groups">${weekDays(
+    content.innerHTML = `<div class="operate-view plan-view"><div class="page-heading"><div><h2>Week of ${escapeHtml(formatDate(start))}</h2><p>Planned meals stay separate from logged meals.${weekSummary}</p></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="guided-planner">Guided planner</button><button class="button button-secondary button-small" type="button" data-action="guidance-preferences">Preferences</button><button class="button button-secondary button-small" data-action="date-week-prev">Previous week</button><button class="button button-secondary button-small" data-action="date-today">This week</button><button class="button button-secondary button-small" data-action="date-week-next">Next week</button></div></div><div class="meal-groups">${weekDays(
         start,
     )
         .map(
@@ -2824,7 +2861,7 @@ async function renderGroceries() {
             return `<section class="panel grocery-list" data-grocery-scope="${list.scope}"><div class="panel-title"><div><h3>${list.scope === "household" ? "Household list" : "Personal list"}</h3><span>${list.scope === "household" && data.permissions?.householdRole ? `${escapeHtml(data.permissions.householdRole)} · ` : ""}<span class="grocery-list-counts">${list.items.length} items · ${purchasedCount} checked</span></span></div><div class="auth-actions grocery-list-actions">${listAddButton}${editable && purchasedCount ? `<button class="button button-quiet button-small" type="button" data-action="clear-purchased" data-scope="${list.scope}" data-count="${purchasedCount}">Clear purchased</button>` : ""}</div></div>${list.items.length ? groupedItems : `<div class="empty-state"><div><h3>The list is empty</h3><p>Add an item manually or ask your AI assistant to record an explicit shopping need.</p>${editable ? `<div class="auth-actions spacer-top"><button class="button button-primary button-small" type="button" data-action="add-grocery" data-scope="${list.scope}">Add item</button></div>` : ""}</div></div>`}</section>`;
         })
         .join("");
-    content.innerHTML = `<div class="operate-view groceries-view"><div class="page-heading"><div><h2>Groceries</h2><p>Explicit shopping lists only. Munch does not infer pantry inventory.<span class="grocery-total-counts">${listSummary}</span></p>${state.shoppingMode ? `<p class="shopping-mode-caption">Bigger targets, distractions hidden — for checking off in the store</p>` : ""}</div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="shopping-mode" aria-pressed="${state.shoppingMode ? "true" : "false"}">${state.shoppingMode ? "Exit shopping mode" : "Shopping mode"}</button></div></div>${lists || `<section class="panel"><div class="empty-state"><div><h3>No grocery lists</h3><p>Grocery lists are not available for this account.</p></div></div></section>`}</div>`;
+    content.innerHTML = `<div class="operate-view groceries-view"><div class="page-heading"><div><h2>Groceries</h2><p>Explicit lists only — nothing is inferred from your pantry.<span class="grocery-total-counts">${listSummary}</span></p>${state.shoppingMode ? `<p class="shopping-mode-caption">Bigger targets, distractions hidden — for checking off in the store</p>` : ""}</div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="shopping-mode" aria-pressed="${state.shoppingMode ? "true" : "false"}">${state.shoppingMode ? "Exit shopping mode" : "Shopping mode"}</button></div></div>${lists || `<section class="panel"><div class="empty-state"><div><h3>No grocery lists</h3><p>Grocery lists are not available for this account.</p></div></div></section>`}</div>`;
 }
 
 function cookCardActionsMarkup(cook) {
@@ -2928,7 +2965,7 @@ async function renderCooks() {
           : active.length
             ? '<p class="cook-none-line">No finished cooks yet.</p>'
             : '<div class="empty-state"><div><h3>No cooks yet</h3><p>Start before cooking, add a photo and message while cooking, or record a past attempt.</p><button class="button button-primary button-small spacer-top" type="button" data-action="new-cook">Start your first cook</button></div></div>';
-    content.innerHTML = `<div class="operate-view cooks-view"><div class="page-heading"><div><h2>Cooks</h2><p>Persistent cooking sessions with photos, timeline, results, and attempts—separate from food logging.</p></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="new-cook">Start cook</button><button class="button button-secondary button-small" type="button" data-action="compare-cooks">Compare selected</button></div></div><section class="panel cook-search-panel"><form id="cook-search-form" class="cook-search-form"><div class="cook-search-row"><label class="field cook-search-query"><span>Search history</span><input class="input" name="query" type="search" value="${escapeHtml(state.cookQuery)}" placeholder="Search wings, notes, updates…" autocomplete="off" /></label><button class="button button-primary button-small" type="submit">Search history</button></div><details class="cook-filters"${hasFilters ? " open" : ""}><summary>Filters${[filters.dish, filters.method, filters.flavor, filters.dateFrom, filters.dateTo].filter(Boolean).length + (filters.status !== "all" ? 1 : 0) ? ` · ${[filters.dish, filters.method, filters.flavor, filters.dateFrom, filters.dateTo].filter(Boolean).length + (filters.status !== "all" ? 1 : 0)} set` : ""}</summary><div class="cook-filter-grid"><label class="field"><span>Dish</span><input class="input" name="dish" value="${escapeHtml(filters.dish)}" placeholder="Dish" /></label><label class="field"><span>Method</span><input class="input" name="method" value="${escapeHtml(filters.method)}" placeholder="Method" /></label><label class="field"><span>Flavor / seasoning</span><input class="input" name="flavor" value="${escapeHtml(filters.flavor)}" placeholder="Flavor / seasoning" /></label><label class="field"><span>Status</span><select name="status" aria-label="Cook status"><option value="all" ${filters.status === "all" ? "selected" : ""}>All statuses</option><option value="active" ${filters.status === "active" ? "selected" : ""}>Active</option><option value="finished" ${filters.status === "finished" ? "selected" : ""}>Finished</option></select></label><label class="field"><span>From</span><input class="input" name="date_from" type="date" value="${escapeHtml(filters.dateFrom)}" /></label><label class="field"><span>To</span><input class="input" name="date_to" type="date" value="${escapeHtml(filters.dateTo)}" /></label></div></details>${hasFilters ? '<div class="auth-actions cook-search-actions"><button class="button button-quiet button-small" type="button" data-action="clear-cook-search">Clear search</button></div>' : ""}<p class="tiny cook-search-note">Searches cook history directly, including original updates, timeline notes, results, dish labels, seasoning, method, and date.</p></form></section>${activeMarkup}<section class="panel"><div class="panel-title"><div><h3>${hasFilters ? "Matching history" : "Recent history"}</h3><span>${cooks.length} cook${cooks.length === 1 ? "" : "s"}</span></div></div>${historyMarkup}</section></div>`;
+    content.innerHTML = `<div class="operate-view cooks-view"><div class="page-heading"><div><h2>Cooks</h2></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="new-cook">Start cook</button><button class="button button-secondary button-small" type="button" data-action="compare-cooks">Compare selected</button></div></div><section class="panel cook-search-panel"><form id="cook-search-form" class="cook-search-form"><div class="cook-search-row"><label class="field cook-search-query"><span>Search history</span><input class="input" name="query" type="search" value="${escapeHtml(state.cookQuery)}" placeholder="Search wings, notes, updates…" autocomplete="off" /></label><button class="button button-primary button-small" type="submit">Search history</button></div><details class="cook-filters"${hasFilters ? " open" : ""}><summary>Filters${[filters.dish, filters.method, filters.flavor, filters.dateFrom, filters.dateTo].filter(Boolean).length + (filters.status !== "all" ? 1 : 0) ? ` · ${[filters.dish, filters.method, filters.flavor, filters.dateFrom, filters.dateTo].filter(Boolean).length + (filters.status !== "all" ? 1 : 0)} set` : ""}</summary><div class="cook-filter-grid"><label class="field"><span>Dish</span><input class="input" name="dish" value="${escapeHtml(filters.dish)}" placeholder="Dish" /></label><label class="field"><span>Method</span><input class="input" name="method" value="${escapeHtml(filters.method)}" placeholder="Method" /></label><label class="field"><span>Flavor / seasoning</span><input class="input" name="flavor" value="${escapeHtml(filters.flavor)}" placeholder="Flavor / seasoning" /></label><label class="field"><span>Status</span><select name="status" aria-label="Cook status"><option value="all" ${filters.status === "all" ? "selected" : ""}>All statuses</option><option value="active" ${filters.status === "active" ? "selected" : ""}>Active</option><option value="finished" ${filters.status === "finished" ? "selected" : ""}>Finished</option></select></label><label class="field"><span>From</span><input class="input" name="date_from" type="date" value="${escapeHtml(filters.dateFrom)}" /></label><label class="field"><span>To</span><input class="input" name="date_to" type="date" value="${escapeHtml(filters.dateTo)}" /></label></div></details>${hasFilters ? '<div class="auth-actions cook-search-actions"><button class="button button-quiet button-small" type="button" data-action="clear-cook-search">Clear search</button></div>' : ""}<p class="tiny cook-search-note">Searches cook history directly, including original updates, timeline notes, results, dish labels, seasoning, method, and date.</p></form></section>${activeMarkup}<section class="panel"><div class="panel-title"><div><h3>${hasFilters ? "Matching history" : "Recent history"}</h3><span>${cooks.length} cook${cooks.length === 1 ? "" : "s"}</span></div></div>${historyMarkup}</section></div>`;
 }
 
 function cookDishFormMarkup() {
@@ -5096,6 +5133,99 @@ async function handleAction(button) {
     }
     if (action === "guided-planner") return openGuidedPlanner();
     if (action === "guidance-preferences") return openGuidancePreferences();
+    if (action === "next-up-plan") {
+        // D3: schedule the suggested recipe for the suggested slot.
+        button.disabled = true;
+        const result = await api("/api/app/guidance/next-up/plan", {
+            method: "POST",
+            body: JSON.stringify({
+                date: state.date,
+                candidate_id: button.dataset.candidate,
+                slot: button.dataset.slot,
+                servings: Number(button.dataset.servings || 1),
+            }),
+            keepPrevious: true,
+        });
+        toast(`Planned for ${result.slot}.`);
+        await renderRoute();
+        return;
+    }
+    if (action === "next-up-log") {
+        // D3: pre-filled draft through confirm-before-save — this
+        // only OPENS the review; nothing logs until Confirm there.
+        button.disabled = true;
+        const result = await api("/api/app/guidance/next-up/log", {
+            method: "POST",
+            body: JSON.stringify({
+                date: state.date,
+                candidate_id: button.dataset.candidate,
+                slot: button.dataset.slot,
+                servings: Number(button.dataset.servings || 1),
+            }),
+            keepPrevious: true,
+        });
+        await openMealDraft(result.draft_id);
+        return;
+    }
+    if (action === "next-up-groceries") {
+        button.disabled = true;
+        const result = await api("/api/app/guidance/next-up/groceries", {
+            method: "POST",
+            body: JSON.stringify({
+                date: state.date,
+                candidate_id: button.dataset.candidate,
+            }),
+            keepPrevious: true,
+        });
+        toast(
+            result.added || result.merged
+                ? `Groceries updated — ${result.added} added, ${result.merged} merged.`
+                : "Everything for that meal is already on hand or listed.",
+        );
+        await renderRoute();
+        return;
+    }
+    if (action === "next-up-goal") {
+        // D6: set the objective through the existing preferences
+        // flow (the same confirmed, versioned write the Preferences
+        // dialog makes) — targets stay editable in Settings.
+        button.disabled = true;
+        const current = await api("/api/app/guidance/preferences", {
+            keepPrevious: true,
+        });
+        // The read model embeds `version` in the preferences object,
+        // but the write schema is strict — version travels as
+        // expected_version only, never inside the preferences body.
+        const { version: _readVersion, ...currentPreferences } =
+            current.preferences;
+        await api("/api/app/guidance/preferences", {
+            method: "PUT",
+            body: JSON.stringify({
+                preferences: {
+                    ...currentPreferences,
+                    objective: button.dataset.objective,
+                },
+                expected_version: Number(current.preferences.version),
+                confirm: true,
+            }),
+            keepPrevious: true,
+        });
+        toast("Goal set. You can fine-tune targets in Settings.");
+        await renderRoute();
+        return;
+    }
+    if (action === "next-up-goal-dismiss") {
+        // D6: one-time — the dismissal is stored on the account, so
+        // the prompt never renders again on any surface.
+        button.disabled = true;
+        await api("/api/app/guidance/next-up/goal-prompt/dismiss", {
+            method: "POST",
+            body: JSON.stringify({}),
+            keepPrevious: true,
+        });
+        await renderRoute();
+        return;
+    }
     if (action === "guidance-preferences-confirm") {
         const form = document.querySelector("#guidance-preferences-form");
         if (!form) return;

@@ -31,6 +31,13 @@ import {
 } from "../guidance-repository.js";
 import { websiteGuidanceAiConfig } from "../website-ai-config.js";
 import { generateGuidanceProposals } from "./guidance-ai.js";
+import {
+    addNextUpGroceries,
+    dismissNextUpGoalPrompt,
+    getNextUp,
+    logNextUpSuggestion,
+    planNextUpSuggestion,
+} from "./next-up.js";
 
 function privateJson(c: any, value: unknown, status = 200) {
     c.header("Cache-Control", "private, no-store");
@@ -288,6 +295,73 @@ export function createGuidanceRouter(): Hono {
                 date: queryRequired(c.req.query("date"), "date"),
             }),
         ),
+    );
+
+    // Next up (guidance rework D1–D7): the proactive suggestion
+    // section on Today. Free for every account — the Premium line
+    // holds at the chat conversation, not at this card. Actions
+    // re-derive the candidate server-side from a fresh context.
+    app.get("/api/app/guidance/next-up", async (c) =>
+        privateJson(
+            c,
+            await getNextUp(
+                currentUserId(c),
+                queryRequired(c.req.query("date"), "date"),
+            ),
+        ),
+    );
+    app.post("/api/app/guidance/next-up/plan", requireSameOrigin, async (c) => {
+        const body = bodyObject(await c.req.json(), "Next up plan");
+        return privateJson(
+            c,
+            await planNextUpSuggestion(currentUserId(c), {
+                date: queryRequired(
+                    typeof body.date === "string" ? body.date : undefined,
+                    "date",
+                ),
+                candidate_id: body.candidate_id,
+                slot: body.slot,
+                servings: body.servings,
+            }),
+        );
+    });
+    app.post("/api/app/guidance/next-up/log", requireSameOrigin, async (c) => {
+        const body = bodyObject(await c.req.json(), "Next up log");
+        return privateJson(
+            c,
+            await logNextUpSuggestion(currentUserId(c), {
+                date: queryRequired(
+                    typeof body.date === "string" ? body.date : undefined,
+                    "date",
+                ),
+                candidate_id: body.candidate_id,
+                slot: body.slot,
+                servings: body.servings,
+            }),
+        );
+    });
+    app.post(
+        "/api/app/guidance/next-up/groceries",
+        requireSameOrigin,
+        async (c) => {
+            const body = bodyObject(await c.req.json(), "Next up groceries");
+            return privateJson(
+                c,
+                await addNextUpGroceries(currentUserId(c), {
+                    date: queryRequired(
+                        typeof body.date === "string" ? body.date : undefined,
+                        "date",
+                    ),
+                    candidate_id: body.candidate_id,
+                }),
+            );
+        },
+    );
+    app.post(
+        "/api/app/guidance/next-up/goal-prompt/dismiss",
+        requireSameOrigin,
+        async (c) =>
+            privateJson(c, await dismissNextUpGoalPrompt(currentUserId(c))),
     );
     app.get("/api/app/insights/checkin", async (c) =>
         privateJson(

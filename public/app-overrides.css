@@ -5957,3 +5957,156 @@ dialog .guided-grocery-row input[type="checkbox"] {
     flex: 0 0 auto;
     padding-top: 2px;
 }
+
+/* =====================================================================
+   Next up — the proactive suggestion section on Today (guidance
+   rework D1–D7). Editorial Serif house grammar (paper #F6F1E7, panel
+   #FFFDF7, ink #22301F, muted #6E7462, line #DED5C0, deep green
+   #2E5B34, green-soft #E6EDDC, gold #8A6D3B). Density law: the card
+   is title + reason + one nutrition line + one landing line + one
+   action row, so the populated section never pushes the day's first
+   meal off the first screen at phone widths.
+   ===================================================================== */
+
+.next-up-panel {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.next-up-panel .panel-title {
+    margin-bottom: 0;
+}
+
+.next-up-panel .entry-row {
+    margin-top: 4px;
+    min-height: 46px;
+    padding: 5px 0;
+}
+
+.next-up-card {
+    margin: 0;
+}
+
+.next-up-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.next-up-head .next-up-title {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.next-up-head .next-up-kicker {
+    flex: 0 0 auto;
+    text-align: right;
+}
+
+.next-up-kicker {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8a6d3b;
+}
+
+.next-up-title {
+    margin: 1px 0 0;
+    font-size: 18px;
+    line-height: 1.2;
+    color: #22301f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.next-up-reason {
+    margin: 1px 0 0;
+    font-size: 14px;
+    line-height: 1.35;
+    color: #22301f;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.next-up-nutrition {
+    margin: 2px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2e5b34;
+}
+
+.next-up-landing {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #6e7462;
+}
+
+.next-up-needs {
+    margin: 1px 0 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #6e7462;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.next-up-actions {
+    margin-top: 5px;
+    display: flex;
+    gap: 6px;
+}
+
+.next-up-actions .button {
+    min-height: 44px;
+    padding: 3px 8px;
+    flex: 1 1 0;
+}
+
+.next-up-actions .next-up-log-action {
+    flex-grow: 1.35;
+}
+
+.next-up-actions .next-up-groceries-action {
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.next-up-secondary {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: #6e7462;
+}
+
+.next-up-secondary li {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.next-up-quiet {
+    margin: 2px 0 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: #22301f;
+}
+
+.next-up-goal-prompt {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #ded5c0;
+}
+
+.next-up-goal-prompt p {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: #6e7462;
+}

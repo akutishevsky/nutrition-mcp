@@ -66,10 +66,17 @@ test.beforeAll(async () => {
                     drafts: [],
                     plannedMeals: [],
                 },
-                "/api/app/guidance/today": {
-                    source_status: "sparse_data",
-                    objective: "Track only",
-                    actions: [],
+                "/api/app/guidance/next-up": {
+                    date: "2026-11-10",
+                    day_part: "midday",
+                    is_today: true,
+                    state: "quiet",
+                    objective_set: true,
+                    goal_prompt: { show: false },
+                    quiet_line:
+                        "Nothing needs deciding right now — log the next meal when you eat it.",
+                    primary: null,
+                    secondary: [],
                 },
             };
             response.writeHead(200, {
@@ -778,11 +785,18 @@ test.beforeAll(async () => {
             });
             return;
         }
-        if (path === "/api/app/guidance/today") {
+        if (path === "/api/app/guidance/next-up") {
             sendApiJson(response, 200, {
-                source_status: "sparse_data",
-                objective: "Track only",
-                actions: [],
+                date: "2026-11-10",
+                day_part: "midday",
+                is_today: true,
+                state: "quiet",
+                objective_set: true,
+                goal_prompt: { show: false },
+                quiet_line:
+                    "Nothing needs deciding right now — log the next meal when you eat it.",
+                primary: null,
+                secondary: [],
             });
             return;
         }

@@ -33,7 +33,7 @@ describe("Android banner placement", () => {
 
     test("hides on every other surface and while a dialog is open", () => {
         // Amendment D final placement law: exactly ONE slot app-wide —
-        // Today under Today's guidance. The retired More-screen
+        // Today under Next up. The retired More-screen
         // placement and every browse/logging surface stay ad-free.
         expect(shouldShowAndroidBanner({ ...eligible, route: "more" })).toBe(
             false,

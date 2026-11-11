@@ -78,10 +78,17 @@ const FIXTURES = {
         drafts: [],
         plannedMeals: [],
     },
-    "/api/app/guidance/today": {
-        source_status: "sparse_data",
-        objective: "Track only",
-        actions: [],
+    "/api/app/guidance/next-up": {
+        date: "2026-11-10",
+        day_part: "midday",
+        is_today: true,
+        state: "quiet",
+        objective_set: true,
+        goal_prompt: { show: false },
+        quiet_line:
+            "Nothing needs deciding right now — log the next meal when you eat it.",
+        primary: null,
+        secondary: [],
     },
     "/api/app/meals": {
         meals: [],
