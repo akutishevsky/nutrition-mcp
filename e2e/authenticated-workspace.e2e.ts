@@ -140,10 +140,9 @@ test("meal composer logs a food through its portion picker", async ({
     // brief's milk flow); otherwise keep the natural first option.
     const cupOption = options.find((option) => /1 cup/i.test(option.text));
     if (cupOption) await portionSelect.selectOption(cupOption.value);
-    await expect(page.locator(".meal-composer-macros")).toContainText(
-        "kcal",
-        { timeout: 15_000 },
-    );
+    await expect(page.locator(".meal-composer-macros")).toContainText("kcal", {
+        timeout: 15_000,
+    });
 
     await page.locator('#meal-form button[type="submit"]').click();
     await expect(page.locator("#toast-region")).toContainText("Meal logged.", {
