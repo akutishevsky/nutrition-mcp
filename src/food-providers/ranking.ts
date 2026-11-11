@@ -83,6 +83,61 @@ export function scoreCandidate(
     );
 }
 
+/**
+ * Minimum query-token overlap for a candidate to count as genuinely
+ * matching the query (exact name / exact brand+name matches always
+ * pass). This is the relevance gate for completeness-dominant ranking:
+ * candidates below it are never removed, they only sort after every
+ * gated-in candidate.
+ */
+export const RELEVANCE_TOKEN_OVERLAP_THRESHOLD = 0.5;
+
+export function passesRelevanceGate(
+    input: Pick<FoodSearchInput, "query">,
+    candidate: FoodCandidate,
+): boolean {
+    const query = normalizeFoodText(input.query);
+    if (query === "") return false;
+    const name = normalizeFoodText(candidate.name);
+    if (query === name) return true;
+    if (
+        query ===
+        normalizeFoodText(`${candidate.brand ?? ""} ${candidate.name}`)
+    ) {
+        return true;
+    }
+    const overlap = Math.max(
+        tokenOverlap(query, candidate.name),
+        tokenOverlap(query, `${candidate.brand ?? ""} ${candidate.name}`),
+    );
+    return overlap >= RELEVANCE_TOKEN_OVERLAP_THRESHOLD;
+}
+
+/**
+ * Depth of the nutrient panel a candidate carries: the richest panel
+ * among its per-100 g values and its portions (portion panels are the
+ * same facts at a serving scale, so the max is the entry's true depth).
+ */
+export function candidateCompleteness(candidate: FoodCandidate): number {
+    let best = candidate.nutrientsPer100g
+        ? nutrientCompleteness(candidate.nutrientsPer100g)
+        : 0;
+    for (const portion of candidate.portions) {
+        best = Math.max(best, nutrientCompleteness(portion.nutrients));
+    }
+    return best;
+}
+
+/**
+ * Completeness-dominant ranking (brief: search ranking + portion
+ * picker, item 1). Ordering only — no candidate is ever removed:
+ * 1. relevance gate (passesRelevanceGate): gated-in candidates sort
+ *    strictly before gated-out ones;
+ * 2. nutrient completeness, descending — the dominant signal;
+ * 3. the pre-existing weighted relevance score as tiebreaker
+ *    (exact name, token overlap, confidence, portion quality);
+ * 4. original order, so equal candidates keep a stable order.
+ */
 export function rankCandidates(
     input: Pick<FoodSearchInput, "query">,
     candidates: FoodCandidate[],
@@ -91,8 +146,16 @@ export function rankCandidates(
         .map((candidate, index) => ({
             candidate,
             index,
+            gated: passesRelevanceGate(input, candidate),
+            completeness: candidateCompleteness(candidate),
             score: scoreCandidate(input, candidate),
         }))
-        .sort((a, b) => b.score - a.score || a.index - b.index)
+        .sort(
+            (a, b) =>
+                Number(b.gated) - Number(a.gated) ||
+                b.completeness - a.completeness ||
+                b.score - a.score ||
+                a.index - b.index,
+        )
         .map(({ candidate }) => candidate);
 }

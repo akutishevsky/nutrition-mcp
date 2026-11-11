@@ -93,3 +93,80 @@ test("protects private data and supports the core website journey", async ({
         )
         .toBe(true);
 });
+
+test("meal composer logs a food through its portion picker", async ({
+    page,
+}) => {
+    test.setTimeout(120_000);
+    const email = process.env.MUNCH_REVIEWER_EMAIL;
+    const password = process.env.MUNCH_REVIEWER_PASSWORD;
+    if (!email || !password) {
+        throw new Error(
+            "MUNCH_REVIEWER_EMAIL and MUNCH_REVIEWER_PASSWORD are required",
+        );
+    }
+
+    await page.goto("/account/password?return_to=%2Fapp");
+    await page.getByLabel("Username or email").fill(email);
+    await page.getByLabel("Password", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/app\/?$/);
+    await expect(page).toHaveTitle(/^Today — Munch$/);
+
+    await page.getByRole("button", { name: "Add meal" }).first().click();
+    const searchInput = page.locator("#meal-food-search");
+    await searchInput.fill("milk");
+
+    // Verified results come from the live providers in this lane, so
+    // assertions stay on the picker contract, not a specific food:
+    // a result row appears, picking it opens the portion dropdown,
+    // and the dropdown's options carry real portion labels. Live
+    // providers occasionally answer a search with an empty pool
+    // (rate limits, circuit breakers), so re-issue the search a few
+    // times before treating "no results" as a failure.
+    // Scope to verified provider results (data-key="candidate:…"):
+    // the desktop and mobile lanes share the reviewer account, so a
+    // sibling lane's logged meal can appear under "Recent foods" —
+    // recent rows reuse a snapshot and carry no portion dropdown.
+    const result = page
+        .locator('[data-action="select-meal-option"][data-key^="candidate:"]')
+        .first();
+    let picked = false;
+    for (let attempt = 0; attempt < 3 && !picked; attempt++) {
+        if (attempt > 0) {
+            await searchInput.fill("");
+            await searchInput.fill("milk");
+        }
+        picked = await result
+            .waitFor({ state: "visible", timeout: 20_000 })
+            .then(() => true)
+            .catch(() => false);
+    }
+    expect(picked, "food search returned at least one result").toBe(true);
+    await result.click();
+
+    const portionSelect = page.locator('[data-composer-field="portion_id"]');
+    await expect(portionSelect).toBeVisible({ timeout: 30_000 });
+    // Read the options in one evaluate: probing for an option that
+    // may not exist with a waiting locator would burn the test budget.
+    const options = await portionSelect.evaluate((select) =>
+        [...(select as HTMLSelectElement).options].map((option) => ({
+            value: option.value,
+            text: option.textContent ?? "",
+        })),
+    );
+    expect(options.length).toBeGreaterThan(0);
+    expect(options.at(-1)?.text).toContain("Custom portion");
+    // Prefer the "1 cup" option when the picked food offers one (the
+    // brief's milk flow); otherwise keep the natural first option.
+    const cupOption = options.find((option) => /1 cup/i.test(option.text));
+    if (cupOption) await portionSelect.selectOption(cupOption.value);
+    await expect(page.locator(".meal-composer-macros")).toContainText("kcal", {
+        timeout: 15_000,
+    });
+
+    await page.locator('#meal-form button[type="submit"]').click();
+    await expect(page.locator("#toast-region")).toContainText("Meal logged.", {
+        timeout: 30_000,
+    });
+});

@@ -1,3 +1,9 @@
+import { sortPortionsNaturalFirst } from "../food-providers/portions.js";
+import {
+    encodeFoodCandidateId,
+    getFoodSearchService,
+} from "../food-providers/service.js";
+import type { FoodCandidate } from "../food-providers/types.js";
 import { aggregateStructuredMealItems } from "../structured-meals/repository.js";
 import type {
     MealSourceType,
@@ -244,6 +250,15 @@ export function draftItemInputFromBody(
     };
 }
 
+export interface DraftItemPortionOption {
+    id: string;
+    amount: number;
+    unit: string;
+    label: string;
+    gram_weight: number | null;
+    nutrients: NutrientValues;
+}
+
 export function serializeMealDraftForApp(draft: MealDraft) {
     const items = draft.items.map((record) => ({
         id: record.id,
@@ -253,6 +268,8 @@ export function serializeMealDraftForApp(draft: MealDraft) {
         portion_label: record.item.portionLabel ?? null,
         gram_weight: record.item.gramWeight ?? null,
         nutrients: record.item.nutrients,
+        candidate_id: null as string | null,
+        portions: [] as DraftItemPortionOption[],
         source_type: record.item.sourceType,
         provider: record.item.provider ?? null,
         provider_food_id: record.item.providerFoodId ?? null,
@@ -306,4 +323,69 @@ export function serializeMealDraftForApp(draft: MealDraft) {
             openQuestions.length === 0 &&
             draft.items.length > 0,
     };
+}
+
+function draftItemCandidateId(
+    item: MealDraft["items"][number]["item"],
+): string | null {
+    const snapshot = item.sourceSnapshot ?? {};
+    const fromSnapshot = snapshot.candidate_id;
+    if (typeof fromSnapshot === "string" && fromSnapshot.includes(":")) {
+        return fromSnapshot;
+    }
+    if (
+        (item.provider === "usda" || item.provider === "open_food_facts") &&
+        item.providerFoodId
+    ) {
+        return encodeFoodCandidateId({
+            provider: item.provider,
+            providerFoodId: item.providerFoodId,
+        });
+    }
+    return null;
+}
+
+/**
+ * Enrich a serialized draft with each item's provider portions
+ * (natural-first), so the draft item editor can offer a real portion
+ * picker instead of free text. Items that do not resolve to a provider
+ * candidate — manual foods, past-meal snapshots, lookup failures —
+ * keep an empty portions list and the editor keeps its free-text
+ * portion field for them. Lookup failures are swallowed per item: a
+ * draft must always render.
+ */
+export async function enrichMealDraftForApp(
+    draft: MealDraft,
+    lookup: (candidateId: string) => Promise<FoodCandidate | null> = (
+        candidateId,
+    ) => getFoodSearchService().details(candidateId),
+): Promise<ReturnType<typeof serializeMealDraftForApp>> {
+    const serialized = serializeMealDraftForApp(draft);
+    await Promise.all(
+        serialized.items.map(async (item, index) => {
+            const record = draft.items[index];
+            if (!record) return;
+            const candidateId = draftItemCandidateId(record.item);
+            if (!candidateId) return;
+            try {
+                const candidate = await lookup(candidateId);
+                if (!candidate) return;
+                item.candidate_id = candidateId;
+                item.portions = sortPortionsNaturalFirst(
+                    candidate.portions,
+                ).map((portion) => ({
+                    id: portion.id,
+                    amount: portion.amount,
+                    unit: portion.unit,
+                    label: portion.label,
+                    gram_weight: portion.gramWeight ?? null,
+                    nutrients: portion.nutrients,
+                }));
+            } catch {
+                // Portion enrichment is best-effort; the free-text
+                // editor remains available for this item.
+            }
+        }),
+    );
+    return serialized;
 }

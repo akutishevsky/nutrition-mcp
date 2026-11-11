@@ -59,6 +59,44 @@ describe("food tool serialization", () => {
         expect(serialized.candidate_id).toBe("open_food_facts:012345678905");
     });
 
+    test("serializes portions natural-first (cup before fl oz and per-100g)", () => {
+        const base = candidate();
+        const serialized = serializeFoodCandidate({
+            ...base,
+            portions: [
+                {
+                    id: "100g",
+                    amount: 100,
+                    unit: "g",
+                    label: "100 g",
+                    gramWeight: 100,
+                    nutrients: { calories: 60 },
+                },
+                {
+                    id: "fl-oz",
+                    amount: 1,
+                    unit: "fl oz",
+                    label: "1 fl oz",
+                    gramWeight: 30,
+                    nutrients: { calories: 18 },
+                },
+                {
+                    id: "cup",
+                    amount: 1,
+                    unit: "cup",
+                    label: "1 cup",
+                    gramWeight: 245,
+                    nutrients: { calories: 147 },
+                },
+            ],
+        });
+        expect(serialized.portions.map((portion) => portion.id)).toEqual([
+            "cup",
+            "fl-oz",
+            "100g",
+        ]);
+    });
+
     test("registers three non-conflicting provider tools", () => {
         const server = new McpServer({ name: "test", version: "1" });
         expect(() => registerFoodTools(server, "user-test")).not.toThrow();
