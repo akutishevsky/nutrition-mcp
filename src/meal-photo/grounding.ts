@@ -102,7 +102,45 @@ const WEIGHT_TO_GRAMS: Record<string, number> = {
     kg: 1_000,
     oz: 28.349523125,
     lb: 453.59237,
+    lbs: 453.59237,
+    mg: 0.001,
 };
+
+/** Exact millilitres per volume unit (metric + US customary). Volume
+ * quantities convert to volume portions through this table — never
+ * through a serving count (see the unit-kind invariant on
+ * resolveGroundedPortion). */
+const VOLUME_TO_ML: Record<string, number> = {
+    ml: 1,
+    l: 1_000,
+    cup: 236.5882365,
+    tbsp: 14.7867648,
+    tsp: 4.92892159,
+    "fl oz": 29.5735296,
+    pint: 473.176473,
+    quart: 946.352946,
+    gallon: 3785.41178,
+};
+
+/**
+ * Ceiling for the GENERIC-portion fallback: a vision quantity read as
+ * a count of a candidate's generic ("serving"-kind) portion is only
+ * believable up to this many servings in one photographed item. Past
+ * it, the quantity is a data error, not a portion — resolution
+ * refuses (or falls to the labelled per-100 g values) instead of
+ * silently multiplying a serving's nutrition by it.
+ */
+export const MAX_GENERIC_PORTION_FACTOR = 20;
+
+/**
+ * Ceiling on the gram weight of ONE resolved draft item. However a
+ * quantity is expressed, a single photographed item line does not
+ * weigh more than this; a resolution past it means the quantity or
+ * the portion data is wrong, and the item must surface through the
+ * estimate / blocking paths rather than land as a five-figure
+ * calorie line. (The blowup case resolved to 127,500 g.)
+ */
+export const MAX_ITEM_GRAM_WEIGHT_G = 5_000;
 
 function round2(value: number): number {
     return Math.round(value * 100) / 100;
@@ -149,6 +187,36 @@ export function findCountPortion(
     );
 }
 
+/** Scale one portion's nutrients by an exact, dimensionally sound
+ * factor (same unit, same kind via a conversion table, or a recorded
+ * gram weight). Shared by every resolution path below. Returns null
+ * when the scaled gram weight breaks the single-item sanity ceiling
+ * (MAX_ITEM_GRAM_WEIGHT_G) — the quantity is then a data error, and
+ * the caller surfaces the item instead of landing the multiple. */
+function scaledPortionResolution(
+    vision: MealPhotoVisionItem,
+    portion: FoodCandidate["portions"][number],
+    factor: number,
+): PortionResolution | null {
+    const gramWeight =
+        portion.gramWeight === undefined
+            ? undefined
+            : round2(portion.gramWeight * factor);
+    if (gramWeight !== undefined && gramWeight > MAX_ITEM_GRAM_WEIGHT_G) {
+        return null;
+    }
+    return {
+        nutrients: scaleNutrients(portion.nutrients, factor),
+        gramWeight,
+        portionId: portion.id,
+        assumption:
+            normalizePortionUnit(portion.unit) !==
+            normalizePortionUnit(vision.unit)
+                ? `Used provider portion "${portion.label}" to interpret ${vision.quantity} ${vision.unit}.`
+                : undefined,
+    };
+}
+
 /**
  * Convert a vision quantity+unit into provider nutrition for that amount.
  * Mirrors `resolvePortion` in recipe-nutrition-resolution.ts: weight
@@ -165,6 +233,31 @@ export function findCountPortion(
  * only against a count portion (exact unit, or any count portion the
  * candidate carries) and returns null otherwise, so the caller can try
  * a donor candidate's portion data or the labelled estimate path.
+ *
+ * UNIT-KIND INVARIANT (photo calorie blowup, 2026-11-10): the same
+ * dimensional discipline applies to EVERY unit kind. The legacy
+ * fallback scaled the candidate's FIRST portion by
+ * quantity / portion.amount whatever the units were — so a VOLUME
+ * quantity (the vision prompt itself asks for ml on liquids) against
+ * a declared-serving portion (amount 1) read "300 ml" of tomato soup
+ * as 300 servings: 48,450 kcal and a 127,500 g gram weight on a real
+ * provider candidate (USDA fdcId 1966887), recurring across identifier
+ * models in the full-pipeline eval because the bug sits downstream of
+ * identification. The mirror error divided a generic "1 serving" by
+ * a 100 g portion (factor 0.01 — a 1 g, 1 kcal curry). Resolution now
+ * only ever scales a portion by a factor that is dimensionally sound:
+ * the exact same unit, the same kind through an exact conversion
+ * (volume↔volume via ml, weight through a portion's recorded gram
+ * weight), a count against a count portion (P1), or a generic
+ * portion word (bowl / plate / serving) read as a bounded count of
+ * the candidate's generic portion. Two sanity ceilings bound every
+ * path, exact matches included: a generic-portion factor above
+ * MAX_GENERIC_PORTION_FACTOR, and a resolved gram weight above
+ * MAX_ITEM_GRAM_WEIGHT_G, are data errors, not portions. Anything
+ * else returns null — or, for a generic quantity against a
+ * per-100 g-only candidate, the labelled per-100 g fallback — so the
+ * item surfaces through the donor / estimate / blocking paths
+ * instead of a silent absurdity.
  */
 export function resolveGroundedPortion(
     vision: MealPhotoVisionItem,
@@ -174,6 +267,7 @@ export function resolveGroundedPortion(
     const gramsPerUnit = WEIGHT_TO_GRAMS[unit];
     if (gramsPerUnit !== undefined && candidate.nutrientsPer100g) {
         const grams = vision.quantity * gramsPerUnit;
+        if (grams > MAX_ITEM_GRAM_WEIGHT_G) return null;
         return {
             nutrients: scaleNutrients(candidate.nutrientsPer100g, grams / 100),
             gramWeight: round2(grams),
@@ -181,59 +275,120 @@ export function resolveGroundedPortion(
         };
     }
     const visionKind = portionUnitKind(vision.unit);
-    const exactPortion = candidate.portions.find(
-        (candidate_portion) =>
-            normalizePortionUnit(candidate_portion.unit) === unit,
+    const usable = candidate.portions.filter((portion) => portion.amount > 0);
+    const exactPortion = usable.find(
+        (portion) => normalizePortionUnit(portion.unit) === unit,
     );
-    const countPortion =
-        visionKind === "count" && !exactPortion
-            ? findCountPortion(candidate, vision.unit)
-            : undefined;
-    const portion = exactPortion ?? countPortion ?? candidate.portions[0];
-    if (!portion || !(portion.amount > 0)) {
-        if (candidate.nutrientsPer100g) {
-            if (visionKind === "count") {
-                // Per-100 g values are not an interpretation of a
-                // count — refuse rather than imply "1 piece = 100 g".
-                return null;
-            }
+    if (exactPortion) {
+        if (
+            visionKind === "count" &&
+            portionUnitKind(exactPortion.unit) === "weight"
+        ) {
+            // The count-as-grams guard (defensive: the unit sets make
+            // an exact count/weight unit collision impossible today).
+            return null;
+        }
+        const factor = vision.quantity / exactPortion.amount;
+        if (visionKind !== "other" || factor <= MAX_GENERIC_PORTION_FACTOR) {
+            return scaledPortionResolution(vision, exactPortion, factor);
+        }
+        // An absurd count of an exactly-named generic portion ("300
+        // serving") falls through to the generic branch below, which
+        // lands on the labelled per-100 g fallback instead of the
+        // multiple.
+    }
+    if (visionKind === "count") {
+        const countPortion = findCountPortion(candidate, vision.unit);
+        if (countPortion) {
+            const resolution = scaledPortionResolution(
+                vision,
+                countPortion,
+                vision.quantity / countPortion.amount,
+            );
+            if (!resolution) return null;
             return {
-                nutrients: { ...candidate.nutrientsPer100g },
-                portionId: "100g",
-                assumption: `Provider reports nutrition per 100 g; the photographed amount (${vision.quantity} ${vision.unit}) could not be converted, so the draft uses the per-100 g values for review.`,
+                ...resolution,
+                countConversion: {
+                    gramsPerPiece: round2(
+                        countPortion.gramWeight! / countPortion.amount,
+                    ),
+                    donorPortionLabel: countPortion.label,
+                    donorProvider: candidate.provider,
+                },
             };
         }
-        return null;
+        // Legacy generic fallback for counts, kept but bounded: a
+        // count read as that many of the candidate's first portion —
+        // never a weight portion (P1), never an absurd multiple.
+        const fallback = usable[0];
+        if (!fallback || portionUnitKind(fallback.unit) === "weight") {
+            return null;
+        }
+        const factor = vision.quantity / fallback.amount;
+        if (factor > MAX_GENERIC_PORTION_FACTOR) return null;
+        return scaledPortionResolution(vision, fallback, factor);
     }
-    if (visionKind === "count" && portionUnitKind(portion.unit) === "weight") {
-        // The count-as-grams guard: scaling a weight portion by
-        // quantity / amount would read the count as grams.
-        return null;
+    if (visionKind === "weight") {
+        // No per-100 g panel (the fast path above did not fire): weigh
+        // the quantity through a portion's recorded gram weight — the
+        // factor is grams / gram weight, dimensionally exact. Without
+        // any gram weight there is no honest conversion.
+        const weighable = usable.find(
+            (portion) =>
+                portion.gramWeight !== undefined && portion.gramWeight > 0,
+        );
+        if (gramsPerUnit === undefined || !weighable) return null;
+        const grams = vision.quantity * gramsPerUnit;
+        return scaledPortionResolution(
+            vision,
+            weighable,
+            grams / weighable.gramWeight!,
+        );
     }
-    const factor = vision.quantity / portion.amount;
-    return {
-        nutrients: scaleNutrients(portion.nutrients, factor),
-        gramWeight:
-            portion.gramWeight === undefined
-                ? undefined
-                : round2(portion.gramWeight * factor),
-        portionId: portion.id,
-        assumption:
-            normalizePortionUnit(portion.unit) !== unit
-                ? `Used provider portion "${portion.label}" to interpret ${vision.quantity} ${vision.unit}.`
-                : undefined,
-        ...(countPortion
-            ? {
-                  countConversion: {
-                      gramsPerPiece: round2(
-                          countPortion.gramWeight! / countPortion.amount,
-                      ),
-                      donorPortionLabel: countPortion.label,
-                      donorProvider: candidate.provider,
-                  },
-              }
-            : {}),
-    };
+    if (visionKind === "volume") {
+        // Volume converts to a volume portion through exact ml
+        // ratios only. A volume is never a count of servings, and a
+        // millilitre is not a gram (density is not provider data) —
+        // anything else refuses, so the estimate path prices the
+        // stated volume directly.
+        const mlPerUnit = VOLUME_TO_ML[unit];
+        const volumePortion = usable.find(
+            (portion) =>
+                portionUnitKind(portion.unit) === "volume" &&
+                VOLUME_TO_ML[normalizePortionUnit(portion.unit)] !== undefined,
+        );
+        if (mlPerUnit === undefined || !volumePortion) return null;
+        const portionMl =
+            volumePortion.amount *
+            VOLUME_TO_ML[normalizePortionUnit(volumePortion.unit)]!;
+        return scaledPortionResolution(
+            vision,
+            volumePortion,
+            (vision.quantity * mlPerUnit) / portionMl,
+        );
+    }
+    // Generic portion words (bowl, plate, serving, …): a bounded count
+    // of the candidate's generic portion, or the labelled per-100 g
+    // fallback when the candidate carries no generic portion — never
+    // quantity / 100 against the 100 g row, never a multiple of a
+    // weight or volume portion.
+    const genericPortion = usable.find(
+        (portion) => portionUnitKind(portion.unit) === "other",
+    );
+    if (genericPortion) {
+        const factor = vision.quantity / genericPortion.amount;
+        if (factor <= MAX_GENERIC_PORTION_FACTOR) {
+            return scaledPortionResolution(vision, genericPortion, factor);
+        }
+    }
+    if (candidate.nutrientsPer100g) {
+        return {
+            nutrients: { ...candidate.nutrientsPer100g },
+            portionId: "100g",
+            assumption: `Provider reports nutrition per 100 g; the photographed amount (${vision.quantity} ${vision.unit}) could not be converted, so the draft uses the per-100 g values for review.`,
+        };
+    }
+    return null;
 }
 
 /**
@@ -259,6 +414,7 @@ export function resolveCountViaDonor(
         const gramsPerPiece = portion.gramWeight! / portion.amount;
         if (pick.nutrientsPer100g) {
             const grams = vision.quantity * gramsPerPiece;
+            if (grams > MAX_ITEM_GRAM_WEIGHT_G) continue;
             return {
                 candidate: pick,
                 resolution: {
