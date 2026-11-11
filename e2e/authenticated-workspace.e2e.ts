@@ -21,6 +21,10 @@ function visibleCurrentNav(page: Page, routes: string[]) {
 test("protects private data and supports the core website journey", async ({
     page,
 }) => {
+    // The longest test in the suite ran on the 30s default while every
+    // sibling long test sets a budget; under parallel CI load its
+    // post-sign-in bootstrap wait starved (PR #236 website-e2e).
+    test.setTimeout(120_000);
     const email = process.env.MUNCH_REVIEWER_EMAIL;
     const password = process.env.MUNCH_REVIEWER_PASSWORD;
     if (!email || !password) {

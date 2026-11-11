@@ -22,11 +22,12 @@ async function signIn(page: Page) {
     await page.getByLabel("Username or email").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    // 30s: the auth POST is CPU-priced password hashing and the shared
+    // 60s: the auth POST is CPU-priced password hashing and the shared
     // CI server is under full-suite load; the 5s default flaked
-    // repeatedly in CI (PR #236 website-e2e attempts 1-2) while the
-    // same sign-in takes <1s locally.
-    await expect(page).toHaveURL(/\/app\/?$/, { timeout: 30_000 });
+    // repeatedly in CI (PR #236 website-e2e attempts 1-2) and one
+    // attempt burned a full 30s, while the same sign-in takes <1s
+    // locally on an idle server.
+    await expect(page).toHaveURL(/\/app\/?$/, { timeout: 60_000 });
     await expect(page).toHaveTitle(/^Today — Munch$/);
 }
 
