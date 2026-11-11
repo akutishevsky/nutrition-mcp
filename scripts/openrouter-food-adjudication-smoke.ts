@@ -13,7 +13,7 @@ if (!apiKey) {
 }
 
 const model =
-    process.env.MUNCH_FOOD_ADJUDICATION_MODEL?.trim() || "openai/gpt-5.6-luna";
+    process.env.MUNCH_FOOD_ADJUDICATION_MODEL?.trim() || "openai/gpt-5.6-luna-pro";
 const repository = new FoodCatalogRepository(foodCatalogConfig());
 const MAX_SEARCHES = 5;
 
