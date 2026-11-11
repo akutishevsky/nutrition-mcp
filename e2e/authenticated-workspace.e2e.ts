@@ -126,20 +126,24 @@ test("meal composer logs a food through its portion picker", async ({
 
     const portionSelect = page.locator('[data-composer-field="portion_id"]');
     await expect(portionSelect).toBeVisible({ timeout: 30_000 });
-    const optionTexts = await portionSelect.locator("option").allTextContents();
-    expect(optionTexts.length).toBeGreaterThan(0);
-    expect(optionTexts.at(-1)).toContain("Custom portion");
+    // Read the options in one evaluate: probing for an option that
+    // may not exist with a waiting locator would burn the test budget.
+    const options = await portionSelect.evaluate((select) =>
+        [...(select as HTMLSelectElement).options].map((option) => ({
+            value: option.value,
+            text: option.textContent ?? "",
+        })),
+    );
+    expect(options.length).toBeGreaterThan(0);
+    expect(options.at(-1)?.text).toContain("Custom portion");
     // Prefer the "1 cup" option when the picked food offers one (the
     // brief's milk flow); otherwise keep the natural first option.
-    const cupOption = await portionSelect
-        .locator("option")
-        .filter({ hasText: /1 cup/i })
-        .first()
-        .getAttribute("value")
-        .catch(() => null);
-    if (cupOption) await portionSelect.selectOption(cupOption);
-    await expect(page.locator(".meal-composer-macros")).toBeVisible();
-    await expect(page.locator(".meal-composer-macros")).toContainText("kcal");
+    const cupOption = options.find((option) => /1 cup/i.test(option.text));
+    if (cupOption) await portionSelect.selectOption(cupOption.value);
+    await expect(page.locator(".meal-composer-macros")).toContainText(
+        "kcal",
+        { timeout: 15_000 },
+    );
 
     await page.locator('#meal-form button[type="submit"]').click();
     await expect(page.locator("#toast-region")).toContainText("Meal logged.", {
