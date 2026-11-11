@@ -21,10 +21,6 @@ function visibleCurrentNav(page: Page, routes: string[]) {
 test("protects private data and supports the core website journey", async ({
     page,
 }) => {
-    // The longest test in the suite ran on the 30s default while every
-    // sibling long test sets a budget; under parallel CI load its
-    // post-sign-in bootstrap wait starved (PR #236 website-e2e).
-    test.setTimeout(120_000);
     const email = process.env.MUNCH_REVIEWER_EMAIL;
     const password = process.env.MUNCH_REVIEWER_PASSWORD;
     if (!email || !password) {
@@ -45,9 +41,7 @@ test("protects private data and supports the core website journey", async ({
     });
     await page.getByRole("button", { name: "Sign in" }).click();
 
-    // 30s: password-hash sign-in under full-suite CI load exceeded the
-    // 5s default repeatedly (PR #236 website-e2e attempts, both projects).
-    await expect(page).toHaveURL(/\/app\/?$/, { timeout: 30_000 });
+    await expect(page).toHaveURL(/\/app\/?$/);
     expect((await bootstrapResponse).status()).toBe(200);
     await expect(page).toHaveTitle(/^Today — Munch$/);
     await expect(visibleCurrentNav(page, ["today"])).toHaveCount(1);
