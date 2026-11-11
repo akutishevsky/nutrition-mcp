@@ -488,14 +488,28 @@
              its styles are mirrored here — without this nav the page
              stranded the user with no way back at phone widths. -->
         <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-            <a href="/app"><span>◉</span><span>Today</span></a>
-            <a href="/app/plan"><span>□</span><span>Plan</span></a>
-            <a href="/app/recipes"><span>◇</span><span>Recipes</span></a>
-            <a href="/app/groceries"><span>✓</span><span>Groceries</span></a>
-            <a href="/app/pantry" class="is-active" aria-current="page"
+            <a data-route="today" href="/app"
+                ><span>◉</span><span>Today</span></a
+            >
+            <a data-route="plan" href="/app/plan"
+                ><span>□</span><span>Plan</span></a
+            >
+            <a data-route="recipes" href="/app/recipes"
+                ><span>◇</span><span>Recipes</span></a
+            >
+            <a data-route="groceries" href="/app/groceries"
+                ><span>✓</span><span>Groceries</span></a
+            >
+            <a
+                data-route="pantry"
+                href="/app/pantry"
+                class="is-active"
+                aria-current="page"
                 ><span>▦</span><span>Pantry</span></a
             >
-            <a href="/app/more"><span>•••</span><span>More</span></a>
+            <a data-route="more" href="/app/more"
+                ><span>•••</span><span>More</span></a
+            >
         </nav>
         <script type="module" src="/pantry.js"></script>
     </body>

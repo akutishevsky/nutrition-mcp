@@ -1,8 +1,14 @@
 import { displayWeightUnit, weightFromGrams } from "./weight-display.js";
+import {
+    FEATURE_MODULE_KEYS,
+    FEATURE_MODULE_LABELS,
+    normalizeFeatureFlags,
+} from "./feature-nav.js";
 
 const SETTINGS_ROUTES = new Set([
     "settings",
     "settings-profile",
+    "settings-features",
     "settings-goals",
     "settings-billing",
     "settings-connections",
@@ -15,6 +21,7 @@ export const accountRoutes = {
     "/app/household": "household",
     "/app/settings": "settings",
     "/app/settings/profile": "settings-profile",
+    "/app/settings/features": "settings-features",
     "/app/settings/goals": "settings-goals",
     "/app/settings/billing": "settings-billing",
     "/app/settings/connections": "settings-connections",
@@ -29,6 +36,7 @@ export const accountTitles = {
     household: ["Shared workspace", "Household"],
     settings: ["Account and preferences", "Settings"],
     "settings-profile": ["Settings", "Profile & preferences"],
+    "settings-features": ["Settings", "Features"],
     "settings-goals": ["Settings", "Nutrition targets"],
     "settings-billing": ["Settings", "Plan & billing"],
     "settings-connections": ["Settings", "Connections"],
@@ -114,6 +122,12 @@ function settingsNav(active) {
             "Identity, units and display",
         ],
         [
+            "settings-features",
+            "/app/settings/features",
+            "Features",
+            "Modules you use",
+        ],
+        [
             "settings-goals",
             "/app/settings/goals",
             "Nutrition",
@@ -182,6 +196,12 @@ function settingsIndex(data) {
             "Profile",
         ],
         [
+            "/app/settings/features",
+            "Features",
+            `${FEATURE_MODULE_KEYS.filter((key) => data.features?.[key] !== false).length} of ${FEATURE_MODULE_KEYS.length} optional modules on`,
+            "Features",
+        ],
+        [
             "/app/settings/goals",
             "Nutrition targets",
             "Calories, macros, water and optional targets",
@@ -235,6 +255,74 @@ function profilePage(data) {
         "settings-profile",
         `${sectionHeading("Profile", "Profile & preferences", "Set how Munch groups and displays your records without mixing these choices into billing or household controls.")}<div class="account-identity-card"><div class="account-avatar" aria-hidden="true">${esc((data.user?.email || "M").slice(0, 1).toUpperCase())}</div><div><strong>${esc(data.user?.email || "Munch account")}</strong><span>${esc(planLabel(data))}</span></div><a href="/app/settings/billing">View plan</a></div><form id="settings-profile-form" class="settings-stack">${settingGroup("Display & units", "These choices affect presentation only.", `${timezoneField(profile)}<fieldset class="settings-field"><legend>Weight unit</legend><small>Used when Munch displays saved weights.</small><div class="segmented-control"><label><input type="radio" name="preferred_weight_unit" value="" ${!profile.preferred_weight_unit ? "checked" : ""}><span>Ask each time</span></label><label><input type="radio" name="preferred_weight_unit" value="lb" ${profile.preferred_weight_unit === "lb" ? "checked" : ""}><span>lb</span></label><label><input type="radio" name="preferred_weight_unit" value="kg" ${profile.preferred_weight_unit === "kg" ? "checked" : ""}><span>kg</span></label></div></fieldset>${toggleRow("widgets_enabled", "ChatGPT visual cards", "Show Munch visual widgets in supported ChatGPT clients.", profile.widgets_enabled !== false)}`)}${settingGroup("Optional tracking", "Keep optional tracking controls separate from your core profile.", `${toggleRow("alcohol_tracking_enabled", "Alcohol tracking", "Enable alcohol-specific fields and summaries when you choose to log drinks.", alcoholEnabled)}<label class="settings-field"><span>Drink units</span><small>Used for alcohol-related displays when tracking is enabled.</small><select name="preferred_drink_unit" ${alcoholEnabled ? "" : 'aria-describedby="drink-unit-note"'}><option value="" ${!profile.preferred_drink_unit ? "selected" : ""}>Default</option><option value="us" ${profile.preferred_drink_unit === "us" ? "selected" : ""}>US standard drinks</option><option value="uk" ${profile.preferred_drink_unit === "uk" ? "selected" : ""}>UK units</option></select><small id="drink-unit-note">This preference does not change the underlying nutrition record.</small></label>`)}<div class="settings-savebar"><span class="settings-save-status" role="status" aria-live="polite"></span><button class="button button-primary" type="submit">Save preferences</button></div></form>`,
     );
+}
+
+// Feature toggles (addendum 10, T1): what each optional module is
+// for, in one line, at the moment of choosing. Every line names a
+// concrete consequence of the module existing — no filler.
+const FEATURE_MODULE_DESCRIPTIONS = {
+    plan: "The week planned ahead — scheduled recipes, and the grocery list built from the plan.",
+    recipes:
+        "Your saved recipe library — planning, cooking and one-tap logging all draw from it.",
+    groceries:
+        "The shopping list — what still needs buying, checked off in the store.",
+    pantry: "What's already in your kitchen — meal ideas and the chat agent cook from it.",
+    cooks: "Cooking sessions — what you cooked, dish by dish, and how it went.",
+};
+
+function featureToggleRow(module, enabled) {
+    return `<label class="settings-toggle-row"><span><strong>${esc(FEATURE_MODULE_LABELS[module])}</strong><small>${esc(FEATURE_MODULE_DESCRIPTIONS[module])}</small></span><span class="switch"><input type="checkbox" data-feature-toggle="${esc(module)}" ${enabled ? "checked" : ""}><span aria-hidden="true"></span></span></label>`;
+}
+
+function featuresPage(data) {
+    const features = normalizeFeatureFlags(data.features);
+    const enabledCount = FEATURE_MODULE_KEYS.filter(
+        (key) => features[key],
+    ).length;
+    return settingsShell(
+        "settings-features",
+        `${sectionHeading("Settings", "Features", "Turn off the parts of Munch you don't use. A module that is off disappears from navigation, the chat agent and guidance — and its data is kept, returning exactly as it was when you turn it back on.")}<div class="settings-stack">${settingGroup("Optional modules", `${enabledCount} of ${FEATURE_MODULE_KEYS.length} on. Today, meal logging, History and Trends are the core and always stay.`, `<button class="settings-action-row" type="button" data-action="features-just-logging"><span><strong>Just logging</strong><small>Turn all five off at once. You can still switch any of them back on below.</small></span><span aria-hidden="true">›</span></button>${FEATURE_MODULE_KEYS.map((key) => featureToggleRow(key, features[key])).join("")}<p class="settings-note" role="status" aria-live="polite" data-features-status></p>`)}</div>`,
+    );
+}
+
+/**
+ * Feature toggles save the moment a switch flips (no form submit):
+ * the PUT returns the account's full flag set, which the shell
+ * applies to both navs immediately. A failed save restores the
+ * switch — the UI never claims a state the server did not store.
+ */
+async function hydrateFeatures(ctx) {
+    const inputs = ctx.content.querySelectorAll("[data-feature-toggle]");
+    for (const input of inputs) {
+        input.addEventListener("change", async () => {
+            const module = input.dataset.featureToggle;
+            const label = FEATURE_MODULE_LABELS[module] || module;
+            const status = ctx.content.querySelector("[data-features-status]");
+            input.disabled = true;
+            try {
+                const result = await ctx.api("/api/app/features", {
+                    method: "PUT",
+                    body: JSON.stringify({
+                        features: { [module]: input.checked },
+                    }),
+                });
+                ctx.applyFeatures?.(result.features);
+                if (status) {
+                    status.textContent = input.checked
+                        ? `${label} is on.`
+                        : `${label} is off — hidden everywhere. Its data is unchanged.`;
+                }
+            } catch (error) {
+                input.checked = !input.checked;
+                ctx.toast(
+                    error.message || "That change could not be saved.",
+                    "error",
+                );
+            } finally {
+                input.disabled = false;
+            }
+        });
+    }
 }
 
 function settingGroup(title, description, body, className = "") {
@@ -491,7 +579,8 @@ function accountPage(data) {
     );
 }
 
-function morePage() {
+function morePage(features) {
+    const flags = normalizeFeatureFlags(features);
     const items = [
         // Chat v2 placement (Contextual only): no More-row entry for
         // the chat agent — it is reached from the surface entries on
@@ -507,8 +596,11 @@ function morePage() {
         ["/app/log", "History", "Search past meals and review any range", "▤"],
         // Today navigation (brief item 4): Cooks and Recipes traded
         // places — Recipes holds the bottom-nav slot now, so Cooks
-        // takes the More-list slot Recipes used to occupy.
-        ["/app/cooks", "Cooks", "Your cooking sessions", "♨"],
+        // takes the More-list slot Recipes used to occupy. Feature
+        // toggles (T3): with Cooks off, its More card is gone too.
+        ...(flags.cooks
+            ? [["/app/cooks", "Cooks", "Your cooking sessions", "♨"]]
+            : []),
         ["/app/household", "Household", "Members and shared features", "⌂"],
         [
             "/app/settings",
@@ -693,7 +785,7 @@ function hydrateTimezoneSelect() {
 
 export async function renderAccountRoute(route, ctx) {
     if (route === "more") {
-        ctx.content.innerHTML = morePage();
+        ctx.content.innerHTML = morePage(ctx.state?.bootstrap?.features);
         return;
     }
     if (route === "household") {
@@ -710,6 +802,10 @@ export async function renderAccountRoute(route, ctx) {
     const data = await ctx.api("/api/app/settings");
     if (route === "settings") ctx.content.innerHTML = settingsIndex(data);
     if (route === "settings-profile") ctx.content.innerHTML = profilePage(data);
+    if (route === "settings-features") {
+        ctx.content.innerHTML = featuresPage(data);
+        await hydrateFeatures(ctx);
+    }
     if (route === "settings-goals") ctx.content.innerHTML = goalsPage(data);
     if (route === "settings-goals") {
         const [review, history] = await Promise.all([
@@ -969,6 +1065,36 @@ export async function handleAccountSubmit(form, ctx) {
 
 export async function handleAccountAction(button, ctx) {
     const action = button.dataset.action;
+    if (action === "features-just-logging") {
+        // Feature toggles (T1): the one-tap preset — every optional
+        // module off at once. Individual switches stay adjustable on
+        // the re-rendered page, and no module's data is touched (T4).
+        try {
+            const result = await ctx.api("/api/app/features", {
+                method: "PUT",
+                body: JSON.stringify({
+                    features: {
+                        plan: false,
+                        recipes: false,
+                        groceries: false,
+                        pantry: false,
+                        cooks: false,
+                    },
+                }),
+            });
+            ctx.applyFeatures?.(result.features);
+            await ctx.renderRoute();
+            ctx.toast(
+                "Just logging — every optional module is off. Nothing was deleted.",
+            );
+        } catch (error) {
+            ctx.toast(
+                error.message || "That change could not be saved.",
+                "error",
+            );
+        }
+        return true;
+    }
     if (action === "ad-privacy-options") {
         try {
             const result = await window.MunchAds?.showPrivacyOptions();

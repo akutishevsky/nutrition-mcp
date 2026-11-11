@@ -26,6 +26,14 @@ import {
     installPhotoCapture,
     photoCaptureMarkup,
 } from "./photo-capture.js";
+import {
+    ROUTE_FEATURE_MODULES,
+    applyFeatureNav,
+    moduleOffNotice,
+    normalizeFeatureFlags,
+    queueModuleOffNotice,
+    takeModuleOffNotice,
+} from "./feature-nav.js";
 
 installPhotoCapture();
 
@@ -1669,9 +1677,19 @@ async function renderRecipes() {
     const createButton = canCreate
         ? '<button class="button button-secondary button-small" data-action="create-recipe">Create manually</button>'
         : "";
-    const composeButton = canCreate
-        ? '<button class="button button-secondary button-small" data-action="compose-recipe">Compose + plan</button>'
-        : "";
+    // Feature toggles (T7): compose is a plan flow end to end (its
+    // endpoint saves, schedules, and stocks groceries atomically), so
+    // with Meal Plan off the entry goes away — recipes are still
+    // created and imported above. The per-card Add to plan button
+    // hides on the same flag.
+    const composeButton =
+        canCreate && featureFlags().plan
+            ? '<button class="button button-secondary button-small" data-action="compose-recipe">Compose + plan</button>'
+            : "";
+    const planRecipeButton = (recipeId) =>
+        featureFlags().plan
+            ? `<button class="button button-secondary button-small" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipeId)}">Add to plan</button>`
+            : "";
     // S6 slice 4 (Recipes fusion): the library renders in the tightened
     // mock's grammar — one hairline panel per recipe, the servings /
     // nutrition / usage facts merged into a single meta line, and the
@@ -1679,7 +1697,7 @@ async function renderRecipes() {
     // handlers the detail dialog has always offered; the list data
     // already carries revision_id). No ad slot exists on this surface:
     // the app's only slot is on Today (final ad law).
-    content.innerHTML = `<div class="operate-view recipes-view"><div class="page-heading"><div><h2>Recipe library</h2><p>${data.recipes.length} structured recipe${data.recipes.length === 1 ? "" : "s"}. Import from a website for review, or create a recipe manually.</p></div></div><div class="auth-actions recipe-actions">${importButton}${createButton}${composeButton}</div><div class="recipe-filter-row"><label class="field" for="recipe-filter"><span>Filter recipes</span><input class="input" id="recipe-filter" type="search" placeholder="Search by name" aria-label="Filter recipes" /></label></div><div class="recipe-list" id="recipe-grid">${data.recipes.length ? data.recipes.map((recipe) => `<section class="panel recipe-panel" data-recipe-name="${escapeHtml(recipe.name.toLowerCase())}"><span class="source-chip ${recipe.ownership === "household" ? "source-saved" : "source-usda"}">${escapeHtml(recipe.ownership)}</span><h3 class="recipe-title">${escapeHtml(recipe.name)}</h3><p class="recipe-meta">${number(recipe.servings, 1)} servings · ${escapeHtml(recipe.nutrition_status)} nutrition · per serving: <strong>${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong> · Scheduled ${number(recipe.times_scheduled)} times · logged ${number(recipe.times_logged)} times</p><div class="auth-actions recipe-panel-actions"><button class="button button-primary button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(recipe.recipe_id)}">View recipe</button><button class="button button-secondary button-small" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.recipe_id)}" data-revision="${escapeHtml(recipe.revision_id || "")}">Log recipe</button><button class="button button-secondary button-small" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipe.recipe_id)}">Add to plan</button></div></section>`).join("") : `<div class="empty-state"><div><h3>No recipes yet</h3><p>Import a recipe from a public website and review it before saving, or create one manually.</p>${canCreate ? `<div class="auth-actions spacer-top">${importButton}${createButton}</div>` : ""}</div></div>`}</div></div>`;
+    content.innerHTML = `<div class="operate-view recipes-view"><div class="page-heading"><div><h2>Recipe library</h2><p>${data.recipes.length} structured recipe${data.recipes.length === 1 ? "" : "s"}. Import from a website for review, or create a recipe manually.</p></div></div><div class="auth-actions recipe-actions">${importButton}${createButton}${composeButton}</div><div class="recipe-filter-row"><label class="field" for="recipe-filter"><span>Filter recipes</span><input class="input" id="recipe-filter" type="search" placeholder="Search by name" aria-label="Filter recipes" /></label></div><div class="recipe-list" id="recipe-grid">${data.recipes.length ? data.recipes.map((recipe) => `<section class="panel recipe-panel" data-recipe-name="${escapeHtml(recipe.name.toLowerCase())}"><span class="source-chip ${recipe.ownership === "household" ? "source-saved" : "source-usda"}">${escapeHtml(recipe.ownership)}</span><h3 class="recipe-title">${escapeHtml(recipe.name)}</h3><p class="recipe-meta">${number(recipe.servings, 1)} servings · ${escapeHtml(recipe.nutrition_status)} nutrition · per serving: <strong>${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong> · Scheduled ${number(recipe.times_scheduled)} times · logged ${number(recipe.times_logged)} times</p><div class="auth-actions recipe-panel-actions"><button class="button button-primary button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(recipe.recipe_id)}">View recipe</button><button class="button button-secondary button-small" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.recipe_id)}" data-revision="${escapeHtml(recipe.revision_id || "")}">Log recipe</button>${planRecipeButton(recipe.recipe_id)}</div></section>`).join("") : `<div class="empty-state"><div><h3>No recipes yet</h3><p>Import a recipe from a public website and review it before saving, or create one manually.</p>${canCreate ? `<div class="auth-actions spacer-top">${importButton}${createButton}</div>` : ""}</div></div>`}</div></div>`;
 }
 
 function recipeIngredientFromFood(food, portionId) {
@@ -1753,7 +1771,17 @@ function recipeIngredientFromRecent(recent) {
 }
 
 function recipeComposeSectionMarkup() {
-    return `<section class="recipe-editor-section"><div class="panel-title"><div><h3>Plan this recipe</h3><span>Save the recipe, schedule it, and add only the groceries you explicitly still need.</span></div></div><div class="meal-composer-grid"><label class="field"><span>Planned date</span><input name="planned_date" type="date" value="${escapeHtml(state.date)}" required /></label><label class="field"><span>Meal slot</span><select name="meal_slot"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner" selected>Dinner</option><option value="snack">Snack</option></select></label><label class="field"><span>Servings planned</span><input name="planned_servings" type="number" min="0.01" step="0.01" value="1" required /></label></div><label class="field"><span>Planning note</span><input name="note" maxlength="500" placeholder="Optional note for this planned meal" /></label><div class="panel-title spacer-top"><div><h3>Explicit grocery items</h3><span>Munch does not infer pantry inventory.</span></div><button class="button button-secondary button-small" type="button" data-action="add-recipe-grocery">Add grocery item</button></div><div id="recipe-compose-groceries"></div></section>`;
+    // Feature toggles (T7): the compose flow's grocery step hides
+    // when Groceries is off — the plan fields stay, and the submit
+    // sends an empty grocery list.
+    const groceriesOn = featureFlags().groceries;
+    const groceryBlock = groceriesOn
+        ? `<div class="panel-title spacer-top"><div><h3>Explicit grocery items</h3><span>Munch does not infer pantry inventory.</span></div><button class="button button-secondary button-small" type="button" data-action="add-recipe-grocery">Add grocery item</button></div><div id="recipe-compose-groceries"></div>`
+        : "";
+    const summary = groceriesOn
+        ? "Save the recipe, schedule it, and add only the groceries you explicitly still need."
+        : "Save the recipe and schedule it.";
+    return `<section class="recipe-editor-section"><div class="panel-title"><div><h3>Plan this recipe</h3><span>${summary}</span></div></div><div class="meal-composer-grid"><label class="field"><span>Planned date</span><input name="planned_date" type="date" value="${escapeHtml(state.date)}" required /></label><label class="field"><span>Meal slot</span><select name="meal_slot"><option value="breakfast">Breakfast</option><option value="lunch">Lunch</option><option value="dinner" selected>Dinner</option><option value="snack">Snack</option></select></label><label class="field"><span>Servings planned</span><input name="planned_servings" type="number" min="0.01" step="0.01" value="1" required /></label></div><label class="field"><span>Planning note</span><input name="note" maxlength="500" placeholder="Optional note for this planned meal" /></label>${groceryBlock}</section>`;
 }
 
 function recipeFormMarkup(mode, recipe = null) {
@@ -1783,7 +1811,9 @@ function recipeFormMarkup(mode, recipe = null) {
     const submitLabel = editing
         ? "Save new revision"
         : composing
-          ? "Save, plan, and add groceries"
+          ? featureFlags().groceries
+              ? "Save, plan, and add groceries"
+              : "Save and plan"
           : imported
             ? "Save imported recipe"
             : "Create recipe";
@@ -2199,7 +2229,7 @@ async function openRecipe(id) {
         .join("");
     openDialog(
         recipe.name,
-        `<div class="recipe-detail"><p class="recipe-meta">${number(recipe.servings, 3)} servings · revision ${number(recipe.revision_number)} · ${escapeHtml(recipe.nutrition_status)} nutrition</p><div class="recipe-per-serving"><span><strong>Per serving</strong></span><strong class="recipe-per-serving-values">${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong></div><p class="recipe-note">Per-serving nutrition is calculated from the ingredient source snapshots pinned to this revision.</p><h3 class="spacer-top">Ingredients</h3><ul class="food-items recipe-ingredients">${ingredients}</ul><h3 class="spacer-top">Instructions</h3><ol class="recipe-instructions">${recipe.instructions.map((instruction, index) => `<li><span class="recipe-step-number">${index + 1}.</span> ${escapeHtml(instruction)}</li>`).join("") || "<li>No instructions recorded.</li>"}</ol><p class="tiny spacer-top">Every ingredient includes the source snapshot used to calculate this revision. Editing creates a new revision; historical logs stay pinned.</p><div class="auth-actions spacer-top recipe-detail-actions"><button class="button button-primary" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Log recipe</button><button class="button button-secondary" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Add to plan</button><button class="button button-secondary" type="button" data-action="archive-recipe" data-id="${escapeHtml(recipe.id)}" data-version="${escapeHtml(recipe.version)}" data-revision="${escapeHtml(recipe.revision_id)}">Archive</button></div><details class="spacer-top recipe-edit-details"><summary>Edit recipe revision</summary>${recipeFormMarkup("edit", recipe)}</details></div>`,
+        `<div class="recipe-detail"><p class="recipe-meta">${number(recipe.servings, 3)} servings · revision ${number(recipe.revision_number)} · ${escapeHtml(recipe.nutrition_status)} nutrition</p><div class="recipe-per-serving"><span><strong>Per serving</strong></span><strong class="recipe-per-serving-values">${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong></div><p class="recipe-note">Per-serving nutrition is calculated from the ingredient source snapshots pinned to this revision.</p><h3 class="spacer-top">Ingredients</h3><ul class="food-items recipe-ingredients">${ingredients}</ul><h3 class="spacer-top">Instructions</h3><ol class="recipe-instructions">${recipe.instructions.map((instruction, index) => `<li><span class="recipe-step-number">${index + 1}.</span> ${escapeHtml(instruction)}</li>`).join("") || "<li>No instructions recorded.</li>"}</ol><p class="tiny spacer-top">Every ingredient includes the source snapshot used to calculate this revision. Editing creates a new revision; historical logs stay pinned.</p><div class="auth-actions spacer-top recipe-detail-actions"><button class="button button-primary" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Log recipe</button>${featureFlags().plan ? `<button class="button button-secondary" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Add to plan</button>` : ""}<button class="button button-secondary" type="button" data-action="archive-recipe" data-id="${escapeHtml(recipe.id)}" data-version="${escapeHtml(recipe.version)}" data-revision="${escapeHtml(recipe.revision_id)}">Archive</button></div><details class="spacer-top recipe-edit-details"><summary>Edit recipe revision</summary>${recipeFormMarkup("edit", recipe)}</details></div>`,
     );
     recipeComposer.ingredients = recipe.ingredients.map(
         recipeIngredientFromRecord,
@@ -2538,10 +2568,16 @@ async function renderGuidedDraftReview(draft) {
             return `<div class="meal-card guided-draft-item" data-guided-item="${item.position}"><input type="hidden" name="date" value="${escapeHtml(item.date)}" /><div class="meal-card-head"><strong>${escapeHtml(formatDate(item.date, { weekday: true }))} · ${escapeHtml(item.meal_slot)}</strong><span>${escapeHtml(item.nutrition_status)}</span></div>${sourceControl}${!isGenerated || draft.mode === "mixed" ? `<label class="field"><span>Saved recipe</span><select class="input" name="recipe_choice"><option value="">Choose a saved recipe</option>${savedRecipeChoices(item.recipe_id, item.recipe_revision_id, recipes)}</select></label>` : ""}${isGenerated || draft.mode === "mixed" ? `<label class="field"><span>${isGenerated ? "Editable recipe proposal (nutrition is calculated separately)" : "Recipe proposal"}</span><textarea class="input" name="generated_recipe" rows="8" ${isGenerated ? "" : "disabled"}>${isGenerated ? escapeHtml(JSON.stringify(item.generated_recipe, null, 2)) : ""}</textarea></label>` : ""}<div class="meal-macros"><span class="macro-chip">${number(nutrition.calories)} kcal/serving</span><span class="macro-chip">P ${number(nutrition.protein_g, 1)}g</span><span class="macro-chip">C ${number(nutrition.carbs_g, 1)}g</span><span class="macro-chip">F ${number(nutrition.fat_g, 1)}g</span></div>${item.blockers?.length ? `<p class="error-text">Blocked: ${item.blockers.map(escapeHtml).join("; ")}</p>` : ""}${item.warnings?.length ? `<ul class="tiny">${item.warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}</ul>` : ""}</div>`;
         })
         .join("");
+    // Feature toggles (T7): the committed plan's grocery-review
+    // step is a Plan → Groceries action; with Groceries off it hides
+    // and the plan simply stands on its own.
+    const groceryStep = featureFlags().groceries
+        ? `<div class="auth-actions spacer-top"><button class="button button-primary" type="button" data-action="guided-groceries">Review groceries separately</button></div>`
+        : "";
     const editForm =
         draft.status === "draft"
             ? `<form id="guided-plan-edit-form" class="auth-form" data-version="${draft.version}">${items}<div class="auth-actions">${planDraftActionsMarkup(blockers)}</div></form>`
-            : `<div class="meal-groups">${items}</div><div class="auth-actions spacer-top"><button class="button button-primary" type="button" data-action="guided-groceries">Review groceries separately</button></div><p class="tiny spacer-top">The plan is scheduled. Nothing has been logged as eaten, and no groceries have been added.</p>`;
+            : `<div class="meal-groups">${items}</div>${groceryStep}<p class="tiny spacer-top">The plan is scheduled. Nothing has been logged as eaten, and no groceries have been added.</p>`;
     openDialog(
         draft.status === "committed" ? "Plan committed" : "Review meal plan",
         `<p>${draft.items.length} meal${draft.items.length === 1 ? "" : "s"} · ${escapeHtml(draft.start_date)} to ${escapeHtml(draft.end_date)}. ${draft.status === "draft" ? "Review every blocker and warning before confirming." : ""}</p>${editForm}`,
@@ -3178,7 +3214,18 @@ function accountContext() {
         setLoading,
         renderRoute,
         navigate,
+        // Feature toggles (T5/T6): a saved flag set updates the
+        // in-memory bootstrap and re-renders both navs in place.
+        applyFeatures: (features) => {
+            if (state.bootstrap) state.bootstrap.features = features;
+            applyFeatureNav(features);
+        },
     };
+}
+
+/** The account's feature flags, normalized (missing = all on). */
+function featureFlags() {
+    return normalizeFeatureFlags(state.bootstrap?.features);
 }
 
 // ---------------------------------------------------------------------
@@ -3444,6 +3491,19 @@ async function renderRoute() {
                 state.bootstrap.profile?.timezone || "UTC",
             );
         }
+        // Feature toggles (T6): both navs render from the account's
+        // flags every route render, so a toggle saved anywhere —
+        // including another device — is honored on the next render.
+        applyFeatureNav(state.bootstrap?.features);
+        // Feature toggles (T3): a disabled module's route lands on
+        // Today with the one-line notice — never a dead page.
+        const gatedModule = ROUTE_FEATURE_MODULES[state.route];
+        if (gatedModule && !featureFlags()[gatedModule]) {
+            history.replaceState({}, "", "/app");
+            queueModuleOffNotice(gatedModule);
+            state.route = "today";
+            setActiveRoute("today");
+        }
         if (isAccountRoute(state.route) && !accountTitles[state.route]) {
             throw new Error("Unknown account route");
         }
@@ -3462,6 +3522,8 @@ async function renderRoute() {
             settings: () => renderAccountRoute("settings", accountContext()),
             "settings-profile": () =>
                 renderAccountRoute("settings-profile", accountContext()),
+            "settings-features": () =>
+                renderAccountRoute("settings-features", accountContext()),
             "settings-goals": () =>
                 renderAccountRoute("settings-goals", accountContext()),
             "settings-billing": () =>
@@ -3475,6 +3537,12 @@ async function renderRoute() {
         };
         await (renderers[state.route] || renderToday)();
         syncAndroidAdPlacement();
+        // Feature toggles (T3): surface the queued module-off notice
+        // once, on the Today landing it redirected to.
+        if (state.route === "today") {
+            const noticeModule = takeModuleOffNotice();
+            if (noticeModule) toast(moduleOffNotice(noticeModule));
+        }
         if (state.route === "today" || state.route === "log") {
             const actions = content.querySelector(
                 ".page-heading .auth-actions",

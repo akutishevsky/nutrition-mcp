@@ -24,6 +24,7 @@ import {
     scheduleRecipeInTransaction,
 } from "./planning/repository.js";
 import { resolvePlanningRecipeNutrition } from "./recipe-nutrition-resolution.js";
+import { getFeatureModules } from "./feature-modules-repository.js";
 import { dateInTz, dateOnlyString, shiftLocalDate, validateTz } from "./tz.js";
 import { toStoredInteger } from "./units.js";
 import {
@@ -2531,12 +2532,19 @@ export async function getDailyGuidance(input: {
         getWaterByDate(input.userId, input.date, timezone),
         getNutritionGoals(input.userId),
         getGuidancePreferences(input.userId),
-        getMealPlan({
-            userId: input.userId,
-            startDate: input.date,
-            endDate: input.date,
-            scope: "all",
-        }),
+        // Feature toggles (T3): guidance context never includes a
+        // disabled module — with Meal Plan off, no plan state is read
+        // and no plan-derived action can be produced.
+        (async () => {
+            const features = await getFeatureModules(input.userId);
+            if (!features.plan) return [];
+            return getMealPlan({
+                userId: input.userId,
+                startDate: input.date,
+                endDate: input.date,
+                scope: "all",
+            });
+        })(),
     ]);
     const total = (field: "calories" | "protein_g" | "water_ml") => {
         if (field === "water_ml")

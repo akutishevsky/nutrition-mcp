@@ -2,6 +2,12 @@ import {
     getMealHistoryWorkspace,
     getTodayWorkspace,
 } from "../app/repository.js";
+import {
+    CHAT_SURFACE_FEATURE_MODULES,
+    DEFAULT_FEATURE_MODULES,
+    type FeatureModules,
+} from "../feature-modules.js";
+import { getFeatureModules } from "../feature-modules-repository.js";
 import { getPantry } from "../inventory/repository.js";
 import { getProfile } from "../nutrition-platform/profiles.js";
 import { getMealPlan } from "../planning/repository.js";
@@ -42,6 +48,7 @@ export interface ChatSeedDependencies {
     history?: typeof getMealHistoryWorkspace;
     pantry?: typeof getPantry;
     plan?: typeof getMealPlan;
+    features?: (userId: string) => Promise<FeatureModules>;
 }
 
 const MAX_SEED_MEALS = 12;
@@ -133,6 +140,7 @@ async function mealPlanSeed(
     userId: string,
     date: string,
     deps: ChatSeedDependencies,
+    features: FeatureModules,
 ): Promise<ChatEntrySeed> {
     const endDate = shiftDate(date, 6);
     const plan = await soft(() =>
@@ -162,9 +170,16 @@ async function mealPlanSeed(
     const summary = plan
         ? `${plannedDays} of 7 days have something planned${firstGap ? ` · ${weekdayName(firstGap.date)} is empty` : ""}.`
         : "This week's plan could not be read just now.";
+    // Feature toggles (T3): the seed never offers a disabled module —
+    // no pantry suggestions to a Pantry-off user, no grocery action to
+    // a Groceries-off user, no recipe source to a Recipes-off user.
+    const fillSources = [
+        features.recipes ? "your recipes" : null,
+        features.pantry ? "what's in the pantry" : null,
+    ].filter((source): source is string => source !== null);
     const opener = firstGap
-        ? `This week has a gap on ${weekdayName(firstGap.date)}. I can suggest filling it from your recipes or what's in the pantry — or explain or adjust any day's plan.`
-        : "Every day this week has something planned. I can adjust a day, explain the plan, or build the grocery list from it.";
+        ? `This week has a gap on ${weekdayName(firstGap.date)}.${fillSources.length ? ` I can suggest filling it from ${fillSources.join(" or ")} — or explain or adjust any day's plan.` : " I can explain or adjust any day's plan."}`
+        : `Every day this week has something planned. I can adjust a day or explain the plan${features.groceries ? ", or build the grocery list from it" : ""}.`;
     return {
         surface: "meal_plan",
         summary,
@@ -172,7 +187,9 @@ async function mealPlanSeed(
         starters: [
             "Fill the gaps in this plan",
             "Explain this week's plan",
-            "Build the grocery list from this plan",
+            ...(features.groceries
+                ? ["Build the grocery list from this plan"]
+                : []),
         ],
         data: { start_date: date, end_date: endDate, days },
     };
@@ -251,12 +268,25 @@ async function insightsSeed(
     };
 }
 
-/** Assemble the live seed for one entry surface. Never throws. */
+/**
+ * Assemble the live seed for one entry surface. Never throws.
+ *
+ * Feature toggles (T3): a surface owned by a disabled module has no
+ * seed at all — the conversation opens unseeded and the agent's
+ * context contains nothing from that module. Returns null only for
+ * that case; every enabled surface assembles as before.
+ */
 export async function assembleEntrySeed(
     userId: string,
     surface: ChatEntrySurface,
     dependencies: ChatSeedDependencies = {},
-): Promise<ChatEntrySeed> {
+): Promise<ChatEntrySeed | null> {
+    const features =
+        (await soft(() =>
+            (dependencies.features ?? getFeatureModules)(userId),
+        )) ?? DEFAULT_FEATURE_MODULES;
+    const surfaceModule = CHAT_SURFACE_FEATURE_MODULES[surface];
+    if (surfaceModule && !features[surfaceModule]) return null;
     const profileOf = dependencies.profile ?? getProfile;
     const profile = await soft(() => profileOf(userId));
     const timezone = profile?.timezone ?? "UTC";
@@ -265,7 +295,7 @@ export async function assembleEntrySeed(
         case "today":
             return todaySeed(userId, date, dependencies);
         case "meal_plan":
-            return mealPlanSeed(userId, date, dependencies);
+            return mealPlanSeed(userId, date, dependencies, features);
         case "pantry":
             return pantrySeed(userId, dependencies);
         case "insights":
