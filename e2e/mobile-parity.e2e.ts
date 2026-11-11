@@ -82,6 +82,16 @@ const vitalsRemovedIds = new Set<string>();
 /** S6 slice 6: grocery items removed / purchased-cleared by the flows. */
 let groceryCleared = false;
 const groceryRemovedIds = new Set<string>();
+/** Grocery fix: purchased toggles the mock API applied, keyed by
+    item id — the fixture rebuilds with the new purchased_at and
+    version, exactly like the real server's write-then-read, and the
+    POST handler 409s a stale expected_version the way the real one
+    does. `groceryPurchasedFailure` fails the next purchased POST. */
+const groceryPurchasedOverrides = new Map<
+    string,
+    { purchased: boolean; version: number }
+>();
+let groceryPurchasedFailure = false;
 /** S6 slice 8: household flows exercised against the fixture server. */
 let householdMemberRemoved = false;
 let householdInviteRevoked = false;
@@ -304,7 +314,19 @@ function groceryFixture() {
         {
             scope: "personal",
             groceryListId: "fixture-grocery-list",
-            items: GROCERY_FIXTURE_ITEMS.filter(
+            items: GROCERY_FIXTURE_ITEMS.map((item) => {
+                const override = groceryPurchasedOverrides.get(
+                    item.grocery_item_id,
+                );
+                if (!override) return item;
+                return {
+                    ...item,
+                    purchased_at: override.purchased
+                        ? "2026-11-09T13:00:00.000Z"
+                        : null,
+                    version: override.version,
+                };
+            }).filter(
                 (item) =>
                     !groceryRemovedIds.has(item.grocery_item_id) &&
                     !(groceryCleared && item.purchased_at),
@@ -1882,6 +1904,84 @@ test.beforeAll(async () => {
                 response.end(JSON.stringify({ clearedCount: 1 }));
                 return;
             }
+            if (
+                method === "POST" &&
+                url.pathname.startsWith("/api/app/groceries/items/") &&
+                url.pathname.endsWith("/purchased")
+            ) {
+                // Grocery fix: the purchased write, with the real
+                // server's contract — the updated item comes back
+                // with its version bumped, and a stale
+                // expected_version is a 409, so a client that keeps
+                // sending the pre-toggle version fails loudly here.
+                const chunks: Buffer[] = [];
+                request.on("data", (chunk) => chunks.push(chunk as Buffer));
+                request.on("end", () => {
+                    if (groceryPurchasedFailure) {
+                        groceryPurchasedFailure = false;
+                        response.writeHead(500, {
+                            "content-type": "application/json",
+                        });
+                        response.end(
+                            JSON.stringify({
+                                error: "Fixture purchased failure",
+                            }),
+                        );
+                        return;
+                    }
+                    let body: {
+                        purchased?: boolean;
+                        expected_version?: number;
+                    } = {};
+                    try {
+                        body = JSON.parse(
+                            Buffer.concat(chunks).toString("utf8") || "{}",
+                        );
+                    } catch {
+                        body = {};
+                    }
+                    const id = decodeURIComponent(
+                        url.pathname.slice(
+                            "/api/app/groceries/items/".length,
+                            -"/purchased".length,
+                        ),
+                    );
+                    const base = GROCERY_FIXTURE_ITEMS.find(
+                        (item) => item.grocery_item_id === id,
+                    );
+                    const currentVersion = base
+                        ? (groceryPurchasedOverrides.get(id)?.version ??
+                          base.version)
+                        : 0;
+                    if (!base || body.expected_version !== currentVersion) {
+                        response.writeHead(409, {
+                            "content-type": "application/json",
+                        });
+                        response.end(
+                            JSON.stringify({
+                                error: "Grocery item version conflict",
+                            }),
+                        );
+                        return;
+                    }
+                    const updated = {
+                        ...base,
+                        purchased_at: body.purchased
+                            ? "2026-11-09T13:00:00.000Z"
+                            : null,
+                        version: currentVersion + 1,
+                    };
+                    groceryPurchasedOverrides.set(id, {
+                        purchased: Boolean(body.purchased),
+                        version: updated.version,
+                    });
+                    response.writeHead(200, {
+                        "content-type": "application/json",
+                    });
+                    response.end(JSON.stringify({ grocery_item: updated }));
+                });
+                return;
+            }
             if (method === "PUT" && url.pathname === "/api/app/trends/layout") {
                 // Trends layout persistence: the mock server is the
                 // account store — a saved layout rebuilds the
@@ -2139,6 +2239,8 @@ test.beforeEach(() => {
     recipeArchived = false;
     groceryCleared = false;
     groceryRemovedIds.clear();
+    groceryPurchasedOverrides.clear();
+    groceryPurchasedFailure = false;
     householdMemberRemoved = false;
     householdInviteRevoked = false;
     householdGone = false;
@@ -3650,6 +3752,242 @@ test("S6 slice 6 regression: remove and clear-purchased use inline confirmation 
         page.locator('[data-grocery-item-id="fixture-grocery-eggs"]'),
     ).toHaveCount(0);
     expect(nativeDialogs).toEqual([]);
+});
+
+test("Grocery fix G1: check-off updates in place — the list is never rebuilt, counts stay true", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/groceries");
+    await expect(page.locator("#app-content")).toContainText(
+        "4 items · 1 checked",
+    );
+    await expect(
+        page.locator('[data-action="clear-purchased"]'),
+    ).toHaveAttribute("data-count", "1");
+
+    // Identity anchors: if any check-off rebuilt the view (the old
+    // renderRoute() behavior), these nodes would be replaced and the
+    // identity assertions below would fail.
+    await page.evaluate(() => {
+        const w = window as unknown as {
+            __groceryViewNode?: unknown;
+            __groceryListNode?: unknown;
+            __groceryRowNodes?: unknown[];
+            __groceryScrollTop?: number;
+        };
+        w.__groceryViewNode = document.querySelector(".groceries-view");
+        w.__groceryListNode = document.querySelector(".grocery-list");
+        w.__groceryRowNodes = [
+            ...document.querySelectorAll(".grocery-item-row"),
+        ];
+        const scroller = document.querySelector(".app-content");
+        w.__groceryScrollTop = scroller?.scrollTop ?? 0;
+    });
+    const viewIntact = () =>
+        page.evaluate(() => {
+            const w = window as unknown as {
+                __groceryViewNode?: unknown;
+                __groceryListNode?: unknown;
+                __groceryRowNodes?: unknown[];
+                __groceryScrollTop?: number;
+            };
+            const rows = [...document.querySelectorAll(".grocery-item-row")];
+            return (
+                document.querySelector(".groceries-view") ===
+                    w.__groceryViewNode &&
+                document.querySelector(".grocery-list") ===
+                    w.__groceryListNode &&
+                rows.length === w.__groceryRowNodes?.length &&
+                rows.every(
+                    (row, index) => row === w.__groceryRowNodes?.[index],
+                ) &&
+                (document.querySelector(".app-content")?.scrollTop ?? 0) ===
+                    w.__groceryScrollTop
+            );
+        });
+    const counts = page.locator(".grocery-list-counts");
+    const clear = page.locator('[data-action="clear-purchased"]');
+    const row = (id: string) => page.locator(`[data-grocery-item-id="${id}"]`);
+    const check = (id: string) => row(id).locator(".grocery-check-input");
+
+    // Check one: the checkbox itself.
+    await check("fixture-grocery-spinach").click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Marked purchased.",
+    );
+    await expect(counts).toHaveText("4 items · 2 checked");
+    await expect(page.locator("#app-content")).toContainText(
+        "4 items · 2 checked",
+    );
+    await expect(clear).toHaveAttribute("data-count", "2");
+    await expect(row("fixture-grocery-spinach")).toHaveClass(/is-purchased/);
+    await expect(check("fixture-grocery-spinach")).toHaveAttribute(
+        "data-version",
+        "2",
+    );
+    expect(await viewIntact()).toBe(true);
+
+    // Check two: tapping the item's name routes through the same
+    // checkbox (F11) and gets the same in-place update.
+    await row("fixture-grocery-rice").locator(".grocery-item-main").click();
+    await expect(counts).toHaveText("4 items · 3 checked");
+    await expect(clear).toHaveAttribute("data-count", "3");
+    await expect(row("fixture-grocery-rice")).toHaveClass(/is-purchased/);
+    expect(await viewIntact()).toBe(true);
+
+    // Check three in a row.
+    await check("fixture-grocery-milk").click();
+    await expect(counts).toHaveText("4 items · 4 checked");
+    await expect(clear).toHaveAttribute("data-count", "4");
+    expect(await viewIntact()).toBe(true);
+
+    // Uncheck: the version the row now sends is the one the last
+    // write returned (the mock 409s a stale version, so reaching the
+    // toast at all proves the in-place version threading).
+    await check("fixture-grocery-spinach").click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Restored to the list.",
+    );
+    await expect(counts).toHaveText("4 items · 3 checked");
+    await expect(clear).toHaveAttribute("data-count", "3");
+    await expect(row("fixture-grocery-spinach")).not.toHaveClass(
+        /is-purchased/,
+    );
+    await expect(check("fixture-grocery-spinach")).toHaveAttribute(
+        "data-version",
+        "3",
+    );
+    expect(await viewIntact()).toBe(true);
+
+    // The Clear-purchased confirmation reads the live in-place count.
+    await clear.click();
+    await expect(
+        page.getByText("Remove all 3 purchased items from this list?"),
+    ).toBeVisible();
+    await page.locator('[data-action="dismiss-grocery-confirm"]').click();
+    await expect(clear).toBeVisible();
+    await expect(counts).toHaveText("4 items · 3 checked");
+});
+
+test("Grocery fix G1 regression: a failed check-off reverts the checkbox and surfaces the error", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/groceries");
+    groceryPurchasedFailure = true;
+    const spinach = page.locator(
+        '[data-grocery-item-id="fixture-grocery-spinach"] .grocery-check-input',
+    );
+    await spinach.click();
+    await expect(page.locator("#toast-region")).toContainText(
+        "Fixture purchased failure",
+    );
+    await expect(spinach).not.toBeChecked();
+    await expect(
+        page.locator('[data-grocery-item-id="fixture-grocery-spinach"]'),
+    ).not.toHaveClass(/is-purchased/);
+    await expect(page.locator(".grocery-list-counts")).toHaveText(
+        "4 items · 1 checked",
+    );
+    expect(
+        observedRequest(
+            "POST",
+            "/api/app/groceries/items/fixture-grocery-spinach/purchased",
+        ),
+    ).toBe(true);
+});
+
+test("Grocery fix G2: shopping mode labels itself, persists for the session, and stays on the groceries surface", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/groceries");
+
+    // Off state: plain label, no caption, no chrome class.
+    const toggle = page.locator('[data-action="shopping-mode"]');
+    await expect(toggle).toHaveText("Shopping mode");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator(".shopping-mode-caption")).toHaveCount(0);
+    await expect(page.locator("body")).not.toHaveClass(/shopping-mode/);
+    await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
+
+    // Captures at the program's 390x844 discipline: off, then on.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({
+        path: "test-results/grocery-captures/shopping-mode-off-390.png",
+    });
+    await toggle.click();
+
+    // On state: the button is the exit, and the caption says what
+    // the mode does — the two things the old mode never told anyone.
+    await expect(toggle).toHaveText("Exit shopping mode");
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".shopping-mode-caption")).toHaveText(
+        "Bigger targets, distractions hidden — for checking off in the store",
+    );
+    await expect(page.locator("body")).toHaveClass(/shopping-mode/);
+    await expect(page.locator(".mobile-bottom-nav")).toBeHidden();
+    await page.screenshot({
+        path: "test-results/grocery-captures/shopping-mode-on-390.png",
+    });
+
+    // G1's in-place assertions also hold inside shopping mode.
+    await page.evaluate(() => {
+        const w = window as unknown as { __groceryListNode?: unknown };
+        w.__groceryListNode = document.querySelector(".grocery-list");
+    });
+    await page
+        .locator(
+            '[data-grocery-item-id="fixture-grocery-spinach"] .grocery-check-input',
+        )
+        .click();
+    await expect(page.locator(".grocery-list-counts")).toHaveText(
+        "4 items · 2 checked",
+    );
+    expect(
+        await page.evaluate(() => {
+            const w = window as unknown as { __groceryListNode?: unknown };
+            return (
+                document.querySelector(".grocery-list") === w.__groceryListNode
+            );
+        }),
+    ).toBe(true);
+
+    // Navigate away: the chrome class must not follow — the mode's
+    // hidden-sidebar/bottom-nav rules belong to Groceries alone.
+    await gotoRoute(page, "/app/plan");
+    await expect(page.locator(".groceries-view")).toHaveCount(0);
+    await expect(page.locator("body")).not.toHaveClass(/shopping-mode/);
+
+    // Return: the session preference is still on, label and caption
+    // as specified, and the in-mode check-off survived the trip.
+    await gotoRoute(page, "/app/groceries");
+    await expect(toggle).toHaveText("Exit shopping mode");
+    await expect(page.locator(".shopping-mode-caption")).toBeVisible();
+    await expect(page.locator("body")).toHaveClass(/shopping-mode/);
+    await expect(page.locator(".grocery-list-counts")).toHaveText(
+        "4 items · 2 checked",
+    );
+
+    // A same-session reload keeps the mode too.
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await gotoRoute(page, "/app/groceries");
+    await expect(toggle).toHaveText("Exit shopping mode");
+    await expect(page.locator("body")).toHaveClass(/shopping-mode/);
+
+    // Exit restores everything, and the exit also persists.
+    await toggle.click();
+    await expect(toggle).toHaveText("Shopping mode");
+    await expect(page.locator(".shopping-mode-caption")).toHaveCount(0);
+    await expect(page.locator("body")).not.toHaveClass(/shopping-mode/);
+    await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
+    await page.goto(`${baseURL}/`);
+    await expect(page.getByRole("button", { name: "Add water" })).toBeVisible();
+    await gotoRoute(page, "/app/groceries");
+    await expect(toggle).toHaveText("Shopping mode");
+    await expect(page.locator("body")).not.toHaveClass(/shopping-mode/);
 });
 
 test("S6 slice 5: Cooks list renders themed panels with row actions and no ad slot", async ({

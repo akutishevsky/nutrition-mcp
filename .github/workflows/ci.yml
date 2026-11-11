@@ -248,6 +248,17 @@ jobs:
         run: bun run mobile:web
       - name: Run packaged mobile bundle e2e at Pixel 7 size
         run: bunx playwright test --config playwright.mobile.config.ts
+      # Grocery captures upload here, before the browser-journey run:
+      # a later Playwright run wipes test-results/, which would take
+      # the mobile lane's captures with it.
+      - name: Upload grocery captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-grocery-captures
+          path: test-results/grocery-captures/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Provision isolated reviewer account and run browser journeys
         run: |
           REVIEWER_EMAIL="e2e-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT@example.test"

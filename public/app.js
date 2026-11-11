@@ -40,6 +40,7 @@ const state = {
     trendsData: null,
     trendsCheckin: null,
     trendsDonutModes: new Map(),
+    shoppingMode: false,
     cookQuery: "",
     cookFilters: {
         dish: "",
@@ -2448,6 +2449,106 @@ function dismissGroceryInlineConfirm(button) {
     box?.remove();
 }
 
+// Grocery fix G1: a check-off updates the rendered list in place —
+// the row's purchased styling, the version stamps the next toggle
+// sends, the list header's checked count, the page heading's totals
+// and the Clear-purchased button's presence/count — instead of
+// rebuilding the whole view (the old renderRoute() call flickered
+// and put scroll position at the rebuild's mercy on every tap).
+// Counts are recounted from the DOM itself, so the headers can never
+// drift from the rows on screen.
+function syncGroceryPurchasedInPlace(input, updatedItem, purchased) {
+    const row = input.closest(".grocery-item-row");
+    if (!row) return;
+    row.classList.toggle("is-purchased", purchased);
+    const version = updatedItem?.version;
+    if (version != null) {
+        for (const stamped of row.querySelectorAll("[data-version]")) {
+            stamped.dataset.version = String(version);
+        }
+    }
+    const section = row.closest(".grocery-list");
+    if (section) {
+        const total = section.querySelectorAll(".grocery-item-row").length;
+        const checked = section.querySelectorAll(
+            ".grocery-item-row.is-purchased",
+        ).length;
+        const counts = section.querySelector(".grocery-list-counts");
+        if (counts) {
+            counts.textContent = `${total} item${total === 1 ? "" : "s"} · ${checked} checked`;
+        }
+        const actions = section.querySelector(".grocery-list-actions");
+        let clear = actions?.querySelector('[data-action="clear-purchased"]');
+        if (clear) {
+            clear.dataset.count = String(checked);
+            // The button leaves with the last purchased item — unless
+            // its inline confirmation is open, in which case the
+            // confirmation owns the button until it resolves.
+            if (checked === 0 && !clear.dataset.confirmPending) {
+                clear.remove();
+            }
+        } else if (checked > 0 && actions && !input.disabled) {
+            // First item checked on an editable list: the button
+            // appears with the same markup a fresh render emits.
+            clear = document.createElement("button");
+            clear.className = "button button-quiet button-small";
+            clear.type = "button";
+            clear.dataset.action = "clear-purchased";
+            clear.dataset.scope = input.dataset.scope;
+            clear.dataset.count = String(checked);
+            clear.textContent = "Clear purchased";
+            actions.append(clear);
+        }
+    }
+    const view = row.closest(".groceries-view");
+    if (view) {
+        const totalAll = view.querySelectorAll(".grocery-item-row").length;
+        const checkedAll = view.querySelectorAll(
+            ".grocery-item-row.is-purchased",
+        ).length;
+        const summary = view.querySelector(".grocery-total-counts");
+        if (summary) {
+            summary.textContent = ` ${totalAll} item${totalAll === 1 ? "" : "s"} · ${checkedAll} checked.`;
+        }
+    }
+}
+
+// Grocery fix G2: shopping mode is a session-level preference. The
+// flag survives in-app navigation and same-session reloads
+// (sessionStorage), and the body class — the only thing the mode's
+// CSS keys on — is applied solely while the groceries route is on
+// screen, so its chrome (sidebar and bottom nav hidden, content
+// centered) can never leak onto another surface.
+const SHOPPING_MODE_STORAGE_KEY = "munch-shopping-mode";
+
+function readShoppingModePreference() {
+    try {
+        return sessionStorage.getItem(SHOPPING_MODE_STORAGE_KEY) === "1";
+    } catch {
+        return false;
+    }
+}
+
+function writeShoppingModePreference(enabled) {
+    try {
+        if (enabled) {
+            sessionStorage.setItem(SHOPPING_MODE_STORAGE_KEY, "1");
+        } else {
+            sessionStorage.removeItem(SHOPPING_MODE_STORAGE_KEY);
+        }
+    } catch {
+        // Storage unavailable (private WebView): the in-memory flag
+        // still holds the mode for this page session.
+    }
+}
+
+function applyShoppingModeChrome() {
+    document.body.classList.toggle(
+        "shopping-mode",
+        Boolean(state.shoppingMode) && state.route === "groceries",
+    );
+}
+
 async function renderGroceries() {
     setLoading("Loading grocery lists…");
     const data = await planningData();
@@ -2480,10 +2581,10 @@ async function renderGroceries() {
                         `<div class="grocery-group"><div class="grocery-group-head"><h4>${group.label}</h4><span class="grocery-group-count">${group.items.length} item${group.items.length === 1 ? "" : "s"}</span></div><div class="grocery-items">${group.items.map((item) => groceryItemRowMarkup(item, list.scope, editable)).join("")}</div></div>`,
                 )
                 .join("");
-            return `<section class="panel grocery-list" data-grocery-scope="${list.scope}"><div class="panel-title"><div><h3>${list.scope === "household" ? "Household list" : "Personal list"}</h3><span>${list.scope === "household" && data.permissions?.householdRole ? `${escapeHtml(data.permissions.householdRole)} · ` : ""}${list.items.length} items · ${purchasedCount} checked</span></div><div class="auth-actions grocery-list-actions">${listAddButton}${editable && purchasedCount ? `<button class="button button-quiet button-small" type="button" data-action="clear-purchased" data-scope="${list.scope}" data-count="${purchasedCount}">Clear purchased</button>` : ""}</div></div>${list.items.length ? groupedItems : `<div class="empty-state"><div><h3>The list is empty</h3><p>Add an item manually or ask your AI assistant to record an explicit shopping need.</p>${editable ? `<div class="auth-actions spacer-top"><button class="button button-primary button-small" type="button" data-action="add-grocery" data-scope="${list.scope}">Add item</button></div>` : ""}</div></div>`}</section>`;
+            return `<section class="panel grocery-list" data-grocery-scope="${list.scope}"><div class="panel-title"><div><h3>${list.scope === "household" ? "Household list" : "Personal list"}</h3><span>${list.scope === "household" && data.permissions?.householdRole ? `${escapeHtml(data.permissions.householdRole)} · ` : ""}<span class="grocery-list-counts">${list.items.length} items · ${purchasedCount} checked</span></span></div><div class="auth-actions grocery-list-actions">${listAddButton}${editable && purchasedCount ? `<button class="button button-quiet button-small" type="button" data-action="clear-purchased" data-scope="${list.scope}" data-count="${purchasedCount}">Clear purchased</button>` : ""}</div></div>${list.items.length ? groupedItems : `<div class="empty-state"><div><h3>The list is empty</h3><p>Add an item manually or ask your AI assistant to record an explicit shopping need.</p>${editable ? `<div class="auth-actions spacer-top"><button class="button button-primary button-small" type="button" data-action="add-grocery" data-scope="${list.scope}">Add item</button></div>` : ""}</div></div>`}</section>`;
         })
         .join("");
-    content.innerHTML = `<div class="operate-view groceries-view"><div class="page-heading"><div><h2>Groceries</h2><p>Explicit shopping lists only. Munch does not infer pantry inventory.${listSummary}</p></div><div class="auth-actions"><button class="button button-secondary button-small" data-action="shopping-mode">Shopping mode</button></div></div>${lists || `<section class="panel"><div class="empty-state"><div><h3>No grocery lists</h3><p>Grocery lists are not available for this account.</p></div></div></section>`}</div>`;
+    content.innerHTML = `<div class="operate-view groceries-view"><div class="page-heading"><div><h2>Groceries</h2><p>Explicit shopping lists only. Munch does not infer pantry inventory.<span class="grocery-total-counts">${listSummary}</span></p>${state.shoppingMode ? `<p class="shopping-mode-caption">Bigger targets, distractions hidden — for checking off in the store</p>` : ""}</div><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="shopping-mode" aria-pressed="${state.shoppingMode ? "true" : "false"}">${state.shoppingMode ? "Exit shopping mode" : "Shopping mode"}</button></div></div>${lists || `<section class="panel"><div class="empty-state"><div><h3>No grocery lists</h3><p>Grocery lists are not available for this account.</p></div></div></section>`}</div>`;
 }
 
 function cookCardActionsMarkup(cook) {
@@ -3129,6 +3230,9 @@ async function renderRoute() {
     }
     syncAndroidAdPlacement();
     setActiveRoute(state.route);
+    // Grocery fix G2: the shopping-mode class follows the route —
+    // present only while Groceries is the surface on screen.
+    applyShoppingModeChrome();
     try {
         if (!state.bootstrap) {
             state.bootstrap = await api("/api/app/bootstrap");
@@ -5997,8 +6101,9 @@ async function handleAction(button) {
     }
     if (action === "toggle-grocery-purchased") {
         const purchased = Boolean(button.checked);
+        let result;
         try {
-            await api(
+            result = await api(
                 `/api/app/groceries/items/${encodeURIComponent(button.dataset.id)}/purchased`,
                 {
                     method: "POST",
@@ -6015,7 +6120,11 @@ async function handleAction(button) {
             throw error;
         }
         toast(purchased ? "Marked purchased." : "Restored to the list.");
-        return renderRoute();
+        // Grocery fix G1: sync the row, counts and Clear-purchased in
+        // place — no renderRoute(), so the list never flickers or
+        // loses its scroll position mid-shop.
+        syncGroceryPurchasedInPlace(button, result?.grocery_item, purchased);
+        return;
     }
     if (action === "clear-purchased") {
         // S6 slice 6: clearing purchased items is this surface's other
@@ -6046,8 +6155,15 @@ async function handleAction(button) {
         );
         return renderRoute();
     }
-    if (action === "shopping-mode")
-        document.body.classList.toggle("shopping-mode");
+    if (action === "shopping-mode") {
+        // Grocery fix G2: the mode is a session-level preference —
+        // flipping it records the choice, and the re-render swaps the
+        // button to its Exit label plus the caption that says what
+        // the mode does (renderRoute reapplies the chrome class).
+        state.shoppingMode = !state.shoppingMode;
+        writeShoppingModePreference(state.shoppingMode);
+        return renderRoute();
+    }
 }
 
 document.addEventListener("click", async (event) => {
@@ -7097,4 +7213,8 @@ window.addEventListener("online", () => {
         void renderRoute();
     }
 });
+// Grocery fix G2: restore the session's shopping-mode preference
+// before the first render so the mode (and its Exit label) is
+// already in place when Groceries is the landing route.
+state.shoppingMode = readShoppingModePreference();
 renderRoute();
