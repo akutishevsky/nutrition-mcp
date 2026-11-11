@@ -114,14 +114,29 @@ test("meal composer logs a food through its portion picker", async ({
     await expect(page).toHaveTitle(/^Today — Munch$/);
 
     await page.getByRole("button", { name: "Add meal" }).first().click();
-    await page.locator("#meal-food-search").fill("milk");
+    const searchInput = page.locator("#meal-food-search");
+    await searchInput.fill("milk");
 
     // Verified results come from the live providers in this lane, so
     // assertions stay on the picker contract, not a specific food:
     // a result row appears, picking it opens the portion dropdown,
-    // and the dropdown's options carry real portion labels.
+    // and the dropdown's options carry real portion labels. Live
+    // providers occasionally answer a search with an empty pool
+    // (rate limits, circuit breakers), so re-issue the search a few
+    // times before treating "no results" as a failure.
     const result = page.locator('[data-action="select-meal-option"]').first();
-    await expect(result).toBeVisible({ timeout: 30_000 });
+    let picked = false;
+    for (let attempt = 0; attempt < 3 && !picked; attempt++) {
+        if (attempt > 0) {
+            await searchInput.fill("");
+            await searchInput.fill("milk");
+        }
+        picked = await result
+            .waitFor({ state: "visible", timeout: 20_000 })
+            .then(() => true)
+            .catch(() => false);
+    }
+    expect(picked, "food search returned at least one result").toBe(true);
     await result.click();
 
     const portionSelect = page.locator('[data-composer-field="portion_id"]');
