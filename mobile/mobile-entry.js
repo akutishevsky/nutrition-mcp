@@ -29,5 +29,5 @@ if (typeof navigator !== "undefined" && navigator.onLine === false) {
     await import("./app.js");
     await import("./app-patches.js");
     await import("./billing-native.js");
-    await import("./meal-photo-native.js");
+    await import("./capture-native.js");
 }

@@ -262,11 +262,43 @@
                                 processes the image transiently and stores only
                                 the items you confirm.
                             </p>
-                            <input
-                                id="pantry-photo"
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                            />
+                            <div
+                                class="photo-capture"
+                                data-photo-capture
+                                data-capture-review-button="#scan-pantry"
+                            >
+                                <span class="photo-capture-label"
+                                    >Pantry photo</span
+                                >
+                                <div class="photo-capture-actions">
+                                    <button
+                                        class="photo-capture-button"
+                                        type="button"
+                                        data-capture-action="camera"
+                                    >
+                                        Take photo
+                                    </button>
+                                    <button
+                                        class="photo-capture-button"
+                                        type="button"
+                                        data-capture-action="library"
+                                    >
+                                        Choose from library
+                                    </button>
+                                </div>
+                                <input
+                                    class="photo-capture-input"
+                                    id="pantry-photo"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    hidden
+                                />
+                                <p
+                                    class="tiny photo-capture-files"
+                                    data-capture-files
+                                    role="status"
+                                ></p>
+                            </div>
                             <button id="scan-pantry" type="button">
                                 Review photo
                             </button>
@@ -277,11 +309,43 @@
                                 to your Grocery list and add the rest to Pantry.
                                 Non-food lines are ignored.
                             </p>
-                            <input
-                                id="receipt-photo"
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                            />
+                            <div
+                                class="photo-capture"
+                                data-photo-capture
+                                data-capture-review-button="#scan-receipt"
+                            >
+                                <span class="photo-capture-label"
+                                    >Receipt photo</span
+                                >
+                                <div class="photo-capture-actions">
+                                    <button
+                                        class="photo-capture-button"
+                                        type="button"
+                                        data-capture-action="camera"
+                                    >
+                                        Take photo
+                                    </button>
+                                    <button
+                                        class="photo-capture-button"
+                                        type="button"
+                                        data-capture-action="library"
+                                    >
+                                        Choose from library
+                                    </button>
+                                </div>
+                                <input
+                                    class="photo-capture-input"
+                                    id="receipt-photo"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    hidden
+                                />
+                                <p
+                                    class="tiny photo-capture-files"
+                                    data-capture-files
+                                    role="status"
+                                ></p>
+                            </div>
                             <button id="scan-receipt" type="button">
                                 Review receipt
                             </button>

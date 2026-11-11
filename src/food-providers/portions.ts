@@ -21,6 +21,79 @@ export function normalizePortionUnit(unit: string): string {
     return aliases[normalized] ?? normalized;
 }
 
+/**
+ * What kind of quantity a portion unit expresses. The distinction is
+ * load-bearing for grounding: a COUNT quantity ("3 ears") must never
+ * be fed through weight math (treating the count as grams), and a
+ * volume quantity needs a density before it can become grams — so
+ * grounding resolves each kind only against portions of a compatible
+ * kind, or through an explicitly labelled conversion.
+ *
+ * "count" is counted-OBJECT units only (ears, pieces, slices, eggs…).
+ * Generic portion words — "serving", "portion" — are "other": a
+ * serving has no object identity, and the per-100 g fallback with a
+ * stated assumption is the honest resolution for it (the chat
+ * grounding adapter passes unit "serving" for name-only items and
+ * depends on that fallback).
+ */
+export type PortionUnitKind = "weight" | "volume" | "count" | "other";
+
+const WEIGHT_PORTION_UNITS = new Set(["g", "kg", "mg", "oz", "lb", "lbs"]);
+const VOLUME_PORTION_UNITS = new Set([
+    "ml",
+    "l",
+    "cup",
+    "cups",
+    "tbsp",
+    "tsp",
+    "fl oz",
+    "pint",
+    "pints",
+    "quart",
+    "quarts",
+    "gallon",
+    "gallons",
+]);
+const COUNT_PORTION_UNITS = new Set([
+    "whole",
+    "piece",
+    "pieces",
+    "slice",
+    "slices",
+    "item",
+    "items",
+    "unit",
+    "units",
+    "can",
+    "cans",
+    "bottle",
+    "bottles",
+    "scoop",
+    "scoops",
+    "bar",
+    "bars",
+    "egg",
+    "eggs",
+    "ear",
+    "ears",
+    "clove",
+    "cloves",
+    "stalk",
+    "stalks",
+    "fillet",
+    "fillets",
+    "breast",
+    "breasts",
+]);
+
+export function portionUnitKind(unit: string): PortionUnitKind {
+    const normalized = normalizePortionUnit(unit);
+    if (WEIGHT_PORTION_UNITS.has(normalized)) return "weight";
+    if (VOLUME_PORTION_UNITS.has(normalized)) return "volume";
+    if (COUNT_PORTION_UNITS.has(normalized)) return "count";
+    return "other";
+}
+
 export function portionFromPer100g(input: {
     id: string;
     amount: number;

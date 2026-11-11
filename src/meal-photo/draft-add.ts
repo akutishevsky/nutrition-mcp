@@ -15,6 +15,11 @@ import {
     parseDraftAddTextDeterministic,
     type ParsedDraftAddItem,
 } from "./draft-add-text.js";
+import type {
+    DraftAddModelParseResult,
+    DraftAddParseContext,
+    DraftAddPreparation,
+} from "./draft-add-parse.js";
 import type { MealPhotoVisionItem } from "./vision.js";
 
 /**
@@ -54,10 +59,20 @@ import type { MealPhotoVisionItem } from "./vision.js";
 export interface DraftAddDeps extends MealPhotoGroundingDeps {
     /** Ember fallback parse (draft-add-parse.ts). Injected so tests
      * can count calls and replay recorded responses. Omit to disable
-     * the fallback (deterministic-only). */
+     * the fallback (deterministic-only). The parse receives the
+     * draft's current items as context so a preparation statement can
+     * name the item it corrects (photo-flow P2). */
     parseWithModel?: (
         text: string,
-    ) => Promise<{ items: ParsedDraftAddItem[]; replaces: string | null }>;
+        context: DraftAddParseContext,
+    ) => Promise<DraftAddModelParseResult>;
+}
+
+/** A preparation correction as APPLIED to a draft item (P2). */
+export interface AppliedPreparation {
+    itemName: string;
+    cookingMethod: string;
+    previousMethod: string | null;
 }
 
 export type DraftAddOutcome =
@@ -67,6 +82,14 @@ export type DraftAddOutcome =
           added: GroundedMealPhotoItem[];
           parseSource: "deterministic" | "model";
           replacedItemName: string | null;
+          preparation: AppliedPreparation | null;
+          message: string;
+      }
+    | {
+          status: "updated";
+          draft: MealDraft;
+          preparation: AppliedPreparation;
+          parseSource: "deterministic" | "model";
           message: string;
       }
     | {
@@ -97,11 +120,22 @@ export type DraftAddResolution =
           unresolvedNames: string[];
       }
     | {
+          kind: "preparation_question";
+          parseSource: "model";
+          preparation: DraftAddPreparation;
+      }
+    | {
           kind: "ready";
           parseSource: "deterministic" | "model";
           parsed: ParsedDraftAddItem[];
           grounded: GroundedMealPhotoItem[];
           removeName: string | null;
+          preparation: DraftAddPreparation | null;
+          /** The draft-context item name the preparation targets
+           * (already matched during resolution); null when there is
+           * no preparation or it could not be targeted — the latter
+           * resolves as "preparation_question" instead. */
+          preparationTargetName: string | null;
       };
 
 function textHash(value: string): string {
@@ -141,9 +175,27 @@ function pickSharesNameToken(
     return false;
 }
 
+/** Does a draft item's name match the name the user/model gave?
+ * Exact, containment, or any shared token (the same tolerant matching
+ * replacement phrasing has always used). */
+function nameMatches(candidateName: string, wantedName: string): boolean {
+    const name = normalizeFoodText(candidateName);
+    const wanted = normalizeFoodText(wantedName);
+    if (!name || !wanted) return false;
+    if (name === wanted || name.includes(wanted) || wanted.includes(name)) {
+        return true;
+    }
+    const wantedTokens = new Set(wanted.split(" ").filter(Boolean));
+    return name
+        .split(" ")
+        .filter(Boolean)
+        .some((token) => wantedTokens.has(token));
+}
+
 export async function resolveDraftAdd(
     text: string,
     deps: DraftAddDeps,
+    draftItems: DraftAddParseContext["items"] = [],
 ): Promise<DraftAddResolution> {
     const deterministic = parseDraftAddTextDeterministic(text);
     if (deterministic?.kind === "none") return { kind: "none" };
@@ -151,6 +203,8 @@ export async function resolveDraftAdd(
     let parseSource: "deterministic" | "model";
     let items: ParsedDraftAddItem[];
     let removeName: string | null;
+    let preparation: DraftAddPreparation | null = null;
+    let preparationTargetName: string | null = null;
     if (deterministic?.kind === "add" || deterministic?.kind === "replace") {
         parseSource = "deterministic";
         items = deterministic.items;
@@ -160,14 +214,43 @@ export async function resolveDraftAdd(
         // Deterministic failure is the ONLY path that spends the
         // Ember fallback.
         if (!deps.parseWithModel) return { kind: "no_parse" };
-        let model: { items: ParsedDraftAddItem[]; replaces: string | null };
+        let model: DraftAddModelParseResult;
         try {
-            model = await deps.parseWithModel(text);
+            model = await deps.parseWithModel(text, { items: draftItems });
         } catch {
             // A failed fallback is an honest no-add, never a silent add.
             return { kind: "no_parse" };
         }
-        if (model.items.length === 0) return { kind: "no_parse" };
+        preparation = model.preparation;
+        if (preparation) {
+            // The preparation must land on a KNOWN item: a named
+            // target that matches nothing, or an unnamed target on a
+            // multi-item draft, becomes a question — never a guess.
+            if (preparation.targetItem) {
+                const match = draftItems.find((item) =>
+                    nameMatches(item.name, preparation!.targetItem!),
+                );
+                if (!match) {
+                    return {
+                        kind: "preparation_question",
+                        parseSource: "model",
+                        preparation,
+                    };
+                }
+                preparationTargetName = match.name;
+            } else if (draftItems.length === 1) {
+                preparationTargetName = draftItems[0]!.name;
+            } else {
+                return {
+                    kind: "preparation_question",
+                    parseSource: "model",
+                    preparation,
+                };
+            }
+        }
+        if (model.items.length === 0 && !preparation) {
+            return { kind: "no_parse" };
+        }
         parseSource = "model";
         items = model.items;
         removeName = model.replaces;
@@ -224,6 +307,8 @@ export async function resolveDraftAdd(
         parsed: items,
         grounded: marked,
         removeName,
+        preparation,
+        preparationTargetName,
     };
 }
 
@@ -231,17 +316,52 @@ function findItemToRemove(
     draft: MealDraft,
     removeName: string,
 ): MealDraft["items"][number] | undefined {
-    const wanted = normalizeFoodText(removeName);
-    if (!wanted) return undefined;
-    const wantedTokens = new Set(wanted.split(" ").filter(Boolean));
-    return draft.items.find((record) => {
-        const name = normalizeFoodText(record.item.name);
-        if (name === wanted || name.includes(wanted) || wanted.includes(name)) {
-            return true;
-        }
-        const tokens = name.split(" ").filter(Boolean);
-        return tokens.some((token) => wantedTokens.has(token));
-    });
+    return draft.items.find((record) =>
+        nameMatches(record.item.name, removeName),
+    );
+}
+
+/**
+ * Plan a preparation correction on one draft item (photo-flow P2) —
+ * pure, so the recorded-fixture tests assert the exact persisted
+ * shape. The corrected method is recorded in the item's assumptions
+ * (leading, user-attributed) and in its source snapshot, where
+ * grounding put the photo's original method read. The item's grounded
+ * nutrition is NOT silently rewritten: the method's material
+ * nutrition effect (absorbed frying oil, etc.) arrives as its own
+ * visible added item through the ordinary grounding path.
+ */
+export function planPreparationUpdate(
+    item: MealDraft["items"][number]["item"],
+    preparation: DraftAddPreparation,
+): {
+    item: MealDraft["items"][number]["item"];
+    previousMethod: string | null;
+} {
+    const snapshot = item.sourceSnapshot ?? {};
+    const previousMethod =
+        typeof snapshot.cooking_method === "string" &&
+        snapshot.cooking_method.trim()
+            ? snapshot.cooking_method.trim()
+            : null;
+    const correction = previousMethod
+        ? `Cooking method corrected by you: "${preparation.cookingMethod}" (photo estimate said "${previousMethod}").`
+        : `Cooking method noted by you: "${preparation.cookingMethod}".`;
+    return {
+        item: {
+            ...item,
+            assumptions: [correction, ...(item.assumptions ?? [])].slice(0, 20),
+            sourceSnapshot: {
+                ...snapshot,
+                cooking_method: preparation.cookingMethod,
+                ...(previousMethod
+                    ? { cooking_method_corrected_from: previousMethod }
+                    : {}),
+                cooking_method_corrected_via: "draft_add_text",
+            },
+        },
+        previousMethod,
+    };
 }
 
 /**
@@ -262,7 +382,17 @@ export async function addTextToPhotoDraft(input: {
     if (draft.sourceMode !== "photo") {
         throw new Error("Text adds are only available on photo drafts");
     }
-    const resolution = await resolveDraftAdd(text, input.deps);
+    const resolution = await resolveDraftAdd(
+        text,
+        input.deps,
+        draft.items.map((record) => ({
+            name: record.item.name,
+            cookingMethod:
+                typeof record.item.sourceSnapshot?.cooking_method === "string"
+                    ? record.item.sourceSnapshot.cooking_method
+                    : null,
+        })),
+    );
     if (resolution.kind === "none") {
         return {
             status: "no_add",
@@ -275,6 +405,22 @@ export async function addTextToPhotoDraft(input: {
             status: "no_add",
             draft,
             message: `We couldn't identify a food to add from "${text}". Try naming the food and amount, like "1 tbsp butter" — or use the structured add below. Nothing was added.`,
+        };
+    }
+    if (resolution.kind === "preparation_question") {
+        draft = await addMealDraftQuestion({
+            userId: input.userId,
+            draftId: draft.id,
+            expectedVersion: draft.version,
+            questionKey: `photo_draft_add_preparation_${textHash(text)}`,
+            prompt: `You noted a preparation change ("${text.slice(0, 200)}"), but we couldn't tell which item in this draft was ${resolution.preparation.cookingMethod}. Which item does it refer to? Answer here, or edit the item directly.`,
+            impactScore: 70,
+        });
+        return {
+            status: "question",
+            draft,
+            parseSource: resolution.parseSource,
+            message: `We couldn't tell which item "${text.slice(0, 200)}" refers to, so we left a question on the draft instead — nothing was changed.`,
         };
     }
     if (resolution.kind === "question") {
@@ -314,6 +460,35 @@ export async function addTextToPhotoDraft(input: {
         }
     }
 
+    // Preparation correction (P2): the corrected cooking method lands
+    // on the existing item as a visible, user-attributed update —
+    // applied BEFORE the additions so positions thread cleanly.
+    let appliedPreparation: AppliedPreparation | null = null;
+    if (resolution.preparation && resolution.preparationTargetName) {
+        const target = findItemToRemove(
+            draft,
+            resolution.preparationTargetName,
+        );
+        if (target) {
+            const planned = planPreparationUpdate(
+                target.item,
+                resolution.preparation,
+            );
+            draft = await upsertMealDraftItem({
+                userId: input.userId,
+                draftId: draft.id,
+                expectedVersion: draft.version,
+                position: target.position,
+                item: planned.item,
+            });
+            appliedPreparation = {
+                itemName: target.item.name,
+                cookingMethod: resolution.preparation.cookingMethod,
+                previousMethod: planned.previousMethod,
+            };
+        }
+    }
+
     const basePosition = draft.items.length;
     const added: GroundedMealPhotoItem[] = [];
     for (const [index, entry] of grounded.entries()) {
@@ -347,14 +522,33 @@ export async function addTextToPhotoDraft(input: {
     }
 
     const names = added.map((entry) => entry.draftItem.name).join(", ");
+    if (added.length === 0 && appliedPreparation) {
+        return {
+            status: "updated",
+            draft,
+            preparation: appliedPreparation,
+            parseSource: resolution.parseSource,
+            message: `${appliedPreparation.itemName}: cooking method set to ${appliedPreparation.cookingMethod}${appliedPreparation.previousMethod ? ` (was ${appliedPreparation.previousMethod})` : ""}.`,
+        };
+    }
+    const messageParts: string[] = [];
+    if (replacedItemName) {
+        messageParts.push(`Replaced ${replacedItemName} with ${names}.`);
+    } else if (added.length > 0) {
+        messageParts.push(`Added ${names} to the draft.`);
+    }
+    if (appliedPreparation) {
+        messageParts.push(
+            `${appliedPreparation.itemName}: cooking method set to ${appliedPreparation.cookingMethod}${appliedPreparation.previousMethod ? ` (was ${appliedPreparation.previousMethod})` : ""}.`,
+        );
+    }
     return {
         status: "added",
         draft,
         added,
         parseSource: resolution.parseSource,
         replacedItemName,
-        message: replacedItemName
-            ? `Replaced ${replacedItemName} with ${names}.`
-            : `Added ${names} to the draft.`,
+        preparation: appliedPreparation,
+        message: messageParts.join(" ") || "Draft updated.",
     };
 }

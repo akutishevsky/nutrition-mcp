@@ -963,6 +963,12 @@ export function createAppRouter(): Hono {
             "Cache-Control": "no-cache",
         }),
     );
+    app.get("/photo-capture.js", async (c) =>
+        c.body(await Bun.file("./public/photo-capture.js").text(), 200, {
+            "Content-Type": "text/javascript; charset=utf-8",
+            "Cache-Control": "no-cache",
+        }),
+    );
     app.get("/account-settings.css", async (c) =>
         c.body(await Bun.file("./public/account-settings.css").text(), 200, {
             "Content-Type": "text/css; charset=utf-8",
@@ -1361,10 +1367,12 @@ export function createAppRouter(): Hono {
                                       requests,
                                       visionConfig,
                                   ),
-                              parseWithModel: (text) =>
+                              parseWithModel: (text, context) =>
                                   parseDraftAddTextWithModel(
                                       text,
                                       visionConfig,
+                                      {},
+                                      context,
                                   ),
                           }
                         : {}),
@@ -1385,10 +1393,16 @@ export function createAppRouter(): Hono {
                                   assumptions: entry.draftItem.assumptions,
                               })),
                               replaced_item: outcome.replacedItemName,
+                              preparation: outcome.preparation,
                           }
-                        : outcome.status === "question"
-                          ? { parse_source: outcome.parseSource }
-                          : {}),
+                        : outcome.status === "updated"
+                          ? {
+                                parse_source: outcome.parseSource,
+                                preparation: outcome.preparation,
+                            }
+                          : outcome.status === "question"
+                            ? { parse_source: outcome.parseSource }
+                            : {}),
                 },
             });
         },
@@ -1595,6 +1609,13 @@ export function createAppRouter(): Hono {
     // transiently and never retained, and nothing is logged until the
     // user confirms the draft through the existing confirm path.
     app.post("/api/app/meal-photo", requireSameOrigin, async (c) => {
+        // Photo-flow P7: the request is timed phase by phase so the
+        // end-to-end latency is attributable — receive (upload +
+        // body parse), identify (vision.ts), grounding + draft build
+        // (here), request total (here). Before this instrumentation a
+        // 15.8 s request showed ~5 s of identified phases and ~10.7 s
+        // of unexplained pre-identify time.
+        const requestStartedAt = Date.now();
         const userId = c.get("munchUserId");
         const visionConfig = mealPhotoVisionConfig();
         if (!visionConfig) {
@@ -1659,13 +1680,18 @@ export function createAppRouter(): Hono {
                 ? mealTypeValue
                 : undefined;
         try {
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            console.info(
+                `[meal_photo] phase=receive status=success bytes=${bytes.byteLength} duration_ms=${Math.max(0, Date.now() - requestStartedAt)}`,
+            );
             const vision = await identifyMealPhoto(
                 {
                     mimeType: file.type,
-                    bytes: new Uint8Array(await file.arrayBuffer()),
+                    bytes,
                 },
                 visionConfig,
             );
+            const draftStartedAt = Date.now();
             const foodSearch = getFoodSearchService();
             const result = await createMealPhotoDraft({
                 userId,
@@ -1683,6 +1709,12 @@ export function createAppRouter(): Hono {
                         estimateMealPhotoNutrients(requests, visionConfig),
                 },
             });
+            console.info(
+                `[meal_photo] phase=draft_build status=success duration_ms=${Math.max(0, Date.now() - draftStartedAt)}`,
+            );
+            console.info(
+                `[meal_photo] phase=request status=success duration_ms=${Math.max(0, Date.now() - requestStartedAt)}`,
+            );
             return privateJson(c, {
                 draft: serializeMealDraftForApp(result.draft),
                 transient_media: true,

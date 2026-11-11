@@ -332,10 +332,31 @@ button:disabled {
     border-top: 1px solid var(--hairline);
     padding-top: 10px;
 }
-.native-capture-actions {
+/* Photo-flow P8: the shared capture control (replaces the retired
+   native-capture-actions the old enhancer injected). */
+.photo-capture {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.photo-capture-label {
+    font-weight: 600;
+}
+.photo-capture-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
+}
+.photo-capture-button {
+    min-height: 44px;
+}
+.photo-capture-files {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ink-mute);
+}
+.photo-capture-files:empty {
+    display: none;
 }
 .muted {
     color: var(--ink-mute);

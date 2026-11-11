@@ -526,6 +526,18 @@ export async function chooseInstalledPhoto() {
     return result.results?.[0] ?? null;
 }
 
+/** Multi-select gallery pick for multi-photo surfaces (cook photos). */
+export async function chooseInstalledPhotos() {
+    const result = await Camera.chooseFromGallery({
+        quality: 88,
+        correctOrientation: true,
+        allowMultipleSelection: true,
+        includeMetadata: true,
+        editable: "no",
+    });
+    return result.results ?? [];
+}
+
 export async function scanInstalledBarcode() {
     return CapacitorBarcodeScanner.scanBarcode({
         hint: CapacitorBarcodeScannerTypeHintALLOption.ALL,

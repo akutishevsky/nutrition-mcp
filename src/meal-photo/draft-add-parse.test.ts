@@ -30,6 +30,7 @@ const butterReply = JSON.stringify({
         },
     ],
     replaces: null,
+    preparation: null,
 });
 
 describe("parseDraftAddTextWithModel", () => {
@@ -73,7 +74,13 @@ describe("parseDraftAddTextWithModel", () => {
             config,
             {
                 fetcher: async () =>
-                    envelope(JSON.stringify({ items: [], replaces: null })),
+                    envelope(
+                        JSON.stringify({
+                            items: [],
+                            replaces: null,
+                            preparation: null,
+                        }),
+                    ),
             },
         );
         expect(result.items).toEqual([]);
@@ -98,6 +105,7 @@ describe("parseDraftAddTextWithModel", () => {
                                 },
                             ],
                             replaces: null,
+                            preparation: null,
                         }),
                     );
                 },
@@ -130,6 +138,87 @@ describe("parseDraftAddTextWithModel", () => {
     });
 });
 
+describe("parseDraftAddTextWithModel — preparation statements (photo-flow P2)", () => {
+    test("'i deep fried it' returns a preparation correction plus the implied oil as an item; draft items ride along as context", async () => {
+        let body: Record<string, any> = {};
+        const result = await parseDraftAddTextWithModel(
+            "i deep fried it",
+            config,
+            {
+                fetcher: async (_url, init) => {
+                    body = JSON.parse(String(init?.body ?? "{}"));
+                    return envelope(
+                        JSON.stringify({
+                            items: [
+                                {
+                                    name: "vegetable oil",
+                                    quantity: 1,
+                                    unit: "tbsp",
+                                    assumptions: [
+                                        "Oil absorbed in deep frying, assumed 1 tbsp",
+                                    ],
+                                },
+                            ],
+                            replaces: null,
+                            preparation: {
+                                target_item: "Corn On The Cob",
+                                cooking_method: "deep fried",
+                            },
+                        }),
+                    );
+                },
+            },
+            {
+                items: [{ name: "Corn On The Cob", cookingMethod: "steamed" }],
+            },
+        );
+        expect(result.preparation).toEqual({
+            targetItem: "Corn On The Cob",
+            cookingMethod: "deep fried",
+        });
+        expect(result.items[0]).toMatchObject({
+            name: "vegetable oil",
+            quantity: 1,
+            unit: "tbsp",
+            strongSignal: true,
+        });
+        // The draft context is in the request so the model can name
+        // its target; the schema carries the preparation key.
+        expect(JSON.stringify(body.messages)).toContain("Corn On The Cob");
+        expect(JSON.stringify(draftAddParseJsonSchema)).toContain(
+            "preparation",
+        );
+    });
+
+    test("a pure method correction returns preparation with empty items", async () => {
+        const result = await parseDraftAddTextWithModel(
+            "grilled instead",
+            config,
+            {
+                fetcher: async () =>
+                    envelope(
+                        JSON.stringify({
+                            items: [],
+                            replaces: null,
+                            preparation: {
+                                target_item: null,
+                                cooking_method: "grilled",
+                            },
+                        }),
+                    ),
+            },
+            {
+                items: [{ name: "Chicken breast", cookingMethod: "baked" }],
+            },
+        );
+        expect(result.items).toEqual([]);
+        expect(result.preparation).toEqual({
+            targetItem: null,
+            cookingMethod: "grilled",
+        });
+    });
+});
+
 describe("parsedItemsFromModelParse", () => {
     test("quantity-less model items get the stated default-portion assumption", () => {
         const result = parsedItemsFromModelParse({
@@ -137,6 +226,7 @@ describe("parsedItemsFromModelParse", () => {
                 { name: "butter", quantity: null, unit: null, assumptions: [] },
             ],
             replaces: null,
+            preparation: null,
         });
         expect(result.items[0]).toMatchObject({
             name: "butter",
@@ -159,6 +249,7 @@ describe("parsedItemsFromModelParse", () => {
                 },
             ],
             replaces: " white rice ",
+            preparation: null,
         });
         expect(result.replaces).toBe("white rice");
     });

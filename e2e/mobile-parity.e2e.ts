@@ -31,7 +31,7 @@ import { CAPABILITY_MANIFEST } from "../src/capability-manifest.ts";
  * stub, both mirroring the real runtime (mobile/runtime.js): the stub
  * defines `window.MunchAds` (runtime.js:33 — its presence is what makes
  * the billing/household pages render their Android variants), and the
- * stub camera returns a real (1×1 PNG) photo so meal-photo-native.js's
+ * stub camera returns a real (1×1 PNG) photo so capture-native.js's
  * DataTransfer handoff into the S3 dialog is exercised for real.
  *
  * Requires `bun run mobile:web` first (CI does this in the website-e2e
@@ -89,6 +89,11 @@ let householdGone = false;
 /** S8: chat agent fixture states — Premium thread vs the Free gate. */
 let chatVariant: "premium" | "free" = "premium";
 let chatSent = false;
+/** Photo-flow wave: the add-text fixture answers "added" normally;
+ * the P2 test flips it to the preparation-correction shape. */
+let addTextVariant: "added" | "updated" = "added";
+/** Photo-flow P4: the last item PATCH the review sent, body included. */
+let lastDraftItemPatch: { path: string; body: unknown } | null = null;
 /** Chat v2: the entry surface of the currently seeded conversation. */
 let chatSeedSurface: string | null = null;
 
@@ -823,6 +828,7 @@ const PHOTO_DRAFT = {
     questions: [],
     items: [
         {
+            id: "fixture-item-rice",
             name: "Fixture rice bowl",
             source_type: "usda",
             confidence: 0.9,
@@ -1326,6 +1332,30 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
         pathname === "/api/app/meal-drafts/fixture-photo-draft/add-text" &&
         method === "POST"
     ) {
+        if (addTextVariant === "updated") {
+            // Photo-flow P2: a preparation statement ("i deep fried
+            // it") returns the method-correction outcome — no items
+            // added, the existing item carries the correction.
+            return {
+                draft: {
+                    ...PHOTO_DRAFT,
+                    version: 2,
+                    items: [
+                        {
+                            ...PHOTO_DRAFT.items[0],
+                            assumptions: [
+                                'Cooking method corrected by you: "deep-fried" (photo estimate said "grilled").',
+                            ],
+                        },
+                    ],
+                },
+                add: {
+                    status: "updated",
+                    message:
+                        "Cooking method updated on Fixture rice bowl: deep-fried. Nothing else was added.",
+                },
+            };
+        }
         return {
             draft: {
                 ...PHOTO_DRAFT,
@@ -1559,6 +1589,51 @@ test.beforeAll(async () => {
                 response.end(JSON.stringify({ clearedCount: 1 }));
                 return;
             }
+            if (
+                method === "PATCH" &&
+                url.pathname.startsWith(
+                    "/api/app/meal-drafts/fixture-photo-draft/items/",
+                )
+            ) {
+                // Photo-flow P4: the review's single Save changes
+                // PATCHes dirty items here; record the body so the
+                // test can assert the edited values were committed,
+                // and answer with the merged draft, version bumped.
+                const chunks: Buffer[] = [];
+                request.on("data", (chunk) => chunks.push(chunk as Buffer));
+                request.on("end", () => {
+                    let body: {
+                        expected_version?: number;
+                        item?: Record<string, unknown>;
+                    } = {};
+                    try {
+                        body = JSON.parse(
+                            Buffer.concat(chunks).toString("utf8") || "{}",
+                        );
+                    } catch {
+                        body = {};
+                    }
+                    lastDraftItemPatch = { path: url.pathname, body };
+                    const item = {
+                        ...PHOTO_DRAFT.items[0],
+                        ...(body.item ?? {}),
+                    };
+                    response.writeHead(200, {
+                        "content-type": "application/json",
+                        "cache-control": "no-store",
+                    });
+                    response.end(
+                        JSON.stringify({
+                            draft: {
+                                ...PHOTO_DRAFT,
+                                version: (body.expected_version ?? 1) + 1,
+                                items: [item],
+                            },
+                        }),
+                    );
+                });
+                return;
+            }
             const fixture = fixtureJson(url.pathname, method);
             response.writeHead(200, {
                 "content-type": "application/json",
@@ -1685,10 +1760,19 @@ export async function openInstalledSubscriptionManagement() {
 const FIXTURE_PHOTO =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 export async function takeInstalledPhoto() {
+    (window.__cameraCalls ??= []).push("camera");
     return { webPath: FIXTURE_PHOTO, metadata: { format: "png" } };
 }
 export async function chooseInstalledPhoto() {
+    (window.__cameraCalls ??= []).push("library");
     return { webPath: FIXTURE_PHOTO, metadata: { format: "png" } };
+}
+export async function chooseInstalledPhotos() {
+    (window.__cameraCalls ??= []).push("library-multi");
+    return [{ webPath: FIXTURE_PHOTO, metadata: { format: "png" } }];
+}
+export async function scanInstalledBarcode() {
+    throw new Error("Barcode scanning is unavailable in the bundle e2e");
 }
 `;
 
@@ -1760,7 +1844,8 @@ test("every app-channel entry point ships inside the packaged bundle", async () 
         "mobile-runtime.js",
         "mobile-entry.js",
         "billing-native.js",
-        "meal-photo-native.js",
+        "capture-native.js",
+        "photo-capture.js",
         "pantry-native.js",
         "index.html",
         "pantry.html",
@@ -2384,6 +2469,182 @@ test("meal.photoLog runs end to end in the packaged bundle", async ({
             "/api/app/meal-drafts/fixture-photo-draft/confirm",
         ),
     ).toBe(true);
+});
+
+test("photo-flow P4: one Save changes commits draft edits; unsaved edits survive other actions", async ({
+    page,
+}) => {
+    lastDraftItemPatch = null;
+    await bootPackagedApp(page);
+    await page.locator('[data-action="log-by-photo"]:visible').first().click();
+    await page.getByRole("button", { name: "Take photo" }).click();
+    await expect(page.locator("#meal-photo-status")).toContainText(
+        "Photo added",
+    );
+    await page.locator("#meal-photo-submit").click();
+    await expect(page.locator("#meal-draft-review")).toContainText(
+        "Fixture rice bowl",
+    );
+
+    // P3: item editors start collapsed — the fields stay hidden
+    // until the item's row is tapped open.
+    const editor = page.locator('[data-draft-item-index="0"]');
+    await expect(
+        editor.locator('[data-draft-field="gram_weight"]'),
+    ).toBeHidden();
+    await editor.locator('[data-action="toggle-draft-item"]').click();
+    await expect(
+        editor.locator('[data-draft-field="gram_weight"]'),
+    ).toBeVisible();
+
+    // P4: an edit marks the draft dirty, and the ONE Save changes
+    // action commits it — the item PATCH carries the edited value
+    // and the draft version it was made against.
+    await editor.locator('[data-draft-field="gram_weight"]').fill("250");
+    await expect(page.locator("[data-draft-save-note]")).toHaveText(
+        "Unsaved changes",
+    );
+    await page.locator('[data-action="save-draft-all"]').click();
+    await expect(page.locator("[data-draft-save-note]")).toHaveText(
+        "All changes saved.",
+    );
+    expect(lastDraftItemPatch?.path).toBe(
+        "/api/app/meal-drafts/fixture-photo-draft/items/fixture-item-rice",
+    );
+    const patchBody = lastDraftItemPatch?.body as {
+        expected_version?: number;
+        item?: { gram_weight?: number };
+    };
+    expect(patchBody?.expected_version).toBe(1);
+    expect(patchBody?.item?.gram_weight).toBe(250);
+
+    // The two-save trap, closed: edit again, then trigger a full
+    // re-render via another action (add-text answers with a fresh
+    // server draft) — the unsaved quantity is still in the editor
+    // afterwards, still marked unsaved.
+    await editor.locator('[data-draft-field="quantity"]').fill("2");
+    await page
+        .locator("#meal-draft-add-text-input")
+        .fill("I added a good bit of butter");
+    await page.locator('[data-action="add-draft-text"]').click();
+    await expect(page.locator("#meal-draft-review")).toContainText("Butter");
+    await expect(editor.locator('[data-draft-field="quantity"]')).toHaveValue(
+        "2",
+    );
+    await expect(page.locator("[data-draft-save-note]")).toHaveText(
+        "Unsaved changes",
+    );
+});
+
+test("photo-flow P2: a preparation statement updates the draft in place", async ({
+    page,
+}) => {
+    addTextVariant = "updated";
+    try {
+        await bootPackagedApp(page);
+        await page
+            .locator('[data-action="log-by-photo"]:visible')
+            .first()
+            .click();
+        await page.getByRole("button", { name: "Take photo" }).click();
+        await expect(page.locator("#meal-photo-status")).toContainText(
+            "Photo added",
+        );
+        await page.locator("#meal-photo-submit").click();
+        await expect(page.locator("#meal-draft-review")).toContainText(
+            "Fixture rice bowl",
+        );
+        await page
+            .locator("#meal-draft-add-text-input")
+            .fill("i deep fried it");
+        await page.locator('[data-action="add-draft-text"]').click();
+        // The outcome is the method-correction message, shown in the
+        // review — not silence, and not a mystery new food.
+        await expect(
+            page.locator(".meal-draft-add-text-message"),
+        ).toContainText("Cooking method updated on Fixture rice bowl");
+        await expect(page.locator("#meal-draft-review")).toContainText(
+            "Cooking method corrected by you",
+        );
+    } finally {
+        addTextVariant = "added";
+    }
+});
+
+test("photo-flow P8: cook photo attach uses the shared camera-first control", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/cooks");
+    await page.locator('[data-action="new-cook"]:visible').first().click();
+    const form = page.locator("#cook-create-form");
+    await expect(form).toBeVisible();
+    const control = form.locator("[data-photo-capture]");
+    await expect(
+        control.locator('[data-capture-action="camera"]'),
+    ).toBeVisible();
+    await expect(
+        control.locator('[data-capture-action="library"]'),
+    ).toBeVisible();
+    // The raw file input is never presented bare.
+    await expect(form.locator('input[type="file"]:visible')).toHaveCount(0);
+    await control.locator('[data-capture-action="camera"]').click();
+    await expect
+        .poll(() =>
+            page.evaluate(
+                () =>
+                    (
+                        window as unknown as {
+                            __cameraCalls?: string[];
+                        }
+                    ).__cameraCalls ?? [],
+            ),
+        )
+        .toContain("camera");
+    await expect(control.locator("[data-capture-files]")).toContainText(".png");
+    const fileCount = await control
+        .locator("input.photo-capture-input")
+        .evaluate((el) => (el as HTMLInputElement).files?.length ?? 0);
+    expect(fileCount).toBe(1);
+});
+
+test("photo-flow P8: pantry and receipt captures use the shared control, camera first", async ({
+    page,
+}) => {
+    await page.route(/\/mobile-runtime\.js$/, (route) =>
+        route.fulfill({ contentType: "text/javascript", body: STUB_RUNTIME }),
+    );
+    await page.goto(`${baseURL}/pantry.html`);
+    const pantryControl = page.locator(
+        "[data-photo-capture]:has(#pantry-photo)",
+    );
+    const receiptControl = page.locator(
+        "[data-photo-capture]:has(#receipt-photo)",
+    );
+    await expect(
+        pantryControl.locator('[data-capture-action="camera"]'),
+    ).toBeVisible();
+    await expect(
+        receiptControl.locator('[data-capture-action="camera"]'),
+    ).toBeVisible();
+    await expect(page.locator('input[type="file"]:visible')).toHaveCount(0);
+    await pantryControl.locator('[data-capture-action="camera"]').click();
+    await expect
+        .poll(() =>
+            page.evaluate(
+                () =>
+                    (
+                        window as unknown as {
+                            __cameraCalls?: string[];
+                        }
+                    ).__cameraCalls ?? [],
+            ),
+        )
+        .toContain("camera");
+    const fileCount = await page
+        .locator("#pantry-photo")
+        .evaluate((el) => (el as HTMLInputElement).files?.length ?? 0);
+    expect(fileCount).toBe(1);
 });
 
 test("S6 slice 1 regression: Abandon draft dismisses a pending draft with no native confirm", async ({
