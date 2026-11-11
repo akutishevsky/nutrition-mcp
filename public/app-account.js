@@ -502,7 +502,13 @@ function morePage() {
             "Calories, weight and patterns over time",
             "↗",
         ],
-        ["/app/recipes", "Recipes", "Your structured recipe library", "◇"],
+        // Today navigation (brief item 6): History's two doors are the
+        // calendar sheet's search row and this More card.
+        ["/app/log", "History", "Search past meals and review any range", "▤"],
+        // Today navigation (brief item 4): Cooks and Recipes traded
+        // places — Recipes holds the bottom-nav slot now, so Cooks
+        // takes the More-list slot Recipes used to occupy.
+        ["/app/cooks", "Cooks", "Your cooking sessions", "♨"],
         ["/app/household", "Household", "Members and shared features", "⌂"],
         [
             "/app/settings",

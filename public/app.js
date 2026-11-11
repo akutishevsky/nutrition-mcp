@@ -40,6 +40,12 @@ const state = {
     trendsData: null,
     trendsCheckin: null,
     trendsDonutModes: new Map(),
+    // Today navigation (brief items 1–2): month summaries cached per
+    // displayed month ("YYYY-MM" → Map<date, counts>) so flipping back
+    // to a seen month never refetches; todayDayData stashes the day's
+    // meals/totals/goals for the macro breakdown sheet (item 5).
+    calendarMonths: new Map(),
+    todayDayData: null,
     shoppingMode: false,
     cookQuery: "",
     cookFilters: {
@@ -173,7 +179,7 @@ const routes = {
 // keeps the shape of the shared accountTitles map from app-account.js.
 const titles = {
     today: ["Daily workspace", "Today"],
-    log: ["Nutrition history", "Food Log"],
+    log: ["Nutrition history", "History"],
     trends: ["Patterns and progress", "Trends"],
     foods: ["Reusable nutrition data", "Foods"],
     recipes: ["Structured cooking memory", "Recipes"],
@@ -384,7 +390,12 @@ function setActiveRoute(route) {
         "household",
         "trends",
         "foods",
-        "recipes",
+        // Today navigation (brief items 4+6): Recipes holds a bottom-
+        // nav slot now, so it marks its own link current; Cooks and
+        // History live behind More on mobile, so More is their
+        // current-link stand-in.
+        "cooks",
+        "log",
         "settings",
         "settings-profile",
         "settings-goals",
@@ -640,7 +651,200 @@ async function renderToday() {
     // heading → day totals → Today's guidance → the single ad slot →
     // Meals / Daily details. The ad slot markup is empty unless the
     // ADS-FOUNDATION flag is on for a free packaged account.
-    content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><p>Your structured nutrition record for this day.</p></div><div class="auth-actions"><button class="button button-secondary button-small trends-icon-btn" type="button" disabled aria-disabled="true" title="Calendar — arrives with the day-navigation update"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></button><button class="button button-secondary button-small trends-icon-btn" type="button" data-action="open-trends" aria-label="Open Trends" title="Trends"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><rect x="4" y="12" width="3.4" height="7" rx="1"/><rect x="10.3" y="7" width="3.4" height="12" rx="1"/><rect x="16.6" y="9.5" width="3.4" height="9.5" rx="1"/></svg></button><button class="button button-secondary button-small" data-action="date-prev">Previous</button><button class="button button-secondary button-small" data-action="date-today">Today</button><button class="button button-secondary button-small" data-action="date-next">Next</button></div></div><section class="panel"><div class="summary-grid">${metricCard("Calories", data.totals.calories, " kcal", goals.daily_calories, true, { key: "today-calories", targetLink: true, body: mealMetricDetail(data.meals, "calories", " kcal") })}${metricCard("Protein", data.totals.proteinG, "g", goals.daily_protein_g, false, { key: "today-protein", targetLink: true, body: mealMetricDetail(data.meals, "protein_g", "g") })}${metricCard("Carbohydrates", data.totals.carbsG, "g", goals.daily_carbs_g, false, { key: "today-carbs", targetLink: true, body: mealMetricDetail(data.meals, "carbs_g", "g") })}${metricCard("Fat", data.totals.fatG, "g", goals.daily_fat_g, false, { key: "today-fat", targetLink: true, body: mealMetricDetail(data.meals, "fat_g", "g") })}</div></section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml, false, { key: "today-water", targetLink: true, body: waterMetricDetail(data.water.entries) })}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null, false, { key: "today-weight", body: weightMetricDetail(data.weight, weightUnit) })}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span><button class="button button-quiet button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(meal.recipe_id)}">View recipe</button></div>`).join("")}` : ""}</aside></div></div>`;
+    content.innerHTML = `<div class="operate-view today-view"><div class="page-heading"><div class="today-heading-row"><h2>${escapeHtml(formatDate(state.date, { weekday: true }))}</h2><div class="today-heading-icons"><button class="button button-secondary button-small trends-icon-btn" type="button" data-action="open-calendar" aria-label="Open calendar" title="Calendar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg></button><button class="button button-secondary button-small trends-icon-btn" type="button" data-action="open-trends" aria-label="Open Trends" title="Trends"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><rect x="4" y="12" width="3.4" height="7" rx="1"/><rect x="10.3" y="7" width="3.4" height="12" rx="1"/><rect x="16.6" y="9.5" width="3.4" height="9.5" rx="1"/></svg></button></div></div><div class="auth-actions"></div></div><section class="panel">${todayMacrosPanel(data, goals)}</section>${guidancePanel}${todayAdSlotMarkup()}<div class="dashboard-grid"><section class="panel panel-span-8"><div class="panel-title"><h3>Meals</h3><span>${data.meals.length} logged</span></div>${groupedMeals(data.meals)}</section><aside class="panel panel-span-4"><div class="panel-title"><h3>Daily details</h3></div><div class="summary-grid" style="grid-template-columns:1fr 1fr">${metricCard("Water", data.water.totalMl, " ml", goals.daily_water_ml, false, { key: "today-water", targetLink: true, body: waterMetricDetail(data.water.entries) })}${metricCard("Weight", latestWeightValue, ` ${weightUnit}`, null, false, { key: "today-weight", body: weightMetricDetail(data.weight, weightUnit) })}</div><div class="auth-actions"><button class="button button-secondary button-small" data-action="add-water">Add water</button><button class="button button-secondary button-small" data-action="add-weight">Add weight</button></div><div class="panel-title spacer-top"><h3>Hydration entries</h3><span>${state.waterEntries.length}</span></div>${waterEntryRows(state.waterEntries)}<div class="panel-title spacer-top"><h3>Weight entries</h3><span>${state.weightEntries.length}</span></div>${weightEntryRows(state.weightEntries, weightUnit)}${data.drafts?.length ? `<div class="panel-title spacer-top"><h3>Pending drafts</h3><span>${data.drafts.length}</span></div><div class="meal-groups">${data.drafts.map(pendingDraftCard).join("")}</div>` : ""}${data.plannedMeals?.length ? `<div class="panel-title spacer-top"><h3>Planned today</h3><span>${data.plannedMeals.length}</span></div>${data.plannedMeals.map((meal) => `<div class="food-row"><div><strong>${escapeHtml(meal.recipe_name)}</strong><small>${escapeHtml(meal.meal_slot || "Meal")} · ${number(meal.servings, 1)} servings</small></div><span>${meal.nutrition_per_serving?.calories ? `${number(meal.nutrition_per_serving.calories * meal.servings)} kcal` : ""}</span><button class="button button-quiet button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(meal.recipe_id)}">View recipe</button></div>`).join("")}` : ""}</aside></div></div>`;
+}
+
+// =====================================================================
+// Today navigation — calendar + macro breakdown (brief items 1–6).
+// The calendar icon in Today's header is the only day navigation on
+// Today: it opens a house-themed month calendar whose dots come from
+// ONE month-summary request per displayed month. The macros are the
+// winning 2×2 tile grid; a tile opens the breakdown sheet (by meal,
+// then by ingredient) instead of expanding inline, so the page never
+// reflows. Design reference: today-macros-2x2-popup.html.
+// =====================================================================
+
+function calendarMonthOf(date) {
+    return String(date).slice(0, 7);
+}
+
+function shiftMonth(month, delta) {
+    const [year, mon] = month.split("-").map(Number);
+    const value = new Date(Date.UTC(year, mon - 1 + delta, 1));
+    return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function calendarGridDates(month) {
+    // Sunday-start, six rows; adjacent-month days ride along muted.
+    const first = `${month}-01`;
+    const startDow = new Date(`${first}T12:00:00Z`).getUTCDay();
+    const start = shiftDate(first, -startDow);
+    return Array.from({ length: 42 }, (_, index) => shiftDate(start, index));
+}
+
+const calendarView = { month: null, token: 0 };
+
+async function openCalendar(month) {
+    calendarView.month = month || calendarMonthOf(state.date);
+    const token = ++calendarView.token;
+    paintCalendar();
+    if (state.calendarMonths.has(calendarView.month)) return;
+    try {
+        const summary = await api(
+            `/api/app/calendar/month?month=${encodeURIComponent(calendarView.month)}`,
+            { keepPrevious: true },
+        );
+        state.calendarMonths.set(
+            calendarView.month,
+            new Map((summary.days || []).map((day) => [day.date, day])),
+        );
+    } catch {
+        // The calendar still navigates without dots; absence of a dot
+        // must never block picking a day.
+        state.calendarMonths.set(calendarView.month, new Map());
+    }
+    if (
+        calendarView.token === token &&
+        dialog.open &&
+        dialog.querySelector(".cal-grid")
+    ) {
+        paintCalendar();
+    }
+}
+
+function paintCalendar() {
+    const month = calendarView.month;
+    const title = new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+    }).format(new Date(`${month}-15T12:00:00Z`));
+    const summary = state.calendarMonths.get(month);
+    const todayDate = dateInTimezone(
+        state.bootstrap?.profile?.timezone || "UTC",
+    );
+    const cells = calendarGridDates(month)
+        .map((date) => {
+            const classes = ["cal-day"];
+            if (calendarMonthOf(date) !== month) classes.push("is-outside");
+            if (date === todayDate) classes.push("is-today");
+            if (date === state.date) classes.push("is-selected");
+            const dotted = summary?.has(date);
+            return `<button type="button" class="${classes.join(" ")}" data-action="calendar-day" data-date="${date}" aria-label="${escapeHtml(formatDate(date, { weekday: true, year: true }))}"${date === todayDate ? ' aria-current="date"' : ""}><span class="cal-day-num">${Number(date.slice(8, 10))}</span><span class="${dotted ? "cal-dot" : "cal-dot-space"}" aria-hidden="true"></span></button>`;
+        })
+        .join("");
+    openDialog(
+        "Calendar",
+        `<div class="cal-nav"><button type="button" class="cal-chevron" data-action="calendar-prev-month" aria-label="Previous month">‹</button><span class="cal-nav-label">${escapeHtml(title)}</span><button type="button" class="cal-chevron" data-action="calendar-next-month" aria-label="Next month">›</button></div><div class="cal-week" aria-hidden="true">${["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => `<span>${day}</span>`).join("")}</div><div class="cal-grid">${cells}</div><button type="button" class="cal-history-row" data-action="calendar-history"><span>Search history</span><span aria-hidden="true">›</span></button>`,
+    );
+}
+
+const MACRO_BREAKDOWN = {
+    calories: {
+        label: "Calories",
+        mealField: "calories",
+        itemField: "calories",
+        totalsField: "calories",
+        unit: " kcal",
+        digits: 0,
+        goal: (goals) => goals.daily_calories,
+    },
+    protein: {
+        label: "Protein",
+        mealField: "protein_g",
+        itemField: "proteinG",
+        totalsField: "proteinG",
+        unit: " g",
+        digits: 1,
+        goal: (goals) => goals.daily_protein_g,
+    },
+    carbs: {
+        label: "Carbohydrates",
+        mealField: "carbs_g",
+        itemField: "carbsG",
+        totalsField: "carbsG",
+        unit: " g",
+        digits: 1,
+        goal: (goals) => goals.daily_carbs_g,
+    },
+    fat: {
+        label: "Fat",
+        mealField: "fat_g",
+        itemField: "fatG",
+        totalsField: "fatG",
+        unit: " g",
+        digits: 1,
+        goal: (goals) => goals.daily_fat_g,
+    },
+};
+
+const MICRO_BREAKDOWN = [
+    ["Fiber", "fiberG", " g", 1],
+    ["Sugar", "sugarG", " g", 1],
+    ["Sodium", "sodiumMg", " mg", 0],
+    ["Sat. fat", "saturatedFatG", " g", 1],
+    ["Potassium", "potassiumMg", " mg", 0],
+    ["Cholesterol", "cholesterolMg", " mg", 0],
+];
+
+function todayMacrosPanel(data, goals) {
+    // Stash the day for the breakdown sheet: the sheet reads the same
+    // meals the tiles summarize, so its numbers always add up.
+    state.todayDayData = {
+        meals: data.meals || [],
+        totals: data.totals || {},
+        goals: goals || {},
+    };
+    const tile = (key, label, value, target) => {
+        const progress = percent(value, target);
+        return `<button type="button" class="macro-tile" data-action="open-macro-breakdown" data-macro="${key}"><span class="macro-tile-label">${label}<span class="macro-tile-chev" aria-hidden="true">›</span></span><span class="macro-tile-value">${number(value, 0)}<small>${key === "calories" ? " kcal" : " g"}</small></span><span class="macro-tile-target">${target ? `of ${number(target, 0)}${key === "calories" ? " kcal" : " g"} target` : "No target set"}</span>${progress == null ? "" : `<span class="macro-tile-bar" aria-hidden="true"><i style="width:${progress}%"></i></span>`}</button>`;
+    };
+    const microTotal = (field) =>
+        (data.meals || []).reduce(
+            (sum, meal) =>
+                sum +
+                (meal.items || []).reduce(
+                    (itemSum, item) => itemSum + (item[field] || 0),
+                    0,
+                ),
+            0,
+        );
+    const microRows = MICRO_BREAKDOWN.map(
+        ([label, field, unit, digits]) =>
+            `<div class="macro-micro-row"><span>${label}</span><span>${number(microTotal(field), digits)}${unit}</span></div>`,
+    );
+    const microColumns = `<div><div class="macro-micro-col">${microRows.slice(0, 3).join("")}</div></div><div><div class="macro-micro-col">${microRows.slice(3).join("")}</div></div>`;
+    return `<div class="macro-grid">${tile("calories", "Calories", data.totals.calories, goals.daily_calories)}${tile("protein", "Protein", data.totals.proteinG, goals.daily_protein_g)}${tile("carbs", "Carbohydrates", data.totals.carbsG, goals.daily_carbs_g)}${tile("fat", "Fat", data.totals.fatG, goals.daily_fat_g)}</div><button type="button" class="macro-expand" data-action="toggle-micros" aria-expanded="false" aria-controls="today-micros"><span>Micronutrients</span><span class="macro-expand-chev" aria-hidden="true">▾</span></button><div class="macro-micros" id="today-micros" hidden><div class="macro-micros-cols">${microColumns}</div></div>`;
+}
+
+function openMacroBreakdown(key) {
+    const config = MACRO_BREAKDOWN[key];
+    const day = state.todayDayData;
+    if (!config || !day) return;
+    const format = (value) =>
+        `${number(value || 0, config.digits)}${config.unit}`;
+    const dayTotal = day.totals[config.totalsField] || 0;
+    const target = config.goal(day.goals);
+    const groups = (day.meals || [])
+        .map((meal) => {
+            const items = meal.items || [];
+            const rows = items
+                .map(
+                    (item) =>
+                        `<div class="macro-sheet-item"><span class="macro-sheet-item-name">${escapeHtml(item.name)}<span class="macro-sheet-item-portion">${escapeHtml(item.portionLabel || (item.quantity ? `${number(item.quantity, 2)} serving` : "Portion not recorded"))}</span></span><span class="macro-sheet-item-value">${format(item[config.itemField])}</span></div>`,
+                )
+                .join("");
+            const mealType = meal.meal_type
+                ? `${meal.meal_type[0].toUpperCase()}${meal.meal_type.slice(1)} · `
+                : "";
+            return `<div class="macro-sheet-group"><div class="macro-sheet-group-head"><div><strong>${escapeHtml(mealDisplayName(meal))}</strong><small>${escapeHtml(mealType)}${escapeHtml(formatTime(meal.logged_at))}</small></div><b>${format(meal[config.mealField])}</b></div>${rows || `<p class="tiny">Item-level details were not recorded for this meal.</p>`}</div>`;
+        })
+        .join("");
+    openDialog(
+        config.label,
+        `<p class="macro-sheet-total"><b>${format(dayTotal)}</b>${target ? ` of ${format(target)} target` : ""} today</p>${groups || `<p class="tiny">No meals logged for this day.</p>`}`,
+        `<div class="macro-sheet-foot"><span>Day total</span><b>${format(dayTotal)}</b></div>`,
+    );
 }
 
 function mealSearchSummary(search) {
@@ -5184,6 +5388,35 @@ async function handleAction(button) {
         ].includes(action)
     )
         return renderRoute();
+    // Today navigation (brief items 1–3, 5): the calendar is Today's
+    // only day-stepping UI; picking a day re-renders Today on it via
+    // the same state.date plumbing the removed buttons used.
+    if (action === "open-calendar") return openCalendar();
+    if (action === "calendar-prev-month")
+        return openCalendar(shiftMonth(calendarView.month, -1));
+    if (action === "calendar-next-month")
+        return openCalendar(shiftMonth(calendarView.month, 1));
+    if (action === "calendar-day") {
+        state.date = button.dataset.date;
+        if (dialog.open) dialog.close();
+        return renderRoute();
+    }
+    if (action === "calendar-history") {
+        if (dialog.open) dialog.close();
+        return navigate("/app/log");
+    }
+    if (action === "open-macro-breakdown")
+        return openMacroBreakdown(button.dataset.macro);
+    if (action === "toggle-micros") {
+        const panel = document.getElementById("today-micros");
+        if (!panel) return;
+        const open = panel.hidden;
+        panel.hidden = !open;
+        button.setAttribute("aria-expanded", String(open));
+        const chevron = button.querySelector(".macro-expand-chev");
+        if (chevron) chevron.textContent = open ? "▴" : "▾";
+        return;
+    }
     if (action === "add-meal") return openMealComposer();
     if (action === "start-meal-draft") return openMealDraftComposer();
     if (action === "log-by-photo") return openMealPhotoDialog();

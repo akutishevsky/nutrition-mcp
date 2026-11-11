@@ -29,6 +29,11 @@ import {
     searchRecipes,
 } from "../planning/repository.js";
 import { getAdsConfig } from "../ads-config.js";
+import {
+    assembleCalendarMonthDays,
+    parseCalendarMonth,
+    type CalendarCountRow,
+} from "../calendar-summary.js";
 import { getPublicProductPolicy } from "../product-config.js";
 import { listSavedFoods } from "../saved-foods/repository.js";
 import { groupMealVariations } from "../search.js";
@@ -310,6 +315,75 @@ export async function getTodayWorkspace(
         weight,
         drafts,
         plannedMeals,
+    };
+}
+
+/**
+ * Today-navigation calendar (brief items 1–2): one month-summary
+ * payload per visible month — the days carrying anything logged
+ * (meals, water, weight) with per-kind counts, in the account's
+ * timezone. Three grouped count queries total; the client fetches
+ * this once per displayed month and never per day.
+ */
+export async function getCalendarMonthSummary(
+    userId: string,
+    monthValue: string,
+) {
+    const month = parseCalendarMonth(monthValue);
+    const profile = await getProfile(userId);
+    const timezone = profile?.timezone ?? "UTC";
+    const start = zonedDayStartUtc(month.firstDate, timezone);
+    const end = zonedDayStartUtc(month.nextMonthFirstDate, timezone);
+    const counts = await withUserDatabase(userId, async (tx) => {
+        const toRows = (
+            rows: Array<Record<string, unknown>>,
+        ): CalendarCountRow[] =>
+            rows.map((row) => ({
+                date: String(row.day),
+                count: Number(row.n),
+            }));
+        const [mealRows, waterRows, weightRows] = await Promise.all([
+            tx<Array<Record<string, unknown>>>`
+                    select (logged_at at time zone ${timezone})::date::text
+                        as day,
+                        count(*)::integer as n
+                    from munch.meals
+                    where user_id = ${userId}
+                      and logged_at >= ${start}
+                      and logged_at < ${end}
+                    group by 1
+                `,
+            tx<Array<Record<string, unknown>>>`
+                    select (logged_at at time zone ${timezone})::date::text
+                        as day,
+                        count(*)::integer as n
+                    from munch.water_logs
+                    where user_id = ${userId}
+                      and logged_at >= ${start}
+                      and logged_at < ${end}
+                    group by 1
+                `,
+            tx<Array<Record<string, unknown>>>`
+                    select (logged_at at time zone ${timezone})::date::text
+                        as day,
+                        count(*)::integer as n
+                    from munch.weight_logs
+                    where user_id = ${userId}
+                      and logged_at >= ${start}
+                      and logged_at < ${end}
+                    group by 1
+                `,
+        ]);
+        return {
+            meals: toRows(mealRows),
+            water: toRows(waterRows),
+            weight: toRows(weightRows),
+        };
+    });
+    return {
+        month: month.month,
+        timezone,
+        days: assembleCalendarMonthDays(counts),
     };
 }
 

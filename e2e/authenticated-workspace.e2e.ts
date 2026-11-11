@@ -45,9 +45,14 @@ test("protects private data and supports the core website journey", async ({
     expect((await bootstrapResponse).status()).toBe(200);
     await expect(page).toHaveTitle(/^Today — Munch$/);
     await expect(visibleCurrentNav(page, ["today"])).toHaveCount(1);
+    // No-filler law (addendum 9): Today's old subtitle only restated
+    // the obvious and is deleted. The header instead carries the
+    // calendar icon — Today's only day navigation (today-navigation
+    // brief item 1).
     await expect(
         page.getByText("Your structured nutrition record for this day."),
-    ).toBeVisible();
+    ).toHaveCount(0);
+    await expect(page.locator('[data-action="open-calendar"]')).toBeVisible();
 
     if ((page.viewportSize()?.width ?? 0) > 768) {
         await page
