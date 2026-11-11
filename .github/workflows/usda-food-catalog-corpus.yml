@@ -97,7 +97,7 @@ jobs:
               if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
               env:
                   OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-                  MUNCH_FOOD_ADJUDICATION_MODEL: openai/gpt-5.6-luna
+                  MUNCH_FOOD_ADJUDICATION_MODEL: openai/gpt-5.6-luna-pro
               run: bun scripts/openrouter-food-adjudication-smoke.ts
             - name: Benchmark local search and batched writes
               run: bun scripts/food-catalog-benchmark.ts
