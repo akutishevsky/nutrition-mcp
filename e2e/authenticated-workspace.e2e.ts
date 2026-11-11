@@ -41,7 +41,9 @@ test("protects private data and supports the core website journey", async ({
     });
     await page.getByRole("button", { name: "Sign in" }).click();
 
-    await expect(page).toHaveURL(/\/app\/?$/);
+    // 30s: password-hash sign-in under full-suite CI load exceeded the
+    // 5s default repeatedly (PR #236 website-e2e attempts, both projects).
+    await expect(page).toHaveURL(/\/app\/?$/, { timeout: 30_000 });
     expect((await bootstrapResponse).status()).toBe(200);
     await expect(page).toHaveTitle(/^Today — Munch$/);
     await expect(visibleCurrentNav(page, ["today"])).toHaveCount(1);

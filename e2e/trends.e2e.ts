@@ -1,9 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
 
 // Trends (brief T1-T14) on the real server with the provisioned
-// reviewer account: sparse honesty on a fresh account, a seeded
-// dashboard whose verdicts/drill sums are real, a catalog-built
-// custom dashboard that persists server-side, hostile-data geometry
+// reviewer account: sparse honesty (route-mocked workspace — the
+// shared suite account is never truly empty), a seeded dashboard
+// whose verdicts/drill sums are real, a catalog-built custom
+// dashboard that persists server-side, hostile-data geometry
 // assertions (T14), and the 390x844 captures uploaded as the
 // munch-trends-captures CI artifact.
 
@@ -21,7 +22,11 @@ async function signIn(page: Page) {
     await page.getByLabel("Username or email").fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/app\/?$/);
+    // 30s: the auth POST is CPU-priced password hashing and the shared
+    // CI server is under full-suite load; the 5s default flaked
+    // repeatedly in CI (PR #236 website-e2e attempts 1-2) while the
+    // same sign-in takes <1s locally.
+    await expect(page).toHaveURL(/\/app\/?$/, { timeout: 30_000 });
     await expect(page).toHaveTitle(/^Today — Munch$/);
 }
 
@@ -76,19 +81,257 @@ async function seedMeal(
     expect(response.status(), `seed meal ${description}`).toBe(200);
 }
 
-test("fresh account: sparse states are honest, Digest is pinned, first screen composes at 390x844", async ({
+function sparseBarCard(
+    data: string,
+    title: string,
+    size: string,
+    span: number,
+) {
+    // Mirrors src/trends.ts basePayload + emptyPayload exactly.
+    return {
+        shape: "bar",
+        data,
+        size,
+        title,
+        subtitle: `last ${span} days`,
+        headline: null,
+        verdict: null,
+        coverage: null,
+        empty: {
+            title: `No ${title.toLowerCase()} yet`,
+            message:
+                "Nothing logged in this range yet. Log a meal and this chart starts.",
+        },
+        chart: null,
+    };
+}
+
+function sparseWorkspace(start: string, end: string) {
+    const span =
+        Math.round((Date.parse(end) - Date.parse(start)) / 86_400_000) + 1;
+    return {
+        startDate: start,
+        endDate: end,
+        layout: {
+            version: 1,
+            cards: [
+                { shape: "bar", data: "calories", size: "full" },
+                { shape: "line", data: "weight", size: "full" },
+                { shape: "bar", data: "protein", size: "full" },
+                { shape: "consistency", data: "consistency", size: "compact" },
+                { shape: "bar", data: "water", size: "compact" },
+            ],
+        },
+        cards: [
+            sparseBarCard("calories", "Calories", "full", span),
+            {
+                shape: "line",
+                data: "weight",
+                size: "full",
+                title: "Weight trend",
+                subtitle: `last ${span} days`,
+                headline: null,
+                verdict: null,
+                coverage: null,
+                empty: {
+                    title: "No weight trend yet",
+                    message:
+                        "Weigh in on 3 or more days and this becomes your trend line — it follows the smoothed trend, not single noisy readings. So far: 0 days.",
+                },
+                chart: null,
+            },
+            sparseBarCard("protein", "Protein", "full", span),
+            {
+                // The server's zero-activity consistency card is an
+                // empty payload too (src/trends.ts consistencyCard).
+                shape: "consistency",
+                data: "consistency",
+                size: "compact",
+                title: "Logging",
+                subtitle: `last ${span} days`,
+                headline: null,
+                verdict: null,
+                coverage: null,
+                empty: {
+                    title: "No logging yet",
+                    message:
+                        "Nothing logged in this range yet — the grid fills in as you log.",
+                },
+                chart: null,
+            },
+            sparseBarCard("water", "Water", "compact", span),
+        ],
+        digest: {
+            weekly: `Weekly digest — ${start} to ${end}. Nothing logged in this range yet.`,
+            trends: null,
+            patterns: null,
+        },
+        // Mirrors src/trends.ts TRENDS_CATALOG (the client renders the
+        // two-step catalog from the workspace payload).
+        catalog: [
+            {
+                shape: "bar",
+                label: "Bar chart",
+                blurb: "A bar per day against its target or limit",
+                data: [
+                    ["calories", "Calories", "kcal · reach a target"],
+                    ["protein_g", "Protein", "g · reach a target"],
+                    ["carbs_g", "Carbs", "g · reach a target"],
+                    ["fat_g", "Fat", "g · stay under a limit"],
+                    ["fiber_g", "Fiber", "g · reach a target"],
+                    ["sugar_g", "Sugar", "g · stay under a limit"],
+                    ["sodium_mg", "Sodium", "mg · stay under a limit"],
+                    ["potassium_mg", "Potassium", "mg · reach a target"],
+                    [
+                        "cholesterol_mg",
+                        "Cholesterol",
+                        "mg · stay under a limit",
+                    ],
+                    [
+                        "saturated_fat_g",
+                        "Saturated fat",
+                        "g · stay under a limit",
+                    ],
+                    ["alcohol_g", "Alcohol", "g · stay under a limit"],
+                    ["water_ml", "Water", "ml · reach a target"],
+                ].map(([key, label, note]) => ({
+                    key,
+                    label,
+                    note,
+                    defaultSize: "full",
+                })),
+            },
+            {
+                shape: "line",
+                label: "Trend line",
+                blurb: "The smoothed line and its rate of change",
+                data: [
+                    {
+                        key: "weight",
+                        label: "Weight",
+                        note: "smoothed trend · rate per week",
+                        defaultSize: "full",
+                    },
+                    {
+                        key: "water_ml",
+                        label: "Water",
+                        note: "7-day rolling average",
+                        defaultSize: "full",
+                    },
+                    {
+                        key: "calories",
+                        label: "Calories",
+                        note: "7-day rolling average",
+                        defaultSize: "full",
+                    },
+                    {
+                        key: "protein_g",
+                        label: "Protein",
+                        note: "7-day rolling average",
+                        defaultSize: "full",
+                    },
+                ],
+            },
+            {
+                shape: "consistency",
+                label: "Consistency",
+                blurb: "Dots and heatmaps of showing up",
+                data: [
+                    {
+                        key: "logging",
+                        label: "Logging consistency",
+                        note: "days with anything logged",
+                        defaultSize: "compact",
+                    },
+                    {
+                        key: "weigh_ins",
+                        label: "Weigh-in consistency",
+                        note: "days with a weigh-in",
+                        defaultSize: "compact",
+                    },
+                ],
+            },
+            {
+                shape: "breakdown",
+                label: "Breakdown",
+                blurb: "Shares of a whole — where the calories came from",
+                data: [
+                    {
+                        key: "macro_split",
+                        label: "Macro split",
+                        note: "calorie share by macro · snapshot or over time",
+                        defaultSize: "full",
+                    },
+                    {
+                        key: "meal_type_split",
+                        label: "Meal-type split",
+                        note: "calorie share by meal of the day",
+                        defaultSize: "full",
+                    },
+                ],
+            },
+            {
+                shape: "patterns",
+                label: "Patterns",
+                blurb: "When things happen",
+                data: [
+                    {
+                        key: "weekday",
+                        label: "Weekday averages",
+                        note: "average calories by day of week",
+                        defaultSize: "full",
+                    },
+                    {
+                        key: "eating_window",
+                        label: "Eating window",
+                        note: "first to last meal, per day",
+                        defaultSize: "full",
+                    },
+                    {
+                        key: "meal_rhythm",
+                        label: "Meal rhythm",
+                        note: "how often each meal shows up",
+                        defaultSize: "full",
+                    },
+                ],
+            },
+        ],
+    };
+}
+
+test("sparse dashboard: empty states are honest, Digest is pinned, first screen composes at 390x844", async ({
     page,
 }) => {
     test.setTimeout(120_000);
     await signIn(page);
     await resetLayout(page);
+    // The reviewer account is shared across the whole website suite
+    // and sibling tests log meals TODAY, so a truly empty real range
+    // does not exist by the time this spec runs (PR #236 CI proved it:
+    // the Week window held another test's 212 kcal meal). The sparse
+    // workspace is therefore served by route mock with payloads that
+    // mirror the server's empty states verbatim; the server producing
+    // those states from real data is covered by src/trends.test.ts and
+    // the seeded test below runs unmocked against the real API.
+    await page.route(/\/api\/app\/trends\?/, async (route) => {
+        const url = new URL(route.request().url());
+        await route.fulfill({
+            json: sparseWorkspace(
+                url.searchParams.get("start")!,
+                url.searchParams.get("end")!,
+            ),
+        });
+    });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/app/trends");
     await expect(page).toHaveTitle(/^Trends — Munch$/);
-    // Empty states are asserted on the Week range: the seeded test
-    // logs 20+ days back, so the last 7 days are empty on any account.
     await page.locator('[data-action="trends-range"][data-days="7"]').click();
     await expect(page.locator("#app-content")).toContainText("Last 7 days");
+    await expect(
+        page.locator(
+            '.trends-card[data-card-key="consistency:consistency"] .trends-empty',
+        ),
+    ).toContainText("Nothing logged");
 
     const calories = page.locator('.trends-card[data-card-key="bar:calories"]');
     await expect(calories).toBeVisible();
