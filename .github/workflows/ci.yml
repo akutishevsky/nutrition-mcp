@@ -249,6 +249,16 @@ jobs:
           REVIEWER_PASSWORD="$(openssl rand -hex 24)"
           MUNCH_REVIEWER_EMAIL="$REVIEWER_EMAIL" MUNCH_REVIEWER_PASSWORD="$REVIEWER_PASSWORD" bun scripts/provision-reviewer.ts
           MUNCH_REVIEWER_EMAIL="$REVIEWER_EMAIL" MUNCH_REVIEWER_PASSWORD="$REVIEWER_PASSWORD" bun run test:e2e
+      - name: Upload Trends captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-trends-captures
+          path: |
+            test-results/trends-captures/
+            test-results/trends-mobile-custom-dashboard.png
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Upload browser traces on failure
         if: failure()
         uses: actions/upload-artifact@v4

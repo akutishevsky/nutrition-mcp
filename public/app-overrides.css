@@ -3631,277 +3631,6 @@ dialog .guided-grocery-row input[type="checkbox"] {
 }
 
 /* =====================================================================
-   S6 SLICE 7 — Insights fusion (Operate surface 7)
-   ---------------------------------------------------------------------
-   Insights is touched exactly once: parity + Editorial Serif +
-   mobile_qc. Inherits slice 1's shared dialog chrome (themed
-   openDialog frame, .dialog-close at 44px, portal .tiny at 0.875rem,
-   toasts, global loading/error/empty states) — no second frame is
-   invented here. Grammar and tokens are the direction contract's:
-   paper #f6f1e7, paper-card #fffdf8, ink #2b2620, hairline #d8cdb6,
-   rule #8a7c63, green #176b3a, danger #8c2f22, Georgia serif.
-   Reference: selected/src/insights/theme4-tight.html.
-   DENSITY LAW: metric facts are hairline rule rows (the mock's
-   .rule grammar), the daily-calories spark sits at the mock's 60px
-   height, merged panels carry the mock's groupings, and dead space
-   is tightened from grouping/spacing only — type never below 11px,
-   tap targets never below 44px (inherited .operate-view floor).
-   NO ADS on this surface — the Insights banner placement is RETIRED
-   by the final ad law; the app's only ad slot is on Today.
-   ===================================================================== */
-
-/* Range choice: one deliberate single row at phone width (P1/P2 —
-   segmented-choice grammar, intentional scroll, never a ragged wrap),
-   the Food Log range row's pattern. */
-.insights-view .insights-range-row {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 8px;
-    padding-bottom: 4px;
-    margin-top: 6px;
-}
-
-.insights-view .insights-range-row .button {
-    flex: 0 0 auto;
-    white-space: nowrap;
-}
-
-/* The mock's two-up panels (Daily calories | Weight trend, Hydration
-   history | Weight history) stack to one column at phone width. */
-.insights-view .insights-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 22px;
-}
-
-.insights-view .insights-grid > .panel {
-    min-width: 0;
-}
-
-@media (max-width: 700px) {
-    .insights-view .insights-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Metric facts as rule rows (the mock's .rule): label left, serif
-   tabular value right, one hairline per fact. */
-.insights-view .insight-rule {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding: 6px 0;
-    border-bottom: 1px solid #d8cdb6;
-}
-
-.insights-view .insight-rule > span {
-    font-size: 15px;
-    color: #2b2620;
-}
-
-.insights-view .insight-rule > b {
-    font-family: Georgia, "Times New Roman", Times, serif;
-    font-size: 16px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    color: #2b2620;
-    text-align: right;
-}
-
-.insights-view .insight-rule > b small {
-    font-size: 13px;
-    font-weight: 400;
-    color: #5d5344;
-}
-
-.insights-view .insight-target {
-    font-size: 13px;
-    color: #5d5344;
-}
-
-.insights-view .insight-rule .progress {
-    flex: 1 1 100%;
-    height: 4px;
-    background: #e3dac4;
-    border-radius: 0;
-}
-
-.insights-view .insight-rule .progress > span {
-    display: block;
-    height: 100%;
-    background: #176b3a;
-}
-
-/* In-panel subheads (the mock's h3 inside a panel): Average intake,
-   Hydration, Largest calorie contributors. */
-.insights-view .insights-subhead {
-    font-family: Georgia, "Times New Roman", Times, serif;
-    font-size: 16.5px;
-    font-weight: 600;
-    color: #2b2620;
-    margin: 11px 0 3px;
-}
-
-/* Daily-calories spark at the tightened mock's height (60px). */
-.insights-view .insights-spark {
-    display: flex;
-    align-items: flex-end;
-    gap: 6px;
-    height: 60px;
-    margin-top: 4px;
-}
-
-.insights-view .insights-spark-bar {
-    flex: 1;
-    min-width: 0;
-    display: block;
-    background: #176b3a;
-}
-
-.insights-view .insights-spark-bar.is-empty {
-    opacity: 0.25;
-}
-
-/* Weekly check-in observations: quiet serif-adjacent list under the
-   rules (deterministic server text, rendered verbatim). */
-.insights-view .insights-observations {
-    font-size: 14px;
-    color: #4a4237;
-}
-
-/* Trend / pattern narratives read as open prose panels (the mock's
-   grammar), never a wall: one paragraph per panel at body size. */
-.insights-view .insights-narrative p {
-    font-size: 15px;
-    color: #2b2620;
-    margin: 2px 0 4px;
-}
-
-/* Weight chart sits at the compact height its generator now emits;
-   its explanation disclosure keeps a 44px summary row. */
-.insights-view #weight-history details > summary {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-}
-
-/* Entry rows (water / weight) keep the operate rule grammar; their
-   Edit / Delete actions ride the row at the 44px floor. */
-.insights-view .food-row .auth-actions .button {
-    min-height: 44px;
-}
-
-/* Entry rows wrap deliberately inside Insights: the entry text
-   takes the full row width and Edit / Delete ride one row beneath
-   it at natural widths, instead of squeezing the text into the
-   narrow column beside a stacked action group (first capture pass:
-   "750 ml" split across three fragments). Today keeps its aside
-   grammar — this is scoped to .insights-view. */
-.insights-view .food-row {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-.insights-view .food-row .auth-actions {
-    flex-wrap: nowrap;
-    gap: 8px;
-    justify-content: flex-start;
-}
-
-.insights-view .food-row .auth-actions .button {
-    flex: 0 0 auto;
-    width: auto;
-    white-space: nowrap;
-}
-
-/* ---------- Inline confirmations (S6 slice 1 pattern) ---------- */
-
-/* Replaces the native window.confirm() on the water/weight Delete
-   actions. The confirmation is a full-width box directly under the
-   entry row (the Groceries pattern); the rows are shared with
-   Today, so the grammar is scoped to .operate-view (both surfaces'
-   scope). */
-.operate-view .vital-inline-confirm {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 0 8px;
-    border-bottom: 1px solid #d8cdb6;
-}
-
-.operate-view .vital-inline-confirm .button {
-    min-height: 44px;
-}
-
-.operate-view .vital-confirm-note {
-    flex: 1 1 100%;
-    margin: 0;
-    font-weight: 600;
-    color: #8c2f22;
-}
-
-.operate-view .vital-confirm-danger {
-    background: #8c2f22;
-    border-color: #8c2f22;
-}
-
-.operate-view .vital-confirm-danger:hover {
-    background: #6e241a;
-    border-color: #6e241a;
-}
-
-/* ---------- Insights dialogs (add / edit water + weight) -------- */
-
-/* These dialogs ride slice 1's themed frame (rows 51 in the theme
-   inventory); their own controls reach the 44px floor here, scoped
-   to the four form ids (the shared .button-small grammar sits at
-   40px; slice 1 fixed the shared Close via .dialog-close and left
-   per-surface controls to their slices). */
-#water-form .button,
-#weight-form .button,
-#edit-water-form .button,
-#edit-weight-form .button {
-    min-height: 44px;
-}
-
-#water-form input,
-#weight-form input,
-#weight-form select,
-#edit-water-form input,
-#edit-water-form textarea,
-#edit-weight-form input,
-#edit-weight-form select,
-#edit-weight-form textarea {
-    min-height: 44px;
-}
-
-/* ---------- S6 slice 7 QC fixes (first capture pass, 390x844) ------
-   The first default capture fit 4 rule rows in the first viewport
-   against the tightened mock's 8: the check-in observations carried
-   default list spacing and the spark caption sat at full note size.
-   Fixes are spacing/type-style only — no content removed, no type
-   below the floors. (The remaining gap is structural: the live
-   topbar the mock omits, plus the observations the real check-in
-   payload carries and the mock elides — recorded in the audit.) */
-.insights-view .insights-observations {
-    margin: 4px 0 0;
-    line-height: 1.4;
-}
-
-.insights-view .insights-observations li {
-    margin: 0;
-}
-
-.insights-view .insights-spark + .tiny {
-    font-size: 13px;
-    font-style: italic;
-    margin-top: 5px;
-}
-
-/* =====================================================================
    S6 slice 8 — Editorial Serif fusion for Household (Operate surface
    8), inheriting S6 slice 1's shared dialog chrome (themed openDialog
    frame, .dialog-close at 44px, portal .tiny at 0.875rem, toasts and
@@ -4641,4 +4370,841 @@ dialog .guided-grocery-row input[type="checkbox"] {
 
 .chat-starters-seeded {
     margin-top: 10px;
+}
+
+/* =====================================================================
+   Trends — the customizable analytics dashboard (brief T1-T14; design
+   reference: trends-final-renderings.html). Editorial Serif house
+   grammar: paper #F6F1E7, panel #FFFDF7, ink #22301F, muted #6E7462,
+   line #DED5C0, deep green #2E5B34, green-soft #E6EDDC, tan #C9BFA3,
+   gold #8A6D3B. On-chart micro-labels follow the approved renderings
+   (~10px) — the 11px floor governs UI type, not chart annotation.
+   NO ADS on this surface (the app's only ad slot is on Today).
+   ===================================================================== */
+
+.trends-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.trends-icon-btn[disabled] {
+    opacity: 0.45;
+}
+
+.trends-view .trends-pills {
+    display: flex;
+    gap: 6px;
+    margin: 2px 0 12px;
+}
+
+.trends-pill {
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #6e7462;
+    background: transparent;
+    border: 1.5px solid #ded5c0;
+    border-radius: 999px;
+    padding: 7px 16px;
+    min-height: 36px;
+    cursor: pointer;
+}
+
+.trends-pill.is-on {
+    background: #2e5b34;
+    border-color: #2e5b34;
+    color: #fffdf7;
+}
+
+.trends-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.trends-view .trends-card {
+    background: #fffdf7;
+    border: 1px solid #ded5c0;
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(34, 48, 31, 0.05);
+}
+
+.trends-pair .trends-card {
+    margin-bottom: 0;
+}
+
+.trends-pair {
+    margin-bottom: 12px;
+}
+
+.trends-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.trends-card-head h3 {
+    font-size: 16.5px;
+    margin: 0;
+    color: #22301f;
+}
+
+.trends-sub {
+    font-size: 11.5px;
+    font-style: italic;
+    color: #6e7462;
+    margin: 1px 0 0;
+}
+
+.trends-headline {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.trends-headline b {
+    font-size: 21px;
+    font-weight: 600;
+    color: #22301f;
+}
+
+.trends-headline span {
+    font-size: 12px;
+    color: #6e7462;
+    margin-left: 2px;
+}
+
+.trends-headline small {
+    display: block;
+    font-size: 11px;
+    font-style: italic;
+    color: #6e7462;
+}
+
+.trends-card.is-compact .trends-card-head {
+    flex-wrap: wrap;
+}
+
+.trends-card.is-compact .trends-headline b {
+    font-size: 17px;
+}
+
+.trends-card.is-compact .trends-sub {
+    font-size: 11px;
+}
+
+.trends-x {
+    font: inherit;
+    font-size: 17px;
+    line-height: 1;
+    color: #6e7462;
+    background: #f6f1e7;
+    border: 1px solid #ded5c0;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 auto;
+    cursor: pointer;
+}
+
+.trends-chart {
+    margin-top: 8px;
+}
+
+.trends-chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.trends-bar {
+    fill: #22301f;
+}
+
+.trends-bar.is-weekend {
+    fill: #8a6d3b;
+}
+
+.trends-tick {
+    fill: #c9bfa3;
+}
+
+.trends-band {
+    fill: #e6eddc;
+}
+
+.trends-refline {
+    stroke: #2e5b34;
+    stroke-width: 1.2;
+    stroke-dasharray: 4 3;
+}
+
+.trends-ref-label {
+    font-size: 10px;
+    font-weight: 700;
+    fill: #2e5b34;
+    pointer-events: none;
+}
+
+.trends-rolling {
+    fill: none;
+    stroke: #8a6d3b;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.trends-line {
+    fill: none;
+    stroke: #2e5b34;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.trends-dot {
+    fill: #22301f;
+}
+
+.trends-area {
+    fill: #e6eddc;
+}
+
+.trends-hit {
+    cursor: pointer;
+}
+
+.trends-daylabels {
+    display: flex;
+    margin-top: 2px;
+}
+
+.trends-daylabels span {
+    flex: 1;
+    text-align: center;
+    font-size: 9.5px;
+    color: #6e7462;
+}
+
+.trends-endlabels {
+    justify-content: space-between;
+}
+
+.trends-endlabels span {
+    flex: 0 0 auto;
+    font-size: 10px;
+}
+
+.trends-verdict {
+    font-size: 12.5px;
+    color: #22301f;
+    border-top: 1px solid #e9e2cf;
+    padding-top: 8px;
+    margin: 10px 0 0;
+    line-height: 1.45;
+}
+
+.trends-verdict strong {
+    color: #2e5b34;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.trends-coverage {
+    font-size: 11.5px;
+    font-style: italic;
+    color: #6e7462;
+    margin: 8px 0 0;
+}
+
+.trends-empty {
+    padding: 10px 2px 6px;
+}
+
+.trends-empty strong {
+    font-size: 14.5px;
+    color: #22301f;
+}
+
+.trends-empty p {
+    font-size: 12.5px;
+    color: #6e7462;
+    line-height: 1.5;
+    margin: 4px 0 0;
+}
+
+.trends-editbar {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.trends-move {
+    font: inherit;
+    font-size: 13px;
+    color: #2e5b34;
+    background: #e6eddc;
+    border: 1px solid #cfdcc0;
+    border-radius: 8px;
+    min-width: 44px;
+    min-height: 32px;
+    cursor: pointer;
+}
+
+.trends-sizechip {
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #2e5b34;
+    background: #e6eddc;
+    border: 1px solid #cfdcc0;
+    border-radius: 999px;
+    padding: 6px 12px;
+    min-height: 32px;
+    margin-left: auto;
+    cursor: pointer;
+}
+
+.trends-add {
+    font: inherit;
+    width: 100%;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2e5b34;
+    background: #fffdf7;
+    border: 1.5px dashed #b9c4a4;
+    border-radius: 14px;
+    padding: 13px;
+    min-height: 48px;
+    cursor: pointer;
+}
+
+.trends-view .trends-digest {
+    background: #e6eddc;
+    border-color: #cfdcc0;
+}
+
+.trends-pin {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #2e5b34;
+    border: 1px solid #2e5b34;
+    border-radius: 999px;
+    padding: 3px 9px;
+    white-space: nowrap;
+}
+
+.trends-digest-lede {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #22301f;
+    margin: 8px 0 0;
+}
+
+.trends-more {
+    margin-top: 8px;
+    border-top: 1px solid #cfdcc0;
+    padding-top: 8px;
+}
+
+.trends-more summary {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #2e5b34;
+    cursor: pointer;
+    min-height: 32px;
+}
+
+.trends-more p {
+    font-size: 13px;
+    line-height: 1.55;
+    color: #22301f;
+    margin: 6px 0 0;
+}
+
+.trends-checkin {
+    margin-top: 10px;
+    border-top: 1px solid #cfdcc0;
+    padding-top: 8px;
+}
+
+.trends-checkin h4 {
+    font-size: 13px;
+    margin: 0 0 4px;
+    color: #22301f;
+}
+
+.trends-checkin p,
+.trends-checkin li {
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: #22301f;
+}
+
+.trends-checkin ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+}
+
+/* Donut + legend */
+.trends-donut-wrap {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.trends-donut {
+    width: 92px;
+    height: 92px;
+    flex: 0 0 auto;
+}
+
+.trends-ring {
+    cursor: pointer;
+}
+
+.trends-donut-value {
+    font-size: 15px;
+    font-weight: 700;
+    fill: #22301f;
+}
+
+.trends-donut-unit {
+    font-size: 9px;
+    fill: #6e7462;
+}
+
+.trends-legend {
+    flex: 1;
+    min-width: 0;
+}
+
+.trends-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: #22301f;
+    padding: 2.5px 0;
+}
+
+.trends-legend-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 3px;
+    flex: 0 0 auto;
+}
+
+.trends-legend-row b {
+    margin-left: auto;
+    font-weight: 700;
+}
+
+.trends-legend-row small {
+    color: #6e7462;
+    font-size: 11.5px;
+    min-width: 44px;
+    text-align: right;
+}
+
+.trends-toggle {
+    display: flex;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.trends-toggle button {
+    font: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #6e7462;
+    background: transparent;
+    border: 1px solid #ded5c0;
+    border-radius: 999px;
+    padding: 5px 12px;
+    min-height: 30px;
+    cursor: pointer;
+}
+
+.trends-toggle button.is-on {
+    background: #2e5b34;
+    border-color: #2e5b34;
+    color: #fffdf7;
+}
+
+.trends-columns {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex: 1;
+    min-height: 92px;
+}
+
+.trends-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.trends-column-stack {
+    width: 100%;
+    max-width: 34px;
+    height: 74px;
+    display: flex;
+    flex-direction: column-reverse;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.trends-column-stack i {
+    display: block;
+    width: 100%;
+}
+
+.trends-column span {
+    font-size: 9.5px;
+    color: #6e7462;
+    white-space: nowrap;
+}
+
+.trends-stacked {
+    display: flex;
+    height: 17px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 10px 0 8px;
+}
+
+.trends-stacked i {
+    display: block;
+    height: 100%;
+}
+
+/* Consistency dots + heatmap */
+.trends-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.trends-cell {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    background: #eae2ce;
+}
+
+.trends-cell.l1 {
+    background: #b9cba4;
+}
+
+.trends-cell.l2 {
+    background: #5f8563;
+}
+
+.trends-cell.l3 {
+    background: #2e5b34;
+}
+
+.trends-cell.is-off {
+    background: #eae2ce;
+}
+
+.trends-heat-wrap {
+    margin-top: 8px;
+}
+
+.trends-months {
+    display: flex;
+    margin-bottom: 4px;
+}
+
+.trends-months span {
+    font-size: 9.5px;
+    color: #6e7462;
+}
+
+.trends-heat {
+    display: grid;
+    grid-template-rows: repeat(7, 12px);
+    grid-auto-flow: column;
+    grid-auto-columns: 12px;
+    gap: 2.5px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.trends-heat .trends-cell {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+.trends-cell.is-blank {
+    background: transparent;
+    cursor: default;
+}
+
+/* Eating window + meal rhythm */
+.trends-window {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.trends-window-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font: inherit;
+    background: transparent;
+    border: 0;
+    padding: 2px 0;
+    min-height: 24px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+}
+
+.trends-window-row.is-avg {
+    cursor: default;
+    border-bottom: 1px solid #e9e2cf;
+    padding-bottom: 7px;
+}
+
+.trends-window-date {
+    font-size: 11px;
+    color: #6e7462;
+    min-width: 52px;
+}
+
+.trends-window-row.is-avg .trends-window-date {
+    font-weight: 700;
+    color: #2e5b34;
+}
+
+.trends-window-track {
+    flex: 1;
+    height: 9px;
+    background: #f1ebda;
+    border-radius: 99px;
+    position: relative;
+}
+
+.trends-window-track i {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: #c9bfa3;
+    border-radius: 99px;
+}
+
+.trends-window-row.is-avg .trends-window-track i {
+    background: #2e5b34;
+}
+
+.trends-window-row small {
+    font-size: 10.5px;
+    color: #6e7462;
+    white-space: nowrap;
+}
+
+.trends-rhythm {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.trends-rhythm-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 12.5px;
+    color: #22301f;
+}
+
+.trends-rhythm-row > span:first-child {
+    min-width: 74px;
+}
+
+.trends-rhythm-track {
+    flex: 1;
+    height: 8px;
+    background: #f1ebda;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.trends-rhythm-track i {
+    display: block;
+    height: 100%;
+    background: #2e5b34;
+    border-radius: 99px;
+}
+
+.trends-rhythm-row small {
+    font-size: 11px;
+    color: #6e7462;
+    white-space: nowrap;
+}
+
+/* Catalog + sheets */
+.trends-catalog {
+    display: flex;
+    flex-direction: column;
+}
+
+.trends-catalog-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font: inherit;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #e9e2cf;
+    padding: 11px 2px;
+    min-height: 52px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.trends-catalog-row:last-child {
+    border-bottom: 0;
+}
+
+.trends-catalog-row[disabled] {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.trends-glyph {
+    width: 34px;
+    height: 26px;
+    flex: 0 0 auto;
+    color: #2e5b34;
+}
+
+.trends-glyph svg {
+    width: 100%;
+    height: 100%;
+}
+
+.trends-glyph rect,
+.trends-glyph circle {
+    fill: #2e5b34;
+}
+
+.trends-glyph polyline {
+    fill: none;
+    stroke: #2e5b34;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+}
+
+.trends-glyph .donut-base {
+    fill: none;
+    stroke: #c9bfa3;
+    stroke-width: 4.5;
+}
+
+.trends-glyph .donut-slice {
+    fill: #2e5b34;
+}
+
+.trends-catalog-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.trends-catalog-text strong {
+    display: block;
+    font-size: 14.5px;
+    color: #22301f;
+}
+
+.trends-catalog-text small {
+    display: block;
+    font-size: 11.5px;
+    font-style: italic;
+    color: #6e7462;
+    margin-top: 1px;
+}
+
+.trends-chev {
+    font-size: 17px;
+    color: #6e7462;
+}
+
+.trends-have {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2e5b34;
+}
+
+.trends-sheet-total {
+    font-size: 13.5px;
+    color: #22301f;
+    line-height: 1.5;
+}
+
+.trends-sheet-meal {
+    border-top: 1px solid #e9e2cf;
+    padding: 8px 0 4px;
+}
+
+.trends-sheet-meal > small {
+    color: #6e7462;
+    font-size: 11.5px;
+}
+
+.trends-sheet-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 13.5px;
+    color: #22301f;
+    padding: 2px 0;
+}
+
+.trends-sheet-item {
+    font-size: 12.5px;
+    color: #4c5546;
+    padding-left: 14px;
+}
+
+.trends-food-row {
+    font: inherit;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #e9e2cf;
+    padding: 10px 2px;
+    min-height: 48px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.trends-food-row small {
+    display: block;
+    color: #6e7462;
+    font-size: 11.5px;
 }

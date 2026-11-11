@@ -211,12 +211,12 @@ const exportRouterSource = await Bun.file(
 ).text();
 const appSource = await Bun.file("public/app.js").text();
 if (
-    !appSource.includes('data-action="insight-range"') ||
-    !appSource.includes('action === "insight-range"') ||
-    !appSource.includes("state.insightsDays")
+    !appSource.includes('data-action="trends-range"') ||
+    !appSource.includes('action === "trends-range"') ||
+    !appSource.includes("state.trendsRangeDays")
 ) {
     throw new Error(
-        "Insights 7/30/90 controls are rendered without a working range handler",
+        "Trends Week/Month/3 Mo controls are rendered without a working range handler",
     );
 }
 const browserEntryPoints = [
@@ -265,6 +265,11 @@ for (const route of [
     'app.post("/api/app/import/parse"',
     'app.post("/api/app/import"',
     'app.get("/api/app/insights"',
+    'app.get("/api/app/trends"',
+    'app.get("/api/app/trends/layout"',
+    'app.put("/api/app/trends/layout"',
+    'app.get("/api/app/trends/day"',
+    'app.get("/api/app/trends/contributors"',
     'app.patch("/api/app/water/:id"',
     'app.delete("/api/app/water/:id"',
     'app.patch("/api/app/weight/:id"',
@@ -306,9 +311,9 @@ for (const behavior of [
     'data-action="meal-history-range"',
     "meal-history-search-form",
     'data-action="clear-meal-search"',
-    'data-action="insight-range"',
-    "data.trends?.narrative",
-    "data.patterns?.narrative",
+    'data-action="trends-range"',
+    "digest.trends",
+    "digest.patterns",
     'data-action="edit-water"',
     'data-action="delete-water"',
     'data-action="edit-weight"',
@@ -316,7 +321,7 @@ for (const behavior of [
     "edit-water-form",
     "edit-weight-form",
     "waterEntryRows",
-    "weightChart",
+    "trendsLineChart",
     "api(`/api/app/water/${encodeURIComponent",
     "api(`/api/app/weight/${encodeURIComponent",
     'data-action="open-meal-draft"',
@@ -480,25 +485,28 @@ if (!appOverridesSource.includes(".cooks-view .cook-panel")) {
     throw new Error("Cooks fusion styles are missing from app-overrides.css");
 }
 
-// S6 slice 7 (Insights fusion): the surface renders inside the shared
-// .operate-view Editorial Serif scope as rule-row panels, the weekly
-// check-in request stays windowed to the last 7 days (PR #184 — the
-// route rejects wider ranges), water/weight deletes use slice 1's
-// inline confirmation (never the native confirm), and the surface
-// carries no ad markup (the Insights banner is retired — the app's
-// only ad slot is on Today, final ad law).
+// Trends (brief T1-T14; the Insights destination retired into it):
+// the surface renders inside the shared .operate-view Editorial Serif
+// scope, the Digest's weekly check-in request stays windowed to the
+// last 7 days (PR #184 — the route rejects wider ranges), chart
+// labels are placed collision-aware (trendsPlaceLabel, T14), the
+// retired /app/insights route redirects here, water/weight deletes
+// use slice 1's inline confirmation (never the native confirm), and
+// the surface carries no ad markup (the app's only ad slot is on
+// Today, final ad law).
 for (const pin of [
-    "operate-view insights-view",
+    "operate-view trends-view",
     'data-action="confirm-delete-${kind}"',
     'action === "confirm-delete-water"',
     'action === "confirm-delete-weight"',
     'data-action="dismiss-delete-vital"',
-    "insight-rule",
-    "insights-spark",
+    "trendsPlaceLabel",
     "shiftDate(end, -6)",
+    'location.pathname === "/app/insights"',
+    'data-action="open-trends"',
 ]) {
     if (!appSource.includes(pin)) {
-        throw new Error(`Insights fusion is missing its pin: ${pin}`);
+        throw new Error(`Trends surface is missing its pin: ${pin}`);
     }
 }
 for (const stale of [
@@ -507,20 +515,18 @@ for (const stale of [
 ]) {
     if (appSource.includes(stale)) {
         throw new Error(
-            `Insights still gates a destructive flow on the native confirm(): ${stale}`,
+            `A destructive vitals flow still gates on the native confirm(): ${stale}`,
         );
     }
 }
-if (!appOverridesSource.includes(".insights-view .insight-rule")) {
-    throw new Error(
-        "Insights fusion styles are missing from app-overrides.css",
-    );
+if (!appOverridesSource.includes(".trends-card {")) {
+    throw new Error("Trends styles are missing from app-overrides.css");
 }
 
 const appHtml = await Bun.file("public/app.html").text();
 for (const route of [
     "/app/log",
-    "/app/insights",
+    "/app/trends",
     "/app/recipes",
     "/app/plan",
     "/app/groceries",
