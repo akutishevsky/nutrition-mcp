@@ -1,5 +1,8 @@
 import type { DatabaseTransaction } from "../platform/database.js";
-import { resolvePlanningRecipeNutrition } from "../recipe-nutrition-resolution.js";
+import {
+    resolvePlanningRecipeNutrition,
+    type RecipeNutritionResolutionDependencies,
+} from "../recipe-nutrition-resolution.js";
 import { withUserDatabase } from "../platform/database.js";
 import { insertStructuredMeal } from "../structured-meals/repository.js";
 import { dateOnlyString } from "../tz.js";
@@ -790,6 +793,7 @@ export async function updateRecipe(input: {
     recipe: RecipeInput;
     expectedVersion: number;
     idempotencyKey: string;
+    resolutionDependencies?: RecipeNutritionResolutionDependencies;
 }): Promise<UpdatedRecipeResult> {
     validateRecipe(input.recipe);
     if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 1) {
@@ -798,7 +802,10 @@ export async function updateRecipe(input: {
     if (!input.idempotencyKey.trim()) {
         throw new Error("Recipe update idempotency key is required");
     }
-    const resolvedRecipe = await resolvePlanningRecipeNutrition(input.recipe);
+    const resolvedRecipe = await resolvePlanningRecipeNutrition(
+        input.recipe,
+        input.resolutionDependencies,
+    );
     validateRecipe(resolvedRecipe);
 
     return withUserDatabase(input.userId, async (tx) => {
@@ -866,6 +873,134 @@ export async function updateRecipe(input: {
             version: Number(updated[0].version),
         };
     });
+}
+
+const CORE_NUTRIENT_KEYS = [
+    "calories",
+    "protein_g",
+    "carbs_g",
+    "fat_g",
+] as const;
+
+function ingredientHasCoreNutrition(ingredient: {
+    nutrients?: NutrientFacts;
+}): boolean {
+    return CORE_NUTRIENT_KEYS.every(
+        (key) => ingredient.nutrients?.[key] !== undefined,
+    );
+}
+
+type StoredRecipe = NonNullable<Awaited<ReturnType<typeof getRecipe>>>;
+
+function recipeInputFromStored(stored: StoredRecipe): RecipeInput {
+    return {
+        name: stored.name,
+        servings: stored.servings,
+        description: stored.description ?? undefined,
+        instructions: Array.isArray(stored.instructions)
+            ? (stored.instructions as string[])
+            : [],
+        preparationMinutes: stored.preparation_minutes ?? undefined,
+        cookingMinutes: stored.cooking_minutes ?? undefined,
+        sourceType: stored.source.type as RecipeInput["sourceType"],
+        sourceTitle: stored.source.title ?? undefined,
+        sourceUrl: stored.source.url ?? undefined,
+        ingredients: stored.ingredients.map((ingredient) => ({
+            name: ingredient.name,
+            quantity: ingredient.quantity ?? undefined,
+            unit: ingredient.unit ?? undefined,
+            preparation: ingredient.preparation ?? undefined,
+            optional: ingredient.optional || undefined,
+            gramWeight: ingredient.gram_weight ?? undefined,
+            nutrients: ingredient.nutrients,
+            provider: ingredient.provider ?? undefined,
+            providerFoodId: ingredient.provider_food_id ?? undefined,
+            sourceType:
+                ingredient.source_type as RecipeIngredientInput["sourceType"],
+            sourceUrl: ingredient.source_url ?? undefined,
+            confidence: ingredient.confidence ?? undefined,
+            sourceSnapshot: ingredient.source_snapshot,
+        })),
+    };
+}
+
+export interface HealedRecipeResult {
+    /** True when a new revision was written; false when nothing needed resolving. */
+    healed: boolean;
+    recipeId: string;
+    revisionId: string;
+    revisionNumber: number;
+    nutritionStatus: SavedRecipeResult["nutritionStatus"];
+    perServing: NutrientFacts;
+    /** Ingredients resolved by this heal that had no core nutrition before. */
+    resolvedIngredients: string[];
+    /** Ingredients still without core nutrition after the attempt — flagged, never silently zeroed. */
+    unresolvedIngredients: string[];
+}
+
+/**
+ * Recipe nutrition heal (brief R1b). Recipes saved before save-time
+ * resolution existed — or through any path that stored plain typed
+ * ingredient lines — keep nutrition_status "unavailable" forever
+ * because nothing re-resolves on view. Healing re-runs the current
+ * stored revision through the same resolver every save path uses and
+ * persists the outcome as a NEW revision via updateRecipe; the stored
+ * revision it started from is never mutated. Ingredients the resolver
+ * cannot match stay visibly unresolved (their names are returned), so
+ * the recipe honestly reads "partial" instead of silently zero.
+ */
+export async function healRecipeNutrition(input: {
+    userId: string;
+    scope: PlanningScope;
+    recipeId: string;
+    expectedVersion: number;
+    idempotencyKey: string;
+    resolutionDependencies?: RecipeNutritionResolutionDependencies;
+}): Promise<HealedRecipeResult> {
+    const current = await getRecipe(input.userId, input.recipeId);
+    if (!current) throw new Error("Recipe not found");
+    const unresolvedBefore = current.ingredients
+        .filter((ingredient) => !ingredientHasCoreNutrition(ingredient))
+        .map((ingredient) => ingredient.name);
+    if (unresolvedBefore.length === 0) {
+        return {
+            healed: false,
+            recipeId: current.id,
+            revisionId: current.revision_id,
+            revisionNumber: current.revision_number,
+            nutritionStatus:
+                current.nutrition_status as SavedRecipeResult["nutritionStatus"],
+            perServing: current.nutrition_per_serving,
+            resolvedIngredients: [],
+            unresolvedIngredients: [],
+        };
+    }
+    const updated = await updateRecipe({
+        userId: input.userId,
+        scope: input.scope,
+        recipeId: input.recipeId,
+        recipe: recipeInputFromStored(current),
+        expectedVersion: input.expectedVersion,
+        idempotencyKey: input.idempotencyKey,
+        resolutionDependencies: input.resolutionDependencies,
+    });
+    const after = await getRecipe(input.userId, input.recipeId);
+    const unresolvedAfter = (after?.ingredients ?? [])
+        .filter((ingredient) => !ingredientHasCoreNutrition(ingredient))
+        .map((ingredient) => ingredient.name);
+    const unresolvedAfterSet = new Set(unresolvedAfter);
+    return {
+        healed: true,
+        recipeId: updated.recipeId,
+        revisionId: updated.revisionId,
+        revisionNumber: updated.revisionNumber,
+        nutritionStatus: updated.nutritionStatus,
+        perServing: updated.perServing,
+        resolvedIngredients: unresolvedBefore.filter(
+            (name) => !unresolvedAfterSet.has(name),
+        ),
+        unresolvedIngredients: unresolvedAfter,
+    };
 }
 
 export async function archiveRecipe(input: {
@@ -1240,6 +1375,10 @@ async function addGroceryItemsInTransaction(
             const updated = await tx<Array<Record<string, unknown>>>`
                 update munch.grocery_items
                 set quantity = coalesce(quantity, 0) + ${item.quantity ?? 0},
+                    note = coalesce(note, ${item.note?.trim() || null}),
+                    source_recipe_id = coalesce(source_recipe_id, ${item.sourceRecipeId ?? null}),
+                    source_recipe_revision_id = coalesce(source_recipe_revision_id, ${item.sourceRecipeRevisionId ?? null}),
+                    source_planned_meal_id = coalesce(source_planned_meal_id, ${item.sourcePlannedMealId ?? null}),
                     updated_by_user_id = ${input.userId},
                     updated_at = now(), version = version + 1
                 where id = ${String(existing[0].id)}
@@ -1279,6 +1418,81 @@ export async function addGroceryItems(input: {
     return withUserDatabase(input.userId, (tx) =>
         addGroceryItemsInTransaction(tx, input),
     );
+}
+
+export interface RecipeGroceryResult {
+    groceryListId: string | null;
+    added: number;
+    merged: number;
+    items: Array<Record<string, unknown>>;
+}
+
+/**
+ * Recipe "Add to grocery list" (brief R3): every non-optional
+ * ingredient lands on the scope's grocery list with its recipe
+ * quantity/unit, scaled by target servings ÷ recipe servings (default
+ * 1× — the recipe as written). Duplicates merge with existing open
+ * items by name+unit through the shared add path (quantities add);
+ * provenance rides the source recipe columns and a "From {recipe}"
+ * note. Matching deliberately ignores provider identity — the brief's
+ * merge key is name+unit, so a recipe line merges with the plain list
+ * entry a person typed by hand.
+ */
+export async function addRecipeToGroceryList(input: {
+    userId: string;
+    scope: PlanningScope;
+    recipe: {
+        id: string;
+        revisionId: string;
+        name: string;
+        servings: number;
+        ingredients: ReadonlyArray<{
+            name: string;
+            quantity?: number | null;
+            unit?: string | null;
+            optional?: boolean | null;
+        }>;
+    };
+    servings?: number;
+    idempotencyKey: string;
+}): Promise<RecipeGroceryResult> {
+    const targetServings = input.servings ?? input.recipe.servings;
+    if (!Number.isFinite(targetServings) || targetServings <= 0) {
+        throw new Error("Grocery servings must be positive");
+    }
+    if (!Number.isFinite(input.recipe.servings) || input.recipe.servings <= 0) {
+        throw new Error("Recipe servings must be positive");
+    }
+    const scale = targetServings / input.recipe.servings;
+    const items: GroceryItemInput[] = input.recipe.ingredients
+        .filter((ingredient) => !ingredient.optional)
+        .map((ingredient, index) => ({
+            name: ingredient.name,
+            quantity:
+                ingredient.quantity == null
+                    ? undefined
+                    : Number((ingredient.quantity * scale).toFixed(3)),
+            unit: ingredient.unit ?? undefined,
+            note: `From ${input.recipe.name}`,
+            sourceRecipeId: input.recipe.id,
+            sourceRecipeRevisionId: input.recipe.revisionId,
+            idempotencyKey: `${input.idempotencyKey}:${index}`,
+        }));
+    if (items.length === 0) {
+        return { groceryListId: null, added: 0, merged: 0, items: [] };
+    }
+    const result = await addGroceryItems({
+        userId: input.userId,
+        scope: input.scope,
+        items,
+    });
+    const merged = result.items.filter((item) => item.merged === true).length;
+    return {
+        groceryListId: result.groceryListId,
+        added: result.items.length - merged,
+        merged,
+        items: result.items,
+    };
 }
 
 export async function getGroceryList(input: {

@@ -20,6 +20,10 @@ test("cook details expose original photo and submit the cook timezone", () => {
         formatDate: () => "September 16",
         formatTime: () => "12:06 PM",
         cookTimelineMarkup: () => "",
+        // Recipe experience R2: cook mode renders only for dishes
+        // carrying recipe_progress; this fixture has none, and the
+        // panel itself is covered by the recipe-experience e2e.
+        cookModeMarkup: () => "",
         // Photo-flow P8: the cook update form's photo attach is the
         // shared capture control now; its markup is not what this
         // test exercises.

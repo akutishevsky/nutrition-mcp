@@ -339,6 +339,61 @@ function groceryFixture() {
 let cookFinished = false;
 let cookDeleted = false;
 
+/** Recipe experience R2: cook-mode session state for the packaged
+    bundle. Start cook flips it on, the progress PATCH merges into
+    it, and the cook read path serves it back — mirroring the real
+    server-side persistence the website e2e proves against Postgres. */
+let cookModeStarted = false;
+let cookModeProgress: {
+    checked_ingredients: number[];
+    checked_steps: number[];
+} = { checked_ingredients: [], checked_steps: [] };
+
+function cookModeDetailFixture() {
+    const recipe = RECIPE_DETAIL_FIXTURE.recipe;
+    return {
+        cook: {
+            id: "fixture-cook-mode",
+            title: recipe.name,
+            status: "active",
+            cook_date: "2026-11-09",
+            timezone: "UTC",
+            version: 1,
+            notes: "",
+            original_message: null,
+            source_cook_id: null,
+        },
+        dishes: [
+            {
+                id: "fixture-cook-mode-dish",
+                name: recipe.name,
+                method: "",
+                flavor: "",
+                equipment: "",
+                ingredient_or_cut: "",
+                recipe_id: recipe.id,
+                recipe_revision_id: recipe.revision_id,
+                actual_ingredients: recipe.ingredients.map((ingredient) => ({
+                    name: ingredient.name,
+                    quantity: ingredient.quantity,
+                    unit: ingredient.unit,
+                })),
+                recipe_progress: {
+                    steps: recipe.instructions,
+                    checked_ingredients: [
+                        ...cookModeProgress.checked_ingredients,
+                    ],
+                    checked_steps: [...cookModeProgress.checked_steps],
+                },
+            },
+        ],
+        media: [],
+        events: [],
+        outcomes: [],
+        updates: [],
+    };
+}
+
 /** Trends: the mock server holds the account's dashboard layout;
     the workspace fixture rebuilds its cards from it on every read,
     so edit-mode PUTs re-render exactly like the real server. */
@@ -1562,7 +1617,22 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
                 ? { ...cook, status: "finished" }
                 : cook,
         );
+        if (cookModeStarted) {
+            cooks.push({
+                id: "fixture-cook-mode",
+                title: RECIPE_DETAIL_FIXTURE.recipe.name,
+                cook_date: "2026-11-09",
+                status: "active",
+                source_cook_id: null,
+                notes: "",
+                latest_photo_url: null,
+                photo_count: 0,
+            });
+        }
         return { cooks };
+    }
+    if (pathname === "/api/app/cooks/fixture-cook-mode") {
+        return cookModeDetailFixture();
     }
     if (pathname === "/api/app/cooks/fixture-chicken-rice") {
         return cookDetailFixture();
@@ -1895,6 +1965,66 @@ test.beforeAll(async () => {
                 cookDeleted = true;
                 response.writeHead(200, { "content-type": "application/json" });
                 response.end("{}");
+                return;
+            }
+            if (
+                method === "POST" &&
+                url.pathname === "/api/app/recipes/fixture-salmon/start-cook"
+            ) {
+                // Recipe experience R2: starting a cook-mode session.
+                cookModeStarted = true;
+                response.writeHead(200, {
+                    "content-type": "application/json",
+                    "cache-control": "no-store",
+                });
+                response.end(
+                    JSON.stringify({
+                        cook_id: "fixture-cook-mode",
+                        deduplicated: false,
+                        cook: cookModeDetailFixture(),
+                    }),
+                );
+                return;
+            }
+            if (
+                method === "PATCH" &&
+                url.pathname ===
+                    "/api/app/cooks/fixture-cook-mode/dishes/fixture-cook-mode-dish/progress"
+            ) {
+                const chunks: Buffer[] = [];
+                request.on("data", (chunk) => chunks.push(chunk as Buffer));
+                request.on("end", () => {
+                    try {
+                        const parsed = JSON.parse(
+                            Buffer.concat(chunks).toString("utf8") || "{}",
+                        ) as {
+                            checked_ingredients?: number[];
+                            checked_steps?: number[];
+                        };
+                        if (Array.isArray(parsed.checked_ingredients)) {
+                            cookModeProgress.checked_ingredients =
+                                parsed.checked_ingredients;
+                        }
+                        if (Array.isArray(parsed.checked_steps)) {
+                            cookModeProgress.checked_steps =
+                                parsed.checked_steps;
+                        }
+                    } catch {
+                        // Keep prior progress on a malformed body.
+                    }
+                    const detail = cookModeDetailFixture();
+                    response.writeHead(200, {
+                        "content-type": "application/json",
+                        "cache-control": "no-store",
+                    });
+                    response.end(
+                        JSON.stringify({
+                            dish: detail.dishes[0],
+                            cook_version: 2,
+                            cook: detail,
+                        }),
+                    );
+                });
                 return;
             }
             if (
@@ -2409,6 +2539,8 @@ test.beforeEach(() => {
     chatSeedSurface = null;
     cookFinished = false;
     cookDeleted = false;
+    cookModeStarted = false;
+    cookModeProgress = { checked_ingredients: [], checked_steps: [] };
     vitalsRemovedIds.clear();
     trendsLayoutFixture = defaultTrendsLayout();
     featureFlagsFixture = {
@@ -3530,6 +3662,83 @@ test("S6 slice 4 regression: Archive recipe uses inline confirmation with no nat
     await expect(page.locator(".recipe-panel")).toHaveCount(3);
     await expect(salmonPanel).toHaveCount(0);
     expect(nativeDialogs).toEqual([]);
+});
+
+test("recipe experience R2: Start cook opens cook mode in the packaged bundle; checks persist through the read path", async ({
+    page,
+}) => {
+    await bootPackagedApp(page);
+    await gotoRoute(page, "/app/recipes");
+
+    const salmonPanel = page.locator(
+        '[data-recipe-name="sheet-pan salmon & broccoli"]',
+    );
+    await salmonPanel.locator('[data-action="view-recipe"]').click();
+    // Start cook is the detail's primary action (Cooks module on).
+    await page.locator('[data-action="start-recipe-cook"]').click();
+    expect(
+        observedRequest("POST", "/api/app/recipes/fixture-salmon/start-cook"),
+    ).toBe(true);
+
+    const panel = page.locator("[data-cook-mode]");
+    await expect(panel).toBeVisible();
+    const ingredientBoxes = panel.locator(
+        '.cook-mode-check[data-kind="ingredients"]',
+    );
+    const stepBoxes = panel.locator('.cook-mode-check[data-kind="steps"]');
+    await expect(ingredientBoxes).toHaveCount(3);
+    await expect(stepBoxes).toHaveCount(3);
+    await expect(panel.locator(".cook-mode-current-tag")).toHaveText("Up next");
+
+    await ingredientBoxes.first().check();
+    await stepBoxes.first().check();
+    expect(
+        observedRequest(
+            "PATCH",
+            "/api/app/cooks/fixture-cook-mode/dishes/fixture-cook-mode-dish/progress",
+        ),
+    ).toBe(true);
+    await expect(panel.locator("[data-cook-mode-progress]")).toContainText(
+        "1 of 3 ingredients · 1 of 3 steps",
+    );
+
+    // Close and reopen through the Cooks list: the checked state is
+    // served back by the read path, not held in the page.
+    await page.locator(".dialog-close").click();
+    await gotoRoute(page, "/app/cooks");
+    const card = page.locator('.cook-card[data-cook-id="fixture-cook-mode"]');
+    await card.locator('[data-action="open-cook"]').click();
+    const reopened = page.locator("[data-cook-mode]");
+    await expect(reopened).toBeVisible();
+    await expect(
+        reopened.locator('.cook-mode-check[data-kind="ingredients"]').first(),
+    ).toBeChecked();
+    await expect(
+        reopened.locator('.cook-mode-check[data-kind="steps"]').first(),
+    ).toBeChecked();
+
+    // Checking the remaining steps surfaces the finish block.
+    await reopened
+        .locator('.cook-mode-check[data-kind="steps"]')
+        .nth(1)
+        .check();
+    await reopened
+        .locator('.cook-mode-check[data-kind="steps"]')
+        .nth(2)
+        .check();
+    await expect(reopened.locator(".cook-mode-finish")).toContainText(
+        "Every step is checked off.",
+    );
+    await expect(
+        reopened
+            .locator(".cook-mode-finish")
+            .getByRole("button", { name: "Log recipe" }),
+    ).toBeVisible();
+    await expect(
+        reopened
+            .locator(".cook-mode-finish")
+            .getByRole("button", { name: "Finish cook" }),
+    ).toBeVisible();
 });
 
 test("S6 slice 3 regression: meal swap applies and undoes with no native confirm", async ({

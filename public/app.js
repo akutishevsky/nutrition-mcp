@@ -311,6 +311,27 @@ function toast(message, kind = "success") {
     window.setTimeout(() => element.remove(), 4200);
 }
 
+// A toast carrying one action (recipe experience R3: the grocery
+// confirmation reports added/merged counts with a one-tap jump to
+// the list). Lives longer than a plain toast because it asks for a tap.
+function toastAction(message, actionLabel, onAction) {
+    const element = document.createElement("div");
+    element.className = "toast toast-action";
+    const text = document.createElement("span");
+    text.textContent = message;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "button button-secondary button-small";
+    button.textContent = actionLabel;
+    button.addEventListener("click", () => {
+        element.remove();
+        onAction();
+    });
+    element.append(text, button);
+    toastRegion.append(element);
+    window.setTimeout(() => element.remove(), 9000);
+}
+
 async function api(path, options = {}) {
     if (state.controller) state.controller.abort();
     const controller = new AbortController();
@@ -1727,6 +1748,13 @@ async function renderRecipes() {
         featureFlags().plan
             ? `<button class="button button-secondary button-small" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipeId)}">Add to plan</button>`
             : "";
+    // Recipe experience R3: the card carries Add to grocery list too
+    // (detail has it as well). Born flag-aware (toggles #241 rider):
+    // with Groceries off the button is never rendered.
+    const groceryRecipeButton = (recipe) =>
+        featureFlags().groceries
+            ? `<button class="button button-secondary button-small" type="button" data-action="recipe-groceries" data-id="${escapeHtml(recipe.recipe_id)}" data-name="${escapeHtml(recipe.name)}" data-servings="${escapeHtml(recipe.servings)}">Add to grocery list</button>`
+            : "";
     // S6 slice 4 (Recipes fusion): the library renders in the tightened
     // mock's grammar — one hairline panel per recipe, the servings /
     // nutrition / usage facts merged into a single meta line, and the
@@ -1734,7 +1762,7 @@ async function renderRecipes() {
     // handlers the detail dialog has always offered; the list data
     // already carries revision_id). No ad slot exists on this surface:
     // the app's only slot is on Today (final ad law).
-    content.innerHTML = `<div class="operate-view recipes-view"><div class="page-heading"><div><h2>Recipe library</h2><p>${data.recipes.length} structured recipe${data.recipes.length === 1 ? "" : "s"}.</p></div></div><div class="auth-actions recipe-actions">${importButton}${createButton}${composeButton}</div><div class="recipe-filter-row"><label class="field" for="recipe-filter"><span>Filter recipes</span><input class="input" id="recipe-filter" type="search" placeholder="Search by name" aria-label="Filter recipes" /></label></div><div class="recipe-list" id="recipe-grid">${data.recipes.length ? data.recipes.map((recipe) => `<section class="panel recipe-panel" data-recipe-name="${escapeHtml(recipe.name.toLowerCase())}"><span class="source-chip ${recipe.ownership === "household" ? "source-saved" : "source-usda"}">${escapeHtml(recipe.ownership)}</span><h3 class="recipe-title">${escapeHtml(recipe.name)}</h3><p class="recipe-meta">${number(recipe.servings, 1)} servings · ${escapeHtml(recipe.nutrition_status)} nutrition · per serving: <strong>${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong> · Scheduled ${number(recipe.times_scheduled)} times · logged ${number(recipe.times_logged)} times</p><div class="auth-actions recipe-panel-actions"><button class="button button-primary button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(recipe.recipe_id)}">View recipe</button><button class="button button-secondary button-small" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.recipe_id)}" data-revision="${escapeHtml(recipe.revision_id || "")}">Log recipe</button>${planRecipeButton(recipe.recipe_id)}</div></section>`).join("") : `<div class="empty-state"><div><h3>No recipes yet</h3><p>Import a recipe from a public website and review it before saving, or create one manually.</p>${canCreate ? `<div class="auth-actions spacer-top">${importButton}${createButton}</div>` : ""}</div></div>`}</div></div>`;
+    content.innerHTML = `<div class="operate-view recipes-view"><div class="page-heading"><div><h2>Recipe library</h2><p>${data.recipes.length} structured recipe${data.recipes.length === 1 ? "" : "s"}.</p></div></div><div class="auth-actions recipe-actions">${importButton}${createButton}${composeButton}</div><div class="recipe-filter-row"><label class="field" for="recipe-filter"><span>Filter recipes</span><input class="input" id="recipe-filter" type="search" placeholder="Search by name" aria-label="Filter recipes" /></label></div><div class="recipe-list" id="recipe-grid">${data.recipes.length ? data.recipes.map((recipe) => `<section class="panel recipe-panel" data-recipe-name="${escapeHtml(recipe.name.toLowerCase())}"><span class="source-chip ${recipe.ownership === "household" ? "source-saved" : "source-usda"}">${escapeHtml(recipe.ownership)}</span><h3 class="recipe-title">${escapeHtml(recipe.name)}</h3><p class="recipe-meta">${number(recipe.servings, 1)} servings · ${escapeHtml(recipe.nutrition_status)} nutrition · per serving: <strong>${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong> · Scheduled ${number(recipe.times_scheduled)} times · logged ${number(recipe.times_logged)} times</p><div class="auth-actions recipe-panel-actions"><button class="button button-primary button-small" type="button" data-action="view-recipe" data-id="${escapeHtml(recipe.recipe_id)}">View recipe</button><button class="button button-secondary button-small" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.recipe_id)}" data-revision="${escapeHtml(recipe.revision_id || "")}">Log recipe</button>${planRecipeButton(recipe.recipe_id)}${groceryRecipeButton(recipe)}</div></section>`).join("") : `<div class="empty-state"><div><h3>No recipes yet</h3><p>Import a recipe from a public website and review it before saving, or create one manually.</p>${canCreate ? `<div class="auth-actions spacer-top">${importButton}${createButton}</div>` : ""}</div></div>`}</div></div>`;
 }
 
 function recipeIngredientFromFood(food, portionId) {
@@ -2255,19 +2283,114 @@ function openRecipeCompose() {
     searchRecipeFoods("");
 }
 
+// Recipe experience R1: an ingredient counts as resolved only when
+// its pinned snapshot carries the full core panel — the same test the
+// server resolver applies. Anything else renders as "Not resolved",
+// never as a silent zero.
+function recipeIngredientResolved(ingredient) {
+    const nutrients = ingredient.nutrients || {};
+    return ["calories", "protein_g", "carbs_g", "fat_g"].every(
+        (key) => nutrients[key] != null,
+    );
+}
+
+function recipeUnresolvedIngredients(recipe) {
+    return (recipe.ingredients || []).filter(
+        (ingredient) => !recipeIngredientResolved(ingredient),
+    );
+}
+
+// The detail action row, shared by openRecipe and the archive
+// dismiss path (which restores exactly what was rendered).
+let recipeDetailActionsHtml = "";
+
+function recipeDetailActionsMarkup(recipe) {
+    const flags = featureFlags();
+    const unresolved = recipeUnresolvedIngredients(recipe);
+    // Start cook is the primary action (brief R2) and is born
+    // flag-aware (toggles #241 rider): Cooks off, no button.
+    const startCook = flags.cooks
+        ? `<button class="button button-primary" type="button" data-action="start-recipe-cook" data-id="${escapeHtml(recipe.id)}">Start cook</button>`
+        : "";
+    const calculate =
+        unresolved.length > 0
+            ? `<button class="button button-secondary" type="button" data-action="calculate-recipe-nutrition" data-id="${escapeHtml(recipe.id)}">Calculate nutrition</button>`
+            : "";
+    const groceries = flags.groceries
+        ? `<button class="button button-secondary" type="button" data-action="recipe-groceries" data-id="${escapeHtml(recipe.id)}" data-name="${escapeHtml(recipe.name)}" data-servings="${escapeHtml(recipe.servings)}">Add to grocery list</button>`
+        : "";
+    return `${startCook}<button class="button button-secondary" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Log recipe</button>${flags.plan ? `<button class="button button-secondary" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Add to plan</button>` : ""}${groceries}${calculate}<button class="button button-secondary" type="button" data-action="archive-recipe" data-id="${escapeHtml(recipe.id)}" data-version="${escapeHtml(recipe.version)}" data-revision="${escapeHtml(recipe.revision_id)}">Archive</button>`;
+}
+
+async function calculateRecipeNutrition(id) {
+    const data = await api(
+        `/api/app/recipes/${encodeURIComponent(id)}/calculate-nutrition`,
+        {
+            method: "POST",
+            body: JSON.stringify({}),
+            keepPrevious: true,
+        },
+    );
+    return data.result;
+}
+
+function recipeHealSummary(result) {
+    if (!result.healed) return "Nutrition is already calculated.";
+    if (result.unresolved_ingredients?.length) {
+        return `Nutrition calculated — ${result.unresolved_ingredients.length} ingredient${result.unresolved_ingredients.length === 1 ? "" : "s"} still couldn't be matched to a verified source.`;
+    }
+    return "Nutrition calculated for every ingredient.";
+}
+
+// Brief R1: opening an unresolved recipe for editing performs the
+// heal attempt once per revision, so the editor opens on calculated
+// numbers instead of blanks. The attempt is keyed by revision — a
+// healed recipe writes a new revision, and the key moves with it.
+const recipeHealAttempts = new Set();
+
+async function maybeAutoHealRecipe(recipe) {
+    const unresolved = recipeUnresolvedIngredients(recipe);
+    if (unresolved.length === 0) return;
+    const key = `${recipe.id}:${recipe.revision_id}`;
+    if (recipeHealAttempts.has(key)) return;
+    recipeHealAttempts.add(key);
+    try {
+        const result = await calculateRecipeNutrition(recipe.id);
+        toast(recipeHealSummary(result));
+        await openRecipe(recipe.id);
+        const details = dialog.querySelector(".recipe-edit-details");
+        if (details) details.open = true;
+    } catch (error) {
+        toast(
+            error.message || "Nutrition couldn't be calculated automatically.",
+            "error",
+        );
+    }
+}
+
 async function openRecipe(id) {
     const data = await api(`/api/app/recipes/${encodeURIComponent(id)}`);
     const recipe = data.recipe;
+    const unresolved = recipeUnresolvedIngredients(recipe);
     const ingredients = recipe.ingredients
-        .map(
-            (ingredient) =>
-                `<li class="recipe-ingredient-row"><span class="recipe-ingredient-main"><strong>${escapeHtml(ingredient.name)}</strong>${ingredient.quantity == null ? "" : ` — ${number(ingredient.quantity, 3)} ${escapeHtml(ingredient.unit || "")}`} ${sourceBadge(ingredient.source_type)}</span><strong class="recipe-ingredient-kcal">${number(ingredient.nutrients?.calories)} kcal</strong></li>`,
-        )
+        .map((ingredient) => {
+            const resolved = recipeIngredientResolved(ingredient);
+            return `<li class="recipe-ingredient-row"><span class="recipe-ingredient-main"><strong>${escapeHtml(ingredient.name)}</strong>${ingredient.quantity == null ? "" : ` — ${number(ingredient.quantity, 3)} ${escapeHtml(ingredient.unit || "")}`} ${sourceBadge(ingredient.source_type)}</span>${resolved ? `<strong class="recipe-ingredient-kcal">${number(ingredient.nutrients?.calories)} kcal</strong>` : `<span class="recipe-unresolved">Not resolved</span>`}</li>`;
+        })
         .join("");
+    const perServing =
+        recipe.nutrition_status === "unavailable"
+            ? `<p class="recipe-note">No per-serving nutrition yet — this recipe's ingredients were saved without nutrition sources. Calculate nutrition to fill it in from each ingredient's verified source.</p>`
+            : `<div class="recipe-per-serving"><span><strong>Per serving</strong></span><strong class="recipe-per-serving-values">${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong></div><p class="recipe-note">${unresolved.length ? `Calculated from ${recipe.ingredients.length - unresolved.length} of ${recipe.ingredients.length} ingredients. The ${unresolved.length === 1 ? "ingredient" : "ingredients"} marked Not resolved ${unresolved.length === 1 ? "counts" : "count"} as nothing until matched.` : "Per-serving nutrition is calculated from the ingredient source snapshots pinned to this revision."}</p>`;
+    recipeDetailActionsHtml = recipeDetailActionsMarkup(recipe);
     openDialog(
         recipe.name,
-        `<div class="recipe-detail"><p class="recipe-meta">${number(recipe.servings, 3)} servings · revision ${number(recipe.revision_number)} · ${escapeHtml(recipe.nutrition_status)} nutrition</p><div class="recipe-per-serving"><span><strong>Per serving</strong></span><strong class="recipe-per-serving-values">${number(recipe.nutrition_per_serving?.calories)} kcal · P ${number(recipe.nutrition_per_serving?.protein_g, 1)}g · C ${number(recipe.nutrition_per_serving?.carbs_g, 1)}g · F ${number(recipe.nutrition_per_serving?.fat_g, 1)}g</strong></div><p class="recipe-note">Per-serving nutrition is calculated from the ingredient source snapshots pinned to this revision.</p><h3 class="spacer-top">Ingredients</h3><ul class="food-items recipe-ingredients">${ingredients}</ul><h3 class="spacer-top">Instructions</h3><ol class="recipe-instructions">${recipe.instructions.map((instruction, index) => `<li><span class="recipe-step-number">${index + 1}.</span> ${escapeHtml(instruction)}</li>`).join("") || "<li>No instructions recorded.</li>"}</ol><p class="tiny spacer-top">Every ingredient includes the source snapshot used to calculate this revision. Editing creates a new revision; historical logs stay pinned.</p><div class="auth-actions spacer-top recipe-detail-actions"><button class="button button-primary" type="button" data-action="log-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Log recipe</button>${featureFlags().plan ? `<button class="button button-secondary" type="button" data-action="plan-recipe" data-id="${escapeHtml(recipe.id)}" data-revision="${escapeHtml(recipe.revision_id)}">Add to plan</button>` : ""}<button class="button button-secondary" type="button" data-action="archive-recipe" data-id="${escapeHtml(recipe.id)}" data-version="${escapeHtml(recipe.version)}" data-revision="${escapeHtml(recipe.revision_id)}">Archive</button></div><details class="spacer-top recipe-edit-details"><summary>Edit recipe revision</summary>${recipeFormMarkup("edit", recipe)}</details></div>`,
+        `<div class="recipe-detail"><p class="recipe-meta">${number(recipe.servings, 3)} servings · revision ${number(recipe.revision_number)} · ${escapeHtml(recipe.nutrition_status)} nutrition</p>${perServing}<h3 class="spacer-top">Ingredients</h3><ul class="food-items recipe-ingredients">${ingredients}</ul><h3 class="spacer-top">Instructions</h3><ol class="recipe-instructions">${recipe.instructions.map((instruction, index) => `<li><span class="recipe-step-number">${index + 1}.</span> ${escapeHtml(instruction)}</li>`).join("") || "<li>No instructions recorded.</li>"}</ol><p class="tiny spacer-top">Every ingredient includes the source snapshot used to calculate this revision. Editing creates a new revision; historical logs stay pinned.</p><div class="auth-actions spacer-top recipe-detail-actions">${recipeDetailActionsHtml}</div><details class="spacer-top recipe-edit-details"><summary>Edit recipe revision</summary>${recipeFormMarkup("edit", recipe)}</details></div>`,
     );
+    const editDetails = dialog.querySelector(".recipe-edit-details");
+    editDetails?.addEventListener("toggle", () => {
+        if (editDetails.open) void maybeAutoHealRecipe(recipe);
+    });
     recipeComposer.ingredients = recipe.ingredients.map(
         recipeIngredientFromRecord,
     );
@@ -2287,6 +2410,16 @@ function openRecipePlan(id) {
     openDialog(
         "Add recipe to meal plan",
         `<form id="recipe-plan-form" class="auth-form" data-id="${escapeHtml(id)}"><label class="field"><span>Date</span><input name="planned_date" type="date" value="${escapeHtml(state.date)}" required /></label><label class="field"><span>Meal slot</span><select name="meal_slot"><option value="breakfast">Breakfast</option><option value="lunch" selected>Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label><label class="field"><span>Servings planned</span><input name="servings" type="number" min="0.01" step="0.01" value="1" required /></label><button class="button button-primary" type="submit">Add to plan</button></form>`,
+    );
+}
+
+// Recipe experience R3: the servings prompt. Default is the recipe
+// as written; amounts scale to whatever the user is cooking.
+function openRecipeGroceries(id, name, servings) {
+    const recipeServings = Number(servings) || 1;
+    openDialog(
+        "Add to grocery list",
+        `<form id="recipe-groceries-form" class="auth-form" data-id="${escapeHtml(id)}"><p>Every ingredient in <strong>${escapeHtml(name || "this recipe")}</strong> that isn't marked optional goes on your grocery list. Items already on the list merge by name and unit — quantities add.</p><label class="field"><span>Servings you're cooking</span><input name="servings" type="number" min="0.01" step="0.01" value="${escapeHtml(recipeServings)}" required /></label><p class="tiny">The recipe makes ${number(recipeServings, 3)} servings; ingredient amounts scale to the servings you enter.</p><button class="button button-primary" type="submit">Add to grocery list</button></form>`,
     );
 }
 
@@ -3034,6 +3167,103 @@ function cookTimelineMarkup(detail) {
     return '<div class="cook-timeline">' + rows + "</div>";
 }
 
+function cookModeIngredientLabel(ingredient) {
+    if (typeof ingredient === "string") return ingredient;
+    const parts = [
+        ingredient.quantity != null
+            ? `${number(ingredient.quantity, 3)}${ingredient.unit ? ` ${ingredient.unit}` : ""}`
+            : "",
+        ingredient.name || "Ingredient",
+        ingredient.preparation ? `(${ingredient.preparation})` : "",
+    ].filter(Boolean);
+    return parts.join(" ");
+}
+
+// Recipe experience R2 — cook mode. A dish started from a recipe
+// carries recipe_progress (steps pinned from the revision + checked
+// positions); the panel renders it as two checklists with the current
+// step obvious, and — once every step is checked — offers Log recipe
+// and Finish cook. State persists server-side on the dish; this panel
+// only renders and toggles it.
+function cookModeMarkup(detail) {
+    const sessions = (detail.dishes || []).filter(
+        (dish) => dish.recipe_progress,
+    );
+    if (!sessions.length) return "";
+    return sessions
+        .map((dish) => {
+            const progress = dish.recipe_progress;
+            const steps = progress.steps || [];
+            const checkedSteps = new Set(progress.checked_steps || []);
+            const checkedIngredients = new Set(
+                progress.checked_ingredients || [],
+            );
+            const currentStep = steps.findIndex(
+                (_, index) => !checkedSteps.has(index),
+            );
+            const allStepsDone =
+                steps.length > 0 && checkedSteps.size >= steps.length;
+            const ingredients = (dish.actual_ingredients || [])
+                .map((ingredient, index) => {
+                    const checked = checkedIngredients.has(index);
+                    return `<label class="cook-mode-row${checked ? " is-checked" : ""}"><input type="checkbox" class="cook-mode-check" data-kind="ingredients" data-cook-id="${escapeHtml(detail.cook.id)}" data-dish-id="${escapeHtml(dish.id)}" data-index="${index}" ${checked ? "checked" : ""} /><span>${escapeHtml(cookModeIngredientLabel(ingredient))}</span></label>`;
+                })
+                .join("");
+            const stepRows = steps
+                .map((step, index) => {
+                    const checked = checkedSteps.has(index);
+                    const current = index === currentStep;
+                    return `<label class="cook-mode-row cook-mode-step${checked ? " is-checked" : ""}${current ? " is-current" : ""}"><input type="checkbox" class="cook-mode-check" data-kind="steps" data-cook-id="${escapeHtml(detail.cook.id)}" data-dish-id="${escapeHtml(dish.id)}" data-index="${index}" ${checked ? "checked" : ""} /><span class="cook-mode-step-number">${index + 1}</span><span class="cook-mode-step-text">${escapeHtml(step)}${current ? ' <span class="cook-mode-current-tag">Up next</span>' : ""}</span></label>`;
+                })
+                .join("");
+            const finishBlock =
+                allStepsDone && detail.cook.status === "active"
+                    ? `<div class="cook-mode-finish"><p><strong>Every step is checked off.</strong></p><div class="auth-actions" data-cook-actions data-context="detail" data-id="${escapeHtml(detail.cook.id)}" data-status="${escapeHtml(detail.cook.status)}"><button class="button button-primary" type="button" data-action="log-recipe" data-id="${escapeHtml(dish.recipe_id)}" data-revision="${escapeHtml(dish.recipe_revision_id)}">Log recipe</button><button class="button button-secondary" type="button" data-action="finish-cook" data-id="${escapeHtml(detail.cook.id)}">Finish cook</button></div></div>`
+                    : "";
+            return `<section class="cook-detail-section cook-mode" data-cook-mode data-dish-id="${escapeHtml(dish.id)}"><div class="panel-title"><div><h3>Cook mode</h3><span data-cook-mode-progress>${checkedIngredients.size} of ${(dish.actual_ingredients || []).length} ingredients · ${checkedSteps.size} of ${steps.length} steps</span></div></div>${ingredients ? `<h4 class="cook-mode-heading">Ingredients</h4><div class="cook-mode-list">${ingredients}</div>` : ""}${steps.length ? `<h4 class="cook-mode-heading">Steps</h4><div class="cook-mode-list">${stepRows}</div>` : `<p class="tiny">This recipe has no recorded steps.</p>`}${finishBlock}</section>`;
+        })
+        .join("");
+}
+
+// Recompute a cook-mode panel's row states + progress line + finish
+// block after a toggle, without re-fetching (the cook dialog keeps
+// its scroll position mid-cook).
+function refreshCookModePanel(panel) {
+    const boxes = [...panel.querySelectorAll(".cook-mode-check")];
+    const ingredientBoxes = boxes.filter(
+        (box) => box.dataset.kind === "ingredients",
+    );
+    const stepBoxes = boxes.filter((box) => box.dataset.kind === "steps");
+    for (const box of boxes) {
+        box.closest(".cook-mode-row")?.classList.toggle(
+            "is-checked",
+            box.checked,
+        );
+    }
+    const currentStep = stepBoxes.findIndex((box) => !box.checked);
+    stepBoxes.forEach((box, index) => {
+        const row = box.closest(".cook-mode-row");
+        if (!row) return;
+        const isCurrent = index === currentStep;
+        row.classList.toggle("is-current", isCurrent);
+        const tag = row.querySelector(".cook-mode-current-tag");
+        if (isCurrent && !tag) {
+            row.querySelector(".cook-mode-step-text")?.insertAdjacentHTML(
+                "beforeend",
+                ' <span class="cook-mode-current-tag">Up next</span>',
+            );
+        }
+        if (!isCurrent && tag) tag.remove();
+    });
+    const progress = panel.querySelector("[data-cook-mode-progress]");
+    if (progress) {
+        progress.textContent = `${ingredientBoxes.filter((box) => box.checked).length} of ${ingredientBoxes.length} ingredients · ${stepBoxes.filter((box) => box.checked).length} of ${stepBoxes.length} steps`;
+    }
+    // The finish block depends on server-rendered cook status, so a
+    // final-step toggle re-opens the cook to render it authoritatively.
+    return stepBoxes.length > 0 && stepBoxes.every((box) => box.checked);
+}
+
 function cookDetailMarkup(detail) {
     const cook = detail.cook;
     const photoMarkup = detail.media?.length
@@ -3122,7 +3352,7 @@ function cookDetailMarkup(detail) {
               .join("") +
           "</details>"
         : "";
-    return `<div class="cook-detail-view"><div class="cook-detail-head"><div><p class="section-kicker">${escapeHtml(cook.status === "active" ? "Active cook" : "Completed cook")}</p><h2>${escapeHtml(cook.title)}</h2><p class="tiny">${escapeHtml(formatDate(cook.cook_date, { year: true }))} · ${escapeHtml(cook.timezone)} · version ${number(cook.version)}</p></div><div class="auth-actions cook-actions" data-cook-actions data-context="detail" data-id="${escapeHtml(cook.id)}" data-status="${escapeHtml(cook.status)}">${cookDetailActionsMarkup(cook)}</div></div>${cook.original_message ? '<details class="cook-original"><summary>Original context</summary><p>' + escapeHtml(cook.original_message) + "</p></details>" : ""}<section class="cook-detail-section"><div class="panel-title"><div><h3>Dishes</h3><span>${detail.dishes.length} recorded</span></div></div><div class="cook-dishes">${dishes}</div></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Photos</h3><span>${detail.media.length} saved</span></div></div>${photoMarkup}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Timeline</h3><span>${detail.events.length} event${detail.events.length === 1 ? "" : "s"}</span></div></div>${cookTimelineMarkup(detail)}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Record an update</h3><span>One message can add multiple events and photos.</span></div></div><form id="cook-update-form" class="auth-form" data-id="${escapeHtml(cook.id)}" enctype="multipart/form-data"><input type="hidden" name="timezone" value="${escapeHtml(cook.timezone)}" /><label class="field"><span>What happened?</span><textarea name="message" rows="3" maxlength="20000" placeholder="A couple minutes ago I wrapped the wings. Internal temp was 155°F."></textarea></label><div class="field">${photoCaptureMarkup({ name: "photos", label: "Add photos", multiple: true })}</div><button class="button button-primary" type="submit">Record update</button></form></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Result</h3><span>User observations stay separate from suggestions.</span></div></div><form id="cook-outcome-form" class="auth-form" data-id="${escapeHtml(cook.id)}" data-version="${escapeHtml(outcome?.version || "")}"><label class="field"><span>Feedback</span><textarea name="written_feedback" rows="3" maxlength="20000" placeholder="What did it taste and feel like?">${escapeHtml(outcome?.written_feedback || "")}</textarea></label><div class="meal-composer-grid"><label class="field"><span>Overall assessment (1–5)</span><input name="overall_assessment" type="number" min="1" max="5" step="0.1" value="${escapeHtml(outcome?.overall_assessment || "")}" /></label><label class="field"><span>Characteristics JSON</span><input name="characteristics" value="${escapeHtml(JSON.stringify(outcome?.characteristics || {}))}" placeholder='{"smoke_intensity":"medium"}' /></label></div><label class="field"><span>What worked</span><textarea name="worked" rows="2" maxlength="10000">${escapeHtml(outcome?.worked || "")}</textarea></label><label class="field"><span>What disappointed you</span><textarea name="disappointed" rows="2" maxlength="10000">${escapeHtml(outcome?.disappointed || "")}</textarea></label><label class="field"><span>Change next time</span><textarea name="next_time_notes" rows="2" maxlength="10000">${escapeHtml(outcome?.next_time_notes || "")}</textarea></label><label class="checkbox-row"><input name="is_preferred" type="checkbox" ${outcome?.is_preferred ? "checked" : ""} /> Preferred attempt</label><button class="button button-primary" type="submit">Save result</button></form></section><section class="cook-detail-section"><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="cook-recipe-draft" data-id="${escapeHtml(cook.id)}">Save as recipe</button><button class="button button-secondary button-small" type="button" data-action="set-preferred-cook" data-id="${escapeHtml(cook.id)}">Choose preferred attempt</button></div>${updateMarkup}</section></div>`;
+    return `<div class="cook-detail-view"><div class="cook-detail-head"><div><p class="section-kicker">${escapeHtml(cook.status === "active" ? "Active cook" : "Completed cook")}</p><h2>${escapeHtml(cook.title)}</h2><p class="tiny">${escapeHtml(formatDate(cook.cook_date, { year: true }))} · ${escapeHtml(cook.timezone)} · version ${number(cook.version)}</p></div><div class="auth-actions cook-actions" data-cook-actions data-context="detail" data-id="${escapeHtml(cook.id)}" data-status="${escapeHtml(cook.status)}">${cookDetailActionsMarkup(cook)}</div></div>${cook.original_message ? '<details class="cook-original"><summary>Original context</summary><p>' + escapeHtml(cook.original_message) + "</p></details>" : ""}${cookModeMarkup(detail)}<section class="cook-detail-section"><div class="panel-title"><div><h3>Dishes</h3><span>${detail.dishes.length} recorded</span></div></div><div class="cook-dishes">${dishes}</div></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Photos</h3><span>${detail.media.length} saved</span></div></div>${photoMarkup}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Timeline</h3><span>${detail.events.length} event${detail.events.length === 1 ? "" : "s"}</span></div></div>${cookTimelineMarkup(detail)}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Record an update</h3><span>One message can add multiple events and photos.</span></div></div><form id="cook-update-form" class="auth-form" data-id="${escapeHtml(cook.id)}" enctype="multipart/form-data"><input type="hidden" name="timezone" value="${escapeHtml(cook.timezone)}" /><label class="field"><span>What happened?</span><textarea name="message" rows="3" maxlength="20000" placeholder="A couple minutes ago I wrapped the wings. Internal temp was 155°F."></textarea></label><div class="field">${photoCaptureMarkup({ name: "photos", label: "Add photos", multiple: true })}</div><button class="button button-primary" type="submit">Record update</button></form></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Result</h3><span>User observations stay separate from suggestions.</span></div></div><form id="cook-outcome-form" class="auth-form" data-id="${escapeHtml(cook.id)}" data-version="${escapeHtml(outcome?.version || "")}"><label class="field"><span>Feedback</span><textarea name="written_feedback" rows="3" maxlength="20000" placeholder="What did it taste and feel like?">${escapeHtml(outcome?.written_feedback || "")}</textarea></label><div class="meal-composer-grid"><label class="field"><span>Overall assessment (1–5)</span><input name="overall_assessment" type="number" min="1" max="5" step="0.1" value="${escapeHtml(outcome?.overall_assessment || "")}" /></label><label class="field"><span>Characteristics JSON</span><input name="characteristics" value="${escapeHtml(JSON.stringify(outcome?.characteristics || {}))}" placeholder='{"smoke_intensity":"medium"}' /></label></div><label class="field"><span>What worked</span><textarea name="worked" rows="2" maxlength="10000">${escapeHtml(outcome?.worked || "")}</textarea></label><label class="field"><span>What disappointed you</span><textarea name="disappointed" rows="2" maxlength="10000">${escapeHtml(outcome?.disappointed || "")}</textarea></label><label class="field"><span>Change next time</span><textarea name="next_time_notes" rows="2" maxlength="10000">${escapeHtml(outcome?.next_time_notes || "")}</textarea></label><label class="checkbox-row"><input name="is_preferred" type="checkbox" ${outcome?.is_preferred ? "checked" : ""} /> Preferred attempt</label><button class="button button-primary" type="submit">Save result</button></form></section><section class="cook-detail-section"><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="cook-recipe-draft" data-id="${escapeHtml(cook.id)}">Save as recipe</button><button class="button button-secondary button-small" type="button" data-action="set-preferred-cook" data-id="${escapeHtml(cook.id)}">Choose preferred attempt</button></div>${updateMarkup}</section></div>`;
 }
 
 function openCookDishEditor(dish, cookId, cookVersion) {
@@ -6235,6 +6465,50 @@ async function handleAction(button) {
     if (action === "log-cook-dish")
         return openRecipeLog(button.dataset.id, button.dataset.revision);
     if (action === "plan-recipe") return openRecipePlan(button.dataset.id);
+    if (action === "recipe-groceries")
+        return openRecipeGroceries(
+            button.dataset.id,
+            button.dataset.name,
+            button.dataset.servings,
+        );
+    if (action === "start-recipe-cook") {
+        // Brief R2: create the cook session on the existing cooks
+        // machinery, then open it — the cook view leads with cook mode.
+        button.disabled = true;
+        try {
+            const data = await api(
+                `/api/app/recipes/${encodeURIComponent(button.dataset.id)}/start-cook`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        timezone: state.bootstrap?.profile?.timezone || "UTC",
+                        idempotency_key: crypto.randomUUID(),
+                    }),
+                    keepPrevious: true,
+                },
+            );
+            await openCook(data.cook_id);
+        } catch (error) {
+            button.disabled = false;
+            toast(error.message || "Couldn't start the cook.", "error");
+        }
+        return;
+    }
+    if (action === "calculate-recipe-nutrition") {
+        // Brief R1: the explicit heal action. On success the detail
+        // re-renders on the new revision (per-serving values, sources,
+        // and any still-unresolved ingredients flagged).
+        button.disabled = true;
+        try {
+            const result = await calculateRecipeNutrition(button.dataset.id);
+            toast(recipeHealSummary(result));
+            await openRecipe(button.dataset.id);
+        } catch (error) {
+            button.disabled = false;
+            toast(error.message || "Couldn't calculate nutrition.", "error");
+        }
+        return;
+    }
     if (action === "archive-recipe") {
         // S6 slice 4: archiving is this surface's destructive action, so
         // it follows slice 1's inline-confirmation pattern instead of
@@ -6252,12 +6526,13 @@ async function handleAction(button) {
         return;
     }
     if (action === "dismiss-archive-recipe") {
-        // Restore the detail action row exactly as it was (the row is
-        // deterministic from the recipe's id / revision / version);
-        // nothing was sent and any open edit form is untouched.
+        // Restore the detail action row exactly as it was rendered
+        // (openRecipe keeps the markup — it depends on the recipe's
+        // flags and nutrition state, not just its ids); nothing was
+        // sent and any open edit form is untouched.
         const actions = button.closest(".recipe-detail-actions");
         if (!actions) return;
-        actions.innerHTML = `<button class="button button-primary" type="button" data-action="log-recipe" data-id="${escapeHtml(button.dataset.id)}" data-revision="${escapeHtml(button.dataset.revision || "")}">Log recipe</button><button class="button button-secondary" type="button" data-action="plan-recipe" data-id="${escapeHtml(button.dataset.id)}" data-revision="${escapeHtml(button.dataset.revision || "")}">Add to plan</button><button class="button button-secondary" type="button" data-action="archive-recipe" data-id="${escapeHtml(button.dataset.id)}" data-version="${escapeHtml(button.dataset.version)}" data-revision="${escapeHtml(button.dataset.revision || "")}">Archive</button>`;
+        actions.innerHTML = recipeDetailActionsHtml;
         actions.querySelector('[data-action="archive-recipe"]')?.focus();
         return;
     }
@@ -6664,6 +6939,44 @@ function markDraftFieldDirty(target) {
 document.addEventListener("change", async (event) => {
     markDraftFieldDirty(event.target);
     const target = event.target;
+    if (target?.matches?.(".cook-mode-check")) {
+        // Recipe experience R2: a checklist toggle persists the full
+        // checked arrays for that kind on the dish, server-side.
+        const panel = target.closest("[data-cook-mode]");
+        if (!panel) return;
+        const kind = target.dataset.kind;
+        const boxes = [
+            ...panel.querySelectorAll(`.cook-mode-check[data-kind="${kind}"]`),
+        ];
+        const checked = boxes
+            .filter((box) => box.checked)
+            .map((box) => Number(box.dataset.index));
+        const body =
+            kind === "ingredients"
+                ? { checked_ingredients: checked }
+                : { checked_steps: checked };
+        try {
+            await api(
+                `/api/app/cooks/${encodeURIComponent(target.dataset.cookId)}/dishes/${encodeURIComponent(target.dataset.dishId)}/progress`,
+                {
+                    method: "PATCH",
+                    body: JSON.stringify(body),
+                    keepPrevious: true,
+                },
+            );
+            const allStepsDone = refreshCookModePanel(panel);
+            if (allStepsDone) {
+                // Render the finish block (Log recipe / Finish cook)
+                // from the authoritative cook record.
+                await openCook(target.dataset.cookId);
+            }
+        } catch (error) {
+            target.checked = !target.checked;
+            refreshCookModePanel(panel);
+            toast(error.message || "That check couldn't be saved.", "error");
+        }
+        return;
+    }
     if (target?.matches?.('#guided-plan-form select[name="scope"]')) {
         try {
             const form = target.closest("form");
@@ -7102,6 +7415,7 @@ document.addEventListener("submit", async (event) => {
             "recipe-edit-form",
             "recipe-log-form",
             "recipe-plan-form",
+            "recipe-groceries-form",
             "grocery-add-form",
             "grocery-edit-form",
             "saved-food-form",
@@ -7577,6 +7891,39 @@ document.addEventListener("submit", async (event) => {
                 },
             );
             toast("Recipe added to the meal plan.");
+        }
+        if (form.id === "recipe-groceries-form") {
+            // Brief R3: counts come back from the shared merge path;
+            // the toast carries the one-tap jump to the list. (The
+            // generic tail closes the dialog and re-renders behind it.)
+            const data = await api(
+                `/api/app/recipes/${encodeURIComponent(form.dataset.id)}/groceries`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        servings: Number(values.servings),
+                        idempotency_key: crypto.randomUUID(),
+                    }),
+                    keepPrevious: true,
+                },
+            );
+            const result = data.result || {};
+            const parts = [];
+            if (result.added)
+                parts.push(
+                    `${result.added} item${result.added === 1 ? "" : "s"} added`,
+                );
+            if (result.merged)
+                parts.push(
+                    `${result.merged} merged with items already on the list`,
+                );
+            toastAction(
+                parts.length
+                    ? `Groceries: ${parts.join(", ")}.`
+                    : "Nothing to add — every ingredient is marked optional.",
+                "View list",
+                () => navigate("/app/groceries"),
+            );
         }
         if (form.id === "grocery-add-form") {
             await api("/api/app/groceries/items", {

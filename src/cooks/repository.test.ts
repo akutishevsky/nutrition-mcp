@@ -3,6 +3,8 @@ import {
     parseNaturalCookUpdate,
     serializeCookRow,
     buildCookRecipeDraft,
+    buildRecipeCookDish,
+    sanitizeRecipeProgress,
 } from "./repository.js";
 
 describe("natural cook updates", () => {
@@ -182,5 +184,81 @@ describe("production certification regressions", () => {
         expect(result.missing_fields).toContain("ingredients[0].quantity/unit");
         expect(result.draft.instructions).toEqual(["Wrap the wings."]);
         expect(JSON.stringify(detail)).toBe(before);
+    });
+});
+
+describe("recipe cook mode progress (R2)", () => {
+    test("buildRecipeCookDish pins the revision, steps, and a fresh checklist", () => {
+        const dish = buildRecipeCookDish({
+            name: "Smoke Pie",
+            recipeId: "recipe-1",
+            revisionId: "revision-1",
+            instructions: ["Mix the filling.", "Bake 40 minutes."],
+            ingredients: [
+                { name: "butter", quantity: 0.5, unit: "cup" },
+                { name: "salt" },
+                {
+                    name: "egg wash",
+                    quantity: 1,
+                    unit: "egg",
+                    preparation: "beaten",
+                    optional: true,
+                },
+            ],
+        });
+        expect(dish.recipeId).toBe("recipe-1");
+        expect(dish.recipeRevisionId).toBe("revision-1");
+        expect(dish.recipeProgress).toEqual({
+            steps: ["Mix the filling.", "Bake 40 minutes."],
+            checkedIngredients: [],
+            checkedSteps: [],
+        });
+        expect(dish.actualIngredients).toEqual([
+            { name: "butter", quantity: 0.5, unit: "cup" },
+            { name: "salt" },
+            {
+                name: "egg wash",
+                quantity: 1,
+                unit: "egg",
+                preparation: "beaten",
+                optional: true,
+            },
+        ]);
+    });
+
+    test("sanitizeRecipeProgress bounds, dedupes, and sorts checked positions", () => {
+        const progress = sanitizeRecipeProgress(
+            {
+                steps: ["a", "b"],
+                checked_ingredients: [2, 0, 0, -1, 1.5, "x"],
+                checkedSteps: [1, 1, 7],
+            },
+            3,
+        );
+        expect(progress).toEqual({
+            steps: ["a", "b"],
+            checkedIngredients: [0, 2],
+            checkedSteps: [1],
+        });
+    });
+
+    test("sanitizeRecipeProgress rejects non-objects and tolerates camelCase", () => {
+        expect(sanitizeRecipeProgress(null, 2)).toBeNull();
+        expect(sanitizeRecipeProgress("nope", 2)).toBeNull();
+        expect(sanitizeRecipeProgress([1, 2], 2)).toBeNull();
+        expect(
+            sanitizeRecipeProgress(
+                {
+                    steps: ["only step"],
+                    checkedIngredients: [1],
+                    checked_steps: [0],
+                },
+                2,
+            ),
+        ).toEqual({
+            steps: ["only step"],
+            checkedIngredients: [1],
+            checkedSteps: [0],
+        });
     });
 });

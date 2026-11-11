@@ -50,6 +50,62 @@ export interface CookDishInput {
     dishId?: string;
     recipeId?: string | null;
     recipeRevisionId?: string | null;
+    recipeProgress?: RecipeCookProgress | null;
+}
+
+/**
+ * Cook-mode progress for a dish started from a recipe (brief R2).
+ * `steps` is the instruction list pinned from the recipe revision the
+ * session was started from; the checked arrays hold positions into the
+ * dish's actual_ingredients and `steps`. Stored on the dish row
+ * (migration 0041) so every cook read path — the app and the MCP
+ * get_cook tool — sees the same session state; there is no forked
+ * model.
+ */
+export interface RecipeCookProgress {
+    steps: string[];
+    checkedIngredients: number[];
+    checkedSteps: number[];
+}
+
+function checkedPositions(value: unknown, bound: number): number[] {
+    if (!Array.isArray(value)) return [];
+    const positions = new Set<number>();
+    for (const entry of value) {
+        const position = Number(entry);
+        if (Number.isInteger(position) && position >= 0 && position < bound) {
+            positions.add(position);
+        }
+    }
+    return [...positions].sort((a, b) => a - b);
+}
+
+/** Normalize anything stored or received into a valid progress value. */
+export function sanitizeRecipeProgress(
+    value: unknown,
+    ingredientCount: number,
+): RecipeCookProgress | null {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+    }
+    const source = value as Record<string, unknown>;
+    const steps = Array.isArray(source.steps)
+        ? source.steps
+              .filter((step): step is string => typeof step === "string")
+              .map((step) => step.slice(0, 20_000))
+              .slice(0, 100)
+        : [];
+    return {
+        steps,
+        checkedIngredients: checkedPositions(
+            source.checkedIngredients ?? source.checked_ingredients,
+            ingredientCount,
+        ),
+        checkedSteps: checkedPositions(
+            source.checkedSteps ?? source.checked_steps,
+            steps.length,
+        ),
+    };
 }
 
 export interface CookEventInput {
@@ -332,6 +388,9 @@ export function serializeCookRow(row: Record<string, unknown>, userId: string) {
 }
 
 function serializeDish(row: Record<string, unknown>) {
+    const actualIngredients = Array.isArray(row.actual_ingredients)
+        ? row.actual_ingredients
+        : [];
     return {
         id: String(row.id),
         position: Number(row.position),
@@ -341,9 +400,29 @@ function serializeDish(row: Record<string, unknown>) {
         flavor: nullableString(row.flavor),
         equipment: nullableString(row.equipment),
         notes: nullableString(row.notes),
-        actual_ingredients: row.actual_ingredients ?? [],
+        actual_ingredients: actualIngredients,
         recipe_id: nullableString(row.recipe_id),
         recipe_revision_id: nullableString(row.recipe_revision_id),
+        // The dish wire shape is snake_case throughout: recipe
+        // progress reads { steps, checked_ingredients, checked_steps }
+        // (the stored jsonb keeps the same keys).
+        recipe_progress:
+            row.recipe_progress == null
+                ? null
+                : (() => {
+                      const progress = sanitizeRecipeProgress(
+                          row.recipe_progress,
+                          actualIngredients.length,
+                      );
+                      return progress == null
+                          ? null
+                          : {
+                                steps: progress.steps,
+                                checked_ingredients:
+                                    progress.checkedIngredients,
+                                checked_steps: progress.checkedSteps,
+                            };
+                  })(),
     };
 }
 
@@ -784,10 +863,26 @@ async function insertDish(
             );
         }
     }
+    const sanitizedProgress =
+        dish.recipeProgress === undefined
+            ? null
+            : sanitizeRecipeProgress(
+                  dish.recipeProgress,
+                  actualIngredients.length,
+              );
+    // Stored in the same snake_case wire shape serializeDish emits.
+    const recipeProgress = sanitizedProgress
+        ? {
+              steps: sanitizedProgress.steps,
+              checked_ingredients: sanitizedProgress.checkedIngredients,
+              checked_steps: sanitizedProgress.checkedSteps,
+          }
+        : null;
     const rows = await tx<Array<{ id: string }>>`
         insert into munch.cook_dishes (
             cook_id, position, name, ingredient_or_cut, method, flavor, equipment,
-            notes, actual_ingredients, recipe_id, recipe_revision_id
+            notes, actual_ingredients, recipe_id, recipe_revision_id,
+            recipe_progress
         ) values (
             ${cookId}, ${position}, ${name},
             ${cleanText(dish.ingredientOrCut, "Ingredient or cut", 500)},
@@ -796,7 +891,8 @@ async function insertDish(
             ${cleanText(dish.equipment, "Equipment", 500)},
             ${cleanText(dish.notes, "Dish notes")},
             ${safeJson(actualIngredients, [])}::jsonb,
-            ${recipeId}, ${recipeRevisionId}
+            ${recipeId}, ${recipeRevisionId},
+            ${recipeProgress ? safeJson(recipeProgress, {}) : null}::jsonb
         ) returning id
     `;
     if (!rows[0]?.id) throw new Error("Dish creation failed");
@@ -1289,6 +1385,149 @@ export async function updateCookDish(
     });
 }
 
+/**
+ * Build the dish a recipe "Start cook" session runs on (brief R2):
+ * linked to the exact recipe revision, carrying the revision's
+ * ingredient lines as the session's actual ingredients and a fresh
+ * cook-mode progress value with the revision's steps pinned.
+ */
+export function buildRecipeCookDish(recipe: {
+    name: string;
+    revisionId: string;
+    recipeId: string;
+    instructions: readonly string[];
+    ingredients: ReadonlyArray<{
+        name: string;
+        quantity?: number | null;
+        unit?: string | null;
+        preparation?: string | null;
+        optional?: boolean | null;
+    }>;
+}): CookDishInput {
+    const actualIngredients = recipe.ingredients.map((ingredient) => ({
+        name: ingredient.name,
+        ...(ingredient.quantity != null
+            ? { quantity: ingredient.quantity }
+            : {}),
+        ...(ingredient.unit ? { unit: ingredient.unit } : {}),
+        ...(ingredient.preparation
+            ? { preparation: ingredient.preparation }
+            : {}),
+        ...(ingredient.optional ? { optional: true } : {}),
+    }));
+    return {
+        name: recipe.name,
+        actualIngredients,
+        recipeId: recipe.recipeId,
+        recipeRevisionId: recipe.revisionId,
+        recipeProgress: {
+            steps: [...recipe.instructions],
+            checkedIngredients: [],
+            checkedSteps: [],
+        },
+    };
+}
+
+/**
+ * Replace a recipe cook session's checklist state (brief R2). The
+ * patch carries full checked-position arrays (last write wins — a
+ * checklist toggle is not a versioned document edit), validated
+ * against the dish's pinned steps and actual ingredients.
+ */
+export async function updateCookDishProgress(
+    userId: string,
+    cookId: string,
+    dishId: string,
+    patch: {
+        checkedIngredients?: number[];
+        checkedSteps?: number[];
+    },
+) {
+    requireUuid(cookId, "cook ID");
+    requireUuid(dishId, "dish ID");
+    return withUserDatabase(userId, async (tx) => {
+        const cookRows = await tx<Array<{ id: string; version: number }>>`
+            select id, version from munch.cooks where id = ${cookId} for update
+        `;
+        const cook = cookRows[0];
+        if (!cook) throw new Error("Cook was not found or is unavailable");
+        const dishRows = await tx<Array<Record<string, unknown>>>`
+            select * from munch.cook_dishes
+            where id = ${dishId} and cook_id = ${cookId}
+            for update
+        `;
+        const dishRow = dishRows[0];
+        if (!dishRow)
+            throw new Error("Dish was not found, is unavailable, or changed");
+        const ingredientCount = Array.isArray(dishRow.actual_ingredients)
+            ? dishRow.actual_ingredients.length
+            : 0;
+        const current = sanitizeRecipeProgress(
+            dishRow.recipe_progress,
+            ingredientCount,
+        );
+        if (!current) {
+            throw new Error("Dish is not a recipe cook session");
+        }
+        // Writes are strict (unlike reads, which clamp stored data):
+        // a position outside the pinned lists is a client bug, and
+        // silently dropping it would fork the checklist state.
+        const strictPositions = (
+            values: number[] | undefined,
+            bound: number,
+            label: string,
+        ): number[] | undefined => {
+            if (values === undefined) return undefined;
+            for (const value of values) {
+                if (!Number.isInteger(value) || value < 0 || value >= bound) {
+                    throw new Error(`${label} position out of range: ${value}`);
+                }
+            }
+            return checkedPositions(values, bound);
+        };
+        const next: RecipeCookProgress = {
+            steps: current.steps,
+            checkedIngredients:
+                strictPositions(
+                    patch.checkedIngredients,
+                    ingredientCount,
+                    "Ingredient",
+                ) ?? current.checkedIngredients,
+            checkedSteps:
+                strictPositions(
+                    patch.checkedSteps,
+                    current.steps.length,
+                    "Step",
+                ) ?? current.checkedSteps,
+        };
+        const updated = await tx<Array<Record<string, unknown>>>`
+            update munch.cook_dishes
+            set recipe_progress = ${safeJson(
+                {
+                    steps: next.steps,
+                    checked_ingredients: next.checkedIngredients,
+                    checked_steps: next.checkedSteps,
+                },
+                {},
+            )}::jsonb,
+                updated_at = now()
+            where id = ${dishId} and cook_id = ${cookId}
+            returning *
+        `;
+        if (!updated[0])
+            throw new Error("Dish was not found, is unavailable, or changed");
+        await tx`
+            update munch.cooks
+            set updated_at = now(), updated_by_user_id = ${userId}, version = version + 1
+            where id = ${cookId}
+        `;
+        return {
+            dish: serializeDish(updated[0]),
+            cook_version: Number(cook.version) + 1,
+        };
+    });
+}
+
 export async function finishCook(
     userId: string,
     cookId: string,
@@ -1296,7 +1535,6 @@ export async function finishCook(
 ) {
     return updateCook(userId, cookId, { status: "finished", expectedVersion });
 }
-
 export async function reopenCook(
     userId: string,
     cookId: string,

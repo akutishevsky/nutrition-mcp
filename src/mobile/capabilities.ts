@@ -75,6 +75,8 @@ export const MOBILE_CAPABILITY_IDS = [
     "recipe.update",
     "recipe.archive",
     "recipe.log",
+    "recipe.calculateNutrition",
+    "recipe.groceries",
     "mealPlan.read",
     "mealPlan.schedule",
     "mealPlan.compose",
@@ -109,6 +111,7 @@ export const MOBILE_CAPABILITY_IDS = [
     "cook.lifecycle",
     "cook.iterate",
     "cook.recipe",
+    "cook.recipeSession",
     "cook.nutrition",
 ] as const;
 

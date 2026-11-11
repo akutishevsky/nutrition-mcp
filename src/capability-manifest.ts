@@ -1193,6 +1193,54 @@ export const CAPABILITY_MANIFEST = [
         targetPr: null,
     },
     {
+        id: "recipe.calculateNutrition",
+        mcp: websiteOnly([]),
+        web: complete([
+            "POST /api/app/recipes/:id/calculate-nutrition",
+            '[data-action="calculate-recipe-nutrition"]',
+        ]),
+        app: complete([
+            "POST /api/app/recipes/:id/calculate-nutrition",
+            '[data-action="calculate-recipe-nutrition"]',
+        ]),
+        ios: complete([
+            "POST /api/app/recipes/:id/calculate-nutrition",
+            '[data-action="calculate-recipe-nutrition"]',
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
+        intentionalChannelException:
+            "Healing re-runs a stored revision through the same resolver MCP recipe saves already apply at save time (save_recipe / update_recipe run it server-side), so MCP has no separate heal tool; the explicit Calculate nutrition action exists where stored revisions are viewed and edited — the app.",
+        gap: null,
+        targetPr: null,
+    },
+    {
+        id: "recipe.groceries",
+        mcp: websiteOnly([]),
+        web: complete([
+            "POST /api/app/recipes/:id/groceries",
+            '[data-action="recipe-groceries"]',
+        ]),
+        app: complete([
+            "POST /api/app/recipes/:id/groceries",
+            '[data-action="recipe-groceries"]',
+        ]),
+        ios: complete([
+            "POST /api/app/recipes/:id/groceries",
+            '[data-action="recipe-groceries"]',
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
+        intentionalChannelException:
+            "MCP adds groceries item-by-item through add_grocery_items (grocery.add); the one-tap all-ingredients action — servings scaling, name+unit merge, added/merged counts — is a recipe-surface control in the app built on the same grocery list model and merge path.",
+        gap: null,
+        targetPr: null,
+    },
+    {
         id: "mealPlan.read",
         mcp: complete(["get_meal_plan"]),
         web: complete(["/api/app/planning"]),
@@ -1740,6 +1788,33 @@ export const CAPABILITY_MANIFEST = [
         iosGap: null,
         iosTargetPr: null,
         intentionalChannelException: null,
+        gap: null,
+        targetPr: null,
+    },
+    {
+        id: "cook.recipeSession",
+        mcp: websiteOnly([]),
+        web: complete([
+            "POST /api/app/recipes/:id/start-cook",
+            "PATCH /api/app/cooks/:cookId/dishes/:dishId/progress",
+            '[data-action="start-recipe-cook"]',
+        ]),
+        app: complete([
+            "POST /api/app/recipes/:id/start-cook",
+            "PATCH /api/app/cooks/:cookId/dishes/:dishId/progress",
+            '[data-action="start-recipe-cook"]',
+        ]),
+        ios: complete([
+            "POST /api/app/recipes/:id/start-cook",
+            "PATCH /api/app/cooks/:cookId/dishes/:dishId/progress",
+            '[data-action="start-recipe-cook"]',
+        ]),
+        iosBasis:
+            "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
+        intentionalChannelException:
+            "MCP starts cooks with start_cook (cook.create) and reads the full session — including the dish's recipe_progress checklist state — with get_cook (cook.read), so the session state is shared, not forked. Starting a session linked to a recipe revision with its checklist pinned is a recipe-surface action in the app; no separate MCP start-from-recipe tool exists.",
         gap: null,
         targetPr: null,
     },

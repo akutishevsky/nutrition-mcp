@@ -73,10 +73,12 @@ import {
 import { getStructuredMeal } from "../structured-meals/repository.js";
 import {
     addGroceryItems,
+    addRecipeToGroceryList,
     archiveRecipe,
     clearPurchasedGroceryItems,
     deleteGroceryItem,
     getRecipe,
+    healRecipeNutrition,
     logRecipe,
     markGroceryItemPurchased,
     saveRecipe,
@@ -146,6 +148,7 @@ import {
 import { featureModulePatch } from "../feature-modules.js";
 import {
     addCookUpdate,
+    buildRecipeCookDish,
     compareCooks,
     correctCookEvent,
     createCook,
@@ -162,6 +165,7 @@ import {
     setPreferredCook,
     updateCook,
     updateCookDish,
+    updateCookDishProgress,
     type CookDishInput,
     type CookEventInput,
     type CookMediaInput,
@@ -2105,6 +2109,153 @@ export function createAppRouter(): Hono {
         return privateJson(c, { planned_meal: result });
     });
 
+    // Recipe experience R1: heal a stored recipe whose nutrition never
+    // resolved (saved before save-time resolution existed, or through
+    // a non-resolving path). Re-runs the current revision through the
+    // same resolver every save path uses and persists a NEW revision;
+    // the stored revision is never mutated. Unmatchable ingredients
+    // come back named in unresolved_ingredients — flagged, not zeroed.
+    app.post(
+        "/api/app/recipes/:id/calculate-nutrition",
+        requireSameOrigin,
+        async (c) => {
+            const userId = c.get("munchUserId");
+            const current = await getRecipe(userId, c.req.param("id")!);
+            if (!current) throw new Error("Recipe not found");
+            const body = recordValue(
+                await c.req.json().catch(() => ({})),
+                "Recipe nutrition calculation",
+            );
+            const capabilities = await resolveRequestMunchCapabilities(
+                c,
+                userId,
+            );
+            const expectedVersion =
+                body.expected_version === undefined
+                    ? current.version
+                    : Number(body.expected_version);
+            if (!Number.isInteger(expectedVersion) || expectedVersion < 1) {
+                throw new Error("Recipe expected_version is invalid");
+            }
+            const result = await healRecipeNutrition({
+                userId,
+                scope: recipeScopeForCapabilities(current, capabilities, true),
+                recipeId: current.id,
+                expectedVersion,
+                // One heal per stored revision: a double-tap or retry
+                // replays the same update instead of stacking revisions.
+                idempotencyKey:
+                    typeof body.idempotency_key === "string"
+                        ? body.idempotency_key
+                        : `heal:${current.id}:${current.revision_id}`,
+            });
+            return privateJson(c, {
+                result: {
+                    healed: result.healed,
+                    revision_id: result.revisionId,
+                    revision_number: result.revisionNumber,
+                    nutrition_status: result.nutritionStatus,
+                    nutrition_per_serving: result.perServing,
+                    resolved_ingredients: result.resolvedIngredients,
+                    unresolved_ingredients: result.unresolvedIngredients,
+                },
+                recipe: await getRecipe(userId, current.id),
+            });
+        },
+    );
+
+    // Recipe experience R2: "Start cook" — a cook session on the
+    // existing cooks machinery, its dish linked to the recipe's exact
+    // current revision with cook-mode progress pinned from it.
+    app.post(
+        "/api/app/recipes/:id/start-cook",
+        requireSameOrigin,
+        async (c) => {
+            const userId = c.get("munchUserId");
+            const current = await getRecipe(userId, c.req.param("id")!);
+            if (!current) throw new Error("Recipe not found");
+            const body = recordValue(
+                await c.req.json().catch(() => ({})),
+                "Recipe cook start",
+            );
+            const capabilities = await resolveRequestMunchCapabilities(
+                c,
+                userId,
+            );
+            const scope = recipeScopeForCapabilities(
+                current,
+                capabilities,
+                true,
+            );
+            const result = await createCook(userId, {
+                scope,
+                title: current.name,
+                timezone:
+                    typeof body.timezone === "string" ? body.timezone : "UTC",
+                dishes: [
+                    buildRecipeCookDish({
+                        name: current.name,
+                        recipeId: current.id,
+                        revisionId: current.revision_id,
+                        instructions: Array.isArray(current.instructions)
+                            ? (current.instructions as string[])
+                            : [],
+                        ingredients: current.ingredients,
+                    }),
+                ],
+                idempotencyKey:
+                    typeof body.idempotency_key === "string"
+                        ? body.idempotency_key
+                        : crypto.randomUUID(),
+                source: "website",
+            });
+            return privateJson(c, {
+                cook_id: result.cookId,
+                deduplicated: result.deduplicated,
+                cook: await getCook(userId, result.cookId),
+            });
+        },
+    );
+
+    // Recipe experience R3: "Add to grocery list" — every non-optional
+    // ingredient, scaled by the servings the user is cooking for
+    // (default: the recipe as written), merged by name+unit into the
+    // recipe scope's existing grocery list.
+    app.post("/api/app/recipes/:id/groceries", requireSameOrigin, async (c) => {
+        const userId = c.get("munchUserId");
+        const current = await getRecipe(userId, c.req.param("id")!);
+        if (!current) throw new Error("Recipe not found");
+        const body = recordValue(
+            await c.req.json().catch(() => ({})),
+            "Recipe grocery add",
+        );
+        const capabilities = await resolveRequestMunchCapabilities(c, userId);
+        const servings =
+            body.servings === undefined
+                ? undefined
+                : positiveNumber(body.servings);
+        if (body.servings !== undefined && !servings) {
+            throw new Error("Grocery servings are invalid");
+        }
+        const result = await addRecipeToGroceryList({
+            userId,
+            scope: recipeScopeForCapabilities(current, capabilities, true),
+            recipe: {
+                id: current.id,
+                revisionId: current.revision_id,
+                name: current.name,
+                servings: current.servings,
+                ingredients: current.ingredients,
+            },
+            servings,
+            idempotencyKey:
+                typeof body.idempotency_key === "string"
+                    ? body.idempotency_key
+                    : crypto.randomUUID(),
+        });
+        return privateJson(c, { result });
+    });
+
     app.get("/api/app/cooks", async (c) =>
         privateJson(c, {
             cooks: await searchCooks(c.get("munchUserId"), {
@@ -2301,6 +2452,56 @@ export function createAppRouter(): Hono {
                                   body.expected_version,
                                   "Cook expected_version",
                               ),
+                },
+            );
+            return privateJson(c, {
+                ...result,
+                cook: await getCook(
+                    c.get("munchUserId"),
+                    c.req.param("cookId")!,
+                ),
+            });
+        },
+    );
+
+    // Recipe experience R2: cook-mode checklist state. The client sends
+    // the full checked-position arrays for the dish's pinned steps /
+    // actual ingredients; the state persists on the cook session's dish
+    // and reads back through getCook (and the MCP get_cook tool).
+    app.patch(
+        "/api/app/cooks/:cookId/dishes/:dishId/progress",
+        requireSameOrigin,
+        async (c) => {
+            const body = recordValue(await c.req.json(), "Cook progress");
+            const positions = (
+                value: unknown,
+                label: string,
+            ): number[] | undefined => {
+                if (value === undefined) return undefined;
+                if (
+                    !Array.isArray(value) ||
+                    value.some(
+                        (entry) =>
+                            !Number.isInteger(entry) || Number(entry) < 0,
+                    )
+                ) {
+                    throw new Error(`${label} must be an array of positions`);
+                }
+                return value.map(Number);
+            };
+            const result = await updateCookDishProgress(
+                c.get("munchUserId"),
+                c.req.param("cookId")!,
+                c.req.param("dishId")!,
+                {
+                    checkedIngredients: positions(
+                        body.checked_ingredients,
+                        "Checked ingredients",
+                    ),
+                    checkedSteps: positions(
+                        body.checked_steps,
+                        "Checked steps",
+                    ),
                 },
             );
             return privateJson(c, {

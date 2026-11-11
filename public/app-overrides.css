@@ -6110,3 +6110,114 @@ dialog .guided-grocery-row input[type="checkbox"] {
     font-size: 13px;
     color: #6e7462;
 }
+
+/* Recipe experience (R1–R3): unresolved ingredient flag, cook-mode
+   checklists, and the action toast. House palette + Editorial Serif
+   inherit from the app theme; rows meet the 44px tap floor. */
+.recipe-unresolved {
+    flex: none;
+    padding: 3px 8px;
+    border: 1px solid var(--gold, #8a6d3b);
+    border-radius: 999px;
+    color: var(--gold, #8a6d3b);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.cook-mode-heading {
+    margin: 14px 0 6px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted, #6e7462);
+}
+
+.cook-mode-list {
+    display: grid;
+    gap: 6px;
+}
+
+.cook-mode-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 8px 12px;
+    border: 1px solid var(--line, #ded5c0);
+    border-radius: 10px;
+    background: var(--paper-card, #fffdf8);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1.35;
+}
+
+.cook-mode-row input[type="checkbox"] {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    accent-color: var(--green, #176b3a);
+}
+
+.cook-mode-row.is-checked {
+    color: var(--muted, #6e7462);
+}
+
+.cook-mode-row.is-checked span {
+    text-decoration: line-through;
+}
+
+.cook-mode-row.is-current {
+    border-color: var(--green, #176b3a);
+    border-left-width: 5px;
+    background: var(--green-tint, #eef4ea);
+}
+
+.cook-mode-step-number {
+    flex: none;
+    font-weight: 700;
+    color: var(--green-deep, #0b3d24);
+}
+
+.cook-mode-current-tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--green, #176b3a);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-decoration: none;
+    vertical-align: 1px;
+}
+
+.cook-mode-row.is-checked .cook-mode-current-tag {
+    text-decoration: none;
+}
+
+.cook-mode-finish {
+    margin-top: 16px;
+    padding: 14px;
+    border: 1px solid var(--green, #176b3a);
+    border-radius: 12px;
+    background: var(--green-tint, #eef4ea);
+}
+
+.cook-mode-finish p {
+    margin: 0 0 10px;
+}
+
+.toast-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toast-action .button {
+    flex: none;
+    min-height: 44px;
+}
