@@ -650,7 +650,11 @@ dialog .auth-card {
     margin-top: 2px;
 }
 
-.shopping-mode .page-heading,
+/* Shopping mode (Grocery fix G2): the class is applied only while
+   the groceries route is on screen (see applyShoppingModeChrome in
+   app.js). The sidebar drops away, but the groceries page-heading
+   stays — it carries the Exit button and the caption that explains
+   the mode, so hiding it would strand the user in the mode. */
 .shopping-mode .app-sidebar {
     display: none;
 }
@@ -3095,6 +3099,16 @@ dialog .guided-grocery-row input[type="checkbox"] {
 
 .shopping-mode .groceries-view .grocery-item-row {
     padding: 5px 0;
+}
+
+/* Grocery fix G2: the caption under the heading states what the
+   mode does, in the surface's serif voice, while the mode is on. */
+.groceries-view .shopping-mode-caption {
+    margin-top: 4px;
+    font-style: italic;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: #5d5344;
 }
 
 /* =====================================================================
