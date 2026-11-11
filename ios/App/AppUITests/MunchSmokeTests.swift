@@ -31,7 +31,7 @@ final class MunchSmokeTests: XCTestCase {
 
     /// Cold start with no session must land on the packaged sign-in
     /// page; the fixture sign-in then boots the real shell, and Today,
-    /// the log-a-meal composer, the Log view, Pantry, and Settings all
+    /// the log-a-meal composer, History, Pantry, and Settings all
     /// render against fixture data.
     func test01_BootSignInAndCoreFlows() throws {
         // Step 1 — cold boot renders the sign-in surfaces, not a blank
@@ -98,20 +98,28 @@ final class MunchSmokeTests: XCTestCase {
             "Meal composer did not dismiss"
         )
 
-        // Step 5 — the Log view renders its (empty-fixture) history.
+        // Step 5 — History renders its (empty-fixture) meal history.
+        // History has no bottom-nav slot anymore (Today-navigation
+        // brief item 6): its two doors are the calendar sheet's
+        // "Search history" row and the More page's History card.
+        // This exercises the More door, mirroring Step 7's pattern.
         tapHittable(
-            links(containing: "Log"),
-            "bottom-nav Log link"
+            links(containing: "More"),
+            "bottom-nav More link"
+        )
+        tapHittable(
+            links(containing: "History"),
+            "More page History card"
         )
         XCTAssertTrue(
             waitForText("No meals logged", timeout: 30),
-            "Log view never rendered its empty state"
+            "History view never rendered its empty state"
         )
         XCTAssertTrue(
             anyElement(containingText: "Search meal history").exists,
-            "Log view is missing its history search"
+            "History view is missing its history search"
         )
-        attachScreenshot("05-log")
+        attachScreenshot("05-history")
 
         // Step 6 — Pantry opens as its own packaged page and loads the
         // fixture inventory (the item count only appears after
