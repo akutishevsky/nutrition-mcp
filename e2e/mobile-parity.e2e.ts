@@ -356,6 +356,16 @@ function defaultTrendsLayout(): { version: number; cards: TrendsLayoutCard[] } {
     };
 }
 let trendsLayoutFixture = defaultTrendsLayout();
+/** Feature toggles: the account's module flags the stub bootstrap
+    serves; tests flip them before boot to prove the packaged nav and
+    route guards render from the flags, not from constants. */
+let featureFlagsFixture = {
+    plan: true,
+    recipes: true,
+    groceries: true,
+    pantry: true,
+    cooks: true,
+};
 /** The vitals regression runs its delete flows on Today now that the
     Insights destination retired; its entries ride the Today fixture
     only when a test asks for them. */
@@ -1032,6 +1042,9 @@ function bootstrapFixture() {
     return {
         profile: PROFILE,
         productPolicy: PRODUCT_POLICY,
+        // Feature toggles (addendum 10): bootstrap carries the
+        // account's module flags; the nav renders from them.
+        features: featureFlagsFixture,
         capabilities: {
             entitlementSource: "android_free_baseline",
             tier: "free",
@@ -1550,6 +1563,16 @@ function fixtureJson(pathname: string, method: string): unknown | undefined {
     ) {
         cookFinished = true;
         return {};
+    }
+    if (pathname === "/api/app/features") {
+        if (method === "PUT") {
+            const patch = (body as { features?: Record<string, boolean> })
+                ?.features;
+            if (patch) {
+                featureFlagsFixture = { ...featureFlagsFixture, ...patch };
+            }
+        }
+        return { features: featureFlagsFixture };
     }
     if (pathname === "/api/app/trends") {
         return trendsWorkspaceFixture();
@@ -2378,6 +2401,13 @@ test.beforeEach(() => {
     cookDeleted = false;
     vitalsRemovedIds.clear();
     trendsLayoutFixture = defaultTrendsLayout();
+    featureFlagsFixture = {
+        plan: true,
+        recipes: true,
+        groceries: true,
+        pantry: true,
+        cooks: true,
+    };
     vitalsOnToday = false;
     calendarSeedOn = false;
     connectionsFixture = [
@@ -2397,6 +2427,7 @@ test("every app-channel entry point ships inside the packaged bundle", async () 
         "app-account.js",
         "app-patches.js",
         "app-integrity.js",
+        "feature-nav.js",
         "pantry.js",
         "mobile-runtime.js",
         "mobile-entry.js",
@@ -2495,6 +2526,44 @@ test("packaged route sweep renders every Operate surface", async ({ page }) => {
     // Pantry is the second packaged page (its own shell + script).
     await page.goto(`${baseURL}/pantry.html`);
     await expect(page).toHaveTitle(/Pantry/);
+});
+
+test("feature toggles: the packaged nav and guards render from the account flags", async ({
+    page,
+}) => {
+    // Plan and Pantry off before boot: the bundle's nav drops both,
+    // the disabled SPA route lands on Today with the notice, and the
+    // packaged Pantry page hands back to Today instead of loading.
+    featureFlagsFixture = {
+        plan: false,
+        recipes: true,
+        groceries: true,
+        pantry: false,
+        cooks: true,
+    };
+    await bootPackagedApp(page);
+    const navLabels = await page
+        .locator(".mobile-bottom-nav a")
+        .allTextContents();
+    expect(
+        navLabels.map((label) => label.replace(/^[^A-Za-z]+/, "").trim()),
+    ).toEqual(["Today", "Recipes", "Groceries", "More"]);
+
+    await gotoRoute(page, "/app/plan");
+    await expect(
+        page.locator(".toast", {
+            hasText: "Meal Plan is turned off — re-enable it in Settings",
+        }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle(/^Today — Munch$/);
+
+    await page.goto(`${baseURL}/pantry.html`);
+    await expect(page).toHaveTitle(/^Today — Munch$/);
+    await expect(
+        page.locator(".toast", {
+            hasText: "Pantry is turned off — re-enable it in Settings",
+        }),
+    ).toBeVisible();
 });
 
 test("household.manage lives inside the packaged app", async ({ page }) => {

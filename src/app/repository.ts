@@ -68,6 +68,7 @@ import {
     type TrendsMealInput,
 } from "../trends.js";
 import { getTrendsDashboardLayout } from "../trends-layout.js";
+import { getFeatureModules } from "../feature-modules-repository.js";
 import { fromGrams } from "../units.js";
 
 export interface AppMealItem {
@@ -234,16 +235,21 @@ export async function getAppBootstrap(
     email: string,
     surface: MunchCapabilitySurface = "web",
 ) {
-    const [profile, capabilities, household, androidEntitlements] =
+    const [profile, capabilities, household, androidEntitlements, features] =
         await Promise.all([
             getProfile(userId),
             resolveMunchCapabilities(userId, surface),
             getActiveHouseholdContext(userId),
             resolveAndroidEntitlements(userId),
+            getFeatureModules(userId),
         ]);
     return {
         user: { id: userId, email },
         profile,
+        // Feature toggles (addendum 10, T5): the account's module
+        // flags ride the bootstrap so every client renders the same
+        // nav and honors the same off state.
+        features,
         productPolicy: getPublicProductPolicy(),
         capabilities: {
             tier: capabilities.tier,
@@ -293,14 +299,22 @@ export async function getTodayWorkspace(
             getWaterByDate(userId, date, timezone),
             getWeightByDate(userId, date, timezone),
             listOpenDrafts(userId),
-            capabilities.personalPlanningRead || capabilities.householdRead
-                ? getMealPlan({
-                      userId,
-                      startDate: date,
-                      endDate: date,
-                      scope: "all",
-                  })
-                : Promise.resolve([]),
+            // Feature toggles (T3): with Meal Plan off, Today's
+            // "Planned today" section — a Plan surface entry — is not
+            // assembled at all. The plan data itself is untouched (T4).
+            (async () => {
+                const features = await getFeatureModules(userId);
+                if (!features.plan) return [];
+                return capabilities.personalPlanningRead ||
+                    capabilities.householdRead
+                    ? getMealPlan({
+                          userId,
+                          startDate: date,
+                          endDate: date,
+                          scope: "all",
+                      })
+                    : [];
+            })(),
         ]);
     return {
         date,

@@ -64,9 +64,24 @@ function deps(
                 ],
             }) as never,
         plan: async () => [] as never,
+        features: async () => ({
+            plan: true,
+            recipes: true,
+            groceries: true,
+            pantry: true,
+            cooks: true,
+        }),
         ...partial,
     };
 }
+
+const FEATURES_OFF = {
+    plan: false,
+    recipes: false,
+    groceries: false,
+    pantry: false,
+    cooks: false,
+};
 
 describe("chat v2 entry seeds", () => {
     test("today: summary, opener, and data come from the live workspace", async () => {
@@ -111,6 +126,70 @@ describe("chat v2 entry seeds", () => {
         expect(seed.summary).toContain("9,100 kcal");
         expect(seed.summary).toContain("2 meals");
         expect(seed.starters).toContain("Explain my week");
+    });
+
+    test("feature toggles: a disabled module's surface has no seed (T3)", async () => {
+        const pantrySeed = await assembleEntrySeed(
+            "user-1",
+            "pantry",
+            deps({ features: async () => ({ ...FEATURES_OFF, plan: true }) }),
+        );
+        expect(pantrySeed).toBeNull();
+        const planSeed = await assembleEntrySeed(
+            "user-1",
+            "meal_plan",
+            deps({
+                features: async () => ({ ...FEATURES_OFF, pantry: true }),
+            }),
+        );
+        expect(planSeed).toBeNull();
+        // Core surfaces are never gated.
+        const todaySeed = await assembleEntrySeed(
+            "user-1",
+            "today",
+            deps({ features: async () => FEATURES_OFF }),
+        );
+        expect(todaySeed?.surface).toBe("today");
+    });
+
+    test("feature toggles: the meal-plan seed never offers a disabled module (T3)", async () => {
+        const seed = await assembleEntrySeed(
+            "user-1",
+            "meal_plan",
+            deps({
+                features: async () => ({
+                    plan: true,
+                    recipes: true,
+                    groceries: false,
+                    pantry: false,
+                    cooks: false,
+                }),
+            }),
+        );
+        expect(seed?.opener).toContain("your recipes");
+        expect(seed?.opener.toLowerCase()).not.toContain("pantry");
+        expect(seed?.starters).not.toContain(
+            "Build the grocery list from this plan",
+        );
+
+        const recipesOff = await assembleEntrySeed(
+            "user-1",
+            "meal_plan",
+            deps({
+                features: async () => ({
+                    plan: true,
+                    recipes: false,
+                    groceries: true,
+                    pantry: true,
+                    cooks: true,
+                }),
+            }),
+        );
+        expect(recipesOff?.opener).toContain("pantry");
+        expect(recipesOff?.opener).not.toContain("your recipes");
+        expect(recipesOff?.starters).toContain(
+            "Build the grocery list from this plan",
+        );
     });
 
     test("a failing gatherer degrades the seed instead of throwing", async () => {

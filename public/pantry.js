@@ -1,8 +1,39 @@
 import { installOfflineBanner, requestJson as api } from "./app-api.js";
 import { installPhotoCapture } from "./photo-capture.js";
+import {
+    applyFeatureNav,
+    normalizeFeatureFlags,
+    queueModuleOffNotice,
+} from "./feature-nav.js";
 
 installOfflineBanner();
 installPhotoCapture();
+
+// Feature toggles (T3/T6): this page is the Pantry module's home, so
+// it answers to the account's flags like every other surface. With
+// Pantry off, the page lands on Today with the one-line notice —
+// the inventory itself is never touched (T4). With Pantry on, the
+// mirrored bottom nav renders from the same flags as the shell's.
+async function applyFeatureFlags() {
+    try {
+        const bootstrap = await api("/api/app/bootstrap");
+        const features = normalizeFeatureFlags(bootstrap?.features);
+        if (!features.pantry) {
+            queueModuleOffNotice("pantry");
+            location.replace(
+                location.pathname.endsWith("pantry.html")
+                    ? "/index.html?route=%2Fapp"
+                    : "/app",
+            );
+            return false;
+        }
+        applyFeatureNav(features);
+    } catch {
+        // A bootstrap that cannot load leaves the page as shipped;
+        // the settings fetch below surfaces any real failure.
+    }
+    return true;
+}
 
 const $ = (selector) => document.querySelector(selector);
 const enabledToggle = $("#pantry-enabled");
@@ -601,4 +632,8 @@ mealIdeaForm.addEventListener("submit", async (event) => {
     }
 });
 
-loadSettings();
+// The feature-flag check runs first: on a Pantry-off account it has
+// already redirected to Today, and the workspace never loads.
+void applyFeatureFlags().then((pantryOn) => {
+    if (pantryOn) loadSettings();
+});

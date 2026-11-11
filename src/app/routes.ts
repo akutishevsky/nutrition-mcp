@@ -140,6 +140,11 @@ import {
     saveTrendsDashboardLayout,
 } from "../trends-layout.js";
 import {
+    getFeatureModules,
+    saveFeatureModules,
+} from "../feature-modules-repository.js";
+import { featureModulePatch } from "../feature-modules.js";
+import {
     addCookUpdate,
     compareCooks,
     correctCookEvent,
@@ -973,6 +978,12 @@ export function createAppRouter(): Hono {
     );
     app.get("/photo-capture.js", async (c) =>
         c.body(await Bun.file("./public/photo-capture.js").text(), 200, {
+            "Content-Type": "text/javascript; charset=utf-8",
+            "Cache-Control": "no-cache",
+        }),
+    );
+    app.get("/feature-nav.js", async (c) =>
+        c.body(await Bun.file("./public/feature-nav.js").text(), 200, {
             "Content-Type": "text/javascript; charset=utf-8",
             "Cache-Control": "no-cache",
         }),
@@ -1816,6 +1827,28 @@ export function createAppRouter(): Hono {
                 c.get("munchUserId"),
                 layout,
             ),
+        });
+    });
+
+    // Feature toggles (addendum 10, T1/T5): the account-level module
+    // flags. PUT accepts a partial patch of the five module booleans;
+    // the "Just logging" preset is simply all five set false.
+    app.get("/api/app/features", async (c) =>
+        privateJson(c, {
+            features: await getFeatureModules(c.get("munchUserId")),
+        }),
+    );
+
+    app.put("/api/app/features", requireSameOrigin, async (c) => {
+        const body = recordValue(await c.req.json(), "Features");
+        const patch = featureModulePatch(body.features ?? body);
+        if (!patch) {
+            throw new Error(
+                "Features update requires at least one module flag",
+            );
+        }
+        return privateJson(c, {
+            features: await saveFeatureModules(c.get("munchUserId"), patch),
         });
     });
 

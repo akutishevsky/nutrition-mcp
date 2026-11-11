@@ -1041,6 +1041,21 @@ export const CAPABILITY_MANIFEST = [
         targetPr: null,
     },
     {
+        id: "preference.features",
+        mcp: websiteOnly([]),
+        web: complete(["/app/settings/features"]),
+        app: complete(["/app/settings/features"]),
+        ios: complete(["/app/settings/features"]),
+        iosBasis:
+            "Shared bundle: the surface lives inside the packaged SPA (the evidence class S5 used for the Android channel) and iOS packages that same SPA; no platform-specific native dependency.",
+        iosGap: null,
+        iosTargetPr: null,
+        intentionalChannelException:
+            "Feature toggles are an account display preference managed in Settings (addendum 10). There is no MCP toggle tool: the chat tool surface derives from the MCP catalog under the chat parity law, and the flags act on context assembly instead.",
+        gap: null,
+        targetPr: null,
+    },
+    {
         id: "recipe.create",
         mcp: complete(["save_recipe", "save_meal_as_recipe"]),
         web: complete(["POST /api/app/recipes", "/app/recipes"]),

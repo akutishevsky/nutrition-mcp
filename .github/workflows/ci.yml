@@ -146,6 +146,8 @@ jobs:
           MUNCH_REVIEWER_EMAIL="$REVIEWER_EMAIL" MUNCH_REVIEWER_PASSWORD="$REVIEWER_PASSWORD" bun scripts/reviewer-readiness-smoke.ts
       - name: Exercise nutrition persistence, idempotency, and RLS
         run: bun scripts/nutrition-platform-smoke.ts
+      - name: Exercise feature module toggles persistence and RLS
+        run: bun scripts/feature-modules-smoke.ts
       - name: Exercise persistent food catalog ingestion, cache locality, freshness, and idempotency
         run: bun scripts/food-catalog-ingestion-smoke.ts
       - name: Benchmark food catalog local search and batched writes
@@ -282,6 +284,15 @@ jobs:
           name: munch-today-navigation-captures
           path: |
             test-results/today-navigation-captures/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload feature toggle captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-feature-toggles-captures
+          path: |
+            test-results/feature-toggles-captures/
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload browser traces on failure

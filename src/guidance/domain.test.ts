@@ -336,6 +336,14 @@ describe("guided nutrition domain rules", () => {
         expect(recorded.source_status).toBe("recorded_data");
         expect(recorded.actions[0]).toContain("Protein recorded so far");
         expect(recorded.actions[1]).toContain("Water recorded");
+        // Feature toggles (T3): the Plan-off assembly passes no planned
+        // meals, so no plan-derived action or payload can appear.
+        expect(recorded.planned_meals).toEqual([]);
+        expect(
+            recorded.actions.some((action) =>
+                action.toLowerCase().includes("planned"),
+            ),
+        ).toBe(false);
         expect(objectiveLabel("maintain")).toBe("maintain weight");
         expect(objectiveLabel("gain")).toBe("gain weight");
         expect(objectiveLabel("lose")).toBe("lose weight");

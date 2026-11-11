@@ -153,7 +153,7 @@ export interface ChatServiceDependencies extends ChatEntitlementDependencies {
     assembleSeed?: (
         userId: string,
         surface: ChatEntrySurface,
-    ) => Promise<ChatEntrySeed>;
+    ) => Promise<ChatEntrySeed | null>;
     openToolSession?: (userId: string) => Promise<ChatToolSession>;
     requestReply?: (
         input: Parameters<typeof requestChatReply>[0],

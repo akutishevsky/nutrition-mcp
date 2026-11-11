@@ -67,6 +67,7 @@ export const MOBILE_CAPABILITY_IDS = [
     "preference.widgets",
     "preference.alcohol",
     "preference.timezone",
+    "preference.features",
     "recipe.create",
     "recipe.import",
     "recipe.read",
