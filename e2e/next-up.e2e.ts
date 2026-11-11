@@ -52,12 +52,13 @@ test.describe("next up guidance rework", () => {
             "/api/app/guidance/preferences",
         );
         const prefs = (await prefsResponse.json()).preferences;
+        const { version: _readVersion, ...prefsBody } = prefs;
         const setObjective = await page.request.put(
             "/api/app/guidance/preferences",
             {
                 headers: originOf(page),
                 data: {
-                    preferences: { ...prefs, objective: "track_only" },
+                    preferences: { ...prefsBody, objective: "track_only" },
                     expected_version: prefs.version,
                     confirm: true,
                 },
@@ -103,6 +104,43 @@ test.describe("next up guidance rework", () => {
         await page.screenshot({
             path: join(CAPTURE_DIR, "next-up-objective-unset.png"),
         });
+
+        // Setting a goal through the prompt works and retires it
+        // (the existing confirmed, versioned preferences write).
+        await section.getByRole("button", { name: "Maintain" }).click();
+        await expect(page.getByText(/Goal set/)).toBeVisible();
+        await expect(
+            section.getByRole("button", { name: "Lose weight" }),
+        ).toHaveCount(0);
+
+        // Reset to unset for the dismissal half of the fixture.
+        const prefsAgain = (
+            await (
+                await page.request.get("/api/app/guidance/preferences")
+            ).json()
+        ).preferences;
+        const { version: _v2, ...prefsAgainBody } = prefsAgain;
+        const resetAgain = await page.request.put(
+            "/api/app/guidance/preferences",
+            {
+                headers: originOf(page),
+                data: {
+                    preferences: {
+                        ...prefsAgainBody,
+                        objective: "track_only",
+                    },
+                    expected_version: prefsAgain.version,
+                    confirm: true,
+                },
+            },
+        );
+        expect(resetAgain.status(), "reset objective again").toBe(200);
+        await page.reload();
+        await expect(
+            page
+                .getByTestId("next-up")
+                .getByRole("button", { name: "Dismiss" }),
+        ).toBeVisible();
 
         // Dismissal persists across a reload (one-time means one-time).
         await section.getByRole("button", { name: "Dismiss" }).click();
@@ -297,7 +335,7 @@ test.describe("next up guidance rework", () => {
         await signIn(page);
         await page.goto("/app/recipes");
         await expect(
-            page.getByRole("heading", { name: "Recipes" }),
+            page.getByRole("heading", { name: "Recipe library" }),
         ).toBeVisible();
         await expect(page.locator("body")).not.toContainText(
             "Import from a website for review",

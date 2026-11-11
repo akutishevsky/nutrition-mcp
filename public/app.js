@@ -665,7 +665,7 @@ function nextUpPanel(nextUp) {
             primary.kind === "recipe"
                 ? ` · ${number(primary.servings, 2)} serving${primary.servings === 1 ? "" : "s"}`
                 : "";
-        body = `<article class="next-up-card"><p class="next-up-kicker">${escapeHtml(slotLabel)}${primary.kind === "recipe" ? " · from your recipes" : " · you logged it before"}</p><h4 class="next-up-title">${escapeHtml(primary.name)}</h4><p class="next-up-reason">${escapeHtml(primary.reason)}</p><p class="next-up-nutrition">${escapeHtml(nutrition)}${escapeHtml(servingsNote)}</p>${primary.landing_text ? `<p class="next-up-landing">${escapeHtml(primary.landing_text)}</p>` : ""}<div class="next-up-actions"><button class="button button-primary next-up-log-action" type="button" data-action="next-up-log" data-candidate="${escapeHtml(primary.candidate_id)}" data-slot="${escapeHtml(primary.slot)}" data-servings="${escapeHtml(primary.servings)}">Log it</button>${primary.actions.plan ? `<button class="button button-secondary" type="button" data-action="next-up-plan" data-candidate="${escapeHtml(primary.candidate_id)}" data-slot="${escapeHtml(primary.slot)}" data-servings="${escapeHtml(primary.servings)}">Plan it</button>` : ""}${primary.actions.groceries ? `<button class="button button-secondary next-up-groceries-action" type="button" data-action="next-up-groceries" data-candidate="${escapeHtml(primary.candidate_id)}">Add missing to groceries</button>` : ""}</div></article>${(nextUp.secondary || []).length ? `<ul class="next-up-secondary">${nextUp.secondary.map((line) => `<li>${escapeHtml(line.text)}</li>`).join("")}</ul>` : ""}`;
+        body = `<article class="next-up-card"><p class="next-up-kicker">${escapeHtml(slotLabel)}${primary.kind === "recipe" ? " · from your recipes" : " · you logged it before"}</p><h4 class="next-up-title">${escapeHtml(primary.name)}</h4><p class="next-up-reason">${escapeHtml(primary.reason)}</p><p class="next-up-nutrition">${escapeHtml(nutrition)}${escapeHtml(servingsNote)}</p>${primary.landing_text ? `<p class="next-up-landing">${escapeHtml(primary.landing_text)}</p>` : ""}<div class="next-up-actions"><button class="button button-primary next-up-log-action" type="button" data-action="next-up-log" data-candidate="${escapeHtml(primary.candidate_id)}" data-slot="${escapeHtml(primary.slot)}" data-servings="${escapeHtml(primary.servings)}">Log it</button>${primary.actions.plan ? `<button class="button button-secondary" type="button" data-action="next-up-plan" data-candidate="${escapeHtml(primary.candidate_id)}" data-slot="${escapeHtml(primary.slot)}" data-servings="${escapeHtml(primary.servings)}">Plan it</button>` : ""}${primary.actions.groceries ? `<button class="button button-secondary next-up-groceries-action" type="button" data-action="next-up-groceries" data-candidate="${escapeHtml(primary.candidate_id)}">Add missing to groceries</button>` : ""}</div></article>${(nextUp.secondary || []).length ? `<ul class="next-up-secondary">${nextUp.secondary.map((line) => `<li>${escapeHtml(line.text)}</li>`).join("")}</ul>` : ""}${nextUp.goal_prompt?.show ? nextUpGoalPrompt() : ""}`;
     } else {
         body = `${nextUp.quiet_line ? `<p class="next-up-quiet">${escapeHtml(nextUp.quiet_line)}</p>` : ""}${nextUp.goal_prompt?.show ? nextUpGoalPrompt() : ""}`;
     }
@@ -5193,11 +5193,16 @@ async function handleAction(button) {
         const current = await api("/api/app/guidance/preferences", {
             keepPrevious: true,
         });
+        // The read model embeds `version` in the preferences object,
+        // but the write schema is strict — version travels as
+        // expected_version only, never inside the preferences body.
+        const { version: _readVersion, ...currentPreferences } =
+            current.preferences;
         await api("/api/app/guidance/preferences", {
             method: "PUT",
             body: JSON.stringify({
                 preferences: {
-                    ...current.preferences,
+                    ...currentPreferences,
                     objective: button.dataset.objective,
                 },
                 expected_version: Number(current.preferences.version),
