@@ -226,6 +226,11 @@ jobs:
       STRIPE_HOUSEHOLD_MEMBER_PRICE_ID: price_household_test_placeholder
       OFF_USER_AGENT: "Munch E2E (test@example.test)"
       USDA_FDC_API_KEY: test-placeholder
+      # The suite's browser tests all sign in through the real form from
+      # one loopback IP; without this, Better Auth's production sign-in
+      # limit (5/min/IP) refuses the schedule's sixth sign-in with a 429
+      # (PR #236). Test-job only — production never sets this.
+      MUNCH_AUTH_SIGN_IN_RATE_LIMIT_MAX: "100"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
