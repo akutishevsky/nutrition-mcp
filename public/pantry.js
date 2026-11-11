@@ -1,6 +1,8 @@
 import { installOfflineBanner, requestJson as api } from "./app-api.js";
+import { installPhotoCapture } from "./photo-capture.js";
 
 installOfflineBanner();
+installPhotoCapture();
 
 const $ = (selector) => document.querySelector(selector);
 const enabledToggle = $("#pantry-enabled");

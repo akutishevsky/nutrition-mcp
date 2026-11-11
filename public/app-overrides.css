@@ -4372,8 +4372,7 @@ dialog .guided-grocery-row input[type="checkbox"] {
     margin-top: 10px;
 }
 
-/* =====================================================================
-   Trends — the customizable analytics dashboard (brief T1-T14; design
+/* ==============================================================   Trends — the customizable analytics dashboard (brief T1-T14; design
    reference: trends-final-renderings.html). Editorial Serif house
    grammar: paper #F6F1E7, panel #FFFDF7, ink #22301F, muted #6E7462,
    line #DED5C0, deep green #2E5B34, green-soft #E6EDDC, tan #C9BFA3,
@@ -5207,4 +5206,108 @@ dialog .guided-grocery-row input[type="checkbox"] {
     display: block;
     color: #6e7462;
     font-size: 11.5px;
+=======
+/* Photo-flow wave — P8 shared capture control. */
+.photo-capture {
+    display: grid;
+    gap: 8px;
+}
+
+.photo-capture-label {
+    font-weight: 600;
+}
+
+.photo-capture-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.photo-capture-button {
+    min-height: 44px;
+}
+
+.photo-capture-files {
+    margin: 0;
+}
+
+.photo-capture-files:empty {
+    display: none;
+}
+
+/* Photo-flow wave — P3: the draft review is single-column at phone
+   width; item editors collapse to compact rows by default. */
+.meal-draft-review .meal-composer-grid,
+.meal-draft-review .meal-composer-nutrients {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.meal-draft-item-head {
+    align-items: center;
+    gap: 8px;
+}
+
+.meal-draft-item-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    padding: 4px 0;
+    background: none;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.meal-draft-item-summary {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.meal-draft-item-summary strong {
+    overflow-wrap: anywhere;
+}
+
+.meal-draft-item-chevron,
+.meal-draft-item-badges {
+    flex: none;
+}
+
+.meal-draft-item-fields {
+    display: grid;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.meal-draft-item-fields[hidden] {
+    display: none;
+}
+
+/* Photo-flow wave — P4: the one save bar. */
+.meal-draft-savebar {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 10px 0;
+    background: var(--panel, #fffdf7);
+    border-top: 1px solid var(--line, #ded5c0);
+}
+
+.meal-draft-dirty {
+    color: #8a6d3b;
+    font-weight: 600;
+}
+
+.meal-draft-saved {
+    color: #2e5b34;
+    font-weight: 600;
 }

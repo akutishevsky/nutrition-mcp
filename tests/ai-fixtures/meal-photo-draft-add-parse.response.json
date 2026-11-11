@@ -4,7 +4,7 @@
             "finish_reason": "stop",
             "index": 0,
             "message": {
-                "content": "{\"items\":[{\"name\":\"butter\",\"quantity\":1,\"unit\":\"tbsp\",\"assumptions\":[\"\\\"a decent knob\\\" interpreted as 1 tbsp\"]}],\"replaces\":null}",
+                "content": "{\"items\":[{\"name\":\"butter\",\"quantity\":1,\"unit\":\"tbsp\",\"assumptions\":[\"\\\"a decent knob\\\" interpreted as 1 tbsp\"]}],\"replaces\":null,\"preparation\":null}",
                 "role": "assistant"
             }
         }

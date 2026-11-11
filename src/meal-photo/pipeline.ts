@@ -4,6 +4,7 @@ import {
     upsertMealDraftItem,
     type MealDraft,
 } from "../meal-drafts/index.js";
+import { PHOTO_DRAFT_PLACEHOLDER_DESCRIPTION } from "../meal-drafts/naming.js";
 import {
     groundMealPhotoItems,
     type GroundedMealPhotoItem,
@@ -22,7 +23,7 @@ import type { MealPhotoVisionResult } from "./vision.js";
  * the item's nutrition or removes it (meal-drafts/blocking.ts).
  */
 
-export const PHOTO_DRAFT_DESCRIPTION = "Photo estimate — check portions";
+export const PHOTO_DRAFT_DESCRIPTION = PHOTO_DRAFT_PLACEHOLDER_DESCRIPTION;
 export const PHOTO_DRAFT_NOTES =
     "Photo estimate — check portions. The meal photo was processed transiently to build this estimate and was not retained.";
 
@@ -54,7 +55,10 @@ export async function createMealPhotoDraft(input: {
         sourceMode: "photo",
         mealType: input.mealType,
         description: input.description?.trim() || PHOTO_DRAFT_DESCRIPTION,
-        loggedAt: input.loggedAt,
+        // Photo-flow P6: a photo draft is a meal being logged NOW —
+        // its logged_at defaults to the moment of capture, never to a
+        // fixed meal-slot time. The field stays editable in review.
+        loggedAt: input.loggedAt ?? new Date().toISOString(),
         notes: PHOTO_DRAFT_NOTES,
     });
     for (const [index, entry] of grounded.entries()) {

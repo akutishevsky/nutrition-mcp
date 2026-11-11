@@ -7,6 +7,7 @@ import {
     assertNoOpenBlockingQuestions,
     BLOCKING_DRAFT_QUESTION_KEY_PREFIX,
 } from "./blocking.js";
+import { confirmedMealDescription } from "./naming.js";
 import { aggregateStructuredMealItems } from "../structured-meals/repository.js";
 import type { StructuredMealItemInput } from "../structured-meals/types.js";
 import type {
@@ -583,6 +584,16 @@ async function insertConfirmedMeal(
             "Meal type and description are required before confirmation",
         );
     }
+    // Photo-flow P5: a photo draft still wearing its placeholder
+    // description is named from its identified items at confirm time,
+    // so the logged meal is called by its food everywhere it appears.
+    const mealDescription = (
+        confirmedMealDescription({
+            sourceMode: draft.sourceMode,
+            description: draft.description,
+            itemNames: draft.items.map((record) => record.item.name),
+        }) ?? draft.description
+    ).trim();
     const acceptedByItem = new Map<string, string[]>();
     const globalAssumptions: string[] = [];
     for (const question of draft.questions) {
@@ -614,7 +625,7 @@ async function insertConfirmedMeal(
             notes, idempotency_key
         ) values (
             ${draft.userId}, ${draft.loggedAt ? new Date(draft.loggedAt) : new Date()},
-            ${draft.mealType}, ${draft.description.trim()},
+            ${draft.mealType}, ${mealDescription},
             ${totals.calories === undefined ? null : Math.round(totals.calories)},
             ${totals.protein_g ?? null}, ${totals.carbs_g ?? null},
             ${totals.fat_g ?? null}, ${totals.fiber_g ?? null},

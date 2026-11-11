@@ -21,6 +21,13 @@ import {
     isAccountRoute,
     renderAccountRoute,
 } from "./app-account.js";
+import {
+    downscaleImageFile,
+    installPhotoCapture,
+    photoCaptureMarkup,
+} from "./photo-capture.js";
+
+installPhotoCapture();
 
 const state = {
     bootstrap: null,
@@ -60,6 +67,14 @@ const mealDraftReview = {
     pendingManual: [],
     searchTimer: null,
     addTextMessage: null,
+    // Photo-flow P4 (one coherent save model): unsaved edits are
+    // tracked explicitly, survive re-renders via a DOM snapshot, and
+    // are committed by the single Save changes action.
+    dirtyItems: new Set(),
+    detailsDirty: false,
+    expandedItems: new Set(),
+    savedMessage: null,
+    suppressSnapshot: false,
 };
 
 const recipeComposer = {
@@ -421,6 +436,26 @@ function metricDetailRow(label, valueText) {
     return `<div class="metric-detail-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(valueText)}</strong></div>`;
 }
 
+// Photo-flow P5 (client belt-and-braces): photo meals confirmed
+// before the server-side fix can still carry the placeholder
+// description. On every surface a confirmed meal is named from its
+// items instead — the first item, plus how many more.
+const PHOTO_PLACEHOLDER_DESCRIPTION = "Photo estimate — check portions";
+
+function mealDisplayName(meal) {
+    const description = String(meal?.description ?? "").trim();
+    if (description && description !== PHOTO_PLACEHOLDER_DESCRIPTION) {
+        return description;
+    }
+    const items = meal?.items ?? [];
+    const firstName = String(items[0]?.name ?? "").trim();
+    if (firstName) {
+        const extra = items.length - 1;
+        return extra > 0 ? `${firstName} + ${extra} more` : firstName;
+    }
+    return description || "Untitled meal";
+}
+
 // The decomposition behind a meal-based total (F2): every meal's
 // contribution, so the aggregate visibly adds up. Multi-day ranges
 // group by day — a per-meal list for a 90-day total would bury the
@@ -451,7 +486,7 @@ function mealMetricDetail(meals, field, unit, { groupByDay = false } = {}) {
             .map((meal) => {
                 total += meal[field] || 0;
                 return metricDetailRow(
-                    `${formatTime(meal.logged_at)} · ${meal.description || "Untitled meal"}`,
+                    `${formatTime(meal.logged_at)} · ${mealDisplayName(meal)}`,
                     format(meal[field]),
                 );
             })
@@ -549,7 +584,7 @@ function mealCard(meal) {
     );
     mealTypesById.set(String(meal.id), meal.meal_type || "snack");
     const type = meal.meal_type || "snack";
-    return `<article class="meal-card" data-meal-id="${escapeHtml(meal.id)}"><div class="meal-card-head"><div><h4>${escapeHtml(meal.description || "Untitled meal")}</h4><div class="meal-meta"><span>${escapeHtml(formatTime(meal.logged_at))}</span><span>${escapeHtml(type)}</span>${meal.notes ? `<span>${escapeHtml(meal.notes)}</span>` : ""}</div></div><strong>${meal.calories == null ? "—" : `${number(meal.calories)} kcal`}</strong></div><div class="meal-macros"><span class="macro-chip">Protein ${number(meal.protein_g, 1)}g</span><span class="macro-chip">Carbs ${number(meal.carbs_g, 1)}g</span><span class="macro-chip">Fat ${number(meal.fat_g, 1)}g</span>${meal.fiber_g == null ? "" : `<span class="macro-chip">Fiber ${number(meal.fiber_g, 1)}g</span>`}${meal.sugar_g == null ? "" : `<span class="macro-chip">Sugar ${number(meal.sugar_g, 1)}g</span>`}</div>${mealItems(meal.items)}<div class="auth-actions"><button class="button button-secondary button-small" data-action="view-meal-details" data-id="${escapeHtml(meal.id)}">View details</button><button class="button button-secondary button-small" data-action="edit-meal" data-id="${escapeHtml(meal.id)}">Edit</button><button class="button button-quiet button-small" data-action="duplicate-meal" data-id="${escapeHtml(meal.id)}">Duplicate</button><button class="button button-quiet button-small" data-action="delete-meal" data-id="${escapeHtml(meal.id)}">Delete</button></div></article>`;
+    return `<article class="meal-card" data-meal-id="${escapeHtml(meal.id)}"><div class="meal-card-head"><div><h4>${escapeHtml(mealDisplayName(meal))}</h4><div class="meal-meta"><span>${escapeHtml(formatTime(meal.logged_at))}</span><span>${escapeHtml(type)}</span>${meal.notes ? `<span>${escapeHtml(meal.notes)}</span>` : ""}</div></div><strong>${meal.calories == null ? "—" : `${number(meal.calories)} kcal`}</strong></div><div class="meal-macros"><span class="macro-chip">Protein ${number(meal.protein_g, 1)}g</span><span class="macro-chip">Carbs ${number(meal.carbs_g, 1)}g</span><span class="macro-chip">Fat ${number(meal.fat_g, 1)}g</span>${meal.fiber_g == null ? "" : `<span class="macro-chip">Fiber ${number(meal.fiber_g, 1)}g</span>`}${meal.sugar_g == null ? "" : `<span class="macro-chip">Sugar ${number(meal.sugar_g, 1)}g</span>`}</div>${mealItems(meal.items)}<div class="auth-actions"><button class="button button-secondary button-small" data-action="view-meal-details" data-id="${escapeHtml(meal.id)}">View details</button><button class="button button-secondary button-small" data-action="edit-meal" data-id="${escapeHtml(meal.id)}">Edit</button><button class="button button-quiet button-small" data-action="duplicate-meal" data-id="${escapeHtml(meal.id)}">Duplicate</button><button class="button button-quiet button-small" data-action="delete-meal" data-id="${escapeHtml(meal.id)}">Delete</button></div></article>`;
 }
 
 function groupedMeals(meals) {
@@ -2565,7 +2600,7 @@ function openCookCreate() {
         : '<input type="hidden" name="scope" value="personal" />';
     openDialog(
         "Start a cook",
-        `<form id="cook-create-form" class="auth-form" enctype="multipart/form-data"><p>Create a cook before, during, or after the fact. This does not log a meal or change pantry inventory.</p>${scopeOptions}<label class="field"><span>Cook title</span><input name="title" maxlength="200" placeholder="Smoked lemon pepper wings" required /></label><div class="meal-composer-grid"><label class="field"><span>Date</span><input name="cook_date" type="date" value="${escapeHtml(state.date)}" required /></label><label class="field"><span>Timezone</span><input name="timezone" value="${escapeHtml(state.bootstrap?.profile?.timezone || "UTC")}" maxlength="100" /></label></div><section id="cook-create-dishes" class="cook-create-dishes">${cookDishFormMarkup()}</section><button class="button button-quiet button-small" type="button" data-action="add-cook-dish">Add another dish</button><label class="field"><span>What are you doing?</span><textarea name="message" rows="3" maxlength="20000" placeholder="I’m starting these wings. I heated the grill to 250°F a couple minutes ago."></textarea></label><label class="field"><span>Photos</span><input name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple /><small class="tiny">JPEG, PNG, or WebP; up to 8 MB each. Notes are kept if a photo transfer fails.</small></label><button class="button button-primary" type="submit">Create cook</button></form>`,
+        `<form id="cook-create-form" class="auth-form" enctype="multipart/form-data"><p>Create a cook before, during, or after the fact. This does not log a meal or change pantry inventory.</p>${scopeOptions}<label class="field"><span>Cook title</span><input name="title" maxlength="200" placeholder="Smoked lemon pepper wings" required /></label><div class="meal-composer-grid"><label class="field"><span>Date</span><input name="cook_date" type="date" value="${escapeHtml(state.date)}" required /></label><label class="field"><span>Timezone</span><input name="timezone" value="${escapeHtml(state.bootstrap?.profile?.timezone || "UTC")}" maxlength="100" /></label></div><section id="cook-create-dishes" class="cook-create-dishes">${cookDishFormMarkup()}</section><button class="button button-quiet button-small" type="button" data-action="add-cook-dish">Add another dish</button><label class="field"><span>What are you doing?</span><textarea name="message" rows="3" maxlength="20000" placeholder="I’m starting these wings. I heated the grill to 250°F a couple minutes ago."></textarea></label><div class="field">${photoCaptureMarkup({ name: "photos", label: "Photos", multiple: true })}<small class="tiny">JPEG, PNG, or WebP; up to 8 MB each. Notes are kept if a photo transfer fails.</small></div><button class="button button-primary" type="submit">Create cook</button></form>`,
     );
 }
 
@@ -2709,7 +2744,7 @@ function cookDetailMarkup(detail) {
               .join("") +
           "</details>"
         : "";
-    return `<div class="cook-detail-view"><div class="cook-detail-head"><div><p class="section-kicker">${escapeHtml(cook.status === "active" ? "Active cook" : "Completed cook")}</p><h2>${escapeHtml(cook.title)}</h2><p class="tiny">${escapeHtml(formatDate(cook.cook_date, { year: true }))} · ${escapeHtml(cook.timezone)} · version ${number(cook.version)}</p></div><div class="auth-actions cook-actions" data-cook-actions data-context="detail" data-id="${escapeHtml(cook.id)}" data-status="${escapeHtml(cook.status)}">${cookDetailActionsMarkup(cook)}</div></div>${cook.original_message ? '<details class="cook-original"><summary>Original context</summary><p>' + escapeHtml(cook.original_message) + "</p></details>" : ""}<section class="cook-detail-section"><div class="panel-title"><div><h3>Dishes</h3><span>${detail.dishes.length} recorded</span></div></div><div class="cook-dishes">${dishes}</div></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Photos</h3><span>${detail.media.length} saved</span></div></div>${photoMarkup}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Timeline</h3><span>${detail.events.length} event${detail.events.length === 1 ? "" : "s"}</span></div></div>${cookTimelineMarkup(detail)}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Record an update</h3><span>One message can add multiple events and photos.</span></div></div><form id="cook-update-form" class="auth-form" data-id="${escapeHtml(cook.id)}" enctype="multipart/form-data"><input type="hidden" name="timezone" value="${escapeHtml(cook.timezone)}" /><label class="field"><span>What happened?</span><textarea name="message" rows="3" maxlength="20000" placeholder="A couple minutes ago I wrapped the wings. Internal temp was 155°F."></textarea></label><label class="field"><span>Add photos</span><input name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple /></label><button class="button button-primary" type="submit">Record update</button></form></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Result</h3><span>User observations stay separate from suggestions.</span></div></div><form id="cook-outcome-form" class="auth-form" data-id="${escapeHtml(cook.id)}" data-version="${escapeHtml(outcome?.version || "")}"><label class="field"><span>Feedback</span><textarea name="written_feedback" rows="3" maxlength="20000" placeholder="What did it taste and feel like?">${escapeHtml(outcome?.written_feedback || "")}</textarea></label><div class="meal-composer-grid"><label class="field"><span>Overall assessment (1–5)</span><input name="overall_assessment" type="number" min="1" max="5" step="0.1" value="${escapeHtml(outcome?.overall_assessment || "")}" /></label><label class="field"><span>Characteristics JSON</span><input name="characteristics" value="${escapeHtml(JSON.stringify(outcome?.characteristics || {}))}" placeholder='{"smoke_intensity":"medium"}' /></label></div><label class="field"><span>What worked</span><textarea name="worked" rows="2" maxlength="10000">${escapeHtml(outcome?.worked || "")}</textarea></label><label class="field"><span>What disappointed you</span><textarea name="disappointed" rows="2" maxlength="10000">${escapeHtml(outcome?.disappointed || "")}</textarea></label><label class="field"><span>Change next time</span><textarea name="next_time_notes" rows="2" maxlength="10000">${escapeHtml(outcome?.next_time_notes || "")}</textarea></label><label class="checkbox-row"><input name="is_preferred" type="checkbox" ${outcome?.is_preferred ? "checked" : ""} /> Preferred attempt</label><button class="button button-primary" type="submit">Save result</button></form></section><section class="cook-detail-section"><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="cook-recipe-draft" data-id="${escapeHtml(cook.id)}">Save as recipe</button><button class="button button-secondary button-small" type="button" data-action="set-preferred-cook" data-id="${escapeHtml(cook.id)}">Choose preferred attempt</button></div>${updateMarkup}</section></div>`;
+    return `<div class="cook-detail-view"><div class="cook-detail-head"><div><p class="section-kicker">${escapeHtml(cook.status === "active" ? "Active cook" : "Completed cook")}</p><h2>${escapeHtml(cook.title)}</h2><p class="tiny">${escapeHtml(formatDate(cook.cook_date, { year: true }))} · ${escapeHtml(cook.timezone)} · version ${number(cook.version)}</p></div><div class="auth-actions cook-actions" data-cook-actions data-context="detail" data-id="${escapeHtml(cook.id)}" data-status="${escapeHtml(cook.status)}">${cookDetailActionsMarkup(cook)}</div></div>${cook.original_message ? '<details class="cook-original"><summary>Original context</summary><p>' + escapeHtml(cook.original_message) + "</p></details>" : ""}<section class="cook-detail-section"><div class="panel-title"><div><h3>Dishes</h3><span>${detail.dishes.length} recorded</span></div></div><div class="cook-dishes">${dishes}</div></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Photos</h3><span>${detail.media.length} saved</span></div></div>${photoMarkup}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Timeline</h3><span>${detail.events.length} event${detail.events.length === 1 ? "" : "s"}</span></div></div>${cookTimelineMarkup(detail)}</section><section class="cook-detail-section"><div class="panel-title"><div><h3>Record an update</h3><span>One message can add multiple events and photos.</span></div></div><form id="cook-update-form" class="auth-form" data-id="${escapeHtml(cook.id)}" enctype="multipart/form-data"><input type="hidden" name="timezone" value="${escapeHtml(cook.timezone)}" /><label class="field"><span>What happened?</span><textarea name="message" rows="3" maxlength="20000" placeholder="A couple minutes ago I wrapped the wings. Internal temp was 155°F."></textarea></label><div class="field">${photoCaptureMarkup({ name: "photos", label: "Add photos", multiple: true })}</div><button class="button button-primary" type="submit">Record update</button></form></section><section class="cook-detail-section"><div class="panel-title"><div><h3>Result</h3><span>User observations stay separate from suggestions.</span></div></div><form id="cook-outcome-form" class="auth-form" data-id="${escapeHtml(cook.id)}" data-version="${escapeHtml(outcome?.version || "")}"><label class="field"><span>Feedback</span><textarea name="written_feedback" rows="3" maxlength="20000" placeholder="What did it taste and feel like?">${escapeHtml(outcome?.written_feedback || "")}</textarea></label><div class="meal-composer-grid"><label class="field"><span>Overall assessment (1–5)</span><input name="overall_assessment" type="number" min="1" max="5" step="0.1" value="${escapeHtml(outcome?.overall_assessment || "")}" /></label><label class="field"><span>Characteristics JSON</span><input name="characteristics" value="${escapeHtml(JSON.stringify(outcome?.characteristics || {}))}" placeholder='{"smoke_intensity":"medium"}' /></label></div><label class="field"><span>What worked</span><textarea name="worked" rows="2" maxlength="10000">${escapeHtml(outcome?.worked || "")}</textarea></label><label class="field"><span>What disappointed you</span><textarea name="disappointed" rows="2" maxlength="10000">${escapeHtml(outcome?.disappointed || "")}</textarea></label><label class="field"><span>Change next time</span><textarea name="next_time_notes" rows="2" maxlength="10000">${escapeHtml(outcome?.next_time_notes || "")}</textarea></label><label class="checkbox-row"><input name="is_preferred" type="checkbox" ${outcome?.is_preferred ? "checked" : ""} /> Preferred attempt</label><button class="button button-primary" type="submit">Save result</button></form></section><section class="cook-detail-section"><div class="auth-actions"><button class="button button-secondary button-small" type="button" data-action="cook-recipe-draft" data-id="${escapeHtml(cook.id)}">Save as recipe</button><button class="button button-secondary button-small" type="button" data-action="set-preferred-cook" data-id="${escapeHtml(cook.id)}">Choose preferred attempt</button></div>${updateMarkup}</section></div>`;
 }
 
 function openCookDishEditor(dish, cookId, cookVersion) {
@@ -3828,7 +3863,15 @@ function draftItemEditor(item, index) {
         )
         .join("");
     const portionField = draftPortionField(item);
-    return `<article class="meal-draft-item meal-composer-item" data-draft-item-index="${index}"><div class="meal-composer-item-head"><div><strong>${escapeHtml(item.name)}</strong><small>${sourceBadge(item.source_type)} ${confidenceBadge(item.confidence)}</small></div><div class="auth-actions"><button class="button button-primary button-small" type="button" data-action="save-draft-item" data-index="${index}">Save item</button><button class="button button-quiet button-small" type="button" data-action="remove-draft-item" data-index="${index}">Remove</button></div></div><div class="meal-composer-grid"><label class="field"><span>Name</span><input data-draft-field="name" value="${escapeHtml(item.name)}" maxlength="500" required /></label>${portionField}<label class="field"><span>Quantity</span><input data-draft-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity ?? 1)}" /></label><label class="field"><span>Gram weight</span><input data-draft-field="gram_weight" type="number" min="0.01" step="0.1" value="${escapeHtml(item.gram_weight ?? "")}" /></label></div><div class="meal-composer-nutrients">${nutrientFields}</div><details class="food-audit"><summary>Provenance and assumptions</summary><div class="food-audit-body"><div>${sourceBadge(item.source_type)} ${escapeHtml(item.provider || "Source snapshot preserved")}</div>${item.source_url ? `<a href="${escapeHtml(item.source_url)}" target="_blank" rel="noreferrer">View source</a>` : ""}${item.assumptions?.length ? `<div>Assumptions: ${escapeHtml(item.assumptions.join("; "))}</div>` : ""}</div></details></article>`;
+    // Photo-flow P3: item editors are collapsed by default — the
+    // review reads as a compact list (name, provenance, kcal, portion)
+    // and the full editor opens on tap. Expanded state lives in
+    // mealDraftReview.expandedItems so re-renders preserve it.
+    const expanded = mealDraftReview.expandedItems.has(
+        item.id ?? `index:${index}`,
+    );
+    const calories = item.nutrients?.calories;
+    return `<article class="meal-draft-item meal-composer-item" data-draft-item-index="${index}"><div class="meal-composer-item-head meal-draft-item-head"><button class="meal-draft-item-toggle" type="button" data-action="toggle-draft-item" data-index="${index}" aria-expanded="${expanded}"><span class="meal-draft-item-summary"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.portion_label || "")}${calories != null ? ` · ${number(calories)} kcal` : ""}</small></span><span class="meal-draft-item-chevron" aria-hidden="true">${expanded ? "▾" : "▸"}</span></button><small class="meal-draft-item-badges">${sourceBadge(item.source_type)} ${confidenceBadge(item.confidence)}</small><button class="button button-quiet button-small" type="button" data-action="remove-draft-item" data-index="${index}">Remove</button></div><div class="meal-draft-item-fields" ${expanded ? "" : "hidden"}><div class="meal-composer-grid"><label class="field"><span>Name</span><input data-draft-field="name" value="${escapeHtml(item.name)}" maxlength="500" required /></label>${portionField}<label class="field"><span>Quantity</span><input data-draft-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity ?? 1)}" /></label><label class="field"><span>Gram weight</span><input data-draft-field="gram_weight" type="number" min="0.01" step="0.1" value="${escapeHtml(item.gram_weight ?? "")}" /></label></div><div class="meal-composer-nutrients">${nutrientFields}</div><details class="food-audit"><summary>Provenance and assumptions</summary><div class="food-audit-body"><div>${sourceBadge(item.source_type)} ${escapeHtml(item.provider || "Source snapshot preserved")}</div>${item.source_url ? `<a href="${escapeHtml(item.source_url)}" target="_blank" rel="noreferrer">View source</a>` : ""}${item.assumptions?.length ? `<div>Assumptions: ${escapeHtml(item.assumptions.join("; "))}</div>` : ""}</div></details></div></article>`;
 }
 
 function draftManualEditor(item, index) {
@@ -3841,9 +3884,178 @@ function draftManualEditor(item, index) {
     return `<article class="meal-draft-item meal-composer-item" data-draft-pending-index="${index}"><div class="meal-composer-item-head"><div><strong>New manual food</strong><small>${sourceBadge("user_supplied")} Enter the nutrition used</small></div><button class="button button-primary button-small" type="button" data-action="save-draft-manual" data-index="${index}">Add item</button></div><div class="meal-composer-grid"><label class="field"><span>Name</span><input data-draft-field="name" value="${escapeHtml(item.name || "")}" maxlength="500" required /></label><label class="field"><span>Portion</span><input data-draft-field="portion_label" value="${escapeHtml(item.portion_label || "")}" placeholder="1 bowl, 1 slice…" /></label><label class="field"><span>Quantity</span><input data-draft-field="quantity" type="number" min="0.01" step="0.01" value="${escapeHtml(item.quantity ?? 1)}" /></label><label class="field"><span>Gram weight</span><input data-draft-field="gram_weight" type="number" min="0.01" step="0.1" value="${escapeHtml(item.gram_weight ?? "")}" /></label></div><div class="meal-composer-nutrients">${nutrientFields}</div></article>`;
 }
 
-function renderMealDraftReview(draft) {
-    mealDraftReview.draft = draft;
+// --- Photo-flow P4: ONE save model for the draft review -----------
+// Every edit (item fields, meal details) is local until "Save
+// changes" commits it. Dirty state is tracked per item + details,
+// shown in the save bar, and unsaved editor contents are snapshotted
+// before any re-render and restored after it, so a re-render caused
+// by another action (add text, add food, remove, question answer)
+// can never silently discard an unsaved edit — the two-save trap
+// this replaces (Save details re-rendered and dropped item edits).
+
+function draftItemKey(item, index) {
+    return item?.id ?? `index:${index}`;
+}
+
+function captureDraftUnsavedEdits() {
     const root = document.getElementById("meal-draft-review");
+    const draft = mealDraftReview.draft;
+    if (!root || !draft) return null;
+    const readFields = (editor) => {
+        const values = {};
+        editor.querySelectorAll("[data-draft-field]").forEach((field) => {
+            values[field.dataset.draftField] = field.value;
+        });
+        return values;
+    };
+    const items = new Map();
+    root.querySelectorAll("[data-draft-item-index]").forEach((editor) => {
+        const index = Number(editor.dataset.draftItemIndex);
+        const record = draft.items[index];
+        if (record) items.set(draftItemKey(record, index), readFields(editor));
+    });
+    const pending = new Map();
+    root.querySelectorAll("[data-draft-pending-index]").forEach((editor) => {
+        pending.set(
+            Number(editor.dataset.draftPendingIndex),
+            readFields(editor),
+        );
+    });
+    const details = {};
+    root.querySelectorAll("[data-draft-details] [data-draft-field]").forEach(
+        (field) => {
+            details[field.dataset.draftField] = field.value;
+        },
+    );
+    return { items, pending, details };
+}
+
+function applyDraftUnsavedEdits(snapshot, draft) {
+    if (!snapshot) return;
+    const root = document.getElementById("meal-draft-review");
+    if (!root) return;
+    const writeFields = (editor, values) => {
+        editor.querySelectorAll("[data-draft-field]").forEach((field) => {
+            if (field.dataset.draftField in values) {
+                field.value = values[field.dataset.draftField];
+            }
+        });
+    };
+    root.querySelectorAll("[data-draft-item-index]").forEach((editor) => {
+        const index = Number(editor.dataset.draftItemIndex);
+        const record = draft.items[index];
+        const values = record
+            ? snapshot.items.get(draftItemKey(record, index))
+            : null;
+        if (values) writeFields(editor, values);
+    });
+    root.querySelectorAll("[data-draft-pending-index]").forEach((editor) => {
+        const values = snapshot.pending.get(
+            Number(editor.dataset.draftPendingIndex),
+        );
+        if (values) writeFields(editor, values);
+    });
+    root.querySelectorAll("[data-draft-details] [data-draft-field]").forEach(
+        (field) => {
+            if (field.dataset.draftField in snapshot.details) {
+                field.value = snapshot.details[field.dataset.draftField];
+            }
+        },
+    );
+}
+
+function draftHasUnsavedChanges() {
+    return mealDraftReview.detailsDirty || mealDraftReview.dirtyItems.size > 0;
+}
+
+function refreshDraftSaveBar() {
+    const bar = document.querySelector("[data-draft-savebar]");
+    if (!bar) return;
+    const dirty = draftHasUnsavedChanges();
+    const button = bar.querySelector('[data-action="save-draft-all"]');
+    if (button) button.disabled = !dirty;
+    const note = bar.querySelector("[data-draft-save-note]");
+    if (note) {
+        note.textContent = dirty
+            ? "Unsaved changes"
+            : (mealDraftReview.savedMessage ?? "");
+        note.className = dirty ? "meal-draft-dirty" : "meal-draft-saved";
+    }
+}
+
+/** Commit every dirty item, then the details, threading the draft
+ * version through each PATCH. Returns the freshest draft. */
+async function saveDraftChanges() {
+    if (!mealDraftReview.draft || !draftHasUnsavedChanges()) {
+        return mealDraftReview.draft;
+    }
+    const root = document.getElementById("meal-draft-review");
+    const editors = [
+        ...(root?.querySelectorAll("[data-draft-item-index]") ?? []),
+    ];
+    for (const editor of editors) {
+        const index = Number(editor.dataset.draftItemIndex);
+        const record = mealDraftReview.draft.items[index];
+        if (
+            !record ||
+            !mealDraftReview.dirtyItems.has(draftItemKey(record, index))
+        ) {
+            continue;
+        }
+        const item = draftItemPayloadFromDom(index);
+        const result = await api(
+            `/api/app/meal-drafts/${mealDraftReview.draft.id}/items/${record.id}`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({
+                    expected_version: mealDraftReview.draft.version,
+                    item,
+                }),
+                keepPrevious: true,
+            },
+        );
+        mealDraftReview.draft = result.draft;
+        mealDraftReview.dirtyItems.delete(draftItemKey(record, index));
+    }
+    if (mealDraftReview.detailsDirty) {
+        const detailsRoot = root?.querySelector("[data-draft-details]");
+        const field = (name) =>
+            detailsRoot?.querySelector(`[data-draft-field="${name}"]`);
+        const loggedAt = field("logged_at")?.value;
+        const result = await api(
+            `/api/app/meal-drafts/${mealDraftReview.draft.id}`,
+            {
+                method: "PATCH",
+                body: JSON.stringify({
+                    expected_version: mealDraftReview.draft.version,
+                    description: field("description")?.value.trim() || null,
+                    meal_type:
+                        field("meal_type")?.value ||
+                        mealDraftReview.draft.meal_type,
+                    logged_at: loggedAt
+                        ? new Date(loggedAt).toISOString()
+                        : mealDraftReview.draft.logged_at,
+                    notes: field("notes")?.value.trim() || null,
+                }),
+                keepPrevious: true,
+            },
+        );
+        mealDraftReview.draft = result.draft;
+        mealDraftReview.detailsDirty = false;
+    }
+    mealDraftReview.savedMessage = "All changes saved.";
+    return mealDraftReview.draft;
+}
+
+function renderMealDraftReview(draft) {
+    const root = document.getElementById("meal-draft-review");
+    const snapshot = mealDraftReview.suppressSnapshot
+        ? null
+        : captureDraftUnsavedEdits();
+    mealDraftReview.suppressSnapshot = false;
+    const scrollHost = root?.closest("dialog");
+    const scrollTop = scrollHost?.scrollTop ?? 0;
+    mealDraftReview.draft = draft;
     if (!root) return;
     const openQuestions = draft.questions.filter(
         (question) => question.status === "open",
@@ -3854,7 +4066,10 @@ function renderMealDraftReview(draft) {
         "awaiting_answers",
         "awaiting_confirmation",
     ].includes(draft.status);
-    root.innerHTML = `<div class="meal-draft-review"><div class="panel-title"><div><span class="section-kicker">${escapeHtml(draft.status.replaceAll("_", " "))}</span><h3>${escapeHtml(draft.description || "Meal draft")}</h3></div><span>Version ${draft.version}</span></div><p class="tiny">${draft.expires_at ? `Expires ${escapeHtml(formatTime(draft.expires_at))}` : ""} ${draft.source_mode ? `· Source: ${escapeHtml(draft.source_mode)}` : ""}</p><div class="summary-grid">${metricCard("Calories", totals.calories, " kcal", null, true)}${metricCard("Protein", totals.protein_g, "g", null)}${metricCard("Carbs", totals.carbs_g, "g", null)}${metricCard("Fat", totals.fat_g, "g", null)}</div>${editable ? `<section class="meal-draft-section"><div class="panel-title"><h4>Meal details</h4><button class="button button-primary button-small" type="button" data-action="save-meal-draft">Save details</button></div><div class="meal-composer-grid"><label class="field"><span>Description</span><input data-draft-field="description" value="${escapeHtml(draft.description || "")}" maxlength="2000" /></label><label class="field"><span>Meal type</span><select data-draft-field="meal_type"><option value="breakfast" ${draft.meal_type === "breakfast" ? "selected" : ""}>Breakfast</option><option value="lunch" ${draft.meal_type === "lunch" ? "selected" : ""}>Lunch</option><option value="dinner" ${draft.meal_type === "dinner" ? "selected" : ""}>Dinner</option><option value="snack" ${draft.meal_type === "snack" ? "selected" : ""}>Snack</option></select></label><label class="field"><span>Logged at</span><input data-draft-field="logged_at" type="datetime-local" value="${escapeHtml(draftDateTimeValue(draft.logged_at))}" /></label></div><label class="field"><span>Notes</span><textarea data-draft-field="notes" rows="2" maxlength="4000">${escapeHtml(draft.notes || "")}</textarea></label></section>` : ""}<section class="meal-draft-section"><div class="panel-title"><h4>Foods and provenance</h4><span>${draft.items.length} item${draft.items.length === 1 ? "" : "s"}</span></div>${draft.items.map(draftItemEditor).join("") || `<p class="tiny">No foods are in this draft yet.</p>`}${mealDraftReview.pendingManual.map(draftManualEditor).join("")}</section>${editable && draft.source_mode === "photo" ? `<section class="meal-draft-section meal-draft-add-text"><div class="panel-title"><h4>Anything else to add?</h4></div><label class="field"><span class="sr-only">Anything else to add?</span><input class="input meal-draft-add-text-input" id="meal-draft-add-text-input" type="text" placeholder="I added a good bit of butter…" maxlength="500" autocomplete="off" /></label><button class="button button-secondary meal-draft-add-text-button" type="button" data-action="add-draft-text">Add to draft</button>${mealDraftReview.addTextMessage ? `<p class="tiny meal-draft-add-text-message" role="status">${escapeHtml(mealDraftReview.addTextMessage)}</p>` : ""}</section>` : ""}${editable ? `<section class="meal-draft-section meal-composer-search"><div class="panel-title"><h4>Add another food</h4><button class="button button-secondary button-small" type="button" data-action="add-draft-manual">Add manual food</button></div><div class="meal-composer-search-row"><input class="input" id="meal-draft-food-search" type="search" placeholder="Search oats, yogurt, chicken…" autocomplete="off" /><input class="input" id="meal-draft-food-barcode" inputmode="numeric" placeholder="Barcode" aria-label="Food barcode" /><button class="button button-secondary" type="button" data-action="lookup-draft-food-barcode">Look up</button></div><div id="meal-draft-food-results" class="meal-food-results"></div></section>` : ""}${openQuestions.length ? `<section class="meal-draft-section"><div class="panel-title"><h4>Questions</h4><span>${openQuestions.length} open</span></div>${openQuestions.map((question) => `<div class="meal-draft-question" data-draft-question-id="${escapeHtml(question.id)}"><strong>${escapeHtml(question.prompt)}</strong><div class="meal-composer-search-row"><input class="input" data-draft-question-answer placeholder="Answer or correction" maxlength="2000" /><button class="button button-secondary button-small" type="button" data-action="answer-meal-draft-question" data-question-id="${escapeHtml(question.id)}">Save answer</button></div></div>`).join("")}<label class="checkbox-row"><input type="checkbox" data-draft-accept-assumptions /> Accept the remaining assumptions as shown</label></section>` : ""}<div class="auth-actions meal-draft-actions">${editable ? `<button class="button button-primary" type="button" data-action="confirm-meal-draft">${openQuestions.length ? "Confirm and accept assumptions" : "Confirm and log meal"}</button><button class="button button-quiet" type="button" data-action="cancel-meal-draft">Abandon draft</button>` : `<p class="tiny">This draft is ${escapeHtml(draft.status)}.</p>`}</div></div>`;
+    const dirty = draftHasUnsavedChanges();
+    root.innerHTML = `<div class="meal-draft-review"><div class="panel-title"><div><span class="section-kicker">${escapeHtml(draft.status.replaceAll("_", " "))}</span><h3>${escapeHtml(draft.description || "Meal draft")}</h3></div><span>Version ${draft.version}</span></div><p class="tiny">${draft.expires_at ? `Expires ${escapeHtml(formatTime(draft.expires_at))}` : ""} ${draft.source_mode ? `· Source: ${escapeHtml(draft.source_mode)}` : ""}</p><div class="summary-grid">${metricCard("Calories", totals.calories, " kcal", null, true)}${metricCard("Protein", totals.protein_g, "g", null)}${metricCard("Carbs", totals.carbs_g, "g", null)}${metricCard("Fat", totals.fat_g, "g", null)}</div>${editable && draft.source_mode === "photo" ? `<section class="meal-draft-section meal-draft-add-text"><div class="panel-title"><h4>Anything else to add?</h4></div><label class="field"><span class="sr-only">Anything else to add?</span><input class="input meal-draft-add-text-input" id="meal-draft-add-text-input" type="text" placeholder="I added a good bit of butter…" maxlength="500" autocomplete="off" /></label><button class="button button-secondary meal-draft-add-text-button" type="button" data-action="add-draft-text">Add to draft</button>${mealDraftReview.addTextMessage ? `<p class="tiny meal-draft-add-text-message" role="status">${escapeHtml(mealDraftReview.addTextMessage)}</p>` : ""}</section>` : ""}${editable ? `<section class="meal-draft-section" data-draft-details><div class="panel-title"><h4>Meal details</h4></div><div class="meal-composer-grid"><label class="field"><span>Description</span><input data-draft-field="description" value="${escapeHtml(draft.description || "")}" maxlength="2000" /></label><label class="field"><span>Meal type</span><select data-draft-field="meal_type"><option value="breakfast" ${draft.meal_type === "breakfast" ? "selected" : ""}>Breakfast</option><option value="lunch" ${draft.meal_type === "lunch" ? "selected" : ""}>Lunch</option><option value="dinner" ${draft.meal_type === "dinner" ? "selected" : ""}>Dinner</option><option value="snack" ${draft.meal_type === "snack" ? "selected" : ""}>Snack</option></select></label><label class="field"><span>Logged at</span><input data-draft-field="logged_at" type="datetime-local" value="${escapeHtml(draftDateTimeValue(draft.logged_at))}" /></label></div><label class="field"><span>Notes</span><textarea data-draft-field="notes" rows="2" maxlength="4000">${escapeHtml(draft.notes || "")}</textarea></label></section>` : ""}<section class="meal-draft-section"><div class="panel-title"><h4>Foods and provenance</h4><span>${draft.items.length} item${draft.items.length === 1 ? "" : "s"}</span></div>${draft.items.map(draftItemEditor).join("") || `<p class="tiny">No foods are in this draft yet.</p>`}${mealDraftReview.pendingManual.map(draftManualEditor).join("")}</section>${editable ? `<section class="meal-draft-section meal-composer-search"><div class="panel-title"><h4>Add another food</h4><button class="button button-secondary button-small" type="button" data-action="add-draft-manual">Add manual food</button></div><div class="meal-composer-search-row"><input class="input" id="meal-draft-food-search" type="search" placeholder="Search oats, yogurt, chicken…" autocomplete="off" /><input class="input" id="meal-draft-food-barcode" inputmode="numeric" placeholder="Barcode" aria-label="Food barcode" /><button class="button button-secondary" type="button" data-action="lookup-draft-food-barcode">Look up</button></div><div id="meal-draft-food-results" class="meal-food-results"></div></section>` : ""}${openQuestions.length ? `<section class="meal-draft-section"><div class="panel-title"><h4>Questions</h4><span>${openQuestions.length} open</span></div>${openQuestions.map((question) => `<div class="meal-draft-question" data-draft-question-id="${escapeHtml(question.id)}"><strong>${escapeHtml(question.prompt)}</strong><div class="meal-composer-search-row"><input class="input" data-draft-question-answer placeholder="Answer or correction" maxlength="2000" /><button class="button button-secondary button-small" type="button" data-action="answer-meal-draft-question" data-question-id="${escapeHtml(question.id)}">Save answer</button></div></div>`).join("")}<label class="checkbox-row"><input type="checkbox" data-draft-accept-assumptions /> Accept the remaining assumptions as shown</label></section>` : ""}${editable ? `<div class="meal-draft-savebar" data-draft-savebar><span data-draft-save-note class="${dirty ? "meal-draft-dirty" : "meal-draft-saved"}">${dirty ? "Unsaved changes" : escapeHtml(mealDraftReview.savedMessage ?? "")}</span><button class="button button-primary" type="button" data-action="save-draft-all" ${dirty ? "" : "disabled"}>Save changes</button></div>` : ""}<div class="auth-actions meal-draft-actions">${editable ? `<button class="button button-primary" type="button" data-action="confirm-meal-draft">${openQuestions.length ? "Confirm and accept assumptions" : "Confirm and log meal"}</button><button class="button button-quiet" type="button" data-action="cancel-meal-draft">Abandon draft</button>` : `<p class="tiny">This draft is ${escapeHtml(draft.status)}.</p>`}</div></div>`;
+    applyDraftUnsavedEdits(snapshot, draft);
+    if (scrollHost) scrollHost.scrollTop = scrollTop;
 }
 
 function renderDraftFoodResults(data) {
@@ -3987,6 +4202,11 @@ async function openMealDraft(id) {
     mealDraftReview.options.clear();
     mealDraftReview.pendingManual = [];
     mealDraftReview.addTextMessage = null;
+    mealDraftReview.dirtyItems.clear();
+    mealDraftReview.detailsDirty = false;
+    mealDraftReview.expandedItems.clear();
+    mealDraftReview.savedMessage = null;
+    mealDraftReview.suppressSnapshot = true;
     openDialog(
         "Review meal draft",
         `<div id="meal-draft-review"><p class="tiny">Loading draft…</p></div>`,
@@ -4006,7 +4226,7 @@ async function openMealPhotoDialog() {
         "Log by photo",
         `<div class="meal-photo-capture">
             <p class="meal-photo-lede">Photograph your meal and Munch will estimate the items and portions into a reviewable draft. Nothing is logged until you confirm the draft, and the photo itself is processed transiently — it is never kept.</p>
-            <label class="field"><span>Meal photo</span><input id="meal-photo-file" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" /></label>
+            <div class="field">${photoCaptureMarkup({ inputId: "meal-photo-file", label: "Meal photo" })}</div>
             <label class="field"><span>Meal type</span><select id="meal-photo-meal-type"><option value="breakfast">Breakfast</option><option value="lunch" selected>Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option></select></label>
             <p class="tiny meal-photo-status" id="meal-photo-status" role="alert"></p>
             <div class="auth-actions">
@@ -4025,22 +4245,42 @@ async function submitMealPhoto() {
     const say = (message) => {
         if (status) status.textContent = message;
     };
-    if (!file) return say("Choose a meal photo first.");
-    if (file.size > 8 * 1024 * 1024) {
+    if (!file) return say("Take or choose a meal photo first.");
+    // Photo-flow P7: shrink the frame client-side before upload —
+    // the vision pass needs none of a phone camera's megapixels, and
+    // every megabyte is upload time on a mobile connection.
+    say("Preparing photo…");
+    const prepared = await downscaleImageFile(file);
+    if (prepared.size > 8 * 1024 * 1024) {
         return say("That photo is over the 8 MB limit — choose a smaller one.");
     }
     const form = new FormData();
-    form.append("file", file);
+    form.append("file", prepared);
     form.append(
         "meal_type",
         document.getElementById("meal-photo-meal-type")?.value || "lunch",
     );
-    form.append("logged_at", `${state.date}T12:00:00.000Z`);
+    // Photo-flow P6: a photo is taken when it is taken — stamp NOW,
+    // not a synthetic date slot; the server defaults to now as well.
+    form.append("logged_at", new Date().toISOString());
     if (mealPhotoCapture.idempotencyKey) {
         form.append("idempotency_key", mealPhotoCapture.idempotencyKey);
     }
     if (submit) submit.disabled = true;
-    say("Estimating items and portions…");
+    // Photo-flow P7: real staged progress instead of one static
+    // line — the wait stays, the silence goes.
+    say("Sending photo…");
+    const stageTimers = [
+        setTimeout(() => say("Identifying foods and portions…"), 2500),
+        setTimeout(() => say("Looking up nutrition…"), 6500),
+        setTimeout(
+            () =>
+                say(
+                    "Still working — this photo is taking a little longer than usual.",
+                ),
+            12000,
+        ),
+    ];
     try {
         const result = await api("/api/app/meal-photo", {
             method: "POST",
@@ -4050,6 +4290,8 @@ async function submitMealPhoto() {
     } catch (error) {
         if (submit) submit.disabled = false;
         say(error.message || "The photo estimate failed. Nothing was logged.");
+    } finally {
+        for (const timer of stageTimers) clearTimeout(timer);
     }
 }
 
@@ -5061,6 +5303,8 @@ async function handleAction(button) {
             renderMealDraftReview(result.draft);
             if (result.add?.status === "added") {
                 toast("Added to the draft.");
+            } else if (result.add?.status === "updated") {
+                toast("Draft updated.");
             }
         } finally {
             button.disabled = false;
@@ -5097,49 +5341,38 @@ async function handleAction(button) {
         toast("Manual food added to draft.");
         return;
     }
-    if (action === "save-meal-draft") {
-        const draft = mealDraftReview.draft;
-        if (!draft) return;
-        const root = document.getElementById("meal-draft-review");
-        const field = (name) =>
-            root?.querySelector(`[data-draft-field="${name}"]`);
-        const loggedAt = field("logged_at")?.value
-            ? new Date(field("logged_at").value).toISOString()
-            : null;
-        const result = await api(
-            `/api/app/meal-drafts/${encodeURIComponent(draft.id)}`,
-            {
-                method: "PATCH",
-                body: JSON.stringify({
-                    expected_version: draft.version,
-                    description: field("description")?.value || null,
-                    meal_type: field("meal_type")?.value,
-                    logged_at: loggedAt,
-                    notes: field("notes")?.value || null,
-                }),
-                keepPrevious: true,
-            },
-        );
-        renderMealDraftReview(result.draft);
-        toast("Draft details saved.");
-        return;
-    }
-    if (action === "save-draft-item") {
+    if (action === "toggle-draft-item") {
+        // Photo-flow P3: expand/collapse an item editor in place —
+        // no re-render, so in-progress edits and scroll survive.
         const draft = mealDraftReview.draft;
         if (!draft) return;
         const index = Number(button.dataset.index);
-        const item = draftItemPayloadFromDom(index);
         const record = draft.items[index];
-        const result = await api(
-            `/api/app/meal-drafts/${encodeURIComponent(draft.id)}/items/${encodeURIComponent(record.id)}`,
-            {
-                method: "PATCH",
-                body: JSON.stringify({ expected_version: draft.version, item }),
-                keepPrevious: true,
-            },
-        );
-        renderMealDraftReview(result.draft);
-        toast("Draft item saved.");
+        const key = draftItemKey(record, index);
+        const editor = button.closest("[data-draft-item-index]");
+        const fields = editor?.querySelector(".meal-draft-item-fields");
+        const expanded = !mealDraftReview.expandedItems.has(key);
+        if (expanded) mealDraftReview.expandedItems.add(key);
+        else mealDraftReview.expandedItems.delete(key);
+        if (fields) fields.hidden = !expanded;
+        button.setAttribute("aria-expanded", String(expanded));
+        const chevron = button.querySelector(".meal-draft-item-chevron");
+        if (chevron) chevron.textContent = expanded ? "▾" : "▸";
+        return;
+    }
+    if (action === "save-draft-all") {
+        // Photo-flow P4: the ONE save action — dirty items and
+        // details commit together, version-threaded.
+        if (!mealDraftReview.draft) return;
+        button.disabled = true;
+        try {
+            const saved = await saveDraftChanges();
+            mealDraftReview.suppressSnapshot = true;
+            renderMealDraftReview(saved);
+            toast("Draft saved.");
+        } finally {
+            refreshDraftSaveBar();
+        }
         return;
     }
     if (action === "remove-draft-item") {
@@ -5175,6 +5408,11 @@ async function handleAction(button) {
                 keepPrevious: true,
             },
         );
+        // The removed item's unsaved edits and expansion state go
+        // with it (photo-flow P4 bookkeeping).
+        const removedKey = draftItemKey(record, Number(button.dataset.index));
+        mealDraftReview.dirtyItems.delete(removedKey);
+        mealDraftReview.expandedItems.delete(removedKey);
         renderMealDraftReview(result.draft);
         toast("Draft item removed.");
         return;
@@ -5205,8 +5443,14 @@ async function handleAction(button) {
         return;
     }
     if (action === "confirm-meal-draft") {
+        if (!mealDraftReview.draft) return;
+        // Photo-flow P4: confirming is also a save — unsaved edits
+        // commit first, so the logged meal is the one on screen,
+        // never the stale server copy.
+        if (draftHasUnsavedChanges()) {
+            await saveDraftChanges();
+        }
         const draft = mealDraftReview.draft;
-        if (!draft) return;
         const accepted = Boolean(
             document.querySelector("[data-draft-accept-assumptions]")?.checked,
         );
@@ -5849,7 +6093,29 @@ document.addEventListener("click", async (event) => {
     }
 });
 
+/** Photo-flow P4: any edit inside the draft review marks its owner
+ * dirty and refreshes the save bar in place (no re-render). */
+function markDraftFieldDirty(target) {
+    if (!target?.closest?.("#meal-draft-review")) return;
+    if (!target.matches?.("[data-draft-field]")) return;
+    const itemEditor = target.closest("[data-draft-item-index]");
+    if (itemEditor) {
+        const index = Number(itemEditor.dataset.draftItemIndex);
+        const record = mealDraftReview.draft?.items?.[index];
+        mealDraftReview.dirtyItems.add(draftItemKey(record, index));
+        mealDraftReview.savedMessage = null;
+        refreshDraftSaveBar();
+        return;
+    }
+    if (target.closest("[data-draft-details]")) {
+        mealDraftReview.detailsDirty = true;
+        mealDraftReview.savedMessage = null;
+        refreshDraftSaveBar();
+    }
+}
+
 document.addEventListener("change", async (event) => {
+    markDraftFieldDirty(event.target);
     const target = event.target;
     if (target?.matches?.('#guided-plan-form select[name="scope"]')) {
         try {
@@ -5883,6 +6149,7 @@ document.addEventListener("change", async (event) => {
 });
 
 document.addEventListener("input", (event) => {
+    markDraftFieldDirty(event.target);
     if (event.target.id === "meal-food-search") {
         window.clearTimeout(mealComposer.searchTimer);
         mealComposer.searchTimer = window.setTimeout(

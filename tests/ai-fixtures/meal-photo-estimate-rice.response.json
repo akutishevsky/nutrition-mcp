@@ -4,7 +4,7 @@
             "finish_reason": "stop",
             "index": 0,
             "message": {
-                "content": "{\"estimates\":[{\"key\":\"item:1\",\"nutrients\":{\"calories\":205,\"protein_g\":4.3,\"carbs_g\":44.5,\"fat_g\":0.4,\"fiber_g\":0.6,\"sugar_g\":0.1,\"alcohol_g\":null,\"sodium_mg\":1,\"saturated_fat_g\":0.1,\"cholesterol_mg\":0,\"potassium_mg\":55}}]}",
+                "content": "{\"estimates\":[{\"key\":\"item:1\",\"gram_weight_g\":null,\"nutrients\":{\"calories\":205,\"protein_g\":4.3,\"carbs_g\":44.5,\"fat_g\":0.4,\"fiber_g\":0.6,\"sugar_g\":0.1,\"alcohol_g\":null,\"sodium_mg\":1,\"saturated_fat_g\":0.1,\"cholesterol_mg\":0,\"potassium_mg\":55}}]}",
                 "role": "assistant"
             }
         }
