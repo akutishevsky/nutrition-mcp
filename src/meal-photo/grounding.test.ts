@@ -338,6 +338,357 @@ describe("count-as-grams invariant (photo-flow P1 — the corn incident)", () =>
     });
 });
 
+describe("unit-kind invariant (photo calorie blowup, 2026-11-10)", () => {
+    // The eval case, verbatim: the full-pipeline model evaluation on
+    // the real-photo fixtures produced a 48,590 kcal tomato-soup meal
+    // under multiple identifier models. The draft item itself was
+    // 48,450 kcal. Identification was innocent — the Wegmans candidate
+    // below is the recorded live USDA payload (fdcId 1966887:
+    // servingSize 425 g, Energy 38 kcal per 100 g, so its declared
+    // serving carries 161.5 kcal), and the vision item priced it in
+    // millilitres. The legacy portions[0] fallback scaled the serving
+    // by 300 / 1 — "300 ml" read as 300 servings — and set a
+    // 127,500 g gram weight. A chicken-soup item in the same run hit
+    // 56,049 kcal by the same door.
+    const wegmansSoup = candidate({
+        providerFoodId: "1966887",
+        name: "TOMATO SOUP",
+        brand: "WEGMANS",
+        dataKind: "branded",
+        nutrientsPer100g: {
+            calories: 38,
+            protein_g: 0.71,
+            carbs_g: 8.24,
+            fat_g: 0.24,
+        },
+        portions: [
+            {
+                id: "declared-serving",
+                amount: 1,
+                unit: "serving",
+                label: "1 CAN",
+                gramWeight: 425,
+                nutrients: {
+                    calories: 161.5,
+                    protein_g: 3.02,
+                    carbs_g: 35.02,
+                    fat_g: 1.02,
+                },
+            },
+            {
+                id: "100g",
+                amount: 100,
+                unit: "g",
+                label: "100 g",
+                gramWeight: 100,
+                nutrients: {
+                    calories: 38,
+                    protein_g: 0.71,
+                    carbs_g: 8.24,
+                    fat_g: 0.24,
+                },
+            },
+        ],
+        confidence: 0.96,
+    });
+    const soupMl: MealPhotoVisionItem = {
+        name: "tomato soup",
+        cooking_method: null,
+        quantity: 300,
+        unit: "ml",
+        portion_confidence: 0.85,
+        assumptions: [],
+    };
+
+    test("a volume quantity is never read as a count of servings (the 48,450 kcal case)", () => {
+        expect(resolveGroundedPortion(soupMl, wegmansSoup)).toBeNull();
+        expect(
+            resolveGroundedPortion({ ...soupMl, quantity: 240 }, wegmansSoup),
+        ).toBeNull();
+        expect(
+            resolveGroundedPortion(
+                { ...soupMl, unit: "l", quantity: 0.3 },
+                wegmansSoup,
+            ),
+        ).toBeNull();
+    });
+
+    test("volume sweep: no volume unit resolves against a serving/weight-only candidate", async () => {
+        for (const unit of ["ml", "l", "cup", "tbsp", "tsp", "fl oz"]) {
+            const vision: MealPhotoVisionItem = {
+                ...soupMl,
+                quantity: unit === "ml" ? 300 : 2,
+                unit,
+            };
+            const [entry] = await groundMealPhotoItems([vision], {
+                search: async () => ({
+                    candidates: [wegmansSoup],
+                    failures: [],
+                }),
+            });
+            // Never grounded values for the volume, never an absurd
+            // gram weight: no estimate step in this lane, so the item
+            // surfaces with a blocking question instead.
+            expect(entry?.grounded).toBe(false);
+            expect(entry?.draftItem.nutrients).toEqual({});
+            expect(entry?.draftItem.gramWeight).toBeUndefined();
+            expect(entry?.question?.blocking).toBe(true);
+            expect(mealPhotoItemIsComplete(entry!)).toBe(true);
+        }
+    });
+
+    test("the eval meal end to end: the soup falls to the labelled estimate and the meal total stays sane", async () => {
+        const breadBowl: MealPhotoVisionItem = {
+            name: "bread bowl",
+            cooking_method: null,
+            quantity: 1,
+            unit: "bowl",
+            portion_confidence: 0.85,
+            assumptions: [],
+        };
+        const entries = await groundMealPhotoItems([soupMl, breadBowl], {
+            search: async (query: string) =>
+                query.includes("bread")
+                    ? {
+                          candidates: [
+                              candidate({
+                                  providerFoodId: "rustik",
+                                  name: "SOURDOUGH BREAD BOWL, SOURDOUGH",
+                                  brand: "THE RUSTIK OVEN",
+                                  nutrientsPer100g: { calories: 264 },
+                                  portions: [
+                                      {
+                                          id: "declared-serving",
+                                          amount: 1,
+                                          unit: "serving",
+                                          label: "1 bowl",
+                                          gramWeight: 140,
+                                          nutrients: { calories: 369 },
+                                      },
+                                      {
+                                          id: "100g",
+                                          amount: 100,
+                                          unit: "g",
+                                          label: "100 g",
+                                          gramWeight: 100,
+                                          nutrients: { calories: 264 },
+                                      },
+                                  ],
+                              }),
+                          ],
+                          failures: [],
+                      }
+                    : { candidates: [wegmansSoup], failures: [] },
+            estimateNutrients: async (requests) => {
+                // The estimate step prices the STATED portion (300 ml
+                // of soup) directly — the honest route the refusal
+                // exists to reach.
+                expect(requests).toHaveLength(1);
+                expect(requests[0]?.unit).toBe("ml");
+                return new Map([
+                    [
+                        "item:0",
+                        {
+                            nutrients: {
+                                calories: 120,
+                                protein_g: 2,
+                                carbs_g: 24,
+                                fat_g: 1,
+                            },
+                        },
+                    ],
+                ]);
+            },
+        });
+        const [soup, bread] = entries;
+        expect(soup?.estimated).toBe(true);
+        expect(soup?.draftItem.nutrients.calories).toBe(120);
+        expect(bread?.grounded).toBe(true);
+        const total = entries.reduce(
+            (sum, entry) => sum + (entry.draftItem.nutrients.calories ?? 0),
+            0,
+        );
+        // The eval reported 48,590.22 for this meal shape.
+        expect(total).toBeLessThan(2_000);
+        for (const entry of entries) {
+            expect(entry.draftItem.gramWeight ?? 0).toBeLessThan(5_000);
+            expect(mealPhotoItemIsComplete(entry)).toBe(true);
+        }
+    });
+
+    test("generic portion words still resolve as servings — within the ceiling", () => {
+        const one = resolveGroundedPortion(
+            { ...soupMl, quantity: 1, unit: "bowl" },
+            wegmansSoup,
+        );
+        expect(one?.nutrients.calories).toBe(161.5);
+        expect(one?.gramWeight).toBe(425);
+        const two = resolveGroundedPortion(
+            { ...soupMl, quantity: 2, unit: "bowl" },
+            wegmansSoup,
+        );
+        expect(two?.nutrients.calories).toBe(323);
+    });
+
+    test("an absurd generic quantity falls to the labelled per-100 g values, never a multiple", () => {
+        const resolved = resolveGroundedPortion(
+            { ...soupMl, quantity: 300, unit: "serving" },
+            wegmansSoup,
+        );
+        expect(resolved?.nutrients.calories).toBe(38);
+        expect(resolved?.portionId).toBe("100g");
+        expect(resolved?.assumption).toContain("per 100 g");
+        expect(resolved?.gramWeight).toBeUndefined();
+    });
+
+    test("the mirror defect: a generic serving against a 100 g-only candidate is no longer divided by 100", () => {
+        const per100gOnly = candidate({
+            providerFoodId: "2524019",
+            name: "GOLDEN CURRY SAUCE WITH VEGETABLES",
+            nutrientsPer100g: { calories: 109 },
+            portions: [
+                {
+                    id: "100g",
+                    amount: 100,
+                    unit: "g",
+                    label: "100 g",
+                    gramWeight: 100,
+                    nutrients: { calories: 109 },
+                },
+            ],
+        });
+        const resolved = resolveGroundedPortion(
+            {
+                ...soupMl,
+                name: "vegetable curry",
+                quantity: 1,
+                unit: "serving",
+            },
+            per100gOnly,
+        );
+        // Legacy math produced 1.09 kcal at gram_weight 1.
+        expect(resolved?.nutrients.calories).toBe(109);
+        expect(resolved?.gramWeight).toBeUndefined();
+        expect(resolved?.assumption).toContain("per 100 g");
+    });
+
+    test("the gram-weight ceiling refuses absurd resolutions even on dimensionally sound paths", () => {
+        // 300 pieces against the candidate's own count portion: the
+        // units are honest, the quantity is not — 27 kg of corn is a
+        // data error, and the item must surface, not land.
+        const earCandidate = candidate({
+            nutrientsPer100g: { calories: 96 },
+            portions: [
+                {
+                    id: "ear-medium",
+                    amount: 1,
+                    unit: "ear",
+                    label: "1 ear, medium",
+                    gramWeight: 90,
+                    nutrients: { calories: 86 },
+                },
+            ],
+        });
+        expect(
+            resolveGroundedPortion(
+                {
+                    ...soupMl,
+                    name: "corn on the cob",
+                    quantity: 300,
+                    unit: "ear",
+                },
+                earCandidate,
+            ),
+        ).toBeNull();
+        // A five-figure gram quantity against the per-100 g panel.
+        expect(
+            resolveGroundedPortion(
+                {
+                    ...soupMl,
+                    name: "tomato soup",
+                    quantity: 100_000,
+                    unit: "g",
+                },
+                wegmansSoup,
+            ),
+        ).toBeNull();
+        // …while a genuinely large but plausible item still resolves.
+        const large = resolveGroundedPortion(
+            { ...soupMl, name: "tomato soup", quantity: 4_000, unit: "g" },
+            wegmansSoup,
+        );
+        expect(large?.gramWeight).toBe(4_000);
+    });
+
+    test("volume converts to a volume portion through exact ml ratios", () => {
+        const juice = candidate({
+            nutrientsPer100g: undefined,
+            portions: [
+                {
+                    id: "cup",
+                    amount: 1,
+                    unit: "cup",
+                    label: "1 cup",
+                    gramWeight: 248,
+                    nutrients: { calories: 112 },
+                },
+            ],
+        });
+        const resolved = resolveGroundedPortion(
+            { ...soupMl, name: "orange juice", quantity: 480, unit: "ml" },
+            juice,
+        );
+        // 480 ml = 2.0288 cups of the 1-cup portion.
+        expect(resolved?.nutrients.calories).toBeCloseTo(227.23, 1);
+        expect(resolved?.gramWeight).toBeCloseTo(503.15, 1);
+        expect(resolved?.assumption).toContain("1 cup");
+    });
+
+    test("a weight quantity against a panel-less candidate resolves through the portion's gram weight", () => {
+        const offStyle = candidate({
+            provider: "open_food_facts",
+            nutrientsPer100g: undefined,
+            portions: [
+                {
+                    id: "declared-serving",
+                    amount: 1,
+                    unit: "serving",
+                    label: "30 g",
+                    gramWeight: 30,
+                    nutrients: { calories: 160 },
+                },
+            ],
+        });
+        const resolved = resolveGroundedPortion(
+            { ...soupMl, name: "cookies", quantity: 150, unit: "g" },
+            offStyle,
+        );
+        // Legacy math read 150 g as 150 servings (24,000 kcal).
+        expect(resolved?.nutrients.calories).toBe(800);
+        expect(resolved?.gramWeight).toBe(150);
+        // No gram weight anywhere on the candidate: refuse.
+        const weightless = candidate({
+            provider: "open_food_facts",
+            nutrientsPer100g: undefined,
+            portions: [
+                {
+                    id: "declared-serving",
+                    amount: 1,
+                    unit: "serving",
+                    label: "1 serving",
+                    nutrients: { calories: 160 },
+                },
+            ],
+        });
+        expect(
+            resolveGroundedPortion(
+                { ...soupMl, name: "cookies", quantity: 150, unit: "g" },
+                weightless,
+            ),
+        ).toBeNull();
+    });
+});
+
 describe("groundMealPhotoItems", () => {
     test("grounds nutrition from the provider only and snapshots provenance", async () => {
         const [entry] = await groundMealPhotoItems([chicken], {
