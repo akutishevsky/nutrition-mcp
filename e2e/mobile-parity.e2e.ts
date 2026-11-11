@@ -1910,6 +1910,10 @@ test.beforeAll(async () => {
                     });
                     response.end(
                         JSON.stringify({ layout: trendsLayoutFixture }),
+                    );
+                });
+                return;
+            }
             if (
                 method === "PATCH" &&
                 url.pathname.startsWith(
