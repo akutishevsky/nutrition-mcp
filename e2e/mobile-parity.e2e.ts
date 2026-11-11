@@ -4698,6 +4698,11 @@ test("today navigation: calendar dots and day jump, macro breakdown sheet, six-d
     page,
 }) => {
     calendarSeedOn = true;
+    // This spec also runs under the website config's desktop project,
+    // where the bottom nav is hidden by the responsive shell — pin
+    // the phone viewport before any chrome assertions (the grocery
+    // spec's standing remedy for the same trap).
+    await page.setViewportSize({ width: 390, height: 844 });
     await bootPackagedApp(page);
 
     // Item 1: the header's only day navigation is the calendar icon —
