@@ -265,11 +265,38 @@ export const CAPABILITY_MANIFEST = [
         targetPr: null,
     },
     {
+        // Daily guidance (guidance rework D1–D7): the capability's
+        // web face is now Next up — one grounded suggestion card
+        // (Plan it / Log it / Add missing to groceries) composed
+        // once per day-part behind a context fingerprint, free for
+        // every account with the Premium line at the chat
+        // conversation. The legacy GET /api/app/guidance/today
+        // endpoint stays live for API consumers, but the Today
+        // panel no longer calls it; get_daily_guidance remains the
+        // MCP expression of the same guidance read model.
         id: "nutrition.dailyGuidance",
         mcp: complete(["get_daily_guidance"]),
-        web: complete(["GET /api/app/guidance/today"]),
-        app: complete(["GET /api/app/guidance/today"]),
-        ios: complete(["GET /api/app/guidance/today"]),
+        web: complete([
+            "GET /api/app/guidance/next-up",
+            "POST /api/app/guidance/next-up/plan",
+            "POST /api/app/guidance/next-up/log",
+            "POST /api/app/guidance/next-up/groceries",
+            "POST /api/app/guidance/next-up/goal-prompt/dismiss",
+        ]),
+        app: complete([
+            "GET /api/app/guidance/next-up",
+            "POST /api/app/guidance/next-up/plan",
+            "POST /api/app/guidance/next-up/log",
+            "POST /api/app/guidance/next-up/groceries",
+            "POST /api/app/guidance/next-up/goal-prompt/dismiss",
+        ]),
+        ios: complete([
+            "GET /api/app/guidance/next-up",
+            "POST /api/app/guidance/next-up/plan",
+            "POST /api/app/guidance/next-up/log",
+            "POST /api/app/guidance/next-up/groceries",
+            "POST /api/app/guidance/next-up/goal-prompt/dismiss",
+        ]),
         iosBasis:
             "Shared bundle: iOS packages the same .mobile-web artifact as Android (same build script, cap sync ios) and reaches the same routes over the bearer transport; this outcome has no platform-specific native dependency.",
         iosGap: null,

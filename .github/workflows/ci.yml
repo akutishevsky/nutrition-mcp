@@ -148,6 +148,8 @@ jobs:
         run: bun scripts/nutrition-platform-smoke.ts
       - name: Exercise feature module toggles persistence and RLS
         run: bun scripts/feature-modules-smoke.ts
+      - name: Exercise Next up cache, goal-prompt dismissal, Log it drafts, and RLS
+        run: bun scripts/next-up-smoke.ts
       - name: Exercise persistent food catalog ingestion, cache locality, freshness, and idempotency
         run: bun scripts/food-catalog-ingestion-smoke.ts
       - name: Benchmark food catalog local search and batched writes
@@ -261,6 +263,14 @@ jobs:
           path: test-results/grocery-captures/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Upload packaged Next up captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-mobile-next-up-captures
+          path: test-results/mobile-next-up-captures/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Provision isolated reviewer account and run browser journeys
         run: |
           REVIEWER_EMAIL="e2e-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT@example.test"
@@ -293,6 +303,15 @@ jobs:
           name: munch-feature-toggles-captures
           path: |
             test-results/feature-toggles-captures/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload Next up captures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: munch-next-up-captures
+          path: |
+            test-results/next-up-captures/
           if-no-files-found: ignore
           retention-days: 14
       - name: Upload browser traces on failure

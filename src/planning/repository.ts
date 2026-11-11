@@ -940,7 +940,7 @@ function recipeItemSourceSnapshot(
     } satisfies Record<string, unknown>;
 }
 
-function recipeMealItems(
+export function recipeMealItems(
     recipe: NonNullable<Awaited<ReturnType<typeof getRecipe>>>,
     servingsConsumed: number,
 ): StructuredMealItemInput[] {

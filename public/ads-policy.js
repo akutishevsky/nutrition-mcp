@@ -4,7 +4,8 @@
 // else.").
 //
 // The one slot lives on Today (the home screen), in-flow directly under
-// the "Today's guidance" panel. Every other route is ad-free — browse,
+// the "Next up" panel (the guidance section, reworked 2026-11-10).
+// Every other route is ad-free — browse,
 // logging, account, billing, legal. Two independent gates must BOTH
 // pass before anything renders or loads:
 //
