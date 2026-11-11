@@ -124,12 +124,12 @@ test("meal composer logs a food through its portion picker", async ({
     // providers occasionally answer a search with an empty pool
     // (rate limits, circuit breakers), so re-issue the search a few
     // times before treating "no results" as a failure.
-    // Scope to verified provider results (data-candidate-id): the
-    // desktop and mobile lanes share the reviewer account, so a
+    // Scope to verified provider results (data-key="candidate:…"):
+    // the desktop and mobile lanes share the reviewer account, so a
     // sibling lane's logged meal can appear under "Recent foods" —
     // recent rows reuse a snapshot and carry no portion dropdown.
     const result = page
-        .locator('[data-action="select-meal-option"][data-candidate-id]')
+        .locator('[data-action="select-meal-option"][data-key^="candidate:"]')
         .first();
     let picked = false;
     for (let attempt = 0; attempt < 3 && !picked; attempt++) {
