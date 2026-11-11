@@ -9,7 +9,7 @@ const navigation = await readFile("mobile/navigation.js", "utf8");
 const mobileEntry = await readFile("mobile/mobile-entry.js", "utf8");
 const mobileLogin = await readFile("mobile/mobile-login.js", "utf8");
 const pantryNative = await readFile("mobile/pantry-native.js", "utf8");
-const mealPhotoNative = await readFile("mobile/meal-photo-native.js", "utf8");
+const captureNative = await readFile("mobile/capture-native.js", "utf8");
 const appApi = await readFile("public/app-api.js", "utf8");
 const appJs = await readFile("public/app.js", "utf8");
 const appStyles = await readFile("public/styles.css", "utf8");
@@ -404,11 +404,6 @@ requireText(
     "Native Pantry provider food identity",
 );
 requireText(
-    pantryNative,
-    "new DataTransfer()",
-    "Native image handoff to existing review flow",
-);
-requireText(
     buildMobileWeb,
     'src="/pantry-native.js"',
     "Native Pantry bundle injection",
@@ -439,28 +434,20 @@ requireText(appApi, "installOfflineBanner", "Offline banner");
 requireText(appJs, 'data-testid="api-down-state"', "API-down view state");
 requireText(appJs, "isConnectivityError", "API-down detection");
 requireText(mobileEntry, 'data-testid="offline-state"', "Offline cold start");
-requireText(
-    mobileEntry,
-    "./meal-photo-native.js",
-    "Native meal-photo bundle wiring",
-);
+requireText(mobileEntry, "./capture-native.js", "Native capture bundle wiring");
 requireText(mobileLoginHtml, 'data-testid="offline-banner"', "Login offline");
+requireText(captureNative, "munch.pendingCapture", "Capture pending restore");
+requireText(captureNative, "meal-photo-file", "Meal-photo dialog handoff");
 requireText(
-    mealPhotoNative,
-    "munch.pendingMealPhotoCapture",
-    "Meal-photo pending capture restore",
-);
-requireText(mealPhotoNative, "#meal-photo-file", "Meal-photo dialog handoff");
-requireText(
-    mealPhotoNative,
+    captureNative,
     "new DataTransfer()",
-    "Meal-photo image handoff to existing review flow",
+    "Capture image handoff to existing review flow",
 );
-requireText(mealPhotoNative, "8 * 1024 * 1024", "Meal-photo 8 MB capture cap");
+requireText(captureNative, "8 * 1024 * 1024", "Capture 8 MB cap");
 requireText(
     buildMobileWeb,
-    "meal-photo-native.js",
-    "Native meal-photo bundle injection",
+    "capture-native.js",
+    "Native capture bundle injection",
 );
 requireText(navigation, "munch.business", "Verified app-link routing");
 requireText(

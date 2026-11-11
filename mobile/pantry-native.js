@@ -1,12 +1,10 @@
-import {
-    chooseInstalledPhoto,
-    requestJson as api,
-    scanInstalledBarcode,
-    takeInstalledPhoto,
-} from "./mobile-runtime.js";
+import { requestJson as api, scanInstalledBarcode } from "./mobile-runtime.js";
+// Photo-flow P8: pantry/receipt capture is the shared capture
+// control's job now (public/photo-capture.js on the web,
+// mobile/capture-native.js packaged). This module keeps only the
+// barcode lane that is genuinely pantry-specific.
+import "./capture-native.js";
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const CAPTURE_KEY = "munch.pendingPantryCapture";
 const $ = (selector) => document.querySelector(selector);
 
 function status(message, error = false) {
@@ -24,87 +22,6 @@ function locationValue() {
     return $("#native-barcode-location")?.value || "unspecified";
 }
 
-function imageExtension(result) {
-    const format = String(result?.metadata?.format || "jpeg").toLowerCase();
-    if (format === "jpg" || format === "jpeg") return "jpg";
-    if (format === "png" || format === "webp") return format;
-    return "jpg";
-}
-
-function mimeType(result, blob) {
-    if (blob.type?.startsWith("image/")) return blob.type;
-    const format = imageExtension(result);
-    return format === "jpg" ? "image/jpeg" : `image/${format}`;
-}
-
-async function fileFromNativeResult(result, label) {
-    if (!result?.webPath)
-        throw new Error("The selected image was unavailable.");
-    const response = await fetch(result.webPath);
-    if (!response.ok) throw new Error("The selected image could not be read.");
-    const blob = await response.blob();
-    if (!blob.size) throw new Error("The selected image was empty.");
-    if (blob.size > MAX_IMAGE_BYTES) {
-        throw new Error("Image exceeds the 8 MB Pantry limit.");
-    }
-    return new File(
-        [blob],
-        `${label}-${Date.now()}.${imageExtension(result)}`,
-        { type: mimeType(result, blob), lastModified: Date.now() },
-    );
-}
-
-async function handImageToPantry(result, mode) {
-    const input = mode === "receipt" ? $("#receipt-photo") : $("#pantry-photo");
-    const button = mode === "receipt" ? $("#scan-receipt") : $("#scan-pantry");
-    if (
-        !(input instanceof HTMLInputElement) ||
-        !(button instanceof HTMLElement)
-    ) {
-        throw new Error("The Pantry image review surface is unavailable.");
-    }
-    const file = await fileFromNativeResult(
-        result,
-        mode === "receipt" ? "receipt" : "pantry",
-    );
-    const transfer = new DataTransfer();
-    transfer.items.add(file);
-    input.files = transfer.files;
-    button.click();
-}
-
-function rememberCapture(mode) {
-    sessionStorage.setItem(CAPTURE_KEY, mode);
-}
-
-function forgetCapture() {
-    sessionStorage.removeItem(CAPTURE_KEY);
-}
-
-async function capture(mode, source) {
-    rememberCapture(mode);
-    status(source === "camera" ? "Opening camera…" : "Opening photo library…");
-    try {
-        const result =
-            source === "camera"
-                ? await takeInstalledPhoto()
-                : await chooseInstalledPhoto();
-        if (!result) {
-            status("");
-            return;
-        }
-        await handImageToPantry(result, mode);
-    } catch (error) {
-        const message = String(
-            error?.message || error || "Image capture failed.",
-        );
-        if (/cancel/i.test(message)) status("");
-        else status(message, true);
-    } finally {
-        forgetCapture();
-    }
-}
-
 function createButton(text, onClick, className = "secondary") {
     const button = document.createElement("button");
     button.type = "button";
@@ -112,24 +29,6 @@ function createButton(text, onClick, className = "secondary") {
     button.textContent = text;
     button.addEventListener("click", onClick);
     return button;
-}
-
-function enhanceImageCard(inputId, mode) {
-    const input = $(`#${inputId}`);
-    const card = input?.closest("section.card");
-    if (!card || card.querySelector(".native-capture-actions")) return;
-
-    const actions = document.createElement("div");
-    actions.className = "native-capture-actions";
-    actions.style.display = "grid";
-    actions.style.gridTemplateColumns = "1fr 1fr";
-    actions.style.gap = "8px";
-    actions.append(
-        createButton("Take photo", () => capture(mode, "camera")),
-        createButton("Choose photo", () => capture(mode, "library")),
-    );
-    input.classList.add("hidden");
-    card.insertBefore(actions, input.nextSibling);
 }
 
 function clearBarcodeReview() {
@@ -281,18 +180,4 @@ function injectBarcodeCard() {
     grid.append(card);
 }
 
-window.addEventListener("munch:camera-restored", async (event) => {
-    const mode = sessionStorage.getItem(CAPTURE_KEY);
-    if (mode !== "pantry" && mode !== "receipt") return;
-    try {
-        await handImageToPantry(event.detail, mode);
-    } catch (error) {
-        status(error?.message || "Unable to restore captured image.", true);
-    } finally {
-        forgetCapture();
-    }
-});
-
-enhanceImageCard("pantry-photo", "pantry");
-enhanceImageCard("receipt-photo", "receipt");
 injectBarcodeCard();

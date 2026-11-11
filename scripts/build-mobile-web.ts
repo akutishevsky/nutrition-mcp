@@ -67,11 +67,11 @@ await cp("mobile/mobile-login.html", join(output, "mobile-login.html"));
 await cp("mobile/mobile-login.js", join(output, "mobile-login.js"));
 await cp("mobile/pantry-native.js", join(output, "pantry-native.js"));
 await cp("mobile/billing-native.js", join(output, "billing-native.js"));
-await cp("mobile/meal-photo-native.js", join(output, "meal-photo-native.js"));
+await cp("mobile/capture-native.js", join(output, "capture-native.js"));
 
 const mobileEntry = await readFile("mobile/mobile-entry.js", "utf8");
-if (!mobileEntry.includes("./meal-photo-native.js")) {
-    throw new Error("Packaged entry lost the native meal-photo capture wiring");
+if (!mobileEntry.includes("./capture-native.js")) {
+    throw new Error("Packaged entry lost the native capture wiring");
 }
 if (!mobileEntry.includes('data-testid="offline-state"')) {
     throw new Error("Packaged entry lost the offline cold-start state");

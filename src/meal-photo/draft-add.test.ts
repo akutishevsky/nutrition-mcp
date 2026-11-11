@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import type { FoodCandidate } from "../food-providers/types.js";
-import { resolveDraftAdd, type DraftAddDeps } from "./draft-add.js";
+import {
+    planPreparationUpdate,
+    resolveDraftAdd,
+    type DraftAddDeps,
+} from "./draft-add.js";
 import { mealPhotoItemIsComplete } from "./grounding.js";
 
 /**
@@ -140,10 +144,12 @@ describe("resolveDraftAdd — (b) an ungrounded add gets labelled Model estimate
                         [
                             "item:0",
                             {
-                                calories: 21,
-                                protein_g: 0.2,
-                                carbs_g: 3.3,
-                                fat_g: 0.8,
+                                nutrients: {
+                                    calories: 21,
+                                    protein_g: 0.2,
+                                    carbs_g: 3.3,
+                                    fat_g: 0.8,
+                                },
                             },
                         ],
                     ]);
@@ -189,7 +195,14 @@ describe("resolveDraftAdd — (c) ambiguous/unparseable adds never silently add"
                 new Map([
                     [
                         "item:0",
-                        { calories: 50, protein_g: 1, carbs_g: 5, fat_g: 3 },
+                        {
+                            nutrients: {
+                                calories: 50,
+                                protein_g: 1,
+                                carbs_g: 5,
+                                fat_g: 3,
+                            },
+                        },
                     ],
                 ]),
         });
@@ -221,7 +234,7 @@ describe("resolveDraftAdd — (c) ambiguous/unparseable adds never silently add"
             search: butterSearch,
             parseWithModel: async () => {
                 modelParseCalls += 1;
-                return { items: [], replaces: null };
+                return { items: [], replaces: null, preparation: null };
             },
         });
         expect(modelParseCalls).toBe(1);
@@ -247,7 +260,7 @@ describe("resolveDraftAdd — (c) ambiguous/unparseable adds never silently add"
             },
             parseWithModel: async () => {
                 calls += 1;
-                return { items: [], replaces: null };
+                return { items: [], replaces: null, preparation: null };
             },
         });
         expect(resolution.kind).toBe("none");
@@ -280,6 +293,7 @@ describe("resolveDraftAdd — (d) the Ember fallback fires ONLY on deterministic
                             },
                         ],
                         replaces: null,
+                        preparation: null,
                     };
                 },
             },
@@ -321,5 +335,204 @@ describe("resolveDraftAdd — (d) the Ember fallback fires ONLY on deterministic
         if (resolution.kind !== "ready") return;
         expect(resolution.removeName).toBe("white rice");
         expect(resolution.grounded[0]?.grounded).toBe(true);
+    });
+});
+
+describe("resolveDraftAdd — preparation statements (photo-flow P2)", () => {
+    const cornContext = [{ name: "Corn On The Cob", cookingMethod: "steamed" }];
+    const oilSearch: DraftAddDeps["search"] = async (query) => {
+        if (query.includes("oil")) {
+            return {
+                candidates: [
+                    candidate({
+                        providerFoodId: "171001",
+                        name: "Oil, vegetable",
+                        nutrientsPer100g: {
+                            calories: 884,
+                            protein_g: 0,
+                            carbs_g: 0,
+                            fat_g: 100,
+                        },
+                        portions: [
+                            {
+                                id: "tbsp",
+                                amount: 1,
+                                unit: "tbsp",
+                                label: "1 tbsp",
+                                gramWeight: 13.6,
+                                nutrients: {
+                                    calories: 120,
+                                    protein_g: 0,
+                                    carbs_g: 0,
+                                    fat_g: 13.6,
+                                },
+                            },
+                            {
+                                id: "100g",
+                                amount: 100,
+                                unit: "g",
+                                label: "100 g",
+                                gramWeight: 100,
+                                nutrients: {
+                                    calories: 884,
+                                    protein_g: 0,
+                                    carbs_g: 0,
+                                    fat_g: 100,
+                                },
+                            },
+                        ],
+                    }),
+                ],
+                failures: [],
+            };
+        }
+        return { candidates: [], failures: [] };
+    };
+
+    test("'i deep fried it' on a steamed item → method correction targeted + implied oil grounded as an added item", async () => {
+        const resolution = await resolveDraftAdd(
+            "i deep fried it",
+            {
+                search: oilSearch,
+                parseWithModel: async (text, context) => {
+                    expect(text).toBe("i deep fried it");
+                    // The draft context reached the parse.
+                    expect(context.items).toEqual(cornContext);
+                    return {
+                        items: [
+                            {
+                                name: "vegetable oil",
+                                quantity: 1,
+                                unit: "tbsp",
+                                portionConfidence: 0.85,
+                                assumptions: [
+                                    "Oil absorbed in deep frying, assumed 1 tbsp",
+                                ],
+                                quantityAssumed: true,
+                                strongSignal: true,
+                            },
+                        ],
+                        replaces: null,
+                        preparation: {
+                            targetItem: "Corn On The Cob",
+                            cookingMethod: "deep fried",
+                        },
+                    };
+                },
+            },
+            cornContext,
+        );
+        expect(resolution.kind).toBe("ready");
+        if (resolution.kind !== "ready") return;
+        expect(resolution.preparation).toEqual({
+            targetItem: "Corn On The Cob",
+            cookingMethod: "deep fried",
+        });
+        expect(resolution.preparationTargetName).toBe("Corn On The Cob");
+        const [oil] = resolution.grounded;
+        expect(oil?.grounded).toBe(true);
+        expect(oil?.draftItem.name).toContain("Oil, vegetable");
+        expect(oil?.draftItem.nutrients.calories).toBe(120);
+        expect(oil?.draftItem.assumptions[0]).toBe(
+            'Added by you: "i deep fried it"',
+        );
+        expect(mealPhotoItemIsComplete(oil!)).toBe(true);
+    });
+
+    test("'grilled instead' → method only: ready with no additions", async () => {
+        const resolution = await resolveDraftAdd(
+            "grilled instead",
+            {
+                search: oilSearch,
+                parseWithModel: async () => ({
+                    items: [],
+                    replaces: null,
+                    preparation: {
+                        targetItem: null,
+                        cookingMethod: "grilled",
+                    },
+                }),
+            },
+            [{ name: "Chicken breast", cookingMethod: "baked" }],
+        );
+        expect(resolution.kind).toBe("ready");
+        if (resolution.kind !== "ready") return;
+        expect(resolution.grounded).toEqual([]);
+        expect(resolution.preparation?.cookingMethod).toBe("grilled");
+        expect(resolution.preparationTargetName).toBe("Chicken breast");
+    });
+
+    test("an unnamed target on a multi-item draft → preparation_question, nothing guessed", async () => {
+        const resolution = await resolveDraftAdd(
+            "i deep fried it",
+            {
+                search: oilSearch,
+                parseWithModel: async () => ({
+                    items: [],
+                    replaces: null,
+                    preparation: {
+                        targetItem: null,
+                        cookingMethod: "deep fried",
+                    },
+                }),
+            },
+            [
+                { name: "Corn On The Cob", cookingMethod: "steamed" },
+                { name: "Chicken breast", cookingMethod: "baked" },
+            ],
+        );
+        expect(resolution.kind).toBe("preparation_question");
+    });
+
+    test("a named target that matches no draft item → preparation_question", async () => {
+        const resolution = await resolveDraftAdd(
+            "the tofu was deep fried",
+            {
+                search: oilSearch,
+                parseWithModel: async () => ({
+                    items: [],
+                    replaces: null,
+                    preparation: {
+                        targetItem: "Tofu",
+                        cookingMethod: "deep fried",
+                    },
+                }),
+            },
+            cornContext,
+        );
+        expect(resolution.kind).toBe("preparation_question");
+    });
+});
+
+describe("planPreparationUpdate (photo-flow P2)", () => {
+    test("the corrected method lands in assumptions + snapshot, with the original preserved", () => {
+        const planned = planPreparationUpdate(
+            {
+                name: "Corn On The Cob",
+                quantity: 3,
+                portionLabel: "3 piece",
+                gramWeight: 270,
+                nutrients: { calories: 232 },
+                sourceType: "open_food_facts",
+                assumptions: ["Counted 3 piece at about 90 g each."],
+                sourceSnapshot: {
+                    resolution_layer: "meal_photo_grounding",
+                    cooking_method: "steamed",
+                },
+            } as never,
+            { targetItem: "Corn On The Cob", cookingMethod: "deep fried" },
+        );
+        expect(planned.previousMethod).toBe("steamed");
+        expect(planned.item.assumptions[0]).toContain(
+            'Cooking method corrected by you: "deep fried"',
+        );
+        expect(planned.item.assumptions[0]).toContain('"steamed"');
+        expect(planned.item.sourceSnapshot?.cooking_method).toBe("deep fried");
+        expect(planned.item.sourceSnapshot?.cooking_method_corrected_from).toBe(
+            "steamed",
+        );
+        // The grounded nutrition is NOT silently rewritten.
+        expect(planned.item.nutrients.calories).toBe(232);
+        expect(planned.item.gramWeight).toBe(270);
     });
 });

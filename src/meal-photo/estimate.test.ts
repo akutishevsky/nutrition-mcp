@@ -34,6 +34,7 @@ const riceEstimate = JSON.stringify({
     estimates: [
         {
             key: "item:1",
+            gram_weight_g: null,
             nutrients: {
                 calories: 205,
                 protein_g: 4.3,
@@ -71,6 +72,7 @@ describe("estimateMealPhotoNutrients", () => {
                                 JSON.parse(riceEstimate).estimates[0],
                                 {
                                     key: "item:2",
+                                    gram_weight_g: null,
                                     nutrients: {
                                         calories: 35,
                                         protein_g: 1.5,
@@ -92,8 +94,8 @@ describe("estimateMealPhotoNutrients", () => {
             },
         );
         expect(calls).toBe(1);
-        expect(result.get("item:1")?.calories).toBe(205);
-        expect(result.get("item:2")?.calories).toBe(35);
+        expect(result.get("item:1")?.nutrients.calories).toBe(205);
+        expect(result.get("item:2")?.nutrients.calories).toBe(35);
         expect(body.temperature).toBe(0);
         expect(body.response_format?.json_schema?.strict).toBe(true);
         expect(body.response_format?.json_schema?.name).toBe(
@@ -115,7 +117,7 @@ describe("estimateMealPhotoNutrients", () => {
         const result = await estimateMealPhotoNutrients([riceRequest], config, {
             fetcher: async () => envelope(riceEstimate),
         });
-        const nutrients = result.get("item:1")!;
+        const nutrients = result.get("item:1")!.nutrients;
         expect(nutrients.calories).toBe(205);
         expect(nutrients.alcohol_g).toBeUndefined();
         expect(nutrients.sodium_mg).toBe(1);
@@ -130,7 +132,7 @@ describe("estimateMealPhotoNutrients", () => {
             },
         });
         expect(calls).toBe(2);
-        expect(result.get("item:1")?.calories).toBe(205);
+        expect(result.get("item:1")?.nutrients.calories).toBe(205);
     });
 
     test("throws after the bounded retry when output stays unusable", async () => {
@@ -170,6 +172,7 @@ describe("estimateMealPhotoNutrients", () => {
                             estimates: [
                                 {
                                     key: "item:1",
+                                    gram_weight_g: null,
                                     nutrients: {
                                         calories: 0,
                                         protein_g: 0,
@@ -191,6 +194,37 @@ describe("estimateMealPhotoNutrients", () => {
         );
         expect(result.has("item:1")).toBe(false);
         expect(result.has("item:9")).toBe(false);
+    });
+
+    test("carries the estimated gram weight when the model reports one (count-as-grams fallback)", async () => {
+        const result = await estimateMealPhotoNutrients(
+            [{ ...riceRequest, gramWeightNeeded: true }],
+            config,
+            {
+                fetcher: async (_url, init) => {
+                    const body = JSON.parse(String(init?.body ?? "{}"));
+                    const content = String(body.messages[1].content);
+                    const data = JSON.parse(
+                        content
+                            .split("<estimate-data>\n")[1]
+                            .split("\n</estimate-data>")[0],
+                    );
+                    expect(data[0].gram_weight_needed).toBe(true);
+                    return envelope(
+                        JSON.stringify({
+                            estimates: [
+                                {
+                                    ...JSON.parse(riceEstimate).estimates[0],
+                                    gram_weight_g: 270,
+                                },
+                            ],
+                        }),
+                    );
+                },
+            },
+        );
+        expect(result.get("item:1")?.gramWeight).toBe(270);
+        expect(result.get("item:1")?.nutrients.calories).toBe(205);
     });
 
     test("empty request list spends no call", async () => {

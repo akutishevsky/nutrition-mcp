@@ -20,9 +20,13 @@ test("web diary meal cards keep their own description and inline provenance (UX 
     expect(html).not.toContain("heading.textContent = `${rows.length} food");
     expect(css).not.toContain(".meal-card.is-structured");
     // The canonical card renders the meal's own description as its
-    // heading and each item's source badge inline.
+    // heading and each item's source badge inline. (Photo-flow P5:
+    // the heading goes through mealDisplayName, which returns the
+    // meal's own description verbatim unless it is the photo
+    // placeholder, in which case the meal is named from its items.)
+    expect(appJs).toContain("<h4>${escapeHtml(mealDisplayName(meal))}</h4>");
     expect(appJs).toContain(
-        '<h4>${escapeHtml(meal.description || "Untitled meal")}</h4>',
+        "if (description && description !== PHOTO_PLACEHOLDER_DESCRIPTION)",
     );
     expect(appJs).toContain('class="demo-source-row"');
     expect(css).toContain(".food-audit");

@@ -220,6 +220,9 @@ export async function takeInstalledPhoto() {
 export async function chooseInstalledPhoto() {
     return null;
 }
+export async function chooseInstalledPhotos() {
+    return [];
+}
 `;
 
 /**
@@ -570,17 +573,16 @@ test("packaged bundle ships the mobile runtime and the Pantry page", async ({
     expect(shellBody).not.toContain("quick-action");
     expect(shellBody).not.toContain("refresh-button");
 
-    // S4: the native meal-photo capture module ships in the bundle and
-    // carries the Pantry-pattern markers (pending-capture restore key,
-    // 8 MB cap, DataTransfer handoff into the existing dialog input).
-    const mealPhotoNative = await request.get(
-        `${baseURL}/meal-photo-native.js`,
-    );
-    expect(mealPhotoNative.ok()).toBe(true);
-    const mealPhotoBody = await mealPhotoNative.text();
-    expect(mealPhotoBody).toContain("munch.pendingMealPhotoCapture");
-    expect(mealPhotoBody).toContain("#meal-photo-file");
-    expect(mealPhotoBody).toContain("new DataTransfer()");
+    // S4 → photo-flow P8: the shared native capture module ships in
+    // the bundle and carries the capture markers (pending-capture
+    // restore key, 8 MB cap, DataTransfer handoff into the control's
+    // own input).
+    const captureNative = await request.get(`${baseURL}/capture-native.js`);
+    expect(captureNative.ok()).toBe(true);
+    const captureBody = await captureNative.text();
+    expect(captureBody).toContain("munch.pendingCapture");
+    expect(captureBody).toContain("meal-photo-file");
+    expect(captureBody).toContain("new DataTransfer()");
 });
 
 // ---------------------------------------------------------------------------

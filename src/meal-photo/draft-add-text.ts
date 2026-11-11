@@ -250,6 +250,32 @@ function cleanName(raw: string): string {
         .slice(0, 300);
 }
 
+/** Cooking-method words: a "name" made only of these is a preparation
+ * statement ("grilled instead", "deep fried"), never a food — the
+ * deterministic parser refuses it so the model fallback can interpret
+ * it as a method correction (photo-flow P2). */
+const METHOD_ONLY_TOKENS = new Set([
+    "grilled",
+    "fried",
+    "deep",
+    "baked",
+    "steamed",
+    "roasted",
+    "boiled",
+    "sauteed",
+    "broiled",
+    "poached",
+    "raw",
+    "smoked",
+    "barbecued",
+    "braised",
+    "seared",
+    "toasted",
+    "microwaved",
+    "instead",
+    "style",
+]);
+
 function isPlausibleFoodName(name: string): boolean {
     if (name.length < 2 || name.length > 120) return false;
     if (!/[a-z]{2,}/i.test(name)) return false;
@@ -260,6 +286,10 @@ function isPlausibleFoodName(name: string): boolean {
     if (tokens.length === 0) return false;
     // A name made only of filler ("some stuff", "the thing") is not a food.
     if (tokens.every((token) => FILLER_TOKENS.has(token))) return false;
+    // A name made only of cooking-method words is a preparation
+    // statement, not a food ("fried rice" still passes — "rice" is
+    // not a method word).
+    if (tokens.every((token) => METHOD_ONLY_TOKENS.has(token))) return false;
     return true;
 }
 
