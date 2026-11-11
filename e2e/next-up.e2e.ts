@@ -342,8 +342,17 @@ test.describe("next up guidance rework", () => {
         const todayResponse = await page.request.get(
             `/api/app/today?date=${today}`,
         );
-        const todayBody = await todayResponse.text();
-        expect(todayBody).not.toContain('"meal_type":"lunch"');
+        const todayJson = await todayResponse.json();
+        // Confirm-before-save: opening the draft logged nothing —
+        // no logged meal carries the recipe's name. (Checked on the
+        // meals array itself: the shared suite account legitimately
+        // holds other lunches by now.)
+        expect(
+            (todayJson.meals ?? []).some(
+                (meal: { description?: string }) =>
+                    meal.description === "Next Up Chicken Bowl",
+            ),
+        ).toBe(false);
 
         // Add missing puts the broccoli on the grocery list.
         await card
