@@ -192,7 +192,7 @@ test.describe("next up guidance rework", () => {
                 recipe: {
                     name: "Next Up Chicken Bowl",
                     servings: 1,
-                    sourceType: "user_entered",
+                    source_type: "user_entered",
                     instructions: ["Cook the chicken.", "Serve over rice."],
                     ingredients: [
                         {
@@ -205,7 +205,8 @@ test.describe("next up guidance rework", () => {
                                 carbs_g: 0,
                                 fat_g: 5,
                             },
-                            sourceType: "user_supplied",
+                            source_type: "user_supplied",
+                            source_snapshot: { entered_by_user: true },
                         },
                         {
                             name: "Rice",
@@ -217,7 +218,8 @@ test.describe("next up guidance rework", () => {
                                 carbs_g: 44,
                                 fat_g: 1,
                             },
-                            sourceType: "user_supplied",
+                            source_type: "user_supplied",
+                            source_snapshot: { entered_by_user: true },
                         },
                         {
                             name: "Broccoli",
@@ -229,7 +231,8 @@ test.describe("next up guidance rework", () => {
                                 carbs_g: 11,
                                 fat_g: 1,
                             },
-                            sourceType: "user_supplied",
+                            source_type: "user_supplied",
+                            source_snapshot: { entered_by_user: true },
                         },
                     ],
                 },
