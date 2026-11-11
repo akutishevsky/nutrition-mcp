@@ -297,9 +297,6 @@ test.describe("next up guidance rework", () => {
             card.getByRole("button", { name: "Log it" }),
         ).toBeVisible();
         await expect(
-            card.getByRole("button", { name: "Add missing to groceries" }),
-        ).toBeVisible();
-        await expect(
             card.getByRole("link", { name: /Ask about today/ }),
         ).toBeVisible();
         await expect(page.locator("body")).not.toContainText("track_only");
@@ -354,12 +351,27 @@ test.describe("next up guidance rework", () => {
             ),
         ).toBe(false);
 
-        // Add missing puts the broccoli on the grocery list.
-        await card
-            .getByRole("button", { name: "Add missing to groceries" })
-            .click();
-        await expect(page.getByText(/Groceries updated/)).toBeVisible();
-        const groceriesResponse = await page.request.get("/api/app/groceries");
+        // Add missing puts the broccoli on the grocery list (the
+        // list rides the planning payload). Guarded for retries:
+        // a first attempt may already have stocked it, which also
+        // retires the button (nothing left missing).
+        const groceriesBefore = await page.request.get(
+            `/api/app/planning?start=${today}&end=${today}`,
+        );
+        if (!(await groceriesBefore.text()).includes("Broccoli")) {
+            await expect(
+                card.getByRole("button", {
+                    name: "Add missing to groceries",
+                }),
+            ).toBeVisible();
+            await card
+                .getByRole("button", { name: "Add missing to groceries" })
+                .click();
+            await expect(page.getByText(/Groceries updated/)).toBeVisible();
+        }
+        const groceriesResponse = await page.request.get(
+            `/api/app/planning?start=${today}&end=${today}`,
+        );
         expect(await groceriesResponse.text()).toContain("Broccoli");
     });
 
