@@ -83,7 +83,7 @@ test.describe("next up guidance rework", () => {
         const section = page.getByTestId("next-up");
         await expect(section).toBeVisible();
         await expect(
-            section.getByRole("heading", { name: "Next up" }),
+            section.getByRole("heading", { name: "Next up", exact: true }),
         ).toBeVisible();
         // D1/D6: the raw enum and the day's restatement never render.
         await expect(page.locator("body")).not.toContainText("track_only");
@@ -242,26 +242,25 @@ test.describe("next up guidance rework", () => {
         const breakfast = await page.request.post("/api/app/meals", {
             headers: originOf(page),
             data: {
-                meal: {
-                    description: "Next up e2e breakfast",
-                    meal_type: "breakfast",
-                    occurred_at: `${today}T13:00:00.000Z`,
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    items: [
-                        {
-                            name: "Oats and eggs",
-                            quantity: 1,
-                            unit: "serving",
-                            nutrients: {
-                                calories: 900,
-                                protein_g: 55,
-                                carbs_g: 100,
-                                fat_g: 30,
-                            },
-                            source: { type: "manual" },
+                description: "Next up e2e breakfast",
+                meal_type: "breakfast",
+                logged_at: `${today}T12:00:00.000Z`,
+                idempotency_key: "next-up-e2e-breakfast",
+                items: [
+                    {
+                        name: "Oats and eggs",
+                        quantity: 1,
+                        portion_label: "1 serving",
+                        gram_weight: 100,
+                        nutrients: {
+                            calories: 900,
+                            protein_g: 55,
+                            carbs_g: 100,
+                            fat_g: 30,
                         },
-                    ],
-                },
+                        source_type: "user_supplied",
+                    },
+                ],
             },
         });
         expect(breakfast.status(), "seed breakfast").toBe(200);
@@ -270,7 +269,7 @@ test.describe("next up guidance rework", () => {
         await page.goto("/app/today");
         const card = page.getByTestId("next-up");
         await expect(
-            card.getByRole("heading", { name: "Next up" }),
+            card.getByRole("heading", { name: "Next up", exact: true }),
         ).toBeVisible();
         await expect(card.getByText("Next Up Chicken Bowl")).toBeVisible();
         await expect(card.getByText(/kcal/)).toBeVisible();
@@ -303,7 +302,7 @@ test.describe("next up guidance rework", () => {
         await card.getByRole("button", { name: "Plan it" }).click();
         await expect(page.getByText(/Planned for/)).toBeVisible();
         const planResponse = await page.request.get(
-            `/api/app/plan?start_date=${today}&end_date=${today}`,
+            `/api/app/planning?start=${today}&end=${today}`,
         );
         expect(await planResponse.text()).toContain("Next Up Chicken Bowl");
 
@@ -318,7 +317,7 @@ test.describe("next up guidance rework", () => {
             page.getByRole("heading", { name: "Review meal draft" }),
         ).toHaveCount(0);
         const todayResponse = await page.request.get(
-            `/api/app/meals/today?date=${today}`,
+            `/api/app/today?date=${today}`,
         );
         const todayBody = await todayResponse.text();
         expect(todayBody).not.toContain('"meal_type":"lunch"');

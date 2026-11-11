@@ -267,7 +267,9 @@ async function openPackagedToday(page: Page) {
         }),
     );
     await page.goto(`${baseURL}/app`);
-    await expect(page.getByRole("heading", { name: "Next up" })).toBeVisible({
+    await expect(
+        page.getByRole("heading", { name: "Next up", exact: true }),
+    ).toBeVisible({
         timeout: 20_000,
     });
 }
