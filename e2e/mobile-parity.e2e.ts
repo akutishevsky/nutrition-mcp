@@ -3910,10 +3910,13 @@ test("Grocery fix G2: shopping mode labels itself, persists for the session, and
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect(page.locator(".shopping-mode-caption")).toHaveCount(0);
     await expect(page.locator("body")).not.toHaveClass(/shopping-mode/);
-    await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
 
     // Captures at the program's 390x844 discipline: off, then on.
+    // (The viewport is set before the chrome assertions: this spec
+    // also runs under a desktop project in the website lane, where
+    // the mobile bottom nav is hidden by design at any mode.)
     await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator(".mobile-bottom-nav")).toBeVisible();
     await page.screenshot({
         path: "test-results/grocery-captures/shopping-mode-off-390.png",
     });
