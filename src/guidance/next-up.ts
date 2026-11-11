@@ -107,7 +107,7 @@ export interface NextUpLanding {
 }
 
 export interface NextUpSecondaryLine {
-    kind: "use_first" | "planned" | "grocery_gap";
+    kind: "use_first" | "planned";
     text: string;
 }
 
@@ -428,7 +428,7 @@ export function secondaryLinesFor(
     ) {
         lines.push({
             kind: "use_first",
-            text: `The ${useFirst.name.toLowerCase()} is running low — worth using before it's gone.`,
+            text: `Running low — use the ${useFirst.name.toLowerCase()} soon.`,
         });
     } else if (
         useFirst &&
@@ -437,7 +437,7 @@ export function secondaryLinesFor(
     ) {
         lines.push({
             kind: "use_first",
-            text: `The ${useFirst.name.toLowerCase()} has been in the pantry longest — a good next thing to build a meal around.`,
+            text: `Been in the pantry longest: ${useFirst.name}.`,
         });
     }
     const plannedDinner = context.planned.find(
@@ -449,16 +449,14 @@ export function secondaryLinesFor(
             text: `Dinner is already planned: ${plannedDinner.recipe_name}.`,
         });
     }
-    if (primary && context.features.groceries) {
-        const missing = missingIngredientsFor(primary, context);
-        if (missing.length > 0) {
-            lines.push({
-                kind: "grocery_gap",
-                text: `${missing.length} ingredient${missing.length === 1 ? "" : "s"} for the suggestion ${missing.length === 1 ? "isn't" : "aren't"} in your pantry — add ${missing.length === 1 ? "it" : "them"} from the card.`,
-            });
-        }
-    }
-    return lines.slice(0, 2);
+    // The grocery gap is NOT a secondary line: the card names the
+    // missing ingredients itself (its "Needs:" line) next to the
+    // Add-missing action, so a second line would repeat the
+    // primary's own facts (D1). And with a primary on screen the
+    // section carries at most ONE secondary line — the brief's
+    // first-screen height budget leaves room for exactly one
+    // one-line signal under the card.
+    return lines.slice(0, primary ? 1 : 2);
 }
 
 const RESTATEMENT_PATTERNS: RegExp[] = [

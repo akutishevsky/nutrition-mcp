@@ -5969,16 +5969,38 @@ dialog .guided-grocery-row input[type="checkbox"] {
    ===================================================================== */
 
 .next-up-panel {
-    padding-top: 10px;
-    padding-bottom: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
 }
 
 .next-up-panel .panel-title {
     margin-bottom: 0;
 }
 
+.next-up-panel .entry-row {
+    margin-top: 4px;
+    min-height: 46px;
+    padding: 5px 0;
+}
+
 .next-up-card {
     margin: 0;
+}
+
+.next-up-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.next-up-head .next-up-title {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.next-up-head .next-up-kicker {
+    flex: 0 0 auto;
+    text-align: right;
 }
 
 .next-up-kicker {
@@ -5992,7 +6014,7 @@ dialog .guided-grocery-row input[type="checkbox"] {
 
 .next-up-title {
     margin: 1px 0 0;
-    font-size: 19px;
+    font-size: 18px;
     line-height: 1.2;
     color: #22301f;
     white-space: nowrap;
@@ -6001,7 +6023,7 @@ dialog .guided-grocery-row input[type="checkbox"] {
 }
 
 .next-up-reason {
-    margin: 2px 0 0;
+    margin: 1px 0 0;
     font-size: 14px;
     line-height: 1.35;
     color: #22301f;
@@ -6012,28 +6034,38 @@ dialog .guided-grocery-row input[type="checkbox"] {
 }
 
 .next-up-nutrition {
-    margin: 3px 0 0;
+    margin: 2px 0 0;
     font-size: 13px;
     font-weight: 600;
     color: #2e5b34;
 }
 
 .next-up-landing {
-    margin: 1px 0 0;
+    margin: 0;
     font-size: 13px;
     line-height: 1.35;
     color: #6e7462;
 }
 
+.next-up-needs {
+    margin: 1px 0 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #6e7462;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .next-up-actions {
-    margin-top: 7px;
+    margin-top: 5px;
     display: flex;
     gap: 6px;
 }
 
 .next-up-actions .button {
     min-height: 44px;
-    padding: 6px 8px;
+    padding: 3px 8px;
     flex: 1 1 0;
 }
 
@@ -6047,11 +6079,17 @@ dialog .guided-grocery-row input[type="checkbox"] {
 }
 
 .next-up-secondary {
-    margin: 8px 0 0;
+    margin: 4px 0 0;
     padding-left: 18px;
     font-size: 13px;
-    line-height: 1.45;
+    line-height: 1.35;
     color: #6e7462;
+}
+
+.next-up-secondary li {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .next-up-quiet {

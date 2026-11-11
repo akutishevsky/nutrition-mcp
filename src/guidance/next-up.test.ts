@@ -254,7 +254,7 @@ describe("next-up domain", () => {
         expect(pick?.source).toBe("deterministic");
     });
 
-    test("secondary lines are typed signals with remedies, capped at two", () => {
+    test("secondary lines are typed signals: one beside a primary, priority-ordered", () => {
         const ctx = context({
             pantry: [
                 {
@@ -284,12 +284,33 @@ describe("next-up domain", () => {
             ],
         });
         const lines = secondaryLinesFor(ctx, candidate());
-        expect(lines.length).toBeLessThanOrEqual(2);
+        // With a primary on screen the height budget carries ONE
+        // secondary line; the highest-priority signal (use-first)
+        // wins over the planned-dinner note.
+        expect(lines.length).toBe(1);
         expect(lines[0]?.kind).toBe("use_first");
-        expect(lines.map((line) => line.kind)).toContain("planned");
+        expect(lines[0]?.text).toContain("spinach");
         for (const line of lines) {
             expect(findRestatement(line.text)).toBeNull();
         }
+        // Without the use-first signal, the planned line surfaces.
+        const plannedOnly = secondaryLinesFor(
+            context({
+                pantry: [],
+                planned: [
+                    {
+                        meal_slot: "dinner",
+                        recipe_name: "Tomato soup",
+                        recipe_id: "x",
+                        recipe_revision_id: "y",
+                        servings: 1,
+                        nutrition_per_serving: null,
+                    },
+                ],
+            }),
+            candidate(),
+        );
+        expect(plannedOnly.map((line) => line.kind)).toEqual(["planned"]);
     });
 
     test("D1 tripwire catches the old panel's restatements and the raw enum", () => {

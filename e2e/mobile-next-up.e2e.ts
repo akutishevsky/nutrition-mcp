@@ -66,7 +66,12 @@ const POPULATED = {
         actions: { plan: true, log: true, groceries: true, ask: true },
         composition_source: "deterministic",
     },
-    secondary: [],
+    secondary: [
+        {
+            kind: "use_first",
+            text: "Been in the pantry longest: Rolled oats.",
+        },
+    ],
 };
 
 const QUIET = {
@@ -285,6 +290,8 @@ test("packaged bundle: populated Next up card with wired actions", async ({
     const card = page.getByTestId("next-up");
     await expect(card.getByText("Chicken rice bowl")).toBeVisible();
     await expect(card.getByText(/Day lands at/)).toBeVisible();
+    await expect(card.locator(".next-up-needs")).toContainText("Broccoli");
+    await expect(card.getByText(/Been in the pantry longest/)).toBeVisible();
     await expect(
         card.getByRole("link", { name: /Ask about today/ }),
     ).toBeVisible();
