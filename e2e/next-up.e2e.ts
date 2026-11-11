@@ -23,13 +23,12 @@ const username = process.env.MUNCH_REVIEWER_EMAIL;
 const password = process.env["MUNCH_REVIEWER_" + "PASSWORD"];
 
 async function signIn(page: Page) {
-    await page.goto("/sign-in");
-    await page.getByLabel("Username").fill(username!);
-    await page.getByLabel("Password").fill(password!);
+    await page.goto("/account/password?return_to=%2Fapp");
+    await page.getByLabel("Username or email").fill(username!);
+    await page.getByLabel("Password", { exact: true }).fill(password!);
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(
-        page.getByRole("heading", { name: "Good food, on record." }),
-    ).toBeVisible();
+    await expect(page).toHaveURL(/\/app\/?$/);
+    await expect(page).toHaveTitle(/^Today — Munch$/);
 }
 
 function originOf(page: Page) {

@@ -58,7 +58,7 @@ export async function writeNextUpCache(
                 user_id, local_date, day_part, fingerprint, composition
             ) values (
                 ${userId}, ${date}::date, ${dayPart}, ${fingerprint},
-                ${JSON.stringify(composition)}::jsonb
+                ${composition}::jsonb
             )
             on conflict (user_id, local_date, day_part) do update
                 set fingerprint = excluded.fingerprint,
