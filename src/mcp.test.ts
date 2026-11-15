@@ -5313,3 +5313,123 @@ describe("dashboard API", () => {
         });
     });
 });
+
+describe("weight-rate calorie goals through the tools", () => {
+    const tz = "America/New_York";
+    const stage = () => {
+        db.profile = {
+            ...PROFILE_BASE,
+            timezone: tz,
+            height_cm: 178,
+            birth_date: "1996-01-01",
+            sex: "male",
+        };
+        db.goals = null;
+        db.activity.set(todayInTz(tz), 300);
+        db.weights = [
+            {
+                id: "w1",
+                user_id: "u1",
+                weight_g: 82_700,
+                logged_at: "2026-11-09T02:30:00Z",
+                notes: null,
+                created_at: "2026-11-09T02:30:00Z",
+                idempotency_key: null,
+            } as WeightEntry,
+        ];
+    };
+
+    test("a rate goal is stored as g/day, exclusive of a typed figure", async () => {
+        stage();
+        db.goals = { ...goals(), daily_calories: 2000 } as NutritionGoals;
+        await withTools(null, async (call) => {
+            const r = await call("set_nutrition_goals", {
+                calorie_goal_mode: "rate",
+                weight_rate: -0.5,
+                rate_period: "week",
+            });
+            expect(r.isError).toBeFalsy();
+            expect(db.goals!.calorie_goal_mode).toBe("rate");
+            expect(db.goals!.daily_calories).toBeNull();
+            expect(db.goals!.weight_rate_g_per_day).toBeCloseTo(-71.43, 2);
+            expect(textOf(r)).toContain("lose 0.5 kg/week");
+        });
+    });
+
+    test("editing another target keeps the plan", async () => {
+        stage();
+        await withTools(null, async (call) => {
+            await call("set_nutrition_goals", {
+                calorie_goal_mode: "rate",
+                weight_rate: -0.25,
+                rate_period: "week",
+            });
+            await call("set_nutrition_goals", { daily_protein_g: 150 });
+            expect(db.goals!.calorie_goal_mode).toBe("rate");
+            expect(db.goals!.weight_rate_g_per_day).toBeCloseTo(-35.71, 2);
+            expect(db.goals!.daily_protein_g).toBe(150);
+        });
+    });
+
+    test("only impossible input is refused: no rate, a past date", async () => {
+        stage();
+        await withTools(null, async (call) => {
+            const noRate = await call("set_nutrition_goals", {
+                calorie_goal_mode: "rate",
+            });
+            expect(noRate.isError).toBe(true);
+            const past = await call("set_nutrition_goals", {
+                calorie_goal_mode: "date",
+                target_weight: 75,
+                target_date: "2020-01-01",
+            });
+            expect(past.isError).toBe(true);
+            expect(textOf(past)).toContain("Not saved");
+            // An aggressive rate is a flag in the UI, not a refusal.
+            const fast = await call("set_nutrition_goals", {
+                calorie_goal_mode: "rate",
+                weight_rate: -1.5,
+            });
+            expect(fast.isError).toBeFalsy();
+        });
+    });
+
+    test("the legacy daily_calories shapes still pick fixed / burn", async () => {
+        stage();
+        await withTools(null, async (call) => {
+            await call("set_nutrition_goals", { daily_calories: 1800 });
+            expect(db.goals!.calorie_goal_mode).toBe("fixed");
+            await call("set_nutrition_goals", { daily_calories: null });
+            expect(db.goals!.calorie_goal_mode).toBe("burn");
+            expect(db.goals!.daily_calories).toBeNull();
+        });
+    });
+
+    test("get_goal_progress shows the dashboard's own number for a rate goal", async () => {
+        stage();
+        await withTools(null, async (call) => {
+            await call("set_nutrition_goals", {
+                calorie_goal_mode: "rate",
+                weight_rate: -0.5,
+            });
+            const r = await call("get_goal_progress", {});
+            expect(r.isError).toBeFalsy();
+            const sc = r.structuredContent as {
+                goals: { calories: number };
+                active_kcal: number | null;
+            };
+            const d = (await dashboardPayload("u1", 1)) as any;
+            expect(sc.goals.calories).toBe(d.daily[0].goal_calories);
+            expect(sc.active_kcal).toBe(300);
+            // With no rate the same call is the break-even figure: the rate
+            // really moved it down, by about the grossed-up deficit.
+            await call("set_nutrition_goals", { daily_calories: null });
+            const burn = (await call("get_goal_progress", {}))
+                .structuredContent as { goals: { calories: number } };
+            expect(burn.goals.calories - sc.goals.calories).toBeGreaterThan(
+                400,
+            );
+            expect(burn.goals.calories - sc.goals.calories).toBeLessThan(520);
+        });
+    });
+});

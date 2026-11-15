@@ -25,6 +25,66 @@ export interface ActivityAdjustment {
     activeKcal: number | null;
     /** (base + active) / base, or 1 when nothing applied. */
     factor: number;
+    /** A derived goal (estimated burn, rate or date; goal-plan.ts): active
+     *  kcal are already in the figure, and protein is held while carbs and
+     *  fat follow the calories. */
+    derived?: boolean;
+}
+
+/** The adjustment for a derived goal, from the day's row (the dashboard's own
+ *  figures, so the assistant and the page cannot disagree). `base` is what
+ *  the goal is without the day's active kcal, so "base + active" adds up. */
+export function derivedAdjustment(
+    stored: NutritionGoals | null,
+    row: {
+        goal_calories: number;
+        active_kcal: number | null;
+        goal_protein_g: number | null;
+        goal_carbs_g: number | null;
+        goal_fat_g: number | null;
+    },
+): ActivityAdjustment {
+    const blank = {
+        user_id: "",
+        daily_calories: null,
+        daily_protein_g: null,
+        daily_carbs_g: null,
+        daily_fat_g: null,
+        daily_fiber_g: null,
+        daily_sugar_g: null,
+        daily_alcohol_g: null,
+        daily_caffeine_mg: null,
+        daily_water_ml: null,
+        target_weight_g: null,
+        calorie_goal_mode: null,
+        weight_rate_g_per_day: null,
+        target_date: null,
+        updated_at: "",
+    } satisfies NutritionGoals;
+    const goals = {
+        ...(stored ?? blank),
+        daily_calories: row.goal_calories,
+        daily_protein_g: row.goal_protein_g,
+        daily_carbs_g: row.goal_carbs_g,
+        daily_fat_g: row.goal_fat_g,
+    };
+    const active = Math.round(row.active_kcal ?? 0);
+    if (!(active > 0))
+        return {
+            goals,
+            base: null,
+            activeKcal: null,
+            factor: 1,
+            derived: true,
+        };
+    const baseKcal = row.goal_calories - active;
+    return {
+        goals,
+        base: { ...goals, daily_calories: baseKcal },
+        activeKcal: active,
+        factor: baseKcal > 0 ? row.goal_calories / baseKcal : 1,
+        derived: true,
+    };
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;

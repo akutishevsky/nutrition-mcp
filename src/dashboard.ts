@@ -430,6 +430,14 @@ export function buildDashboardPayload(inputs: DashboardInputs) {
         today: endDate,
         model,
     });
+    // The balance in grams uses the same kcal per gram as the calibration and
+    // the goal, so a user's own setting changes all three together.
+    if (model.kcalPerGram !== KCAL_PER_GRAM)
+        for (const row of allRows)
+            if (row.balance_kcal != null)
+                row.balance_g = Math.round(
+                    row.balance_kcal / model.kcalPerGram,
+                );
     const dayRows = allRows.filter((r) => r.date >= startDate);
     const inRange = (iso: string) => {
         const d = dateInTz(iso, tz);
@@ -516,6 +524,19 @@ export function buildDashboardPayload(inputs: DashboardInputs) {
         // The plan behind today's derived goal: rate, trend weight, basis,
         // digestion share and the advisory flags (goal-plan.ts).
         goalPlan,
+        // The user's own model settings (null = default), with the defaults
+        // beside them so the form can say what "blank" means.
+        modelSettings: {
+            energy_kcal_per_gram:
+                profile?.energy_kcal_per_gram == null
+                    ? null
+                    : Number(profile.energy_kcal_per_gram),
+            trend_window_days: profile?.trend_window_days ?? null,
+            default_kcal_per_gram: DEFAULT_PARAMS.kcalPerGram,
+            default_window_days: DEFAULT_PARAMS.windowDays,
+            min_window_days: MIN_WINDOW_DAYS,
+            max_window_days: MAX_WINDOW_DAYS,
+        },
         // Per-day rows carry that day's EFFECTIVE goal (baseline + active
         // kcal) next to its totals; `goals` above stays the baseline.
         // Built field by field (dashboard-stats.ts), so the bucket's
@@ -608,7 +629,21 @@ export async function saveBodyDetails(
 ): Promise<{ status: 200 | 400; json: Record<string, unknown> }> {
     const profile = await getProfile(userId);
     const today = todayInTz(timezoneFromProfile(profile) ?? "UTC");
-    const { resting_basis, ...bodyInput } = input;
+    const {
+        resting_basis,
+        energy_kcal_per_gram,
+        trend_window_days,
+        ...bodyInput
+    } = input;
+    const model = checkModelSettings({
+        energy_kcal_per_gram,
+        trend_window_days,
+    });
+    if (!model.ok)
+        return {
+            status: 400,
+            json: { error: "invalid_request", error_description: model.error },
+        };
     if (
         resting_basis !== undefined &&
         resting_basis !== "formula" &&
@@ -634,8 +669,62 @@ export async function saveBodyDetails(
     const saved = await upsertProfile(userId, {
         ...checked.patch,
         ...(resting_basis ? { resting_basis } : {}),
+        ...model.patch,
     });
     return { status: 200, json: { ok: true, body: bodyOf(saved) } };
+}
+
+/** The Body form's two model settings: kcal per gram of weight change (3-9)
+ *  and the trend lookback (whole days, 21-56). Undefined leaves a setting
+ *  alone; null or "" clears it back to the default (6.0 and 42). */
+export function checkModelSettings(input: {
+    energy_kcal_per_gram?: unknown;
+    trend_window_days?: unknown;
+}):
+    | {
+          ok: true;
+          patch: {
+              energy_kcal_per_gram?: number | null;
+              trend_window_days?: number | null;
+          };
+      }
+    | { ok: false; error: string } {
+    const patch: {
+        energy_kcal_per_gram?: number | null;
+        trend_window_days?: number | null;
+    } = {};
+    const k = input.energy_kcal_per_gram;
+    if (k !== undefined) {
+        if (k === null || k === "") patch.energy_kcal_per_gram = null;
+        else {
+            const n = toNumber(k);
+            if (n == null || n < 3 || n > 9)
+                return {
+                    ok: false,
+                    error: "Energy per gram must be between 3 and 9 kcal/g (the default is 6).",
+                };
+            patch.energy_kcal_per_gram = Math.round(n * 100) / 100;
+        }
+    }
+    const w = input.trend_window_days;
+    if (w !== undefined) {
+        if (w === null || w === "") patch.trend_window_days = null;
+        else {
+            const n = toNumber(w);
+            if (
+                n == null ||
+                !Number.isInteger(n) ||
+                n < MIN_WINDOW_DAYS ||
+                n > MAX_WINDOW_DAYS
+            )
+                return {
+                    ok: false,
+                    error: `The trend window must be a whole number of days between ${MIN_WINDOW_DAYS} and ${MAX_WINDOW_DAYS} (the default is 42).`,
+                };
+            patch.trend_window_days = n;
+        }
+    }
+    return { ok: true, patch };
 }
 
 /** The "Calorie goal" form: a baseline kcal figure (the day's active kcal are

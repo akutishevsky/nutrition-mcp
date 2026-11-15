@@ -112,12 +112,20 @@ import { getWidgetHtml } from "./widgets.js";
 import {
     adjustGoalsForActivity,
     checkActiveKcal,
+    derivedAdjustment,
     describeCalorieGoal,
     isLocalDate,
     type ActivityAdjustment,
 } from "./activity.js";
 import { checkBodyPatch, ageOn, bmrFor, type BodyDetails } from "./body.js";
 import { withBurnDefault } from "./dashboard-stats.js";
+import {
+    buildDashboardPayload,
+    checkGoalPlan,
+    loadDashboardInputs,
+    type GoalPlanPatch,
+} from "./dashboard.js";
+import { gramsPerDayToRate, resolveGoalMode } from "./goal-plan.js";
 
 /** get_profile / set_body_profile's one-line summary of the body details. */
 function bodyProfileLine(profile: Profile | null): string {
@@ -596,14 +604,56 @@ function activityPayloadOf(adj: ActivityAdjustment, alcohol: AlcoholDisplay) {
 /** "\nCalorie goal today: 2,100 kcal (1,800 + 300 active)." — or "". */
 function activityLine(adj: ActivityAdjustment): string {
     if (!adj.base || !adj.activeKcal) return "";
+    if (adj.derived)
+        return `\nCalorie goal: ${describeCalorieGoal(adj)} — carbs and fat scaled ×${adj.factor.toFixed(2)}, protein held.`;
     return `\nCalorie goal: ${describeCalorieGoal(adj)} — protein, carbs and fat scaled ×${adj.factor.toFixed(2)}.`;
 }
 
+/** The goals in effect on `date`, active kcal included. A typed calorie goal
+ *  goes through adjustGoalsForActivity as it always has. Every other mode —
+ *  the estimated burn, a weight rate, a target date — is read from the
+ *  dashboard's own payload (goal-plan.ts), so the assistant's progress line
+ *  and the page are the same number by construction. If that cannot be built
+ *  (no body details, a read failure) it falls back to the older estimate. */
+async function effectiveGoals(
+    userId: string,
+    profile: Profile | null,
+    stored: NutritionGoals | null,
+    date: string,
+    activeKcal: number | null | undefined,
+): Promise<ActivityAdjustment> {
+    if (resolveGoalMode(stored) !== "fixed") {
+        try {
+            const today = todayInTz(timezoneFromProfile(profile) ?? "UTC");
+            const back = Math.round(
+                (Date.parse(`${today}T00:00:00Z`) -
+                    Date.parse(`${date}T00:00:00Z`)) /
+                    86_400_000,
+            );
+            const span = Math.min(365, Math.max(1, back + 1));
+            const payload = buildDashboardPayload(
+                await loadDashboardInputs(userId, span),
+            );
+            const row = payload.daily.find((d) => d.date === date);
+            if (row?.goal_calories != null)
+                return derivedAdjustment(stored, {
+                    ...row,
+                    goal_calories: row.goal_calories,
+                });
+        } catch (err) {
+            console.error(`[goal-plan] derived goal failed: ${err}`);
+        }
+    }
+    return adjustGoalsForActivity(
+        await goalsWithBurnDefault(userId, profile, stored, date),
+        activeKcal,
+    );
+}
+
 /** Stored goals, with the estimated burn standing in for an unset calorie goal
- *  (break-even until the user picks a target) — the same default the dashboard
- *  shows, so the assistant's progress line and the page cannot disagree. A
- *  stored goal always wins; without height/birth date/sex/weight there is no
- *  burn and the goal stays unset. */
+ *  (break-even until the user picks a target): the fallback behind
+ *  effectiveGoals. A stored goal always wins; without height/birth date/sex/
+ *  weight there is no burn and the goal stays unset. */
 async function goalsWithBurnDefault(
     userId: string,
     profile: Profile | null,
@@ -942,8 +992,11 @@ async function buildMealProgress(
         getNutritionGoals(userId),
         activityOrNull(userId, mealDate),
     ]);
-    const adj = adjustGoalsForActivity(
-        await goalsWithBurnDefault(userId, profile, storedGoals, mealDate),
+    const adj = await effectiveGoals(
+        userId,
+        profile,
+        storedGoals,
+        mealDate,
         activity?.active_kcal,
     );
     const goals = adj.goals;
@@ -1178,6 +1231,33 @@ export function formatProgress(
     return lines.filter((l): l is string => l !== null).join("\n");
 }
 
+/** The calorie line of the goals echo: a typed figure, or the derived mode in
+ *  words (the figure itself moves daily, so it is not quoted here). */
+function calorieGoalText(
+    goals: NutritionGoals,
+    unit: WeightUnit,
+    floor: (v: number | null, render: (n: number) => string) => string,
+): string {
+    const mode = resolveGoalMode(goals);
+    if (mode === "rate" && goals.weight_rate_g_per_day != null) {
+        const perWeek = gramsPerDayToRate(
+            goals.weight_rate_g_per_day,
+            unit,
+            "week",
+        );
+        return `derived daily from the estimated burn to ${perWeek < 0 ? "lose" : "gain"} ${Math.abs(Math.round(perWeek * 100) / 100)} ${unit}/week (active kcal included)`;
+    }
+    if (
+        mode === "date" &&
+        goals.target_date != null &&
+        goals.target_weight_g != null
+    )
+        return `derived daily to reach ${formatWeight(goals.target_weight_g, unit)} by ${goals.target_date} from the smoothed weight trend (active kcal included)`;
+    if (mode === "burn" && goals.calorie_goal_mode === "burn")
+        return "follows the estimated burn (resting + active + digestion)";
+    return floor(goals.daily_calories, (n) => `${n} kcal`);
+}
+
 export function formatGoals(
     goals: NutritionGoals | null,
     weightUnit: WeightUnit = "kg",
@@ -1195,9 +1275,7 @@ export function formatGoals(
     const ceiling = (v: number | null, render: (n: number) => string) =>
         hasActiveTarget(v, "ceiling") ? render(v) : "not set";
     const parts: string[] = ["Current daily goals:"];
-    parts.push(
-        `- Calories: ${floor(goals.daily_calories, (n) => `${n} kcal`)}`,
-    );
+    parts.push(`- Calories: ${calorieGoalText(goals, weightUnit, floor)}`);
     parts.push(`- Protein: ${floor(goals.daily_protein_g, (n) => `${n}g`)}`);
     parts.push(`- Carbs: ${floor(goals.daily_carbs_g, (n) => `${n}g`)}`);
     parts.push(`- Fat: ${floor(goals.daily_fat_g, (n) => `${n}g`)}`);
@@ -2738,7 +2816,29 @@ export function registerTools(
                     .enum(["kg", "lb"])
                     .optional()
                     .describe(
-                        "Unit for target_weight. Defaults to the user's preferred weight unit.",
+                        "Unit for target_weight and weight_rate. Defaults to the user's preferred weight unit.",
+                    ),
+                calorie_goal_mode: z
+                    .enum(["fixed", "burn", "rate", "date"])
+                    .optional()
+                    .describe(
+                        "How the calorie goal is set. fixed: daily_calories as typed (the day's active kcal are added). burn: follow the estimated burn (break-even). rate: lose or gain weight_rate per rate_period, derived each day from the burn. date: reach target_weight by target_date, re-derived each day from the smoothed weight trend. Omit to keep the current mode (or, when only daily_calories is given, fixed / burn as before). Safety rules of thumb show as flags in the dashboard; they never block a goal.",
+                    ),
+                weight_rate: z.coerce
+                    .number()
+                    .optional()
+                    .describe(
+                        "For calorie_goal_mode=rate: the signed weight change in `unit` per rate_period, e.g. -0.5 to lose half a kilo per week.",
+                    ),
+                rate_period: z
+                    .enum(["week", "month", "year"])
+                    .optional()
+                    .describe("Period for weight_rate. Defaults to week."),
+                target_date: z
+                    .string()
+                    .optional()
+                    .describe(
+                        "For calorie_goal_mode=date: the day to reach target_weight, YYYY-MM-DD (in the future).",
                     ),
             }),
         },
@@ -2746,10 +2846,67 @@ export function registerTools(
             return withAnalytics(
                 "set_nutrition_goals",
                 async () => {
-                    const [existing, preferredUnit] = await Promise.all([
-                        getNutritionGoals(userId),
-                        getPreferredWeightUnit(userId),
-                    ]);
+                    const [existing, preferredUnit, profile] =
+                        await Promise.all([
+                            getNutritionGoals(userId),
+                            getPreferredWeightUnit(userId),
+                            getProfile(userId),
+                        ]);
+                    // The calorie mode: explicit, or implied by daily_calories
+                    // exactly as before (a figure is fixed, null/0 follows the
+                    // burn), otherwise whatever is stored.
+                    const modeIn =
+                        args.calorie_goal_mode ??
+                        (args.daily_calories === undefined
+                            ? undefined
+                            : args.daily_calories
+                              ? "fixed"
+                              : "burn");
+                    let plan: GoalPlanPatch | null = null;
+                    if (modeIn !== undefined) {
+                        const writeUnit =
+                            args.unit ?? preferredUnit ?? ("kg" as const);
+                        // A date goal with no new target_weight reuses the
+                        // stored one, passed as exact grams (kg / 1000) so
+                        // no display rounding reaches the saved value.
+                        const reuse =
+                            modeIn === "date" &&
+                            args.target_weight === undefined &&
+                            existing?.target_weight_g != null;
+                        const checkedPlan = checkGoalPlan(
+                            {
+                                mode: modeIn,
+                                calories:
+                                    args.daily_calories ??
+                                    existing?.daily_calories ??
+                                    null,
+                                rate: args.weight_rate,
+                                period: args.rate_period,
+                                unit: reuse ? "kg" : writeUnit,
+                                target_weight: reuse
+                                    ? existing!.target_weight_g! / 1000
+                                    : args.target_weight,
+                                target_date: args.target_date,
+                            },
+                            {
+                                today: todayInTz(
+                                    timezoneFromProfile(profile) ?? "UTC",
+                                ),
+                                unit: writeUnit,
+                            },
+                        );
+                        if (!checkedPlan.ok)
+                            return {
+                                isError: true,
+                                content: [
+                                    {
+                                        type: "text",
+                                        text: `Not saved: ${checkedPlan.error}`,
+                                    },
+                                ],
+                            };
+                        plan = checkedPlan.value;
+                    }
                     // Only demand a unit when actually writing a numeric target.
                     let target_weight_g: number | null;
                     if (args.target_weight === undefined) {
@@ -2769,10 +2926,20 @@ export function registerTools(
                     }
                     const displayUnit = args.unit ?? preferredUnit ?? "kg";
                     const merged = {
-                        daily_calories:
-                            args.daily_calories === undefined
-                                ? (existing?.daily_calories ?? null)
-                                : args.daily_calories,
+                        daily_calories: plan
+                            ? plan.daily_calories
+                            : args.daily_calories === undefined
+                              ? (existing?.daily_calories ?? null)
+                              : args.daily_calories,
+                        calorie_goal_mode: plan
+                            ? plan.mode
+                            : (existing?.calorie_goal_mode ?? null),
+                        weight_rate_g_per_day: plan
+                            ? plan.weight_rate_g_per_day
+                            : (existing?.weight_rate_g_per_day ?? null),
+                        target_date: plan
+                            ? plan.target_date
+                            : (existing?.target_date ?? null),
                         daily_protein_g:
                             args.daily_protein_g === undefined
                                 ? (existing?.daily_protein_g ?? null)
@@ -2805,7 +2972,8 @@ export function registerTools(
                             args.daily_water_ml === undefined
                                 ? (existing?.daily_water_ml ?? null)
                                 : args.daily_water_ml,
-                        target_weight_g,
+                        target_weight_g:
+                            plan?.target_weight_g ?? target_weight_g,
                     };
                     const goals = await upsertNutritionGoals(userId, merged);
                     // An alcohol target set by someone who has alcohol tracking
@@ -2923,13 +3091,11 @@ export function registerTools(
                             getLatestWeight(userId),
                             activityOrNull(userId, targetDate),
                         ]);
-                    const adj = adjustGoalsForActivity(
-                        await goalsWithBurnDefault(
-                            userId,
-                            profile,
-                            storedGoals,
-                            targetDate,
-                        ),
+                    const adj = await effectiveGoals(
+                        userId,
+                        profile,
+                        storedGoals,
+                        targetDate,
                         activity?.active_kcal,
                     );
                     const goals = adj.goals;

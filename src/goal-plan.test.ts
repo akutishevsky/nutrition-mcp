@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { TEF_FRACTION, breakEvenKcal, type WeighIn } from "./body.js";
-import { buildDashboardPayload } from "./dashboard.js";
+import {
+    buildDashboardPayload,
+    checkGoalPlan,
+    checkModelSettings,
+} from "./dashboard.js";
 import { buildScenario, previewInputs } from "./dashboard-fixture.js";
 import type { NutritionGoals } from "./supabase.js";
 import type { EnergyDay } from "./calibration.js";
@@ -471,5 +475,165 @@ describe("derived goals in the dashboard payload", () => {
         const factor = row.goal_calories! / row.goal_base_calories!;
         expect(row.goal_carbs_g).toBeCloseTo(200 * factor, 0);
         expect(row.goal_fat_g).toBeCloseTo(60 * factor, 0);
+    });
+
+    test("the user's kcal/g reaches the goal and the balance together", () => {
+        const withK = (k: number | null) =>
+            buildDashboardPayload(
+                previewInputs(
+                    {
+                        ...fx,
+                        profile: { ...fx.profile, energy_kcal_per_gram: k },
+                        goals: {
+                            user_id: "",
+                            daily_calories: null,
+                            daily_protein_g: null,
+                            daily_carbs_g: null,
+                            daily_fat_g: null,
+                            daily_fiber_g: null,
+                            daily_sugar_g: null,
+                            daily_alcohol_g: null,
+                            daily_caffeine_mg: null,
+                            daily_water_ml: null,
+                            target_weight_g: null,
+                            calorie_goal_mode: "rate",
+                            weight_rate_g_per_day: -70,
+                            target_date: null,
+                            updated_at: "",
+                        },
+                    },
+                    30,
+                    TODAY,
+                ),
+            );
+        const six = withK(null);
+        const high = withK(7.7);
+        expect(six.goalPlan.kcal_per_gram).toBe(6);
+        expect(high.goalPlan.kcal_per_gram).toBe(7.7);
+        // A bigger kcal/g makes the same rate a bigger deficit.
+        expect(high.goalPlan.goal_kcal!).toBeLessThan(six.goalPlan.goal_kcal!);
+        const row = high.daily.find((r) => r.balance_kcal != null)!;
+        expect(row.balance_g).toBe(Math.round(row.balance_kcal! / 7.7));
+    });
+
+    test("the trend lookback is the user's own", () => {
+        const withWindow = (w: number | null) =>
+            buildDashboardPayload(
+                previewInputs(
+                    {
+                        ...fx,
+                        profile: { ...fx.profile, trend_window_days: w },
+                        goals: null,
+                    },
+                    30,
+                    TODAY,
+                ),
+            );
+        expect(withWindow(null).goalPlan.trend!.window_days).toBe(42);
+        expect(withWindow(28).goalPlan.trend!.window_days).toBe(28);
+    });
+});
+
+describe("checkGoalPlan", () => {
+    const ctx = { today: "2026-11-15", unit: "kg" as const };
+
+    test("the old { calories } shape still means fixed or the estimated burn", () => {
+        expect(checkGoalPlan({ calories: 1800 }, ctx)).toEqual({
+            ok: true,
+            value: {
+                mode: "fixed",
+                daily_calories: 1800,
+                weight_rate_g_per_day: null,
+                target_date: null,
+            },
+        });
+        expect(checkGoalPlan({ calories: null }, ctx)).toMatchObject({
+            ok: true,
+            value: { mode: "burn", daily_calories: null },
+        });
+    });
+
+    test("a rate, in the user's unit and period", () => {
+        const r = checkGoalPlan(
+            { mode: "rate", rate: -1, unit: "lb", period: "month" },
+            ctx,
+        );
+        expect(r).toMatchObject({ ok: true, value: { mode: "rate" } });
+        if (r.ok)
+            expect(r.value.weight_rate_g_per_day).toBeCloseTo(
+                -453.59237 / 30.4375,
+                2,
+            );
+        // Defaults to the profile unit and a week.
+        const d = checkGoalPlan({ mode: "rate", rate: -0.7 }, ctx);
+        if (d.ok) expect(d.value.weight_rate_g_per_day).toBeCloseTo(-100, 2);
+    });
+
+    test("a date goal needs a plausible weight and a future date", () => {
+        const ok = checkGoalPlan(
+            { mode: "date", target_weight: 75, target_date: "2026-12-25" },
+            ctx,
+        );
+        expect(ok).toMatchObject({
+            ok: true,
+            value: { target_weight_g: 75_000, target_date: "2026-12-25" },
+        });
+        for (const bad of [
+            { target_weight: 75, target_date: "2026-11-15" },
+            { target_weight: 75, target_date: "2026-02-30" },
+            { target_weight: 75, target_date: "soon" },
+            { target_weight: 5, target_date: "2026-12-25" },
+            { target_date: "2026-12-25" },
+        ])
+            expect(checkGoalPlan({ mode: "date", ...bad }, ctx).ok).toBe(false);
+    });
+
+    test("only impossible input is refused; an aggressive rate is accepted", () => {
+        expect(checkGoalPlan({ mode: "rate", rate: -1.5 }, ctx).ok).toBe(true);
+        expect(checkGoalPlan({ mode: "rate" }, ctx).ok).toBe(false);
+        expect(checkGoalPlan({ mode: "rate", rate: "x" }, ctx).ok).toBe(false);
+        expect(
+            checkGoalPlan({ mode: "rate", rate: -1, period: "decade" }, ctx).ok,
+        ).toBe(false);
+        // A unit slip (-500 kg per week) is the one thing a rate bound catches.
+        expect(checkGoalPlan({ mode: "rate", rate: -500 }, ctx).ok).toBe(false);
+        expect(checkGoalPlan({ mode: "fixed" }, ctx).ok).toBe(false);
+        expect(checkGoalPlan({ mode: "nope" }, ctx).ok).toBe(false);
+    });
+});
+
+describe("checkModelSettings", () => {
+    test("accepts the documented ranges and clears with null", () => {
+        expect(
+            checkModelSettings({
+                energy_kcal_per_gram: 7.7,
+                trend_window_days: 28,
+            }),
+        ).toEqual({
+            ok: true,
+            patch: { energy_kcal_per_gram: 7.7, trend_window_days: 28 },
+        });
+        expect(
+            checkModelSettings({
+                energy_kcal_per_gram: null,
+                trend_window_days: "",
+            }),
+        ).toEqual({
+            ok: true,
+            patch: { energy_kcal_per_gram: null, trend_window_days: null },
+        });
+        expect(checkModelSettings({})).toEqual({ ok: true, patch: {} });
+    });
+
+    test("rejects out-of-range and non-whole values", () => {
+        for (const bad of [
+            { energy_kcal_per_gram: 2 },
+            { energy_kcal_per_gram: 12 },
+            { energy_kcal_per_gram: "abc" },
+            { trend_window_days: 10 },
+            { trend_window_days: 90 },
+            { trend_window_days: 30.5 },
+        ])
+            expect(checkModelSettings(bad).ok).toBe(false);
     });
 });
