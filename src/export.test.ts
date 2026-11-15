@@ -337,6 +337,9 @@ function goals(overrides: Partial<NutritionGoals> = {}): NutritionGoals {
         daily_caffeine_mg: 400,
         daily_water_ml: 2500,
         target_weight_g: 72000,
+        calorie_goal_mode: "rate",
+        weight_rate_g_per_day: -50,
+        target_date: "2027-01-01",
         updated_at: "2026-06-20T14:30:00.000Z",
         ...overrides,
     };
@@ -351,6 +354,8 @@ function profile(overrides: Partial<Profile> = {}): Profile {
         alcohol_tracking_enabled: false,
         preferred_drink_unit: "us",
         locale: null,
+        energy_kcal_per_gram: null,
+        trend_window_days: null,
         created_at: "2026-01-02T14:30:00.000Z",
         updated_at: "2026-06-20T14:30:00.000Z",
         ...overrides,
@@ -361,7 +366,7 @@ const WATER_HEADER = "id,logged_at,timezone,amount_ml,notes";
 const WEIGHT_HEADER =
     "id,logged_at,timezone,weight_g,weight_display,weight_unit,notes";
 const GOALS_HEADER =
-    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone";
+    "daily_calories,daily_protein_g,daily_carbs_g,daily_fat_g,daily_fiber_g,daily_sugar_g,daily_alcohol_g,daily_caffeine_mg,daily_water_ml,target_weight_g,updated_at,timezone,calorie_goal_mode,weight_rate_g_per_day,target_date";
 const PROFILE_HEADER =
     "timezone,preferred_weight_unit,preferred_drink_unit,alcohol_tracking_enabled,widgets_enabled,height_cm,birth_date,sex,created_at,updated_at";
 
@@ -538,6 +543,9 @@ test("every goal value lands under its own header name", () => {
         target_weight_g: "72000",
         updated_at: "2026-06-20 16:30:00",
         timezone: "Europe/Berlin",
+        calorie_goal_mode: "rate",
+        weight_rate_g_per_day: "-50",
+        target_date: "2027-01-01",
     });
 });
 
@@ -565,6 +573,9 @@ test("goals.csv leaves unset targets as empty fields", () => {
             daily_caffeine_mg: null,
             daily_water_ml: null,
             target_weight_g: null,
+            calorie_goal_mode: null,
+            weight_rate_g_per_day: null,
+            target_date: null,
         }),
         "UTC",
     );

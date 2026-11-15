@@ -65,9 +65,16 @@ import {
     type ModelParams,
 } from "./calibration.js";
 import {
+    applyDerivedGoals,
+    gramsPerDayToRate,
+    rateToGramsPerDay,
+    resolveGoalMode,
+    type GoalMode,
+    type RatePeriod,
+} from "./goal-plan.js";
+import {
     ageOn,
     balanceGrams,
-    breakEvenKcal,
     dailyBurn,
     KCAL_PER_GRAM,
     TEF_CARBS,
@@ -97,6 +104,7 @@ import {
     MAX_MACRO_G,
     MEAL_TYPE_VALUES,
 } from "./import.js";
+import { isLocalDate } from "./activity.js";
 import { authenticateBearer, rateLimitAuth } from "./middleware.js";
 import { checkBodyPatch, type BodyDetails, type WeighIn } from "./body.js";
 import {
@@ -142,6 +150,23 @@ export function bodyOf(profile: Profile | null): BodyDetails {
             profile?.height_cm == null ? null : Number(profile.height_cm),
         birth_date: profile?.birth_date ?? null,
         sex: profile?.sex ?? null,
+    };
+}
+
+/** The user's own model settings (kcal per gram, trend lookback), or the
+ *  defaults where they have set none. The same params drive the calibration,
+ *  the trend weight and the goal, so the three stay consistent. */
+export function modelFromProfile(profile: Profile | null): ModelParams {
+    const k = Number(profile?.energy_kcal_per_gram);
+    const w = Number(profile?.trend_window_days);
+    return {
+        ...DEFAULT_PARAMS,
+        kcalPerGram:
+            Number.isFinite(k) && k > 0 ? k : DEFAULT_PARAMS.kcalPerGram,
+        windowDays:
+            Number.isInteger(w) && w >= MIN_WINDOW_DAYS && w <= MAX_WINDOW_DAYS
+                ? w
+                : DEFAULT_PARAMS.windowDays,
     };
 }
 
@@ -293,10 +318,10 @@ export function buildDashboardPayload(inputs: DashboardInputs) {
         latestWeight,
         activityRows,
         dayOverrides = {},
-        model = DEFAULT_PARAMS,
         days,
         today,
     } = inputs;
+    const model = inputs.model ?? modelFromProfile(profile);
     const tz = timezoneFromProfile(profile) ?? "UTC";
     const weightUnit = preferredWeightUnitFromProfile(profile) ?? "kg";
     const { startDate, endDate, weightStart, fetchStart } = dashboardWindow(
@@ -390,12 +415,21 @@ export function buildDashboardPayload(inputs: DashboardInputs) {
                 row.mealCount > 0
                     ? Math.round(row.calories - row.burn_kcal)
                     : null;
-            // No stored goal: the break-even intake on the calibrated
-            // baseline (active counted once, grossed up for digestion).
-            if (goals?.daily_calories == null || goals.daily_calories <= 0)
-                row.goal_calories = breakEvenKcal(baseline, row.active_kcal);
         }
     }
+    // Every goal that is not a typed number — the estimated burn, a rate or a
+    // target date — is derived here from each day's (calibrated) resting burn
+    // and active kcal, active counted once and grossed up for digestion.
+    const goalPlan = applyDerivedGoals({
+        rows: allRows,
+        goals,
+        weighIns: allWeighIns,
+        energyDays,
+        calibration,
+        body,
+        today: endDate,
+        model,
+    });
     const dayRows = allRows.filter((r) => r.date >= startDate);
     const inRange = (iso: string) => {
         const d = dateInTz(iso, tz);
@@ -474,8 +508,14 @@ export function buildDashboardPayload(inputs: DashboardInputs) {
                   sugar_g: goals.daily_sugar_g,
                   water_ml: goals.daily_water_ml,
                   target_weight_g: goals.target_weight_g,
+                  mode: resolveGoalMode(goals),
+                  weight_rate_g_per_day: goals.weight_rate_g_per_day,
+                  target_date: goals.target_date,
               }
             : null,
+        // The plan behind today's derived goal: rate, trend weight, basis,
+        // digestion share and the advisory flags (goal-plan.ts).
+        goalPlan,
         // Per-day rows carry that day's EFFECTIVE goal (baseline + active
         // kcal) next to its totals; `goals` above stays the baseline.
         // Built field by field (dashboard-stats.ts), so the bucket's
@@ -617,17 +657,148 @@ export function checkCalorieGoal(
     return { ok: true, value: Math.round(n) };
 }
 
+/** What the calorie-goal form saves: a mode and the figures that mode owns.
+ *  Everything a mode does not own is cleared, so the modes are exclusive. */
+export interface GoalPlanPatch {
+    mode: GoalMode;
+    daily_calories: number | null;
+    weight_rate_g_per_day: number | null;
+    target_date: string | null;
+    /** Only a date goal sets the target weight; undefined keeps the stored one. */
+    target_weight_g?: number;
+}
+
+/** Hard bound on a stored rate, g/day: well past every advisory flag, it only
+ *  catches a typo (a unit slip) — nothing else about a plan is refused. */
+const MAX_RATE_G_PER_DAY = 2000;
+
+/**
+ * The calorie-goal form's body. The old shape `{ calories: n | null }` still
+ * means fixed / estimated burn. Only impossible input is refused (not a
+ * number, a missing figure, a date that is not a real future date); the safety
+ * rules of thumb are advisory flags, not validation (goal-plan.ts).
+ */
+export function checkGoalPlan(
+    input: Record<string, unknown>,
+    ctx: { today: string; unit: WeightUnit },
+): { ok: true; value: GoalPlanPatch } | { ok: false; error: string } {
+    const mode = input.mode;
+    if (mode === undefined) {
+        const legacy = checkCalorieGoal(input);
+        if (!legacy.ok) return legacy;
+        return {
+            ok: true,
+            value: {
+                mode: legacy.value == null ? "burn" : "fixed",
+                daily_calories: legacy.value,
+                weight_rate_g_per_day: null,
+                target_date: null,
+            },
+        };
+    }
+    if (mode === "burn")
+        return {
+            ok: true,
+            value: {
+                mode,
+                daily_calories: null,
+                weight_rate_g_per_day: null,
+                target_date: null,
+            },
+        };
+    if (mode === "fixed") {
+        const fixed = checkCalorieGoal({ calories: input.calories ?? "x" });
+        if (!fixed.ok || fixed.value == null)
+            return {
+                ok: false,
+                error: fixed.ok
+                    ? "A fixed goal needs a calorie figure."
+                    : fixed.error,
+            };
+        return {
+            ok: true,
+            value: {
+                mode,
+                daily_calories: fixed.value,
+                weight_rate_g_per_day: null,
+                target_date: null,
+            },
+        };
+    }
+    const unit = input.unit === undefined ? ctx.unit : input.unit;
+    if (!isWeightUnit(unit))
+        return { ok: false, error: "unit must be kg or lb." };
+    if (mode === "rate") {
+        const amount = toNumber(input.rate);
+        if (amount == null)
+            return {
+                ok: false,
+                error: "rate is required, e.g. -0.5 (negative loses weight).",
+            };
+        const period = input.period ?? "week";
+        if (period !== "week" && period !== "month" && period !== "year")
+            return { ok: false, error: "period must be week, month or year." };
+        const perDay = rateToGramsPerDay(amount, unit, period as RatePeriod);
+        if (Math.abs(perDay) > MAX_RATE_G_PER_DAY)
+            return {
+                ok: false,
+                error: `That rate is not plausible; check the unit and period.`,
+            };
+        return {
+            ok: true,
+            value: {
+                mode,
+                daily_calories: null,
+                weight_rate_g_per_day: Math.round(perDay * 100) / 100,
+                target_date: null,
+            },
+        };
+    }
+    if (mode === "date") {
+        const weight = toNumber(input.target_weight);
+        if (weight == null)
+            return { ok: false, error: "target_weight is required." };
+        const grams = toGrams(weight, unit);
+        if (!isPlausibleWeightGrams(grams))
+            return { ok: false, error: "That target weight is not plausible." };
+        const date = input.target_date;
+        if (typeof date !== "string" || !isLocalDate(date))
+            return {
+                ok: false,
+                error: "target_date must be a real date, YYYY-MM-DD.",
+            };
+        if (date <= ctx.today)
+            return { ok: false, error: "target_date must be in the future." };
+        return {
+            ok: true,
+            value: {
+                mode,
+                daily_calories: null,
+                weight_rate_g_per_day: null,
+                target_date: date,
+                target_weight_g: grams,
+            },
+        };
+    }
+    return { ok: false, error: "mode must be fixed, burn, rate or date." };
+}
+
 /** Save the calorie goal without touching the other targets (the upsert
  *  rewrites the whole row, so the existing one is carried over). */
 export async function saveCalorieGoal(
     userId: string,
     input: Record<string, unknown>,
 ): Promise<{ status: 200 | 400 | 404; json: Record<string, unknown> }> {
-    const checked = checkCalorieGoal(input);
+    const profile = await getProfile(userId);
+    const checked = checkGoalPlan(input, {
+        today: todayInTz(timezoneFromProfile(profile) ?? "UTC"),
+        unit: preferredWeightUnitFromProfile(profile) ?? "kg",
+    });
     if (!checked.ok) return invalid(checked.error);
     const existing = await getNutritionGoals(userId);
+    const plan = checked.value;
     const saved = await upsertNutritionGoals(userId, {
-        daily_calories: checked.value,
+        daily_calories: plan.daily_calories,
         daily_protein_g: existing?.daily_protein_g,
         daily_carbs_g: existing?.daily_carbs_g,
         daily_fat_g: existing?.daily_fat_g,
@@ -636,9 +807,21 @@ export async function saveCalorieGoal(
         daily_alcohol_g: existing?.daily_alcohol_g,
         daily_caffeine_mg: existing?.daily_caffeine_mg,
         daily_water_ml: existing?.daily_water_ml,
-        target_weight_g: existing?.target_weight_g,
+        target_weight_g: plan.target_weight_g ?? existing?.target_weight_g,
+        calorie_goal_mode: plan.mode,
+        weight_rate_g_per_day: plan.weight_rate_g_per_day,
+        target_date: plan.target_date,
     });
-    return { status: 200, json: { ok: true, calories: saved.daily_calories } };
+    return {
+        status: 200,
+        json: {
+            ok: true,
+            calories: saved.daily_calories,
+            mode: plan.mode,
+            rate: saved.weight_rate_g_per_day,
+            target_date: saved.target_date,
+        },
+    };
 }
 
 type Checked<T> = { ok: true; value: T } | { ok: false; error: string };

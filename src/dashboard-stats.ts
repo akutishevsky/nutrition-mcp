@@ -26,6 +26,7 @@ import {
     type WeighIn,
 } from "./body.js";
 import type { EnergyStatus, EnergyWindow } from "./calibration.js";
+import { resolveGoalMode } from "./goal-plan.js";
 import type { DailyBucket } from "./insights.js";
 import type { Meal, NutritionGoals } from "./supabase.js";
 
@@ -43,6 +44,9 @@ export interface DashboardDay {
     active_kcal: number | null;
     /** The day's effective calorie goal (baseline + active), or null. */
     goal_calories: number | null;
+    /** Derived goals only: the same goal on a day with no active kcal, the
+     *  figure the stored macro targets are written against. */
+    goal_base_calories: number | null;
     goal_protein_g: number | null;
     goal_carbs_g: number | null;
     goal_fat_g: number | null;
@@ -157,7 +161,7 @@ export function withBurnDefault(
     goals: NutritionGoals | null,
     bmr: number | null,
 ): NutritionGoals | null {
-    if (goals?.daily_calories != null && goals.daily_calories > 0) return goals;
+    if (resolveGoalMode(goals) === "fixed") return goals;
     if (bmr == null) return goals;
     const blank: NutritionGoals = {
         user_id: "",
@@ -171,6 +175,9 @@ export function withBurnDefault(
         daily_caffeine_mg: null,
         daily_water_ml: null,
         target_weight_g: null,
+        calorie_goal_mode: null,
+        weight_rate_g_per_day: null,
+        target_date: null,
         updated_at: "",
     };
     return {
@@ -187,8 +194,7 @@ export function buildDashboardDays(
     weighIns: WeighIn[],
     today: string,
 ): DashboardDay[] {
-    const hasStoredGoal =
-        goals?.daily_calories != null && goals.daily_calories > 0;
+    const hasStoredGoal = resolveGoalMode(goals) === "fixed";
     return buckets.map((b) => {
         const active = activeByDate.get(b.date) ?? null;
         const bmr = bmrFor(body, weightOn(weighIns, b.date), b.date);
@@ -214,6 +220,7 @@ export function buildDashboardDays(
                 !hasStoredGoal && bmr != null
                     ? breakEvenKcal(bmr, active)
                     : g?.daily_calories || null,
+            goal_base_calories: null,
             goal_protein_g: g?.daily_protein_g || null,
             goal_carbs_g: g?.daily_carbs_g || null,
             goal_fat_g: g?.daily_fat_g || null,

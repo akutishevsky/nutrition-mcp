@@ -645,6 +645,8 @@ export interface Profile {
     birth_date?: string | null;
     sex?: BodySex | null;
     resting_basis?: "formula" | "calibrated";
+    energy_kcal_per_gram: number | null;
+    trend_window_days: number | null;
     created_at: string;
     updated_at: string;
 }
@@ -788,6 +790,8 @@ export async function upsertProfile(
         birth_date?: string | null;
         sex?: BodySex | null;
         resting_basis?: "formula" | "calibrated";
+        energy_kcal_per_gram?: number | null;
+        trend_window_days?: number | null;
     },
 ): Promise<Profile> {
     const payload: Record<string, unknown> = {
@@ -812,6 +816,10 @@ export async function upsertProfile(
     if (patch.sex !== undefined) payload.sex = patch.sex;
     if (patch.resting_basis !== undefined)
         payload.resting_basis = patch.resting_basis;
+    if (patch.energy_kcal_per_gram !== undefined)
+        payload.energy_kcal_per_gram = patch.energy_kcal_per_gram;
+    if (patch.trend_window_days !== undefined)
+        payload.trend_window_days = patch.trend_window_days;
 
     const { data, error } = await getSupabase()
         .from("profiles")
@@ -841,6 +849,9 @@ export interface NutritionGoals {
     daily_caffeine_mg: number | null;
     daily_water_ml: number | null;
     target_weight_g: number | null;
+    calorie_goal_mode: "fixed" | "burn" | "rate" | "date" | null;
+    weight_rate_g_per_day: number | null;
+    target_date: string | null;
     updated_at: string;
 }
 
@@ -855,6 +866,9 @@ export interface NutritionGoalsInput {
     daily_caffeine_mg?: number | null;
     daily_water_ml?: number | null;
     target_weight_g?: number | null;
+    calorie_goal_mode?: "fixed" | "burn" | "rate" | "date" | null;
+    weight_rate_g_per_day?: number | null;
+    target_date?: string | null;
 }
 
 export async function upsertNutritionGoals(
@@ -886,6 +900,9 @@ export async function upsertNutritionGoals(
                         ? null
                         : toStoredInteger(input.daily_water_ml),
                 target_weight_g: input.target_weight_g ?? null,
+                calorie_goal_mode: input.calorie_goal_mode ?? null,
+                weight_rate_g_per_day: input.weight_rate_g_per_day ?? null,
+                target_date: input.target_date ?? null,
                 updated_at: new Date().toISOString(),
             },
             { onConflict: "user_id" },

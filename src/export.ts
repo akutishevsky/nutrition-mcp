@@ -211,6 +211,9 @@ const GOALS_CSV_COLUMNS = [
     "target_weight_g",
     "updated_at",
     "timezone",
+    "calorie_goal_mode",
+    "weight_rate_g_per_day",
+    "target_date",
 ] as const;
 
 /**
@@ -238,6 +241,9 @@ export function buildGoalsCsv(
                 csvEscape(goals.target_weight_g),
                 csvEscape(formatLocalDateTime(goals.updated_at, tz)),
                 csvEscape(tz),
+                csvEscape(goals.calorie_goal_mode),
+                csvEscape(goals.weight_rate_g_per_day),
+                csvEscape(goals.target_date),
             ].join(","),
         );
     }

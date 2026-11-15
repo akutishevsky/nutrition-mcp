@@ -116,6 +116,9 @@ function goals(over: Partial<NutritionGoals> = {}): NutritionGoals {
         daily_caffeine_mg: 400,
         daily_water_ml: 2500,
         target_weight_g: null,
+        calorie_goal_mode: null,
+        weight_rate_g_per_day: null,
+        target_date: null,
         updated_at: "2026-07-26T00:00:00.000Z",
         ...over,
     };
@@ -1406,6 +1409,8 @@ const PROFILE_BASE: actualSupabase.Profile = {
     alcohol_tracking_enabled: false,
     preferred_drink_unit: null,
     locale: null,
+    energy_kcal_per_gram: null,
+    trend_window_days: null,
     created_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
 };

@@ -23,6 +23,9 @@ const goals = (over: Partial<NutritionGoals> = {}): NutritionGoals => ({
     daily_caffeine_mg: null,
     daily_water_ml: 3000,
     target_weight_g: 75_000,
+    calorie_goal_mode: null,
+    weight_rate_g_per_day: null,
+    target_date: null,
     updated_at: "2026-11-01T00:00:00Z",
     ...over,
 });
@@ -449,6 +452,9 @@ describe("calorie goal default and editor", () => {
         daily_caffeine_mg: null,
         daily_water_ml: null,
         target_weight_g: null,
+        calorie_goal_mode: null,
+        weight_rate_g_per_day: null,
+        target_date: null,
         updated_at: "",
     });
 

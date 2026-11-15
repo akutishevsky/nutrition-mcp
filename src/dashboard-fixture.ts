@@ -226,6 +226,9 @@ const FULL_GOALS: NutritionGoals = {
     daily_caffeine_mg: null,
     daily_water_ml: 2500,
     target_weight_g: 78_000,
+    calorie_goal_mode: null,
+    weight_rate_g_per_day: null,
+    target_date: null,
     updated_at: STAMP,
 };
 
@@ -245,6 +248,8 @@ function profileFor(name: ScenarioName): Profile {
         alcohol_tracking_enabled: false,
         preferred_drink_unit: null,
         locale: null,
+        energy_kcal_per_gram: null,
+        trend_window_days: null,
         height_cm: withBody ? BODY.height_cm : null,
         birth_date: withBody ? BODY.birth_date : null,
         sex: withBody ? BODY.sex : null,
@@ -579,6 +584,9 @@ function emptyGoals(): NutritionGoals {
         daily_caffeine_mg: null,
         daily_water_ml: null,
         target_weight_g: null,
+        calorie_goal_mode: null,
+        weight_rate_g_per_day: null,
+        target_date: null,
         updated_at: "",
     };
 }

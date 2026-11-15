@@ -307,8 +307,11 @@ describe("dashboard payload", () => {
         );
         expect(p.calibration.applied).toBe(true);
         const row = p.daily.find((r) => (r.active_kcal ?? 0) > 0)!;
-        // Break-even: (baseline + active) ÷ 0.9 — active counted once.
-        const expected = Math.round((row.bmr_kcal! + row.active_kcal!) / 0.9);
+        // Break-even: (baseline + active) ÷ (1 − the user's own digestion
+        // share) — active counted once.
+        const expected = Math.round(
+            (row.bmr_kcal! + row.active_kcal!) / (1 - p.goalPlan.tef_share),
+        );
         expect(Math.abs(row.goal_calories! - expected)).toBeLessThanOrEqual(1);
     });
 });
@@ -418,16 +421,21 @@ describe("what-if lab", () => {
 });
 
 describe("break-even goal", () => {
-    test("with no stored goal the goal is (resting + active) ÷ 0.9", () => {
+    test("with no stored goal the goal is (resting + active) ÷ (1 − digestion share)", () => {
         const TODAY = "2026-12-01";
         const fx = buildScenario("offset", TODAY); // formula basis
         const p = buildDashboardPayload(
             previewInputs({ ...fx, goals: null }, 30, TODAY),
         );
         expect(p.calibration.applied).toBe(false);
+        // The share is the user's own (their foods' per-macro digestion over
+        // their intake), not a flat 10%.
+        const f = p.goalPlan.tef_share;
+        expect(f).toBeGreaterThan(0.05);
+        expect(f).toBeLessThan(0.2);
         for (const r of p.daily.filter((r) => r.bmr_kcal != null))
             expect(r.goal_calories).toBe(
-                Math.round((r.bmr_kcal! + (r.active_kcal ?? 0)) / 0.9),
+                Math.round((r.bmr_kcal! + (r.active_kcal ?? 0)) / (1 - f)),
             );
     });
 });

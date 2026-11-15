@@ -19,6 +19,9 @@ const goals = (over: Partial<NutritionGoals> = {}): NutritionGoals => ({
     daily_caffeine_mg: 400,
     daily_water_ml: 2500,
     target_weight_g: null,
+    calorie_goal_mode: null,
+    weight_rate_g_per_day: null,
+    target_date: null,
     updated_at: "2026-11-01T00:00:00Z",
     ...over,
 });
