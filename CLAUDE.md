@@ -196,6 +196,17 @@ no Google Fonts, unlike the public site, so opening it reaches nothing).
 
 ---
 
+## Calorie goal modes (`src/goal-plan.ts`)
+
+`nutrition_goals.calorie_goal_mode` is `fixed` (a typed `daily_calories`, active kcal added on top), `burn` (break-even), `rate` (`weight_rate_g_per_day`) or `date` (`target_weight_g` + `target_date`); a null mode on a legacy row resolves through `resolveGoalMode` (a number is fixed, none is burn). Every mode except `fixed` is **derived on read**, never stored as a calorie number: `goal = (resting + active + rate × k) ÷ (1 − f)`, where resting is the calibrated baseline when applied, `k` is the user's kcal/g (`profiles.energy_kcal_per_gram`, default 6) and `f` is the user's own digestion share (`tefRatio`, their per-macro TEF over their intake, 10% until 7 counted days). The date goal re-derives its rate daily from the smoothed trend weight (`trendWeightToday`, lookback `profiles.trend_window_days`, default 42) — not the latest weigh-in.
+
+- **One engine, both surfaces.** `applyDerivedGoals` runs inside `buildDashboardPayload`; the MCP tools (`effectiveGoals` in `src/mcp.ts`) read the same payload row, so `get_goal_progress`/`log_meal` and the dashboard cannot disagree. A typed goal still takes the old `adjustGoalsForActivity` path. The other goal readers (`get_nutrition_summary`, trends, `log_active_calories`) still show only a stored figure.
+- **Safety limits are advisory.** `goalFlags` returns red/info flags (fast loss, big deficit, intake floor, BMI target, minors, date window…); they are shown, never enforced. Only impossible input is refused (`checkGoalPlan`).
+- **Protein holds.** Under a derived goal protein stays at its target and carbs and fat follow the day's calories (`scaleDerivedMacros`).
+- **Writers must carry the fields.** `upsertNutritionGoals` replaces the whole row: `saveCalorieGoal`, `set_nutrition_goals`, the export and the preview all copy `calorie_goal_mode`/`weight_rate_g_per_day`/`target_date`, or a calorie edit wipes the plan.
+
+---
+
 ## Public site (`public/*.html`)
 
 One design system, "Nutrition Facts": the FDA label's grammar — a heavy 3px `var(--rule)` above every section head, hairline rules between rows, bold label left / figure right, ruled 1px-gap grids instead of floating cards — is the structural motif on every page, and the stats section on the landing page is literally a Nutrition Facts panel (`.facts`). Type is Bricolage Grotesque (display, `.section-title` / `.display`), Instrument Sans (body) and Geist Mono (eyebrows, URLs, tool names), all from Google Fonts; the CSP already allows them. Light is paper white on green-black ink; dark is forest-tinted, not grey.

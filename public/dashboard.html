@@ -1126,6 +1126,46 @@
                 color: var(--accent-text);
                 line-height: 1.3;
             }
+            /* Calorie goal: the mode switch, and the working under the form. */
+            .goal-seg {
+                margin: var(--s2) 0 var(--s3);
+                max-width: 100%;
+            }
+            .goal-seg button {
+                min-width: 0;
+                flex: 1 1 auto;
+            }
+            .goal-sec .pair select {
+                min-width: 8.5rem;
+            }
+            .plan-readout .note {
+                margin: 0 0 var(--s2);
+            }
+            .plan-readout {
+                margin-top: var(--s3);
+                padding-top: var(--s3);
+                border-top: 1px solid var(--line);
+            }
+            .flag-list {
+                list-style: none;
+                margin: var(--s2) 0 0;
+                padding: 0;
+                display: grid;
+                gap: var(--s2);
+            }
+            .flag-list li {
+                display: flex;
+                gap: var(--s2);
+                align-items: flex-start;
+                color: var(--ink-2);
+            }
+            .flag-list li.red {
+                color: var(--ink);
+            }
+            .flag-list .chip {
+                flex: none;
+                margin-top: 1px;
+            }
             .seg {
                 display: inline-flex;
                 gap: 2px;
@@ -4972,6 +5012,56 @@
                 }
                 // The Today label's rows: Goal, Left or Over, Est. burn and
                 // Est. change, each with its explanation indented under it.
+                // What the Goal row says under its figure: the plan behind a
+                // derived goal, or the typed baseline plus active kcal.
+                function goalSubText(t, goal) {
+                    const p = data.goalPlan;
+                    if (p.mode === "rate" || p.mode === "date") {
+                        const w = round2(
+                            toUnit(p.rate_g_per_day * 7, data.weightUnit),
+                        );
+                        return (
+                            (p.reached
+                                ? "target reached: break-even"
+                                : "plan " +
+                                  sgn(w) +
+                                  " " +
+                                  data.weightUnit +
+                                  "/week") +
+                            " · resting + active ÷ (1 − " +
+                            (p.tef_share * 100).toFixed(0) +
+                            "% digestion)"
+                        );
+                    }
+                    if (goalCustom())
+                        return t.active_kcal
+                            ? fmt(goal - t.active_kcal) +
+                                  " base + " +
+                                  fmt(t.active_kcal) +
+                                  " active"
+                            : "";
+                    return "estimated burn: resting + active + digestion";
+                }
+                // A red chip beside the goal when a plan breaks a rule of
+                // thumb. Advisory only: the goal itself is never changed.
+                function planChipHtml() {
+                    const p = data.goalPlan;
+                    const red = ((p && p.flags) || []).filter(function (f) {
+                        return f.level === "red";
+                    });
+                    if (!red.length) return "";
+                    return (
+                        '<span class="chip over" title="' +
+                        esc(
+                            red
+                                .map(function (f) {
+                                    return f.message;
+                                })
+                                .join(" "),
+                        ) +
+                        '">check plan</span>'
+                    );
+                }
                 function todayRows(t) {
                     const eaten = t.calories || 0;
                     const goal = t.goal_calories;
@@ -4980,15 +5070,8 @@
                     if (goal) {
                         h += factsRow(
                             "Goal",
-                            fmt(goal) + kcal,
-                            goalCustom()
-                                ? t.active_kcal
-                                    ? fmt(goal - t.active_kcal) +
-                                      " base + " +
-                                      fmt(t.active_kcal) +
-                                      " active"
-                                    : ""
-                                : "estimated burn: resting + active + digestion",
+                            fmt(goal) + kcal + planChipHtml(),
+                            goalSubText(t, goal),
                         );
                         h +=
                             eaten <= goal
@@ -5216,32 +5299,258 @@
                         .sort((a, b) => (a.logged_at < b.logged_at ? -1 : 1));
                 }
 
-                // The calorie-goal editor on Today. A baseline kcal figure (the
-                // day's active kcal are added on top); "Use estimated burn"
-                // clears it, and the server then defaults the goal to burn.
+                // The calorie-goal editor. Four ways to set the goal: a typed
+                // baseline (the day's active kcal are added on top), the
+                // estimated burn, a weight rate, or a weight by a date. The
+                // last three are derived server-side every day (goal-plan.ts);
+                // this form only chooses the mode and its figures, and the
+                // readout under it shows the working and any advisory flags.
+                const GOAL_MODES = [
+                    ["fixed", "Fixed"],
+                    ["burn", "Burn"],
+                    ["rate", "Rate"],
+                    ["date", "By date"],
+                ];
+                function round2(n) {
+                    return Math.round(n * 100) / 100;
+                }
+                function sgn(n) {
+                    return (n > 0 ? "+" : n < 0 ? "−" : "") + Math.abs(n);
+                }
+                function goalVals() {
+                    const g = data.goals || {};
+                    const d = goalDraft || {};
+                    const u = data.weightUnit;
+                    return {
+                        mode: d.mode || data.goalPlan.mode,
+                        kcal:
+                            d.kcal != null
+                                ? d.kcal
+                                : goalCustom() == null
+                                  ? ""
+                                  : String(goalCustom()),
+                        rate:
+                            d.rate != null
+                                ? d.rate
+                                : g.weight_rate_g_per_day != null
+                                  ? String(
+                                        round2(
+                                            toUnit(
+                                                g.weight_rate_g_per_day * 7,
+                                                u,
+                                            ),
+                                        ),
+                                    )
+                                  : "",
+                        period: d.period || "week",
+                        tw:
+                            d.tw != null
+                                ? d.tw
+                                : g.target_weight_g != null
+                                  ? String(
+                                        Math.round(
+                                            toUnit(g.target_weight_g, u) * 10,
+                                        ) / 10,
+                                    )
+                                  : "",
+                        date:
+                            d.date != null
+                                ? d.date
+                                : g.target_date
+                                  ? g.target_date
+                                  : "",
+                    };
+                }
+                function goalNote(mode) {
+                    const p = data.goalPlan;
+                    const saved = p.mode === mode;
+                    if (mode === "fixed")
+                        return saved && goalCustom()
+                            ? "Your goal is " +
+                                  fmt(goalCustom()) +
+                                  " kcal plus each day’s active calories."
+                            : "Type a daily figure. Each day’s active calories are added on top.";
+                    if (mode === "burn")
+                        return "Eat at break-even: your estimated burn (resting + active + digestion).";
+                    if (mode === "rate")
+                        return "Choose how fast your weight should change. Your calories are worked out every day from your estimated burn and the energy in a gram of weight change.";
+                    return "Choose a weight and a date. The rate that gets you there is recalculated every day from your smoothed weight trend, so the calories adapt as you get closer or fall behind.";
+                }
+                function goalFieldsHtml(v) {
+                    const u = data.weightUnit;
+                    if (v.mode === "fixed")
+                        return (
+                            '<label class="field wide" for="g-kcal">Daily goal, before active calories (kcal)<input class="input" id="g-kcal" type="number" inputmode="numeric" step="1" min="500" max="20000" placeholder="e.g. 1900" value="' +
+                            esc(v.kcal) +
+                            '" /></label>'
+                        );
+                    if (v.mode === "rate")
+                        return (
+                            '<div class="field wide"><label for="g-rate">Weight change (' +
+                            u +
+                            ", negative loses)</label>" +
+                            '<span class="pair"><input class="input" id="g-rate" type="number" inputmode="decimal" step="0.05" placeholder="-0.5" value="' +
+                            esc(v.rate) +
+                            '" /><select class="input" id="g-period" aria-label="Per">' +
+                            ["week", "month", "year"]
+                                .map(function (p) {
+                                    return (
+                                        '<option value="' +
+                                        p +
+                                        '"' +
+                                        (p === v.period ? " selected" : "") +
+                                        ">per " +
+                                        p +
+                                        "</option>"
+                                    );
+                                })
+                                .join("") +
+                            "</select></span></div>"
+                        );
+                    if (v.mode === "date")
+                        return (
+                            '<label class="field" for="g-tw">Target weight (' +
+                            u +
+                            ')<input class="input" id="g-tw" type="number" inputmode="decimal" step="0.1" placeholder="75" value="' +
+                            esc(v.tw) +
+                            '" /></label>' +
+                            '<label class="field" for="g-date">By<input class="input" id="g-date" type="date" value="' +
+                            esc(v.date) +
+                            '" /></label>'
+                        );
+                    return "";
+                }
+                function goalSegHtml(mode) {
+                    return GOAL_MODES.map(function (m) {
+                        return (
+                            '<button type="button" data-mode="' +
+                            m[0] +
+                            '" aria-pressed="' +
+                            (m[0] === mode) +
+                            '">' +
+                            m[1] +
+                            "</button>"
+                        );
+                    }).join("");
+                }
+                function trendSourceText(t) {
+                    if (t.source === "trend")
+                        return (
+                            "smoothed " +
+                            t.window_days +
+                            "-day trend (" +
+                            plural(t.weighin_days, "weigh-in day") +
+                            ")"
+                        );
+                    if (t.source === "recent_mean")
+                        return "average of the last 7 days of weigh-ins (not enough for a trend yet)";
+                    return "your latest weigh-in (not enough weigh-ins to smooth)";
+                }
+                function planFlagsHtml(p) {
+                    if (!p.flags || !p.flags.length) return "";
+                    const red = p.flags.some(function (f) {
+                        return f.level === "red";
+                    });
+                    return (
+                        '<ul class="flag-list">' +
+                        p.flags
+                            .map(function (f) {
+                                return (
+                                    '<li class="' +
+                                    f.level +
+                                    '"><span class="chip' +
+                                    (f.level === "red" ? " over" : "") +
+                                    '">' +
+                                    (f.level === "red" ? "check" : "note") +
+                                    "</span><span>" +
+                                    esc(f.message) +
+                                    "</span></li>"
+                                );
+                            })
+                            .join("") +
+                        "</ul>" +
+                        (red
+                            ? '<p class="note">Rules of thumb, not medical advice. They never change your goal; the choice is yours.</p>'
+                            : "")
+                    );
+                }
+                // The working behind today's derived goal, so the number
+                // explains itself like the burn does.
+                function goalReadoutHtml() {
+                    const p = data.goalPlan;
+                    if (!p || p.mode === "fixed") return "";
+                    const t = data.daily[data.daily.length - 1];
+                    const u = data.weightUnit;
+                    let h = '<div class="plan-readout">';
+                    if (p.goal_kcal != null) {
+                        const delta = Math.round(
+                            p.rate_g_per_day * p.kcal_per_gram,
+                        );
+                        h +=
+                            '<p class="note"><b>Today: ' +
+                            fmt(p.goal_kcal) +
+                            " kcal</b> = (resting " +
+                            fmt(p.resting_kcal) +
+                            " (" +
+                            p.resting_basis +
+                            ") + " +
+                            fmt((t && t.active_kcal) || 0) +
+                            " active" +
+                            (delta ? " " + sgn(delta) + " for your plan" : "") +
+                            ") ÷ (1 − " +
+                            (p.tef_share * 100).toFixed(1) +
+                            "% digestion).</p>";
+                    } else {
+                        h +=
+                            '<p class="note">' +
+                            ADD_BODY +
+                            " The goal needs your body details.</p>";
+                    }
+                    if (p.trend)
+                        h +=
+                            '<p class="note">Trend weight ' +
+                            wfmt(p.trend.weight_g, u) +
+                            " " +
+                            u +
+                            " · " +
+                            trendSourceText(p.trend) +
+                            ".</p>";
+                    if (p.mode === "date")
+                        h +=
+                            '<p class="note">' +
+                            (p.reached
+                                ? "Target reached or date passed: your goal is break-even."
+                                : "Needs " +
+                                  sgn(round2(toUnit(p.rate_g_per_day * 7, u))) +
+                                  " " +
+                                  u +
+                                  "/week · " +
+                                  plural(p.days_left, "day") +
+                                  " left.") +
+                            "</p>";
+                    return h + planFlagsHtml(p) + "</div>";
+                }
                 function goalFormHtml() {
-                    const cur = goalCustom();
+                    const v = goalVals();
                     return (
                         '<section class="goal-sec rv"><details class="body-box" id="goal-box"' +
                         (goalOpen ? " open" : "") +
-                        '><summary>Calorie goal</summary><p class="note">' +
-                        (cur
-                            ? "Your goal is " +
-                              fmt(cur) +
-                              " kcal plus each day’s active calories."
-                            : "No goal set, so your goal is your estimated burn (resting + active + digestion): eating at break-even.") +
-                        " Set a lower number to plan a deficit.</p>" +
-                        '<form id="goal-form" class="body-form" novalidate><div class="form-grid">' +
-                        '<label class="field wide" for="g-kcal">Daily goal, before active calories (kcal)<input class="input" id="g-kcal" type="number" inputmode="numeric" step="1" min="500" max="20000" placeholder="Estimated burn" /></label></div>' +
-                        '<div class="form-foot"><button type="submit" class="btn primary" id="g-save">Save</button>' +
-                        (cur
-                            ? '<button type="button" class="btn" id="g-reset">Use estimated burn</button>'
-                            : "") +
+                        "><summary>Calorie goal</summary>" +
+                        '<div class="seg goal-seg" role="group" aria-label="Calorie goal type" id="g-mode">' +
+                        goalSegHtml(v.mode) +
+                        '</div><p class="note" id="g-note">' +
+                        esc(goalNote(v.mode)) +
+                        "</p>" +
+                        '<form id="goal-form" class="body-form" novalidate><div class="form-grid" id="g-fields">' +
+                        goalFieldsHtml(v) +
+                        '</div><div class="form-foot"><button type="submit" class="btn primary" id="g-save">Save</button>' +
                         '<span class="b-status ' +
                         goalStatus.cls +
                         '" id="g-status" role="status">' +
                         esc(goalStatus.text) +
-                        "</span></div></form></details></section>"
+                        "</span></div></form>" +
+                        goalReadoutHtml() +
+                        "</details></section>"
                     );
                 }
                 function setGoalStatus(text, cls) {
@@ -5253,7 +5562,7 @@
                         st.textContent = text;
                     }
                 }
-                function saveGoal(calories) {
+                function saveGoal(payload) {
                     const btn = $("g-save");
                     if (btn) btn.disabled = true;
                     setGoalStatus("Saving…");
@@ -5263,7 +5572,7 @@
                             Authorization: "Bearer " + token,
                             "Content-Type": "application/json",
                         },
-                        body: JSON.stringify({ calories: calories }),
+                        body: JSON.stringify(payload),
                     })
                         .then(function (r) {
                             return r
@@ -5304,34 +5613,77 @@
                             setGoalStatus("Could not reach the server.", "err");
                         });
                 }
+                // The fields now on screen, kept in the draft so switching
+                // mode (or a re-render) never throws away what was typed.
+                function captureGoalDraft() {
+                    const d = goalDraft || (goalDraft = {});
+                    const val = function (id) {
+                        const e = $(id);
+                        return e ? e.value : null;
+                    };
+                    if ($("g-kcal")) d.kcal = val("g-kcal");
+                    if ($("g-rate")) {
+                        d.rate = val("g-rate");
+                        d.period = val("g-period");
+                    }
+                    if ($("g-tw")) {
+                        d.tw = val("g-tw");
+                        d.date = val("g-date");
+                    }
+                }
+                function goalPayload(v) {
+                    const u = data.weightUnit;
+                    if (v.mode === "burn") return { mode: "burn" };
+                    if (v.mode === "fixed") {
+                        if (v.kcal.trim() === "")
+                            return { error: "Enter a daily calorie figure." };
+                        return { mode: "fixed", calories: Number(v.kcal) };
+                    }
+                    if (v.mode === "rate") {
+                        if (v.rate.trim() === "")
+                            return {
+                                error: "Enter a weight change, e.g. -0.5.",
+                            };
+                        return {
+                            mode: "rate",
+                            rate: Number(v.rate),
+                            period: v.period,
+                            unit: u,
+                        };
+                    }
+                    if (v.tw.trim() === "" || v.date === "")
+                        return { error: "Enter a target weight and a date." };
+                    return {
+                        mode: "date",
+                        target_weight: Number(v.tw),
+                        target_date: v.date,
+                        unit: u,
+                    };
+                }
                 function wireGoalForm() {
                     const box = $("goal-box");
                     if (!box) return;
-                    const input = $("g-kcal");
-                    input.value =
-                        goalDraft != null
-                            ? goalDraft
-                            : goalCustom() == null
-                              ? ""
-                              : String(goalCustom());
                     box.addEventListener("toggle", function () {
                         goalOpen = box.open;
                     });
-                    input.addEventListener("input", function () {
-                        goalDraft = input.value;
+                    $("goal-form").addEventListener("input", captureGoalDraft);
+                    $("g-mode").addEventListener("click", function (ev) {
+                        const b = ev.target.closest("button[data-mode]");
+                        if (!b) return;
+                        captureGoalDraft();
+                        goalDraft.mode = b.getAttribute("data-mode");
+                        const v = goalVals();
+                        $("g-fields").innerHTML = goalFieldsHtml(v);
+                        $("g-note").textContent = goalNote(v.mode);
+                        $("g-mode").innerHTML = goalSegHtml(v.mode);
                     });
                     $("goal-form").addEventListener("submit", function (ev) {
                         ev.preventDefault();
-                        const v = input.value.trim();
-                        saveGoal(v === "" ? null : Number(v));
+                        captureGoalDraft();
+                        const out = goalPayload(goalVals());
+                        if (out.error) return setGoalStatus(out.error, "err");
+                        saveGoal(out);
                     });
-                    const reset = $("g-reset");
-                    if (reset)
-                        reset.addEventListener("click", function () {
-                            goalDraft = null;
-                            input.value = "";
-                            saveGoal(null);
-                        });
                 }
 
                 RENDER.today = function () {
@@ -5575,7 +5927,7 @@
                         eyebrow: "Calibration",
                         id: "h-met",
                         title: 'Resting metabolism <span class="est">(estimate)</span>',
-                        note: "Your baseline burn without exercise: the Mifflin-St Jeor formula next to what your meals and weight trend imply, each day calibrated from the 42 days before it. Watch activity and digestion are added on top every day.",
+                        note: "Your baseline burn without exercise: the Mifflin-St Jeor formula next to what your meals and weight trend imply, each day calibrated from the days before it (your trend lookback, 42 by default). Watch activity and digestion are added on top every day.",
                         legend: legend([
                             [
                                 '<svg viewBox="0 0 14 14" aria-hidden="true"><line x1="0" y1="7" x2="14" y2="7" class="met-est"/></svg>',
@@ -8380,10 +8732,23 @@
                         '<label class="field" for="b-birth">Birth date<input class="input" id="b-birth" type="date" /></label>' +
                         '<label class="field wide" for="b-sex">Sex<select class="input" id="b-sex"><option value="">—</option><option value="male">Male</option><option value="female">Female</option></select></label></div>' +
                         '<label class="field wide" for="b-resting">Baseline burn<select class="input" id="b-resting"><option value="formula">Formula (BMR)</option><option value="calibrated">Calibrated from my data</option></select></label>' +
+                        '<div class="form-grid"><label class="field" for="b-k">Energy per gram of weight change (kcal/g)<input class="input" id="b-k" type="number" inputmode="decimal" step="0.1" min="3" max="9" placeholder="' +
+                        data.modelSettings.default_kcal_per_gram +
+                        '" /></label>' +
+                        '<label class="field" for="b-win">Weight trend lookback (days)<input class="input" id="b-win" type="number" inputmode="numeric" step="1" min="' +
+                        data.modelSettings.min_window_days +
+                        '" max="' +
+                        data.modelSettings.max_window_days +
+                        '" placeholder="' +
+                        data.modelSettings.default_window_days +
+                        '" /></label></div>' +
+                        '<p class="note">These two drive the calibration, the smoothed trend weight, the balance in grams and any rate or date calorie goal. Leave them blank for the defaults: 6 kcal/g (a few weeks of scale change is fat, lean tissue and water together, so lower than the classic 7.7) and a 42-day lookback.</p>' +
                         (data.calibration && data.calibration.applied
                             ? '<p class="note">Calibrated from ' +
                               data.calibration.counted_days +
-                              " counted days in the last 42 (" +
+                              " counted days in the last " +
+                              data.calibration.window_days +
+                              " (" +
                               data.calibration.window.weighin_days +
                               " weigh-in days, ±" +
                               fmt(data.calibration.window.uncertainty_kcal) +
@@ -8402,7 +8767,9 @@
                               ? '<p class="note">' +
                                 (data.calibration.status === "no_weighins" ||
                                 data.calibration.status === "too_few_weighins"
-                                    ? "Calibration needs weigh-ins on at least 4 different days in the last 42 days."
+                                    ? "Calibration needs weigh-ins on at least 4 different days in the last " +
+                                      data.calibration.window_days +
+                                      " days."
                                     : data.calibration.status === "missing_bmr"
                                       ? "Calibration needs height, birth date and sex to calculate BMR."
                                       : data.calibration.status ===
@@ -8790,6 +9157,14 @@
                     $("b-resting").value =
                         (data.calibration && data.calibration.basis) ||
                         "formula";
+                    $("b-k").value =
+                        data.modelSettings.energy_kcal_per_gram == null
+                            ? ""
+                            : String(data.modelSettings.energy_kcal_per_gram);
+                    $("b-win").value =
+                        data.modelSettings.trend_window_days == null
+                            ? ""
+                            : String(data.modelSettings.trend_window_days);
                     // Open it when something is missing, so the ask is
                     // visible — unless the user has toggled it themselves.
                     if (
@@ -8847,6 +9222,14 @@
                                 birth_date: $("b-birth").value || null,
                                 sex: $("b-sex").value || null,
                                 resting_basis: $("b-resting").value,
+                                energy_kcal_per_gram:
+                                    $("b-k").value.trim() === ""
+                                        ? null
+                                        : Number($("b-k").value),
+                                trend_window_days:
+                                    $("b-win").value.trim() === ""
+                                        ? null
+                                        : Number($("b-win").value),
                             }),
                         })
                             .then(function (r) {

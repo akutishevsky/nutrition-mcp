@@ -36,7 +36,8 @@ import {
     checkRepeat,
     checkWeightEntry,
     checkWeightPatch,
-    checkCalorieGoal,
+    checkGoalPlan,
+    checkModelSettings,
     DASHBOARD_CSP,
     dashboardFontResponse,
     parseModelParams,
@@ -200,7 +201,17 @@ const server = Bun.serve({
             const b = await readJson(req);
             if (!b) return json({ error: "invalid_request" }, 400);
             const tz = scenarioTz(state.scenario);
-            const { resting_basis, ...bodyInput } = b;
+            const {
+                resting_basis,
+                energy_kcal_per_gram,
+                trend_window_days,
+                ...bodyInput
+            } = b;
+            const model = checkModelSettings({
+                energy_kcal_per_gram,
+                trend_window_days,
+            });
+            if (!model.ok) return invalid(model.error);
             if (
                 resting_basis !== undefined &&
                 resting_basis !== "formula" &&
@@ -215,6 +226,7 @@ const server = Bun.serve({
                 bodyOf(buildScenario(state.scenario, todayInTz(tz)).profile);
             e.body = { ...current, ...checked.patch };
             if (resting_basis) e.restingBasis = resting_basis;
+            e.model = { ...e.model, ...model.patch };
             return json({ ok: true, body: e.body });
         }
 
@@ -247,10 +259,23 @@ const server = Bun.serve({
             if (!authed(req)) return json({ error: "invalid_token" }, 401);
             const b = await readJson(req);
             if (!b) return json({ error: "invalid_request" }, 400);
-            const checked = checkCalorieGoal(b);
+            const tz = scenarioTz(state.scenario);
+            const fx = scenarioWithEdits(
+                state.scenario,
+                todayInTz(tz),
+                edits(),
+            );
+            const checked = checkGoalPlan(b, {
+                today: todayInTz(tz),
+                unit: fx.profile.preferred_weight_unit ?? "kg",
+            });
             if (!checked.ok) return invalid(checked.error);
-            edits().goalCalories = checked.value;
-            return json({ ok: true, calories: checked.value });
+            edits().goalPlan = checked.value;
+            return json({
+                ok: true,
+                calories: checked.value.daily_calories,
+                mode: checked.value.mode,
+            });
         }
 
         // Same validator as production (checkWeightEntry); stored in memory.

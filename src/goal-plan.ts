@@ -336,7 +336,7 @@ export function goalFlags(i: FlagInput): GoalFlag[] {
         out.push({
             code: "big_deficit",
             level: "red",
-            message: `A ${Math.round(deficit)} kcal/day deficit is above 25% of your burn (or 1000 kcal).`,
+            message: `A ${Math.round(deficit).toLocaleString("en-US")} kcal/day deficit is above 25% of your burn (or 1,000 kcal).`,
         });
     if (i.goalKcal != null && plan.rate_g_per_day < 0) {
         const floor = Math.max(
@@ -347,7 +347,7 @@ export function goalFlags(i: FlagInput): GoalFlag[] {
             out.push({
                 code: "low_intake",
                 level: "red",
-                message: `${i.goalKcal} kcal is below ${Math.round(floor)} kcal (your resting burn or the usual minimum).`,
+                message: `${i.goalKcal.toLocaleString("en-US")} kcal is below ${Math.round(floor).toLocaleString("en-US")} kcal (your resting burn or the usual minimum).`,
             });
     }
     if (plan.target_weight_g != null && i.heightCm != null) {

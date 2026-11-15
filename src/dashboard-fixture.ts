@@ -14,6 +14,7 @@ import {
     buildDashboardPayload,
     dashboardWindow,
     type DashboardInputs,
+    type GoalPlanPatch,
 } from "./dashboard.js";
 import {
     bmrFor,
@@ -569,6 +570,14 @@ export interface PreviewEdits {
     /** Calorie goal saved from the page: a number, or null for "use the
      *  estimated burn". Absent means not edited this session. */
     goalCalories?: number | null;
+    /** A goal plan (mode, rate or target date) saved from the page; wins
+     *  over goalCalories. */
+    goalPlan?: GoalPlanPatch;
+    /** The Body form's kcal/g and trend lookback; null clears to default. */
+    model?: {
+        energy_kcal_per_gram?: number | null;
+        trend_window_days?: number | null;
+    };
 }
 
 function emptyGoals(): NutritionGoals {
@@ -608,11 +617,24 @@ export function scenarioWithEdits(
             .filter((w) => !wGone.has(w.id))
             .map((w) => (wPatch[w.id] ? { ...w, ...wPatch[w.id] } : w));
     }
+    if (edits.model) fx.profile = { ...fx.profile, ...edits.model };
     if (edits.goalCalories !== undefined)
         fx.goals = {
             ...(fx.goals ?? emptyGoals()),
             daily_calories: edits.goalCalories,
         };
+    if (edits.goalPlan) {
+        const plan = edits.goalPlan;
+        const base = fx.goals ?? emptyGoals();
+        fx.goals = {
+            ...base,
+            daily_calories: plan.daily_calories,
+            calorie_goal_mode: plan.mode,
+            weight_rate_g_per_day: plan.weight_rate_g_per_day,
+            target_date: plan.target_date,
+            target_weight_g: plan.target_weight_g ?? base.target_weight_g,
+        };
+    }
     const patches = edits.mealPatches ?? {};
     const gone = new Set(edits.deletedMealIds ?? []);
     fx.meals = [...fx.meals, ...(edits.addedMeals ?? [])]
