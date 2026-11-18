@@ -533,7 +533,7 @@ describe("bodyMeasurementIdempotencyKey", () => {
 
     test("insertBodyMeasurement decodes notes before hashing them", async () => {
         const body = fnBody(
-            await Bun.file("./src/supabase.ts").text(),
+            await Bun.file("./src/db/metrics.ts").text(),
             "insertBodyMeasurement",
         );
         const decode = body.indexOf("decodeEscapeSequences(");
@@ -606,7 +606,7 @@ describe("exportStoragePaths", () => {
     // The guard above is only worth anything if deletion actually routes
     // through it; inlining a path there again is the regression.
     test("deleteAllUserData removes exactly this list", async () => {
-        const src = await Bun.file("./src/supabase.ts").text();
+        const src = await Bun.file("./src/db/account.ts").text();
         const body = src.slice(
             src.indexOf("export async function deleteAllUserData"),
         );
@@ -614,7 +614,7 @@ describe("exportStoragePaths", () => {
     });
 
     test("deleteAllUserData removes body measurements", async () => {
-        const src = await Bun.file("./src/supabase.ts").text();
+        const src = await Bun.file("./src/db/account.ts").text();
         const body = src.slice(
             src.indexOf("export async function deleteAllUserData"),
         );
@@ -624,7 +624,7 @@ describe("exportStoragePaths", () => {
     // The link goes first so the Shortcut stops syncing (and writing another
     // sent-values row) while the rest of the account is being deleted.
     test("deleteAllUserData removes Apple Health sync first", async () => {
-        const src = await Bun.file("./src/supabase.ts").text();
+        const src = await Bun.file("./src/db/account.ts").text();
         const body = src.slice(
             src.indexOf("export async function deleteAllUserData"),
         );
@@ -643,7 +643,7 @@ describe("exportStoragePaths", () => {
     // Every per-user table goes into the export, deletion and the privacy
     // policy together; history goes immediately before the goals row.
     test("deleteAllUserData removes goals history just before goals", async () => {
-        const src = await Bun.file("./src/supabase.ts").text();
+        const src = await Bun.file("./src/db/account.ts").text();
         const body = src.slice(
             src.indexOf("export async function deleteAllUserData"),
         );
@@ -660,7 +660,7 @@ describe("deleteAllUserData saved meals", () => {
     // Ingredients and saved meals go before the logged meals, and the saved
     // meals before the meals that may point at them.
     test("deletes meal items, saved meal items and saved meals before meals", async () => {
-        const src = await Bun.file("./src/supabase.ts").text();
+        const src = await Bun.file("./src/db/account.ts").text();
         const body = src.slice(
             src.indexOf("export async function deleteAllUserData"),
         );
@@ -677,7 +677,7 @@ describe("deleteAllUserData saved meals", () => {
     });
 
     test("each new delete reports its own failure", async () => {
-        const src = await Bun.file("./src/supabase.ts").text();
+        const src = await Bun.file("./src/db/account.ts").text();
         const body = src.slice(
             src.indexOf("export async function deleteAllUserData"),
         );
@@ -810,22 +810,22 @@ function fnBody(src: string, name: string): string {
 
 describe("window readers route through the paged reader", () => {
     test.each([
-        "getMealsInRange",
-        "getWaterInRange",
-        "getWeightInRange",
-        "getBodyMeasurementsInRange",
-    ])("%s pages", async (name) => {
-        const body = fnBody(await Bun.file("./src/supabase.ts").text(), name);
+        ["getMealsInRange", "./src/db/meals.ts"],
+        ["getWaterInRange", "./src/db/metrics.ts"],
+        ["getWeightInRange", "./src/db/metrics.ts"],
+        ["getBodyMeasurementsInRange", "./src/db/metrics.ts"],
+    ])("%s pages", async (name, file) => {
+        const body = fnBody(await Bun.file(file!).text(), name!);
         expect(body).toContain("selectLoggedWindow<");
         expect(body).not.toContain(".from(");
     });
 
     test.each([
-        ["getMealsByDate", "getMealsInRange"],
-        ["getWaterByDate", "getWaterInRange"],
-        ["getWeightByDate", "getWeightInRange"],
-    ])("%s delegates to %s", async (name, target) => {
-        const body = fnBody(await Bun.file("./src/supabase.ts").text(), name!);
+        ["getMealsByDate", "getMealsInRange", "./src/db/meals.ts"],
+        ["getWaterByDate", "getWaterInRange", "./src/db/metrics.ts"],
+        ["getWeightByDate", "getWeightInRange", "./src/db/metrics.ts"],
+    ])("%s delegates to %s", async (name, target, file) => {
+        const body = fnBody(await Bun.file(file!).text(), name!);
         expect(body).toContain("InRange(");
         expect(body).toContain(`return ${target}(`);
         expect(body).not.toContain(".from(");

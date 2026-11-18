@@ -619,7 +619,13 @@ test("every /tools param has prose in every locale", () => {
 // Supabase credentials), and every count field must name that many. README's
 // table and the directory listing are still checked by hand.
 test("the registered tool set and every hand-typed tool count agree", async () => {
-    const mcpSrc = await Bun.file("./src/mcp.ts").text();
+    const parts = [await Bun.file("./src/mcp.ts").text()];
+    for await (const file of new Bun.Glob("*.ts").scan({
+        cwd: "./src/mcp/tools",
+    })) {
+        parts.push(await Bun.file(`./src/mcp/tools/${file}`).text());
+    }
+    const mcpSrc = parts.join("\n");
     const registered = [
         ...mcpSrc.matchAll(/server\.registerTool\(\s*"([a-z0-9_]+)"/g),
     ]
