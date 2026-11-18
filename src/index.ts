@@ -50,6 +50,7 @@ import {
 import { createTtlCache } from "./ttl-cache.js";
 import { createStarCounter } from "./github-stars.js";
 import { isHttpsRequest } from "./url.js";
+import { readPublicText } from "./public-site.js";
 
 const app = new Hono();
 
@@ -471,50 +472,50 @@ app.get("/favicon.svg", async (c) => {
 
 // SEO crawl files
 app.get("/robots.txt", async (c) => {
-    return c.body(await Bun.file("./public/robots.txt").text(), 200, {
+    return c.body(await readPublicText("./public/robots.txt"), 200, {
         "Content-Type": "text/plain",
     });
 });
 app.get("/sitemap.xml", async (c) => {
-    return c.body(await Bun.file("./public/sitemap.xml").text(), 200, {
+    return c.body(await readPublicText("./public/sitemap.xml"), 200, {
         "Content-Type": "application/xml",
     });
 });
 // llms.txt — curated site map for LLMs / AI agents (llmstxt.org). Relevant here
 // because this is an MCP server: Anthropic and OpenAI agents are a real referrer.
 app.get("/llms.txt", async (c) => {
-    return c.body(await Bun.file("./public/llms.txt").text(), 200, {
+    return c.body(await readPublicText("./public/llms.txt"), 200, {
         "Content-Type": "text/plain; charset=utf-8",
     });
 });
 
 // Landing page
 app.get("/", async (c) => {
-    return c.html(await Bun.file("./public/index.html").text());
+    return c.html(await readPublicText("./public/index.html"));
 });
 
 // Privacy Policy
 app.get("/privacy", async (c) => {
-    return c.html(await Bun.file("./public/privacy.html").text());
+    return c.html(await readPublicText("./public/privacy.html"));
 });
 app.get("/privacy/", (c) => c.redirect("/privacy", 301));
 
 // Terms of Service
 app.get("/terms", async (c) => {
-    return c.html(await Bun.file("./public/terms.html").text());
+    return c.html(await readPublicText("./public/terms.html"));
 });
 app.get("/terms/", (c) => c.redirect("/terms", 301));
 
 // Tools reference — the full list of MCP tools with descriptions and examples.
 app.get("/tools", async (c) => {
-    return c.html(await Bun.file("./public/tools.html").text());
+    return c.html(await readPublicText("./public/tools.html"));
 });
 app.get("/tools/", (c) => c.redirect("/tools", 301));
 
 // Apple Health sync setup guide (scripts/gen-apple-health.ts) — how to install,
 // connect and automate the Nutrition MCP Health shortcut.
 app.get("/apple-health", async (c) => {
-    return c.html(await Bun.file("./public/apple-health.html").text());
+    return c.html(await readPublicText("./public/apple-health.html"));
 });
 app.get("/apple-health/", (c) => c.redirect("/apple-health", 301));
 
@@ -527,7 +528,7 @@ app.get("/apple-health/", (c) => c.redirect("/apple-health", 301));
 // file's source text.
 for (const [path, file] of Object.entries(ALT_PAGES)) {
     app.get(path, async (c) =>
-        c.html(await Bun.file(`./public/${file}`).text()),
+        c.html(await readPublicText(`./public/${file}`)),
     );
     // Redirect the trailing-slash variant to the canonical no-slash URL so a
     // stray "/myfitnesspal-mcp/" link doesn't 404.
@@ -546,7 +547,7 @@ for (const locale of LOCALES) {
     for (const [suffix, file] of Object.entries(PAGE_ROUTES)) {
         const path = `/${locale}${suffix}`;
         app.get(path, async (c) =>
-            c.html(await Bun.file(`./public/${locale}/${file}`).text()),
+            c.html(await readPublicText(`./public/${locale}/${file}`)),
         );
         app.get(`${path}/`, (c) => c.redirect(path, 301));
     }
