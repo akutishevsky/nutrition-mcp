@@ -23,15 +23,8 @@
 // why.
 
 import type { SiteLocale } from "../routes.js";
-import { INDEX_DE } from "./index.de.js";
-import { INDEX_ES } from "./index.es.js";
-import { INDEX_FR } from "./index.fr.js";
-import { INDEX_NL } from "./index.nl.js";
-import { INDEX_PL } from "./index.pl.js";
-import { INDEX_IT } from "./index.it.js";
-import { INDEX_UK } from "./index.uk.js";
-import { INDEX_JA } from "./index.ja.js";
-import { INDEX_TR } from "./index.tr.js";
+import { type DeepPartial, mergeCopy } from "./merge.js";
+import { TRANSLATIONS } from "./translations.js";
 
 /** One FAQ entry. `visibleHtml` is what a human reads in the <details>
  * (trusted HTML). `jsonLdText` is optional: when omitted, the generator
@@ -1456,15 +1449,113 @@ const INDEX_EN: IndexDoc = {
     ],
 };
 
+export interface IndexSlideOverlay {
+    title?: string;
+    description?: string;
+    toolNotes?: Record<string, string>;
+    messages?: { text?: string; link?: string }[];
+    cardMeals?: string[];
+}
+
+export interface IndexHeroExchangeOverlay {
+    userText?: string;
+    aiText?: string;
+    meal?: { description?: string };
+}
+
+export type IndexTranslation = DeepPartial<
+    Omit<IndexDoc, "hero" | "examples">
+> & {
+    hero?: DeepPartial<Omit<IndexDoc["hero"], "chat">> & {
+        chat?: DeepPartial<Omit<IndexDoc["hero"]["chat"], "exchanges">> & {
+            exchanges?: IndexHeroExchangeOverlay[];
+        };
+    };
+    examples?: DeepPartial<Omit<IndexDoc["examples"], "slides">> & {
+        slides?: Partial<Record<ExampleSlideId, IndexSlideOverlay>>;
+    };
+};
+
+function mergeIndexDoc(base: IndexDoc, overlay?: IndexTranslation): IndexDoc {
+    if (!overlay) return base;
+    const { hero: heroOv, examples: exOv, ...restOv } = overlay;
+    const merged = mergeCopy<IndexDoc>(base, restOv as DeepPartial<IndexDoc>);
+    if (heroOv) {
+        const { chat: chatOv, ...heroRest } = heroOv;
+        merged.hero = mergeCopy<IndexDoc["hero"]>(
+            base.hero,
+            heroRest as DeepPartial<IndexDoc["hero"]>,
+        );
+        if (chatOv) {
+            const { exchanges: exchOv, ...chatRest } = chatOv;
+            merged.hero.chat = mergeCopy<IndexDoc["hero"]["chat"]>(
+                base.hero.chat,
+                chatRest as DeepPartial<IndexDoc["hero"]["chat"]>,
+            );
+            if (exchOv) {
+                merged.hero.chat.exchanges = base.hero.chat.exchanges.map(
+                    (b, i) => {
+                        const o = exchOv[i];
+                        return o
+                            ? mergeCopy<HeroExchange>(
+                                  b,
+                                  o as DeepPartial<HeroExchange>,
+                              )
+                            : b;
+                    },
+                );
+            }
+        }
+    }
+    if (exOv) {
+        const { slides: slidesOv, ...exRest } = exOv;
+        merged.examples = mergeCopy(
+            base.examples,
+            exRest as DeepPartial<IndexDoc["examples"]>,
+        );
+        if (slidesOv) {
+            merged.examples.slides = base.examples.slides.map((b) => {
+                const o = slidesOv[b.id];
+                if (!o) return b;
+                return {
+                    ...b,
+                    ...(o.title !== undefined ? { title: o.title } : {}),
+                    ...(o.description !== undefined
+                        ? { description: o.description }
+                        : {}),
+                    toolNotes: o.toolNotes
+                        ? mergeCopy(b.toolNotes, o.toolNotes)
+                        : b.toolNotes,
+                    messages: o.messages
+                        ? b.messages.map((bm, j) => {
+                              const mo = o.messages![j];
+                              return mo
+                                  ? (mergeCopy(
+                                        bm as Record<string, unknown>,
+                                        mo as Record<string, unknown>,
+                                    ) as ExampleMessage)
+                                  : bm;
+                          })
+                        : b.messages,
+                    ...(o.cardMeals !== undefined
+                        ? { cardMeals: o.cardMeals }
+                        : {}),
+                };
+            });
+        }
+    }
+    return merged;
+}
+
 export const INDEX: Partial<Record<SiteLocale, IndexDoc>> = {
     en: INDEX_EN,
-    de: INDEX_DE,
-    es: INDEX_ES,
-    fr: INDEX_FR,
-    nl: INDEX_NL,
-    pl: INDEX_PL,
-    it: INDEX_IT,
-    uk: INDEX_UK,
-    ja: INDEX_JA,
-    tr: INDEX_TR,
+    de: mergeIndexDoc(INDEX_EN, TRANSLATIONS.de.index),
+    es: mergeIndexDoc(INDEX_EN, TRANSLATIONS.es.index),
+    fr: mergeIndexDoc(INDEX_EN, TRANSLATIONS.fr.index),
+    nl: mergeIndexDoc(INDEX_EN, TRANSLATIONS.nl.index),
+    pl: mergeIndexDoc(INDEX_EN, TRANSLATIONS.pl.index),
+    it: mergeIndexDoc(INDEX_EN, TRANSLATIONS.it.index),
+    uk: mergeIndexDoc(INDEX_EN, TRANSLATIONS.uk.index),
+    ja: mergeIndexDoc(INDEX_EN, TRANSLATIONS.ja.index),
+    tr: mergeIndexDoc(INDEX_EN, TRANSLATIONS.tr.index),
 };

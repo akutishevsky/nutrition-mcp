@@ -16,7 +16,7 @@
 //
 // Markers resolve relative to public/widgets/src/ and expand recursively.
 
-import { WIDGET_STRINGS } from "./copy/widgets.js";
+import { WIDGET_STRINGS_COMPACT } from "./copy/widgets.js";
 
 const SRC_DIR = "./public/widgets/src";
 const INCLUDE_RE = /\/\*@include\s+([^\s@]+)\s*@\*\//g;
@@ -337,7 +337,7 @@ async function assemble(templateFile: string): Promise<string> {
 
     if (!I18N_RE.test(withTs)) return withTs;
     I18N_RE.lastIndex = 0;
-    const stringsLiteral = `const WIDGET_STRINGS = ${JSON.stringify(WIDGET_STRINGS)};`;
+    const stringsLiteral = `const WIDGET_STRINGS = ${JSON.stringify(WIDGET_STRINGS_COMPACT)};`;
     return withTs.replace(I18N_RE, stringsLiteral);
 }
 

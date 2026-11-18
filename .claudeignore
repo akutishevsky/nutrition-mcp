@@ -1,0 +1,33 @@
+# Exclude generated, binary, and cache files from AI coding agent context.
+# Source of truth for public pages is src/copy/*.ts and scripts/gen-*.ts.
+node_modules/
+bun.lock
+supabase/.temp/
+
+# Generated static site pages (rebuilt via `bun run gen:all`)
+/public/index.html
+/public/tools.html
+/public/privacy.html
+/public/terms.html
+/public/apple-health.html
+/public/login.html
+/public/dashboard.html
+/public/sitemap.xml
+/public/map-data.json
+/public/alternatives/
+/public/de/
+/public/es/
+/public/fr/
+/public/nl/
+/public/pl/
+/public/it/
+/public/uk/
+/public/ja/
+/public/tr/
+
+# Visual regression / local tooling artifacts
+.screenshots/
+graphify-out/
+
+# Uncomment in English-only forks to exclude non-English translation overlays:
+# src/copy/translations/

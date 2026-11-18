@@ -24,15 +24,8 @@
 // resolve to the same substituted meaning).
 
 import type { SiteLocale } from "../routes.js";
-import { ALT_UI_DE } from "./alt-ui.de.js";
-import { ALT_UI_ES } from "./alt-ui.es.js";
-import { ALT_UI_FR } from "./alt-ui.fr.js";
-import { ALT_UI_NL } from "./alt-ui.nl.js";
-import { ALT_UI_PL } from "./alt-ui.pl.js";
-import { ALT_UI_IT } from "./alt-ui.it.js";
-import { ALT_UI_UK } from "./alt-ui.uk.js";
-import { ALT_UI_JA } from "./alt-ui.ja.js";
-import { ALT_UI_TR } from "./alt-ui.tr.js";
+import { mergeLocaleCopy } from "./merge.js";
+import { translationOverlays } from "./translations.js";
 
 export interface AltFeature {
     title: string;
@@ -287,18 +280,11 @@ export const ALT_UI_EN: AltUiCopy = {
     },
 };
 
-export const ALT_UI_COPY: Partial<Record<SiteLocale, AltUiCopy>> = {
-    en: ALT_UI_EN,
-    de: ALT_UI_DE,
-    es: ALT_UI_ES,
-    fr: ALT_UI_FR,
-    nl: ALT_UI_NL,
-    pl: ALT_UI_PL,
-    it: ALT_UI_IT,
-    uk: ALT_UI_UK,
-    ja: ALT_UI_JA,
-    tr: ALT_UI_TR,
-};
+export const ALT_UI_COPY: Partial<Record<SiteLocale, AltUiCopy>> =
+    mergeLocaleCopy<SiteLocale, AltUiCopy>(
+        ALT_UI_EN,
+        translationOverlays("altUi"),
+    );
 
 export function altUiFor(locale: SiteLocale): AltUiCopy {
     return ALT_UI_COPY[locale] ?? ALT_UI_EN;

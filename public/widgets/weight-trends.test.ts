@@ -30,10 +30,10 @@ describe("weight-trends copy", () => {
     // English card on /de, /ja, …
     test("no weightTrends string is left untranslated", async () => {
         for (const loc of LOCALES) {
-            const src = await Bun.file(`./src/copy/widgets.${loc}.ts`).text();
-            const block = src.match(
-                /^ {4}weightTrends: \{\n[\s\S]*?^ {4}\},\n/m,
-            )![0];
+            const bundle = JSON.parse(
+                await Bun.file(`./src/copy/translations/${loc}.json`).text(),
+            ) as { widgets?: { weightTrends?: unknown } };
+            const block = JSON.stringify(bundle.widgets?.weightTrends ?? {});
             expect(block).not.toContain("i18n:pending");
             const t = WIDGET_STRINGS[loc]!.weightTrends;
             const en = WIDGET_STRINGS.en!.weightTrends;

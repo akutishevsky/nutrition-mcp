@@ -34,15 +34,8 @@
 
 import type { SiteLocale } from "../routes.js";
 import type { HealthSyncField } from "../health-sync.js";
-import { APPLE_HEALTH_FR } from "./apple-health.fr.js";
-import { APPLE_HEALTH_PL } from "./apple-health.pl.js";
-import { APPLE_HEALTH_UK } from "./apple-health.uk.js";
-import { APPLE_HEALTH_JA } from "./apple-health.ja.js";
-import { APPLE_HEALTH_TR } from "./apple-health.tr.js";
-import { APPLE_HEALTH_DE } from "./apple-health.de.js";
-import { APPLE_HEALTH_NL } from "./apple-health.nl.js";
-import { APPLE_HEALTH_ES } from "./apple-health.es.js";
-import { APPLE_HEALTH_IT } from "./apple-health.it.js";
+import { mergeLocaleCopy } from "./merge.js";
+import { translationOverlays } from "./translations.js";
 
 /** One automation trigger card. */
 export interface AppleHealthTrigger {
@@ -450,15 +443,7 @@ export const APPLE_HEALTH_EN: AppleHealthDoc = {
  * translated, so `bun run typecheck` refuses a new locale without its guide;
  * scripts/gen-apple-health.ts renders every entry.
  */
-export const APPLE_HEALTH: Record<SiteLocale, AppleHealthDoc> = {
-    en: APPLE_HEALTH_EN,
-    fr: APPLE_HEALTH_FR,
-    pl: APPLE_HEALTH_PL,
-    uk: APPLE_HEALTH_UK,
-    ja: APPLE_HEALTH_JA,
-    de: APPLE_HEALTH_DE,
-    nl: APPLE_HEALTH_NL,
-    es: APPLE_HEALTH_ES,
-    it: APPLE_HEALTH_IT,
-    tr: APPLE_HEALTH_TR,
-};
+export const APPLE_HEALTH: Record<SiteLocale, AppleHealthDoc> = mergeLocaleCopy<
+    SiteLocale,
+    AppleHealthDoc
+>(APPLE_HEALTH_EN, translationOverlays("appleHealth"));
