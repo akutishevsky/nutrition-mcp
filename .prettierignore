@@ -11,5 +11,7 @@
 # inflates the payload ~58% and gets undone by the next regeneration anyway.
 public/map-data.json
 
-# Local Claude Code state — untracked, not ours to format.
+# Local Claude Code, screenshot, and graphify state — untracked, not ours to format.
 .claude/
+.screenshots/
+graphify-out/

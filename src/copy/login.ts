@@ -22,60 +22,8 @@
 // scripts/gen-login.ts after touching this file.
 
 import type { SiteLocale } from "../routes.js";
-import {
-    LOGIN_DE,
-    LOGIN_CLIENT_NOTICE_DE,
-    LOGIN_DASHBOARD_DE,
-    LOGIN_ERRORS_DE,
-} from "./login.de.js";
-import {
-    LOGIN_ES,
-    LOGIN_CLIENT_NOTICE_ES,
-    LOGIN_DASHBOARD_ES,
-    LOGIN_ERRORS_ES,
-} from "./login.es.js";
-import {
-    LOGIN_FR,
-    LOGIN_CLIENT_NOTICE_FR,
-    LOGIN_DASHBOARD_FR,
-    LOGIN_ERRORS_FR,
-} from "./login.fr.js";
-import {
-    LOGIN_NL,
-    LOGIN_CLIENT_NOTICE_NL,
-    LOGIN_DASHBOARD_NL,
-    LOGIN_ERRORS_NL,
-} from "./login.nl.js";
-import {
-    LOGIN_PL,
-    LOGIN_CLIENT_NOTICE_PL,
-    LOGIN_DASHBOARD_PL,
-    LOGIN_ERRORS_PL,
-} from "./login.pl.js";
-import {
-    LOGIN_IT,
-    LOGIN_CLIENT_NOTICE_IT,
-    LOGIN_DASHBOARD_IT,
-    LOGIN_ERRORS_IT,
-} from "./login.it.js";
-import {
-    LOGIN_UK,
-    LOGIN_CLIENT_NOTICE_UK,
-    LOGIN_DASHBOARD_UK,
-    LOGIN_ERRORS_UK,
-} from "./login.uk.js";
-import {
-    LOGIN_JA,
-    LOGIN_CLIENT_NOTICE_JA,
-    LOGIN_DASHBOARD_JA,
-    LOGIN_ERRORS_JA,
-} from "./login.ja.js";
-import {
-    LOGIN_TR,
-    LOGIN_CLIENT_NOTICE_TR,
-    LOGIN_DASHBOARD_TR,
-    LOGIN_ERRORS_TR,
-} from "./login.tr.js";
+import { mergeLocaleCopy } from "./merge.js";
+import { translationOverlays } from "./translations.js";
 
 export interface LoginDoc {
     title: string;
@@ -201,81 +149,55 @@ const EN: LoginDoc = {
     hidePasswordLabel: "Hide password",
 };
 
-export const LOGIN: Record<SiteLocale, LoginDoc> = {
-    en: EN,
-    de: LOGIN_DE,
-    es: LOGIN_ES,
-    fr: LOGIN_FR,
-    nl: LOGIN_NL,
-    pl: LOGIN_PL,
-    it: LOGIN_IT,
-    uk: LOGIN_UK,
-    ja: LOGIN_JA,
-    tr: LOGIN_TR,
+export const LOGIN: Record<SiteLocale, LoginDoc> = mergeLocaleCopy<
+    SiteLocale,
+    LoginDoc
+>(EN, translationOverlays("login"));
+
+const LOGIN_ERRORS_EN: LoginErrors = {
+    googleCancelled: "Google sign-in was cancelled. Please try again.",
+    googleFailed: "Google sign-in failed. Please try again.",
+    invalidCredentials: "Wrong email or password.",
+    signInFailed:
+        "Sign-in isn't working right now. Please try again in a few minutes.",
+    weakPassword:
+        "That password is too weak. Choose a longer one that mixes letters, numbers and symbols.",
+    passwordTooLong:
+        "That password is too long. Choose one of 72 characters or fewer.",
+    emailInvalid: "That email address isn't valid. Check it for typos.",
+    signUpFailed: "We couldn't create your account. Please try again later.",
 };
 
-export const LOGIN_ERRORS: Record<SiteLocale, LoginErrors> = {
-    en: {
-        googleCancelled: "Google sign-in was cancelled. Please try again.",
-        googleFailed: "Google sign-in failed. Please try again.",
-        invalidCredentials: "Wrong email or password.",
-        signInFailed:
-            "Sign-in isn't working right now. Please try again in a few minutes.",
-        weakPassword:
-            "That password is too weak. Choose a longer one that mixes letters, numbers and symbols.",
-        passwordTooLong:
-            "That password is too long. Choose one of 72 characters or fewer.",
-        emailInvalid: "That email address isn't valid. Check it for typos.",
-        signUpFailed:
-            "We couldn't create your account. Please try again later.",
-    },
-    de: LOGIN_ERRORS_DE,
-    es: LOGIN_ERRORS_ES,
-    fr: LOGIN_ERRORS_FR,
-    nl: LOGIN_ERRORS_NL,
-    pl: LOGIN_ERRORS_PL,
-    it: LOGIN_ERRORS_IT,
-    uk: LOGIN_ERRORS_UK,
-    ja: LOGIN_ERRORS_JA,
-    tr: LOGIN_ERRORS_TR,
+export const LOGIN_ERRORS: Record<SiteLocale, LoginErrors> = mergeLocaleCopy<
+    SiteLocale,
+    LoginErrors
+>(LOGIN_ERRORS_EN, translationOverlays("loginErrors"));
+
+const LOGIN_CLIENT_NOTICE_EN: LoginClientNotice = {
+    returnTo: "After you sign in, you'll be sent back to {host}.",
+    unknownHost:
+        "{host} isn't an assistant we recognise. Only continue if you started connecting from {host} yourself.",
+    loopback:
+        "You'll be sent back to a program running on this computer ({host}). Only continue if you started this connection from it.",
+    healthSync:
+        "Signing in connects Apple Health sync on the device that opened this page. If you did not start this from the Nutrition MCP shortcut on your own iPhone just now, close this page.",
+    dashboard:
+        "Signing in opens your Nutrition MCP dashboard in this browser. If you did not just open the dashboard here yourself, close this page.",
 };
 
-export const LOGIN_CLIENT_NOTICE: Record<SiteLocale, LoginClientNotice> = {
-    en: {
-        returnTo: "After you sign in, you'll be sent back to {host}.",
-        unknownHost:
-            "{host} isn't an assistant we recognise. Only continue if you started connecting from {host} yourself.",
-        loopback:
-            "You'll be sent back to a program running on this computer ({host}). Only continue if you started this connection from it.",
-        healthSync:
-            "Signing in connects Apple Health sync on the device that opened this page. If you did not start this from the Nutrition MCP shortcut on your own iPhone just now, close this page.",
-        dashboard:
-            "Signing in opens your Nutrition MCP dashboard in this browser. If you did not just open the dashboard here yourself, close this page.",
-    },
-    de: LOGIN_CLIENT_NOTICE_DE,
-    es: LOGIN_CLIENT_NOTICE_ES,
-    fr: LOGIN_CLIENT_NOTICE_FR,
-    nl: LOGIN_CLIENT_NOTICE_NL,
-    pl: LOGIN_CLIENT_NOTICE_PL,
-    it: LOGIN_CLIENT_NOTICE_IT,
-    uk: LOGIN_CLIENT_NOTICE_UK,
-    ja: LOGIN_CLIENT_NOTICE_JA,
-    tr: LOGIN_CLIENT_NOTICE_TR,
+export const LOGIN_CLIENT_NOTICE: Record<SiteLocale, LoginClientNotice> =
+    mergeLocaleCopy<SiteLocale, LoginClientNotice>(
+        LOGIN_CLIENT_NOTICE_EN,
+        translationOverlays("loginClientNotice"),
+    );
+
+const LOGIN_DASHBOARD_EN: LoginDashboardCopy = {
+    title: "Your dashboard",
+    subtitle: "Sign in with the account you connected to your AI assistant.",
 };
 
-export const LOGIN_DASHBOARD: Record<SiteLocale, LoginDashboardCopy> = {
-    en: {
-        title: "Your dashboard",
-        subtitle:
-            "Sign in with the account you connected to your AI assistant.",
-    },
-    de: LOGIN_DASHBOARD_DE,
-    es: LOGIN_DASHBOARD_ES,
-    fr: LOGIN_DASHBOARD_FR,
-    nl: LOGIN_DASHBOARD_NL,
-    pl: LOGIN_DASHBOARD_PL,
-    it: LOGIN_DASHBOARD_IT,
-    uk: LOGIN_DASHBOARD_UK,
-    ja: LOGIN_DASHBOARD_JA,
-    tr: LOGIN_DASHBOARD_TR,
-};
+export const LOGIN_DASHBOARD: Record<SiteLocale, LoginDashboardCopy> =
+    mergeLocaleCopy<SiteLocale, LoginDashboardCopy>(
+        LOGIN_DASHBOARD_EN,
+        translationOverlays("loginDashboard"),
+    );

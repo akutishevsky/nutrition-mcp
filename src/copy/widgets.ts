@@ -27,15 +27,8 @@
 
 import type { SiteLocale } from "../routes.js";
 import type { MealType } from "../meal-types.js";
-import { WIDGET_STRINGS_DE } from "./widgets.de.js";
-import { WIDGET_STRINGS_ES } from "./widgets.es.js";
-import { WIDGET_STRINGS_FR } from "./widgets.fr.js";
-import { WIDGET_STRINGS_NL } from "./widgets.nl.js";
-import { WIDGET_STRINGS_PL } from "./widgets.pl.js";
-import { WIDGET_STRINGS_IT } from "./widgets.it.js";
-import { WIDGET_STRINGS_UK } from "./widgets.uk.js";
-import { WIDGET_STRINGS_JA } from "./widgets.ja.js";
-import { WIDGET_STRINGS_TR } from "./widgets.tr.js";
+import { type DeepPartial, mergeLocaleCopy } from "./merge.js";
+import { translationOverlays } from "./translations.js";
 
 /** A count-sensitive string, selected at render time via Intl.PluralRules.
  * "one"/"other" are always carried; "few"/"many" are carried by Polish and
@@ -2638,18 +2631,28 @@ export const WIDGET_STRINGS_EN: WidgetStrings = {
     digest: DIGEST_STRINGS_EN,
 };
 
-export const WIDGET_STRINGS: Partial<Record<SiteLocale, WidgetStrings>> = {
-    en: WIDGET_STRINGS_EN,
-    de: WIDGET_STRINGS_DE,
-    es: WIDGET_STRINGS_ES,
-    fr: WIDGET_STRINGS_FR,
-    nl: WIDGET_STRINGS_NL,
-    pl: WIDGET_STRINGS_PL,
-    it: WIDGET_STRINGS_IT,
-    uk: WIDGET_STRINGS_UK,
-    ja: WIDGET_STRINGS_JA,
-    tr: WIDGET_STRINGS_TR,
-};
+const WIDGET_OVERLAYS = translationOverlays("widgets");
+
+export const WIDGET_STRINGS: Partial<Record<SiteLocale, WidgetStrings>> =
+    mergeLocaleCopy<SiteLocale, WidgetStrings>(
+        WIDGET_STRINGS_EN,
+        WIDGET_OVERLAYS,
+    );
+
+/**
+ * Compact dictionary for inlining into assembled widget HTML (`@i18n@`):
+ * English carries the full shape, while non-English locales carry only their
+ * differing keys and are merged onto English in `shared/i18n.js`.
+ * Set `WIDGET_ENGLISH_ONLY=1` in English-only self-hosted builds to omit all
+ * non-English overlays from widget payloads.
+ */
+export const WIDGET_STRINGS_COMPACT: Record<
+    string,
+    WidgetStrings | DeepPartial<WidgetStrings> | undefined
+> =
+    process.env.WIDGET_ENGLISH_ONLY === "1"
+        ? { en: WIDGET_STRINGS_EN }
+        : { en: WIDGET_STRINGS_EN, ...WIDGET_OVERLAYS };
 
 export function widgetStringsFor(locale: SiteLocale): WidgetStrings {
     return WIDGET_STRINGS[locale] ?? WIDGET_STRINGS_EN;

@@ -23,15 +23,8 @@
 
 import type { SiteLocale } from "../routes.js";
 import type { PluralForms } from "./chrome.js";
-import { DASHBOARD_DE } from "./dashboard.de.js";
-import { DASHBOARD_ES } from "./dashboard.es.js";
-import { DASHBOARD_FR } from "./dashboard.fr.js";
-import { DASHBOARD_NL } from "./dashboard.nl.js";
-import { DASHBOARD_PL } from "./dashboard.pl.js";
-import { DASHBOARD_IT } from "./dashboard.it.js";
-import { DASHBOARD_UK } from "./dashboard.uk.js";
-import { DASHBOARD_JA } from "./dashboard.ja.js";
-import { DASHBOARD_TR } from "./dashboard.tr.js";
+import { mergeLocaleCopy } from "./merge.js";
+import { translationOverlays } from "./translations.js";
 
 /** The four client-side views, in tab order. Ids are the URL hash. */
 export const DASHBOARD_VIEWS = ["today", "history", "trends", "body"] as const;
@@ -359,18 +352,10 @@ export const DASHBOARD_EN: DashboardDoc = {
  * Every locale. Each translation lives in its own `dashboard.<locale>.ts`
  * (importing only the type from here, so there is no runtime cycle).
  */
-export const DASHBOARD: Record<SiteLocale, DashboardDoc> = {
-    en: DASHBOARD_EN,
-    de: DASHBOARD_DE,
-    es: DASHBOARD_ES,
-    fr: DASHBOARD_FR,
-    nl: DASHBOARD_NL,
-    pl: DASHBOARD_PL,
-    it: DASHBOARD_IT,
-    uk: DASHBOARD_UK,
-    ja: DASHBOARD_JA,
-    tr: DASHBOARD_TR,
-};
+export const DASHBOARD: Record<SiteLocale, DashboardDoc> = mergeLocaleCopy<
+    SiteLocale,
+    DashboardDoc
+>(DASHBOARD_EN, translationOverlays("dashboard"));
 
 export function dashboardFor(locale: SiteLocale): DashboardDoc {
     return DASHBOARD[locale] ?? DASHBOARD_EN;

@@ -25,15 +25,8 @@
 // plain characters with nothing that needs escaping.
 
 import type { SiteLocale } from "../routes.js";
-import { TOOLS_DE } from "./tools.de.js";
-import { TOOLS_ES } from "./tools.es.js";
-import { TOOLS_FR } from "./tools.fr.js";
-import { TOOLS_NL } from "./tools.nl.js";
-import { TOOLS_PL } from "./tools.pl.js";
-import { TOOLS_IT } from "./tools.it.js";
-import { TOOLS_UK } from "./tools.uk.js";
-import { TOOLS_JA } from "./tools.ja.js";
-import { TOOLS_TR } from "./tools.tr.js";
+import { mergeLocaleCopy } from "./merge.js";
+import { translationOverlays } from "./translations.js";
 
 // ------------------------------------------------------------- identity
 
@@ -1561,15 +1554,8 @@ const TOOLS_EN: ToolsDoc = {
     },
 };
 
-export const TOOLS_COPY: Partial<Record<SiteLocale, ToolsDoc>> = {
-    en: TOOLS_EN,
-    de: TOOLS_DE,
-    es: TOOLS_ES,
-    fr: TOOLS_FR,
-    nl: TOOLS_NL,
-    pl: TOOLS_PL,
-    it: TOOLS_IT,
-    uk: TOOLS_UK,
-    ja: TOOLS_JA,
-    tr: TOOLS_TR,
-};
+export const TOOLS_COPY: Partial<Record<SiteLocale, ToolsDoc>> =
+    mergeLocaleCopy<SiteLocale, ToolsDoc>(
+        TOOLS_EN,
+        translationOverlays("tools"),
+    );

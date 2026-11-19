@@ -65,7 +65,10 @@ function initWidget(config) {
         try {
             lang = navigator.language;
         } catch (_) {}
-        return WIDGET_STRINGS[pickLocale(null, lang)] || WIDGET_STRINGS.en;
+        const loc = pickLocale(null, lang);
+        return typeof stringsFor === "function"
+            ? stringsFor(loc)
+            : WIDGET_STRINGS[loc] || WIDGET_STRINGS.en;
     };
 
     function applyTheme(theme) {

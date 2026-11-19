@@ -30,6 +30,53 @@
 let WIDGET_LOCALE = "en";
 let T = WIDGET_STRINGS.en;
 
+function _isObj(v) {
+    return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function _isPlural(v) {
+    const ks = Object.keys(v);
+    return (
+        ks.length > 0 &&
+        "other" in v &&
+        ks.every(
+            (k) =>
+                ["zero", "one", "two", "few", "many", "other"].includes(k) &&
+                typeof v[k] === "string",
+        )
+    );
+}
+
+function _merge(base, over) {
+    if (over === undefined) return base;
+    if (!_isObj(base) || !_isObj(over)) return over;
+    if (_isPlural(base) && _isPlural(over)) return over;
+    const out = Object.assign({}, base);
+    for (const k of Object.keys(over)) {
+        if (over[k] === undefined) continue;
+        out[k] =
+            _isObj(out[k]) && _isObj(over[k])
+                ? _merge(out[k], over[k])
+                : over[k];
+    }
+    return out;
+}
+
+const _LOCALE_CACHE = {};
+
+function stringsFor(locale) {
+    if (!locale || locale === "en" || !WIDGET_STRINGS[locale]) {
+        return WIDGET_STRINGS.en;
+    }
+    if (!_LOCALE_CACHE[locale]) {
+        _LOCALE_CACHE[locale] = _merge(
+            WIDGET_STRINGS.en,
+            WIDGET_STRINGS[locale],
+        );
+    }
+    return _LOCALE_CACHE[locale];
+}
+
 // Resolve which of our bundled locales to render in. `explicit` (typically
 // structuredContent.locale, i.e. the user's saved get_language/set_language
 // preference) wins when present — it is per-user and always set by the
@@ -50,7 +97,7 @@ function pickLocale(explicit, hostLocale) {
 // ambient WIDGET_LOCALE/T and <html lang>. Returns T for convenience.
 function setLocale(locale) {
     WIDGET_LOCALE = WIDGET_STRINGS[locale] ? locale : "en";
-    T = WIDGET_STRINGS[WIDGET_LOCALE];
+    T = stringsFor(WIDGET_LOCALE);
     try {
         document.documentElement.lang = WIDGET_LOCALE;
     } catch (_) {}

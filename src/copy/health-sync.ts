@@ -28,15 +28,8 @@
 // `bun run typecheck`.
 
 import type { SiteLocale } from "../routes.js";
-import { HEALTH_SYNC_DE } from "./health-sync.de.js";
-import { HEALTH_SYNC_ES } from "./health-sync.es.js";
-import { HEALTH_SYNC_FR } from "./health-sync.fr.js";
-import { HEALTH_SYNC_NL } from "./health-sync.nl.js";
-import { HEALTH_SYNC_PL } from "./health-sync.pl.js";
-import { HEALTH_SYNC_IT } from "./health-sync.it.js";
-import { HEALTH_SYNC_UK } from "./health-sync.uk.js";
-import { HEALTH_SYNC_JA } from "./health-sync.ja.js";
-import { HEALTH_SYNC_TR } from "./health-sync.tr.js";
+import { mergeLocaleCopy } from "./merge.js";
+import { translationOverlays } from "./translations.js";
 
 /** Which error page to show. */
 export type HealthSyncErrorKind = "expired" | "signInFailed" | "generic";
@@ -88,18 +81,11 @@ const HEALTH_SYNC_EN: HealthSyncCopy = {
     },
 };
 
-export const HEALTH_SYNC_COPY: Record<SiteLocale, HealthSyncCopy> = {
-    en: HEALTH_SYNC_EN,
-    de: HEALTH_SYNC_DE,
-    es: HEALTH_SYNC_ES,
-    fr: HEALTH_SYNC_FR,
-    nl: HEALTH_SYNC_NL,
-    pl: HEALTH_SYNC_PL,
-    it: HEALTH_SYNC_IT,
-    uk: HEALTH_SYNC_UK,
-    ja: HEALTH_SYNC_JA,
-    tr: HEALTH_SYNC_TR,
-};
+export const HEALTH_SYNC_COPY: Record<SiteLocale, HealthSyncCopy> =
+    mergeLocaleCopy<SiteLocale, HealthSyncCopy>(
+        HEALTH_SYNC_EN,
+        translationOverlays("healthSync"),
+    );
 
 /** The copy for `locale`, English for anything not in SITE_LOCALES. */
 export function healthSyncCopyFor(

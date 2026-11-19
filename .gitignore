@@ -58,3 +58,7 @@ supabase/.branches/
 /public/uk/
 /public/ja/
 /public/tr/
+
+# Local visual regression / knowledge-graph tooling artifacts
+.screenshots/
+graphify-out/

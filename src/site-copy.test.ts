@@ -708,21 +708,34 @@ test("every locale's privacy analytics text names its own Cookie settings button
 test("no legal source still claims there is no consent banner", async () => {
     // Resolved against this file, not the cwd, and counted: a glob that
     // matches nothing would otherwise pass without checking anything.
-    const glob = new Bun.Glob("copy/legal*.ts");
     const stale: string[] = [];
     let scanned = 0;
+    const check = (label: string, src: string) => {
+        scanned++;
+        if (/no consent banner/i.test(src))
+            stale.push(`${label}: consent banner`);
+        if (/IP anonymi/i.test(src)) stale.push(`${label}: IP anonymization`);
+    };
+    check(
+        "copy/legal.ts",
+        await Bun.file(`${import.meta.dir}/copy/legal.ts`).text(),
+    );
+    const glob = new Bun.Glob("copy/translations/*.json");
     for await (const path of glob.scan({
         cwd: import.meta.dir,
         absolute: true,
     })) {
-        scanned++;
-        const src = await Bun.file(path).text();
-        if (/no consent banner/i.test(src))
-            stale.push(`${path}: consent banner`);
-        if (/IP anonymi/i.test(src)) stale.push(`${path}: IP anonymization`);
+        const bundle = JSON.parse(await Bun.file(path).text()) as {
+            privacy?: unknown;
+            terms?: unknown;
+        };
+        check(
+            path,
+            JSON.stringify({ privacy: bundle.privacy, terms: bundle.terms }),
+        );
     }
-    // One file per locale, except that en and de share legal.ts.
-    expect(scanned).toBe(SITE_LOCALES.length - 1);
+    // English in legal.ts + one translation JSON per non-English locale.
+    expect(scanned).toBe(SITE_LOCALES.length);
     expect(stale).toEqual([]);
 });
 
@@ -1934,6 +1947,13 @@ const COPY_SOURCES = await (async () => {
             `src/copy/${file}`,
             await Bun.file(`./src/copy/${file}`).text(),
         ]);
+    for await (const file of new Bun.Glob("translations/*.json").scan({
+        cwd: "./src/copy",
+    }))
+        out.push([
+            `src/copy/${file}`,
+            await Bun.file(`./src/copy/${file}`).text(),
+        ]);
     out.push(["README.md", await Bun.file("./README.md").text()]);
     out.push(["public/llms.txt", await Bun.file("./public/llms.txt").text()]);
     out.push(["server.json", await Bun.file("./server.json").text()]);
@@ -1996,11 +2016,18 @@ test("README and llms.txt carry the FoodData Central citation and the endorsemen
 
 test("no comparison copy in any locale names a database search", async () => {
     const problems: string[] = [];
-    for await (const file of new Bun.Glob("alt-ui*.ts").scan({
+    if (/database/i.test(await Bun.file("./src/copy/alt-ui.ts").text())) {
+        problems.push("alt-ui.ts");
+    }
+    for await (const file of new Bun.Glob("translations/*.json").scan({
         cwd: "./src/copy",
     })) {
-        const text = await Bun.file(`./src/copy/${file}`).text();
-        if (/database/i.test(text)) problems.push(file);
+        const bundle = JSON.parse(
+            await Bun.file(`./src/copy/${file}`).text(),
+        ) as { altUi?: unknown };
+        if (/database/i.test(JSON.stringify(bundle.altUi ?? ""))) {
+            problems.push(file);
+        }
     }
     expect(problems).toEqual([]);
 });
@@ -2062,7 +2089,9 @@ test("the FoodData Central citation is the site's own text in README, llms.txt a
 // case ending on GitHub or Patreon.
 test("no copy file re-forms a brand name as a compound", async () => {
     const problems: string[] = [];
-    for await (const file of new Bun.Glob("*.ts").scan({ cwd: "./src/copy" })) {
+    for await (const file of new Bun.Glob("{*.ts,translations/*.json}").scan({
+        cwd: "./src/copy",
+    })) {
         const text = await Bun.file(`./src/copy/${file}`).text();
         if (/USDA-FoodData|FoodData Central-|Open Food Facts-/.test(text))
             problems.push(file);
@@ -2072,29 +2101,19 @@ test("no copy file re-forms a brand name as a compound", async () => {
 
 test("no Turkish copy puts a case ending after a brand name's apostrophe", async () => {
     const problems: string[] = [];
-    for await (const file of new Bun.Glob("*.tr.ts").scan({
-        cwd: "./src/copy",
-    })) {
-        const text = await Bun.file(`./src/copy/${file}`).text();
-        for (const m of text.matchAll(
-            /(?:FoodData Central|Open Food Facts|USDA|Claude|ChatGPT|GitHub|Patreon)['’][a-zıöüçşğâîû]/g,
-        ))
-            problems.push(`${file}: ${m[0]}`);
-    }
+    const text = await Bun.file("./src/copy/translations/tr.json").text();
+    for (const m of text.matchAll(
+        /(?:FoodData Central|Open Food Facts|USDA|Claude|ChatGPT|GitHub|Patreon)['’][a-zıöüçşğâîû]/g,
+    ))
+        problems.push(`translations/tr.json: ${m[0]}`);
     expect(problems).toEqual([]);
 });
 
 test("no Polish copy puts a case ending on GitHub or Patreon", async () => {
     const problems: string[] = [];
-    for await (const file of new Bun.Glob("*.pl.ts").scan({
-        cwd: "./src/copy",
-    })) {
-        const text = await Bun.file(`./src/copy/${file}`).text();
-        for (const m of text.matchAll(
-            /(?:GitHub|Patreon)(?:ie|owi|em|ach|a|u)\b/g,
-        ))
-            problems.push(`${file}: ${m[0]}`);
-    }
+    const text = await Bun.file("./src/copy/translations/pl.json").text();
+    for (const m of text.matchAll(/(?:GitHub|Patreon)(?:ie|owi|em|ach|a|u)\b/g))
+        problems.push(`translations/pl.json: ${m[0]}`);
     expect(problems).toEqual([]);
 });
 
@@ -2111,10 +2130,16 @@ test("no landing copy in any locale says there is no database search", async () 
         "niente ricerche nei database",
     ];
     const problems: string[] = [];
-    for await (const file of new Bun.Glob("index*.ts").scan({
+    const enText = await Bun.file("./src/copy/index.ts").text();
+    for (const claim of OLD_CLAIMS)
+        if (enText.includes(claim)) problems.push(`index.ts: ${claim}`);
+    for await (const file of new Bun.Glob("translations/*.json").scan({
         cwd: "./src/copy",
     })) {
-        const text = await Bun.file(`./src/copy/${file}`).text();
+        const bundle = JSON.parse(
+            await Bun.file(`./src/copy/${file}`).text(),
+        ) as { index?: unknown };
+        const text = JSON.stringify(bundle.index ?? "");
         for (const claim of OLD_CLAIMS)
             if (text.includes(claim)) problems.push(`${file}: ${claim}`);
     }
