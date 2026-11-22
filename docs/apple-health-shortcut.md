@@ -85,8 +85,17 @@ Then four blocks in this order; only one ever runs.
     6. **Get Dictionary Value** `lease_until` in `Reply` → **Set variable** `LeaseUntil`
     7. **Get Dictionary Value** `entries` in `Reply` → **Repeat with Each**:
         1. **Get Dictionary Value** `sample_local` in **Repeat Item** → **Get Dates from Input** → **Set variable** `SampleDate`. The string has no offset, so it is read in the phone's zone: noon on that calendar day.
-        2. **Get Dictionary Value** `values` in **Repeat Item** → **Set variable** `Values`
-        3. Seven blocks, one per row — **Get Dictionary Value** `<key>` in `Values` → **If** it **has any value** → **Log Health Sample** Type `<type>`, Value = it, Unit `<unit>`, Date = `SampleDate` → **End If**. Build them on the iPhone: make one, then long-press → **Duplicate** and edit the key, type and unit. Set each **Log Health Sample**'s Type, Value (the **Dictionary Value** above it), Unit and Date there too (see section 0: never on the Mac).
+        2. **Date check** — never log a sample whose date isn't the entry's `date`:
+            1. **Format Date** with one **SampleDate** pill (tap the pill → **Date Format** **Custom** `yyyy-MM-dd`, for the same reason as the Health dates in step 4), **›** → Date Format **Custom**, format `yyyy-MM-dd` → **Set variable** `SampleDay`. The action's own format must stay `yyyy-MM-dd`: with a time in it, `SampleDay` never equals `EntryDay` and every run stops without logging anything.
+            2. **Get Dictionary Value** `date` in **Repeat Item** → **Text** [Dictionary Value] → **Set variable** `EntryDay`
+            3. **If** `SampleDay` **is not** `EntryDay` (pick the variable in the value field, don't type it) → **Show Notification** "Couldn't read the date of " + `EntryDay` + ". Nothing was logged to Apple Health." → **Stop This Shortcut** → **End If**
+
+            Without this check a date that iOS misreads is logged anyway, silently, on the day the shortcut runs (at the right time, 12:00, but on the wrong day), and the server then counts that day as sent. With it nothing is logged or acked for that day: the lease lapses in 2 minutes, days acked earlier in the run stay sent, and the day is offered again on the next run.
+
+        3. **Get Dictionary Value** `values` in **Repeat Item** → **Set variable** `Values`
+        4. Seven blocks, one per row — **Get Dictionary Value** `<key>` in `Values` → **If** it **has any value** → **Log Health Sample** Type `<type>`, Value = it, Unit `<unit>`, Date = `SampleDate` → **End If**. Build them on the iPhone: make one, then long-press → **Duplicate** and edit the key, type and unit. Set each **Log Health Sample**'s Type, Value (the **Dictionary Value** above it), Unit and Date there too (see section 0: never on the Mac).
+
+            **Give the Date's `SampleDate` pill a fixed format.** The Date field holds the single **SampleDate** pill and nothing else (no space, no typed text). Then tap that pill → **Date Format** **Custom**, Format String `yyyy-MM-dd HH:mm:ss` → **Done**. iOS always saves this field as text that holds the variable, so at run time it turns the date into text and reads it back. Without a format on the pill that text is in the phone's language, and in some languages only the time survives the round trip: every sample lands at 12:00 on the day the shortcut ran instead of its own day. With the fixed format the text is `2026-11-20 12:00:00` whatever the language. The published file shows it as a `WFDateFormatVariableAggrandizement` on the attachment in `WFQuantitySampleDate`.
 
             | key               | Type           | Unit |
             | ----------------- | -------------- | ---- |
@@ -100,9 +109,9 @@ Then four blocks in this order; only one ever runs.
 
             There is no alcohol block, and there must never be one: the server never sends alcohol. There is no sugar block either: sugar is tracked in the MCP but left out of the Apple Health sync for now, so `/pending` never sends `sugar_g`.
 
-        4. **Text** `{"entries":[` + **Repeat Item** + `],"done":false}`
-        5. **Get contents of** `BaseURL` + `/api/v1/health-sync/ack`, Method **POST**, Headers `Authorization` = `Bearer ` + `Token` and `Content-Type` = `application/json`, Request Body **File** = that Text
-        6. **End Repeat**
+        5. **Text** `{"entries":[` + **Repeat Item** + `],"done":false}`
+        6. **Get contents of** `BaseURL` + `/api/v1/health-sync/ack`, Method **POST**, Headers `Authorization` = `Bearer ` + `Token` and `Content-Type` = `application/json`, Request Body **File** = that Text
+        7. **End Repeat**
     8. **Text** `{"entries":[],"done":true,"lease_until":"` + `LeaseUntil` + `"}` (no space between `LeaseUntil` and `"}`, or the server won't recognise the lease) → the same **POST** to `/ack` (releases the lease; harmless if it fails, the lease lapses in 2 minutes)
     9. **Get Dictionary Value** `notices` in `Reply` → **If** it **has any value** → **Combine Text** with **New Lines** → **Show Notification** → **Stop This Shortcut** → **End If**
     10. **If** `Input` **is** `manual` → **Show Notification** "Apple Health is up to date." → **End If**
@@ -202,6 +211,17 @@ Run the shortcut from the **Shortcuts** list (the tile or ▶ in the editor), no
 3. **Test the link before using it.** Open it in Safari on another device: iCloud's page must show **Nutrition MCP Health** with **Get Shortcut**. If it says it can't connect, the shortcut itself is broken, not the network (almost always a **Log Health Sample** added or saved on the Mac, see section 0). To confirm, duplicate the shortcut, delete the **Log Health Sample** actions in the copy and share that: if the copy opens, delete and re-add the Health actions on the iPhone, share again, and delete the copy (named **Nutrition MCP Health 1**, so the sign-in page never reopens it). Don't import the link on the iPhone that built the shortcut: iOS adds a second copy named **Nutrition MCP Health 2**, and connecting breaks because the sign-in page reopens the shortcut by its exact name.
 4. Set the link as the `HEALTH_SYNC_SHORTCUT_URL` env var on the deploy, scoped to build time (the pages are generated during the build; the Dockerfile passes it through as a build arg), and redeploy; the setup page's install button appears.
 
+### Publishing an update
+
+An iCloud link is a snapshot. Sharing an edited shortcut gives a **new** link, and every copy already installed keeps running unchanged: nothing is pushed to existing users, and nothing breaks for them as long as the server's responses stay compatible.
+
+1. Edit the shortcut on the iPhone (section 0: Health actions never on the Mac), then go through the device checklist items the change touches.
+2. Publish it as above (steps 1–3) and set the new link as `HEALTH_SYNC_SHORTCUT_URL` (step 4). The old link keeps working, so retire it in the iCloud share settings if the old version must not be installed any more.
+3. Tell existing users to switch over in this order:
+    1. Delete the old **Nutrition MCP Health** (long-press → **Delete**). Installing on top of it gives **Nutrition MCP Health 2**, and connecting fails because the sign-in page reopens the shortcut by its exact name.
+    2. Install the new one from the setup page and connect again. The token was stored inside the old copy and went with it; the server keeps what was already sent across the reconnect, so no day is sent twice.
+    3. Their **Nutrition MCP Health** automations keep pointing at the deleted copy: open each one and pick the new shortcut again.
+
 ---
 
 ## Device checklist
@@ -209,7 +229,7 @@ Run the shortcut from the **Shortcuts** list (the tile or ▶ in the editor), no
 On a real iPhone with the current iOS, before the shortcut is shared:
 
 1. Every **Log Health Sample** type and unit in the table exists, and Shortcuts can be granted write access to each, Caffeine and Fiber included.
-2. `sample_local` (`yyyy-MM-dd HH:mm:ss`) parses through **Get Dates from Input** in the phone's zone, including on a DST-change date.
+2. Samples land on the entry's own date, not on the day the shortcut ran, with the iPhone **Language** set to English and to several other languages (Settings → General → Language & Region; e.g. Ukrainian, Turkish, Portuguese (Brazil), Spanish, Japanese), and once on a DST-change date. Test with a day that is at least 2 days old, so a wrong date can't be mistaken for the right one. If a sample still lands on the run day, the **SampleDate** pill in that **Log Health Sample**'s Date has no fixed format (block A step 7.4). If the date check (step 7.2) fires instead, **Get Dates from Input** itself misread `sample_local` in that language: nothing was logged, but that language needs another way to build the date.
 3. **Run Shortcut** can run `Nutrition MCP Health` from inside itself (Sync now and the claim rely on it). If not, those two branches need their own copy of block A.
 4. **Repeat Item** placed in **Text** becomes JSON, so the ack echoes `values` unchanged. If `/ack` answers `bad_request`, show that Text in an alert to see what was sent.
 5. **Format Date** with custom format `VV` returns the IANA zone name (e.g. `Europe/Kyiv`).
