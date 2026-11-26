@@ -8,6 +8,7 @@ name: CI
 # `bun run format` safe to run: it only ever touches files you actually edited.
 
 on:
+    workflow_dispatch:
     pull_request:
     push:
         branches: ["main"]
